@@ -582,6 +582,109 @@ describe("GenerateText workflow component AI delegation", () => {
   });
 });
 
+describe("GenerateText workflow component and embedded images", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // A 300 KB PNG screenshot, as a synthetic monitor reports one.
+  const screenshot: string = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(300 * 1024 - 8, 0x5a),
+  ]).toString("base64");
+
+  // An incident description with the screenshot in it, placed by a variable.
+  const description: string = `Checkout failed.\n\n![Login](data:image/png;base64,${screenshot})`;
+
+  test("a screenshot in the context is a note, so the input fits its limit", async () => {
+    const mocks: ReturnType<typeof mockSuccessfulExecution> =
+      mockSuccessfulExecution();
+    const fixture: OptionsFixture = makeOptions();
+
+    // Before, this input was refused as larger than the limit.
+    expect(description.length).toBeGreaterThan(
+      MAX_WORKFLOW_AI_INPUT_CHARACTERS,
+    );
+
+    const result: RunReturnType = await new GenerateText().run(
+      {
+        prompt: "Summarize this incident for the status page.",
+        context: { description },
+      },
+      fixture.options,
+    );
+
+    expect(result.executePort?.id).toBe("success");
+
+    const sent: string = (
+      mocks.executeWithLogging.mock.calls[0]![0] as {
+        messages: Array<{ content: string }>;
+      }
+    ).messages[1]!.content;
+
+    expect(sent).toContain(
+      JSON.stringify({
+        description:
+          "Checkout failed.\n\n![Login]([image omitted: PNG, 300 KB])",
+      }),
+    );
+    expect(sent).not.toContain(screenshot.slice(1000, 1064));
+  });
+
+  test("a screenshot in the prompt is a note too, and the run's log says what was left out", async () => {
+    const mocks: ReturnType<typeof mockSuccessfulExecution> =
+      mockSuccessfulExecution();
+    const fixture: OptionsFixture = makeOptions();
+
+    await new GenerateText().run(
+      { prompt: `Describe the failure:\n${description}` },
+      fixture.options,
+    );
+
+    const sentPrompt: string =
+      "Describe the failure:\nCheckout failed.\n\n![Login]([image omitted: PNG, 300 KB])";
+
+    expect(
+      (
+        mocks.executeWithLogging.mock.calls[0]![0] as {
+          messages: Array<{ content: string }>;
+        }
+      ).messages[1]!.content,
+    ).toBe(sentPrompt);
+
+    const logged: Array<string> = fixture.log.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return String(call[0]);
+      },
+    );
+
+    expect(logged).toContain(
+      "Left out 1 embedded image (300 KB): AI reads text, not images.",
+    );
+    // The input counted is what is sent, not the base64.
+    expect(
+      logged.some((line: string): boolean => {
+        return line.startsWith(
+          `Starting AI generation (${sentPrompt.length} input characters`,
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("an input with nothing embedded logs nothing about it", async () => {
+    mockSuccessfulExecution();
+    const fixture: OptionsFixture = makeOptions();
+
+    await new GenerateText().run({ prompt: "hello" }, fixture.options);
+
+    expect(
+      fixture.log.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).startsWith("Left out");
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("GenerateText workflow component failure routing", () => {
   test("routes project AI access failures to error without calling the provider", async () => {
     const accessError: BadDataException = new BadDataException(

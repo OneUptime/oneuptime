@@ -56,6 +56,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
+import PromptText from "../../../../Utils/AI/PromptText";
+import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — incident investigation.
@@ -385,6 +387,8 @@ export default class AIIncidentInvestigationRunner {
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
+    // What the summary left out of the incident's text, for the run to say.
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -414,7 +418,8 @@ export default class AIIncidentInvestigationRunner {
         });
 
       contextSummary =
-        this.buildIncidentSummary(contextData) + priorCasesContext;
+        this.buildIncidentSummary(contextData, promptOmissions) +
+        priorCasesContext;
 
       // Direct cluster access — enrichment only, never a prerequisite.
       try {
@@ -592,6 +597,7 @@ export default class AIIncidentInvestigationRunner {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         incidentId,
         contextSummary,
+        promptOmissions,
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,
@@ -731,9 +737,15 @@ export default class AIIncidentInvestigationRunner {
     });
   }
 
-  // Build a compact incident record to seed the investigation.
-  private static buildIncidentSummary(
+  /*
+   * Build a compact incident record to seed the investigation. It is sent
+   * with every call to the model, so each free-text field goes in through
+   * PromptText.field: embedded images left out, held to a length, and what
+   * was left out added to `omissions`.
+   */
+  public static buildIncidentSummary(
     contextData: IncidentContextData,
+    omissions?: AIPromptOmissions | undefined,
   ): string {
     const { incident, internalNotes } = contextData;
 
@@ -742,7 +754,9 @@ export default class AIIncidentInvestigationRunner {
     lines.push(`Title: ${incident.title || "N/A"}`);
 
     if (incident.description) {
-      lines.push(`Description: ${incident.description}`);
+      lines.push(
+        `Description: ${PromptText.field(incident.description, { omissions })}`,
+      );
     }
 
     lines.push(`Severity: ${incident.incidentSeverity?.name || "N/A"}`);
@@ -780,13 +794,17 @@ export default class AIIncidentInvestigationRunner {
     }
 
     if (incident.rootCause) {
-      lines.push(`Root cause (as recorded so far): ${incident.rootCause}`);
+      lines.push(
+        `Root cause (as recorded so far): ${PromptText.field(incident.rootCause, { omissions })}`,
+      );
     }
 
     const recentNotes: Array<string> = (internalNotes || [])
       .slice(-5)
       .map((note: { note?: string }) => {
-        return note.note ? `- ${note.note}` : "";
+        return note.note
+          ? `- ${PromptText.field(note.note, { omissions })}`
+          : "";
       })
       .filter(Boolean);
 

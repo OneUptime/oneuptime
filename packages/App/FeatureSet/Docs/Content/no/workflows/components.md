@@ -36,7 +36,7 @@ Generer ett tekstsvar ut fra en ledetekst og valgfri JSON-kontekst. Komponenten 
 - **Temperature** — variasjon fra `0` til `1`. Standard er `0.2` for forutsigbar automatikk.
 - **Maximum Output Tokens** — fra `1` til `4096`. Standard er `1024`.
 
-System Instructions, Prompt og serialisert Context er til sammen begrenset til 50 000 tegn. Forespørselen til leverandøren har en maksimal varighet på 60 sekunder og forsøkes én gang. Maksimalt tre AI-forespørsler fra arbeidsflyter kan kjøre samtidig per prosjekt.
+System Instructions, Prompt og serialisert Context er til sammen begrenset til 50 000 tegn. Et bilde innebygd som base64, som et skjermbilde fra en syntetisk monitor i beskrivelsen av en hendelse, erstattes av en kort merknad som `[image omitted: PNG, 340 KB]` før det telles, fordi modellen leser tekst, ikke bilder. Kjøringens logg viser hva som ble utelatt. Forespørselen til leverandøren har en maksimal varighet på 60 sekunder og forsøkes én gang. Maksimalt tre AI-forespørsler fra arbeidsflyter kan kjøre samtidig per prosjekt.
 
 **Outputs**:
 

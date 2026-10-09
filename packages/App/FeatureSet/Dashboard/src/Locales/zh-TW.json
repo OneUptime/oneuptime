@@ -27418,5 +27418,10 @@
   "whsec_…": "whsec_…",
   "{{labels}}, and the report's organization": "{{labels}}，以及報告所屬組織",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "要使用的具體模型名稱或部署名稱（例如，OpenAI 用 gpt-5.1，Anthropic 用 claude-sonnet-5-5，Azure OpenAI 用您的部署名稱，Groq 用 llama-3.3-70b-versatile，Mistral 用 mistral-large-latest）。對於相容 OpenAI 的提供商為必填，且必須與您的伺服器提供的模型一致。",
-  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images": "已省略 {{count}} 張內嵌圖片（{{size}}）：AI 只讀取文字，不讀取圖片",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "已省略 {{count}} 張內嵌圖片（{{size}}）：AI 只讀取文字，不讀取圖片",
+  "Left out {{size}} of encoded data: AI reads text only": "已省略 {{size}} 的編碼資料：AI 只讀取文字",
+  "Shortened {{count}} long texts: {{characters}} characters left out": "已縮短 {{count}} 段長文字：省略了 {{characters}} 個字元",
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "已縮短 {{count}} 段長文字：省略了 {{characters}} 個字元"
 }
