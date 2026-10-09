@@ -5,6 +5,7 @@ import {
 import {
   MAX_NETBIOS_NAME_LENGTH,
   normalizeNetbiosName,
+  stripTrailingPadding,
 } from "../NetworkDiscovery/NetbiosNameUtil";
 import { normalizeReverseDnsName } from "../NetworkDiscovery/ReverseDnsNameUtil";
 import { getShortHostname } from "../NetworkDiscovery/ShortHostnameUtil";
@@ -56,11 +57,14 @@ import { getShortHostname } from "../NetworkDiscovery/ShortHostnameUtil";
  * unique whatever their case, so nothing here can make two names collide that
  * did not already.
  *
- * Pure, and in Common, so the Review dialog, both import paths, the rename of
- * names a later scan improves, and the Inventory all name a device the same
- * way. Every input is `unknown`: these values come out of jsonb and API rows,
- * and "the probe sent a number" has to read as "no name", never as a throw
- * inside a render.
+ * Pure, and in Common, so every place that names a device can call it and
+ * name it the same way: today the Review dialog, both import paths (the
+ * dialog's and the auto-import rules'), the rename of names a later scan
+ * improves, and the probe's "does this host have a name" checks. Anything new
+ * that shows a device's name, rather than the name it was saved under, should
+ * call it too. Every input is `unknown`: these values come out of jsonb and
+ * API rows, and "the probe sent a number" has to read as "no name", never as
+ * a throw inside a render.
  */
 
 /*
@@ -174,29 +178,6 @@ function isAddressLiteral(value: string): boolean {
 }
 
 /*
- * Trailing padding an SNMP agent may leave on a DisplayString: spaces, and
- * NULs from agents that copy a fixed-size buffer. Removed with a manual scan
- * rather than a `/[\s\0]+$/` replace, which backtracks quadratically on a
- * long run of padding followed by one other character; on the server these
- * values are read out of jsonb of any length.
- */
-function stripTrailingPadding(value: string): string {
-  let end: number = value.length;
-
-  while (end > 0) {
-    const character: string = value.charAt(end - 1);
-
-    if (character !== "\u0000" && character.trim() !== "") {
-      break;
-    }
-
-    end--;
-  }
-
-  return value.substring(0, end);
-}
-
-/*
  * Any C0 or C1 control character, DEL included. One left in a name after the
  * padding is gone means the bytes were not a name: it would render as a box,
  * break a slug, and could carry a line break into a log.
@@ -229,6 +210,13 @@ export function normalizeSystemName(value: unknown): string | undefined {
     return undefined;
   }
 
+  /*
+   * Trailing padding first — spaces, and the NULs of an agent that copies a
+   * fixed-size buffer — with the NetBIOS reader's own stripper, which scans
+   * by hand because a regular expression for it backtracks on a long run of
+   * padding, and on the server these values are read out of jsonb of any
+   * length.
+   */
   const candidate: string = stripTrailingPadding(value).trim();
 
   if (!candidate) {

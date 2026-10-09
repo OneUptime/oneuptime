@@ -531,10 +531,15 @@ export default class NetworkDevice extends BaseModel {
    * whose names are left exactly as they are. `discoveredName` is kept after a
    * person renames the device: it stays the record of what discovery found.
    *
-   * Same access as `name`, because the Review dialog imports with the
-   * operator's own permissions and the create hook writes `discoveredName`
-   * beside the name before the column permissions are checked. Left out of
-   * the Terraform configuration the dashboard writes (TerraformSchema
+   * Created with the same access as `name`, because the Review dialog
+   * imports with the operator's own permissions and the create hook writes
+   * `discoveredName` beside the name before the column permissions are
+   * checked. Never UPDATED by anyone but the server: the rename pass writes
+   * both as root, and nothing else needs to. Were they editable, a user could
+   * mark a name they typed as discovered — and a later scan would rename it —
+   * or leave a stale `discoveredName` that the Overview's Name Source row and
+   * the rename pass would read differently. Left out of the Terraform
+   * configuration the dashboard writes (TerraformSchema
    * SERVER_MANAGED_COLUMNS_BY_TABLE): it is the server's record, not a
    * setting.
    */
@@ -557,14 +562,8 @@ export default class NetworkDevice extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditNetworkDevice,
-    ],
+    // Server-managed after create: see above.
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -601,14 +600,8 @@ export default class NetworkDevice extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditNetworkDevice,
-    ],
+    // Server-managed after create: see above.
+    update: [],
   })
   @TableColumn({
     required: false,

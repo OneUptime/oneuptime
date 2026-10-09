@@ -1,11 +1,19 @@
 import { Service as NetworkDeviceServiceType } from "../../../Server/Services/NetworkDeviceService";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource";
 import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { buildNetworkDeviceFromDiscoveredHost } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { SpyInstance } from "jest-mock";
@@ -24,7 +32,10 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
  *     payload said the discovered name was;
  *   - a create without one records neither, so a device made by hand or
  *     through the API is a person's to name;
- *   - a source nobody can read is refused, on create and on update.
+ *   - a source nobody can read is refused, on create and on update, while
+ *     a blank one is no source;
+ *   - after create, only the server writes the pair: the column permissions
+ *     let an operator create a device with it, never update it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -33,6 +44,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const DEVICE_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
+const USER_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
 type DeviceServiceInternals = {
   onBeforeCreate: (
@@ -313,6 +325,192 @@ describe("a source nobody can read is refused", () => {
     expect(result.updateBy.data).not.toHaveProperty("discoveredNameSource");
     expect(result.updateBy.data).not.toHaveProperty("discoveredName");
   });
+});
+
+describe("a blank source is no source", () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    stubProjectDirectory({});
+  });
+
+  test.each([
+    ["empty", ""],
+    ["spaces", "   "],
+    ["a tab and a newline", "\t\n"],
+  ])(
+    "on create (%s): the device is created, with no discovered name",
+    async (_label: string, source: string) => {
+      const { internals } = buildDeviceService();
+
+      const result: OnCreate<NetworkDevice> = await internals.onBeforeCreate(
+        createWith({
+          name: "Register 4",
+          hostname: "10.20.30.44",
+          discoveredName: "Register 4",
+          discoveredNameSource: source,
+        }),
+      );
+
+      expect(created(result)["name"]).toBe("Register 4");
+      expect(created(result)["discoveredName"]).toBeUndefined();
+      expect(created(result)["discoveredNameSource"]).toBeUndefined();
+    },
+  );
+
+  test("on create, a known source with spaces around it is recorded without them", async () => {
+    const { internals } = buildDeviceService();
+
+    const result: OnCreate<NetworkDevice> = await internals.onBeforeCreate(
+      createWith({
+        name: "WB0024KDS04",
+        hostname: "10.16.42.54",
+        discoveredNameSource: " netbios-name ",
+      }),
+    );
+
+    expect(created(result)["discoveredNameSource"]).toBe(
+      DeviceNameSource.NetbiosName,
+    );
+    expect(created(result)["discoveredName"]).toBe("WB0024KDS04");
+  });
+
+  test("on update, a blank source clears it, and a spaced one is trimmed", async () => {
+    const { service, internals } = buildDeviceService();
+    jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+
+    for (const [written, stored] of [
+      ["", null],
+      ["  ", null],
+      [" dns-name ", DeviceNameSource.DnsName],
+    ] as Array<[string, string | null]>) {
+      const result: OnUpdate<NetworkDevice> = await internals.onBeforeUpdate({
+        query: { _id: DEVICE_ID.toString() },
+        data: { discoveredNameSource: written },
+        props: { isRoot: true },
+      } as unknown as UpdateBy<NetworkDevice>);
+
+      expect(
+        (result.updateBy.data as unknown as Record<string, unknown>)[
+          "discoveredNameSource"
+        ],
+      ).toBe(stored);
+    }
+  });
+});
+
+describe("only the server updates the pair: the column permissions", () => {
+  // A user holding one permission in the project, as the API hands props over.
+  function userWith(permission: Permission): DatabaseCommonInteractionProps {
+    const tenantPermission: UserTenantAccessPermission = {
+      projectId: PROJECT_ID,
+      _type: "UserTenantAccessPermission",
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+      ],
+    } as UserTenantAccessPermission;
+
+    return {
+      userId: USER_ID,
+      tenantId: PROJECT_ID,
+      currentPlan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: tenantPermission,
+      },
+    };
+  }
+
+  function deviceWith(fields: Record<string, unknown>): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+
+    for (const [key, value] of Object.entries(fields)) {
+      (device as unknown as Record<string, unknown>)[key] = value;
+    }
+
+    return device;
+  }
+
+  // "allowed", or the column the check refused.
+  function check(
+    fields: Record<string, unknown>,
+    permission: Permission,
+    requestType: DatabaseRequestType,
+  ): string {
+    try {
+      ColumnPermissions.checkDataColumnPermissions(
+        NetworkDevice,
+        deviceWith(fields),
+        userWith(permission),
+        requestType,
+      );
+
+      return "allowed";
+    } catch (err) {
+      if (err instanceof ColumnWriteRefusedException) {
+        return `refused: ${err.columnName}`;
+      }
+
+      throw err;
+    }
+  }
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.CreateNetworkDevice,
+  ])(
+    "%s can import a device with its discovered name and source",
+    (permission: Permission) => {
+      expect(
+        check(
+          {
+            name: "WB0024KDS04",
+            hostname: "10.16.42.54",
+            discoveredName: "WB0024KDS04",
+            discoveredNameSource: DeviceNameSource.NetbiosName,
+          },
+          permission,
+          DatabaseRequestType.Create,
+        ),
+      ).toBe("allowed");
+    },
+  );
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.EditNetworkDevice,
+  ])(
+    "%s can rename a device, but never mark a name as discovered",
+    (permission: Permission) => {
+      expect(
+        check({ name: "Kitchen 4" }, permission, DatabaseRequestType.Update),
+      ).toBe("allowed");
+
+      expect(
+        check(
+          { discoveredNameSource: DeviceNameSource.Address },
+          permission,
+          DatabaseRequestType.Update,
+        ),
+      ).toBe("refused: discoveredNameSource");
+
+      expect(
+        check(
+          { name: "Kitchen 4", discoveredName: "Kitchen 4" },
+          permission,
+          DatabaseRequestType.Update,
+        ),
+      ).toBe("refused: discoveredName");
+    },
+  );
 });
 
 describe("a rename by a person needs nothing from the server to be respected", () => {

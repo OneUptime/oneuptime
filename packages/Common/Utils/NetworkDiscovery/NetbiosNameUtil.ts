@@ -65,8 +65,13 @@ function isTrailingPadding(character: string): boolean {
  * quadratically on a long run of padding followed by one non-padding
  * character, and on the server side this function reads jsonb values of any
  * length — a hostile row must not be able to turn a render into a busy loop.
+ *
+ * Exported because an SNMP agent pads a sysName the same way, with spaces or
+ * with the NULs of a fixed-size buffer, and the naming rule strips it with
+ * this same function (Utils/NetworkDevice/DeviceNameRule.ts,
+ * normalizeSystemName) rather than with a copy of it.
  */
-function stripTrailingPadding(value: string): string {
+export function stripTrailingPadding(value: string): string {
   let end: number = value.length;
 
   while (end > 0 && isTrailingPadding(value.charAt(end - 1))) {

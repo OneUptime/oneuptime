@@ -402,7 +402,8 @@ function isPseudoName(rawName: string): boolean {
  * The first usable unique <00> (workstation) name wins; failing that, the
  * first usable unique <20> (file server) name. "Usable" means it survives
  * normalizeNetbiosName, so a junk first entry cannot hide a good second one,
- * and what is returned is already the normalised, lower-cased form.
+ * and what is returned is already the normalised form — in the case the host
+ * reported it, which for Windows is upper case (OneUptime issue #4518).
  *
  * ACT is not required. Windows and Samba set it on every live name, but a
  * stack that leaves it clear is still answering with its own registered name,

@@ -2193,40 +2193,6 @@ export default class SubnetScanner {
   }
 
   /*
-   * How many distinct addresses the NetBIOS lookup would be handed: every
-   * host with no usable sysName, named by reverse DNS or not (issue #4518).
-   * What a scan that asked for NetBIOS names on a global probe — which never
-   * sends them — went without. NEVER throws.
-   */
-  public static countNetbiosCandidateAddresses(
-    hosts: Array<DiscoveredHost>,
-  ): number {
-    if (!Array.isArray(hosts)) {
-      return 0;
-    }
-
-    const addresses: Set<string> = new Set<string>();
-
-    try {
-      for (const host of hosts) {
-        if (
-          host &&
-          typeof host === "object" &&
-          !SubnetScanner.hasSystemName(host)
-        ) {
-          addresses.add(host.ipAddress);
-        }
-      }
-    } catch (err) {
-      logger.warn(
-        `Discovery could not count the hosts NetBIOS would have asked. ${SubnetScanner.describeEnrichmentError(err)}`,
-      );
-    }
-
-    return addresses.size;
-  }
-
-  /*
    * A resolution's per-address status table, or undefined when it is not a
    * Map (OneUptime issue #3916). The naming seams are public and spied on,
    * and a double that hands back a plain object — or anything else with a

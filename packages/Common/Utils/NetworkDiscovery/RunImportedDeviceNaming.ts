@@ -164,8 +164,120 @@ export function toEpochMilliseconds(value: unknown): number | undefined {
   return undefined;
 }
 
-function trimmedString(value: unknown): string {
+/*
+ * A row's text field, trimmed, or "" for anything that is not text — which is
+ * how both rename planners (this one and DiscoveredNameUpgrade.ts) read every
+ * field of a device row and every id they are handed.
+ */
+export function readTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * The names a rename of the device at `host`'s address tries, in order: the
+ * name a fresh import of the host would get under the scan's naming choice,
+ * then the import's own address-suffixed collision fallback — the same two
+ * names, from the same builder, that the import itself tries, so a renamed
+ * device is indistinguishable from one imported after the name was known,
+ * short-name choice included.
+ *
+ * Trimmed, blanks dropped, each listed once whatever its case. `exceptName`,
+ * when given, is left out as well (compared without case): the device's own
+ * current name, for a planner to which a rename that changes only the case is
+ * no rename at all.
+ */
+export function buildRenameCandidateNames(data: {
+  host: DiscoveredNetworkDevice;
+  scan: DiscoveredHostNaming;
+  exceptName?: string | undefined;
+}): Array<string> {
+  const candidateNames: Array<string> = [];
+  const exceptName: string = readTrimmedString(data.exceptName).toLowerCase();
+
+  for (const candidate of [
+    buildDeviceName(data.host, data.scan),
+    buildFallbackDeviceName(data.host, data.scan),
+  ]) {
+    const trimmed: string = candidate.trim();
+
+    if (!trimmed || (exceptName && trimmed.toLowerCase() === exceptName)) {
+      continue;
+    }
+
+    const alreadyListed: boolean = candidateNames.some(
+      (listed: string): boolean => {
+        return listed.toLowerCase() === trimmed.toLowerCase();
+      },
+    );
+
+    if (!alreadyListed) {
+      candidateNames.push(trimmed);
+    }
+  }
+
+  return candidateNames;
+}
+
+/**
+ * The PTR name a rename stores as the device's DNS Name — the value the
+ * builder sets at create, clamped the same way — or undefined when the
+ * device already has a DNS Name or the host has no usable PTR name.
+ *
+ * Filled only, never overwritten: a device that already has a DNS name got it
+ * from a PTR record or from a person, and a later answer is not a reason to
+ * replace it. The rename happens either way.
+ */
+export function getDnsNameToFill(
+  currentDnsName: unknown,
+  host: DiscoveredNetworkDevice,
+): string | undefined {
+  if (readTrimmedString(currentDnsName)) {
+    return undefined;
+  }
+
+  const dnsName: string | undefined = normalizeReverseDnsName(host.dnsHostname);
+
+  if (!dnsName) {
+    return undefined;
+  }
+
+  return dnsName.length > MAX_DEVICE_DNS_NAME_LENGTH
+    ? dnsName.substring(0, MAX_DEVICE_DNS_NAME_LENGTH)
+    : dnsName;
+}
+
+/*
+ * The fields renames are ordered by. `createdAt` is epoch milliseconds.
+ */
+export interface RenameOrderKey {
+  createdAt: number;
+  hostname: string;
+  deviceId: string;
+}
+
+/**
+ * The order both planners hand their renames over in: oldest device first,
+ * then by address, then by id. When two devices would take the same name,
+ * the one imported first gets the plain name, and the outcome never depends
+ * on the order the database returned the rows in.
+ */
+export function compareRenameOrder(
+  left: RenameOrderKey,
+  right: RenameOrderKey,
+): number {
+  if (left.createdAt !== right.createdAt) {
+    return left.createdAt - right.createdAt;
+  }
+
+  if (left.hostname !== right.hostname) {
+    return left.hostname < right.hostname ? -1 : 1;
+  }
+
+  if (left.deviceId !== right.deviceId) {
+    return left.deviceId < right.deviceId ? -1 : 1;
+  }
+
+  return 0;
 }
 
 /**
@@ -238,6 +350,13 @@ export function planRunImportedDeviceRenames(data: {
   scan: DiscoveredHostNaming;
   runStartedAt: Date | string | null | undefined;
   runCompletedAt: Date | string | null | undefined;
+  /*
+   * getNamedHostsByAddress(hosts, scan), when the caller has already read it
+   * — the engine reads it once for its device lookup, and reading a large
+   * result again here would name every host twice. `hosts` is not read when
+   * this is given.
+   */
+  namedHosts?: Map<string, DiscoveredNetworkDevice> | undefined;
 }): Array<RunImportedDeviceRename> {
   // Condition (d) needs both ends of the run; without them, nothing.
   const runStartedAt: number | undefined = toEpochMilliseconds(
@@ -248,18 +367,19 @@ export function planRunImportedDeviceRenames(data: {
     data.runCompletedAt,
   );
 
-  const projectId: string = trimmedString(data.projectId);
+  const projectId: string = readTrimmedString(data.projectId);
 
   if (
     runStartedAt === undefined ||
     runCompletedAt === undefined ||
-    !projectId
+    !projectId ||
+    !Array.isArray(data.devices)
   ) {
     return [];
   }
 
   const namedHosts: Map<string, DiscoveredNetworkDevice> =
-    getNamedHostsByAddress(data.hosts, data.scan);
+    data.namedHosts ?? getNamedHostsByAddress(data.hosts, data.scan);
 
   if (namedHosts.size === 0) {
     return [];
@@ -268,6 +388,7 @@ export function planRunImportedDeviceRenames(data: {
   const eligible: Array<{
     row: RunImportedDeviceRow;
     host: DiscoveredNetworkDevice;
+    deviceId: string;
     hostname: string;
     name: string;
     createdAt: number;
@@ -280,7 +401,7 @@ export function planRunImportedDeviceRenames(data: {
       continue;
     }
 
-    const deviceId: string = trimmedString(row.deviceId);
+    const deviceId: string = readTrimmedString(row.deviceId);
 
     // One plan per device, however many times a caller's reads returned it.
     if (!deviceId || seenDeviceIds.has(deviceId)) {
@@ -288,7 +409,7 @@ export function planRunImportedDeviceRenames(data: {
     }
 
     // (a) The scan's project, and only the scan's project.
-    if (trimmedString(row.projectId) !== projectId) {
+    if (readTrimmedString(row.projectId) !== projectId) {
       continue;
     }
 
@@ -302,7 +423,7 @@ export function planRunImportedDeviceRenames(data: {
     }
 
     // (b) An address this result reports — and reports a name for, see (e).
-    const hostname: string = trimmedString(row.hostname);
+    const hostname: string = readTrimmedString(row.hostname);
     const host: DiscoveredNetworkDevice | undefined = hostname
       ? namedHosts.get(hostname)
       : undefined;
@@ -312,7 +433,7 @@ export function planRunImportedDeviceRenames(data: {
     }
 
     // (c) Still named by that bare address.
-    const name: string = trimmedString(row.name);
+    const name: string = readTrimmedString(row.name);
 
     if (!name || name.toLowerCase() !== hostname.toLowerCase()) {
       continue;
@@ -337,69 +458,33 @@ export function planRunImportedDeviceRenames(data: {
     eligible.push({
       row: row,
       host: host,
+      deviceId: deviceId,
       hostname: hostname,
       name: name,
       createdAt: createdAt,
     });
   }
 
-  eligible.sort(
-    (
-      left: { createdAt: number; hostname: string; row: RunImportedDeviceRow },
-      right: { createdAt: number; hostname: string; row: RunImportedDeviceRow },
-    ): number => {
-      if (left.createdAt !== right.createdAt) {
-        return left.createdAt - right.createdAt;
-      }
-
-      if (left.hostname !== right.hostname) {
-        return left.hostname < right.hostname ? -1 : 1;
-      }
-
-      return left.row.deviceId < right.row.deviceId ? -1 : 1;
-    },
-  );
+  eligible.sort(compareRenameOrder);
 
   return eligible.map(
     (entry: {
       row: RunImportedDeviceRow;
       host: DiscoveredNetworkDevice;
+      deviceId: string;
       hostname: string;
       name: string;
     }): RunImportedDeviceRename => {
-      /*
-       * The same two names, from the same builder, that the import itself
-       * would have tried — so a renamed device is indistinguishable from one
-       * imported after the name was known, short-name choice included.
-       */
-      const candidateNames: Array<string> = [];
-
-      for (const candidate of [
-        buildDeviceName(entry.host, data.scan),
-        buildFallbackDeviceName(entry.host, data.scan),
-      ]) {
-        const trimmed: string = candidate.trim();
-
-        if (!trimmed || trimmed.toLowerCase() === entry.name.toLowerCase()) {
-          continue;
-        }
-
-        const alreadyListed: boolean = candidateNames.some(
-          (listed: string): boolean => {
-            return listed.toLowerCase() === trimmed.toLowerCase();
-          },
-        );
-
-        if (!alreadyListed) {
-          candidateNames.push(trimmed);
-        }
-      }
-
       const plan: RunImportedDeviceRename = {
-        deviceId: trimmedString(entry.row.deviceId),
+        deviceId: entry.deviceId,
         hostname: entry.hostname,
         fromName: entry.name,
-        candidateNames: candidateNames,
+        // Its current name is its address: never a name to rename it to.
+        candidateNames: buildRenameCandidateNames({
+          host: entry.host,
+          scan: data.scan,
+          exceptName: entry.name,
+        }),
       };
 
       const discoveredNameSource: DeviceNameSource | undefined =
@@ -409,22 +494,13 @@ export function planRunImportedDeviceRenames(data: {
         plan.discoveredNameSource = discoveredNameSource;
       }
 
-      /*
-       * Filled only, never overwritten: a device that already has a DNS name
-       * got it from a PTR record (or from an operator), and a later answer is
-       * not a reason to replace it. The rename happens either way.
-       */
-      if (!trimmedString(entry.row.dnsName)) {
-        const dnsName: string | undefined = normalizeReverseDnsName(
-          entry.host.dnsHostname,
-        );
+      const dnsName: string | undefined = getDnsNameToFill(
+        entry.row.dnsName,
+        entry.host,
+      );
 
-        if (dnsName) {
-          plan.dnsName =
-            dnsName.length > MAX_DEVICE_DNS_NAME_LENGTH
-              ? dnsName.substring(0, MAX_DEVICE_DNS_NAME_LENGTH)
-              : dnsName;
-        }
+      if (dnsName) {
+        plan.dnsName = dnsName;
       }
 
       return plan;

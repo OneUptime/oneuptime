@@ -11,10 +11,13 @@
  *     device imported before #4518, has neither — and that is what keeps an
  *     upgrade from renaming anything: NULL reads as "discovery did not name
  *     this device".
- *   - THE SAME ACCESS AS `name`. The Review dialog imports with the
- *     operator's own permissions, and the create hook writes discoveredName
- *     beside the name before column permissions are checked; a narrower rule
- *     would refuse the operator's import.
+ *   - CREATED AND READ LIKE `name`, UPDATED BY NOBODY. The Review dialog
+ *     imports with the operator's own permissions, and the create hook
+ *     writes discoveredName beside the name before column permissions are
+ *     checked; a narrower create rule would refuse the operator's import.
+ *     After create only the server writes them (the rename pass, as root):
+ *     a user who could would be able to mark a name they typed as
+ *     discovered, and a later scan would rename it.
  *   - LEFT OUT OF THE TERRAFORM CONFIGURATION the dashboard writes: it is the
  *     server's record, not a setting a configuration should pin.
  *   - THE MIGRATION adds exactly these two nullable columns, and drops them.
@@ -103,8 +106,19 @@ describe.each([NAME_COLUMN, SOURCE_COLUMN])(
       ).toBeUndefined();
     });
 
-    test("is governed exactly like the device's name", () => {
-      expect(accessControlFor(column)).toEqual(accessControlFor("name"));
+    test("is created and read with exactly the device name's permissions", () => {
+      const access: ColumnAccessControl | null = accessControlFor(column);
+      const nameAccess: ColumnAccessControl | null = accessControlFor("name");
+
+      expect(nameAccess?.create.length).toBeGreaterThan(0);
+      expect(access?.create).toEqual(nameAccess?.create);
+      expect(access?.read).toEqual(nameAccess?.read);
+    });
+
+    test("is never updated by a user, however much of the device they may edit", () => {
+      expect(accessControlFor(column)?.update).toEqual([]);
+      // ...while the name beside it stays editable.
+      expect(accessControlFor("name")?.update.length).toBeGreaterThan(0);
     });
 
     test("is readable in relation queries, like the name beside it", () => {

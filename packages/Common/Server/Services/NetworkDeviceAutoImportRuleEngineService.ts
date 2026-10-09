@@ -43,9 +43,11 @@ import {
   planRunImportedDeviceRenames,
 } from "../../Utils/NetworkDiscovery/RunImportedDeviceNaming";
 import {
+  BestNamedHost,
   DiscoveredNameDeviceRow,
   IMPROVABLE_DEVICE_NAME_SOURCES,
-  getImprovableHostAddresses,
+  getBestNamedHostsByAddress,
+  listImprovableAddresses,
   planDiscoveredNameUpgrades,
 } from "../../Utils/NetworkDiscovery/DiscoveredNameUpgrade";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
@@ -53,6 +55,8 @@ import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/Net
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Query from "../Types/Database/Query";
+import Select from "../Types/Database/Select";
 import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -1127,9 +1131,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    *     its host from a strictly better source: its own name (SNMP, then
    *     NetBIOS) over its DNS name, either over its address. Any later scan,
    *     not only the run that imported it — a NetBIOS reply lost on one run is
-   *     answered on the next. A name a person typed never qualifies: typing
-   *     it is what makes it differ from the discovered name. Decided by
-   *     planDiscoveredNameUpgrades, whose header explains each condition.
+   *     answered on the next — as long as the result still reports the DNS
+   *     name the device has, so a DHCP lease that moved to another machine
+   *     does not hand the device that machine's name. A name a person typed
+   *     never qualifies: typing it is what makes it differ from the
+   *     discovered name. Decided by planDiscoveredNameUpgrades, whose header
+   *     explains each condition.
    *
    *   - A device that records nothing — imported mid-run by an older
    *     dashboard or engine — still named by its bare address, created during
@@ -1191,15 +1198,28 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     } as LogAttributes;
 
     try {
+      /*
+       * The two planners read different devices (one those that record a
+       * source, the other those that do not) and share nothing but the scan,
+       * so their lookups run side by side. Upgrades go first in the loop.
+       */
+      const [upgradePlans, runImportedPlans]: [
+        Array<DiscoveredDeviceRenamePlan>,
+        Array<DiscoveredDeviceRenamePlan>,
+      ] = await Promise.all([
+        this.planDiscoveredNameUpgradesForScan({
+          scan: scan,
+          projectId: projectId,
+        }),
+        this.planRunImportedDeviceRenamesForScan({
+          scan: scan,
+          projectId: projectId,
+        }),
+      ]);
+
       const plans: Array<DiscoveredDeviceRenamePlan> = [
-        ...(await this.planDiscoveredNameUpgradesForScan({
-          scan: scan,
-          projectId: projectId,
-        })),
-        ...(await this.planRunImportedDeviceRenamesForScan({
-          scan: scan,
-          projectId: projectId,
-        })),
+        ...upgradePlans,
+        ...runImportedPlans,
       ];
 
       // Lower-cased names this pass has already given to a device.
@@ -1305,30 +1325,22 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     scan: NetworkDeviceDiscoveryScan;
     projectId: ObjectID;
   }): Promise<Array<DiscoveredDeviceRenamePlan>> {
-    const addresses: Array<string> = getImprovableHostAddresses(
+    // Read once, for the lookup and for the plan.
+    const bestHosts: Map<string, BestNamedHost> = getBestNamedHostsByAddress(
       data.scan.discoveredDevices,
     );
+
+    const addresses: Array<string> = listImprovableAddresses(bestHosts);
 
     if (addresses.length === 0) {
       return [];
     }
 
-    const rows: Array<DiscoveredNameDeviceRow> = [];
-
-    for (
-      let offset: number = 0;
-      offset < addresses.length;
-      offset += RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
-    ) {
-      const chunk: Array<string> = addresses.slice(
-        offset,
-        offset + RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
-      );
-
-      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+    const rows: Array<DiscoveredNameDeviceRow> =
+      await this.readDevicesAtAddresses({
+        projectId: data.projectId,
+        addresses: addresses,
         query: {
-          projectId: data.projectId,
-          hostname: QueryHelper.any(chunk),
           discoveredNameSource: QueryHelper.any([
             ...IMPROVABLE_DEVICE_NAME_SOURCES,
           ]),
@@ -1343,6 +1355,48 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           discoveredNameSource: true,
           createdAt: true,
         },
+      });
+
+    return planDiscoveredNameUpgrades({
+      projectId: data.projectId.toString(),
+      hosts: data.scan.discoveredDevices,
+      bestHosts: bestHosts,
+      devices: rows,
+      scan: data.scan,
+    });
+  }
+
+  /*
+   * The project's devices at these addresses that also match `query`, read
+   * with `select` in chunks of RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
+   * addresses, as the rows both rename planners read. A column left out of
+   * `select` arrives undefined, which both planners read as "do not rename".
+   */
+  private async readDevicesAtAddresses(data: {
+    projectId: ObjectID;
+    addresses: Array<string>;
+    query: Query<NetworkDevice>;
+    select: Select<NetworkDevice>;
+  }): Promise<Array<DiscoveredNameDeviceRow>> {
+    const rows: Array<DiscoveredNameDeviceRow> = [];
+
+    for (
+      let offset: number = 0;
+      offset < data.addresses.length;
+      offset += RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = data.addresses.slice(
+        offset,
+        offset + RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
+      );
+
+      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+        query: {
+          ...data.query,
+          projectId: data.projectId,
+          hostname: QueryHelper.any(chunk),
+        },
+        select: data.select,
         sort: {},
         limit: LIMIT_MAX,
         skip: 0,
@@ -1367,12 +1421,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       }
     }
 
-    return planDiscoveredNameUpgrades({
-      projectId: data.projectId.toString(),
-      hosts: data.scan.discoveredDevices,
-      devices: rows,
-      scan: data.scan,
-    });
+    return rows;
   }
 
   /*
@@ -1396,30 +1445,19 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return [];
     }
 
-    const namedHostAddresses: Array<string> = Array.from(
-      getNamedHostsByAddress(scan.discoveredDevices, scan).keys(),
-    );
+    // Read once, for the lookup and for the plan.
+    const namedHosts: Map<string, DiscoveredNetworkDevice> =
+      getNamedHostsByAddress(scan.discoveredDevices, scan);
 
-    if (namedHostAddresses.length === 0) {
+    if (namedHosts.size === 0) {
       return [];
     }
 
-    const rows: Array<RunImportedDeviceRow> = [];
-
-    for (
-      let offset: number = 0;
-      offset < namedHostAddresses.length;
-      offset += RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
-    ) {
-      const chunk: Array<string> = namedHostAddresses.slice(
-        offset,
-        offset + RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
-      );
-
-      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+    const rows: Array<RunImportedDeviceRow> = await this.readDevicesAtAddresses(
+      {
+        projectId: data.projectId,
+        addresses: Array.from(namedHosts.keys()),
         query: {
-          projectId: data.projectId,
-          hostname: QueryHelper.any(chunk),
           /*
            * Condition (d) in the query too, so an established estate
            * returns no rows here rather than every device the scan
@@ -1437,32 +1475,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           // A device that records it belongs to the upgrade planner.
           discoveredNameSource: true,
         },
-        sort: {},
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
-
-      for (const device of devices) {
-        if (!device.id) {
-          continue;
-        }
-
-        rows.push({
-          deviceId: device.id.toString(),
-          projectId: device.projectId?.toString(),
-          name: device.name,
-          hostname: device.hostname,
-          dnsName: device.dnsName,
-          createdAt: device.createdAt,
-          discoveredNameSource: device.discoveredNameSource,
-        });
-      }
-    }
+      },
+    );
 
     return planRunImportedDeviceRenames({
       projectId: data.projectId.toString(),
       hosts: scan.discoveredDevices,
+      namedHosts: namedHosts,
       devices: rows,
       scan: scan,
       runStartedAt: runStartedAt,

@@ -1,9 +1,12 @@
 import {
+  BestNamedHost,
   DiscoveredNameDeviceRow,
   DiscoveredNameUpgrade,
   IMPROVABLE_DEVICE_NAME_SOURCES,
   getBestNamedHostsByAddress,
   getImprovableHostAddresses,
+  isHostStillTheDevice,
+  listImprovableAddresses,
   planDiscoveredNameUpgrades,
 } from "../../../Utils/NetworkDiscovery/DiscoveredNameUpgrade";
 import {
@@ -24,7 +27,10 @@ import { describe, expect, test } from "@jest/globals";
  *   (a) the scan's project only;
  *   (b) the device's hostname is an address this result reports;
  *   (c) the device is still called exactly what discovery named it;
- *   (d) the result names the host from a strictly better source.
+ *   (d) the result names the host from a strictly better source;
+ *   (e) nothing says the address now belongs to another machine: a device
+ *       with a DNS name is renamed only by a result that reports that same
+ *       PTR name for its address.
  */
 
 const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -282,6 +288,244 @@ describe("planDiscoveredNameUpgrades", () => {
     });
   });
 
+  describe("(e) nothing says the address now belongs to another machine", () => {
+    // A printer imported under its DNS name, on a DHCP range.
+    const PRINTER_PTR: string = "printer-3f.corp.example.com";
+
+    function printerRow(
+      overrides: Partial<DiscoveredNameDeviceRow> = {},
+    ): DiscoveredNameDeviceRow {
+      return row({
+        name: PRINTER_PTR,
+        discoveredName: PRINTER_PTR,
+        dnsName: PRINTER_PTR,
+        ...overrides,
+      });
+    }
+
+    test("never renames a device after the machine that took its address over: the PTR name changed", () => {
+      /*
+       * The lease moved to a laptop. Its NetBIOS name is a better SOURCE
+       * than the printer's DNS name, but it is the laptop's name.
+       */
+      expect(
+        plan({
+          hosts: [
+            host({
+              dnsHostname: "laptop-xyz.corp.example.com",
+              netbiosName: "LAPTOP-XYZ",
+            }),
+          ],
+          devices: [printerRow()],
+        }),
+      ).toEqual([]);
+    });
+
+    test("never renames a device with a DNS name on a result with no PTR name for its address", () => {
+      expect(
+        plan({
+          hosts: [host({ dnsHostname: undefined, netbiosName: "PRINTER-3F" })],
+          devices: [printerRow()],
+        }),
+      ).toEqual([]);
+
+      // A PTR answer that is not a usable name is no PTR name either.
+      expect(
+        plan({
+          hosts: [
+            host({
+              dnsHostname: "54.42.16.10.in-addr.arpa",
+              netbiosName: "PRINTER-3F",
+            }),
+          ],
+          devices: [printerRow()],
+        }),
+      ).toEqual([]);
+    });
+
+    test("renames it once a result reports the same PTR name again", () => {
+      expect(
+        plan({
+          hosts: [
+            host({ dnsHostname: PRINTER_PTR, netbiosName: "PRINTER-3F" }),
+          ],
+          devices: [printerRow()],
+        })[0]?.candidateNames,
+      ).toEqual(["PRINTER-3F", `PRINTER-3F (${ADDRESS})`]);
+    });
+
+    test("a reverse-DNS lookup that timed out never renames a device to the NetBIOS stump of its own DNS name", () => {
+      /*
+       * Imported as its DNS name because NetBIOS answered with the first
+       * fifteen characters of it. A later scan whose PTR lookup timed out
+       * has nothing to compare the stump with, and the rule alone would
+       * name the host by it; (e) keeps the device's name.
+       */
+      const fullName: string = "wb-0024-kitchen-display-03.wbhq.com";
+      const stump: string = "WB-0024-KITCHEN";
+      const device: DiscoveredNameDeviceRow = row({
+        name: fullName,
+        discoveredName: fullName,
+        dnsName: fullName,
+      });
+
+      expect(
+        plan({
+          hosts: [host({ dnsHostname: undefined, netbiosName: stump })],
+          devices: [device],
+        }),
+      ).toEqual([]);
+
+      // And a scan that does carry the PTR name names the host by it: no better.
+      expect(
+        plan({
+          hosts: [host({ dnsHostname: fullName, netbiosName: stump })],
+          devices: [device],
+        }),
+      ).toEqual([]);
+    });
+
+    test("compares DNS names without case, surrounding spaces or the root dot", () => {
+      for (const reported of [
+        "PRINTER-3F.CORP.EXAMPLE.COM",
+        "printer-3f.corp.example.com.",
+        "  Printer-3F.Corp.Example.Com  ",
+      ]) {
+        expect(
+          plan({
+            hosts: [host({ dnsHostname: reported, netbiosName: "PRINTER-3F" })],
+            devices: [printerRow()],
+          }),
+        ).toHaveLength(1);
+      }
+
+      expect(
+        plan({
+          hosts: [
+            host({ dnsHostname: PRINTER_PTR, netbiosName: "PRINTER-3F" }),
+          ],
+          devices: [printerRow({ dnsName: " PRINTER-3F.corp.example.com. " })],
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("a device whose DNS Name was cleared is held to the DNS name it was named by", () => {
+      const cleared: DiscoveredNameDeviceRow = printerRow({ dnsName: null });
+
+      expect(
+        plan({
+          hosts: [
+            host({
+              dnsHostname: "laptop-xyz.corp.example.com",
+              netbiosName: "LAPTOP-XYZ",
+            }),
+          ],
+          devices: [cleared],
+        }),
+      ).toEqual([]);
+
+      const renamed: DiscoveredNameUpgrade | undefined = plan({
+        hosts: [host({ dnsHostname: PRINTER_PTR, netbiosName: "PRINTER-3F" })],
+        devices: [cleared],
+      })[0];
+
+      expect(renamed?.candidateNames[0]).toBe("PRINTER-3F");
+      // And its DNS Name is filled again, as at import.
+      expect(renamed?.dnsName).toBe(PRINTER_PTR);
+    });
+
+    test("a short (first-label) name is compared with the PTR name's first label", () => {
+      const shortRow: DiscoveredNameDeviceRow = printerRow({
+        name: "printer-3f",
+        discoveredName: "printer-3f",
+        dnsName: undefined,
+      });
+
+      expect(
+        plan({
+          hosts: [
+            host({ dnsHostname: PRINTER_PTR, netbiosName: "PRINTER-3F" }),
+          ],
+          devices: [shortRow],
+          scan: SHORT_NAMES,
+        })[0]?.candidateNames[0],
+      ).toBe("PRINTER-3F");
+
+      expect(
+        plan({
+          hosts: [
+            host({
+              dnsHostname: "laptop-xyz.corp.example.com",
+              netbiosName: "LAPTOP-XYZ",
+            }),
+          ],
+          devices: [shortRow],
+          scan: SHORT_NAMES,
+        }),
+      ).toEqual([]);
+
+      // A one-label DNS Name a person typed reads the same way.
+      expect(
+        plan({
+          hosts: [
+            host({ dnsHostname: PRINTER_PTR, netbiosName: "PRINTER-3F" }),
+          ],
+          devices: [printerRow({ dnsName: "printer-3f" })],
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("a NetBIOS-named device with a DNS Name takes its SNMP name only while the PTR name still matches", () => {
+      const netbiosRow: DiscoveredNameDeviceRow = row({
+        name: NETBIOS_NAME,
+        discoveredName: NETBIOS_NAME,
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+        dnsName: PTR_NAME,
+      });
+
+      expect(
+        plan({
+          hosts: [
+            host({
+              sysName: "kds04-snmp",
+              snmpReachable: true,
+              dnsHostname: undefined,
+            }),
+          ],
+          devices: [netbiosRow],
+        }),
+      ).toEqual([]);
+
+      expect(
+        plan({
+          hosts: [host({ sysName: "kds04-snmp", snmpReachable: true })],
+          devices: [netbiosRow],
+        })[0]?.discoveredNameSource,
+      ).toBe(DeviceNameSource.SystemName);
+    });
+
+    test("a device named by its address has no DNS name to compare, and takes what the result finds there", () => {
+      expect(
+        plan({
+          hosts: [
+            host({
+              dnsHostname: "laptop-xyz.corp.example.com",
+              netbiosName: "LAPTOP-XYZ",
+            }),
+          ],
+          devices: [
+            row({
+              name: ADDRESS,
+              discoveredName: ADDRESS,
+              discoveredNameSource: DeviceNameSource.Address,
+              dnsName: undefined,
+            }),
+          ],
+        })[0]?.candidateNames[0],
+      ).toBe("LAPTOP-XYZ");
+    });
+  });
+
   describe("the candidate names", () => {
     test("include the device's own name when only its case changes, so the rename still goes through", () => {
       /*
@@ -303,6 +547,7 @@ describe("planDiscoveredNameUpgrades", () => {
               hostname: "10.0.0.42",
               name: "ws-0042",
               discoveredName: "ws-0042",
+              dnsName: "ws-0042.corp.example.com",
             }),
           ],
           scan: SHORT_NAMES,
@@ -338,19 +583,39 @@ describe("planDiscoveredNameUpgrades", () => {
       );
     });
 
-    test("is never overwritten", () => {
-      expect(
-        plan({ devices: [row({ dnsName: "old.wbhq.com" })] })[0],
-      ).not.toHaveProperty("dnsName");
+    test("is never overwritten, even by another spelling of the same name", () => {
+      const upgrade: DiscoveredNameUpgrade | undefined = plan({
+        devices: [row({ dnsName: "WB-0024-KDS04.WBHQ.COM." })],
+      })[0];
+
+      // Renamed: the result still reports that DNS name, see (e)...
+      expect(upgrade?.discoveredNameSource).toBe(DeviceNameSource.NetbiosName);
+      // ...and the DNS Name the device has is left as it is.
+      expect(upgrade).not.toHaveProperty("dnsName");
     });
 
     test("is not filled from an unusable PTR answer", () => {
+      // A device named by its address: nothing for (e) to compare.
       expect(
         plan({
           hosts: [host({ dnsHostname: "54.42.16.10.in-addr.arpa" })],
-          devices: [row({ dnsName: undefined })],
+          devices: [
+            row({
+              name: ADDRESS,
+              discoveredName: ADDRESS,
+              discoveredNameSource: DeviceNameSource.Address,
+              dnsName: undefined,
+            }),
+          ],
         })[0],
-      ).not.toHaveProperty("dnsName");
+      ).toEqual({
+        deviceId: "device-1",
+        hostname: ADDRESS,
+        fromName: ADDRESS,
+        fromSource: DeviceNameSource.Address,
+        candidateNames: [NETBIOS_NAME, `${NETBIOS_NAME} (${ADDRESS})`],
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      });
     });
 
     test("is clamped to the column's DNS-name ceiling", () => {
@@ -365,9 +630,17 @@ describe("planDiscoveredNameUpgrades", () => {
 
       const upgrade: DiscoveredNameUpgrade | undefined = plan({
         hosts: [host({ dnsHostname: longName })],
-        devices: [row({ dnsName: undefined })],
+        devices: [
+          row({
+            name: ADDRESS,
+            discoveredName: ADDRESS,
+            discoveredNameSource: DeviceNameSource.Address,
+            dnsName: undefined,
+          }),
+        ],
       })[0];
 
+      expect(upgrade?.dnsName).toBeDefined();
       expect(upgrade?.dnsName?.length).toBeLessThanOrEqual(
         MAX_DEVICE_DNS_NAME_LENGTH,
       );
@@ -426,6 +699,138 @@ describe("planDiscoveredNameUpgrades", () => {
         })[0]?.discoveredNameSource,
       ).toBe(DeviceNameSource.NetbiosName);
     });
+  });
+});
+
+describe("planDiscoveredNameUpgrades with the result already read", () => {
+  test("plans from the map it is handed, without reading the hosts again", () => {
+    const bestHosts: Map<string, BestNamedHost> = getBestNamedHostsByAddress([
+      host(),
+    ]);
+
+    expect(
+      planDiscoveredNameUpgrades({
+        projectId: PROJECT_ID,
+        // Never read when the map is given.
+        hosts: "not a host list",
+        bestHosts: bestHosts,
+        devices: [row()],
+        scan: FULL_NAMES,
+      }),
+    ).toEqual(plan());
+  });
+
+  test("an empty map plans nothing", () => {
+    expect(
+      planDiscoveredNameUpgrades({
+        projectId: PROJECT_ID,
+        hosts: [host()],
+        bestHosts: new Map<string, BestNamedHost>(),
+        devices: [row()],
+        scan: FULL_NAMES,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a device list that is not a list plans nothing, and never throws", () => {
+    expect(
+      planDiscoveredNameUpgrades({
+        projectId: PROJECT_ID,
+        hosts: [host()],
+        devices: "rows" as unknown as Array<DiscoveredNameDeviceRow>,
+        scan: FULL_NAMES,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("isHostStillTheDevice", () => {
+  test("is true with no DNS name to compare, whatever the result reports", () => {
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: undefined }),
+        host({ dnsHostname: undefined }),
+        DeviceNameSource.Address,
+      ),
+    ).toBe(true);
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: "   ", discoveredName: ADDRESS }),
+        host({ dnsHostname: "anything.example.com" }),
+        DeviceNameSource.Address,
+      ),
+    ).toBe(true);
+  });
+
+  test("reads the discovered name as the DNS name only for a device named by DNS", () => {
+    // Named by NetBIOS, no DNS Name: the NetBIOS name is not a DNS name.
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: undefined, discoveredName: NETBIOS_NAME }),
+        host({ dnsHostname: undefined }),
+        DeviceNameSource.NetbiosName,
+      ),
+    ).toBe(true);
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: undefined, discoveredName: PTR_NAME }),
+        host({ dnsHostname: undefined }),
+        DeviceNameSource.DnsName,
+      ),
+    ).toBe(false);
+  });
+
+  test("is false for a PTR value that is not text, and never throws", () => {
+    for (const value of [42, {}, [], true]) {
+      expect(
+        isHostStillTheDevice(
+          row(),
+          host({ dnsHostname: value as unknown as string }),
+          DeviceNameSource.DnsName,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("never matches a longer name by its prefix", () => {
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: "kds04.wbhq.com" }),
+        host({ dnsHostname: "kds04.wbhq.com.evil.example" }),
+        DeviceNameSource.DnsName,
+      ),
+    ).toBe(false);
+    expect(
+      isHostStillTheDevice(
+        row({ dnsName: "kds04" }),
+        host({ dnsHostname: "kds045.wbhq.com" }),
+        DeviceNameSource.DnsName,
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("listImprovableAddresses", () => {
+  test("lists the addresses a map names by more than their address, in its order", () => {
+    expect(
+      listImprovableAddresses(
+        getBestNamedHostsByAddress([
+          host({ ipAddress: "10.0.0.2" }),
+          host({
+            ipAddress: "10.0.0.1",
+            dnsHostname: undefined,
+            netbiosName: undefined,
+          }),
+          host({ ipAddress: "10.0.0.3", netbiosName: undefined }),
+        ]),
+      ),
+    ).toEqual(["10.0.0.2", "10.0.0.3"]);
+  });
+
+  test("is empty for an empty map", () => {
+    expect(listImprovableAddresses(new Map<string, BestNamedHost>())).toEqual(
+      [],
+    );
   });
 });
 

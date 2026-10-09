@@ -4906,6 +4906,85 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       ]);
     });
 
+    it("never renames a device after the machine that took its address over, nor on a result with no PTR name for it", async () => {
+      useInventory([
+        // Its DHCP lease went to a laptop, which DNS now names.
+        makeDnsNamedDevice(),
+        // Its reverse-DNS lookup timed out on this run.
+        makeDnsNamedDevice({ hostname: "10.0.0.6" }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({
+              dnsHostname: "laptop-xyz.wbhq.com",
+              netbiosName: "LAPTOP-XYZ",
+            }),
+            makeNamedHost({
+              ipAddress: "10.0.0.6",
+              dnsHostname: undefined,
+              netbiosName: NETBIOS_NAME,
+            }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      // Both were looked up: the result names both addresses better...
+      expect(statusesMatchedBy(upgradeLookupCalls()[0].query.hostname)).toEqual(
+        ["10.0.0.5", "10.0.0.6"],
+      );
+      // ...but neither result row still reports the DNS name the device has.
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("looks both kinds of device up in one pass, and renames each by its own planner", async () => {
+      const upgraded: NetworkDevice = makeDnsNamedDevice();
+      // Imported mid-run by an older engine: no source recorded.
+      const runImported: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+      });
+      useInventory([upgraded, runImported]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ netbiosName: NETBIOS_NAME }),
+            makeNamedHost({
+              ipAddress: "10.0.0.6",
+              dnsHostname: "kds02.wbhq.com",
+            }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(upgradeLookupCalls()).toHaveLength(1);
+      expect(renameLookupCalls()).toHaveLength(1);
+      expect(renameUpdates()).toEqual([
+        {
+          id: upgraded.id!.toString(),
+          data: {
+            name: NETBIOS_NAME,
+            discoveredName: NETBIOS_NAME,
+            discoveredNameSource: DeviceNameSource.NetbiosName,
+          },
+          props: { isRoot: true },
+        },
+        {
+          id: runImported.id!.toString(),
+          data: {
+            name: "kds02.wbhq.com",
+            discoveredName: "kds02.wbhq.com",
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: "kds02.wbhq.com",
+          },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
     it("never renames a device a person renamed", async () => {
       useInventory([makeDnsNamedDevice({ name: "Kitchen display 1" })]);
       scanFindOneByMock.mockResolvedValue(

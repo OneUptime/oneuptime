@@ -9,15 +9,16 @@ import {
 import { isDeviceStillNamedByDiscovery } from "../NetworkDevice/DeviceNameRule";
 import {
   DiscoveredHostNaming,
-  MAX_DEVICE_DNS_NAME_LENGTH,
-  buildDeviceName,
-  buildFallbackDeviceName,
   getDiscoveredHostNameSource,
 } from "./DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "./DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 import {
   MAX_DISCOVERED_HOST_ADDRESS_LENGTH,
+  buildRenameCandidateNames,
+  compareRenameOrder,
+  getDnsNameToFill,
+  readTrimmedString,
   toEpochMilliseconds,
 } from "./RunImportedDeviceNaming";
 
@@ -52,6 +53,10 @@ import {
  *       changed: a device keeps its name when its DNS record changes, and a
  *       NetBIOS reply that arrives one scan and is lost the next cannot make
  *       its name flap.
+ *   (e) Nothing in the result says the machine at that address may not be
+ *       the one the device was named after: when the device has a DNS name,
+ *       the result reports that same PTR name for the address
+ *       (isHostStillTheDevice says why, and what it rules out).
  *
  * WHAT A RENAME IS. The name a fresh import of this host would get — the same
  * builder, under the scan's naming choice — or the import's address-suffixed
@@ -63,7 +68,9 @@ import {
  *
  * Pure, like RunImportedDeviceNaming, so every condition is tested without a
  * database; the rule engine does the reads, the collision checks and the
- * writes (NetworkDeviceAutoImportRuleEngineService).
+ * writes (NetworkDeviceAutoImportRuleEngineService). The candidate names, the
+ * DNS Name fill and the order of the plans are RunImportedDeviceNaming's own
+ * helpers, so the two planners cannot drift apart on them.
  */
 
 /*
@@ -116,13 +123,10 @@ export interface DiscoveredNameUpgrade {
   dnsName?: string | undefined;
 }
 
-interface BestNamedHost {
+// The row of a result that names an address best, and where its name is from.
+export interface BestNamedHost {
   host: DiscoveredNetworkDevice;
   source: DeviceNameSource;
-}
-
-function trimmedString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
 }
 
 /**
@@ -174,19 +178,105 @@ export function getBestNamedHostsByAddress(
 }
 
 /**
- * The addresses whose devices this result could improve: those it names
- * from anything better than an address. The engine looks devices up by these.
+ * The addresses whose devices a result could improve, out of its
+ * getBestNamedHostsByAddress map: those it names from anything better than
+ * an address. The engine looks devices up by these.
  */
-export function getImprovableHostAddresses(hosts: unknown): Array<string> {
+export function listImprovableAddresses(
+  bestHosts: Map<string, BestNamedHost>,
+): Array<string> {
   const addresses: Array<string> = [];
 
-  for (const [address, named] of getBestNamedHostsByAddress(hosts)) {
+  for (const [address, named] of bestHosts) {
     if (named.source !== DeviceNameSource.Address) {
       addresses.push(address);
     }
   }
 
   return addresses;
+}
+
+/**
+ * The addresses whose devices this result could improve: those it names
+ * from anything better than an address.
+ */
+export function getImprovableHostAddresses(hosts: unknown): Array<string> {
+  return listImprovableAddresses(getBestNamedHostsByAddress(hosts));
+}
+
+/*
+ * A DNS name the way two of them are compared: trimmed, without the root
+ * label's dot, and without case — DNS names are case-insensitive (RFC 4343),
+ * and a DNS Name a person typed need not be spelled the way the zone is.
+ */
+function toComparableDnsName(value: string): string {
+  const trimmed: string = value.trim();
+
+  return (
+    trimmed.endsWith(".") ? trimmed.substring(0, trimmed.length - 1) : trimmed
+  ).toLowerCase();
+}
+
+/**
+ * False when the result gives reason to think the machine at the device's
+ * address is not the one the device was named after — condition (e).
+ *
+ * A device is matched to a result by its address, and an address is not a
+ * machine: on a DHCP range the lease moves, and the next scan finds a
+ * different computer there. Its own name is a better SOURCE than the DNS name
+ * the device was imported under, but it is somebody else's name — renaming
+ * "printer.corp" to the "LAPTOP-XYZ" that now holds its old lease would
+ * re-run the site, label and owner rules against the wrong machine. The one
+ * thing a result can compare across scans is the DNS name. So when the device
+ * has one — its DNS Name, or, if a person cleared that, the DNS name it was
+ * named by — the result must report that same PTR name for the address:
+ *
+ *   - a different PTR name says the address belongs to someone else now;
+ *   - no PTR name says nothing either way, and nothing is renamed on
+ *     nothing. That is also what stops a reverse-DNS lookup that timed out
+ *     from renaming "wb-0024-kitchen-display-03.wbhq.com" to its own
+ *     fifteen-character NetBIOS stump, WB-0024-KITCHEN, for good: the naming
+ *     rule can only see that the stump is cut from a DNS name the result
+ *     carries (isNetbiosNameCutFromDnsName). A scan that does carry it names
+ *     the host by that DNS name, which is no better than the name the device
+ *     already has, so nothing changes.
+ *
+ * A short (#3678) name or a one-label DNS Name is compared with the PTR
+ * name's first label. A device with no DNS name at all — one named by its
+ * address — has nothing to compare, and takes what the result finds there:
+ * its old name was only ever the address.
+ */
+export function isHostStillTheDevice(
+  row: DiscoveredNameDeviceRow,
+  host: DiscoveredNetworkDevice,
+  fromSource: DeviceNameSource,
+): boolean {
+  let deviceDnsName: string = readTrimmedString(row.dnsName);
+
+  if (!deviceDnsName && fromSource === DeviceNameSource.DnsName) {
+    deviceDnsName = readTrimmedString(row.discoveredName);
+  }
+
+  if (!deviceDnsName) {
+    return true;
+  }
+
+  const reportedDnsName: string | undefined = normalizeReverseDnsName(
+    host.dnsHostname,
+  );
+
+  if (!reportedDnsName) {
+    return false;
+  }
+
+  const expected: string = toComparableDnsName(deviceDnsName);
+  const reported: string = toComparableDnsName(reportedDnsName);
+
+  if (expected === reported) {
+    return true;
+  }
+
+  return !expected.includes(".") && reported.split(".")[0] === expected;
 }
 
 /**
@@ -202,16 +292,22 @@ export function planDiscoveredNameUpgrades(data: {
   hosts: unknown;
   devices: Array<DiscoveredNameDeviceRow>;
   scan: DiscoveredHostNaming;
+  /*
+   * getBestNamedHostsByAddress(hosts), when the caller has already read it —
+   * the engine reads it once for its device lookup, and reading a large
+   * result again here would name every host twice. `hosts` is not read when
+   * this is given.
+   */
+  bestHosts?: Map<string, BestNamedHost> | undefined;
 }): Array<DiscoveredNameUpgrade> {
-  const projectId: string = trimmedString(data.projectId);
+  const projectId: string = readTrimmedString(data.projectId);
 
   if (!projectId || !Array.isArray(data.devices)) {
     return [];
   }
 
-  const bestHosts: Map<string, BestNamedHost> = getBestNamedHostsByAddress(
-    data.hosts,
-  );
+  const bestHosts: Map<string, BestNamedHost> =
+    data.bestHosts ?? getBestNamedHostsByAddress(data.hosts);
 
   if (bestHosts.size === 0) {
     return [];
@@ -220,6 +316,8 @@ export function planDiscoveredNameUpgrades(data: {
   const eligible: Array<{
     plan: DiscoveredNameUpgrade;
     createdAt: number;
+    hostname: string;
+    deviceId: string;
   }> = [];
 
   const seenDeviceIds: Set<string> = new Set<string>();
@@ -229,7 +327,7 @@ export function planDiscoveredNameUpgrades(data: {
       continue;
     }
 
-    const deviceId: string = trimmedString(row.deviceId);
+    const deviceId: string = readTrimmedString(row.deviceId);
 
     // One plan per device, however many times a caller's reads returned it.
     if (!deviceId || seenDeviceIds.has(deviceId)) {
@@ -237,12 +335,12 @@ export function planDiscoveredNameUpgrades(data: {
     }
 
     // (a) The scan's project, and only the scan's project.
-    if (trimmedString(row.projectId) !== projectId) {
+    if (readTrimmedString(row.projectId) !== projectId) {
       continue;
     }
 
     // (b) An address this result reports.
-    const hostname: string = trimmedString(row.hostname);
+    const hostname: string = readTrimmedString(row.hostname);
     const named: BestNamedHost | undefined = hostname
       ? bestHosts.get(hostname)
       : undefined;
@@ -265,28 +363,21 @@ export function planDiscoveredNameUpgrades(data: {
       continue;
     }
 
-    const candidateNames: Array<string> = [];
-
-    for (const candidate of [
-      buildDeviceName(named.host, data.scan),
-      buildFallbackDeviceName(named.host, data.scan),
-    ]) {
-      const trimmed: string = candidate.trim();
-
-      if (!trimmed) {
-        continue;
-      }
-
-      const alreadyListed: boolean = candidateNames.some(
-        (listed: string): boolean => {
-          return listed.toLowerCase() === trimmed.toLowerCase();
-        },
-      );
-
-      if (!alreadyListed) {
-        candidateNames.push(trimmed);
-      }
+    // (e) Nothing says the address now belongs to another machine.
+    if (!isHostStillTheDevice(row, named.host, fromSource)) {
+      continue;
     }
+
+    /*
+     * The device's own name is NOT left out: a better source can name the
+     * device the same name in a different case ("ws-0042" from DNS,
+     * "WS-0042" from NetBIOS), and the engine's collision check leaves the
+     * device itself out, so that rename goes through.
+     */
+    const candidateNames: Array<string> = buildRenameCandidateNames({
+      host: named.host,
+      scan: data.scan,
+    });
 
     if (candidateNames.length === 0) {
       continue;
@@ -297,53 +388,31 @@ export function planDiscoveredNameUpgrades(data: {
     const plan: DiscoveredNameUpgrade = {
       deviceId: deviceId,
       hostname: hostname,
-      fromName: trimmedString(row.name),
+      fromName: readTrimmedString(row.name),
       fromSource: fromSource,
       candidateNames: candidateNames,
       discoveredNameSource: named.source,
     };
 
-    /*
-     * Filled only, never overwritten: a device that already has a DNS name
-     * got it from a PTR record or from a person, and a later answer is not a
-     * reason to replace it.
-     */
-    if (!trimmedString(row.dnsName)) {
-      const dnsName: string | undefined = normalizeReverseDnsName(
-        named.host.dnsHostname,
-      );
+    const dnsName: string | undefined = getDnsNameToFill(
+      row.dnsName,
+      named.host,
+    );
 
-      if (dnsName) {
-        plan.dnsName =
-          dnsName.length > MAX_DEVICE_DNS_NAME_LENGTH
-            ? dnsName.substring(0, MAX_DEVICE_DNS_NAME_LENGTH)
-            : dnsName;
-      }
+    if (dnsName) {
+      plan.dnsName = dnsName;
     }
 
     eligible.push({
       plan: plan,
       // A row without a readable date sorts after every dated one.
       createdAt: toEpochMilliseconds(row.createdAt) ?? Number.MAX_SAFE_INTEGER,
+      hostname: hostname,
+      deviceId: deviceId,
     });
   }
 
-  eligible.sort(
-    (
-      left: { plan: DiscoveredNameUpgrade; createdAt: number },
-      right: { plan: DiscoveredNameUpgrade; createdAt: number },
-    ): number => {
-      if (left.createdAt !== right.createdAt) {
-        return left.createdAt - right.createdAt;
-      }
-
-      if (left.plan.hostname !== right.plan.hostname) {
-        return left.plan.hostname < right.plan.hostname ? -1 : 1;
-      }
-
-      return left.plan.deviceId < right.plan.deviceId ? -1 : 1;
-    },
-  );
+  eligible.sort(compareRenameOrder);
 
   return eligible.map(
     (entry: { plan: DiscoveredNameUpgrade }): DiscoveredNameUpgrade => {

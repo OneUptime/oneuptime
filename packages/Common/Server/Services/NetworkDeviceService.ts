@@ -173,8 +173,15 @@ function normalizeMacAddressOnWrite(data: Record<string, unknown>): void {
  * quietly storing it. Null and undefined pass (no source, or not written), and
  * so does a SQL-expression function, which nothing writes here and which is
  * left alone for the reason normalizeMacAddressOnWrite gives.
+ *
+ * Blank text is no source, written as null, the way a client clears any
+ * optional text field — so an import that sends "" creates its device rather
+ * than failing on it. A known source with spaces around it is stored without
+ * them.
  */
-function assertKnownDiscoveredNameSource(data: Record<string, unknown>): void {
+function normalizeDiscoveredNameSourceOnWrite(
+  data: Record<string, unknown>,
+): void {
   if (!("discoveredNameSource" in data)) {
     return;
   }
@@ -185,11 +192,22 @@ function assertKnownDiscoveredNameSource(data: Record<string, unknown>): void {
     return;
   }
 
-  if (!readDeviceNameSource(raw)) {
+  if (typeof raw === "string" && raw.trim().length === 0) {
+    data["discoveredNameSource"] = null;
+    return;
+  }
+
+  const source: string | undefined = readDeviceNameSource(
+    typeof raw === "string" ? raw.trim() : raw,
+  );
+
+  if (!source) {
     throw new BadDataException(
       `Discovered Name Source must be one of: ${DEVICE_NAME_SOURCES_BEST_FIRST.join(", ")}.`,
     );
   }
+
+  data["discoveredNameSource"] = source;
 }
 
 /*
@@ -207,7 +225,7 @@ function assertKnownDiscoveredNameSource(data: Record<string, unknown>): void {
  * the name recorded.
  */
 function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
-  assertKnownDiscoveredNameSource(data);
+  normalizeDiscoveredNameSourceOnWrite(data);
 
   const source: string | undefined = readDeviceNameSource(
     data["discoveredNameSource"],
@@ -1552,8 +1570,13 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
-    // Above the early return too, for the same reason.
-    assertKnownDiscoveredNameSource(
+    /*
+     * Above the early return too, for the same reason. Only the server
+     * writes these columns after create (the rename pass, as root; see
+     * NetworkDevice.discoveredName), but a root write is held to the same
+     * four sources.
+     */
+    normalizeDiscoveredNameSourceOnWrite(
       updateBy.data as unknown as Record<string, unknown>,
     );
 

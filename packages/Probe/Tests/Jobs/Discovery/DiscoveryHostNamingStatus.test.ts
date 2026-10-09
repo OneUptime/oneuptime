@@ -678,12 +678,13 @@ describe("the reported scan on the bundled global probe, with NetBIOS ticked", (
     }
   });
 
-  it("stamps no host reverse DNS named, but says the lookup was skipped, since it would have asked them (issue #4518)", async () => {
+  it("stamps nothing and says nothing when reverse DNS named every host, although NetBIOS would have asked them (issue #4518)", async () => {
     /*
-     * Every host has a PTR name, so none is listed by its address and none
-     * carries a code. But NetBIOS asks hosts DNS named too now — their own
-     * Windows name outranks the PTR record — so the scan did go without
-     * something, and the message says why.
+     * The lookup would have asked these hosts for the Windows name that
+     * outranks their PTR name, but every one of them has a name, so there is
+     * no row listed by its address to explain. The Scan form turns NetBIOS
+     * on by default and the bundled probes are global, so a sentence here
+     * would ride on every such scan with nothing an operator could do.
      */
     mockPingAlive(Object.keys(CUSTOMER_NAMES));
     mockReverseDns({ names: CUSTOMER_NAMES });
@@ -696,8 +697,8 @@ describe("the reported scan on the bundled global probe, with NetBIOS ticked", (
         return "netbiosNameStatus" in host;
       }),
     ).toBe(false);
-    expect(result.isNetbiosLookupSkippedOnGlobalProbe).toBe(true);
-    expect(buildScanStatusMessage(result, 0)).toContain(
+    expect(result.isNetbiosLookupSkippedOnGlobalProbe).toBeUndefined();
+    expect(buildScanStatusMessage(result, 0)).not.toContain(
       NETBIOS_GLOBAL_PROBE_SENTENCE,
     );
   });

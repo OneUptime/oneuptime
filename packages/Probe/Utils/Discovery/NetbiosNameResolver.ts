@@ -303,8 +303,9 @@ const defaultTransactionId: () => number = (): number => {
 
 export interface NetbiosNameResolution {
   /*
-   * Names keyed by the address asked, already normalised and lower-cased.
-   * Addresses with no usable name are ABSENT, never mapped to undefined.
+   * Names keyed by the address asked, already normalised, in the case the
+   * host reported them (OneUptime issue #4518). Addresses with no usable
+   * name are ABSENT, never mapped to undefined.
    */
   nameByIpAddress: Map<string, string>;
   /*

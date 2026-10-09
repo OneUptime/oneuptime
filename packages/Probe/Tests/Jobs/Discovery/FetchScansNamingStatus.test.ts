@@ -1661,12 +1661,14 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     ).toBe(true);
   });
 
-  test("a global probe whose sweep reverse DNS named entirely still says NetBIOS was not looked up, and stamps no host (issue #4518)", async () => {
+  test("a global probe whose sweep left nobody unnamed says nothing about NetBIOS", async () => {
     /*
-     * NetBIOS asks every host SNMP did not name, the ones reverse DNS named
-     * included: their own Windows names would outrank their PTR records. So
-     * these forty went without something, and the message says why — while
-     * no host carries a code, since every one of them is listed by a name.
+     * Since issue #4518 the lookup would have asked these forty too — their
+     * own Windows names outrank their PTR names — but every one of them is
+     * listed by a name, so there is no address in the Review dialog to
+     * explain. The Scan form turns NetBIOS on by default and the bundled
+     * probes are global: a sentence here would ride on every such scan, with
+     * nothing an operator could do about it.
      */
     jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
     scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(40)) as never);
@@ -1675,8 +1677,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
 
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping. " +
-        "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.",
+      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping.",
     );
     expect(
       uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {

@@ -1756,12 +1756,15 @@ export async function scanWithDeadline(
          *
          * Each host left with no name at all — no usable sysName, no PTR name
          * and no NetBIOS name — carries the reason for the Review dialog's
-         * tooltip, and the status message gets one sentence for the scan
-         * whenever the lookup WOULD have asked anyone: every host SNMP did
-         * not name, named by reverse DNS or not (issue #4518), since each of
-         * those went without the name it reports for itself. With every host
-         * named by SNMP, NetBIOS would have sent nothing anyway, and there is
-         * nothing to explain. netbiosOutcome stays absent: no lookup ran.
+         * tooltip, and the status message gets one sentence for the scan.
+         * Only when there is such a host. Since issue #4518 the lookup would
+         * have asked the hosts reverse DNS named as well, for the Windows
+         * name that outranks their PTR name, but a scan whose every host has
+         * a name has nothing listed by its address to explain — and the
+         * Scan form turns this lookup on by default, so a sentence on every
+         * such scan from the bundled probes would be noise nobody can act on.
+         * The docs say global probes never look NetBIOS names up.
+         * netbiosOutcome stays absent: no lookup ran.
          *
          * The policy itself is unchanged — global probes still never send
          * UDP 137 on a tenant's say-so (see DiscoveryNetbiosPolicy).
@@ -1771,16 +1774,13 @@ export async function scanWithDeadline(
          * finished sweep into a Failed scan with no hosts.
          */
         try {
-          SubnetScanner.stampNetbiosStatusOnUnnamedHosts(
-            result.discoveredHosts,
-            DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
-          );
-
-          if (
-            SubnetScanner.countNetbiosCandidateAddresses(
+          const skippedHostCount: number =
+            SubnetScanner.stampNetbiosStatusOnUnnamedHosts(
               result.discoveredHosts,
-            ) > 0
-          ) {
+              DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+            );
+
+          if (skippedHostCount > 0) {
             result.isNetbiosLookupSkippedOnGlobalProbe = true;
           }
         } catch (err) {
