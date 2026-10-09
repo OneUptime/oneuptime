@@ -229,6 +229,7 @@ describe("ZoomOAuthApp", () => {
     await newApp(fetcher).revoke({
       refreshToken: "zoom-refresh-1",
       accessToken: "zoom-access",
+      accessTokenExpiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     });
 
     expect(fetcher.requests[0]!.url).toBe(ZOOM_REVOKE_URL);
@@ -236,5 +237,31 @@ describe("ZoomOAuthApp", () => {
       basicAuth(),
     );
     expect(readFormBody(fetcher.requests[0]!).get("token")).toBe("zoom-access");
+  });
+
+  test("refreshes a run-out access token before withdrawing the sign-in", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      {
+        status: 200,
+        body: {
+          ...TOKEN_RESPONSE,
+          access_token: "zoom-access-fresh",
+          refresh_token: "zoom-refresh-2",
+        },
+      },
+      { status: 200, body: { status: "success" } },
+    ]);
+
+    await newApp(fetcher).revoke({
+      refreshToken: "zoom-refresh-1",
+      accessToken: "zoom-access-old",
+      accessTokenExpiresAt: new Date(Date.now() - 60 * 1000).toISOString(),
+    });
+
+    expect(fetcher.requests[0]!.url).toBe(ZOOM_TOKEN_URL);
+    expect(fetcher.requests[1]!.url).toBe(ZOOM_REVOKE_URL);
+    expect(readFormBody(fetcher.requests[1]!).get("token")).toBe(
+      "zoom-access-fresh",
+    );
   });
 });

@@ -168,14 +168,25 @@ export default class ZoomOAuthApp implements VideoCallOAuthApp {
     return this.readTokens(response);
   }
 
+  /*
+   * Zoom revokes an access token, which removes the app from the user's
+   * account. The stored one has usually run out by the time a connection is
+   * deleted, so it is refreshed first - harmless, as nothing else uses the
+   * sign-in any more (VideoCallConnectionService.onDeleteSuccess).
+   */
   public async revoke(secrets: VideoCallOAuthSecrets): Promise<void> {
-    const token: string = secrets.accessToken || secrets.refreshToken;
+    const accessToken: string = VideoCallOAuthUtil.hasFreshAccessToken(
+      secrets,
+      60 * 1000,
+    )
+      ? secrets.accessToken!
+      : (await this.refresh({ secrets, accountLabel: "" })).accessToken;
 
     await this.http.request({
       url: ZOOM_REVOKE_URL,
       method: "POST",
       headers: this.getTokenHeaders(),
-      body: new URLSearchParams({ token }).toString(),
+      body: new URLSearchParams({ token: accessToken }).toString(),
       stepLabel: "Zoom token revocation",
     });
   }
