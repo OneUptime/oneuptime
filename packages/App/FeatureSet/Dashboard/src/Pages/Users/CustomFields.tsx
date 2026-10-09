@@ -8,29 +8,29 @@ import {
   CustomFieldTypeOption,
   getCustomFieldTypeOptions,
 } from "../../Components/CustomFields/CustomFieldSettingsCopy";
-import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
-import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomFieldOptionsFormField,
+  useCustomFieldOptionsFormField,
+} from "../../Components/CustomFields/CustomFieldOptionsField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Navigation from "Common/UI/Utils/Navigation";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const isDropdownType: (value: unknown) => boolean = (
-  value: unknown,
-): boolean => {
-  return (
-    value === CustomFieldType.Dropdown ||
-    value === CustomFieldType.MultiSelectDropdown
-  );
-};
-
 const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  /*
+   * A dropdown's options, editable after the field has values, as on every
+   * other custom field settings page (#4564).
+   */
+  const optionsField: CustomFieldOptionsFormField<TeamMemberCustomField> =
+    useCustomFieldOptionsFormField<TeamMemberCustomField>({
+      modelType: TeamMemberCustomField,
+    });
+
   return (
     <Fragment>
       <ModelTable<TeamMemberCustomField>
@@ -48,6 +48,8 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        onBeforeEdit={optionsField.onBeforeEdit}
+        onBeforeUpdate={optionsField.onBeforeUpdate}
         cardProps={{
           title: "Team Member Custom Fields",
           description:
@@ -106,41 +108,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               },
             ),
           },
-          {
-            field: {
-              dropdownOptions: true,
-            },
-            title: "Dropdown Options",
-            description: CustomFieldFormCopy.dropdownOptionsDescription,
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: (item: FormValues<TeamMemberCustomField>) => {
-              return isDropdownType(item.customFieldType);
-            },
-            showIf: (item: FormValues<TeamMemberCustomField>) => {
-              return isDropdownType(item.customFieldType);
-            },
-            getCustomElement: (
-              _values: FormValues<TeamMemberCustomField>,
-              customElementProps: CustomElementProps,
-            ) => {
-              return (
-                <DropdownOptionsInput
-                  initialValue={
-                    typeof customElementProps.initialValue === "string"
-                      ? customElementProps.initialValue
-                      : ""
-                  }
-                  error={customElementProps.error}
-                  onChange={(value: string) => {
-                    customElementProps.onChange?.(value);
-                  }}
-                  onBlur={() => {
-                    customElementProps.onBlur?.();
-                  }}
-                />
-              );
-            },
-          },
+          optionsField.formField,
         ]}
         showRefreshButton={true}
         // The same two columns as every other custom field settings table.

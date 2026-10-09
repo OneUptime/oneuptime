@@ -452,6 +452,15 @@ export interface CustomFieldOptionCopier {
   fieldName: string;
 }
 
+/*
+ * What a field's records are called, by the model names ModelTable uses
+ * ("Incident", "Incidents"), for the option editor's counts.
+ */
+export interface CustomFieldRecordName {
+  singular: string;
+  plural: string;
+}
+
 export interface CustomFieldOptionUsage {
   // Every value the field's records hold, the most held first.
   values: Array<CustomFieldOptionUsageValue>;
@@ -535,4 +544,57 @@ export const getCustomFieldOptionUsageCount: GetCustomFieldOptionUsageCountFunct
     );
 
     return entry ? entry.count : 0;
+  };
+
+export type GetCustomFieldValuesNotOfferedFunction = (data: {
+  // The field's options, serialized.
+  dropdownOptions: unknown;
+  // What a record holds for the field: a value, or a list of them.
+  value: unknown;
+}) => Array<string | number | boolean>;
+
+/**
+ * The values a record holds for a dropdown field that the field does not
+ * offer - an option taken out since, or a value written over the API - in
+ * the order the record lists them, once each, as stored. Shown as "no longer
+ * an option" rather than hidden, so nobody takes the field for empty and
+ * nobody loses the value by saving another field. A field with no options
+ * at all offers nothing to compare with: nothing is reported for it.
+ */
+export const getCustomFieldValuesNotOffered: GetCustomFieldValuesNotOfferedFunction =
+  (data: {
+    dropdownOptions: unknown;
+    value: unknown;
+  }): Array<string | number | boolean> => {
+    const options: Set<string> = new Set<string>(
+      getCustomFieldOptionValues(data.dropdownOptions),
+    );
+
+    if (options.size === 0) {
+      return [];
+    }
+
+    const held: Array<unknown> = Array.isArray(data.value)
+      ? data.value
+      : [data.value];
+
+    const notOffered: Array<string | number | boolean> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const entry of held) {
+      if (!isOptionScalar(entry) || entry === "") {
+        continue;
+      }
+
+      const text: string = String(entry);
+
+      if (options.has(text) || seen.has(text)) {
+        continue;
+      }
+
+      seen.add(text);
+      notOffered.push(entry as string | number | boolean);
+    }
+
+    return notOffered;
   };
