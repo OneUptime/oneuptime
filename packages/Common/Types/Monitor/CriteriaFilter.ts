@@ -602,7 +602,9 @@ export class CriteriaFilterUtil {
    * alias, empty for every interface as one alert, or "*" for one alert per
    * interface. One list, read by the criteria form and the evaluator alike.
    */
-  public static isInterfaceScopedCheckOn(checkOn: CheckOn | undefined): boolean {
+  public static isInterfaceScopedCheckOn(
+    checkOn: CheckOn | undefined,
+  ): boolean {
     return (
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||

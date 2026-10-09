@@ -30,7 +30,7 @@ import {
   TransceiverThresholds,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * What OneUptime AI learns about a network device's optics - the evidence
@@ -227,15 +227,9 @@ describe("NetworkTransceiverContext.pickRelevant", () => {
   test("a port is named as a whole word, never as the start of a longer one", () => {
     const text: string = "interface gi1/0/17 is down; te1/1/1/2 flapped";
 
-    expect(NetworkTransceiverContext.mentionsPort(text, "gi1/0/17")).toBe(
-      true,
-    );
-    expect(NetworkTransceiverContext.mentionsPort(text, "gi1/0/1")).toBe(
-      false,
-    );
-    expect(NetworkTransceiverContext.mentionsPort(text, "te1/1/1")).toBe(
-      false,
-    );
+    expect(NetworkTransceiverContext.mentionsPort(text, "gi1/0/17")).toBe(true);
+    expect(NetworkTransceiverContext.mentionsPort(text, "gi1/0/1")).toBe(false);
+    expect(NetworkTransceiverContext.mentionsPort(text, "te1/1/1")).toBe(false);
     expect(
       NetworkTransceiverContext.mentionsPort("down: et49/1.", "et49/1"),
     ).toBe(true);
@@ -347,18 +341,19 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
     const device: NetworkDevice = new NetworkDevice();
     device.id = new ObjectID(DEVICE_ID);
     device.name = "core-switch-1";
-    device.transceiverSnapshot = snapshot;
+    if (snapshot) {
+      device.transceiverSnapshot = snapshot;
+    }
     return device;
   }
 
   test("an alert from a Network Device monitor gets its device's optics", async () => {
-    const monitorFind: jest.SpiedFunction<typeof MonitorService.findBy> = jest
+    const monitorFind: jest.SpyInstance = jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([deviceMonitor(DEVICE_ID)]);
-    const deviceFind: jest.SpiedFunction<typeof NetworkDeviceService.findBy> =
-      jest
-        .spyOn(NetworkDeviceService, "findBy")
-        .mockResolvedValue([storedDevice([FADING, PULLED])]);
+    const deviceFind: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "findBy")
+      .mockResolvedValue([storedDevice([FADING, PULLED])]);
     const monitorId: ObjectID = ObjectID.generate();
 
     const section: string = await NetworkTransceiverContext.buildContextSection(
@@ -389,8 +384,7 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
   });
 
   test("no monitors, no queries", async () => {
-    const monitorFind: jest.SpiedFunction<typeof MonitorService.findBy> =
-      jest.spyOn(MonitorService, "findBy");
+    const monitorFind: jest.SpyInstance = jest.spyOn(MonitorService, "findBy");
 
     await expect(
       NetworkTransceiverContext.buildContextSection({
@@ -405,8 +399,10 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
     jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([deviceMonitor(undefined)]);
-    const deviceFind: jest.SpiedFunction<typeof NetworkDeviceService.findBy> =
-      jest.spyOn(NetworkDeviceService, "findBy");
+    const deviceFind: jest.SpyInstance = jest.spyOn(
+      NetworkDeviceService,
+      "findBy",
+    );
 
     await expect(
       NetworkTransceiverContext.buildContextSection({
@@ -434,9 +430,7 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
 });
 
 describe("query_network_transceivers", () => {
-  function mockDevice(device: NetworkDevice | null): jest.SpiedFunction<
-    typeof NetworkDeviceService.findOneBy
-  > {
+  function mockDevice(device: NetworkDevice | null): jest.SpyInstance {
     return jest
       .spyOn(NetworkDeviceService, "findOneBy")
       .mockResolvedValue(device);
@@ -448,7 +442,9 @@ describe("query_network_transceivers", () => {
     const device: NetworkDevice = new NetworkDevice();
     device.id = new ObjectID(DEVICE_ID);
     device.name = "core-switch-1";
-    device.transceiverSnapshot = snapshot;
+    if (snapshot) {
+      device.transceiverSnapshot = snapshot;
+    }
     return device;
   }
 
@@ -468,8 +464,9 @@ describe("query_network_transceivers", () => {
   });
 
   test("lists every optic, problems first, citing the device", async () => {
-    const find: jest.SpiedFunction<typeof NetworkDeviceService.findOneBy> =
-      mockDevice(deviceWith([healthyOptic(1), FADING, PULLED]));
+    const find: jest.SpyInstance = mockDevice(
+      deviceWith([healthyOptic(1), FADING, PULLED]),
+    );
 
     const result: ToolExecutionResult =
       await QueryNetworkTransceiversTool.execute(
@@ -538,15 +535,12 @@ describe("query_network_transceivers", () => {
       );
 
     expect(result.rowCount).toBe(0);
-    expect(result.dataForLlm).toContain(
-      "This device reports no transceivers",
-    );
+    expect(result.dataForLlm).toContain("This device reports no transceivers");
     expect(result.dataForLlm).toContain("ENTITY-SENSOR-MIB");
   });
 
   test("refuses an id that is not a UUID, and a device it cannot see", async () => {
-    const find: jest.SpiedFunction<typeof NetworkDeviceService.findOneBy> =
-      mockDevice(null);
+    const find: jest.SpyInstance = mockDevice(null);
 
     await expect(
       QueryNetworkTransceiversTool.execute(

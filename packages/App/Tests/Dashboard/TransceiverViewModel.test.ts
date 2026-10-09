@@ -132,7 +132,13 @@ describe("the table's columns", () => {
       TRANSCEIVER_TABLE_READINGS.map((kind: TransceiverReadingKind) => {
         return TRANSCEIVER_READING_COLUMN_TITLES[kind];
       }),
-    ).toEqual(["RX Power", "TX Power", "Temperature", "Voltage", "Bias Current"]);
+    ).toEqual([
+      "RX Power",
+      "TX Power",
+      "Temperature",
+      "Voltage",
+      "Bias Current",
+    ]);
   });
 
   test("a phone keeps the light and the temperature", () => {

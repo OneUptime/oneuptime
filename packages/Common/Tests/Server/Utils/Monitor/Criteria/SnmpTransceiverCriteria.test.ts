@@ -22,14 +22,7 @@ import {
 import ProbeMonitorResponse from "../../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../../Types/ObjectID";
 import TransceiverHealthUtil from "../../../../../Utils/NetworkDevice/TransceiverHealthUtil";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * The five transceiver criteria, judged port by port from the snapshot a
@@ -531,7 +524,10 @@ describe("Transceiver Reading", () => {
   const quad: NetworkDeviceTransceiver = optic({
     index: 1,
     name: "Et49/1",
-    measurements: readings(TransceiverReadingKind.RxPower, [-2.1, -2.4, -15.2, -14.9]),
+    measurements: readings(
+      TransceiverReadingKind.RxPower,
+      [-2.1, -2.4, -15.2, -14.9],
+    ),
   });
 
   it("names the worst lane: the lowest for 'less than'", () => {
@@ -695,7 +691,11 @@ describe("Transceiver Reading", () => {
 });
 
 describe("Transceiver RX Power Drop", () => {
-  function drifting(index: number, days: Array<number>, nowDbm: number): NetworkDeviceTransceiver {
+  function drifting(
+    index: number,
+    days: Array<number>,
+    nowDbm: number,
+  ): NetworkDeviceTransceiver {
     return optic({
       index: index,
       measurements: readings(TransceiverReadingKind.RxPower, [nowDbm], LR_RX),
@@ -860,7 +860,9 @@ describe("SnmpTransceiverCriteria.describeObservation", () => {
       "RX Power in scope - Te1/1/1: -4.00 dBm, Te1/1/2: -15.00 dBm, Te1/1/3: -19.00 dBm.",
     );
     expect(
-      observe(filter(CheckOn.SnmpTransceiverRxPowerDrop, FilterType.GreaterThan)),
+      observe(
+        filter(CheckOn.SnmpTransceiverRxPowerDrop, FilterType.GreaterThan),
+      ),
     ).toBe(
       "RX power drop against the best day of the last 30 - Te1/1/1: no baseline yet, Te1/1/2: no baseline yet, Te1/1/3: no baseline yet.",
     );
@@ -961,9 +963,7 @@ describe("SnmpTransceiverCriteria.toNumber and compare", () => {
 });
 
 describe("SnmpMonitorCriteria routes the transceiver checks", () => {
-  let overTimeSpy: jest.SpiedFunction<
-    typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
-  >;
+  let overTimeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     overTimeSpy = jest.spyOn(

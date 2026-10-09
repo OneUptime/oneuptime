@@ -100,7 +100,8 @@ export const QueryNetworkTransceiversTool: ObservabilityTool = {
       args,
       "interfaceName",
     )?.toLowerCase();
-    const problemsOnly: boolean = ToolArgs.getBoolean(args, "problemsOnly") === true;
+    const problemsOnly: boolean =
+      ToolArgs.getBoolean(args, "problemsOnly") === true;
 
     const transceivers: Array<NetworkDeviceTransceiver> =
       TransceiverHealthUtil.sortForDisplay(

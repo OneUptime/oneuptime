@@ -63,7 +63,8 @@ export default class NetworkTransceiverContext {
       TransceiverHealthUtil.getRxPowerTrend(transceiver);
 
     const row: JSONObject = {
-      port: transceiver.interfaceName || `ifIndex ${transceiver.interfaceIndex}`,
+      port:
+        transceiver.interfaceName || `ifIndex ${transceiver.interfaceIndex}`,
       health: transceiver.health,
       detected: transceiver.isPresent,
     };

@@ -79,18 +79,16 @@ export const TRANSCEIVER_THRESHOLD_LABELS: {
   highAlarm: translationKey("High alarm"),
 };
 
-export const TRANSCEIVER_SOURCE_LABELS: Record<TransceiverMibSource, string> =
-  {
-    [TransceiverMibSource.EntitySensor]: "ENTITY-SENSOR-MIB",
-    [TransceiverMibSource.CiscoEntitySensor]: "CISCO-ENTITY-SENSOR-MIB",
-    [TransceiverMibSource.AristaEntitySensor]: "ARISTA-ENTITY-SENSOR-MIB",
-    [TransceiverMibSource.JuniperDom]: "JUNIPER-DOM-MIB",
-    [TransceiverMibSource.MikroTik]: "MIKROTIK-MIB",
-    [TransceiverMibSource.H3cTransceiver]: "HH3C-TRANSCEIVER-INFO-MIB",
-    [TransceiverMibSource.HpIcfTransceiver]: "HP-ICF-TRANSCEIVER-MIB",
-    [TransceiverMibSource.CambiumTransceiver]:
-      "CAMBIUM-NETWORKS-TRANSCEIVER-MIB",
-  };
+export const TRANSCEIVER_SOURCE_LABELS: Record<TransceiverMibSource, string> = {
+  [TransceiverMibSource.EntitySensor]: "ENTITY-SENSOR-MIB",
+  [TransceiverMibSource.CiscoEntitySensor]: "CISCO-ENTITY-SENSOR-MIB",
+  [TransceiverMibSource.AristaEntitySensor]: "ARISTA-ENTITY-SENSOR-MIB",
+  [TransceiverMibSource.JuniperDom]: "JUNIPER-DOM-MIB",
+  [TransceiverMibSource.MikroTik]: "MIKROTIK-MIB",
+  [TransceiverMibSource.H3cTransceiver]: "HH3C-TRANSCEIVER-INFO-MIB",
+  [TransceiverMibSource.HpIcfTransceiver]: "HP-ICF-TRANSCEIVER-MIB",
+  [TransceiverMibSource.CambiumTransceiver]: "CAMBIUM-NETWORKS-TRANSCEIVER-MIB",
+};
 
 export function hasReadings(transceiver: NetworkDeviceTransceiver): boolean {
   return Object.values(transceiver.measurements || {}).some(
@@ -248,7 +246,10 @@ export function formatReadingValue(
 }
 
 // A receiver at the -40 dBm floor sees no light at all.
-export function isNoLight(kind: TransceiverReadingKind, value: number): boolean {
+export function isNoLight(
+  kind: TransceiverReadingKind,
+  value: number,
+): boolean {
   return (
     (kind === TransceiverReadingKind.RxPower ||
       kind === TransceiverReadingKind.TxPower) &&

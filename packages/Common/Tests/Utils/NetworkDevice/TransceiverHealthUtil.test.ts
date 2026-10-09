@@ -39,7 +39,9 @@ const LR_RX_THRESHOLDS: TransceiverThresholds = {
 
 function measurements(
   values: Partial<Record<TransceiverReadingKind, number | Array<number>>>,
-  thresholds: Partial<Record<TransceiverReadingKind, TransceiverThresholds>> = {},
+  thresholds: Partial<
+    Record<TransceiverReadingKind, TransceiverThresholds>
+  > = {},
 ): TransceiverMeasurements {
   const result: TransceiverMeasurements = {};
 
@@ -99,7 +101,10 @@ describe("normalizeThresholds", () => {
 
   test("keeps a partial set: plenty of devices report alarms only", () => {
     expect(
-      TransceiverHealthUtil.normalizeThresholds({ highAlarm: 75, lowAlarm: -5 }),
+      TransceiverHealthUtil.normalizeThresholds({
+        highAlarm: 75,
+        lowAlarm: -5,
+      }),
     ).toEqual({ highAlarm: 75, lowAlarm: -5 });
   });
 
@@ -144,7 +149,9 @@ describe("normalizeThresholds", () => {
   });
 
   test("undefined stays undefined", () => {
-    expect(TransceiverHealthUtil.normalizeThresholds(undefined)).toBeUndefined();
+    expect(
+      TransceiverHealthUtil.normalizeThresholds(undefined),
+    ).toBeUndefined();
   });
 });
 
@@ -326,7 +333,9 @@ describe("getExtremeReading / getLowestRxPowerDbm", () => {
 
   test("no readings, no value", () => {
     expect(TransceiverHealthUtil.getLowestRxPowerDbm({})).toBeUndefined();
-    expect(TransceiverHealthUtil.getLowestRxPowerDbm(undefined)).toBeUndefined();
+    expect(
+      TransceiverHealthUtil.getLowestRxPowerDbm(undefined),
+    ).toBeUndefined();
   });
 });
 
@@ -494,9 +503,10 @@ describe("getRxPowerTrend - the 'falling' rule", () => {
   }
 
   test("drop = best day of the previous days - the latest reading", () => {
-    const trend: TransceiverRxPowerTrend = TransceiverHealthUtil.getRxPowerTrend(
-      withHistory([-4.0, -3.8, -4.4, -5.6, -6.1], -6.3),
-    );
+    const trend: TransceiverRxPowerTrend =
+      TransceiverHealthUtil.getRxPowerTrend(
+        withHistory([-4.0, -3.8, -4.4, -5.6, -6.1], -6.3),
+      );
 
     expect(trend.baselineDbm).toBe(-3.8);
     expect(trend.baselineDay).toBe("2026-09-21");
@@ -506,21 +516,22 @@ describe("getRxPowerTrend - the 'falling' rule", () => {
   });
 
   test("today is not part of its own baseline, so a drop today shows in full", () => {
-    const trend: TransceiverRxPowerTrend = TransceiverHealthUtil.getRxPowerTrend(
-      withHistory([-4, -4, -12], -20),
-    );
+    const trend: TransceiverRxPowerTrend =
+      TransceiverHealthUtil.getRxPowerTrend(withHistory([-4, -4, -12], -20));
 
     expect(trend.baselineDbm).toBe(-4);
     expect(trend.dropDb).toBe(16);
   });
 
   test("a slow slide is measured from where the link started", () => {
-    const days: Array<number> = Array.from({ length: 25 }, (_v: unknown, i: number) => {
-      return -4 - i * 0.1;
-    });
-    const trend: TransceiverRxPowerTrend = TransceiverHealthUtil.getRxPowerTrend(
-      withHistory(days, -6.5),
+    const days: Array<number> = Array.from(
+      { length: 25 },
+      (_v: unknown, i: number) => {
+        return -4 - i * 0.1;
+      },
     );
+    const trend: TransceiverRxPowerTrend =
+      TransceiverHealthUtil.getRxPowerTrend(withHistory(days, -6.5));
 
     expect(trend.baselineDbm).toBe(-4);
     expect(trend.dropDb).toBe(2.5);
@@ -533,9 +544,10 @@ describe("getRxPowerTrend - the 'falling' rule", () => {
   });
 
   test("days without readings are not points and not baselines", () => {
-    const trend: TransceiverRxPowerTrend = TransceiverHealthUtil.getRxPowerTrend(
-      withHistory([null, -5, null, -5.5], -5.5),
-    );
+    const trend: TransceiverRxPowerTrend =
+      TransceiverHealthUtil.getRxPowerTrend(
+        withHistory([null, -5, null, -5.5], -5.5),
+      );
 
     expect(
       trend.points.map((point: { day: string }) => {
@@ -546,9 +558,8 @@ describe("getRxPowerTrend - the 'falling' rule", () => {
   });
 
   test("one day of history is no baseline yet", () => {
-    const trend: TransceiverRxPowerTrend = TransceiverHealthUtil.getRxPowerTrend(
-      withHistory([-4], -4),
-    );
+    const trend: TransceiverRxPowerTrend =
+      TransceiverHealthUtil.getRxPowerTrend(withHistory([-4], -4));
 
     expect(trend.baselineDbm).toBeUndefined();
     expect(trend.dropDb).toBeUndefined();
@@ -662,7 +673,10 @@ describe("mergeSnapshot", () => {
         previous: first,
         results: [
           result(1, {
-            measurements: measurements({ rxPower: -6 }, { rxPower: LR_RX_THRESHOLDS }),
+            measurements: measurements(
+              { rxPower: -6 },
+              { rxPower: LR_RX_THRESHOLDS },
+            ),
           }),
         ],
         source: TransceiverMibSource.CiscoEntitySensor,
@@ -1126,7 +1140,10 @@ describe("words", () => {
     expect(
       TransceiverHealthUtil.describeIssues({
         ...transceiver,
-        measurements: measurements({ rxPower: -3 }, { rxPower: LR_RX_THRESHOLDS }),
+        measurements: measurements(
+          { rxPower: -3 },
+          { rxPower: LR_RX_THRESHOLDS },
+        ),
       }),
     ).toEqual([]);
   });

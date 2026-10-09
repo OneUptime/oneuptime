@@ -286,7 +286,11 @@ describe("TransceiverWalker - ENTITY-SENSOR flavors", () => {
       { value: -9.2 },
     ]);
     expect(agent.requests).toEqual([
-      { kind: "walk", tableOid: CISCO_ENT_SENSOR_VALUE_TABLE_OID, columns: [1] },
+      {
+        kind: "walk",
+        tableOid: CISCO_ENT_SENSOR_VALUE_TABLE_OID,
+        columns: [1],
+      },
       {
         kind: "get",
         tableOid: CISCO_ENT_SENSOR_VALUE_TABLE_OID,
@@ -748,22 +752,22 @@ describe("TransceiverStaticCache", () => {
       expect(cache.get({ key: "a", ...probe })).toBeUndefined();
     }
 
-    expect(
-      cache.getRecentSource({ key: "a", nowMs: 1499 }),
-    ).toBe(TransceiverMibSource.JuniperDom);
+    expect(cache.getRecentSource({ key: "a", nowMs: 1499 })).toBe(
+      TransceiverMibSource.JuniperDom,
+    );
     expect(cache.getRecentSource({ key: "a", nowMs: 1500 })).toBeUndefined();
-    expect(cache.getRecentSource({ key: undefined, nowMs: 600 })).toBeUndefined();
+    expect(
+      cache.getRecentSource({ key: undefined, nowMs: 600 }),
+    ).toBeUndefined();
   });
 });
 
 describe("mergeTableRows", () => {
   test("joins columns read separately into one row per index", () => {
     expect(
-      mergeTableRows(
-        { "1": { "1": 8 }, "2": { "1": 4 } },
-        undefined,
-        { "1": { "4": 346 } },
-      ),
+      mergeTableRows({ "1": { "1": 8 }, "2": { "1": 4 } }, undefined, {
+        "1": { "4": 346 },
+      }),
     ).toEqual({ "1": { "1": 8, "4": 346 }, "2": { "1": 4 } });
   });
 });

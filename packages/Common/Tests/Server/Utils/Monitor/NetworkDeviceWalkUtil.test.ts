@@ -1110,7 +1110,9 @@ function deviceStoring(
   snapshot: Array<NetworkDeviceTransceiver> | undefined,
 ): NetworkDevice {
   const device: NetworkDevice = buildDevice();
-  device.transceiverSnapshot = snapshot;
+  if (snapshot) {
+    device.transceiverSnapshot = snapshot;
+  }
   return device;
 }
 
@@ -1328,9 +1330,11 @@ describe("NetworkDeviceWalkUtil.processWalkResult — transceivers", () => {
     mockPipeline({
       monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
     });
-    jest.spyOn(TransceiverHealthUtil, "mergeSnapshot").mockImplementation(() => {
-      throw new Error("bad snapshot");
-    });
+    jest
+      .spyOn(TransceiverHealthUtil, "mergeSnapshot")
+      .mockImplementation(() => {
+        throw new Error("bad snapshot");
+      });
     const errorSpy: jest.SpyInstance = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {

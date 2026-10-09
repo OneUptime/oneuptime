@@ -79,7 +79,9 @@ describe("the transceiver criteria in the monitor form", () => {
     });
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-    const picker: HTMLElement = screen.getByTestId("transceiver-reading-picker");
+    const picker: HTMLElement = screen.getByTestId(
+      "transceiver-reading-picker",
+    );
     await user.click(picker.querySelector("input")!);
     await user.click(await screen.findByText("Temperature (°C)"));
 

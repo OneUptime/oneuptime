@@ -214,8 +214,7 @@ const SENSOR_STATUS_OK: number = 1;
 
 // --- JUNIPER-DOM-MIB ---
 
-export const JNX_DOM_CURRENT_TABLE_OID: string =
-  "1.3.6.1.4.1.2636.3.60.1.1.1";
+export const JNX_DOM_CURRENT_TABLE_OID: string = "1.3.6.1.4.1.2636.3.60.1.1.1";
 export const JNX_DOM_CURRENT_COLUMNS: {
   rxPower: number;
   txBias: number;
@@ -534,6 +533,8 @@ const CN_TRANSCEIVER_TYPES: Record<number, string> = {
 const PRINTABLE_TEXT_REGEX: RegExp = /[^\x20-\x7e]/g;
 const WHITESPACE_REGEX: RegExp = /\s+/;
 const NUMBER_PREFIX_REGEX: RegExp = /-?\d+(\.\d+)?/;
+const LEADING_DOT_REGEX: RegExp = /^\./;
+const ALL_WHITESPACE_REGEX: RegExp = /\s+/g;
 
 export function readNumber(value: unknown): number | undefined {
   if (typeof value === "number") {
@@ -588,7 +589,7 @@ export function readText(value: unknown): string | undefined {
 // A RowPointer / OBJECT IDENTIFIER value as a dotted string.
 function readOid(value: unknown): string | undefined {
   if (typeof value === "string") {
-    return value.trim().replace(/^\./, "") || undefined;
+    return value.trim().replace(LEADING_DOT_REGEX, "") || undefined;
   }
 
   if (Buffer.isBuffer(value)) {
@@ -714,7 +715,10 @@ const NAME_FOR_SUFFIX_REGEX: RegExp = /\bfor\s+(\S+)\s*$/i;
  * the long Cisco-style prefixes folded to their short forms.
  */
 export function canonicalInterfaceName(name: string | undefined): string {
-  const compact: string = (name || "").trim().toLowerCase().replace(/\s+/g, "");
+  const compact: string = (name || "")
+    .trim()
+    .toLowerCase()
+    .replace(ALL_WHITESPACE_REGEX, "");
 
   if (!compact) {
     return "";
@@ -735,7 +739,9 @@ export function canonicalInterfaceName(name: string | undefined): string {
 }
 
 // The names a transceiver's labels might be pointing at.
-export function interfaceNameCandidates(text: string | undefined): Array<string> {
+export function interfaceNameCandidates(
+  text: string | undefined,
+): Array<string> {
   const trimmed: string = (text || "").trim();
 
   if (!trimmed) {
@@ -928,7 +934,9 @@ function portChildren(
 ): Array<EntityRow> {
   return (childrenByParent.get(entity.index) || []).filter(
     (child: EntityRow) => {
-      return child.physicalClass === PHYSICAL_CLASS.port && !isLaneEntity(child);
+      return (
+        child.physicalClass === PHYSICAL_CLASS.port && !isLaneEntity(child)
+      );
     },
   );
 }
@@ -1511,7 +1519,10 @@ export function parseEntitySensorTransceivers(
       interfaces: input.interfaces,
     });
 
-    if (interfaceIndex === undefined || reportedInterfaces.has(interfaceIndex)) {
+    if (
+      interfaceIndex === undefined ||
+      reportedInterfaces.has(interfaceIndex)
+    ) {
       return;
     }
 
@@ -1693,9 +1704,7 @@ export function parseJuniperDomTransceivers(data: {
       }),
     );
 
-    const laneCount: number | undefined = readNumber(
-      column(row, c.laneCount),
-    );
+    const laneCount: number | undefined = readNumber(column(row, c.laneCount));
 
     if (laneCount !== undefined && laneCount > 1 && data.laneRows) {
       applyJuniperLanes({
@@ -1722,8 +1731,9 @@ function applyJuniperLanes(data: {
   laneRows: SnmpTableRows;
   measurements: TransceiverMeasurements;
 }): void {
-  const perLane: Partial<Record<TransceiverReadingKind, Array<TransceiverReading>>> =
-    {};
+  const perLane: Partial<
+    Record<TransceiverReadingKind, Array<TransceiverReading>>
+  > = {};
 
   const lanes: Array<string> = Object.keys(data.laneRows)
     .filter((rowIndex: string) => {
@@ -2274,7 +2284,11 @@ export function parseCambiumTransceivers(data: {
         TransceiverReadingKind.TxPower,
         microwatts(column(row, c.txPower)),
       );
-      setMeasurement(measurements, TransceiverReadingKind.Temperature, temperature);
+      setMeasurement(
+        measurements,
+        TransceiverReadingKind.Temperature,
+        temperature,
+      );
       setMeasurement(
         measurements,
         TransceiverReadingKind.Voltage,

@@ -344,9 +344,9 @@ interface RowProps {
   onOpen: () => void;
 }
 
-const StatusPill: FunctionComponent<{ view: TransceiverStatusView }> = (
-  props: { view: TransceiverStatusView },
-): ReactElement => {
+const StatusPill: FunctionComponent<{ view: TransceiverStatusView }> = (props: {
+  view: TransceiverStatusView;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -610,14 +610,19 @@ const ReadingCell: FunctionComponent<ReadingCellProps> = (
       : undefined;
 
   return (
-    <div className="space-y-0.5" data-testid={`transceiver-reading-${props.kind}`}>
+    <div
+      className="space-y-0.5"
+      data-testid={`transceiver-reading-${props.kind}`}
+    >
       <div className={`whitespace-nowrap ${VALUE_CLASSES[tone]}`}>
         {isNoLight(props.kind, verdict.value)
           ? translator.translateText("No light")
           : formatReadingValue(props.kind, verdict.value)}
       </div>
       {crossing ? (
-        <div className={`text-xs ${tone === TransceiverTone.Critical ? "text-red-700" : "text-amber-700"}`}>
+        <div
+          className={`text-xs ${tone === TransceiverTone.Critical ? "text-red-700" : "text-amber-700"}`}
+        >
           {translator.translateText(crossing)}
         </div>
       ) : (
@@ -683,46 +688,49 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
 
   const facts: Array<{ title: string | undefined; value: string | undefined }> =
     [
-    { title: translator.translateText("Vendor"), value: transceiver.vendor },
-    {
-      title: translator.translateText("Part Number"),
-      value: transceiver.partNumber,
-    },
-    {
-      title: translator.translateText("Serial Number"),
-      value: transceiver.serialNumber,
-    },
-    { title: translator.translateText("Revision"), value: transceiver.revision },
-    { title: translator.translateText("Type"), value: transceiver.type },
-    {
-      title: translator.translateText("Wavelength"),
-      value: transceiver.wavelengthNm
-        ? `${transceiver.wavelengthNm} nm`
-        : undefined,
-    },
-    {
-      title: translator.translateText("Read From"),
-      value: transceiver.source
-        ? TRANSCEIVER_SOURCE_LABELS[transceiver.source] || transceiver.source
-        : undefined,
-    },
-    {
-      title: translator.translateText("First Seen"),
-      value: transceiver.firstSeenAt
-        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            transceiver.firstSeenAt,
-          )
-        : undefined,
-    },
-    {
-      title: translator.translateText("Last Seen"),
-      value: transceiver.lastSeenAt
-        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            transceiver.lastSeenAt,
-          )
-        : undefined,
-    },
-  ];
+      { title: translator.translateText("Vendor"), value: transceiver.vendor },
+      {
+        title: translator.translateText("Part Number"),
+        value: transceiver.partNumber,
+      },
+      {
+        title: translator.translateText("Serial Number"),
+        value: transceiver.serialNumber,
+      },
+      {
+        title: translator.translateText("Revision"),
+        value: transceiver.revision,
+      },
+      { title: translator.translateText("Type"), value: transceiver.type },
+      {
+        title: translator.translateText("Wavelength"),
+        value: transceiver.wavelengthNm
+          ? `${transceiver.wavelengthNm} nm`
+          : undefined,
+      },
+      {
+        title: translator.translateText("Read From"),
+        value: transceiver.source
+          ? TRANSCEIVER_SOURCE_LABELS[transceiver.source] || transceiver.source
+          : undefined,
+      },
+      {
+        title: translator.translateText("First Seen"),
+        value: transceiver.firstSeenAt
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              transceiver.firstSeenAt,
+            )
+          : undefined,
+      },
+      {
+        title: translator.translateText("Last Seen"),
+        value: transceiver.lastSeenAt
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              transceiver.lastSeenAt,
+            )
+          : undefined,
+      },
+    ];
 
   return (
     <SideOver
@@ -798,7 +806,9 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
             </h3>
             {TRANSCEIVER_READING_KINDS.filter(
               (kind: TransceiverReadingKind) => {
-                return Boolean(transceiver.measurements?.[kind]?.readings.length);
+                return Boolean(
+                  transceiver.measurements?.[kind]?.readings.length,
+                );
               },
             ).length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -907,7 +917,9 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
                   return (
                     <div key={fact.title || ""}>
                       <dt className="text-xs text-gray-500">{fact.title}</dt>
-                      <dd className="text-gray-900 break-words">{fact.value}</dd>
+                      <dd className="text-gray-900 break-words">
+                        {fact.value}
+                      </dd>
                     </div>
                   );
                 },
@@ -936,7 +948,9 @@ const ReadingDetails: FunctionComponent<ReadingDetailsProps> = (
   return (
     <div className="space-y-2" data-testid={`transceiver-detail-${props.kind}`}>
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {translator.translateText(TRANSCEIVER_READING_COLUMN_TITLES[props.kind])}
+        {translator.translateText(
+          TRANSCEIVER_READING_COLUMN_TITLES[props.kind],
+        )}
       </div>
       {props.measurement.readings.map(
         (reading: TransceiverReading, position: number): ReactElement => {

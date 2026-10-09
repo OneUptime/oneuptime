@@ -16,14 +16,7 @@ import {
   TransceiverMibSource,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Every transceiver reading is a device-scoped metric series - port,
@@ -180,22 +173,16 @@ describe("NetworkDeviceMetricUtil - transceiver series", () => {
       (temperature[0]!["attributes"] as JSONObject)["lane"],
     ).toBeUndefined();
 
-    expect(rowsNamed(MonitorMetricType.SnmpTransceiverVoltage)).toHaveLength(
-      1,
-    );
+    expect(rowsNamed(MonitorMetricType.SnmpTransceiverVoltage)).toHaveLength(1);
     expect(
       rowsNamed(MonitorMetricType.SnmpTransceiverBiasCurrent),
     ).toHaveLength(2);
-    expect(rowsNamed(MonitorMetricType.SnmpTransceiverTxPower)).toHaveLength(
-      2,
-    );
+    expect(rowsNamed(MonitorMetricType.SnmpTransceiverTxPower)).toHaveLength(2);
 
     // Keyed to the device like every other device series.
     for (const row of rx) {
       expect(row["primaryEntityId"]).toBe(DEVICE_ID.toString());
-      expect((row["attributes"] as JSONObject)["deviceName"]).toBe(
-        "dc-leaf-1",
-      );
+      expect((row["attributes"] as JSONObject)["deviceName"]).toBe("dc-leaf-1");
     }
   });
 
@@ -276,7 +263,7 @@ describe("NetworkDeviceMetricUtil - transceiver series", () => {
   });
 
   test(`at most ${NetworkDeviceMetricUtil.maxTransceiverPoints} readings a poll, with a warning`, async () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: jest.SpyInstance = jest
       .spyOn(logger, "warn")
       .mockImplementation(() => {
         return undefined as never;

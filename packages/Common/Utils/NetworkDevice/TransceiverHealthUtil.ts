@@ -416,9 +416,7 @@ export default class TransceiverHealthUtil {
   }
 
   public static addDays(day: string, days: number): string {
-    return new Date(
-      TransceiverHealthUtil.dayToEpochMs(day) + days * MS_PER_DAY,
-    )
+    return new Date(TransceiverHealthUtil.dayToEpochMs(day) + days * MS_PER_DAY)
       .toISOString()
       .substring(0, 10);
   }
@@ -556,8 +554,7 @@ export default class TransceiverHealthUtil {
     const lastIndex: number = history.dailyAverageDbm.length - 1;
 
     for (let index: number = 0; index <= lastIndex; index++) {
-      const average: number | null | undefined =
-        history.dailyAverageDbm[index];
+      const average: number | null | undefined = history.dailyAverageDbm[index];
 
       if (typeof average !== "number" || !isFinite(average)) {
         continue;
@@ -960,14 +957,12 @@ export default class TransceiverHealthUtil {
         .filter((verdict: TransceiverReadingVerdict) => {
           return Boolean(verdict.crossing);
         })
-        .sort(
-          (a: TransceiverReadingVerdict, b: TransceiverReadingVerdict) => {
-            return (
-              (a.level === TransceiverReadingLevel.Alarm ? 0 : 1) -
-              (b.level === TransceiverReadingLevel.Alarm ? 0 : 1)
-            );
-          },
-        );
+        .sort((a: TransceiverReadingVerdict, b: TransceiverReadingVerdict) => {
+          return (
+            (a.level === TransceiverReadingLevel.Alarm ? 0 : 1) -
+            (b.level === TransceiverReadingLevel.Alarm ? 0 : 1)
+          );
+        });
 
     for (const verdict of crossed) {
       issues.push(TransceiverHealthUtil.describeVerdict(verdict));

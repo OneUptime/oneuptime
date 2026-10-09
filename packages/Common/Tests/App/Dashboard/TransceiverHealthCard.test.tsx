@@ -195,9 +195,11 @@ async function renderCard(): Promise<void> {
   });
 }
 
+const TABLE_ROW_TEST_ID: RegExp = /^transceiver-row-/;
+
 function tableRows(): Array<HTMLElement> {
   return within(screen.getByTestId("transceiver-table")).getAllByTestId(
-    /^transceiver-row-/,
+    TABLE_ROW_TEST_ID,
   );
 }
 
@@ -220,10 +222,16 @@ describe("TransceiverHealthCard", () => {
     expect(getItemSelects[0]).toEqual({ transceiverSnapshot: true });
   });
 
-  test("a device that reports no optics shows no card at all", async () => {
-    for (const snapshot of [undefined, []]) {
+  test.each([
+    ["no snapshot at all", undefined],
+    ["an empty snapshot", []],
+  ])(
+    "a device that reports no optics (%s) shows no card at all",
+    async (
+      _label: string,
+      snapshot: Array<NetworkDeviceTransceiver> | undefined,
+    ) => {
       deviceRow = device(snapshot);
-      getItemSelects = [];
 
       const { container } = render(
         <TransceiverHealthCard networkDeviceId={DEVICE_ID} />,
@@ -235,9 +243,8 @@ describe("TransceiverHealthCard", () => {
 
       expect(container).toBeEmptyDOMElement();
       expect(screen.queryByTestId("transceiver-card")).not.toBeInTheDocument();
-      cleanup();
-    }
-  });
+    },
+  );
 
   test("a failed read says so instead of hiding the card", async () => {
     failWith = new Error("You do not have permission to read this device.");
@@ -495,8 +502,8 @@ describe("TransceiverHealthCard", () => {
     expect(item).toHaveTextContent("RX Power");
     expect(item).toHaveTextContent("-6.30 dBm");
     expect(item).toHaveTextContent("2.5 dB below its best day");
-    expect(
-      within(list).getByTestId("transceiver-item-2"),
-    ).toHaveTextContent("Last seen");
+    expect(within(list).getByTestId("transceiver-item-2")).toHaveTextContent(
+      "Last seen",
+    );
   });
 });

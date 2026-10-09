@@ -88,7 +88,11 @@ function buildSession(): Record<string, unknown> {
         oids: Array<string>,
         callback: (error: Error | null, varbinds?: Array<FakeVarbind>) => void,
       ) => {
-        operations.push({ kind: "get", oid: oids[0] || "", count: oids.length });
+        operations.push({
+          kind: "get",
+          oid: oids[0] || "",
+          count: oids.length,
+        });
 
         setImmediate(() => {
           const failure: Error | undefined = timedOut(oids[0] || "");
@@ -118,7 +122,11 @@ function buildSession(): Record<string, unknown> {
         columns: Array<number>,
         callback: (error: Error | null, table?: unknown) => void,
       ) => {
-        operations.push({ kind: "table", oid: tableOid, count: columns.length });
+        operations.push({
+          kind: "table",
+          oid: tableOid,
+          count: columns.length,
+        });
 
         setImmediate(() => {
           const table: Record<string, Record<string, unknown>> = {};
@@ -369,9 +377,11 @@ describe("SnmpMonitor - transceivers during the interface walk", () => {
       [{ value: -9.2 }],
     );
     expect(
-      transceiverOperations().map((operation: { kind: string; oid: string }) => {
-        return `${operation.kind} ${operation.oid}`;
-      }),
+      transceiverOperations().map(
+        (operation: { kind: string; oid: string }) => {
+          return `${operation.kind} ${operation.oid}`;
+        },
+      ),
     ).toEqual([`subtree ${SENSOR}.1`, `get ${SENSOR}.4.1063`]);
     expect(firstPoll).toBeGreaterThan(2);
   });

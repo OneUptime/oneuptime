@@ -65,6 +65,9 @@ const TEMPLATE_EXPRESSION: RegExp = /\$\{[^}]*\}/g;
 const WHITESPACE: RegExp = /\s+/;
 const SUBSTRING_RULE: RegExp = /\[class\*="([^"]+)"\]/g;
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
+const BACKSLASH: RegExp = /\\/g;
+const COLON: RegExp = /:/g;
+const SLASH: RegExp = /\//g;
 
 const COLOR_UTILITY: RegExp =
   /^(?:bg|text|border|ring|divide|from|via|to|outline|fill|stroke|placeholder)-(?:white|black|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?$/;
@@ -146,9 +149,9 @@ function isRemapped(token: string): boolean {
 
   // CSS escaping, as Theme.css writes the class.
   const escapedClass: string = token
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/\//g, "\\/");
+    .replace(BACKSLASH, "\\\\")
+    .replace(COLON, "\\:")
+    .replace(SLASH, "\\/");
   let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
 
   while (from !== -1) {
@@ -229,7 +232,9 @@ describe("where the card sits", () => {
     expect(page).toContain(
       'import TransceiverHealthCard from "../../../Components/NetworkDevice/TransceiverHealthCard";',
     );
-    expect(page).toContain("<TransceiverHealthCard networkDeviceId={modelId} />");
+    expect(page).toContain(
+      "<TransceiverHealthCard networkDeviceId={modelId} />",
+    );
   });
 
   test("above the interface table, so a failing optic is seen before 48 ports", () => {

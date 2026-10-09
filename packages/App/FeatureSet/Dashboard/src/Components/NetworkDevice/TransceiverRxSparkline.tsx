@@ -106,12 +106,7 @@ const TransceiverRxSparkline: FunctionComponent<ComponentProps> = (
           })
           .join(" ")}
       />
-      <circle
-        cx={lastPoint.x}
-        cy={lastPoint.y}
-        r={2}
-        fill="currentColor"
-      />
+      <circle cx={lastPoint.x} cy={lastPoint.y} r={2} fill="currentColor" />
     </svg>
   );
 };

@@ -474,8 +474,8 @@ describe("ENTITY-SENSOR-MIB with Arista thresholds", () => {
   });
 
   test("an SFP: watts to dBm, milliamps, and Arista's thresholds in the same units", () => {
-    const results: Array<SnmpTransceiverResult> =
-      parseEntitySensorTransceivers({
+    const results: Array<SnmpTransceiverResult> = parseEntitySensorTransceivers(
+      {
         flavor: "arista",
         sensorRows: SENSORS,
         entityRows: ENTITY,
@@ -484,7 +484,8 @@ describe("ENTITY-SENSOR-MIB with Arista thresholds", () => {
           [1, "Ethernet1", "Ethernet1"],
           [2, "Ethernet2", "Ethernet2"],
         ]),
-      });
+      },
+    );
 
     expect(results).toEqual([
       {
@@ -613,8 +614,8 @@ describe("ENTITY-SENSOR-MIB with Arista thresholds", () => {
       "100349243": { 1: 6, 2: 8, 3: 4, 4: 4800, 5: 1 },
     });
 
-    const results: Array<SnmpTransceiverResult> =
-      parseEntitySensorTransceivers({
+    const results: Array<SnmpTransceiverResult> = parseEntitySensorTransceivers(
+      {
         flavor: "arista",
         sensorRows: qsfpSensors,
         entityRows: qsfpEntity,
@@ -624,7 +625,8 @@ describe("ENTITY-SENSOR-MIB with Arista thresholds", () => {
           [493, "Ethernet49/3"],
           [494, "Ethernet49/4"],
         ]),
-      });
+      },
+    );
 
     expect(results).toHaveLength(1);
     expect(results[0]!.interfaceIndex).toBe(491);
@@ -762,7 +764,10 @@ describe("the entity tree's other residents", () => {
       parseEntitySensorTransceivers({
         flavor: "standard",
         sensorRows: SENSORS,
-        entityRows: lineCard("WS-X4748-SFP-E", "48-port 1000BaseX SFP line card"),
+        entityRows: lineCard(
+          "WS-X4748-SFP-E",
+          "48-port 1000BaseX SFP line card",
+        ),
         aliasRows: ALIASES,
         interfaces: PORTS,
       }),
@@ -842,7 +847,10 @@ describe("JUNIPER-DOM-MIB", () => {
 
   test("an SFP+: every reading in display units, with its thresholds", () => {
     expect(
-      byPort(parseJuniperDomTransceivers({ rows: ROWS, interfaces: PORTS }), 513),
+      byPort(
+        parseJuniperDomTransceivers({ rows: ROWS, interfaces: PORTS }),
+        513,
+      ),
     ).toEqual({
       interfaceIndex: 513,
       measurements: {
@@ -918,8 +926,10 @@ describe("JUNIPER-DOM-MIB", () => {
 
   test("without the lane table a multi-lane optic keeps its module-wide readings", () => {
     expect(
-      byPort(parseJuniperDomTransceivers({ rows: ROWS, interfaces: PORTS }), 530)
-        .measurements.rxPower?.readings,
+      byPort(
+        parseJuniperDomTransceivers({ rows: ROWS, interfaces: PORTS }),
+        530,
+      ).measurements.rxPower?.readings,
     ).toEqual([{ value: -3.5 }]);
   });
 
@@ -1299,7 +1309,12 @@ describe("HP-ICF-TRANSCEIVER-MIB", () => {
     expect(
       parseHpIcfTransceivers({
         rows: table({
-          "26": { 3: text("J8177C"), 4: text("CN0000001"), 7: text("n/a"), 9: 0 },
+          "26": {
+            3: text("J8177C"),
+            4: text("CN0000001"),
+            7: text("n/a"),
+            9: 0,
+          },
         }),
         interfaces: interfaces([[26, "26"]]),
       }),

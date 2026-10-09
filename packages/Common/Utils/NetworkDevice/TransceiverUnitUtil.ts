@@ -31,7 +31,9 @@ const UNAVAILABLE_RAW_VALUES: Set<number> = new Set<number>([
 export default class TransceiverUnitUtil {
   public static isUnavailableRawValue(raw: number | undefined): boolean {
     return (
-      raw === undefined || !Number.isFinite(raw) || UNAVAILABLE_RAW_VALUES.has(raw)
+      raw === undefined ||
+      !Number.isFinite(raw) ||
+      UNAVAILABLE_RAW_VALUES.has(raw)
     );
   }
 

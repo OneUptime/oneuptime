@@ -141,7 +141,10 @@ export default class SnmpTransceiverCriteria {
       return `${missing.length} transceivers are no longer detected while their ports are enabled: ${SnmpTransceiverCriteria.listPorts(missing)}. The device still answers SNMP.`;
     }
 
-    if (criteriaFilter.filterType === FilterType.False && missing.length === 0) {
+    if (
+      criteriaFilter.filterType === FilterType.False &&
+      missing.length === 0
+    ) {
       return inScope.length === 1
         ? `The transceiver in ${TransceiverHealthUtil.describePort(inScope[0]!)} is detected.`
         : `Every transceiver in scope is detected (${inScope.length}).`;
@@ -209,7 +212,10 @@ export default class SnmpTransceiverCriteria {
         .join(" ");
     }
 
-    if (data.criteriaFilter.filterType === FilterType.False && past.length === 0) {
+    if (
+      data.criteriaFilter.filterType === FilterType.False &&
+      past.length === 0
+    ) {
       return `Every transceiver in scope is within its ${data.severity} thresholds (${judged.length}).`;
     }
 
@@ -536,7 +542,9 @@ export default class SnmpTransceiverCriteria {
     }
   }
 
-  private static describeComparison(filterType: FilterType | undefined): string {
+  private static describeComparison(
+    filterType: FilterType | undefined,
+  ): string {
     switch (filterType) {
       case FilterType.GreaterThan:
         return "greater than";

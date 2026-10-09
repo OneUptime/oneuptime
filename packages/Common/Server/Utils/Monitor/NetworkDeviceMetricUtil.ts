@@ -427,7 +427,9 @@ export default class NetworkDeviceMetricUtil {
       for (const kind of TRANSCEIVER_READING_KINDS) {
         for (const reading of transceiver.measurements?.[kind]?.readings ||
           []) {
-          if (transceiverPoints >= NetworkDeviceMetricUtil.maxTransceiverPoints) {
+          if (
+            transceiverPoints >= NetworkDeviceMetricUtil.maxTransceiverPoints
+          ) {
             droppedTransceiverPoints++;
             continue;
           }
@@ -437,9 +439,8 @@ export default class NetworkDeviceMetricUtil {
           pushMetric({
             metricName: TRANSCEIVER_READING_METRIC_NAMES[kind],
             value: reading.value,
-            description: NetworkDeviceMetricUtil.describeTransceiverMetric(
-              kind,
-            ),
+            description:
+              NetworkDeviceMetricUtil.describeTransceiverMetric(kind),
             unit: TRANSCEIVER_READING_UNITS[kind],
             extraAttributes: NetworkDeviceMetricUtil.getTransceiverAttributes(
               transceiver,
@@ -470,7 +471,9 @@ export default class NetworkDeviceMetricUtil {
     });
   }
 
-  public static describeTransceiverMetric(kind: TransceiverReadingKind): string {
+  public static describeTransceiverMetric(
+    kind: TransceiverReadingKind,
+  ): string {
     return `Transceiver ${TRANSCEIVER_READING_TITLES[kind].toLowerCase()} of a network device port (SFP, SFP+, QSFP)`;
   }
 

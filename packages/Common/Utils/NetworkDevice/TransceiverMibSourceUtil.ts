@@ -25,7 +25,10 @@ const CAMBIUM_CNMATRIX_ARC: string = "1.3.6.1.4.1.17713.24";
 
 const SOURCES_BY_ENTERPRISE: Record<number, Array<TransceiverMibSource>> = {
   // Cisco
-  9: [TransceiverMibSource.CiscoEntitySensor, TransceiverMibSource.EntitySensor],
+  9: [
+    TransceiverMibSource.CiscoEntitySensor,
+    TransceiverMibSource.EntitySensor,
+  ],
   // HPE Aruba ProCurve / ArubaOS-Switch
   11: [
     TransceiverMibSource.HpIcfTransceiver,

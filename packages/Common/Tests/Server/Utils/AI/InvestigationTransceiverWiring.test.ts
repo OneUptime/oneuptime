@@ -152,7 +152,9 @@ describe("Investigations start with the affected device's transceivers", () => {
     ).toEqual([monitorId.toString()]);
     expect(input.seriesLabels).toEqual(SERIES_LABELS);
     expect(input.focusText).toContain("Transceiver not detected");
-    expect(input.focusText).toContain("Transceiver no longer detected in Te1/1/1");
+    expect(input.focusText).toContain(
+      "Transceiver no longer detected in Te1/1/1",
+    );
 
     expect(sentRequest(executeRun).contextSummary.endsWith(SECTION)).toBe(true);
   });

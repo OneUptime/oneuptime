@@ -441,14 +441,13 @@ const CAMBIUM_SPEC: PortTableSpec = {
   parse: parseCambiumTransceivers,
 };
 
-const PORT_TABLE_SPECS: Partial<Record<TransceiverMibSource, PortTableSpec>> =
-  {
-    [TransceiverMibSource.JuniperDom]: JUNIPER_SPEC,
-    [TransceiverMibSource.MikroTik]: MIKROTIK_SPEC,
-    [TransceiverMibSource.H3cTransceiver]: H3C_SPEC,
-    [TransceiverMibSource.HpIcfTransceiver]: HP_ICF_SPEC,
-    [TransceiverMibSource.CambiumTransceiver]: CAMBIUM_SPEC,
-  };
+const PORT_TABLE_SPECS: Partial<Record<TransceiverMibSource, PortTableSpec>> = {
+  [TransceiverMibSource.JuniperDom]: JUNIPER_SPEC,
+  [TransceiverMibSource.MikroTik]: MIKROTIK_SPEC,
+  [TransceiverMibSource.H3cTransceiver]: H3C_SPEC,
+  [TransceiverMibSource.HpIcfTransceiver]: HP_ICF_SPEC,
+  [TransceiverMibSource.CambiumTransceiver]: CAMBIUM_SPEC,
+};
 
 // Columns of entPhysicalTable the tree needs, beyond the identity walk.
 const ENTITY_TREE_COLUMNS: Array<number> = [
@@ -553,7 +552,10 @@ export default class TransceiverWalker {
   }): Promise<Array<SnmpTransceiverResult> | undefined> {
     switch (data.source) {
       case TransceiverMibSource.CiscoEntitySensor:
-        return TransceiverWalker.collectEntitySensors({ ...data, flavor: "cisco" });
+        return TransceiverWalker.collectEntitySensors({
+          ...data,
+          flavor: "cisco",
+        });
       case TransceiverMibSource.AristaEntitySensor:
         return TransceiverWalker.collectEntitySensors({
           ...data,

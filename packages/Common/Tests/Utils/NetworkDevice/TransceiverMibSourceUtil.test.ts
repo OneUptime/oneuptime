@@ -25,18 +25,11 @@ describe("TransceiverMibSourceUtil.getSourcesForDevice", () => {
       "1.3.6.1.4.1.2636.1.1.1.2.63",
       [TransceiverMibSource.JuniperDom, TransceiverMibSource.EntitySensor],
     ],
-    [
-      "MikroTik CRS",
-      "1.3.6.1.4.1.14988.1",
-      [TransceiverMibSource.MikroTik],
-    ],
+    ["MikroTik CRS", "1.3.6.1.4.1.14988.1", [TransceiverMibSource.MikroTik]],
     [
       "HPE Comware 5130",
       "1.3.6.1.4.1.25506.11.1.163",
-      [
-        TransceiverMibSource.H3cTransceiver,
-        TransceiverMibSource.EntitySensor,
-      ],
+      [TransceiverMibSource.H3cTransceiver, TransceiverMibSource.EntitySensor],
     ],
     [
       "HPE Aruba 2930F (ArubaOS-Switch)",
@@ -150,9 +143,8 @@ describe("TransceiverMibSourceUtil.getSourcesForDevice", () => {
   });
 
   test("every vendor list ends in a source the probe can read", () => {
-    const sources: Array<TransceiverMibSource> = Object.values(
-      TransceiverMibSource,
-    );
+    const sources: Array<TransceiverMibSource> =
+      Object.values(TransceiverMibSource);
 
     for (const sysObjectId of [
       "1.3.6.1.4.1.9",

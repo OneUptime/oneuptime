@@ -247,23 +247,23 @@ describe("the transceiver checks", () => {
     ).toEqual([FilterType.True, FilterType.False]);
   });
 
-  test.each([CheckOn.SnmpTransceiverReading, CheckOn.SnmpTransceiverRxPowerDrop])(
-    "%s only compares numbers, above or below",
-    (checkOn: CheckOn) => {
-      const offered: Array<string> = values(
-        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn),
-      );
+  test.each([
+    CheckOn.SnmpTransceiverReading,
+    CheckOn.SnmpTransceiverRxPowerDrop,
+  ])("%s only compares numbers, above or below", (checkOn: CheckOn) => {
+    const offered: Array<string> = values(
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn),
+    );
 
-      expect([...offered].sort()).toEqual(
-        [
-          FilterType.GreaterThan,
-          FilterType.LessThan,
-          FilterType.GreaterThanOrEqualTo,
-          FilterType.LessThanOrEqualTo,
-        ].sort(),
-      );
-    },
-  );
+    expect([...offered].sort()).toEqual(
+      [
+        FilterType.GreaterThan,
+        FilterType.LessThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThanOrEqualTo,
+      ].sort(),
+    );
+  });
 
   test("the value placeholders are an RX power and a drop in dB", () => {
     expect(
@@ -304,7 +304,9 @@ describe("the transceiver checks", () => {
           transceiverReading: TransceiverReadingKind.Temperature,
         },
       }),
-    ).toContain('"SNMP Transceiver Reading" (Temperature) is greater than 70 °C');
+    ).toContain(
+      '"SNMP Transceiver Reading" (Temperature) is greater than 70 °C',
+    );
   });
 
   test("a reading that is not one of the five is not named", () => {
