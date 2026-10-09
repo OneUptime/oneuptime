@@ -40,10 +40,10 @@ import {
  *
  * The mirror writes a network device's facts under exactly these keys
  * (InventoryEntityRegistry) and the host extractor keeps a host's
- * (TelemetryEntity), so the `descriptiveAttributes` a CMDB sync reads over
- * the API hold one key per fact whatever the row is. A fact nothing has
- * reported is `undefined` here and is shown as "Unknown" - never left out,
- * so a missing serial number is visible rather than silently absent.
+ * (Utils/Telemetry/TelemetryEntity), so the `descriptiveAttributes` a CMDB
+ * sync reads over the API hold one key per fact whatever the row is. A fact
+ * nothing has reported is `undefined` here and is shown as "Unknown" - never
+ * left out, so a missing serial number is visible rather than silently absent.
  *
  * Pure and in Common, so the item page, the list's columns and their CSV
  * export, and the tests all read a row the same way.

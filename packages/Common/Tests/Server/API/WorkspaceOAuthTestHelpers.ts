@@ -322,13 +322,23 @@ export interface RunningApp {
   close: () => Promise<void>;
 }
 
-// Mounts routers under /api on a real express app with cookie and JSON parsing.
+/*
+ * Mounts routers under /api on a real express app with cookie and JSON
+ * parsing. The raw JSON body is kept on the request as the server's own
+ * parser keeps it (StartServer), for routes that check a signature over it.
+ */
 export async function startApp(
   routers: Array<ExpressRouter>,
 ): Promise<RunningApp> {
   const app: express.Express = express();
   app.use(cookieParser());
-  app.use(express.json());
+  app.use(
+    express.json({
+      verify: (req: any, _res: unknown, buf: Buffer): void => {
+        req.rawBody = buf.toString();
+      },
+    }),
+  );
 
   for (const router of routers) {
     app.use("/api", router as any);

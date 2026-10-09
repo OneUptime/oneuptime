@@ -108,6 +108,8 @@ The address is a link that writes to exactly that address — in the dashboard, 
 
 A [hidden question](/docs/forms/building#hidden-questions) is answered from the [template](/docs/forms/building#templates) the submission started from — never from the request — and its answer goes exactly where a typed one would: a hidden **Description** becomes the incident's description, a hidden custom field its value, a hidden question of the form's own a line on the private note. A submission that started from no template leaves hidden questions unanswered, and their fields are filled in from the On Submit settings, as for any question left empty. A template deleted while someone had the form open does not stop their submission: it is created as they answered it, without the template's hidden answers.
 
+A template can ask the form's questions [its own way](/docs/forms/building#how-a-template-asks-each-question), and the server holds the submission to the questions as the template it names asks them. A question the template hides is answered from the template, as a hidden question is, even when the form asks it; one the template asks is read from the request, even when the form hides it; and one the template requires must be answered, or the submission is refused and nothing is created.
+
 The answers a template filled in on the page are the submitter's once they submit: the server takes the answers the request sends for the questions the page asks, whatever the template said.
 
 ## Text a submitter writes

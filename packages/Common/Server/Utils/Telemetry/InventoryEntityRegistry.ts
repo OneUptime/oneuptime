@@ -180,9 +180,10 @@ export function compactAttributes(
  *
  * The keys are the ones a host's item uses for the same facts
  * (INVENTORY_ASSET_ATTRIBUTE_KEYS in Utils/Inventory/InventoryAssetDetails,
- * and the `host` entry of descriptiveAttributeKeysByType in TelemetryEntity),
- * so one CMDB column holds the serial number whether the row is a server or a
- * switch, and Inventory shows both with the same Asset details card:
+ * and the `host` entry of descriptiveAttributeKeysByType in
+ * Utils/Telemetry/TelemetryEntity), so one CMDB column holds the serial number
+ * whether the row is a server or a switch, and Inventory shows both with the
+ * same Asset details card:
  *
  *   hostname        host.name                (the device's own name by the
  *                                             naming rule - never its IP)

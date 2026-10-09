@@ -27,6 +27,10 @@ import { VideoCallMeetingRequest } from "../VideoCallMeetingRequest";
  * People in the organization skip the lobby by default and everyone may
  * present: the organizer is a service account that never joins, so nobody
  * would be there to admit them or hand over the screen.
+ *
+ * A connection made by signing in (VideoCallAuthMethod.OAuth) creates the
+ * same meeting with the signed-in account's own delegated token, as /me
+ * (createMeetingWithToken), which needs no application access policy.
  */
 
 export interface MicrosoftTeamsMeetingClientSettings {
@@ -36,6 +40,21 @@ export interface MicrosoftTeamsMeetingClientSettings {
   organizerUserId: string;
   // "organization" or "everyone" (lobbyBypassSettings.scope).
   lobbyBypass: string;
+}
+
+// Who organizes a meeting, and how an error names them.
+export interface MicrosoftTeamsMeetingOrganizer {
+  // The organizer's Graph path: "/me" for the signed-in account, or "/users/<object id>".
+  path: string;
+  label: string;
+  /*
+   * Whether the token is a person's sign-in to this server's Microsoft app
+   * rather than the project's own app registration: what fixes a refusal
+   * differs.
+   */
+  isSignIn: boolean;
+  // An app registration's client id, for the access policy it needs.
+  clientId?: string | undefined;
 }
 
 export const MICROSOFT_GRAPH_BASE_URL: string =
@@ -86,6 +105,32 @@ export default class MicrosoftTeamsMeetingClient {
     request: VideoCallMeetingRequest,
   ): Promise<VideoCallMeeting> {
     const accessToken: string = await this.getAccessToken();
+    const organizerUserId: string = this.settings.organizerUserId.trim();
+
+    return await MicrosoftTeamsMeetingClient.createMeetingWithToken({
+      http: this.http,
+      accessToken,
+      organizer: {
+        path: `/users/${encodeURIComponent(organizerUserId)}`,
+        label: organizerUserId,
+        isSignIn: false,
+        clientId: this.settings.clientId.trim(),
+      },
+      lobbyBypass: this.settings.lobbyBypass,
+      request,
+    });
+  }
+
+  public static async createMeetingWithToken(data: {
+    http: VideoCallHttpClient;
+    accessToken: string;
+    organizer: MicrosoftTeamsMeetingOrganizer;
+    // "organization" or "everyone"; anything else is organization.
+    lobbyBypass: string;
+    request: VideoCallMeetingRequest;
+  }): Promise<VideoCallMeeting> {
+    const request: VideoCallMeetingRequest = data.request;
+    const accessToken: string = data.accessToken;
 
     const startTime: Date = request.startTime || new Date();
     const endTime: Date = new Date(
@@ -93,9 +138,9 @@ export default class MicrosoftTeamsMeetingClient {
     );
 
     const lobbyBypass: string = ALLOWED_LOBBY_BYPASS_SCOPES.includes(
-      this.settings.lobbyBypass,
+      data.lobbyBypass,
     )
-      ? this.settings.lobbyBypass
+      ? data.lobbyBypass
       : "organization";
 
     const subject: string = (request.title || "Incident call").trim();
@@ -117,8 +162,8 @@ export default class MicrosoftTeamsMeetingClient {
       },
     };
 
-    const response: VideoCallHttpResponse = await this.http.request({
-      url: `${MICROSOFT_GRAPH_BASE_URL}/users/${encodeURIComponent(this.settings.organizerUserId.trim())}/onlineMeetings`,
+    const response: VideoCallHttpResponse = await data.http.request({
+      url: `${MICROSOFT_GRAPH_BASE_URL}${data.organizer.path}/onlineMeetings`,
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -130,7 +175,10 @@ export default class MicrosoftTeamsMeetingClient {
     });
 
     if (!response.ok) {
-      throw this.getMeetingError(response);
+      throw MicrosoftTeamsMeetingClient.getMeetingError(
+        response,
+        data.organizer,
+      );
     }
 
     const joinWebUrl: JSONValue | undefined = response.json?.["joinWebUrl"];
@@ -235,12 +283,29 @@ export default class MicrosoftTeamsMeetingClient {
     );
   }
 
-  private getMeetingError(response: VideoCallHttpResponse): Error {
+  private static getMeetingError(
+    response: VideoCallHttpResponse,
+    organizer: MicrosoftTeamsMeetingOrganizer,
+  ): Error {
     const summary: string = VideoCallHttpClient.summarizeErrorBody(response);
+
+    if (organizer.isSignIn) {
+      if (response.status === 401) {
+        return new BadDataException(
+          `Microsoft no longer accepts OneUptime's sign-in for ${organizer.label}. Reconnect Microsoft Teams in Project Settings > Video Calls. (${summary})`,
+        );
+      }
+
+      if (response.status === 403 || response.status === 404) {
+        return new BadDataException(
+          `Microsoft Graph did not let ${organizer.label} create a Teams meeting. Check that the account has a Microsoft Teams license and may schedule meetings, then reconnect Microsoft Teams in Project Settings > Video Calls. (${summary})`,
+        );
+      }
+    }
 
     if (MISSING_ACCESS_POLICY_PATTERN.test(summary)) {
       return new BadDataException(
-        `Microsoft Teams has no application access policy that lets this app create meetings for the organizer. In Teams PowerShell run: New-CsApplicationAccessPolicy -Identity OneUptime-Meetings -AppIds "${this.settings.clientId.trim()}" and then Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "${this.settings.organizerUserId.trim()}". It can take up to 30 minutes to apply. (${summary})`,
+        `Microsoft Teams has no application access policy that lets this app create meetings for the organizer. In Teams PowerShell run: New-CsApplicationAccessPolicy -Identity OneUptime-Meetings -AppIds "${organizer.clientId || ""}" and then Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "${organizer.label}". It can take up to 30 minutes to apply. (${summary})`,
       );
     }
 
@@ -252,7 +317,7 @@ export default class MicrosoftTeamsMeetingClient {
 
     if (response.status === 404) {
       return new BadDataException(
-        `Microsoft Graph found no user with the organizer object ID ${this.settings.organizerUserId.trim()}. Copy the Object ID of a licensed Teams user from the Entra admin center. (${summary})`,
+        `Microsoft Graph found no user with the organizer object ID ${organizer.label}. Copy the Object ID of a licensed Teams user from the Entra admin center. (${summary})`,
       );
     }
 
