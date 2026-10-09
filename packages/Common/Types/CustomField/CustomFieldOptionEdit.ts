@@ -430,35 +430,6 @@ export const getCustomFieldOptionValues: GetCustomFieldOptionValuesFunction = (
   );
 };
 
-export type GetAddedCustomFieldOptionsFunction = (data: {
-  before: unknown;
-  after: unknown;
-  renames: CustomFieldOptionRenameMap;
-}) => Array<CustomFieldDropdownOption>;
-
-/**
- * The options a write added to a field: in the new list, not in the old one,
- * and not the new name of a renamed option. With their colors, in the new
- * list's order.
- */
-export const getAddedCustomFieldOptions: GetAddedCustomFieldOptionsFunction =
-  (data: {
-    before: unknown;
-    after: unknown;
-    renames: CustomFieldOptionRenameMap;
-  }): Array<CustomFieldDropdownOption> => {
-    const before: Set<string> = new Set<string>(
-      getCustomFieldOptionValues(data.before),
-    );
-    const renamedTo: Set<string> = new Set<string>(data.renames.values());
-
-    return parseCustomFieldDropdownOptions(data.after).filter(
-      (option: CustomFieldDropdownOption): boolean => {
-        return !before.has(option.value) && !renamedTo.has(option.value);
-      },
-    );
-  };
-
 /*
  * How many records hold each value of one field, as the server counts them
  * (POST /<custom field route>/:id/option-usage): what the dashboard's option

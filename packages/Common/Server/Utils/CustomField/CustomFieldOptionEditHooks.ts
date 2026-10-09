@@ -9,7 +9,6 @@ import {
   CustomFieldOptionRename,
   CustomFieldOptionRenameMap,
   CustomFieldOptionUsage,
-  getAddedCustomFieldOptions,
   getCustomFieldOptionRenamesProblem,
   getCustomFieldOptionValues,
   readCustomFieldOptionRenames,
@@ -73,8 +72,8 @@ import { EntityManager } from "typeorm";
  * and must offer every option the monitor field can hold, or the values it
  * copies are ones it does not offer. So when a monitor field's options are
  * renamed, the copying fields' options are renamed too and their values
- * moved, and an option added to the monitor field is added to them - in the
- * same transaction as the monitor field's own values.
+ * moved, and every option the monitor field offers that they lack is added
+ * to them - in the same transaction as the monitor field's own values.
  */
 
 export interface CustomFieldOptionEditField {
@@ -106,6 +105,17 @@ const getTableName: GetTableNameFunction = (modelType: {
   new (): BaseModel;
 }): string => {
   return new modelType().tableName || "";
+};
+
+/*
+ * A column of a row as it was read. Not getColumnValue, which answers null
+ * for an empty value: an option list of "" is still the text to compare a
+ * write with.
+ */
+type ColumnOfFunction = (model: BaseModel, column: string) => unknown;
+
+const columnOf: ColumnOfFunction = (model: BaseModel, column: string): unknown => {
+  return (model as unknown as Record<string, unknown>)[column];
 };
 
 type ReadStringFunction = (value: unknown) => string | null;
@@ -226,10 +236,10 @@ export const prepareCustomFieldOptionEdit: (
         renames: read.renames,
         customFieldType:
           readString(payload["customFieldType"]) ||
-          readString(field.getColumnValue("customFieldType")),
+          readString(columnOf(field, "customFieldType")),
         dropdownOptions: sendsOptions
           ? readString(payload["dropdownOptions"])
-          : readString(field.getColumnValue("dropdownOptions")),
+          : readString(columnOf(field, "dropdownOptions")),
       });
 
       if (problem) {
@@ -241,9 +251,7 @@ export const prepareCustomFieldOptionEdit: (
   const editedFields: Array<CustomFieldOptionEditField> = [];
 
   for (const field of fields) {
-    const projectId: ObjectID | undefined = field.getColumnValue(
-      "projectId",
-    ) as ObjectID | undefined;
+    const projectId: ObjectID | undefined = columnOf(field, "projectId") as ObjectID | undefined;
 
     if (!field.id || !projectId) {
       continue;
@@ -252,8 +260,8 @@ export const prepareCustomFieldOptionEdit: (
     editedFields.push({
       id: field.id,
       projectId: projectId,
-      name: readString(field.getColumnValue("name")) || "",
-      dropdownOptions: readString(field.getColumnValue("dropdownOptions")),
+      name: readString(columnOf(field, "name")) || "",
+      dropdownOptions: readString(columnOf(field, "dropdownOptions")),
     });
   }
 
@@ -340,7 +348,7 @@ const findCopyingFields: FindCopyingFieldsFunction = async (data: {
       });
 
       for (const row of rows) {
-        const name: string | null = readString(row.getColumnValue("name"));
+        const name: string | null = readString(columnOf(row, "name"));
 
         if (!row.id || !name) {
           continue;
@@ -353,8 +361,8 @@ const findCopyingFields: FindCopyingFieldsFunction = async (data: {
           store: getCustomFieldValueStore(target.definitionTableName),
           id: row.id,
           name: name,
-          customFieldType: row.getColumnValue("customFieldType"),
-          dropdownOptions: readString(row.getColumnValue("dropdownOptions")),
+          customFieldType: columnOf(row, "customFieldType"),
+          dropdownOptions: readString(columnOf(row, "dropdownOptions")),
         });
       }
     }
@@ -439,15 +447,15 @@ export const applyCustomFieldOptionEdit: (
     });
 
     const fieldName: string | null = field
-      ? readString(field.getColumnValue("name"))
+      ? readString(columnOf(field, "name"))
       : null;
 
-    if (!field || !fieldName || !isDropdown(field.getColumnValue("customFieldType"))) {
+    if (!field || !fieldName || !isDropdown(columnOf(field, "customFieldType"))) {
       continue;
     }
 
     const savedOptions: string | null = readString(
-      field.getColumnValue("dropdownOptions"),
+      columnOf(field, "dropdownOptions"),
     );
 
     // Checked before the write; read again, as saved.
@@ -461,20 +469,22 @@ export const applyCustomFieldOptionEdit: (
       }),
     );
 
-    const added: Array<CustomFieldDropdownOption> = getAddedCustomFieldOptions({
-      before: before.dropdownOptions,
-      after: savedOptions,
-      renames: renames,
-    });
+    /*
+     * Every option the field offers now: a field that copies it must offer
+     * each one (CustomFieldMappingValidator), so whatever it lacks - added
+     * by this save, or by an API client before the copying field existed -
+     * is added to it.
+     */
+    const offeredOptions: Array<CustomFieldDropdownOption> =
+      parseCustomFieldDropdownOptions(savedOptions);
 
-    const copiers: Array<CopyingField> =
-      isSource && (renames.size > 0 || added.length > 0)
-        ? await findCopyingFields({
-            sourceDefinitionTableName: definitionTableName,
-            projectId: before.projectId,
-            sourceFieldNames: [before.name, fieldName],
-          })
-        : [];
+    const copiers: Array<CopyingField> = isSource
+      ? await findCopyingFields({
+          sourceDefinitionTableName: definitionTableName,
+          projectId: before.projectId,
+          sourceFieldNames: [before.name, fieldName],
+        })
+      : [];
 
     const plans: Array<CopierPlan> = copiers
       .filter((copier: CopyingField): boolean => {
@@ -485,7 +495,7 @@ export const applyCustomFieldOptionEdit: (
           renameCustomFieldOptionsInList({
             options: parseCustomFieldDropdownOptions(copier.dropdownOptions),
             renames: renames,
-            addOptions: added,
+            addOptions: offeredOptions,
           });
 
         return {
@@ -690,10 +700,10 @@ export const getCustomFieldOptionUsage: (
   });
 
   const name: string | null = field
-    ? readString(field.getColumnValue("name"))
+    ? readString(columnOf(field, "name"))
     : null;
   const projectId: ObjectID | undefined = field
-    ? (field.getColumnValue("projectId") as ObjectID | undefined)
+    ? (columnOf(field, "projectId") as ObjectID | undefined)
     : undefined;
 
   if (!field || !name || !projectId) {
@@ -708,7 +718,7 @@ export const getCustomFieldOptionUsage: (
 
   const usage: CustomFieldOptionUsage = { values: [], copiedBy: [] };
 
-  if (!isDropdown(field.getColumnValue("customFieldType"))) {
+  if (!isDropdown(columnOf(field, "customFieldType"))) {
     return usage;
   }
 
