@@ -1,60 +1,141 @@
 # 合成モニター
 
-合成モニタリングは、ユーザーのインタラクションをシミュレートすることでアプリケーションをプロアクティブに監視する方法です。合成モニターを作成して、世界中のさまざまな場所からアプリケーションの可用性とパフォーマンスを確認できます。
+合成モニターは、あなたが書いた Playwright のスクリプトで、本物のブラウザーを使って Web アプリをスケジュールに従って操作します。ページを開き、フォームに入力し、ユーザーの操作の流れをクリックでたどり、その流れが失敗するとチェックも失敗します。稼働時間のチェックでは見えない不具合、たとえば動かなくなったログイン、押しても何も起きない購入ボタン、いつまでも読み込みが終わらないダッシュボードを捕まえるのに使います。
 
-#### 使用例
+:::cards
+- [モニターを作成する](#合成モニターを作成する): スクリプトを書き、ブラウザーと画面サイズを選びます。
+- [スクリプトを書く](#スクリプトを書く): そのまま動くサインインの流れから始められます。
+- [スクリーンショット](#スクリーンショット): 実行が失敗したときのページの様子を確認できます。
+- [スクリプトで使えるもの](#スクリプトで使えるモジュール): Playwright、HTTP、暗号、メトリクス。
+:::
 
-以下の例は、合成モニターの使用方法を示しています。
+## 仕組み
 
-```javascript
-// スクリプトのコンテキストで利用可能なオブジェクト：
+チェックのたびに、プローブは選んだブラウザーと画面サイズの組み合わせごとに 1 回ずつ、順番にスクリプトを実行します。各実行は、以前の実行の Cookie やストレージを持たない新しいブラウザーで始まります。スクリプトはページを操作し、スクリーンショットを撮り、結果を返すか例外を投げます。プローブはすべての実行を報告し、OneUptime はそれらに対して条件を評価します。
 
-// - axios: HTTPリクエストを作成するためのAxiosモジュール
-// - page: ブラウザと対話するためのPlaywright Pageオブジェクト
-// - browserType: 現在の実行コンテキストのブラウザタイプ - Chromium、Firefox、Webkit
-// - screenSizeType: 現在の実行コンテキストの画面サイズタイプ - Mobile、Tablet、Desktop
+```mermaid title="合成モニターの 1 回のチェック"
+sequenceDiagram
+    participant O as OneUptime
+    participant P as プローブ
+    participant B as ブラウザー
+    participant A as あなたの Web アプリ
+    O->>P: シークレットを<br/>埋め込んだスクリプト
+    loop ブラウザーと画面サイズごと
+        P->>B: スクリプトを実行
+        B->>A: ページの読み込み、<br/>クリック、入力
+        A-->>B: ページ
+        B-->>P: 結果、<br/>スクリーンショット、ログ
+    end
+    P->>O: 実行ごとに 1 つの応答
+    O->>O: 条件を評価
+```
 
-// これらのオブジェクトを使用してブラウザと対話し、HTTPリクエストを実行できます。
+| 画面の種類 | ビューポート |
+| --- | --- |
+| Mobile | 360 × 640 |
+| Tablet | 1024 × 768 |
+| Desktop | 1920 × 1080 |
 
-await page.goto("https://playwright.dev/");
+ブラウザーは Chromium と Firefox です。
 
-// Playwrightのドキュメントはこちら: https://playwright.dev/docs/intro
+## 始める前に
 
-// 監視対象オブジェクトのコンテキストで使用できる変数の例：
+- Web アプリに到達できる **プローブ**。ネットワーク内のアプリには [カスタムプローブ](/docs/probe/custom-probe) を使います。プローブの Docker イメージには Chromium と Firefox が含まれています。Docker の外で動かすプローブには、それらをインストールしておく必要があります。
+- 操作の流れに必要なパスワードやトークンを、[モニター シークレット](/docs/monitor/monitor-secrets) として保存しておきます。
 
-console.log(browserType); // 現在の実行コンテキストのブラウザタイプ - Chromium、Firefox、Webkit
+## 合成モニターを作成する
 
-console.log(screenSizeType); // 現在の実行コンテキストの画面サイズタイプ - Mobile、Tablet、Desktop
+:::steps
+### 新しいモニターを始める
 
-// pageオブジェクトは特定のブラウザコンテキストに属しているため、ブラウザと対話するために使用できます。
+**モニター** に移動し、**モニターを作成** をクリックします。**モニターの種類** で **その他のモニターの種類** をクリックし、**Synthetic Monitoring** の下の **シンセティックモニター** を選ぶか、検索ボックスに `playwright` と入力します。**名前** を入力し、**次へ** をクリックします。
 
-// スクリーンショットを撮るには、スクリプトのコンテキストで提供されている`screenshots`オブジェクトに割り当てます。
-// この方法でキャプチャされたスクリーンショットは、スクリプトが後で例外をスローした場合でも保持されます。失敗したテストのデバッグに役立ちます。
+### スクリプトを追加する
 
-screenshots["screenshot-name"] = await page.screenshot(); // 複数のスクリーンショットを異なる名前で保存できます。
+**Playwright のコード** エディターにスクリプトを書きます。[下の例](#スクリプトを書く) から始めましょう。
 
-// 値を返したい場合は、dataプロパティを持つreturnステートメントを使用します。
+### ブラウザーと画面サイズを選ぶ
 
-// データをログに記録するには、console.logを使用します
-// console.log('Hello World');
+**ブラウザーの種類** でブラウザーを、**画面の種類** でサイズを選びます。スクリプトは組み合わせごとに 1 回実行されるので、ブラウザー 2 つとサイズ 3 つなら、チェック 1 回あたり 6 回の実行になります。**その他の項目** の **エラー時の再試行回数** で、失敗した実行を最大 5 回まで再試行できます。
 
-// 必要に応じてpage.context()でブラウザコンテキストにアクセスできます（新しいページの作成やポップアップの処理など）。
+### テストする
+
+**モニターをテスト** をクリックしてプローブからスクリプトを 1 回実行し、各実行の結果、ログ、スクリーンショットを確認します。
+
+### 条件を確認する
+
+モニターには最初から 2 つの条件があります。いずれかの実行が失敗するとオフラインになってインシデントを宣言し、どれも失敗しなければオンラインになります。必要に応じて変更するか独自の条件を追加し ([条件](#条件) を参照)、**次へ** をクリックします。
+
+### プローブを選んで作成する
+
+**プローブ** と **監視間隔** を選び (合成モニターでは 5 分以上の間隔を選べます)、**モニターを作成** をクリックします。
+:::
+
+## スクリプトを書く
+
+スクリプトは `async` 関数の本体です。`page` はすでに開いている Playwright 互換のページです。これを操作し、`return` で結果を返し、`throw` (または Playwright の呼び出しのタイムアウト) で実行を失敗させます。次の例はサインインし、ダッシュボードが読み込まれることを確認します。
+
+```javascript title="Synthetic monitor script"
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
+
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// Fails the run if the dashboard does not appear within 10 seconds.
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+screenshots["dashboard"] = await page.screenshot();
+
+console.log(`Signed in on ${browserType}, ${screenSizeType}`);
 
 return {
-  data: "Hello World",
+  data: { title: await page.title() },
 };
 ```
 
-### Playwrightの使用
+| 目的 | 方法 | OneUptime が記録するもの |
+| --- | --- | --- |
+| 結果を報告する | `return { data: ... }` | 実行の **結果**。保持されるのは `data` だけです。 |
+| 実行を失敗させる | `throw new Error("...")`、または待機をタイムアウトさせる | 実行の **スクリプトエラー**。 |
+| 証拠を残す | `screenshots["name"] = await page.screenshot()` | 実行が失敗しても保持されるスクリーンショット。 |
+| 痕跡を残す | `console.log(...)` | 実行のログメッセージ。 |
 
-Playwrightを使用してユーザーのインタラクションをシミュレートします。Playwright の `page` オブジェクトを使用してブラウザと対話し、ボタンのクリック、フォームの入力、スクリーンショットの取得などのアクションを実行できます。
+実行を確認するには、モニターの **概要** を開きます。**モニターの概要** カードにはブラウザーと画面サイズごとに 1 つのブロックがあり、**詳細をさらに表示** で各実行のスクリーンショットを見られます。
 
-### スクリーンショット
+### Playwright の使用
 
-事前に宣言された `screenshots` オブジェクトがスクリプトのコンテキストで利用できます。スクリプトの任意の時点でそれにスクリーンショットを割り当てます。これらのスクリーンショットはスクリプトが例外をスロー（アサーション失敗、タイムアウト、予期しないエラーを含む）した場合でもキャプチャされるため、実行が失敗したときのページの状態を正確に確認できます。キャプチャされたスクリーンショットは、その特定のモニター実行のOneUptime ダッシュボードに表示されます。
+ユーザーの操作の再現には Playwright を使います。`page` の値は、この実行のために作られたページに対する、安全な Playwright 互換のファサードです。`Page`、`Locator`、`Frame`、`ElementHandle`、`JSHandle`、`Request`、`Response`、キーボード、マウス、ブラウザーコンテキストのよく使うメソッドが使えます。ナビゲーション、ロケーター、クリック、フォーム入力、ページ上での評価、ポップアップ、追加のページ、レスポンスの確認、スクリーンショットが含まれます。この実行のブラウザーコンテキストには `page.context()` でアクセスでき、たとえば新しいページを開いたりポップアップを扱ったりできます。
+
+合成モニターのスクリプトは、プローブの Node.js プロセスでは実行されません。値はコピーされたデータか、実行に紐づく不透明な機能として実行環境の境界を越えるので、一部の Playwright API は動作が異なるか、まったく動作しません。
+
+| 使えないもの | 代わりに使うもの |
+| --- | --- |
+| ブラウザーの起動や接続のメソッド、CDP セッション、リクエストのルーティング、公開バインディング、Playwright のプライベートフィールド、ホストのファイルシステムのパスを読み書きするオプション。そのため `page.context().browser()` は使えません。 | 与えられたページとブラウザーコンテキスト。 |
+| イベントリスナー (`page.on(...)`、`page.once(...)`)。呼び出すとわかりやすいエラーで失敗します。 | ダイアログやポップアップには `page.waitForEvent(...)`、または文字列や正規表現で照合するレスポンスやリクエストの待機。 |
+| イベント、リクエスト、レスポンス、URL の待機メソッドに渡す関数の述語。 | 文字列や正規表現による照合、ロケーター、明示的なポーリング。 |
+| 同期的なフレームのアクセサー (`page.frames()`、`page.mainFrame()`、`page.frame(...)`)。 | iframe には `page.frameLocator(...)`。 |
+| `page.request.*` | HTTP リクエストにはグローバルの `axios`。 |
+| ページ全体のスクリーンショットと PDF 出力。 | ビューポートのスクリーンショット。下で説明する、失敗時の証拠を残す動作はそのまま使えます。 |
+
+`page.waitForNavigation(...)`、`page.setDefaultTimeout(...)`、`page.setDefaultNavigationTimeout(...)` はサポートされています。`page.waitForEvent(...)` が待機できるのは `dialog`、`domcontentloaded`、`load`、`popup`、`request`、`requestfailed`、`requestfinished`、`response` です。`page.evaluate()` などのメソッドに渡した評価関数は、監視対象のブラウザーのページで実行され、プローブのプロセスでは実行されません。1 回の実行で使えるページは最大 8 つです。
+
+ブラウザーの権限は位置情報と通知に限られます。クリップボード、カメラ、マイク、MIDI、ローカルフォントなど、ホストのデバイスに関わる権限はモニターのスクリプトでは使えません。
+
+### スクリプトが返すもの
+
+スクリプトが返したデータは、保存前に JSON にシリアライズされます。プレーンなオブジェクトと配列の中では、`NaN` と `Infinity` は `null` になり、`undefined` のプロパティと関数は取り除かれ、`Date` オブジェクトは ISO 文字列になります。これは `JSON.stringify` の扱いと同じです。クラスのインスタンスなど、プレーンでないオブジェクトは丸ごと取り除かれます。`BigInt` は文字列になります。循環参照がある結果、30 階層を超えて入れ子になった結果、5 MB を超える結果は、代わりに実行を失敗させます。
+
+### 返されたデータでアラートを出す
+
+スクリプトが `data` として返したものがモニターの **Result Value** で、条件でこれを比較できます。`data` がオブジェクトや配列の場合は、Result Value フィルターの **フィールドパス（任意）** を入力して 1 つのフィールドを比較します。たとえば `status`、`timings.loadTime`、`errors[0].message` です。フィルターは、モニターが実行されるすべてのブラウザーと画面サイズのデータに対してチェックされ、そのどれかが一致すれば一致します。パスと条件のしくみは [返されたデータでアラートを出す](/docs/monitor/custom-code-monitor#返されたデータでアラートを出す) を参照してください。
+
+## スクリーンショット
+
+スクリプトのコンテキストには、あらかじめ宣言された `screenshots` オブジェクトがあります。スクリプトのどこでもこれにスクリーンショットを代入できます。これらのスクリーンショットは **スクリプトが例外を投げても** (アサーションの失敗、タイムアウト、予期しないエラーを含む) 保存されるので、実行が失敗したときのページの様子を正確に確認できます。保存したスクリーンショットは、OneUptime のダッシュボードでそのモニターの実行ごとに表示されます。
 
 ```javascript
-// `screenshots`サイドチャネルを介してスクリーンショットをキャプチャします。成功と失敗の両方で保持されます。
+// Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
 await page.goto("https://app.example.com/login");
 screenshots["login-page"] = await page.screenshot();
@@ -63,7 +144,7 @@ await page.fill("#email", "user@example.com");
 await page.fill("#password", "wrong");
 await page.click("button[type=submit]");
 
-// 次のアサーションが例外をスローした場合でも、上の`login-page`スクリーンショットはキャプチャされます。
+// If the next assertion throws, the `login-page` screenshot above is still captured.
 await page.waitForSelector(".dashboard", { timeout: 5000 });
 
 screenshots["dashboard"] = await page.screenshot();
@@ -73,12 +154,13 @@ return {
 };
 ```
 
-#### スクリーンショットを返す（レガシー）
+1 回の実行で保存できるスクリーンショットは最大 20 枚、1 枚あたり最大 10 MB、合計 50 MB までです。モニターのインシデントやアラートの説明にスクリーンショットを入れておけば、失敗した実行が開くインシデントやアラートのページと、それに関するメールにもスクリーンショットを表示できます。[スクリーンショットを表示する](/docs/monitor/incident-alert-templating#合成モニター) を参照してください。
 
-下位互換性のために、戻り値の一部としてスクリプトからスクリーンショットを返すこともできます。この方法でのスクリーンショットはスクリプトが正常に完了した場合にのみキャプチャされ、スクリプトが例外をスローした場合は失われます。失敗の証拠が必要な場合は、上記のサイドチャネルパターンを優先してください。
+:::details スクリーンショットを返す (従来の方法)
+後方互換性のため、スクリーンショットを戻り値の一部としてスクリプトから返すこともできます。この方法で返したスクリーンショットは、スクリプトが正常に終了したときに **だけ** 保存され、スクリプトが例外を投げると失われます。失敗の証拠を残したいときは、上のサイドチャネルの方法を使ってください。
 
 ```javascript
-// レガシーパターン — スクリーンショットは正常なreturn時のみキャプチャされます。
+// Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
 screenshots["screenshot-name"] = await page.screenshot();
 
@@ -87,50 +169,38 @@ return {
   screenshots: screenshots,
 };
 ```
+:::
 
-### モニターシークレットの使用
+## モニター シークレットを使う
 
-#### シークレットの追加
-
-シークレットを追加するには、OneUptime Dashboard -> モニター -> 設定 -> シークレット -> モニターシークレットの作成 に移動してください。
-
-![シークレットの作成](/docs/static/images/CreateMonitorSecret.png)
-
-どのモニターがシークレットにアクセスできるかを選択できます。この例では `ApiKey` シークレットを追加し、アクセスを許可するモニターを選択しました。
-
-**ご注意**: シークレットは暗号化され、安全に保存されます。シークレットを紛失した場合は、新しいシークレットを作成する必要があります。保存後はシークレットを表示または更新することはできません。
-
-#### シークレットの使用方法
-
-スクリプト内でモニターシークレットを使用するには、スクリプトのコンテキスト内で `monitorSecrets` オブジェクトを使用します。このオブジェクトを使用して、モニターに追加したシークレットにアクセスできます。
+スクリプトのどこでも、シークレットを `{{monitorSecrets.NAME}}` として参照できます。OneUptime は、スクリプトがプローブに届く前に、参照をシークレットの値にプレーンテキストとして置き換えます。そのため、文字列として使うときはシークレットを引用符で囲み、数値やブール値として使うときは何も付けずに書きます。
 
 ```javascript
-// シークレットが文字列型の場合は、引用符で囲む必要があります
-let stringSecret = '{{monitorSecrets.StringSecret}}';
+// Used as a string: wrap it in quotes.
+const password = "{{monitorSecrets.AppPassword}}";
 
-// シークレットが数値型またはブール型の場合は、直接使用できます
-let numberSecret = {{monitorSecrets.NumberSecret}};
-
-// シークレットがブール型の場合は、直接使用できます
-let booleanSecret = {{monitorSecrets.BooleanSecret}};
-
-// console.logを使用してシークレットが正しく取得されているか確認できます
-console.log(stringSecret);
+// Used as a number or a boolean: leave it bare.
+const retryLimit = {{monitorSecrets.RetryLimit}};
+const verbose = {{monitorSecrets.Verbose}};
 ```
 
-### カスタムメトリクス
+シークレットを作成し、使えるモニターを選ぶ方法は [モニター シークレット](/docs/monitor/monitor-secrets) を参照してください。
 
-`oneuptime.captureMetric()` 関数を使用して、スクリプトからカスタムメトリクスをキャプチャできます。これらのメトリクスはOneUptimeに保存され、メトリクスエクスプローラーを使用してダッシュボードのチャートに表示できます。
+## カスタムメトリクス
+
+`oneuptime.captureMetric()` 関数を使うと、スクリプトからカスタムメトリクスを記録できます。これらのメトリクスは OneUptime に保存され、Metric Explorer でダッシュボードのグラフにできます。
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
 ```
 
-- `name`（文字列、必須）：メトリクス名（例：`"dashboard.load.time"`）。自動的に `custom.monitor.` プレフィックスが付加されます。
-- `value`（数値、必須）：数値メトリクス値。
-- `attributes`（オブジェクト、任意）：追加コンテキスト用のキーと値のペア。
+| パラメーター | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string、必須 | メトリクス名 (例: `"dashboard.load.time"`)。自動的に `custom.monitor.` という接頭辞付きで保存されます。 |
+| `value` | number、必須 | メトリクスの数値。 |
+| `attributes` | object、任意 | 追加のコンテキストを表すキーと値のペア。 |
 
-#### 使用例
+### 例
 
 ```javascript
 await page.goto("https://app.example.com");
@@ -139,9 +209,11 @@ const startTime = Date.now();
 await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
-// ページ読み込み時間をカスタムメトリクスとしてキャプチャ
+// Capture page load time, tagged with this run's browser and screen size
 oneuptime.captureMetric("dashboard.load.time", loadTime, {
   page: "dashboard",
+  browser: browserType,
+  screen: screenSizeType,
 });
 
 screenshots["dashboard"] = await page.screenshot();
@@ -151,32 +223,78 @@ return {
 };
 ```
 
-キャプチャされたメトリクスは、`custom.monitor.dashboard.load.time` のような名前でメトリクスエクスプローラーに表示されます。ダッシュボードのチャートに追加したり、アラートを設定したり、モニター、プローブ、ブラウザタイプ、画面サイズ、または指定したカスタム属性でフィルタリングしたりできます。
+記録したメトリクスは、Metric Explorer に `custom.monitor.dashboard.load.time` のような名前で表示され、モニターの **メトリクス** ページの **カスタムメトリクス** にも表示されます。OneUptime はすべてのデータポイントにモニターとプローブを付けます。ブラウザーや画面サイズで絞り込みたいときは、例のように属性として渡してください。
 
-**制限事項：**
+1 回の実行で記録できるメトリクスは最大 100 件で、値は数値だけです。また OneUptime が保持するのは、1 回のチェックのすべての実行を合わせて最大 100 件です。カスタム コード モニターと同様に、一部の属性名は [予約済み](/docs/monitor/custom-code-monitor#予約済みの属性キー) で、スクリプトが設定すると取り除かれます。
 
-- スクリプト実行ごとに最大100個のメトリクス。
-- メトリクス名は200文字以内。
-- 値は数値である必要があります。
+## 条件
 
-### スクリプトで利用可能なモジュール
+| フィルタータイプ | チェック内容 |
+| --- | --- |
+| **エラー** | 実行が投げたエラー (ある場合)。 |
+| **Result Value** | 実行が返した `data`。 |
+| **実行時間（ms）** | 実行にかかった時間。 |
+| **ブラウザーの種類** | 実行で使ったブラウザー。**Equal To** または **Not Equal To**。 |
+| **Screen Size** | 実行で使った画面サイズ。**Equal To** または **Not Equal To**。 |
 
-- `page`：ブラウザと対話するためのモジュール。ボタンのクリック、フォームの入力、スクリーンショットの取得などのアクションを実行できるPlaywright Pageオブジェクト。必要に応じて `page.context()` でブラウザコンテキストにアクセスできます（新しいページの作成やポップアップの処理など）。
-- `screenshots`：スクリーンショットを割り当てる事前宣言済みオブジェクト（例：`screenshots['login-page'] = await page.screenshot()`）。ここに割り当てられたスクリーンショットはスクリプトが後で例外をスローした場合でもキャプチャされます。
-- `axios`：HTTPリクエストを実行するためのモジュール。ブラウザおよびNode.js向けのPromiseベースのHTTPクライアントです。
-- `crypto`：暗号化処理を実行するためのモジュール。OpenSSLのハッシュ、HMAC、暗号化、復号化、署名、検証関数のラッパーセットを提供するNode.js組み込みモジュールです。
-- `console.log`：コンソールにデータを記録するためのモジュール。デバッグ目的で使用します。
-- `oneuptime.captureMetric`：スクリプトからカスタムメトリクスをキャプチャするために使用します。上記のカスタムメトリクスセクションを参照してください。
-- `http`：HTTPリクエストを実行するためのモジュール。HTTPクライアントとサーバーを提供するNode.js組み込みモジュールです。
-- `https`：HTTPSリクエストを実行するためのモジュール。HTTPSクライアントとサーバーを提供するNode.js組み込みモジュールです。
+各フィルターはすべての実行に対してチェックされ、どれか 1 つの実行が一致すれば一致します。フィルターは実行ごとではなく個別にチェックされます。**エラー** Is Not Empty と **ブラウザーの種類** Equal To `Firefox` を組み合わせると、Firefox の実行が失敗したときだけでなく、いずれかの実行が失敗し、かついずれかの実行が Firefox を使っていたときに一致します。1 つのブラウザーだけを監視したいときは、そのブラウザー専用のモニターを用意してください。
 
-### 注意事項
+インシデントとアラートのテンプレートでは、すべての実行が `{{syntheticResponses}}` に入っています。[インシデント & アラート テンプレート](/docs/monitor/incident-alert-templating#合成モニター) を参照してください。
 
-- `page` オブジェクトはブラウザと対話するための主要なインターフェースです。Playwright Pageクラスのオブジェクトです。必要に応じて `page.context()` でブラウザコンテキストにアクセスできます。
-- `console.log` を使用してコンソールにデータを記録できます。これはモニターのログセクションで確認できます。
-- `return` ステートメントを使用してスクリプトからデータを返すことができます。スクリプトが例外をスローした場合でも保持されるよう、スクリーンショットは提供された `screenshots` オブジェクトに割り当ててください。
-- `browserType` と `screenSizeType` 変数を使用して、現在の実行コンテキストのブラウザタイプと画面サイズタイプを取得できます。
-- これはJavaScriptスクリプトなので、スクリプト内ですべてのJavaScript機能を使用できます。
-- スクリプト内でHTTPリクエストを実行するために `axios` モジュールを使用できます。APIコールを実行するために使用できます。
-- oneuptime.comを使用している場合、スクリプトのコンテキストで常に最新バージョンのPlaywrightとブラウザが利用できます。セルフホストの場合は、プローブを更新して最新バージョンのPlaywrightとブラウザを使用するようにしてください。
-- スクリプトのタイムアウトは2分です。スクリプトが2分以上かかる場合は、強制終了されます。
+## スクリプトで使えるモジュール
+
+| 名前 | 内容 |
+| --- | --- |
+| `page` | ブラウザーを操作するための、安全な Playwright 互換のファサードです。`page.context()` でこの実行のブラウザーコンテキストにアクセスし、ページを作成したりポップアップを扱ったりできますが、ブラウザーの起動や接続、CDP、ルーティング、バインディング、プライベートフィールド、ホストのパスを使うオプションは使えません。 |
+| `screenshots` | スクリーンショットを代入する、あらかじめ宣言されたオブジェクトです (例: `screenshots['login-page'] = await page.screenshot()`)。ここに代入したスクリーンショットは、後でスクリプトが例外を投げても保存されます。 |
+| `browserType` | この実行で使うブラウザー: `Chromium` または `Firefox`。 |
+| `screenSizeType` | この実行で使う画面サイズ: `Mobile`、`Tablet`、`Desktop` のいずれか。 |
+| `axios` | Promise ベースの HTTP クライアントで、関数としての Axios の呼び出しに加え、`request`、`get`、`head`、`options`、`post`、`put`、`patch`、`delete`、`create` をサポートします。リクエストの本文は最大 1 MB、レスポンスは最大 5 MB で、リダイレクトは 5 回までたどり、最長 30 秒でタイムアウトします。独自のトランスポート、アダプター、ソケット、エージェント、プロキシの上書きは使えません。 |
+| `crypto` | ブラウザーのワーカー上で実装された SHA-256 ハッシュ、HMAC-SHA-256、`randomBytes`、`randomInt`、`randomUUID`。 |
+| `console` | `console.log`、`info`、`warn`、`error`。メッセージは各実行と一緒に保持されます。 |
+| `oneuptime.captureMetric` | カスタムメトリクスを記録します。[カスタムメトリクス](#カスタムメトリクス) を参照してください。 |
+| `http` | `request`、`get`、`Agent` をサポートする、バッファリング方式でクライアント専用の互換ファサードです。 |
+| `https` | クライアント専用の `http` ファサードの HTTPS 版です。 |
+| `Buffer`、`setTimeout`、`setInterval` | およびそれぞれの `clear` 関数。 |
+
+スクリプトは Node.js ではなくブラウザーのワーカーで実行され、独自のネットワーク接続は開けません。`fetch`、`XMLHttpRequest`、`WebSocket` はブロックされています。HTTP リクエストには `axios` を使ってください。
+
+## 上限
+
+| 上限 | デフォルト | プローブの設定 |
+| --- | --- | --- |
+| スクリプトのタイムアウト | 60 秒。タイムアウトしたワーカーとブラウザーのすべての子プロセスは終了されます。 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` |
+| 1 回の実行のプロセスツリー全体のメモリ | 1.5 GiB | `PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES` |
+| 書き込み可能なブラウザーのストレージ | 256 MiB | `PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES` |
+| 1 つのプローブで同時に行う実行 | 4 | `PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY` |
+| 1 回の実行あたりのページ | 8 | — |
+
+メモリやストレージの上限を超えると、その実行は終了され、一時的なプロファイルは削除されます。プローブの設定はセルフホストのプローブに適用されます。Helm チャートでは、同じ値をプローブごとに設定します (例: `syntheticMonitorScriptTimeoutInMs`)。
+
+ブラウザーはプローブの Docker イメージに含まれているので、セルフホストのプローブはイメージを更新すると新しいブラウザーになります。
+
+## トラブルシューティング
+
+:::details 実行が失敗するが、理由がわからない
+危険な手順の前に、そのつど `screenshots` オブジェクトへスクリーンショットを代入してください。実行が失敗しても保存され、その時点のページの様子がわかります。
+:::
+
+:::details `page.on(...)` がエラーを投げる
+イベントリスナーは隔離の境界を越えられません。ダイアログやポップアップには `page.waitForEvent(...)` を、または文字列や正規表現で照合するレスポンスやリクエストの待機を使ってください。
+:::
+
+:::details 実行がタイムアウトする
+`page.waitForSelector(...)` と、スクリプト自体の上限より短い `timeout` を使って特定の要素を待機してください。そうすれば、遅い手順でわかりやすいエラーとともに実行が失敗します。
+:::
+
+:::details セルフホストのプローブで、ブラウザーの実行ファイルが見つからないと表示される
+プローブが Docker イメージの外で動いていて、Chromium も Firefox もインストールされていません。プローブのイメージを使うか、そのマシンにブラウザーをインストールしてください。
+:::
+
+## 次のステップ
+
+:::cards
+- [カスタム コード モニター](/docs/monitor/custom-code-monitor): ブラウザーを使わずに、スクリプトで API をチェックします。
+- [スクリーンショットを表示する](/docs/monitor/incident-alert-templating#合成モニター): 失敗した実行のスクリーンショットをインシデントに入れます。
+- [モニター シークレット](/docs/monitor/monitor-secrets): 認証情報をスクリプトに書かずに済ませます。
+:::

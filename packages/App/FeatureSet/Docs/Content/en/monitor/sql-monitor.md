@@ -62,7 +62,7 @@ Running a customer-supplied query against a production database is sensitive, so
 | **Single-statement, allow-listed queries** | The query must be a single statement that starts with `SELECT`, `WITH`, `VALUES`, or `TABLE`. Stacked statements (`SELECT 1; DROP TABLE …`) and write or DDL keywords such as `INSERT`, `UPDATE`, `DELETE`, `DROP`, `EXEC` and `INTO` are rejected by the probe before it connects. This check is a safety net, not the boundary: the read-only user is. |
 | **Statement timeout** | Every query has a hard time limit. A query that runs too long is cancelled. |
 | **Bounded rows** | Only up to Max Rows (plus one, to detect truncation) rows are ever read back, which caps probe memory and payload size. |
-| **Credential redaction** | Database errors are sanitized before being stored — the password and any connection string are redacted, so credentials never leak into error messages. |
+| **Credential redaction** | Database errors are sanitized before being stored — the password, the host, username and database name, and any connection string are redacted, so credentials never leak into error messages. |
 
 ## Before you begin
 
@@ -253,6 +253,29 @@ Attach an on-call policy to the criteria so the right people are paged. A SQL Qu
 - If the result is truncated because it exceeded Max Rows, the check summary shows **Rows Truncated**: "Yes (result capped)". Increase Max Rows only if you need it; larger result sets cost more memory on the probe.
 - Writes and DDL are always rejected. If you need to test a write path, that is not what this monitor is for.
 - Prefer a Monitor Secret over a plain-text password so the credential stays encrypted at rest.
+- A check whose query fails is tried again a second later, up to three more times, before it reports the error, so a brief connection drop does not take the monitor offline. On a self-hosted probe, `PROBE_MONITOR_RETRY_LIMIT` sets how many times.
+
+## Troubleshooting
+
+:::details Every check fails with "Only read-only queries are allowed"
+The query does not start with `SELECT`, `WITH`, `VALUES` or `TABLE`. A comment before it is fine; a `SET` or a `DECLARE` is not. Rewrite it as one read-only statement.
+:::
+
+:::details A check fails with "Disallowed SQL keyword"
+A write, DDL or execution keyword appears somewhere in the query, even inside a `SELECT`, such as `INTO` or `EXEC`. Words inside quoted strings and comments do not count. Remove the keyword, or put the logic in a view the read-only user can read.
+:::
+
+:::details The check times out
+The probe could not connect within **Connection Timeout (ms)**, or the query ran longer than **Statement Timeout (ms)**. Check that the probe can reach the host and port, then make the query cheaper: filter on indexed columns over a short time window.
+:::
+
+:::details The connection fails with a certificate error
+The database's certificate is self-signed, or not trusted by the probe. Turn off **Verify server certificate**, which appears once **Use SSL/TLS** is on, or give the database a certificate the probe trusts.
+:::
+
+:::details Windows Integrated Authentication fails
+The probe needs a Microsoft ODBC Driver for SQL Server and an identity your domain trusts. Run the official probe image, or install the driver, then check the setup in [Windows Integrated Authentication](#windows-integrated-authentication).
+:::
 
 ## Next steps
 

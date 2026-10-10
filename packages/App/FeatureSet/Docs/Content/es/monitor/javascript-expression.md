@@ -82,7 +82,7 @@ Las expresiones JavaScript se ofrecen para los monitores de tipo Sitio web, API,
 
 ### Monitores de correos entrantes
 
-El filtro se ofrece, pero no tiene campos de correo vinculados: una expresión no puede leer el asunto, el remitente, el cuerpo ni el destinatario. Use en su lugar los tipos de filtro de correo — consulte [Monitor de correos entrantes](/docs/monitor/incoming-email-monitor#campos-de-criterios-disponibles).
+El filtro se ofrece, pero no tiene campos de correo vinculados: una expresión no puede leer el asunto, el remitente, el cuerpo ni el destinatario. Use en su lugar los tipos de filtro de correo — consulte [Monitor de correos entrantes](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponibles).
 
 ## Ejemplos
 

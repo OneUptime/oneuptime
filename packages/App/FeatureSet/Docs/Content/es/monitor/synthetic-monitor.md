@@ -1,61 +1,141 @@
 # Monitor sintético
 
-El monitoreo sintético es una forma de monitorear proactivamente tus aplicaciones simulando interacciones del usuario. Puedes crear un monitor sintético para verificar la disponibilidad y el rendimiento de tus aplicaciones desde diferentes ubicaciones alrededor del mundo.
+Un monitor sintético maneja su aplicación web en un navegador real, de forma programada, con un script de Playwright que usted escribe: abre páginas, rellena formularios y recorre un trayecto de usuario, y falla cuando el trayecto falla. Úselo para detectar las averías que una comprobación de disponibilidad no ve: un inicio de sesión que ya no funciona, un botón de pago que no hace nada, un panel que nunca termina de cargar.
 
-#### Ejemplo
+:::cards
+- [Crear el monitor](#crear-un-monitor-sintético): Escriba un script y elija navegadores y tamaños de pantalla.
+- [Escribir el script](#escribir-el-script): Un recorrido de inicio de sesión listo para usar como punto de partida.
+- [Capturas de pantalla](#capturas-de-pantalla): Vea cómo se veía la página cuando falló una ejecución.
+- [Qué puede usar el script](#módulos-disponibles-en-el-script): Playwright, HTTP, criptografía y métricas.
+:::
 
-El siguiente ejemplo muestra cómo usar un Monitor sintético:
+## Cómo funciona
 
-```javascript
-// Los objetos disponibles en el contexto del script son:
+En cada comprobación, una sonda ejecuta su script una vez por cada navegador y tamaño de pantalla que haya elegido, uno tras otro. Cada ejecución arranca un navegador nuevo, sin cookies ni almacenamiento de ejecuciones anteriores; el script maneja su página, toma capturas de pantalla y devuelve un resultado o lanza un error. La sonda informa de cada ejecución, y OneUptime evalúa sus criterios con ellas.
 
-// - axios: Módulo Axios para realizar solicitudes HTTP
-// - page: Objeto Page de Playwright para interactuar con el navegador
-// - browserType: Tipo de navegador en el contexto de ejecución actual: Chromium, Firefox, Webkit
-// - screenSizeType: Tipo de tamaño de pantalla en el contexto de ejecución actual: Mobile, Tablet, Desktop
+```mermaid title="Una comprobación de un monitor sintético"
+sequenceDiagram
+    participant O as OneUptime
+    participant P as Sonda
+    participant B as Navegador
+    participant A as Su aplicación web
+    O->>P: Script, secretos rellenados
+    loop Cada navegador y tamaño de pantalla
+        P->>B: Ejecutar el script
+        B->>A: Cargar páginas, hacer clic, escribir
+        A-->>B: Páginas
+        B-->>P: Resultado, capturas, registros
+    end
+    P->>O: Una respuesta por ejecución
+    O->>O: Evaluar los criterios
+```
 
-// Puedes usar estos objetos para interactuar con el navegador y realizar solicitudes HTTP.
+| Tipo de pantalla | Ventana gráfica |
+| --- | --- |
+| Mobile | 360 × 640 |
+| Tablet | 1024 × 768 |
+| Desktop | 1920 × 1080 |
 
-await page.goto("https://playwright.dev/");
+Los navegadores son Chromium y Firefox.
 
-// Documentación de Playwright aquí: https://playwright.dev/docs/intro
+## Antes de empezar
 
-// Aquí tienes algunas de las variables que puedes usar en el contexto del objeto monitoreado:
+- Una **sonda** que alcance su aplicación web. Use una [sonda personalizada](/docs/probe/custom-probe) para una aplicación dentro de su red. La imagen Docker de la sonda incluye Chromium y Firefox; una sonda que se ejecuta fuera de Docker los necesita instalados.
+- Cualquier contraseña o token que necesite el recorrido, guardado como [secreto de monitor](/docs/monitor/monitor-secrets).
 
-console.log(browserType); // Esto listará el tipo de navegador en el contexto de ejecución actual: Chromium, Firefox, Webkit
+## Crear un monitor sintético
 
-console.log(screenSizeType); // Esto listará el tipo de tamaño de pantalla en el contexto de ejecución actual: Mobile, Tablet, Desktop
+:::steps
+### Empezar un monitor nuevo
 
-// El objeto page de Playwright pertenece a ese contexto de navegador específico, por lo que puedes usarlo para interactuar con el navegador.
+Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Monitor sintético** en **Synthetic Monitoring**, o escriba `playwright` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
-// Para tomar capturas de pantalla, asígnalas al objeto `screenshots` que se proporciona
-// en el contexto del script. Las capturas de pantalla capturadas de esta forma se preservan incluso si el
-// script lanza un error después, lo que es útil para depurar ejecuciones fallidas.
+### Añadir el script
 
-screenshots["screenshot-name"] = await page.screenshot(); // puedes guardar múltiples capturas de pantalla y asignarles diferentes nombres.
+Escriba su script en el editor **Código de Playwright**. Parta del [ejemplo de abajo](#escribir-el-script).
 
-// cuando quieras devolver un valor, usa la declaración return con data como prop.
+### Elegir navegadores y tamaños de pantalla
 
-// Para registrar datos, usa console.log
-// console.log('Hello World');
+Marque los navegadores en **Tipo de navegador** y los tamaños en **Tipo de pantalla**. El script se ejecuta una vez por cada combinación, así que dos navegadores y tres tamaños suman seis ejecuciones por comprobación. En **Más campos**, **Número de reintentos en caso de error** reintenta una ejecución fallida hasta 5 veces.
 
-// Puedes acceder al contexto del navegador mediante page.context() si es necesario (por ejemplo, para crear una nueva página o gestionar ventanas emergentes).
+### Probarlo
+
+Haga clic en **Probar monitor** para ejecutar el script una vez desde una sonda, y revise el resultado, los registros y las capturas de pantalla de cada ejecución.
+
+### Revisar los criterios
+
+El monitor empieza con dos criterios: queda sin conexión, y declara un incidente, cuando falla una ejecución, y en línea cuando no falla ninguna. Cámbielos o añada los suyos —consulte [Criterios](#criterios)— y haga clic en **Siguiente**.
+
+### Elegir sondas y crear
+
+Seleccione las **Sondas** y un **Intervalo de monitoreo** —a los monitores sintéticos se les ofrecen intervalos de 5 minutos o más— y haga clic en **Crear monitor**.
+:::
+
+## Escribir el script
+
+El script es el cuerpo de una función `async`. `page` es una página compatible con Playwright que ya está abierta; manéjela, devuelva un resultado con `return` y haga fallar la ejecución con `throw` (o dejando que una llamada de Playwright agote su tiempo). Este ejemplo inicia sesión y comprueba que el panel se carga:
+
+```javascript title="Synthetic monitor script"
+await page.goto("https://app.example.com/login");
+screenshots["login-page"] = await page.screenshot();
+
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// Fails the run if the dashboard does not appear within 10 seconds.
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+screenshots["dashboard"] = await page.screenshot();
+
+console.log(`Signed in on ${browserType}, ${screenSizeType}`);
 
 return {
-  data: "Hello World",
+  data: { title: await page.title() },
 };
 ```
 
+| Para | Haga esto | Lo que registra OneUptime |
+| --- | --- | --- |
+| Informar de un resultado | `return { data: ... }` | El **Resultado** de la ejecución. Solo se conserva `data`. |
+| Hacer fallar la ejecución | `throw new Error("...")`, o dejar que una espera agote su tiempo | El **Error de script** de la ejecución. |
+| Conservar pruebas | `screenshots["name"] = await page.screenshot()` | Una captura de pantalla, que se conserva aunque la ejecución falle. |
+| Dejar un rastro | `console.log(...)` | Los mensajes de registro de la ejecución. |
+
+Para ver las ejecuciones, abra la **Vista general** del monitor: la tarjeta **Resumen del monitor** tiene un bloque por navegador y tamaño de pantalla, y **Mostrar más detalles** muestra las capturas de pantalla de cada ejecución.
+
 ### Uso de Playwright
 
-Usamos Playwright para simular las interacciones del usuario. Puedes usar el objeto `page` de Playwright para interactuar con el navegador y realizar acciones como hacer clic en botones, rellenar formularios y tomar capturas de pantalla.
+Usamos Playwright para simular las interacciones de los usuarios. El valor `page` es una fachada segura y compatible con Playwright para la página creada para esta ejecución. Están disponibles los métodos habituales de `Page`, `Locator`, `Frame`, `ElementHandle`, `JSHandle`, `Request`, `Response`, del teclado, del ratón y del contexto del navegador. Esto incluye la navegación, los localizadores, los clics, la introducción de datos en formularios, la evaluación en la página, las ventanas emergentes, las páginas adicionales, la inspección de respuestas y las capturas de pantalla. Puede llegar al contexto del navegador de la ejecución con `page.context()`, por ejemplo para abrir una página nueva o gestionar una ventana emergente.
 
-### Capturas de pantalla
+Los scripts sintéticos no se ejecutan en el proceso Node.js de la sonda. Los valores cruzan la frontera de ejecución como datos copiados o como capacidades opacas limitadas a la ejecución, así que algunas API de Playwright funcionan de otra forma o no funcionan:
 
-En el contexto del script hay disponible un objeto `screenshots` predeclarado. Asígnale capturas de pantalla en cualquier punto del script: estas capturas se capturan **incluso si el script lanza un error** (incluidos fallos de aserción, tiempos de espera o errores inesperados), para que puedas ver exactamente cómo se veía la página cuando falló la ejecución. Las capturas capturadas aparecen en el Panel de OneUptime para esa ejecución específica del monitor.
+| No disponible | Use en su lugar |
+| --- | --- |
+| Métodos para lanzar o conectar navegadores, sesiones CDP, enrutamiento de solicitudes, vinculaciones expuestas, campos privados de Playwright y cualquier opción que lea o escriba una ruta del sistema de archivos del host. Por tanto, `page.context().browser()` no está disponible. | La página y el contexto del navegador que se le proporcionan. |
+| Escuchadores de eventos (`page.on(...)`, `page.once(...)`): llamarlos falla con un error claro. | `page.waitForEvent(...)` para diálogos y ventanas emergentes, o esperas de respuestas y solicitudes con coincidencias por cadena o expresión regular. |
+| Predicados en forma de función para los métodos de espera de eventos, solicitudes, respuestas y URL. | Coincidencias por cadena o expresión regular, localizadores o sondeo explícito. |
+| Los accesores síncronos de marcos (`page.frames()`, `page.mainFrame()`, `page.frame(...)`). | `page.frameLocator(...)` para los iframes. |
+| `page.request.*` | El global `axios` para las solicitudes HTTP. |
+| Capturas de página completa y salida en PDF. | Capturas de la ventana gráfica, que mantienen el comportamiento de pruebas de fallos descrito más abajo. |
+
+`page.waitForNavigation(...)`, `page.setDefaultTimeout(...)` y `page.setDefaultNavigationTimeout(...)` son compatibles. `page.waitForEvent(...)` espera `dialog`, `domcontentloaded`, `load`, `popup`, `request`, `requestfailed`, `requestfinished` y `response`. Las funciones de evaluación que se pasan a métodos como `page.evaluate()` se ejecutan en la página del navegador monitoreada, nunca en el proceso de la sonda. Cada ejecución puede usar hasta ocho páginas.
+
+Los permisos del navegador se limitan a geolocalización y notificaciones. El portapapeles, la cámara, el micrófono, MIDI, las fuentes locales y otros permisos de dispositivos del host no están disponibles para los scripts de monitor.
+
+### Qué devuelve el script
+
+Los datos que devuelve el script se serializan a JSON antes de guardarse: en objetos y arrays simples, `NaN` e `Infinity` pasan a ser `null`, las propiedades `undefined` y las funciones se eliminan, y los objetos `Date` pasan a ser cadenas ISO, igual que con `JSON.stringify`. Las instancias de clases y otros objetos no simples se eliminan por completo. Un `BigInt` pasa a ser una cadena. Un resultado circular, anidado más de 30 niveles o mayor de 5 MB hace fallar la ejecución.
+
+### Alertar sobre los datos devueltos
+
+Lo que el script devuelve como `data` es el **Result Value** del monitor, que un criterio puede comparar. Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Result Value para comparar uno de sus campos; por ejemplo, `status`, `timings.loadTime` o `errors[0].message`. El filtro se comprueba con los datos de cada navegador y tamaño de pantalla en los que se ejecuta el monitor, y coincide cuando coincide cualquiera de ellos. Consulte [Alertar sobre los datos devueltos](/docs/monitor/custom-code-monitor#alertar-sobre-los-datos-devueltos) para ver cómo funcionan las rutas y las condiciones.
+
+## Capturas de pantalla
+
+En el contexto del script hay disponible un objeto `screenshots` declarado de antemano. Asígnele capturas de pantalla en cualquier punto del script: estas capturas se conservan **aunque el script lance un error** (incluidos los fallos de aserción, los tiempos de espera agotados o los errores inesperados), para que vea exactamente cómo se veía la página cuando falló la ejecución. Las capturas aparecen en el panel de OneUptime para esa ejecución concreta del monitor.
 
 ```javascript
-// Captura capturas de pantalla mediante el canal lateral `screenshots`: se preservan tanto en caso de éxito como de fallo.
+// Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
 await page.goto("https://app.example.com/login");
 screenshots["login-page"] = await page.screenshot();
@@ -64,7 +144,7 @@ await page.fill("#email", "user@example.com");
 await page.fill("#password", "wrong");
 await page.click("button[type=submit]");
 
-// Si la siguiente aserción lanza un error, la captura de pantalla de 'login-page' anterior todavía se captura.
+// If the next assertion throws, the `login-page` screenshot above is still captured.
 await page.waitForSelector(".dashboard", { timeout: 5000 });
 
 screenshots["dashboard"] = await page.screenshot();
@@ -74,12 +154,13 @@ return {
 };
 ```
 
-#### Devolución de capturas de pantalla (método heredado)
+Una ejecución conserva hasta 20 capturas de pantalla, cada una de hasta 10 MB y 50 MB en total. Una captura también puede mostrarse en el incidente o la alerta que abre una ejecución fallida (en su página y en los correos sobre ella) si la coloca en la descripción de incidente o de alerta del monitor. Consulte [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#monitores-sintéticos).
 
-Por compatibilidad con versiones anteriores, también puedes devolver capturas de pantalla desde el script como parte del valor devuelto. Las capturas devueltas de esta forma se capturan **solo** cuando el script se completa con normalidad; se pierden si el script lanza un error. Prefiere el patrón del canal lateral anterior cuando desees evidencia de los fallos.
+:::details Devolver capturas de pantalla (método heredado)
+Por compatibilidad con versiones anteriores, también puede devolver capturas de pantalla desde el script como parte del valor de retorno. Las capturas devueltas así **solo** se conservan cuando el script termina con normalidad: se pierden si el script lanza un error. Prefiera el canal lateral descrito arriba cuando quiera pruebas de los fallos.
 
 ```javascript
-// Patrón heredado: las capturas de pantalla solo se capturan en el retorno exitoso.
+// Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
 screenshots["screenshot-name"] = await page.screenshot();
 
@@ -88,50 +169,38 @@ return {
   screenshots: screenshots,
 };
 ```
+:::
 
-### Uso de secretos de monitor
+## Usar secretos de monitor
 
-#### Agregar un secreto
-
-Para agregar un secreto, ve al Panel de OneUptime → Monitores → Ajustes → Secretos → Crear secreto de monitor.
-
-![Crear secreto](/docs/static/images/CreateMonitorSecret.png)
-
-Puedes seleccionar qué monitores tienen acceso al secreto. En este caso agregamos el secreto `ApiKey` y seleccionamos los monitores que tendrán acceso a él.
-
-**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo.
-
-#### Usar un secreto
-
-Para usar los Secretos de monitor en el script, puedes usar el objeto `monitorSecrets` en el contexto del script. Puedes usarlo para acceder a los secretos que has agregado al monitor.
+Haga referencia a un secreto con `{{monitorSecrets.NAME}}` en cualquier parte del script. OneUptime sustituye la referencia por el valor del secreto, como texto sin formato, antes de que el script llegue a la sonda. Así que ponga el secreto entre comillas para usarlo como cadena, y déjelo sin comillas para usarlo como número o booleano:
 
 ```javascript
-// si tu secreto es de tipo cadena, debes envolverlo entre comillas
-let stringSecret = '{{monitorSecrets.StringSecret}}';
+// Used as a string: wrap it in quotes.
+const password = "{{monitorSecrets.AppPassword}}";
 
-// si tu secreto es de tipo número o booleano, puedes usarlo directamente
-let numberSecret = {{monitorSecrets.NumberSecret}};
-
-// si tu secreto es de tipo booleano, puedes usarlo directamente
-let booleanSecret = {{monitorSecrets.BooleanSecret}};
-
-// incluso puedes usar console.log para verificar si el secreto se está obteniendo correctamente
-console.log(stringSecret);
+// Used as a number or a boolean: leave it bare.
+const retryLimit = {{monitorSecrets.RetryLimit}};
+const verbose = {{monitorSecrets.Verbose}};
 ```
 
-### Métricas personalizadas
+Para crear un secreto y elegir qué monitores pueden usarlo, consulte [Secretos del monitor](/docs/monitor/monitor-secrets).
 
-Puedes capturar métricas personalizadas desde tu script usando la función `oneuptime.captureMetric()`. Estas métricas se almacenan en OneUptime y pueden representarse en gráficos del panel usando el Explorador de métricas.
+## Métricas personalizadas
+
+Puede capturar métricas personalizadas desde su script con la función `oneuptime.captureMetric()`. Estas métricas se guardan en OneUptime y se pueden graficar en paneles con el explorador de métricas.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
 ```
 
-- `name` (cadena, requerido): El nombre de la métrica (por ejemplo, `"dashboard.load.time"`). Se almacenará con el prefijo `custom.monitor.` automáticamente.
-- `value` (número, requerido): El valor numérico de la métrica.
-- `attributes` (objeto, opcional): Pares clave-valor para contexto adicional.
+| Parámetro | Tipo | Descripción |
+| --- | --- | --- |
+| `name` | string, obligatorio | El nombre de la métrica (p. ej., `"dashboard.load.time"`). Se guarda automáticamente con el prefijo `custom.monitor.`. |
+| `value` | number, obligatorio | El valor numérico de la métrica. |
+| `attributes` | object, opcional | Pares clave-valor para aportar contexto. |
 
-#### Ejemplo
+### Ejemplo
 
 ```javascript
 await page.goto("https://app.example.com");
@@ -140,9 +209,11 @@ const startTime = Date.now();
 await page.waitForSelector("#dashboard-loaded");
 const loadTime = Date.now() - startTime;
 
-// Capturar el tiempo de carga de la página como métrica personalizada
+// Capture page load time, tagged with this run's browser and screen size
 oneuptime.captureMetric("dashboard.load.time", loadTime, {
   page: "dashboard",
+  browser: browserType,
+  screen: screenSizeType,
 });
 
 screenshots["dashboard"] = await page.screenshot();
@@ -152,32 +223,78 @@ return {
 };
 ```
 
-Una vez capturadas, estas métricas aparecen en el Explorador de métricas con nombres como `custom.monitor.dashboard.load.time`. Puedes agregarlas a los gráficos del panel, configurar alertas y filtrar por monitor, sonda, tipo de navegador, tamaño de pantalla o cualquier atributo personalizado que hayas proporcionado.
+Una vez capturadas, estas métricas aparecen en el explorador de métricas con nombres como `custom.monitor.dashboard.load.time`, y en la página **Métricas** del monitor, bajo **Métricas personalizadas**. OneUptime añade el monitor y la sonda a cada punto de datos; para filtrar por navegador o tamaño de pantalla, páselos como atributos, como hace el ejemplo.
 
-**Límites:**
+Una ejecución puede capturar como máximo 100 métricas, solo con valores numéricos, y OneUptime conserva como máximo 100 por comprobación, sumando todas sus ejecuciones. Como en un monitor Custom Code, algunos nombres de atributo están [reservados](/docs/monitor/custom-code-monitor#claves-de-atributo-reservadas) y se descartan si un script los define.
 
-- Máximo 100 métricas por ejecución de script.
-- Los nombres de métricas están limitados a 200 caracteres.
-- Los valores deben ser numéricos.
+## Criterios
 
-### Módulos disponibles en el script
+| Tipo de filtro | Qué comprueba |
+| --- | --- |
+| **Error** | El error que lanzó una ejecución, si lo hubo. |
+| **Result Value** | Los `data` que devolvió una ejecución. |
+| **Tiempo de ejecución (en ms)** | Cuánto tardó una ejecución. |
+| **Tipo de navegador** | El navegador que usó una ejecución: **Equal To** o **Not Equal To**. |
+| **Screen Size** | El tamaño de pantalla que usó una ejecución: **Equal To** o **Not Equal To**. |
 
-- `page`: Puedes usar este módulo para interactuar con el navegador. Es un objeto Page de Playwright que te permite realizar acciones como hacer clic en botones, rellenar formularios y tomar capturas de pantalla. Puedes acceder al contexto del navegador mediante `page.context()` si es necesario (por ejemplo, para crear una nueva página o gestionar ventanas emergentes).
-- `screenshots`: Un objeto predeclarado al que asignas capturas de pantalla (por ejemplo, `screenshots['login-page'] = await page.screenshot()`). Las capturas asignadas aquí se capturan incluso si el script lanza un error posteriormente.
-- `axios`: Puedes usar este módulo para realizar solicitudes HTTP. Es un cliente HTTP basado en promesas para el navegador y Node.js.
-- `crypto`: Puedes usar este módulo para realizar operaciones criptográficas. Es un módulo integrado de Node.js que proporciona funcionalidad criptográfica.
-- `console.log`: Puedes usar este módulo para registrar datos en la consola. Esto es útil para fines de depuración.
-- `oneuptime.captureMetric`: Puedes usar esto para capturar métricas personalizadas desde tu script. Consulta la sección de Métricas personalizadas anterior.
-- `http`: Puedes usar este módulo para realizar solicitudes HTTP. Es un módulo integrado de Node.js.
-- `https`: Puedes usar este módulo para realizar solicitudes HTTPS. Es un módulo integrado de Node.js.
+Cada filtro se comprueba en cada ejecución, y coincide cuando coincide una sola ejecución. Los filtros se comprueban por separado, no ejecución por ejecución: **Error** Is Not Empty junto con **Tipo de navegador** Equal To `Firefox` coincide cuando falló cualquier ejecución y una de las ejecuciones usó Firefox, no solo cuando falló la ejecución de Firefox. Para vigilar un navegador por separado, dele su propio monitor.
 
-### Aspectos a considerar
+En las plantillas de incidentes y alertas, cada ejecución está en `{{syntheticResponses}}`: consulte [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating#monitores-sintéticos).
 
-- El objeto `page` es la interfaz principal para interactuar con el navegador. Proviene de la clase Page de Playwright. Puedes acceder al contexto del navegador mediante `page.context()` si es necesario.
-- Puedes usar `console.log` para registrar datos en la consola. Esto estará disponible en la sección de registros del monitor.
-- Puedes devolver los datos desde el script usando la declaración `return`. Asigna las capturas de pantalla al objeto `screenshots` proporcionado para que se preserven incluso si el script lanza un error.
-- Puedes usar las variables `browserType` y `screenSizeType` para obtener el tipo de navegador y el tipo de tamaño de pantalla en el contexto de ejecución actual.
-- Este es un script JavaScript, por lo que puedes usar todas las características de JavaScript en el script.
-- Puedes usar el módulo `axios` para realizar solicitudes HTTP en el script.
-- Si estás usando oneuptime.com, siempre tendrás la última versión de Playwright y los navegadores disponibles en el contexto del script. Si te auto-alojas, asegúrate de actualizar las sondas para tener la última versión de Playwright y los navegadores.
-- El tiempo de espera del script es de 2 minutos. Si el script tarda más de 2 minutos, será terminado.
+## Módulos disponibles en el script
+
+| Nombre | Qué es |
+| --- | --- |
+| `page` | Una fachada segura y compatible con Playwright para interactuar con el navegador. Puede llegar al contexto del navegador de la ejecución con `page.context()` para crear páginas o gestionar ventanas emergentes, pero no están disponibles el lanzamiento o la conexión de navegadores, CDP, el enrutamiento, las vinculaciones, los campos privados ni las opciones con rutas del host. |
+| `screenshots` | Un objeto declarado de antemano al que se asignan capturas de pantalla (p. ej., `screenshots['login-page'] = await page.screenshot()`). Las capturas asignadas aquí se conservan aunque el script lance un error después. |
+| `browserType` | El navegador de esta ejecución: `Chromium` o `Firefox`. |
+| `screenSizeType` | El tamaño de pantalla de esta ejecución: `Mobile`, `Tablet` o `Desktop`. |
+| `axios` | Un cliente HTTP basado en promesas que admite axios invocable más `request`, `get`, `head`, `options`, `post`, `put`, `patch`, `delete` y `create`. El cuerpo de una solicitud puede tener hasta 1 MB y una respuesta hasta 5 MB; sigue hasta 5 redirecciones y agota el tiempo tras 30 segundos como máximo. No están disponibles los transportes, adaptadores, sockets, agentes ni las sustituciones de proxy personalizados. |
+| `crypto` | Una implementación para workers de navegador de hashes SHA-256, HMAC-SHA-256, `randomBytes`, `randomInt` y `randomUUID`. |
+| `console` | `console.log`, `info`, `warn` y `error`. Los mensajes se conservan con cada ejecución. |
+| `oneuptime.captureMetric` | Captura una métrica personalizada. Consulte [Métricas personalizadas](#métricas-personalizadas). |
+| `http` | Una fachada de compatibilidad con búfer, solo de cliente, que admite `request`, `get` y `Agent`. |
+| `https` | El equivalente HTTPS de la fachada `http` solo de cliente. |
+| `Buffer`, `setTimeout`, `setInterval` | Y sus funciones `clear`. |
+
+El script se ejecuta en un worker de navegador, no en Node.js, y no puede abrir sus propias conexiones de red: `fetch`, `XMLHttpRequest` y `WebSocket` están bloqueados. Use `axios` para las solicitudes HTTP.
+
+## Límites
+
+| Límite | Predeterminado | Ajuste de la sonda |
+| --- | --- | --- |
+| Tiempo límite del script | 60 segundos. Los workers que agotan el tiempo y todos los descendientes del navegador se terminan. | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` |
+| Memoria de todo el árbol de procesos de una ejecución | 1,5 GiB | `PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES` |
+| Almacenamiento grabable del navegador | 256 MiB | `PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES` |
+| Ejecuciones simultáneas en una sonda | 4 | `PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY` |
+| Páginas por ejecución | 8 | — |
+
+Superar el límite de memoria o de almacenamiento termina esa ejecución y elimina su perfil temporal. Los ajustes de la sonda se aplican a las sondas autoalojadas; el chart de Helm define los mismos valores por sonda (por ejemplo, `syntheticMonitorScriptTimeoutInMs`).
+
+Los navegadores vienen dentro de la imagen Docker de la sonda, así que una sonda autoalojada recibe navegadores más nuevos cuando actualiza su imagen.
+
+## Solución de problemas
+
+:::details Una ejecución falla, pero no sé por qué
+Asigne capturas de pantalla al objeto `screenshots` antes de cada paso arriesgado. Se conservan aunque la ejecución falle, y muestran cómo se veía la página en ese punto.
+:::
+
+:::details `page.on(...)` lanza un error
+Los escuchadores de eventos no pueden cruzar la frontera de aislamiento. Use `page.waitForEvent(...)` para diálogos y ventanas emergentes, o una espera de respuesta o de solicitud con una coincidencia por cadena o expresión regular.
+:::
+
+:::details La ejecución agota el tiempo
+Espere elementos concretos con `page.waitForSelector(...)` y un `timeout` más corto que el límite del propio script, para que la ejecución falle en el paso lento con un error claro.
+:::
+
+:::details Una sonda autoalojada dice que no encuentra el ejecutable del navegador
+La sonda se está ejecutando fuera de su imagen Docker, sin Chromium ni Firefox instalados. Ejecute la imagen de la sonda, o instale los navegadores en esa máquina.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Monitor de código personalizado](/docs/monitor/custom-code-monitor): Compruebe API con un script, sin navegador.
+- [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#monitores-sintéticos): Ponga la captura de la ejecución fallida en el incidente.
+- [Secretos del monitor](/docs/monitor/monitor-secrets): Mantenga las credenciales fuera de su script.
+:::

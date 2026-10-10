@@ -191,7 +191,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **호스트** | 프로브에서 접근할 수 있는 데이터베이스 호스트(예: `db.internal`). |
 | **포트** | 데이터베이스 포트. |
 | **데이터베이스 이름** | 연결할 데이터베이스. 데이터베이스 범위 메트릭(크기, 캐시 적중률, 임시 파일로의 유출)은 이 데이터베이스에 대해 보고되고, 서버 범위 메트릭(연결, 가동 시간, 복제)은 서버 전체에 대해 보고됩니다. 단, Azure SQL Database에서는 연결을 모니터링하는 데이터베이스에 대해서만 셉니다. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server 전용. 사용자 이름과 비밀번호 대신 프로브 프로세스의 ID로 인증합니다. SQL Query 모니터 페이지의 [Windows 통합 인증](/docs/monitor/sql-monitor)을 참조하세요. 설정 방법은 같습니다. |
+| **Use Windows Integrated Authentication** | Microsoft SQL Server 전용. 사용자 이름과 비밀번호 대신 프로브 프로세스의 ID로 인증합니다. SQL Query 모니터 페이지의 [Windows 통합 인증](/docs/monitor/sql-monitor#windows-통합-인증)을 참조하세요. 설정 방법은 같습니다. |
 | **사용자 이름** | 모니터링 사용자. Windows 통합 인증을 쓰지 않는다면 필수입니다. |
 | **비밀번호** | 비밀번호. 일반 텍스트로 입력하지 말고 `{{monitorSecrets.name}}`으로 [모니터 시크릿](/docs/monitor/monitor-secrets)을 참조하세요([모니터 시크릿 사용하기](#비밀번호에-모니터-시크릿-사용하기) 참조). |
 | **Use SSL/TLS** | TLS로 연결합니다. 켜면 자체 서명 인증서를 위해 **Verify server certificate**를 끌 수 있습니다. |

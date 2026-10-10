@@ -124,9 +124,9 @@ You can configure criteria to decide when the external service is considered onl
 | **External Status Page Active Incidents** | The number of currently active incidents reported on the status page (scoped to the component group / component when a filter is set) | Equal To, Not Equal To, and the numeric comparisons |
 | **External Status Page Response Time (in ms)** | How long it takes to fetch the status page data | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
 
-The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **Active Incidents** and **Component Status** are usually more reliable.
+The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **External Status Page Active Incidents** and **External Status Page Component Status** are usually more reliable.
 
-On an RSS or Atom feed, items published in the last 24 hours count as active incidents.
+On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date.
 
 ### Default Criteria
 
