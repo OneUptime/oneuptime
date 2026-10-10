@@ -129,6 +129,9 @@ const settingsStep: (guide: SetupGuideContent) => SetupGuideStep = (
  * wrap-regex rule rejects `/.../.test(line)`.
  */
 const VARIABLE_LINE: RegExp = /^[A-Z][A-Z0-9_]*=/;
+// The function disconnect sweep: 15 minutes of time OneUptime was receiving.
+const FUNCTION_DISCONNECT_AFTER_15_MINUTES: RegExp =
+  /markDisconnectedFunctions[\s\S]*?ReceivingCoverage\.getSilenceCutoff\(\{\s*silenceInMinutes: 15,/;
 const REFERENCE_ROW: RegExp = /^\| `[A-Z_]+` \|/;
 
 // The NAME=value lines of the code blocks in a piece of markdown.
@@ -1030,9 +1033,8 @@ describe("what the guide says matches the product", () => {
     const service: string = read(
       "packages/Common/Server/Services/ServerlessFunctionService.ts",
     );
-    expect(service).toMatch(
-      /markDisconnectedFunctions[\s\S]*?addRemoveMinutes\(\s*OneUptimeDate\.getCurrentDate\(\),\s*-15,/,
-    );
+    // 15 minutes of time OneUptime was receiving (issue #2825).
+    expect(service).toMatch(FUNCTION_DISCONNECT_AFTER_15_MINUTES);
   });
 
   test("label and owner rules exist and run when a function is created", () => {

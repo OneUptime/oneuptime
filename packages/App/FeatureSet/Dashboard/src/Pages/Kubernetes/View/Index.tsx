@@ -1737,6 +1737,13 @@ const KubernetesClusterOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1781,10 +1788,7 @@ const KubernetesClusterOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
-            referenceRegions: getNotMonitoredRegions({
-              gaps: receivingGaps,
-              translator,
-            }),
+            referenceRegions: notMonitoredRegions,
             connectNulls: false,
           })}
         </div>

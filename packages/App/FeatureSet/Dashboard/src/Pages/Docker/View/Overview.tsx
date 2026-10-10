@@ -1319,6 +1319,13 @@ const DockerHostOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1370,10 +1377,7 @@ const DockerHostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
-            referenceRegions: getNotMonitoredRegions({
-              gaps: receivingGaps,
-              translator,
-            }),
+            referenceRegions: notMonitoredRegions,
             connectNulls: false,
             description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}

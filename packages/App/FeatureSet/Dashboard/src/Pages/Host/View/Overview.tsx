@@ -1774,6 +1774,13 @@ const HostOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1823,10 +1830,7 @@ const HostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
-            referenceRegions: getNotMonitoredRegions({
-              gaps: receivingGaps,
-              translator,
-            }),
+            referenceRegions: notMonitoredRegions,
             connectNulls: false,
             description: HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
