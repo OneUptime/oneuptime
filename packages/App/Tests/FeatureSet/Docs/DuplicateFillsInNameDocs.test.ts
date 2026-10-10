@@ -1,3 +1,4 @@
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -53,13 +54,25 @@ function duplicateDashboardParagraph(language: string): string {
   return (lines[heading + 2] || "").trim();
 }
 
+/*
+ * The Duplicate Workflow button as the language's Dashboard draws it: the
+ * "Duplicate {{itemName}}" template with the workflow's name in it
+ * (DuplicateModel), "Arbeitsablauf duplizieren" in German.
+ */
+function duplicateWorkflowLabel(language: string): string {
+  return `**${drawnActionLabel(language, "Duplicate Workflow")}**`;
+}
+
 // The workflow guide's bullet about duplicating, in the Tidying up list.
 function duplicateWorkflowBullet(language: string): string {
   return (
     readPage(language, "workflows/authoring.md")
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith("- ") && line.includes("**Duplicate Workflow**");
+        return (
+          line.startsWith("- ") &&
+          line.includes(duplicateWorkflowLabel(language))
+        );
       }) || ""
   );
 }
@@ -88,7 +101,7 @@ describe("the Duplicate guides, in every language", () => {
     (language: string) => {
       const bullet: string = duplicateWorkflowBullet(language);
 
-      expect(bullet).toContain("**Duplicate Workflow**");
+      expect(bullet).toContain(duplicateWorkflowLabel(language));
       expect(bullet).toContain("Nightly Sync 2");
     },
   );

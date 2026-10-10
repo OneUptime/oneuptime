@@ -85,7 +85,7 @@ En un Runner con **Ejecuta comandos de remediación con IA** activado, OneUptime
 
 Quitar Runners de una credencial, guardar una credencial con los Runners que ya tiene y las credenciales de Kubernetes no piden nada más: los comandos kubectl de OneUptime AI se ejecutan con la credencial vinculada a su clúster. Las asignaciones de credenciales y la activación del interruptor por alguien sin ese permiso se guardan de una en una en un proyecto, para que las dos no puedan superar sus comprobaciones a la vez; un guardado que llega mientras se guarda otro lo espera, y si tarda demasiado se rechaza con *Try again in a moment*. Vuelve a guardarlo.
 
-Los pasos de un flujo de trabajo actúan como un Project Admin, pero no se les presta la lectura de credenciales de runbook de un Project Admin: un paso la tiene solo si la tiene la persona que guardó por última vez los pasos del flujo de trabajo. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-workflow).
+Los pasos de un flujo de trabajo actúan como un Project Admin, pero no se les presta la lectura de credenciales de runbook de un Project Admin: un paso la tiene solo si la tiene la persona que guardó por última vez los pasos del flujo de trabajo. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
 ## Mínimo privilegio en el otro extremo
 
