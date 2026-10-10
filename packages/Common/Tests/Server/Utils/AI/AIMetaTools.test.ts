@@ -24,11 +24,12 @@ import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightSeverity from "../../../../Types/AI/AIInsightSeverity";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The AI meta tools make the chat aware of the platform's other AI lanes:
@@ -404,6 +405,19 @@ describe("query_ai_insights", () => {
 });
 
 describe("start_investigation", () => {
+  /*
+   * The person may change the incident or alert (findOneUpdatableById).
+   * Who may not is held by "a subject the person may read but not change".
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(IncidentService, "findOneUpdatableById")
+      .mockResolvedValue(buildIncident() as never);
+    jest
+      .spyOn(AlertService, "findOneUpdatableById")
+      .mockResolvedValue(buildAlert() as never);
+  });
+
   test("enqueues through the durable queue with ctx tenancy and the monitor dedupe key", async () => {
     jest
       .spyOn(IncidentService, "findOneById")
@@ -594,6 +608,61 @@ describe("start_investigation", () => {
       ),
     ).rejects.toThrow("Incident not found");
   });
+
+  /*
+   * An investigation posts its findings to the subject's timeline, so asking
+   * for one is a change of the subject: the person's update of THIS incident
+   * or alert - their labels, owners and team's blocks - not only their read.
+   */
+  test.each([
+    ["an incident", "incident", "incidentId"],
+    ["an alert", "alert", "alertId"],
+  ])(
+    "%s the person may read but not change starts no investigation",
+    async (_name: string, kind: string, argument: string) => {
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(buildIncident() as never);
+      jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(buildAlert() as never);
+      const incidentUpdatable: jest.SpyInstance = jest
+        .spyOn(IncidentService, "findOneUpdatableById")
+        .mockResolvedValue(null as never);
+      const alertUpdatable: jest.SpyInstance = jest
+        .spyOn(AlertService, "findOneUpdatableById")
+        .mockResolvedValue(null as never);
+      const countSpy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
+      const enqueueSpy: jest.SpyInstance = jest.spyOn(
+        AIInvestigationQueue,
+        "enqueue",
+      );
+
+      const subjectId: string =
+        kind === "incident" ? INCIDENT_ID.toString() : ALERT_ID.toString();
+
+      const attempt: Promise<ToolExecutionResult> =
+        StartInvestigationTool.execute({ [argument]: subjectId }, ctx);
+
+      await expect(attempt).rejects.toThrow(NotAuthorizedException);
+      await expect(attempt).rejects.toThrow(
+        kind === "incident"
+          ? "You do not have permission to change Incident #12, so you cannot start an AI investigation of it."
+          : "You do not have permission to change Alert #7, so you cannot start an AI investigation of it.",
+      );
+
+      const updatable: jest.SpyInstance =
+        kind === "incident" ? incidentUpdatable : alertUpdatable;
+      const updatableArgs: JSONObject = updatable.mock
+        .calls[0]?.[0] as JSONObject;
+      expect(String(updatableArgs["id"])).toBe(subjectId);
+      // Asked with the person's own props, never as root.
+      expect(updatableArgs["props"]).toBe(ctx.props);
+
+      expect(countSpy).not.toHaveBeenCalled();
+      expect(enqueueSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("buildActionTitle names the subject from validated args", () => {
     expect(

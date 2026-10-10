@@ -256,7 +256,7 @@ Object bodies are compared as compact JSON with no spaces, so a **Request Body**
 > [!WARNING]
 > A monitor is only re-evaluated in the background if at least one of its criteria checks on **Incoming Request**. A monitor whose criteria only check Request Body, Request Header, or a JavaScript Expression is evaluated when a request arrives and at no other time — so it can never go offline on its own. If you want a missing-heartbeat alarm, you need an **Incoming Request** criteria.
 
-The background check counts whole minutes and fires once *more* than the value has passed: "Not Recieved In Minutes: 10" fires about 11 minutes after the last request (the check runs every 30 seconds). A monitor which has never received a request is treated as though its creation time were the last request, so the same criteria on a brand-new monitor fires about 11 minutes after you create it, even if the sender was never wired up.
+The background check counts whole minutes and fires once *more* than the value has passed: "Not Recieved In Minutes: 10" fires about 11 minutes after the last request (the check runs every 30 seconds). A monitor which has never received a request is treated as though its creation time were the last request, so the same criteria on a brand-new monitor fires about 11 minutes after you create it, even if the sender was never wired up. Only minutes OneUptime was receiving count toward the value: minutes while OneUptime itself restarts, is upgraded or catches up do not, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Receiving alerts from another system
 

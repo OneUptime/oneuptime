@@ -19,8 +19,14 @@ export default interface MonitorStepSecurityEventsMonitor {
 }
 
 export class MonitorStepSecurityEventsMonitorUtil {
+  /*
+   * `evaluateUntil` ends the window earlier than now: a telemetry check
+   * judges only data OneUptime has finished reading while its ingest queue
+   * is behind (ReceivingCoverage.planTelemetryEvaluation, issue #2825).
+   */
   public static toQuery(
     monitorStep: MonitorStepSecurityEventsMonitor,
+    evaluateUntil?: Date | undefined,
   ): Query<SecurityEvent> {
     const query: Query<SecurityEvent> = {};
 
@@ -51,7 +57,7 @@ export class MonitorStepSecurityEventsMonitorUtil {
     }
 
     if (monitorStep.lastXSecondsOfEvents) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveSeconds(
         endDate,
         monitorStep.lastXSecondsOfEvents * -1,

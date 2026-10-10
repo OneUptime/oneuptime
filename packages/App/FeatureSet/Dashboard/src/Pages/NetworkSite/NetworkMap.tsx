@@ -562,7 +562,15 @@ const NetworkSiteMap: FunctionComponent<
             onNavigate={changeSite}
           />
         </div>
-        <NetworkTopologyLiveView siteId={currentSiteId} layoutMode="tiered" />
+        <NetworkTopologyLiveView
+          siteId={currentSiteId}
+          layoutMode="tiered"
+          scopeNames={(childrenData?.breadcrumb || []).map(
+            (entry: SiteBreadcrumbEntry): string => {
+              return entry.name;
+            },
+          )}
+        />
       </Fragment>
     );
   }

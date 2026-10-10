@@ -77,7 +77,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
 
   // Charts under the tiles - every interval of the selected range.
   availabilityChart: translationKey(
-    "Whether the cluster's agent sent metrics (a heartbeat) in each interval: Up if any arrived, Down if none did; a lone missed minute between Up ones counts as Up. The badge is the share of Up intervals, leaving out the newest ones still waiting for data.",
+    "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.",
   ),
   cpuChart: translationKey(
     "Cluster CPU in use as a share of total allocatable CPU (what Kubernetes can hand out to pods) in each interval. Stays empty when the nodes do not report allocatable CPU.",

@@ -220,6 +220,10 @@ const DocsNav: NavGroup[] = [
         title: "Monitor Secrets",
         url: "/docs/monitor/monitor-secrets",
       },
+      {
+        title: "When OneUptime Is Not Receiving Data",
+        url: "/docs/monitor/when-oneuptime-is-not-receiving",
+      },
     ],
   },
   /*

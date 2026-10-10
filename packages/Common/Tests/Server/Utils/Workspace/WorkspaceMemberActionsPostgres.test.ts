@@ -16,6 +16,7 @@ jest.mock(
   },
 );
 
+import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -25,12 +26,16 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
+import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import WorkspaceNotificationLogService from "../../../../Server/Services/WorkspaceNotificationLogService";
 import { OnCreate } from "../../../../Server/Types/Database/Hooks";
+import AIToolbox, {
+  ToolCallOutcome,
+} from "../../../../Server/Utils/AI/Toolbox/Index";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -112,7 +117,13 @@ import { DataSource, Logger } from "typeorm";
  *     and answers a card that names no record plainly;
  *   - the creates themselves - the timeline row, the note, the execution
  *     log - refuse a record outside the member's labels, whatever asked
- *     for them.
+ *     for them;
+ *   - the AI assistant's actions are the same writes, with the props of the
+ *     person who asked: an acknowledge, a resolve or a page is stored with
+ *     them as its creator, and refused, with nothing written, for a record
+ *     outside their labels, for a person who may edit incidents and alerts
+ *     but not change their state, for one whose state changes are limited
+ *     to other labels, and for a run that is no person at all.
  *
  * What follows a saved row - the incident's current state, the feed, the
  * page itself - is OneUptime's own write, made by each service's success
@@ -159,6 +170,10 @@ const TABLES: Array<string> = [
   "IncidentState",
   "IncidentStateTimeline",
   "IncidentInternalNote",
+  "Alert",
+  "AlertLabel",
+  "AlertState",
+  "AlertStateTimeline",
   "OnCallDutyPolicy",
   "OnCallDutyPolicyLabel",
   "OnCallDutyPolicyExecutionLog",
@@ -224,6 +239,10 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
   const projectMemberId: ObjectID = ObjectID.generate();
   const viewerId: ObjectID = ObjectID.generate();
   const stateBlindId: ObjectID = ObjectID.generate();
+  // Edits incidents and alerts, but changes the state of neither.
+  const editorId: ObjectID = ObjectID.generate();
+  // Reads every incident and alert; changes the state of payments ones only.
+  const paymentsStateChangerId: ObjectID = ObjectID.generate();
 
   // Their Slack accounts.
   const SLACK_RESPONDER: string = "U0RESPONDER";
@@ -248,6 +267,18 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
 
   // The timeline rows the incidents were declared with.
   const seededTimelineIds: Array<ObjectID> = [];
+
+  // The project's alert states, in its order.
+  const alertCreatedStateId: ObjectID = ObjectID.generate();
+  const alertAcknowledgedStateId: ObjectID = ObjectID.generate();
+  const alertResolvedStateId: ObjectID = ObjectID.generate();
+
+  // One alert per label.
+  const paymentsAlertId: ObjectID = ObjectID.generate();
+  const searchAlertId: ObjectID = ObjectID.generate();
+
+  // The timeline rows the alerts were raised with.
+  const seededAlertTimelineIds: Array<ObjectID> = [];
 
   const paymentsPolicyId: ObjectID = ObjectID.generate();
   const searchPolicyId: ObjectID = ObjectID.generate();
@@ -403,6 +434,42 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     });
   }
 
+  async function seedAlert(data: {
+    id: ObjectID;
+    title: string;
+    labelIds: Array<ObjectID>;
+  }): Promise<void> {
+    await insert("Alert", {
+      _id: data.id,
+      projectId: projectId,
+      title: data.title,
+      currentAlertStateId: alertCreatedStateId,
+      // The severity table is not read here.
+      alertSeverityId: ObjectID.generate(),
+      version: 1,
+    });
+
+    for (const labelId of data.labelIds) {
+      await insert("AlertLabel", {
+        alertId: data.id,
+        labelId: labelId,
+      });
+    }
+
+    // Raised an hour ago, in the created state.
+    const timelineId: ObjectID = ObjectID.generate();
+    seededAlertTimelineIds.push(timelineId);
+
+    await insert("AlertStateTimeline", {
+      _id: timelineId,
+      projectId: projectId,
+      alertId: data.id,
+      alertStateId: alertCreatedStateId,
+      startsAt: new Date(Date.now() - 60 * 60 * 1000),
+      version: 1,
+    });
+  }
+
   async function connectSlackAccount(
     userId: ObjectID,
     slackUserId: string,
@@ -434,6 +501,21 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     );
   }
 
+  // The alert state changes made since the alerts were raised.
+  async function newAlertStateChanges(): Promise<Array<StoredRow>> {
+    return await database.query(
+      `SELECT "alertId", "alertStateId", "projectId", "createdByUserId"
+         FROM "${schema}"."AlertStateTimeline"
+        WHERE NOT ("_id" = ANY($1::uuid[]))
+        ORDER BY "createdAt"`,
+      [
+        seededAlertTimelineIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ],
+    );
+  }
+
   async function notes(): Promise<Array<StoredRow>> {
     return await database.query(
       `SELECT "incidentId", "projectId", "note", "createdByUserId"
@@ -454,6 +536,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
 
   async function nothingWritten(): Promise<void> {
     expect(await newStateChanges()).toEqual([]);
+    expect(await newAlertStateChanges()).toEqual([]);
     expect(await notes()).toEqual([]);
     expect(await executionLogs()).toEqual([]);
   }
@@ -547,6 +630,24 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         },
       );
     jest
+      .spyOn(
+        AlertStateTimelineService as unknown as {
+          onCreateSuccess: (
+            onCreate: OnCreate<AlertStateTimeline>,
+            createdItem: AlertStateTimeline,
+          ) => Promise<AlertStateTimeline>;
+        },
+        "onCreateSuccess",
+      )
+      .mockImplementation(
+        async (
+          _onCreate: OnCreate<AlertStateTimeline>,
+          createdItem: AlertStateTimeline,
+        ): Promise<AlertStateTimeline> => {
+          return createdItem;
+        },
+      );
+    jest
       .spyOn(IncidentInternalNoteService, "onCreateSuccess")
       .mockImplementation(
         async (
@@ -592,6 +693,8 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       [projectMemberId, "Project Member"],
       [viewerId, "Project Viewer"],
       [stateBlindId, "State Blind"],
+      [editorId, "Incident Editor"],
+      [paymentsStateChangerId, "Payments State Changer"],
     ] as Array<[ObjectID, string]>) {
       await insert("User", {
         _id: id,
@@ -640,6 +743,38 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         extra: { color: "#FF0000", order: order, ...flags },
       });
     }
+
+    for (const [id, name, order, flags] of [
+      [alertCreatedStateId, "Created", 1, { isCreatedState: true }],
+      [
+        alertAcknowledgedStateId,
+        "Acknowledged",
+        2,
+        { isAcknowledgedState: true },
+      ],
+      [alertResolvedStateId, "Resolved", 3, { isResolvedState: true }],
+    ] as Array<[ObjectID, string, number, Dictionary<boolean>]>) {
+      await insert("AlertState", {
+        _id: id,
+        projectId: projectId,
+        name: name,
+        color: "#FF0000",
+        order: order,
+        version: 1,
+        ...flags,
+      });
+    }
+
+    await seedAlert({
+      id: paymentsAlertId,
+      title: "Checkout error rate is high",
+      labelIds: [paymentsLabelId],
+    });
+    await seedAlert({
+      id: searchAlertId,
+      title: "Search latency is high",
+      labelIds: [searchLabelId],
+    });
 
     await seedIncident({
       id: paymentsIncidentId,
@@ -699,10 +834,10 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     }
 
     /*
-     * The payments responders: they read the incidents and on-call policies
-     * carrying the payments label - nothing else of either - and may move
-     * an incident's state, note it and page for it, as a team built in the
-     * dashboard from those permissions may.
+     * The payments responders: they read the incidents, alerts and on-call
+     * policies carrying the payments label - nothing else of any - and may
+     * move an incident's or an alert's state, note an incident and page for
+     * it, as a team built in the dashboard from those permissions may.
      */
     await seedTeam({
       project: projectId,
@@ -724,6 +859,13 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           permission: Permission.ReadProjectOnCallDutyPolicy,
           labelIds: [paymentsLabelId],
         },
+        {
+          permission: Permission.ReadAlert,
+          labelIds: [paymentsLabelId],
+        },
+        { permission: Permission.ReadAlertState },
+        { permission: Permission.CreateAlertStateTimeline },
+        { permission: Permission.ReadAlertStateTimeline },
       ],
     });
 
@@ -752,6 +894,49 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         { permission: Permission.ReadProjectIncident },
         { permission: Permission.CreateIncidentStateTimeline },
         { permission: Permission.ReadIncidentStateTimeline },
+      ],
+    });
+
+    // Edits incidents and alerts, but may change the state of neither.
+    await seedTeam({
+      project: projectId,
+      name: "Editors",
+      members: [editorId],
+      permissions: [
+        { permission: Permission.ReadProjectIncident },
+        { permission: Permission.EditProjectIncident },
+        { permission: Permission.ReadIncidentState },
+        { permission: Permission.ReadIncidentStateTimeline },
+        { permission: Permission.ReadAlert },
+        { permission: Permission.EditAlert },
+        { permission: Permission.ReadAlertState },
+        { permission: Permission.ReadAlertStateTimeline },
+      ],
+    });
+
+    /*
+     * Reads every incident and alert, and may change the state of the ones
+     * carrying the payments label - of no other.
+     */
+    await seedTeam({
+      project: projectId,
+      name: "Payments state changers",
+      members: [paymentsStateChangerId],
+      permissions: [
+        { permission: Permission.ReadProjectIncident },
+        { permission: Permission.ReadIncidentState },
+        { permission: Permission.ReadIncidentStateTimeline },
+        {
+          permission: Permission.CreateIncidentStateTimeline,
+          labelIds: [paymentsLabelId],
+        },
+        { permission: Permission.ReadAlert },
+        { permission: Permission.ReadAlertState },
+        { permission: Permission.ReadAlertStateTimeline },
+        {
+          permission: Permission.CreateAlertStateTimeline,
+          labelIds: [paymentsLabelId],
+        },
       ],
     });
 
@@ -801,6 +986,15 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         WHERE NOT ("_id" = ANY($1::uuid[]))`,
       [
         seededTimelineIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ],
+    );
+    await database.query(
+      `DELETE FROM "${schema}"."AlertStateTimeline"
+        WHERE NOT ("_id" = ANY($1::uuid[]))`,
+      [
+        seededAlertTimelineIds.map((id: ObjectID): string => {
           return id.toString();
         }),
       ],
@@ -1418,6 +1612,305 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         }),
       ).rejects.toThrow(`The incident ${NOT_FOUND}`);
 
+      await nothingWritten();
+    });
+  });
+
+  /*
+   * The AI assistant's actions (AIToolbox), asked by a person in chat. The
+   * tool runs with that person's props, built as the dashboard builds them,
+   * and makes the write the dashboard makes for the same action - so every
+   * check below is the production one, over the rows seeded above.
+   */
+  describe("the AI assistant's actions, made as the person who asked", () => {
+    async function askAssistant(data: {
+      userId: ObjectID;
+      tool: string;
+      args: JSONObject;
+    }): Promise<ToolCallOutcome> {
+      return await AIToolbox.executeTool({
+        name: data.tool,
+        args: data.args,
+        ctx: {
+          projectId: projectId,
+          props: await memberProps(data.userId),
+        },
+      });
+    }
+
+    interface StateTool {
+      tool: string;
+      kind: string;
+      argument: string;
+      // A record carrying the payments label, and one carrying another.
+      paymentsRecordId: ObjectID;
+      searchRecordId: ObjectID;
+      // The state the tool moves the record into.
+      stateId: ObjectID;
+      permissionTitle: string;
+    }
+
+    const STATE_TOOLS: Array<StateTool> = [
+      {
+        tool: "acknowledge_incident",
+        kind: "an incident",
+        argument: "incidentId",
+        paymentsRecordId: paymentsIncidentId,
+        searchRecordId: searchIncidentId,
+        stateId: acknowledgedStateId,
+        permissionTitle: "Create Incident State Timeline",
+      },
+      {
+        tool: "resolve_incident",
+        kind: "an incident",
+        argument: "incidentId",
+        paymentsRecordId: paymentsIncidentId,
+        searchRecordId: searchIncidentId,
+        stateId: resolvedStateId,
+        permissionTitle: "Create Incident State Timeline",
+      },
+      {
+        tool: "acknowledge_alert",
+        kind: "an alert",
+        argument: "alertId",
+        paymentsRecordId: paymentsAlertId,
+        searchRecordId: searchAlertId,
+        stateId: alertAcknowledgedStateId,
+        permissionTitle: "Create Alert State Timeline",
+      },
+      {
+        tool: "resolve_alert",
+        kind: "an alert",
+        argument: "alertId",
+        paymentsRecordId: paymentsAlertId,
+        searchRecordId: searchAlertId,
+        stateId: alertResolvedStateId,
+        permissionTitle: "Create Alert State Timeline",
+      },
+    ];
+
+    // The state changes made since the records were seeded, of either kind.
+    async function stateChanges(): Promise<Array<StoredRow>> {
+      const incidentChanges: Array<StoredRow> = (await newStateChanges()).map(
+        (row: StoredRow): StoredRow => {
+          return {
+            recordId: row["incidentId"]!,
+            stateId: row["incidentStateId"]!,
+            projectId: row["projectId"]!,
+            createdByUserId: row["createdByUserId"]!,
+          };
+        },
+      );
+      const alertChanges: Array<StoredRow> = (await newAlertStateChanges()).map(
+        (row: StoredRow): StoredRow => {
+          return {
+            recordId: row["alertId"]!,
+            stateId: row["alertStateId"]!,
+            projectId: row["projectId"]!,
+            createdByUserId: row["createdByUserId"]!,
+          };
+        },
+      );
+
+      return [...incidentChanges, ...alertChanges];
+    }
+
+    test.each(STATE_TOOLS)(
+      "$tool, asked by a person whose labels reach $kind, writes its state change once, created by them",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await askAssistant({
+          userId: responderId,
+          tool: row.tool,
+          args: { [row.argument]: row.paymentsRecordId.toString() },
+        });
+
+        expect(outcome.errorMessage).toBeUndefined();
+        expect(outcome.success).toBe(true);
+        expect(await stateChanges()).toEqual([
+          {
+            recordId: row.paymentsRecordId.toString(),
+            stateId: row.stateId.toString(),
+            projectId: projectId.toString(),
+            createdByUserId: responderId.toString(),
+          },
+        ]);
+      },
+    );
+
+    test.each(STATE_TOOLS)(
+      "$tool on $kind outside the person's labels is refused like one that is not there, and nothing is written",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await askAssistant({
+          userId: responderId,
+          tool: row.tool,
+          args: { [row.argument]: row.searchRecordId.toString() },
+        });
+
+        expect(outcome.success).toBe(false);
+        expect(outcome.textForLlm).toContain(
+          "not found (or you do not have access to it).",
+        );
+        await nothingWritten();
+      },
+    );
+
+    test.each(STATE_TOOLS)(
+      "$tool, asked by a person who may edit $kind but not change its state, is refused, says what it needs, and nothing is written",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await askAssistant({
+          userId: editorId,
+          tool: row.tool,
+          args: { [row.argument]: row.paymentsRecordId.toString() },
+        });
+
+        expect(outcome.success).toBe(false);
+        expect(outcome.errorMessage).toBe(
+          `Permission denied for tool: ${row.tool}`,
+        );
+        expect(outcome.textForLlm).toContain(row.permissionTitle);
+        await nothingWritten();
+      },
+    );
+
+    test.each(STATE_TOOLS)(
+      "$tool, asked by a person who reads $kind but may change the state of other labels only, is refused plainly, and nothing is written",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await askAssistant({
+          userId: paymentsStateChangerId,
+          tool: row.tool,
+          args: { [row.argument]: row.searchRecordId.toString() },
+        });
+
+        expect(outcome.success).toBe(false);
+        // The create's own refusal, told to the model as one: no retry.
+        expect(outcome.textForLlm).toMatch(
+          new RegExp(
+            `^Refused: ${row.tool} was not allowed for the current user\\. `,
+          ),
+        );
+        expect(outcome.textForLlm).toContain(
+          "Do not retry it. Tell the user plainly that it was not done, and why.",
+        );
+        await nothingWritten();
+      },
+    );
+
+    test.each(STATE_TOOLS)(
+      "$tool, asked by that same person for $kind carrying their label, writes the change as them",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await askAssistant({
+          userId: paymentsStateChangerId,
+          tool: row.tool,
+          args: { [row.argument]: row.paymentsRecordId.toString() },
+        });
+
+        expect(outcome.errorMessage).toBeUndefined();
+        expect(outcome.success).toBe(true);
+        expect(await stateChanges()).toEqual([
+          {
+            recordId: row.paymentsRecordId.toString(),
+            stateId: row.stateId.toString(),
+            projectId: projectId.toString(),
+            createdByUserId: paymentsStateChangerId.toString(),
+          },
+        ]);
+      },
+    );
+
+    test.each(STATE_TOOLS)(
+      "$tool in a run that is no person - OneUptime itself - changes nothing",
+      async (row: StateTool) => {
+        const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+          name: row.tool,
+          args: { [row.argument]: row.paymentsRecordId.toString() },
+          ctx: { projectId: projectId, props: { isRoot: true } },
+        });
+
+        expect(outcome.success).toBe(false);
+        expect(outcome.errorMessage).toBe(
+          `Permission denied for tool: ${row.tool} (no signed-in person to act as)`,
+        );
+        await nothingWritten();
+      },
+    );
+
+    test("page_on_call_policy pages for the incident, with the person as who triggered it", async () => {
+      const outcome: ToolCallOutcome = await askAssistant({
+        userId: responderId,
+        tool: "page_on_call_policy",
+        args: {
+          onCallDutyPolicyId: paymentsPolicyId.toString(),
+          incidentId: paymentsIncidentId.toString(),
+        },
+      });
+
+      expect(outcome.errorMessage).toBeUndefined();
+      expect(outcome.success).toBe(true);
+      expect(await executionLogs()).toEqual([
+        {
+          onCallDutyPolicyId: paymentsPolicyId.toString(),
+          projectId: projectId.toString(),
+          triggeredByIncidentId: paymentsIncidentId.toString(),
+          triggeredByUserId: responderId.toString(),
+          createdByUserId: responderId.toString(),
+          status: OnCallDutyPolicyStatus.Scheduled,
+          statusMessage: "Scheduled.",
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        },
+      ]);
+    });
+
+    test("page_on_call_policy with a policy outside the person's labels is refused, and nobody is paged", async () => {
+      const outcome: ToolCallOutcome = await askAssistant({
+        userId: responderId,
+        tool: "page_on_call_policy",
+        args: {
+          onCallDutyPolicyId: searchPolicyId.toString(),
+          incidentId: paymentsIncidentId.toString(),
+        },
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.textForLlm).toContain(
+        "On-call duty policy not found (or you do not have access to it).",
+      );
+      await nothingWritten();
+    });
+
+    test("page_on_call_policy for an incident outside the person's labels is refused, and nobody is paged", async () => {
+      const outcome: ToolCallOutcome = await askAssistant({
+        userId: responderId,
+        tool: "page_on_call_policy",
+        args: {
+          onCallDutyPolicyId: paymentsPolicyId.toString(),
+          incidentId: searchIncidentId.toString(),
+        },
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.textForLlm).toContain(
+        "Incident not found (or you do not have access to it).",
+      );
+      await nothingWritten();
+    });
+
+    test("page_on_call_policy asked by a person who may only read is refused, says what it needs, and nobody is paged", async () => {
+      const outcome: ToolCallOutcome = await askAssistant({
+        userId: viewerId,
+        tool: "page_on_call_policy",
+        args: {
+          onCallDutyPolicyId: paymentsPolicyId.toString(),
+          incidentId: paymentsIncidentId.toString(),
+        },
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.errorMessage).toBe(
+        "Permission denied for tool: page_on_call_policy",
+      );
+      expect(outcome.textForLlm).toContain(
+        "Create On-Call Duty Policy Execution Log",
+      );
       await nothingWritten();
     });
   });

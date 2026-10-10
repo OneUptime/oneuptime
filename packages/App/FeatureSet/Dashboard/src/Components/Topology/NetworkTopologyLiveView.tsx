@@ -35,6 +35,8 @@ import {
   prunePositionOverrides,
 } from "./TopologyPositionOverrides";
 import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
+import { TopologyLayoutModel } from "../NetworkDevice/TopologyLayout";
+import { exportNetworkTopologyAsPdf } from "./Export/NetworkTopologyPdfExport";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -63,6 +65,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Logger } from "Common/UI/Utils/Logger";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { APP_API_URL } from "Common/UI/Config";
 import React, {
@@ -97,6 +100,12 @@ export interface ComponentProps {
    * tiered, radial, star and parent-child from the toolbar afterwards.
    */
   layoutMode?: TopologyLayoutMode | undefined;
+  /*
+   * Where the scoped site sits in the hierarchy, top first ("North
+   * America", "East", "Store 1042"). Names the exported PDF; omitted for
+   * the map of every device in the project.
+   */
+  scopeNames?: Array<string> | undefined;
 }
 
 /*
@@ -230,6 +239,16 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [positionOverrides, setPositionOverrides] = useState<PositionOverrides>(
     new Map(),
   );
+  // Issue #4616: the PDF export, which runs in the browser and can take a moment.
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string>("");
+  /*
+   * The layout the graph is drawing, as it reported it. The export draws
+   * from this rather than recomputing it, so the PDF is the map on screen
+   * even when a poll has changed something the layout is not redrawn for.
+   */
+  const layoutModelRef: React.MutableRefObject<TopologyLayoutModel | null> =
+    useRef<TopologyLayoutModel | null>(null);
 
   // A background poll must not clobber the view if the component is gone.
   const isMounted: React.MutableRefObject<boolean> = useRef<boolean>(true);
@@ -526,6 +545,67 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }, [healthSummary]);
 
   /*
+   * Whether the map draws anything at all. The export is offered only then:
+   * a PDF of an empty frame is a file nobody asked for.
+   */
+  const hasNodesToExport: boolean =
+    healthSummary.total > 0 &&
+    (healthFilterMode === "all" || healthFilterMatchCount > 0);
+
+  /*
+   * Export what the reader is looking at: the same nodes after the VLAN
+   * filter, the same layout and dragged positions, the same type, health and
+   * search filters — and the whole map, not the part inside the viewport.
+   */
+  const exportPdf: () => void = (): void => {
+    if (isExporting) {
+      return;
+    }
+    setExportError("");
+    setIsExporting(true);
+    exportNetworkTopologyAsPdf({
+      topology: visibleTopology,
+      layoutModel: layoutModelRef.current || undefined,
+      layoutMode: layoutMode,
+      positionOverrides: positionOverrides,
+      searchText: searchText,
+      visibleKinds: effectiveVisibleKinds,
+      availableKinds: availableKinds,
+      healthFilterMode: healthFilterMode,
+      vlanId: selectedVlan === ALL_VLANS ? null : Number(selectedVlan),
+      projectName: ProjectUtil.getCurrentProject()?.name || undefined,
+      scopeNames: props.scopeNames || [],
+      notices: {
+        isTruncated: topology.isTruncated,
+        endpointsTruncated: topology.endpointsTruncated,
+        droppedEndpointCount: topology.droppedEndpointCount,
+        suppressedNodeCount: topology.suppressedNodeCount,
+      },
+    })
+      .catch((err: unknown) => {
+        /*
+         * The reader is told in a sentence they can act on; the reason —
+         * a library chunk that did not load, a page jsPDF refused — goes to
+         * the console, where it can be diagnosed.
+         */
+        Logger.error(
+          `Could not export the network topology as a PDF: ${API.getFriendlyMessage(err)}`,
+        );
+        if (isMounted.current) {
+          setExportError(
+            translateString("We couldn't create the PDF. Try again.") ||
+              "We couldn't create the PDF. Try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted.current) {
+          setIsExporting(false);
+        }
+      });
+  };
+
+  /*
    * ------------------------------------------------------------------
    * Saved arrangements
    * ------------------------------------------------------------------
@@ -719,6 +799,17 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       }
       buttons={[
         {
+          title: "Export PDF",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Download,
+          isLoading: isExporting,
+          disabled: !hasNodesToExport || isExporting,
+          tooltip: hasNodesToExport
+            ? "Download the whole map as a PDF, with every device and connection listed."
+            : "There is nothing on the map to export.",
+          onClick: exportPdf,
+        },
+        {
           title: "Refresh",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Refresh,
@@ -846,6 +937,18 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {exportError ? (
+        <div
+          role="alert"
+          className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
+          data-testid="network-topology-export-error"
+        >
+          {exportError}
+        </div>
+      ) : (
+        <></>
+      )}
+
       {/*
        * The rules with something to explain — including a site-scoped rule
        * that drew in most of its sites and failed in the rest, so a listed
@@ -950,6 +1053,9 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         onEdgeClick={(edge: NetworkTopologyEdge) => {
           setSelectedNodeId(null);
           setSelectedEdgeKey(edgeKeyForEdge(edge));
+        }}
+        onLayoutModelChange={(model: TopologyLayoutModel) => {
+          layoutModelRef.current = model;
         }}
         /*
          * The way forward from an empty map: the Add Device form itself,

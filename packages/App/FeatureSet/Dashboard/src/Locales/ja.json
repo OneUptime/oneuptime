@@ -27580,6 +27580,20 @@
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "各試行でサーバーの応答を待つ時間で、DNS ルックアップも含みます。再試行のたびにタイムアウトが新たに開始されます。デフォルト値は 5 秒です。最大は 60 秒です。",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "失敗した試行の後に再試行する回数です。0 は 1 回のみ、2 は最大 3 回を意味します。空欄にするとプローブのデフォルト値 (通常は 3) が使われます。最大は 3 です。応答なし、ポートの拒否、DNS ルックアップの失敗は、毎回新しいリクエストで再試行されます。応答したサーバーには、未同期だと応答した場合でも、再度問い合わせることはありません。",
   "The time server this monitor checks.": "このモニターがチェックするタイムサーバー。",
+  "Instance Receiving Period": "インスタンスの受信期間",
+  "Instance Receiving Periods": "インスタンスの受信期間一覧",
+  "Internal record of the stretches of time this instance was up and receiving data.": "このインスタンスが稼働してデータを受信していた期間の内部記録です。",
+  "Last Receiving At": "最終受信日時",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime が復帰した直後で、エージェントが再接続していました。この時間は稼働率から除外されます。",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime はこのデータを受信済みで、まだ処理中です。処理が追いつくまで、この時間は稼働率から除外されます。",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime はデータを受信していませんでした（再起動、アップグレード、または障害）。この時間は稼働率から除外されます。",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "このホストのエージェントがメトリクスを送信した区間はアップ、送信しなかった区間はダウンで、アップの間に単独で 1 分欠けた場合はアップとして数えます。稼働率バッジはアップの割合で、データ待ちの区間と OneUptime が受信していなかった時間は除外します。",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "その区間に OneUptime がこのホストからメトリクスを受信した場合はアップ、何も届かなかった場合はダウンで、アップの間で 1 分欠けた場合はアップとして数えます。稼働率バッジは OneUptime が受信していなかった時間を除外し、最新の区間はデータが届くまで判定しません。",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "クラスターのエージェントがメトリクスを送信した区間はアップ、送信しなかった区間はダウンで、アップの間に単独で 1 分欠けた場合はアップとして数えます。バッジはアップの割合で、データ待ちの最新の区間と OneUptime が受信していなかった時間は除外します。",
   "Has Additional Parameters": "追加パラメーターあり",
-  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。"
+  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。",
+  "Download the whole map as a PDF, with every device and connection listed.": "マップ全体を PDF としてダウンロードします。すべてのデバイスと接続の一覧も含まれます。",
+  "Export PDF": "PDF をエクスポート",
+  "There is nothing on the map to export.": "マップにエクスポートできるものがありません。",
+  "We couldn't create the PDF. Try again.": "PDF を作成できませんでした。もう一度お試しください。"
 }

@@ -53,6 +53,7 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import DiscoveredResourceCreate, {
   DiscoveredResourceNaming,
   NamedAfterIdentityOptions,
@@ -1674,15 +1675,20 @@ export class Service extends ProjectReferencesService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedClusters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,

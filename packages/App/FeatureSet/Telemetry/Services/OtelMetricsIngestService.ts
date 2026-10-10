@@ -551,6 +551,29 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * When a metrics batch reached OneUptime, in unix nanoseconds: the ingest
+   * endpoint's stamp (TelemetryRequest.receivedAt), or now for a batch that
+   * carries none. Never later than now - the endpoint's clock may run a
+   * little ahead of the worker's.
+   */
+  public static getBatchArrivalUnixNano(
+    receivedAt: Date | string | undefined,
+    nowUnixNano: number = OneUptimeDate.getCurrentDateAsUnixNano(),
+  ): number {
+    if (!receivedAt) {
+      return nowUnixNano;
+    }
+
+    const receivedAtMs: number = new Date(receivedAt).getTime();
+
+    if (!Number.isFinite(receivedAtMs) || receivedAtMs <= 0) {
+      return nowUnixNano;
+    }
+
+    return Math.min(receivedAtMs * 1_000_000, nowUnixNano);
+  }
+
+  /*
    * Walk an entire metrics batch once and apply Host metadata + cached
    * stats per unique host.name in a single UPDATE per host. The per-
    * resource enrichment in the main for-loop only sees one scraper's
@@ -1433,22 +1456,33 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
              * time keeps the heartbeat on the same timeline as the
              * metrics it vouches for.
              *
-             * Clamped on both sides by the ingest clock: a batch
-             * cannot have been scraped after it arrived (future-skewed
-             * host clocks, batches with no datapoints), and backdating
-             * is floored at HEARTBEAT_MAX_BACKDATE_MS — normal queue
-             * lag is seconds, so anything older means a behind-skewed
-             * host clock or a backlog replay, and an unbounded
-             * backdate would paint a permanent false "down" tail on
-             * the charts (the trailing buckets would never receive a
-             * heartbeat). A floored stamp lands in the newest
-             * evaluable Minute bucket, proving it up; the single
-             * bucket between it and the chart's unevaluable trailing
-             * shadow is rescued by the Minute-grid bridge — see the
-             * invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             * Clamped on both sides by when the batch ARRIVED - the
+             * ingest endpoint's stamp on the queued job, not the
+             * worker's clock: a batch cannot have been scraped after it
+             * arrived (future-skewed host clocks, batches with no
+             * datapoints), and backdating is floored at
+             * HEARTBEAT_MAX_BACKDATE_MS - anything older means a
+             * behind-skewed host clock or a collector resending what it
+             * queued, and an unbounded backdate would paint a permanent
+             * false "down" tail on the charts (the trailing buckets
+             * would never receive a heartbeat). A floored stamp lands in
+             * the newest evaluable Minute bucket, proving it up; the
+             * single bucket between it and the chart's unevaluable
+             * trailing shadow is rescued by the Minute-grid bridge — see
+             * the invariant documented on HEARTBEAT_MAX_BACKDATE_MS.
+             *
+             * Arrival, not processing, because the queue can run minutes
+             * behind (after a restart it drains everything that waited):
+             * clamped to the worker's clock, a drained backlog's
+             * heartbeats all piled into its last two minutes and left the
+             * minutes before them empty - a permanent false "down" for
+             * every host, caused by OneUptime's own backlog (issue
+             * #2825).
              */
-            const nowUnixNano: number =
-              OneUptimeDate.getCurrentDateAsUnixNano();
+            const arrivalUnixNano: number =
+              OtelMetricsIngestService.getBatchArrivalUnixNano(
+                (req as TelemetryRequest).receivedAt,
+              );
             const maxBackdateNano: number =
               HEARTBEAT_MAX_BACKDATE_MS * 1_000_000;
             const maxDatapointTimeUnixNano: number | null =
@@ -1456,10 +1490,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             const heartbeatTimeNano: string = Math.trunc(
               maxDatapointTimeUnixNano !== null
                 ? Math.max(
-                    Math.min(maxDatapointTimeUnixNano, nowUnixNano),
-                    nowUnixNano - maxBackdateNano,
+                    Math.min(maxDatapointTimeUnixNano, arrivalUnixNano),
+                    arrivalUnixNano - maxBackdateNano,
                   )
-                : nowUnixNano,
+                : arrivalUnixNano,
             ).toString();
             const heartbeatRow: JSONObject = this.buildMetricRow({
               datapoint: {

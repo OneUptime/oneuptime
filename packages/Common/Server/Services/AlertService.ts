@@ -317,27 +317,37 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Acknowledges the alert, as the user: moves it into its project's
-   * acknowledged state - the first from the top flagged acknowledged. One
-   * that is acknowledged already, or further along, is refused with a
-   * sentence that says which (Common/Utils/AcknowledgedState) rather than
-   * moved back up its list - whichever channel asked: Slack, Microsoft
-   * Teams, OneUptime AI.
+   * Acknowledges the alert: moves it into its project's acknowledged state
+   * - the first from the top flagged acknowledged. One that is acknowledged
+   * already, or further along, is refused with a sentence that says which
+   * (Common/Utils/AcknowledgedState) rather than moved back up its list.
+   * The alert is read, and its state timeline row created, with `props`: a
+   * person's props hold the acknowledge to their read of the alert and
+   * their permission to create the row, and credit it to them; root props
+   * credit `acknowledgedByUserId`.
+   *
+   * A person's acknowledge is the state timeline row created with their own
+   * props: the dashboard creates it through the API, and Slack, Microsoft
+   * Teams and OneUptime AI through WorkspaceMemberActions. What is left here
+   * is OneUptime's own acknowledge, made once a responder has answered an
+   * on-call page about the alert (UserOnCallLogTimelineService), which says
+   * so by passing root props.
    */
   @CaptureSpan()
-  public async acknowledgeAlert(
-    alertId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<void> {
+  public async acknowledgeAlert(data: {
+    alertId: ObjectID;
+    acknowledgedByUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const { alertId, acknowledgedByUserId } = data;
+
     const alert: Model | null = await this.findOneById({
       id: alertId,
       select: {
         projectId: true,
         currentAlertStateId: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     if (!alert || !alert.projectId) {
@@ -383,9 +393,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await AlertStateTimelineService.create({
       data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
   }
 
@@ -2918,59 +2926,6 @@ ${alertSeverity.name}
       number: alert.alertNumber ? Number(alert.alertNumber) : null,
       numberWithPrefix: alert.alertNumberWithPrefix || null,
     };
-  }
-
-  @CaptureSpan()
-  public async resolveAlert(
-    alertId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    const alert: Model | null = await this.findOneById({
-      id: alertId,
-      select: {
-        projectId: true,
-        alertNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alert || !alert.projectId) {
-      throw new BadDataException("Alert not found.");
-    }
-
-    // The project's resolved state: the first from the top flagged resolved.
-    const alertState: AlertState =
-      await AlertStateService.getResolvedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!alertState.id) {
-      throw new BadDataException(
-        "Resolved state not found for this project. Please add resolved state from settings.",
-      );
-    }
-
-    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
-    alertStateTimeline.projectId = alert.projectId;
-    alertStateTimeline.alertId = alertId;
-    alertStateTimeline.alertStateId = alertState.id;
-    alertStateTimeline.createdByUserId = resolvedByUserId;
-
-    await AlertStateTimelineService.create({
-      data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store alert metric
-
-    return alert;
   }
 
   /**
