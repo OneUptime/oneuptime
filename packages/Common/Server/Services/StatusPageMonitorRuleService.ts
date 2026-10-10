@@ -153,7 +153,10 @@ export class Service extends ProjectReferencesService<Model> {
     if (nextGroupId) {
       for (const rule of await this.findRulesForQuery(updateBy)) {
         await this.assertReferencesAreInScope({
-          projectId: rule.projectId || updateBy.props.tenantId,
+          projectId: Service.getProjectToCheckRowIn(
+            updateBy.props,
+            rule.projectId,
+          ),
           statusPageId: rule.statusPageId,
           statusPageGroupId: nextGroupId,
         });

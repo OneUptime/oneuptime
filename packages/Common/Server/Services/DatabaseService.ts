@@ -7275,6 +7275,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The project a reference one row of a write names is checked in: the
+   * project the write is kept to (getProjectWriteIsHeldTo), a teammate's
+   * request's project; for OneUptime and a master admin, whose writes reach
+   * any row their query names, the row's own project - or the request's,
+   * for a row that names none.
+   */
+  public static getProjectToCheckRowIn(
+    props: DatabaseCommonInteractionProps,
+    rowProjectId: ObjectID | null | undefined,
+  ): ObjectID | undefined {
+    return (
+      DatabaseService.getProjectWriteIsHeldTo(props) ||
+      rowProjectId ||
+      props.tenantId ||
+      undefined
+    );
+  }
+
+  /*
    * Whether `select` reads a relation `query` - or any query of a list of
    * them - sets a condition on (findRowsAndHoldUpdateToThem).
    */

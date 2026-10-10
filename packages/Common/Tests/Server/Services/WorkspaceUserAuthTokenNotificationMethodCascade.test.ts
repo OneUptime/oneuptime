@@ -6,6 +6,10 @@ import ObjectID from "../../../Types/ObjectID";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Disconnecting a workspace account takes the notification methods pointing at
@@ -73,6 +77,9 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
     deleteTeams = jest
       .spyOn(UserMicrosoftTeamsService, "deleteBy")
       .mockResolvedValue([] as never);
+
+    // The tokens a teammate may delete: those the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(WorkspaceUserAuthTokenService, findTokens);
   });
 
   afterEach(() => {
@@ -134,10 +141,43 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
     expect(deleteTeams).toHaveBeenCalledTimes(1);
   });
 
-  test("the tokens are re-read with the RAW delete query, as root, before the delete narrows anything", async () => {
+  test("a teammate's tokens are read among those they may delete, as root, and only those cascade", async () => {
+    findTokens.mockResolvedValue([tokenRow(WorkspaceType.Slack)] as never);
+
     await callOnBeforeDelete({
       query: { userId: USER_ID, workspaceType: WorkspaceType.Slack },
       props: { isRoot: false },
+    });
+
+    // The tokens the caller may delete, read with the caller's permission.
+    expect(
+      readsOfRowsCallerMayWrite(WorkspaceUserAuthTokenService)[0]!.query[
+        "userId"
+      ],
+    ).toBe(USER_ID);
+
+    // The delete's tokens among them, as OneUptime.
+    expect(findTokens).toHaveBeenCalledTimes(1);
+    const arg: {
+      query: Record<string, unknown>;
+      props: { isRoot: boolean };
+      limit: number;
+    } = findTokens.mock.calls[0][0] as {
+      query: Record<string, unknown>;
+      props: { isRoot: boolean };
+      limit: number;
+    };
+    expect(arg.query["userId"]).toBe(USER_ID);
+    expect(String(arg.query["_id"])).toBe(TOKEN_ID.toString());
+    expect(arg.props.isRoot).toBe(true);
+    expect(arg.limit).toBe(1);
+    expect(deleteSlack).toHaveBeenCalledTimes(1);
+  });
+
+  test("OneUptime's tokens are read with the delete's own query, in its window", async () => {
+    await callOnBeforeDelete({
+      query: { userId: USER_ID, workspaceType: WorkspaceType.Slack },
+      props: { isRoot: true },
     });
 
     expect(findTokens).toHaveBeenCalledTimes(1);
@@ -150,7 +190,10 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
       props: { isRoot: boolean };
       limit: number;
     };
-    expect(arg.query["userId"]).toBe(USER_ID);
+    expect(arg.query).toEqual({
+      userId: USER_ID,
+      workspaceType: WorkspaceType.Slack,
+    });
     expect(arg.props.isRoot).toBe(true);
     expect(arg.limit).toBe(LIMIT_MAX);
   });

@@ -263,7 +263,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-        projectId: template.projectId || updateBy.props.tenantId,
+        projectId: Service.getProjectToCheckRowIn(
+          updateBy.props,
+          template.projectId,
+        ),
         alreadyStoredMonitorSteps: template.monitorSteps,
       });
     }

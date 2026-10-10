@@ -30,6 +30,11 @@ import {
   openStateIds,
 } from "../TestingUtils/Services/ProjectStatesHelper";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 
 /*
@@ -1476,10 +1481,20 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
   let findBySpy: jest.SpyInstance;
   let validatorSpy: jest.SpyInstance;
 
+  // A teammate of the project, whose update is kept to it.
+  function teammateProps(): Record<string, unknown> {
+    return { tenantId: PROJECT_ID, userId: ObjectID.generate() };
+  }
+
   beforeEach(() => {
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    // The rules a teammate's update may write: those the same read reaches.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveBurnRateRuleService,
+      findBySpy,
+    );
 
     validatorSpy = jest
       .spyOn(
@@ -1539,18 +1554,15 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
       expectedAlertSeverityId: ObjectID | undefined;
       expectedIncidentSeverityId: ObjectID | undefined;
     }): void => {
-      it(`validates ${updatedSeverity.label} against the caller's tenant, without reading any row`, async () => {
+      it(`validates ${updatedSeverity.label} against a teammate's project, without reading any row`, async () => {
         await expect(
           callHook(
             "onBeforeUpdate",
-            makeUpdateBy(updatedSeverity.fields, {
-              isRoot: true,
-              tenantId: PROJECT_ID,
-            }),
+            makeUpdateBy(updatedSeverity.fields, teammateProps()),
           ),
         ).resolves.toBeDefined();
 
-        // A known tenant makes the row read unnecessary.
+        // A teammate's update is kept to their project: no row needs reading.
         expect(findBySpy).not.toHaveBeenCalled();
         expect(validatorSpy).toHaveBeenCalledTimes(1);
 
@@ -1571,6 +1583,62 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
     },
   );
 
+  it("validates a severity an update of OneUptime sends in the project of the rule it writes, not the request's", async () => {
+    findBySpy.mockResolvedValue([
+      makeRule({
+        _id: RULE_ID.toString(),
+        id: RULE_ID,
+        projectId: PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          { alertSeverityId: ALERT_SEVERITY_ID },
+          { isRoot: true, tenantId: OTHER_PROJECT_ID },
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    // The rule's own project, read as the update writes it.
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(validatedReferencesAt(validatorSpy, 0).projectId).toEqual(
+      PROJECT_ID,
+    );
+  });
+
+  it("validates a severity a master admin's update sends in the project of the rule it writes", async () => {
+    findBySpy.mockResolvedValue([
+      makeRule({
+        _id: RULE_ID.toString(),
+        id: RULE_ID,
+        projectId: OTHER_PROJECT_ID,
+      }),
+    ]);
+
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          { incidentSeverityId: INCIDENT_SEVERITY_ID },
+          {
+            isMasterAdmin: true,
+            userId: ObjectID.generate(),
+            tenantId: PROJECT_ID,
+          },
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(validatedReferencesAt(validatorSpy, 0).projectId).toEqual(
+      OTHER_PROJECT_ID,
+    );
+  });
+
   it("validates a severity an update sends as the relation", async () => {
     await expect(
       callHook(
@@ -1579,7 +1647,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
           {
             incidentSeverity: { _id: INCIDENT_SEVERITY_ID.toString() },
           } as unknown as RuleFields,
-          { isRoot: true, tenantId: PROJECT_ID },
+          teammateProps(),
         ),
       ),
     ).resolves.toBeDefined();
@@ -1701,10 +1769,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
     await expectBadData(
       callHook(
         "onBeforeUpdate",
-        makeUpdateBy(
-          { alertSeverityId: ALERT_SEVERITY_ID },
-          { isRoot: true, tenantId: PROJECT_ID },
-        ),
+        makeUpdateBy({ alertSeverityId: ALERT_SEVERITY_ID }, teammateProps()),
       ),
       "not in this project",
     );
@@ -3371,7 +3436,18 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
     ).toEqual([first, second]);
   });
 
-  it("reads the doomed rows as root, through the caller's query pinned to the caller's project, on the widest page", async () => {
+  it("reads the rules the caller may delete in the caller's project, in the delete's own window, and holds the delete to the ones its query names", async () => {
+    // The rule the caller may delete, in the caller's project.
+    stubRowsCallerMayDelete(ServiceLevelObjectiveBurnRateRuleService, () => {
+      return [
+        makeRule({
+          _id: RULE_ID.toString(),
+          id: RULE_ID,
+          projectId: PROJECT_ID,
+        }),
+      ];
+    });
+    // The delete's query names another project: no rule it may delete.
     findBySpy.mockResolvedValue([]);
 
     const deleteBy: DeleteBy<ServiceLevelObjectiveBurnRateRule> = {
@@ -3381,14 +3457,25 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
       skip: 5,
     } as unknown as DeleteBy<ServiceLevelObjectiveBurnRateRule>;
 
-    await callHook("onBeforeDelete", deleteBy);
+    const result: unknown = await callHook("onBeforeDelete", deleteBy);
 
+    // The rules the caller may delete: in the caller's project, in its window.
+    const callerMayDelete: {
+      query: Record<string, unknown>;
+      skip: number;
+      limit: number;
+    } = readsOfRowsCallerMayWrite(ServiceLevelObjectiveBurnRateRuleService)[0]!;
+    expect(callerMayDelete.query["projectId"]).toBe(PROJECT_ID);
+    expect(callerMayDelete.skip).toBe(5);
+    expect(callerMayDelete.limit).toBe(makeDeleteBy().limit);
+
+    // The delete's rules among them, both asked in the same read.
     const findByArg: FindByArguments = findByArgumentsAt(findBySpy, 0);
 
-    // A query naming another project is overridden, never trusted.
     expect(findByArg.query).toEqual({
       serviceLevelObjectiveId: SLO_ID,
-      projectId: PROJECT_ID,
+      projectId: OTHER_PROJECT_ID,
+      _id: RULE_ID.toString(),
     });
     expect(findByArg.select).toEqual({
       _id: true,
@@ -3400,15 +3487,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
       longWindowInMinutes: true,
       shortWindowInMinutes: true,
     });
-    /*
-     * Wider than the caller's page, and from the start: the permission-checked
-     * query can page a narrower set differently, and a removed rule this read
-     * missed would keep its records open.
-     */
-    expect(findByArg.limit).toBeGreaterThan(makeDeleteBy().limit as number);
     expect(findByArg.skip).toBe(0);
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
 
+    // None read: the delete removes none, and carries none forward.
+    expect(
+      (result as { carryForward: { itemsToDelete: Array<unknown> } })
+        .carryForward.itemsToDelete,
+    ).toEqual([]);
+    expect(
+      String((deleteBy.query as Record<string, unknown>)["_id"]),
+    ).not.toBe(RULE_ID.toString());
     expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 

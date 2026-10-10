@@ -827,8 +827,11 @@ export class Service extends ProjectReferencesService<Model> {
                 monitorSteps: updateBy.data.monitorSteps as
                   | MonitorSteps
                   | JSONObject,
-                // The project of the monitor being updated.
-                projectId: monitor.projectId || updateBy.props.tenantId,
+                // The project the monitor being updated is checked in.
+                projectId: Service.getProjectToCheckRowIn(
+                  updateBy.props,
+                  monitor.projectId,
+                ),
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
               },
             );
@@ -863,7 +866,10 @@ export class Service extends ProjectReferencesService<Model> {
           if (writtenMonitorTemplateId) {
             await this.validateMonitorTemplateReference({
               monitorTemplateId: writtenMonitorTemplateId,
-              projectId: monitor.projectId || updateBy.props.tenantId,
+              projectId: Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ),
               monitorType: monitor.monitorType,
               props: updateBy.props,
             });
@@ -917,7 +923,11 @@ export class Service extends ProjectReferencesService<Model> {
         targets: monitorsToValidate.map((monitor: Model) => {
           return {
             monitorId: monitor.id || null,
-            projectId: monitor.projectId || updateBy.props.tenantId || null,
+            projectId:
+              Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ) || null,
           };
         }),
         proposedParents: updateBy.data.dependsOnMonitors,
