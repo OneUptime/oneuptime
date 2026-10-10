@@ -71,7 +71,7 @@ The last section of the page is folded under **More settings**, because few peop
 
 How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
 
-**Languages.** The **Languages** card sets the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
+**Languages.** The **Languages** section sets the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
 
 | Field | What it does |
 | ----- | ------------ |
