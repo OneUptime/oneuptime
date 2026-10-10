@@ -26,7 +26,7 @@ Auf diesem Schritt wird nichts als fehlend markiert, bevor Sie auf **Weiter** kl
 
 ## Sonden & Intervall
 
-Monitore, die von Sonden geprüft werden, enden mit diesem Schritt: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code und External Status Page. **Sonden** sind die Maschinen, die die Prüfungen ausführen; die Standardsonden Ihres Projekts sind bereits ausgewählt. Das **Überwachungsintervall** beginnt bei **Alle 5 Minuten**. Klicken Sie auf **Monitor erstellen**.
+Monitore, die von Sonden geprüft werden, enden mit diesem Schritt: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code und External Status Page. **Sonden** sind die Maschinen, die die Prüfungen ausführen; die Standardsonden Ihres Projekts sind bereits ausgewählt. Das **Überwachungsintervall** beginnt bei **Alle 5 Minuten**. Klicken Sie auf **Monitor erstellen**.
 
 Alle anderen Typen werden auf dem Schritt **Kriterien** erstellt.
 

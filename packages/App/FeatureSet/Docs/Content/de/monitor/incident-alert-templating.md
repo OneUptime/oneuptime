@@ -71,6 +71,28 @@ Wenn bei der Kriterie **Group incidents and alerts by a payload field** aktivier
 | `failureCause`     | Die Fehlerursache, wenn die IP-Prüfung fehlgeschlagen ist. | `string`  |
 | `isTimeout`        | Ob die IP-Ping-Anfrage ein Timeout hatte.                  | `boolean` |
 
+### NTP-Monitore
+
+| Variable             | Beschreibung                                                                                                              | Typ       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Ob der Zeitserver auf die Anfrage der Sonde geantwortet hat.                                                              | `boolean` |
+| `isSynchronized`     | Ob er mit Stratum 1 bis 15 geantwortet hat, ohne den Schaltsekunden-Alarm und mit echten Zeitstempeln.                    | `boolean` |
+| `stratum`            | Das vom Server gemeldete Stratum: 1 für einen primären Server, 16 wenn nicht synchronisiert, 0 bei einem Kiss-o'-Death.   | `number`  |
+| `clockOffsetInMs`    | Wie weit die Uhr des Servers von der der Sonde abweicht, in Millisekunden. Positiv heißt, der Server geht vor.            | `number`  |
+| `referenceId`        | Womit sich der Server synchronisiert: eine Quelle wie `GPS` auf Stratum 1 oder die Adresse seines übergeordneten Servers. | `string`  |
+| `leapIndicator`      | 0 bis 2, wenn alles in Ordnung ist, 3, wenn der Server meldet, dass seine Uhr nicht synchronisiert ist.                   | `number`  |
+| `kissCode`           | Bei Stratum 0 der Code aus vier Buchstaben, den der Server statt der Zeit gesendet hat, etwa `RATE`.                      | `string`  |
+| `responseTimeInMs`   | Die Zeit von der Anfrage bis zur Antwort, in Millisekunden.                                                               | `number`  |
+| `roundTripDelayInMs` | Die Netzwerk-Umlaufzeit des Austauschs, ohne die Verarbeitungszeit des Servers.                                           | `number`  |
+| `rootDelayInMs`      | Die Umlaufzeit vom Server zu seiner Referenzuhr, in Millisekunden.                                                        | `number`  |
+| `rootDispersionInMs` | Die eigene Schätzung des Servers für seinen maximalen Fehler, in Millisekunden.                                           | `number`  |
+| `serverTime`         | Die Uhr des Servers beim Senden der Antwort, als ISO-8601-Zeitstempel.                                                    | `string`  |
+| `referenceTime`      | Wann die Uhr des Servers zuletzt gestellt oder korrigiert wurde, als ISO-8601-Zeitstempel.                                | `string`  |
+| `serverAddress`      | Die Adresse, an die die Anfrage ging.                                                                                     | `string`  |
+| `port`               | Der UDP-Port, an den die Anfrage ging.                                                                                    | `number`  |
+| `failureCause`       | Warum der Server nicht geantwortet hat oder warum er nicht synchronisiert ist.                                            | `string`  |
+| `isTimeout`          | Ob der Server nicht rechtzeitig geantwortet hat.                                                                          | `boolean` |
+
 ### SSL-Zertifikat-Monitore
 
 | Variable             | Beschreibung                                                | Typ       |

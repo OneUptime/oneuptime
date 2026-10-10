@@ -12,6 +12,7 @@ import DnsMonitorResponse from "../Monitor/DnsMonitor/DnsMonitorResponse";
 import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../Monitor/DnssecMonitor/DnssecMonitorResponse";
+import NtpMonitorResponse from "../Monitor/NtpMonitor/NtpMonitorResponse";
 import SqlMonitorResponse from "../Monitor/SqlMonitor/SqlMonitorResponse";
 import DatabaseMonitorResponse from "../Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
@@ -77,6 +78,11 @@ export default interface ProbeMonitorResponse {
   dnsResponse?: DnsMonitorResponse | undefined;
   domainResponse?: DomainMonitorResponse | undefined;
   dnssecResponse?: DnssecMonitorResponse | undefined;
+  /*
+   * NTP monitor payload: whether the time server answered, its stratum,
+   * leap indicator and reference, and its clock offset from the probe.
+   */
+  ntpResponse?: NtpMonitorResponse | undefined;
   sqlQueryMonitorResponse?: SqlMonitorResponse | undefined;
   /*
    * Database Health monitor payload: normalized metric values plus the

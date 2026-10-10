@@ -27,6 +27,9 @@ import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
 import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
+import NtpMonitorCriteria from "./Criteria/NtpMonitorCriteria";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
@@ -1452,6 +1455,19 @@ ${contextBlock}
       }
     }
 
+    if (input.monitor.monitorType === MonitorType.NTP) {
+      const ntpMonitorResult: string | null =
+        await NtpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (ntpMonitorResult) {
+        return ntpMonitorResult;
+      }
+    }
+
     if (input.monitor.monitorType === MonitorType.SQLQuery) {
       const sqlMonitorResult: string | null =
         await SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
@@ -1634,6 +1650,20 @@ ${contextBlock}
      */
     if (probeResponse?.totalAttempts !== undefined) {
       responseDetails.push(mdText`- Attempts: ${probeResponse.totalAttempts}`);
+    }
+
+    /*
+     * A time server that answered is judged on what it said, so its own
+     * facts belong in the root cause: an incident that only says "offline"
+     * leaves the on-call engineer to find out whether the server lost its
+     * reference, refused the probe, or is serving the wrong time.
+     */
+    if (probeResponse?.ntpResponse?.isOnline) {
+      responseDetails.push(
+        ...MonitorCriteriaEvaluator.getNtpResponseDetails(
+          probeResponse.ntpResponse,
+        ),
+      );
     }
 
     // Add Request Failed Details if available
@@ -5921,6 +5951,58 @@ ${contextBlock}
     }
 
     return null;
+  }
+
+  // The lines an answering NTP server adds to a root cause's response snapshot.
+  public static getNtpResponseDetails(
+    ntpResponse: NtpMonitorResponse,
+  ): Array<MarkdownText> {
+    const lines: Array<MarkdownText> = [
+      mdText`- Synchronized: ${ntpResponse.isSynchronized ? "Yes" : "No"}`,
+    ];
+
+    if (ntpResponse.stratum !== undefined) {
+      lines.push(
+        mdText`- Stratum: ${NtpMonitorUtil.describeStratum(
+          ntpResponse.stratum,
+          ntpResponse.kissCode,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.clockOffsetInMs !== undefined) {
+      lines.push(
+        mdText`- Clock Offset: ${NtpMonitorUtil.describeClockOffset(
+          ntpResponse.clockOffsetInMs,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.leapIndicator !== undefined) {
+      lines.push(
+        mdText`- Leap Indicator: ${ntpResponse.leapIndicator} (${NtpMonitorUtil.describeLeapIndicator(
+          ntpResponse.leapIndicator,
+        )})`,
+      );
+    }
+
+    if (ntpResponse.referenceId) {
+      lines.push(mdText`- Reference: ${ntpResponse.referenceId}`);
+    }
+
+    if (ntpResponse.rootDispersionInMs !== undefined) {
+      lines.push(
+        mdText`- Root Dispersion: ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.rootDispersionInMs,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.serverAddress) {
+      lines.push(mdText`- Server Address: ${ntpResponse.serverAddress}`);
+    }
+
+    return lines;
   }
 
   private static getMonitorPortString(input: {

@@ -114,6 +114,7 @@ import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
+import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import GreenlockCertificate from "./GreenlockCertificate";
 // Greenlock
 import GreenlockChallenge from "./GreenlockChallenge";
@@ -837,6 +838,7 @@ const AllModelTypes: Array<{
 
   GlobalConfig,
   InstanceHealthLog,
+  InstanceReceivingPeriod,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,

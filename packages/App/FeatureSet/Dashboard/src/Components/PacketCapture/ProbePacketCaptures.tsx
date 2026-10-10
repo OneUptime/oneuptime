@@ -7,6 +7,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -29,7 +30,22 @@ const ProbePacketCaptures: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * What a probe says about capturing is read by the probe's readers
+   * (Probe.packetCaptureCapability), not by whoever may only pick a probe
+   * for a monitor or a device. Once the permission snapshot says this viewer
+   * may not read it, the card is left out rather than drawn as a refusal;
+   * until the snapshot lands, the server decides.
+   */
+  const mayReadCaptureReport: boolean =
+    !PermissionGate.hasPermissionSnapshot() ||
+    PermissionGate.canReadColumn(new Probe(), "packetCaptureCapability");
+
   useEffect(() => {
+    if (!mayReadCaptureReport) {
+      return;
+    }
+
     const load: PromiseVoidFunction = async (): Promise<void> => {
       setIsLoading(true);
 
@@ -37,11 +53,15 @@ const ProbePacketCaptures: FunctionComponent<ComponentProps> = (
         const item: Probe | null = await ModelAPI.getItem<Probe>({
           modelType: Probe,
           id: props.probeId,
+          /*
+           * Not isGlobalProbe: no one reads it on the probe itself (it is
+           * read through the records that name a probe), and a probe read
+           * by its project is that project's own, never a global one.
+           */
           select: {
             _id: true,
             name: true,
             projectId: true,
-            isGlobalProbe: true,
             packetCaptureCapability: true,
           },
         });
@@ -58,7 +78,11 @@ const ProbePacketCaptures: FunctionComponent<ComponentProps> = (
     load().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, [props.probeId]);
+  }, [props.probeId, mayReadCaptureReport]);
+
+  if (!mayReadCaptureReport) {
+    return <></>;
+  }
 
   if (isLoading) {
     return (

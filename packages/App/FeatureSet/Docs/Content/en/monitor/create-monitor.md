@@ -74,7 +74,7 @@ Incidents and alerts set to resolve automatically, as the default criteria's are
 
 ## Probes & Interval
 
-Monitors that probes check end with this step: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code and External Status Page. **Probes** are the machines that run the checks, and your project's default probes start selected. The **Monitoring Interval** starts at **Every 5 Minutes**.
+Monitors that probes check end with this step: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code and External Status Page. **Probes** are the machines that run the checks, and your project's default probes start selected. The **Monitoring Interval** starts at **Every 5 Minutes**.
 
 :::steps
 ### Choose the probes

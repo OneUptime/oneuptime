@@ -71,6 +71,28 @@ Wanneer bij het criterium **Group incidents and alerts by a payload field** aan 
 | `failureCause`     | De reden voor mislukking als de IP-controle mislukte. | `string`  |
 | `isTimeout`        | Of het IP-ping-verzoek een time-out heeft.            | `boolean` |
 
+### NTP-monitors
+
+| Variabele            | Beschrijving                                                                                                                 | Type      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Of de tijdserver het verzoek van de sonde beantwoordde.                                                                      | `boolean` |
+| `isSynchronized`     | Of hij antwoordde op stratum 1 tot 15, zonder het schrikkelsecondealarm en met echte tijdstempels.                           | `boolean` |
+| `stratum`            | Het stratum dat de server meldde: 1 voor een primaire server, 16 als hij niet gesynchroniseerd is, 0 voor een kiss-o'-death. | `number`  |
+| `clockOffsetInMs`    | Hoe ver de klok van de server van die van de sonde af ligt, in milliseconden. Positief betekent dat de server voorloopt.     | `number`  |
+| `referenceId`        | Waarmee de server synchroniseert: een bron zoals `GPS` op stratum 1, of het adres van zijn bovenliggende server.             | `string`  |
+| `leapIndicator`      | 0 tot 2 als alles in orde is, 3 als de server meldt dat zijn klok niet gesynchroniseerd is.                                  | `number`  |
+| `kissCode`           | Bij stratum 0 de code van vier letters die de server in plaats van de tijd stuurde, zoals `RATE`.                            | `string`  |
+| `responseTimeInMs`   | De tijd van het verzoek tot het antwoord, in milliseconden.                                                                  | `number`  |
+| `roundTripDelayInMs` | De netwerkrondreis van de uitwisseling, zonder de verwerkingstijd van de server.                                             | `number`  |
+| `rootDelayInMs`      | De rondreis van de server naar zijn referentieklok, in milliseconden.                                                        | `number`  |
+| `rootDispersionInMs` | De eigen schatting van de server van zijn maximale fout, in milliseconden.                                                   | `number`  |
+| `serverTime`         | De klok van de server toen hij het antwoord verstuurde, als ISO 8601-tijdstempel.                                            | `string`  |
+| `referenceTime`      | Wanneer de klok van de server voor het laatst is gezet of gecorrigeerd, als ISO 8601-tijdstempel.                            | `string`  |
+| `serverAddress`      | Het adres waar het verzoek naartoe ging.                                                                                     | `string`  |
+| `port`               | De UDP-poort waar het verzoek naartoe ging.                                                                                  | `number`  |
+| `failureCause`       | Waarom de server niet antwoordde, of waarom hij niet gesynchroniseerd is.                                                    | `string`  |
+| `isTimeout`          | Of de server niet op tijd antwoordde.                                                                                        | `boolean` |
+
 ### SSL-certificaat-monitors
 
 | Variabele            | Beschrijving                                           | Type      |

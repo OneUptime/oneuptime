@@ -23,6 +23,7 @@
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+    "0 (kiss-o'-death {{kissCode}})",
     "1 minute",
     "10 minutes",
     "10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] \"GET /health HTTP/1.1\" 200 1234",

@@ -124,9 +124,9 @@ resource "oneuptime_monitor" "website" {
 
 | صفت | نوع | به کار رفته توسط | یادداشت |
 |-----------|------|---------|-------|
-| `monitor_destination` | رشته | Website، API، Ping، Port، IP، SSL Certificate | نشانی، نام میزبان یا IPای که پروب شود. به `monitor_destination_type` نیاز دارد. |
-| `monitor_destination_type` | رشته | همان | `URL`، `Hostname` یا `IP` — باید با نوع مانیتور بخواند (نشانی برای Website/API/SSL Certificate؛ نام میزبان یا IP برای Ping/Port/IP). |
-| `port` | عدد | Port | درگاه TCPای که پروب شود، مثلاً `443`. |
+| `monitor_destination` | رشته | Website، API، Ping، Port، IP، SSL Certificate، NTP | نشانی، نام میزبان یا IPای که پروب شود. به `monitor_destination_type` نیاز دارد. |
+| `monitor_destination_type` | رشته | همان | `URL`، `Hostname` یا `IP` — باید با نوع مانیتور بخواند (نشانی برای Website/API/SSL Certificate؛ نام میزبان یا IP برای Ping/Port/IP/NTP). |
+| `port` | عدد | Port، NTP | درگاه TCPای که پروب شود، مثلاً `443`. برای NTP، درگاه UDPای که سرور زمان روی آن پاسخ می‌دهد؛ اگر تنظیم نشود `123`. |
 | `request_type` | رشته | Website، API | روش HTTP: `GET`، `POST`، `PUT`، `DELETE`، `HEAD`، `PATCH`. پیش‌فرض کارساز `GET` است. |
 | `request_headers` | map(string) | API | نگاشت رشته ساده: `{ "Accept" = "application/json" }`. |
 | `request_body` | رشته | API | رشته بدنه خام درخواست. |
@@ -253,6 +253,7 @@ criteria = [
 | SQL Query | `SQL Is Online`، `SQL Query Row Count`، `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`، `Database Metric` (به JSON‏ `database_monitor_options`ای نیاز دارد که سری را نام ببرد، مثلاً `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)، `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`، `External Status Page Active Incidents`، `External Status Page Component Status` |
+| NTP | `NTP Is Online`، `NTP Is Synchronized`، `NTP Stratum`، `NTP Clock Offset (in ms)`، `NTP Response Time (in ms)`، `NTP Root Dispersion (in ms)` (`NTP Is Online` و `NTP Is Synchronized` مقدار `value` نمی‌گیرند) |
 | Network Device (SNMP) | `SNMP Device Is Online` (با ping یا SNMP دست‌یافتنی)، `SNMP Walk Is Succeeding` (نادرست یعنی دست‌یافتنی اما غیرقابل پیمایش)، `SNMP OID Value` (پالایه‌های SNMP می‌توانند JSON‏ `snmp_monitor_options` را حمل کنند) |
 
 مقادیر رایج `filter_type`:

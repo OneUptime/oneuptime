@@ -93,6 +93,12 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import HeartbeatAvailabilityUtil, {
   HeartbeatAvailabilityResult,
 } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { ReceivingGap } from "Common/Utils/Telemetry/ReceivingGaps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  fetchReceivingGaps,
+  getNotMonitoredRegions,
+} from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { computeNetworkRate } from "../Utils/KubernetesNetworkUtils";
 import GoldenMetricTile, {
@@ -211,6 +217,10 @@ export interface ClusterChartCardProps {
   showLegend?: boolean | undefined;
   curve?: ChartCurve | undefined;
   headerExtra?: ReactElement | undefined;
+  // Shaded stretches, such as when OneUptime was not monitoring.
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  // false breaks the line where it has no points.
+  connectNulls?: boolean | undefined;
 }
 
 /*
@@ -299,6 +309,8 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
         syncid={props.syncId}
         heightInPx={180}
         showLegend={props.showLegend ?? false}
+        referenceRegions={props.referenceRegions}
+        connectNulls={props.connectNulls}
       />
     </div>
   );
@@ -435,6 +447,8 @@ const KubernetesClusterOverview: FunctionComponent<
     Array<SeriesPoint>
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  // When OneUptime itself was not receiving, inside the chart window.
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -758,6 +772,13 @@ const KubernetesClusterOverview: FunctionComponent<
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
       const startDate: Date = dateRange.startValue;
       const endDate: Date = dateRange.endValue;
+      /*
+       * When OneUptime itself was not receiving data in this window, asked
+       * for alongside the metrics: those stretches are "Not monitored",
+       * never "Down" (issue #2825). Never rejects.
+       */
+      const receivingGapsPromise: Promise<Array<ReceivingGap>> =
+        fetchReceivingGaps({ startsAt: startDate, endsAt: endDate });
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -901,6 +922,9 @@ const KubernetesClusterOverview: FunctionComponent<
           aggregateBy: heartbeatAgg,
         }),
       ]);
+
+      const receivingGapsInWindow: Array<ReceivingGap> =
+        await receivingGapsPromise;
 
       const allocatable: NodeAllocatableCpu = await allocatablePromise;
 
@@ -1134,7 +1158,9 @@ const KubernetesClusterOverview: FunctionComponent<
           windowStart: startDate,
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
+          receivingGaps: receivingGapsInWindow,
         });
+      setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
         availability.points.length > 0
           ? [{ seriesName: "Up", data: availability.points }]
@@ -1627,6 +1653,8 @@ const KubernetesClusterOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }) => ReactElement = (params: {
     title: string;
     description: string;
@@ -1637,6 +1665,8 @@ const KubernetesClusterOverview: FunctionComponent<
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }): ReactElement => {
     return (
       <ClusterChartCard
@@ -1651,6 +1681,8 @@ const KubernetesClusterOverview: FunctionComponent<
         showLegend={params.showLegend}
         curve={params.curve}
         headerExtra={params.headerExtra}
+        referenceRegions={params.referenceRegions}
+        connectNulls={params.connectNulls}
       />
     );
   };
@@ -1705,6 +1737,13 @@ const KubernetesClusterOverview: FunctionComponent<
       },
     };
 
+    // Time OneUptime itself was not receiving, shaded as Not monitored.
+    const notMonitoredRegions: Array<ChartReferenceRegionProps> =
+      getNotMonitoredRegions({
+        gaps: receivingGaps,
+        translator,
+      });
+
     const availabilityBadge: ReactElement =
       availabilityPct === null ? (
         <Fragment />
@@ -1749,6 +1788,8 @@ const KubernetesClusterOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            referenceRegions: notMonitoredRegions,
+            connectNulls: false,
           })}
         </div>
         <div className="mb-6">

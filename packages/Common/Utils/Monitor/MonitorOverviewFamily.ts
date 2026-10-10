@@ -72,6 +72,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.CustomJavaScriptCode:
       case MonitorType.DNS:
       case MonitorType.DNSSEC:
+      case MonitorType.NTP:
       case MonitorType.Domain:
       case MonitorType.SQLQuery:
       case MonitorType.Database:

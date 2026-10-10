@@ -132,6 +132,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
 import ApiKeyPermissionService, {
@@ -6057,6 +6058,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    /*
+     * When OneUptime itself was not receiving data, for the availability
+     * charts (issue #2825). No model owns /receiving-gaps.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ReceivingGapsAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

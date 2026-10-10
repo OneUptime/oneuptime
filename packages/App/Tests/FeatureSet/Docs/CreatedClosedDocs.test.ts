@@ -1,4 +1,6 @@
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import slugify, {
+  slugifyMarkdownHeading,
+} from "Common/Server/Types/MarkdownSlugify";
 import OnCallNotRunOnCreate from "Common/Server/Utils/OnCall/OnCallNotRunOnCreate";
 import { StartingStage } from "Common/Utils/StartingStage";
 import { describe, expect, test } from "@jest/globals";
@@ -307,24 +309,57 @@ describe("the escalation rules page says it in every docs language, in a paragra
     },
   );
 
-  test("English and Persian link to their section; the others, whose declare page has no section yet, do not", () => {
-    for (const language of Object.keys(ESCALATION_SENTENCES)) {
-      const page: string = read(language, "on-call/escalation-rules");
+  /*
+   * Every language's declare page has the section now (docs task 1 translated
+   * it), so every escalation rules page links to it, in its own language: the
+   * heading at the place the English page has its own, right after the
+   * sentence.
+   */
+  test.each(Object.keys(ESCALATION_SENTENCES))(
+    "%s: links to its own declare page's section, right after the sentence",
+    (language: string) => {
+      const headingsOf: (page: string) => Array<string> = (
+        page: string,
+      ): Array<string> => {
+        return page.split("\n").filter((line: string): boolean => {
+          return line.startsWith("#");
+        });
+      };
+      const englishHeadings: Array<string> = headingsOf(read("en", DECLARING));
+      const headings: Array<string> = headingsOf(read(language, DECLARING));
+      const index: number = englishHeadings.indexOf(EN_HEADING);
 
-      if (language === "en") {
-        expect(page).toContain(`${ESCALATION_SENTENCES["en"]!} See [`);
-        expect(page).toContain(EN_LINK);
-      } else if (language === "fa") {
-        expect(page).toContain(
+      expect(index).toBeGreaterThan(0);
+      expect(headings).toHaveLength(englishHeadings.length);
+
+      const heading: string = headings[index]!;
+
+      expect(heading.startsWith("### ")).toBe(true);
+
+      const link: string = `(/docs/incidents/declaring-incidents#${slugifyMarkdownHeading(heading.replace(/^#+\s*/, ""))})`;
+      const page: string = read(language, "on-call/escalation-rules");
+      const paragraph: string | undefined = page
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith(ESCALATION_SENTENCES[language]!);
+        });
+
+      expect(paragraph).toBeDefined();
+      expect(paragraph).toContain(link);
+
+      if (language === "fa") {
+        expect(heading).toBe(FA_HEADING);
+        expect(link).toBe(
           `(/docs/incidents/declaring-incidents#${anchorOf(FA_HEADING)})`,
         );
-      } else {
-        expect(page).not.toContain(
-          "#declared-already-acknowledged-or-resolved",
-        );
       }
-    }
-  });
+
+      if (language === "en") {
+        expect(paragraph).toContain(`${ESCALATION_SENTENCES["en"]!} See [`);
+        expect(link).toBe(EN_LINK);
+      }
+    },
+  );
 });
 
 describe("the declare page's on-call step says it in every docs language", () => {

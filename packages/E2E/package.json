@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.29",
+  "version": "14.0.30",
   "description": "",
   "repository": {
     "type": "git",
@@ -43,7 +43,8 @@
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
     "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts",
     "test-push-registration-ui": "playwright test --config playwright.push-registration-ui.config.ts",
-    "test-packet-capture-ui": "playwright test --config playwright.packet-capture-ui.config.ts"
+    "test-packet-capture-ui": "playwright test --config playwright.packet-capture-ui.config.ts",
+    "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

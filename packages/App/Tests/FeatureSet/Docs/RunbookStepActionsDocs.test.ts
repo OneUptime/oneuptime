@@ -41,8 +41,12 @@ const NEW_SECTION: string = "## Completing, approving and skipping steps";
 // The execution page's buttons, by their English labels.
 const BUTTONS: Array<string> = ["Mark complete", "Approve & continue", "Skip"];
 
-// The Persian pages name the Dashboard's labels in English.
-const ENGLISH_UI_LABELS: Set<string> = new Set(["en", "fa"]);
+/*
+ * English names the Dashboard's labels as they are. Every other language -
+ * Persian included since the runbook pages were translated again, as the
+ * on-call pages do - names them as its own Dashboard draws them.
+ */
+const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
 
 // The bullet each language had: Mark Complete and Skip, on Manual steps in WaitingForUser.
 const OLD_BULLETS: Record<string, string> = {
@@ -67,26 +71,34 @@ const OLD_BULLETS: Record<string, string> = {
   fa: "- برای گام‌های دستی در وضعیت `WaitingForUser`: دکمه‌های **Mark Complete** و **Skip**.",
 };
 
-// What each language calls a step's Require approval option, as its authoring page does.
+/*
+ * What each language calls a step's Require approval option, as its
+ * authoring and running pages do: words taken from the switch's label as
+ * that language's Dashboard draws it ("Require approval before running the
+ * next step"), so the reader finds them on the switch.
+ */
 const REQUIRE_APPROVAL: Record<string, string> = {
   en: "Require approval",
-  de: "Freigabe erforderlich",
+  de: "Genehmigung erforderlich",
   fr: "Exiger une approbation",
-  es: "Requiere aprobación",
-  it: "Richiede approvazione",
-  pt: "Requer aprovação",
-  nl: "Goedkeuring vereist",
+  es: "Requerir aprobación",
+  it: "Richiedi approvazione",
+  pt: "Exigir aprovação",
+  nl: "Goedkeuring vereisen",
   da: "Kræv godkendelse",
   no: "Krev godkjenning",
-  sv: "Kräver godkännande",
-  ru: "Require approval",
-  ja: "承認を必須にする",
+  sv: "Kräv godkännande",
+  ru: "Требовать подтверждение",
+  ja: "承認を要求",
   ko: "승인 필요",
-  "zh-CN": "需要审批",
-  "zh-TW": "Require approval",
-  hi: "Require approval",
-  fa: "Require approval",
+  "zh-CN": "需要批准",
+  "zh-TW": "需要核准",
+  hi: "अनुमोदन आवश्यक करें",
+  fa: "تأیید لازم است",
 };
+
+const REQUIRE_APPROVAL_SWITCH: string =
+  "Require approval before running the next step";
 
 function readPage(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
@@ -135,6 +147,38 @@ describe("completing, approving and skipping a runbook run's steps, in the docs"
       [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
     );
   });
+
+  test("the steps editor's switch is the one the pages name", () => {
+    const steps: string = fs.readFileSync(
+      path.resolve(EXECUTION_VIEW, "../Steps.tsx"),
+      "utf8",
+    );
+
+    expect(steps).toContain(`title="${REQUIRE_APPROVAL_SWITCH}"`);
+  });
+
+  test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s names Require approval in words its Dashboard's switch label uses",
+    (language: string) => {
+      const strings: Record<string, unknown> =
+        language === DEFAULT_DOCS_LANGUAGE
+          ? {}
+          : (JSON.parse(
+              fs.readFileSync(
+                path.join(DASHBOARD_LOCALES_DIR, `${language}.json`),
+                "utf8",
+              ),
+            ) as Record<string, unknown>);
+      const drawn: unknown = strings[REQUIRE_APPROVAL_SWITCH];
+      const switchLabel: string =
+        typeof drawn === "string" && drawn ? drawn : REQUIRE_APPROVAL_SWITCH;
+
+      expect({ language, inLabel: true }).toEqual({
+        language,
+        inLabel: switchLabel.includes(REQUIRE_APPROVAL[language]!),
+      });
+    },
+  );
 
   test("the English page says only the step the run is waiting on takes a decision", () => {
     const page: string = readPage(DEFAULT_DOCS_LANGUAGE, RUNNING_PAGE);

@@ -165,6 +165,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/dnssec-monitor",
       },
       {
+        title: "NTP Monitor",
+        url: "/docs/monitor/ntp-monitor",
+      },
+      {
         title: "SSL Certificate Monitor",
         url: "/docs/monitor/ssl-certificate-monitor",
       },
@@ -215,6 +219,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Monitor Secrets",
         url: "/docs/monitor/monitor-secrets",
+      },
+      {
+        title: "When OneUptime Is Not Receiving Data",
+        url: "/docs/monitor/when-oneuptime-is-not-receiving",
       },
     ],
   },

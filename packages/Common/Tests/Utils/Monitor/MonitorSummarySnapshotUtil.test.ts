@@ -100,6 +100,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.SQLQuery]: PayloadKind.Probe,
   [MonitorType.Database]: PayloadKind.Probe,
   [MonitorType.ExternalStatusPage]: PayloadKind.Probe,
+  [MonitorType.NTP]: PayloadKind.Probe,
   /*
    * Not a "probeable" monitor - the device owns its polling schedule - but
    * its walks and traps still arrive as a ProbeMonitorResponse, and

@@ -103,6 +103,7 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.SQLQuery]: Slot.Probe,
   [MonitorType.Database]: Slot.Probe,
   [MonitorType.ExternalStatusPage]: Slot.Probe,
+  [MonitorType.NTP]: Slot.Probe,
   // Its polls and traps arrive as probe responses; SnmpMonitorView reads them.
   [MonitorType.NetworkDevice]: Slot.Probe,
 

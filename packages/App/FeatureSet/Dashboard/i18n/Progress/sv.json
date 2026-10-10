@@ -4,6 +4,7 @@
     "untranslated": 17018
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
     "CloudWatch Metric Streams",
     "Filter:",
     "Filter: {{expression}}",
@@ -13,6 +14,7 @@
     "Revision",
     "Runbook: {{name}}",
     "Runner",
+    "Stratum",
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",

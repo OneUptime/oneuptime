@@ -455,6 +455,84 @@ const splitMarkdown: SplitMarkdownFunction = (
   return { prose: prose, codeBlocks: codeBlocks };
 };
 
+// A fence's opening line: its language, the first word after the backticks.
+const FENCE_LANGUAGE: RegExp = /^\s*```\s*([\w-]*)/;
+
+// What a diagram says, as opposed to how it is built: labels and message text.
+const DIAGRAM_QUOTED_LABEL: RegExp = /"[^"\n]*"/g;
+const DIAGRAM_EDGE_LABEL: RegExp = /\|[^|\n]*\|/g;
+const DIAGRAM_PARTICIPANT_ALIAS: RegExp = /^(\s*participant\s+\S+)\s+as\s+.*$/;
+const DIAGRAM_MESSAGE_TEXT: RegExp = /:.*$/;
+
+/*
+ * A Mermaid diagram with its words taken out: node ids, shapes, arrows and
+ * the order of its lines. A translation translates a diagram's labels (the
+ * docs README asks for it), so it is compared with the English one by this,
+ * and every other code block must be the English one exactly.
+ */
+type DiagramSkeletonFunction = (code: string) => string;
+
+const diagramSkeleton: DiagramSkeletonFunction = (code: string): string => {
+  return code
+    .split("\n")
+    .map((line: string): string => {
+      return line
+        .replace(DIAGRAM_QUOTED_LABEL, '""')
+        .replace(DIAGRAM_EDGE_LABEL, "||")
+        .replace(DIAGRAM_PARTICIPANT_ALIAS, "$1")
+        .replace(DIAGRAM_MESSAGE_TEXT, ":")
+        .trimEnd();
+    })
+    .join("\n");
+};
+
+interface FencedBlock {
+  language: string;
+  code: string;
+}
+
+type FencedBlocksFunction = (markdown: string) => Array<FencedBlock>;
+
+// Every fenced code block with its language, in order.
+const fencedBlocks: FencedBlocksFunction = (
+  markdown: string,
+): Array<FencedBlock> => {
+  const blocks: Array<FencedBlock> = [];
+  let current: FencedBlock | null = null;
+
+  for (const line of markdown.split("\n")) {
+    if (FENCE_LINE.test(line)) {
+      if (current) {
+        blocks.push(current);
+        current = null;
+      } else {
+        current = {
+          language: FENCE_LANGUAGE.exec(line)?.[1] || "",
+          code: "",
+        };
+      }
+      continue;
+    }
+
+    if (current) {
+      current.code = current.code ? `${current.code}\n${line}` : line;
+    }
+  }
+
+  return blocks;
+};
+
+type ComparableBlockFunction = (block: FencedBlock) => string;
+
+// A block as a translation must keep it: code exactly, a diagram by its build.
+const comparableBlock: ComparableBlockFunction = (
+  block: FencedBlock,
+): string => {
+  return block.language === "mermaid"
+    ? `mermaid\n${diagramSkeleton(block.code)}`
+    : `${block.language}\n${block.code}`;
+};
+
 type HeadingCountsFunction = (markdown: string) => {
   h2: number;
   h3: number;
@@ -1140,10 +1218,49 @@ describe("Incident Linked Alerts docs", () => {
           });
         }
 
-        expect(splitMarkdown(translated).codeBlocks).toEqual(
-          splitMarkdown(english).codeBlocks,
+        // Code exactly as in English; a diagram translated, but built the same.
+        expect(fencedBlocks(translated).map(comparableBlock)).toEqual(
+          fencedBlocks(english).map(comparableBlock),
         );
       }
+    });
+
+    it("compares a diagram by how it is built, so a translated label passes and a changed node or arrow fails", () => {
+      const english: string = [
+        "flowchart TB",
+        '    signals -->|linked to| incident["Incident"]',
+        '    incident -->|acknowledged| ack["Linked alerts acknowledged"]',
+      ].join("\n");
+      const translated: string = [
+        "flowchart TB",
+        '    signals -->|"پیوند شده به"| incident["حادثه"]',
+        '    incident -->|"تصدیق شد"| ack["هشدارهای پیوندشده تصدیق می‌شوند"]',
+      ].join("\n");
+      const rewired: string = [
+        "flowchart TB",
+        '    signals -->|"پیوند شده به"| ack["حادثه"]',
+        '    incident -->|"تصدیق شد"| ack["هشدارهای پیوندشده تصدیق می‌شوند"]',
+      ].join("\n");
+      const sequenceEnglish: string = [
+        "sequenceDiagram",
+        "    participant You",
+        "    You->>OneUptime: Declare Incident, with up to 50 alerts",
+      ].join("\n");
+      const sequenceTranslated: string = [
+        "sequenceDiagram",
+        "    participant You as شما",
+        "    You->>OneUptime: Declare Incident، با حداکثر ۵۰ هشدار",
+      ].join("\n");
+
+      expect(diagramSkeleton(translated)).toBe(diagramSkeleton(english));
+      expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(english));
+      expect(diagramSkeleton(sequenceTranslated)).toBe(
+        diagramSkeleton(sequenceEnglish),
+      );
+      // Anything that is not a diagram is compared exactly.
+      expect(
+        comparableBlock({ language: "bash", code: "curl -X POST a" }),
+      ).not.toBe(comparableBlock({ language: "bash", code: "curl -X POST b" }));
     });
   });
 

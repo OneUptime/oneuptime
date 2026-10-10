@@ -71,6 +71,28 @@ När kriteriet har **Group incidents and alerts by a payload field** påslaget �
 | `failureCause`     | Orsaken till felet om IP-kontrollen misslyckades. | `string`  |
 | `isTimeout`        | Om IP-ping-förfrågan fick timeout.                | `boolean` |
 
+### NTP-monitorer
+
+| Variabel             | Beskrivning                                                                                                         | Typ       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Om tidsservern besvarade sondens begäran.                                                                           | `boolean` |
+| `isSynchronized`     | Om den svarade på stratum 1 till 15, utan skottsekundslarmet och med riktiga tidsstämplar.                          | `boolean` |
+| `stratum`            | Det stratum servern rapporterade: 1 för en primärserver, 16 när den inte är synkroniserad, 0 för ett kiss-o'-death. | `number`  |
+| `clockOffsetInMs`    | Hur långt serverns klocka ligger från sondens, i millisekunder. Positivt betyder att servern går före.              | `number`  |
+| `referenceId`        | Vad servern synkroniserar mot: en källa som `GPS` på stratum 1, eller adressen till servern ovanför.                | `string`  |
+| `leapIndicator`      | 0 till 2 när allt är bra, 3 när servern säger att dess klocka inte är synkroniserad.                                | `number`  |
+| `kissCode`           | Vid stratum 0 koden på fyra bokstäver som servern skickade i stället för tiden, till exempel `RATE`.                | `string`  |
+| `responseTimeInMs`   | Tiden från begäran till svaret, i millisekunder.                                                                    | `number`  |
+| `roundTripDelayInMs` | Nätverkets tur och retur-tid för utbytet, utan serverns egen bearbetningstid.                                       | `number`  |
+| `rootDelayInMs`      | Tur och retur-tiden från servern till dess referensklocka, i millisekunder.                                         | `number`  |
+| `rootDispersionInMs` | Serverns egen uppskattning av sitt största fel, i millisekunder.                                                    | `number`  |
+| `serverTime`         | Serverns klocka när den skickade svaret, som ISO 8601-tidsstämpel.                                                  | `string`  |
+| `referenceTime`      | När serverns klocka senast ställdes eller korrigerades, som ISO 8601-tidsstämpel.                                   | `string`  |
+| `serverAddress`      | Adressen som begäran gick till.                                                                                     | `string`  |
+| `port`               | UDP-porten som begäran gick till.                                                                                   | `number`  |
+| `failureCause`       | Varför servern inte svarade, eller varför den inte är synkroniserad.                                                | `string`  |
+| `isTimeout`          | Om servern inte svarade i tid.                                                                                      | `boolean` |
+
 ### SSL-certifikatmonitorer
 
 | Variabel             | Beskrivning                                        | Typ       |

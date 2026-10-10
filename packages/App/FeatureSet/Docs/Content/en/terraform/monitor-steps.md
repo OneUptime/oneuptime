@@ -124,9 +124,9 @@ Each element of `monitor_steps` is one probe target:
 
 | Attribute | Type | Used by | Notes |
 |-----------|------|---------|-------|
-| `monitor_destination` | string | Website, API, Ping, Port, IP, SSL Certificate | The URL, hostname, or IP to probe. Requires `monitor_destination_type`. |
-| `monitor_destination_type` | string | same | `URL`, `Hostname`, or `IP` — must match the monitor type (URLs for Website/API/SSL Certificate; hostnames or IPs for Ping/Port/IP). |
-| `port` | number | Port | TCP port to probe, e.g. `443`. |
+| `monitor_destination` | string | Website, API, Ping, Port, IP, SSL Certificate, NTP | The URL, hostname, or IP to probe. Requires `monitor_destination_type`. |
+| `monitor_destination_type` | string | same | `URL`, `Hostname`, or `IP` — must match the monitor type (URLs for Website/API/SSL Certificate; hostnames or IPs for Ping/Port/IP/NTP). |
+| `port` | number | Port, NTP | TCP port to probe, e.g. `443`. For NTP, the UDP port the time server answers on; `123` when unset. |
 | `request_type` | string | Website, API | HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `PATCH`. The server defaults to `GET`. |
 | `request_headers` | map(string) | API | Plain string map: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Raw request body string. |
@@ -253,6 +253,7 @@ Common `check_on` values by monitor type:
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
+| NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` and `NTP Is Synchronized` take no `value`) |
 | Network Device (SNMP) | `SNMP Device Is Online` (reachable by ping or SNMP), `SNMP Walk Is Succeeding` (false is reachable-but-not-walkable), `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
 
 Common `filter_type` values:

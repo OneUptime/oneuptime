@@ -182,24 +182,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     uniqueHeadings: except(EVERY_TRANSLATION, "de"),
     sameShape: EVERY_TRANSLATION,
   },
-  "incidents/declaring-incidents": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "incidents/index": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "incidents/linked-alerts": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "incidents/notes-owners-and-feed": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "incidents/settings": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "incidents/states-and-severities": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -446,21 +428,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/website-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "on-call/calendar-feeds": {
-    codeLanguage: EN,
-  },
-  "on-call/escalation-rules": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "on-call/incoming-call-policy": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "on-call/phone-number-whitelist": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "on-call/schedules": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -509,25 +476,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "rum/web-vitals": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "runbooks/agents": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/authoring": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "runbooks/configuration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/credentials": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "runbooks/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/rules": {
-    sameShape: EVERY_TRANSLATION,
   },
   "self-hosted/enterprise": {
     codeLanguage: EN,

@@ -224,7 +224,7 @@ describe("the On-Call Schedules docs page", () => {
     const pageSections: Array<{ heading: string; body: string }> =
       sections(ENGLISH);
 
-    it("has its three sections, in order", () => {
+    it("has its three sections and its next steps, in order", () => {
       expect(
         pageSections.map((section: { heading: string }): string => {
           return section.heading;
@@ -233,6 +233,7 @@ describe("the On-Call Schedules docs page", () => {
         "Who takes turns",
         "Layers",
         "Creating schedules with the API or Terraform",
+        "Next steps",
       ]);
     });
 
@@ -382,9 +383,9 @@ describe("the On-Call Schedules docs page", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(3);
+        expect(pageSections).toHaveLength(4);
 
-        // One title, three sections, nothing deeper.
+        // One title, three sections and the next steps, nothing deeper.
         expect(page.match(/^# /gm)).toHaveLength(1);
         expect(page.match(/^### /gm)).toBeNull();
 
@@ -414,12 +415,14 @@ describe("the On-Call Schedules docs page", () => {
           found: layers.includes(`**${dashboard["Add Layer"]}**`),
         }).toEqual({ lang, found: true });
 
-        // Each person's one colour, named with the timeline's page title.
+        /*
+         * Each person's one colour, on the timeline: named as the
+         * dashboard's side menu names that page (the docs' own title for it
+         * differs in Spanish).
+         */
         expect({
           lang,
-          found: layers.includes(
-            `**${readDocsLocale(lang).navLinks[TIMELINE_PAGE_TITLE]}**`,
-          ),
+          found: layers.includes(`**${dashboard[TIMELINE_PAGE_TITLE]}**`),
         }).toEqual({ lang, found: true });
 
         for (const fact of [

@@ -1,6 +1,12 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LlmProvider";
 import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnPermissions from "../Types/Database/Permissions/ColumnPermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { PermissionHelper } from "../../Types/Permission";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -23,6 +29,50 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * A provider's API key and Additional Parameters are sent to its Base URL
+   * with every request, so the Base URL is changed only by who may read them
+   * (LlmProvider.baseUrl's update list). The update's column check refuses
+   * anyone else; this asks first, by the same rule, so the refusal says in
+   * plain words who may change it.
+   */
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (
+      (updateBy.data as Record<string, unknown>)["baseUrl"] !== undefined &&
+      !Service.mayChangeBaseUrl(updateBy.props)
+    ) {
+      throw new NotAuthorizedException(Service.getBaseUrlRefusal());
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  // Whether the caller may write LlmProvider.baseUrl on an update.
+  public static mayChangeBaseUrl(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    return ColumnPermissions.getModelColumnsByPermissions(
+      Model,
+      ColumnPermissions.getColumnCheckRows(props),
+      DatabaseRequestType.Update,
+    ).columns.includes("baseUrl");
+  }
+
+  // Who may change a provider's Base URL, named from the column's update list.
+  public static getBaseUrlRefusal(): string {
+    const titles: Array<string> = PermissionHelper.getPermissionTitles(
+      new Model().getColumnAccessControlFor("baseUrl")?.update || [],
+    );
+
+    return `Only ${titles.join(" or ")} can change the Base URL of an LLM provider: its API key and Additional Parameters are sent to that address.`;
   }
 
   /*

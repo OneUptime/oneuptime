@@ -1,158 +1,211 @@
 # Visión general de los incidentes
 
-Un incidente en OneUptime es el registro alrededor del cual se agrupa tu equipo cuando algo falla. Lleva un número, un título, una severidad, un estado actual, los recursos a los que afecta y todo lo que tu equipo deja por escrito mientras responde: notas, causa raíz, pasos de remediación y un feed de solo anexado con quién hizo qué.
+Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué está afectado, qué tan grave es, en qué punto está la respuesta, de quién es y todo lo que se anota por el camino. Declarar uno avisa a la rotación de guardia adecuada, informa a sus propietarios y —si así lo quieres— publica la interrupción en tu página de estado, para que los clientes sepan que ya estás en ello.
 
-Los incidentes son lo que convierte un monitor en rojo en una respuesta coordinada. Declarar uno avisa a la rotación de guardia adecuada, añade propietarios que reciben notificación de cada cambio, arranca runbooks y —si así lo decides— publica la interrupción en tu página de estado pública, para que los clientes dejen de abrir tickets preguntando si ya te has dado cuenta.
-
-Puedes declarar un incidente a mano a las tres de la madrugada, o dejar que un monitor lo declare por ti en cuanto sus criterios coincidan. En ambos casos el incidente es el mismo objeto, con el mismo ciclo de vida y el mismo rastro documental al final.
+:::cards
+- [Declarar un incidente](/docs/incidents/declaring-incidents): A mano, desde una plantilla, desde un monitor, por la API o mediante un formulario.
+- [Estados y severidades de incidentes](/docs/incidents/states-and-severities): El ciclo de vida, y qué hacen reconocer y resolver.
+- [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed): Actualizaciones para los clientes y para tu equipo, y quién se entera de ellas.
+- [Alertas vinculadas](/docs/incidents/linked-alerts): Une las alertas que provocó una interrupción al incidente que las explica.
+- [Configuración y automatización de incidentes](/docs/incidents/settings): Plantillas, campos personalizados, roles, mediciones y reglas.
+:::
 
 ## De un vistazo
 
-- **Funcionalidad de primer nivel** — **Incidentes**, en la navegación lateral izquierda del panel, en `/dashboard/{projectId}/incidents`.
+- **Un producto propio** — abre **Incidentes** desde el menú **Productos** de la barra superior; la lista está en `/dashboard/{projectId}/incidents`.
 - **Tres estados iniciales** — **Identificado**, **Reconocido** y **Resuelto** se crean en todo proyecto nuevo. Puedes añadir los tuyos; los tres iniciales se pueden renombrar y recolorear, pero nunca eliminar.
-- **Tres severidades iniciales** — **Incidente crítico**, **Incidente mayor** e **Incidente menor**. La severidad es una etiqueta con un color y un orden: no aporta comportamiento por sí misma.
-- **Cuatro puertas de entrada** — el asistente **Declarar incidente**, **Crear desde plantilla**, una regla de criterios de monitor o `POST /api/incident`.
-- **Numerados por proyecto** — cada incidente recibe un número de incidente, que se muestra como `#42` de forma predeterminada o con el prefijo que elijas, como `INC-42`.
-- **Dos tipos de notas** — notas privadas (notas internas) para tu equipo, notas públicas para los suscriptores de la página de estado.
-- **Los ajustes están bajo Incidentes, no bajo Ajustes del proyecto** — estados, severidades, plantillas, campos personalizados y los motores de reglas viven todos en **Incidentes → Ajustes** e **Incidentes → Reglas**.
+- **Tres gravedades iniciales** — **Critical Incident**, **Major Incident** y **Minor Incident**. Una gravedad es una etiqueta con un color y un orden: no tiene comportamiento propio.
+- **Cinco vías de entrada** — el asistente **Declarar incidente**, **Crear desde plantilla**, una regla de criterios de un monitor, `POST /api/incident`, o un [formulario](/docs/forms/index) que cualquiera con su enlace puede rellenar.
+- **Numerados por proyecto** — cada incidente recibe un número de incidente de un contador propio del proyecto, que se muestra con el prefijo de tu proyecto: `INC-42` en un proyecto nuevo, o `#42` sin prefijo.
+- **Dos tipos de notas** — notas privadas (notas internas) para tu equipo y notas públicas para los suscriptores de la página de estado.
+- **Las alertas se vinculan a los incidentes** — vincula las alertas que forman parte de un incidente, o declara un incidente directamente a partir de alertas —desde una lista de alertas o desde la página de una alerta— y reconócelas al hacerlo. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
+- **La configuración vive en Incidentes, no en Ajustes del proyecto** — estados, gravedades, plantillas, campos personalizados y los motores de reglas están todos en **Incidentes → Ajustes** e **Incidentes → Reglas**.
 
-## Términos clave
+## Cómo funciona
 
-Un puñado de palabras reaparece en todas las páginas de esta sección. Conviene tenerlas claras desde el principio.
+Puedes declarar un incidente a mano a las tres de la madrugada, o dejar que un monitor lo declare en cuanto coincidan sus criterios. En ambos casos el incidente es el mismo objeto, con el mismo ciclo de vida y el mismo rastro documental al final.
 
-| Término                    | Qué significa                                                                                                                                       |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Incidente**              | El registro en sí: título, descripción, severidad, estado actual, recursos afectados y todo lo que se escribe en él durante la respuesta.            |
-| **Estado del incidente**   | Dónde está el incidente dentro de su ciclo de vida. Una fila con alcance de proyecto con nombre, color y `order`, más los indicadores que le dan sentido. |
-| **Severidad del incidente** | Cuánto duele. Una fila con alcance de proyecto con nombre, color y `order`. Pura clasificación: nada en el producto trata una severidad de forma especial. |
-| **Número de incidente**    | Un contador por proyecto que se muestra como `#42`, o como `INC-42` con el prefijo que configures.                                                   |
-| **Recursos afectados**     | Los monitores, hosts, clústeres de Kubernetes, hosts de Docker, servicios y demás infraestructura que adjuntas al incidente.                         |
-| **Nota pública**           | Una actualización escrita para quienes leen la página de estado y para los suscriptores. Se muestra en la línea de tiempo de la página de estado.    |
-| **Nota privada**           | Una nota interna (el modelo `IncidentInternalNote`) para el equipo que responde. Nunca llega a una página de estado.                                 |
-| **Propietario**            | Un usuario o equipo responsable del incidente. Los propietarios reciben aviso cuando se crea, cuando se publican notas y cuando cambia el estado.    |
-| **Incidente Feed**         | La línea de tiempo de actividad de solo anexado en la **Vista General** del incidente: cambios de estado, notas, cambios de propietario, ejecuciones de reglas y notificaciones. |
-| **Línea de tiempo de estado** | El registro de en qué estado estuvo el incidente, cuándo y durante cuánto tiempo, con el estado de notificación a suscriptores de cada transición.  |
-
-## Los tres estados que OneUptime crea en cada proyecto
-
-Al crear un proyecto, OneUptime siembra exactamente tres estados de incidente, en este orden:
-
-| Estado           | Orden | Color               | Qué significa                                                                     |
-| ---------------- | ----- | ------------------- | --------------------------------------------------------------------------------- |
-| **Identificado** | 1     | Rojo (`#fd625e`)    | El estado en el que aterriza un incidente recién creado. Es el estado de creación. |
-| **Reconocido**   | 2     | Amarillo (`#ffbf53`) | Alguien ha asumido el incidente y está trabajando en él.                          |
-| **Resuelto**     | 3     | Verde (`#2ab57d`)   | El incidente ha terminado. Resolverlo es lo que lo retira de tu página de estado.  |
-
-Los nombres son solo etiquetas: lo que de verdad gobierna el comportamiento son tres booleanos de la fila del estado: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Se espera que solo un estado por proyecto lleve cada indicador.
-
-Esa distinción importa más de lo que parece:
-
-- `isCreatedState` decide dónde empieza un incidente nuevo. Si no se selecciona un estado explícitamente al crearlo, OneUptime busca el estado de creación del proyecto y lo usa.
-- `isAcknowledgedState` e `isResolvedState` gobiernan los botones **Acknowledge** y **Resolver** de la cabecera del incidente, los dos mosaicos de estadísticas de la **Vista General** y la insignia con el recuento de **Incidentes Activos** del menú lateral.
-- **Incidentes Activos** se define única y exclusivamente como «el estado actual está por encima del estado resuelto». Por tanto, un estado propio que añadas por encima del estado resuelto cuenta como activo; uno que coloques después cuenta como resuelto, igual que el estado resuelto.
-
-**Fíjate en el nombre.** El primer estado inicial se llama **Identificado**, aunque varias descripciones dentro del producto lo siguen llamando estado de creación. Si buscas «Created» en la lista de estados de tu proyecto, es la fila llamada **Identificado**.
-
-Puedes añadir tus propios estados en **Incidentes → Ajustes → Estado del Incidente**. Los estados nuevos se añaden al final de la lista ordenada y puedes arrastrarlos para reordenarlos. Los tres estados con indicador no se pueden eliminar —OneUptime lo bloquea—, pero sí renombrar y recolorear, y por eso la interfaz lee los nombres de estado de forma dinámica.
-
-El orden se hace cumplir, no es cosmético: un incidente no puede pasar a un estado situado antes que el actual en la lista.
-
-Todo el detalle está en [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
-
-## Las tres severidades que OneUptime crea en cada proyecto
-
-Todo proyecto nuevo recibe además tres severidades:
-
-| Severidad             | Orden | Color                | Qué significa                                                       |
-| --------------------- | ----- | -------------------- | -------------------------------------------------------------------- |
-| **Incidente crítico** | 1     | Granate (`#b70400`)  | Impacto muy alto en los clientes; requiere respuesta inmediata.      |
-| **Incidente mayor**   | 2     | Rojo (`#fd625e`)     | Impacto significativo; normalmente requiere respuesta inmediata.     |
-| **Incidente menor**   | 3     | Amarillo (`#ffbf53`) | Impacto bajo; normalmente se atiende en horario laboral.             |
-
-Las descripciones iniciales completas están en [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
-
-Las severidades tienen `name`, `description`, `color` y `order`, y nada más. No hay indicadores, y ninguna ruta de código trata «Incidente crítico» de forma distinta a cualquier otra fila. La severidad es la manera en que las personas hacen triaje, y está disponible como criterio de coincidencia cuando escribes reglas de guardia, pero elegir una severidad no avisa a nadie por sí sola.
-
-Edita o añade severidades en **Incidentes → Ajustes → Gravedad del Incidente**.
-
-## La vida de un incidente
+```mermaid title="De un problema a una respuesta coordinada"
+flowchart TB
+    subgraph ways["Cinco vías de entrada"]
+        direction LR
+        wizard["Asistente"]
+        template["Plantilla"]
+        monitor["Monitor"]
+        api["API"]
+        form["Formulario"]
+    end
+    ways --> incident["Nuevo incidente"]
+    incident --> rules["Se ejecutan las reglas de incidentes"]
+    rules --> oncall["Las políticas de guardia avisan"]
+    rules --> owners["Se notifica a los propietarios"]
+    rules --> pages["Se actualizan las páginas de estado"]
+    oncall --> feed["Feed del incidente"]
+    owners --> feed
+    pages --> feed
+```
 
 ### 1. Se declara
 
-Cuatro caminos llevan al mismo objeto:
+Cinco caminos llevan al mismo objeto:
 
-- **A mano** — desde la lista de incidentes, haz clic en **Declarar incidente**. Eso abre el asistente **Declarar nuevo incidente**, de cinco pasos: **Detalles del incidente**, **Recursos afectados**, **Roles de Incidente**, **De guardia** y **Más**.
-- **Desde una plantilla** — haz clic en **Crear desde plantilla** y elige una **Plantillas de Incidentes** guardada. Las plantillas rellenan de antemano título, descripción, severidad, estado inicial, recursos, políticas de guardia, propietarios y etiquetas.
-- **Desde un monitor** — una regla de criterios de monitor con el interruptor «declarar un incidente» activado crea el incidente automáticamente en cuanto sus filtros coinciden. Allí, títulos y descripciones admiten plantillas con `{{variable}}`.
+- **A mano** — en la lista de incidentes, haz clic en **Declarar incidente**. Se abre el asistente **Declarar nuevo incidente**, de tres pasos: **Detalles del incidente**, **Recursos afectados**, **Guardia y roles**. El primer paso pide un título, una gravedad y una descripción, y lo que la mayoría de los incidentes nunca necesita queda plegado en **Más campos**. Solo el primer paso pide algo que tengas que responder: **Siguiente** recorre el resto, y **Declarar incidente** está en el resumen del final.
+  - **A partir de alertas** — **Declarar incidente** sobre una selección de alertas, o en la cabecera de una alerta, abre el mismo asistente, rellenado a partir de las alertas, las vincula al nuevo incidente y, salvo que desmarques la casilla, las reconoce para que dejen de escalar; consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
+- **Desde una plantilla** — haz clic en **Crear desde plantilla** y elige una **Plantilla de incidente** guardada. Las plantillas rellenan el título, la descripción, la gravedad, el estado inicial, los recursos, las políticas de guardia, los propietarios y las etiquetas.
+- **Desde un monitor** — una regla de criterios de un monitor con la opción «declarar un incidente» activada crea el incidente automáticamente en cuanto coinciden sus filtros. Los títulos y las descripciones admiten allí plantillas `{{variable}}`.
 - **Por la API** — `POST /api/incident` con una clave de API. El servidor rellena por ti `declaredAt`, el estado de creación y el número de incidente.
+- **Mediante un formulario** — alguien ajeno a tu equipo rellena un formulario que compartiste como enlace, sin cuenta de OneUptime. El incidente se declara oculto en las páginas de estado, a partir de la plantilla de incidente del formulario si tiene una. Consulta [Formularios](/docs/forms/index).
 
-Consulta [Declarar un incidente](/docs/incidents/declaring-incidents) para el recorrido campo por campo.
+Las integraciones también abren incidentes: [Huntress](/docs/integrations/huntress) convierte cada informe de incidente que envía su SOC en un incidente, que avisa a las políticas de guardia que elijas. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents) para el recorrido campo por campo.
 
-### 2. Se entera quien tiene que enterarse
+### 2. Se enteran las personas adecuadas
 
-Al crearse, OneUptime ejecuta la automatización que hayas configurado: reglas de etiquetas, reglas de guardia, reglas del propietario y reglas de runbook. Las políticas de guardia adjuntas al incidente —a mano, desde una plantilla o incorporadas por una regla de guardia coincidente— se ejecutan en paralelo.
+Al crearse, OneUptime ejecuta la automatización que configuraste: reglas de privacidad, reglas de propietario, reglas de etiquetas, reglas de guardia y reglas de runbook. Todas las políticas de guardia adjuntas al incidente —a mano, desde una plantilla o añadidas por una regla de guardia que coincide— se ejecutan en paralelo.
 
-Los propietarios reciben aviso por correo electrónico, SMS, llamada, notificación push y WhatsApp, según las preferencias de notificación de cada usuario. Si un incidente no tiene ningún propietario, la notificación recae en los propietarios del proyecto en lugar de descartarse.
+Se notifica a los propietarios por los canales que cada uno activó en **Ajustes de usuario → Ajustes de notificaciones**: correo electrónico, SMS, llamada de voz, notificación push, WhatsApp, Telegram, Slack, Microsoft Teams o webhook. Si un incidente no tiene ningún propietario, la notificación recae en los propietarios del proyecto en lugar de perderse.
 
-Si el incidente es visible en una página de estado y las notificaciones a suscriptores están activadas, también se avisa a los suscriptores. Las notificaciones las mueve un cron que se ejecuta cada minuto, así que cuenta con hasta un minuto de retraso más que con un envío instantáneo.
+Si el incidente es visible en una página de estado y las notificaciones a suscriptores están activadas, también se avisa a los suscriptores: los de cada página de estado que lista uno de sus monitores, o solo los de las páginas a las que lo limitaste. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience) para dar a cada audiencia su propia página de estado.
+
+> [!NOTE]
+> Las notificaciones las envía una tarea programada que se ejecuta cada minuto, así que cuenta con hasta un minuto de retraso aproximadamente en lugar de un envío instantáneo.
 
 ### 3. Tu equipo lo trabaja
 
-Quienes responden reconocen el incidente, adjuntan recursos afectados, ejecutan runbooks, asignan roles de incidente y van dejando por escrito lo que descubren: notas privadas para el equipo, notas públicas para los clientes, y las páginas **Causa Raíz** y **Remediación** a medida que se aclara el panorama. Todo lo que hacen aparece en el **Incidente Feed** de la página **Vista General**.
+Los respondedores reconocen el incidente, adjuntan los recursos afectados, vinculan las alertas que forman parte de él, ejecutan runbooks, asignan roles de incidente y anotan lo que van descubriendo: notas privadas para el equipo, notas públicas para los clientes, y además las páginas **Causa raíz** y **Remediación** cuando el panorama se aclara. Todo lo que hacen llega al **Feed del incidente** en la página **Vista general**.
 
 ### 4. Se resuelve
 
-Hacer clic en **Resolver** mueve el incidente al estado resuelto, sella la línea de tiempo de estado, detiene el reloj de duración, devuelve los monitores que retiene y retira el incidente de la sección activa de cualquier página de estado en la que se estuviera mostrando. No hace falta cambiar nada más: una página de estado solo muestra incidentes en un estado por encima del estado resuelto. Consulta [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
+Hacer clic en **Resolver** lleva el incidente al estado resuelto, deja constancia en la cronología de estados, detiene el contador de duración, devuelve los monitores que retiene y quita el incidente de la sección activa de cualquier página de estado en la que se mostraba. No hace falta cambiar nada más para que ocurra: una página de estado solo muestra incidentes en un estado situado por encima del estado resuelto. Consulta [Qué hace resolver](/docs/incidents/states-and-severities#qué-hace-resolver).
 
-A partir de ahí puedes escribir un post mortem y, si quieres, publicarlo en la página de estado.
+Después puedes escribir un post mortem y, si quieres, publicarlo en la página de estado.
 
-## Dónde viven los incidentes en el panel
+## Términos clave
 
-Abre **Incidentes** en la navegación lateral. Su menú lateral está organizado en secciones:
+Un puñado de palabras aparece en todas las demás páginas de esta sección. Aclara estas primero.
 
-| Sección                    | Qué haces ahí                                                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Vista General**          | **Todos los Incidentes** e **Incidentes Activos**; esta última lleva una insignia roja con el recuento de incidentes en un estado por encima del estado resuelto.           |
-| **Episodios**              | Los episodios de incidente, una funcionalidad de agrupación aparte con sus propias páginas.                                                                        |
-| **IA** | **Análisis**, **Registros**, **Ajustes**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo con ellos, y lo que puede hacer por su cuenta, junto con las reglas que deciden qué incidentes investiga y corrige. Consulta [AI SRE](/docs/ai/ai-sre). |
-| **Espacio de trabajo**     | Las conexiones de **Slack** y **Microsoft Teams** para incidentes.                                                                                                |
-| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
-| **Ajustes**                | **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Prefijo de número**. |
+| Término                     | Qué significa                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Incidente**               | El registro en sí: título, descripción, gravedad, estado actual, recursos afectados y todo lo que se escribe en él durante la respuesta.             |
+| **Estado del incidente**    | En qué punto de su ciclo de vida está el incidente. Una fila propia del proyecto con un nombre, un color y un `order`, más los indicadores que le dan sentido. |
+| **Gravedad del incidente**  | Qué tan grave es. Una fila propia del proyecto con un nombre, un color y un `order`. Pura clasificación: nada en el producto trata una gravedad de forma especial. |
+| **Número de incidente**     | Un contador por proyecto que se muestra como `#42`, o con un prefijo que configures, como `INC-42`.                                                 |
+| **Recursos afectados**      | Los monitores, hosts, clústeres de Kubernetes, hosts de Docker, servicios y demás infraestructura que adjuntas al incidente.                        |
+| **Nota pública**            | Una actualización escrita para los lectores y suscriptores de la página de estado. Se muestra en la cronología de la página de estado.              |
+| **Nota privada**            | Una nota interna (el modelo `IncidentInternalNote`) para el equipo que responde. Nunca llega a una página de estado.                                 |
+| **Propietario**             | Un usuario o un equipo responsable del incidente. Los propietarios reciben notificaciones cuando se crea, cuando se publican notas y cuando cambia el estado. |
+| **Feed del incidente**      | La cronología de actividad de solo anexado en la **Vista general** del incidente, que registra cambios de estado, notas, cambios de propietarios, ejecuciones de reglas y notificaciones. |
+| **Cronología de estados**   | El registro de en qué estado estuvo el incidente, cuándo y durante cuánto tiempo, con el estado de notificación a suscriptores de cada transición.   |
+| **Alerta vinculada**        | Una alerta vinculada al incidente como parte de su respuesta. Una alerta puede vincularse a más de un incidente y conserva su propio estado.         |
 
-**IA**, **Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
+## Los tres estados que OneUptime crea en cada proyecto
 
-La propia lista de incidentes muestra **Número de incidente**, **Título**, **Estado**, **Gravedad**, **Recursos afectados**, **Declarado**, **Duración**, **Etiquetas** y **Propietarios**, con una acción masiva **Cambiar estado** para cerrar varios de golpe.
+Al crear un proyecto, OneUptime crea exactamente tres estados de incidente, en este orden:
+
+```mermaid title="Los estados con los que empieza todo proyecto nuevo"
+stateDiagram-v2
+    direction LR
+    [*] --> Identified: declarado
+    Identified --> Acknowledged: Reconocer
+    Identified --> Resolved: Resolver
+    Acknowledged --> Resolved: Resolver
+    Resolved --> [*]
+```
+
+| Estado            | Orden | Color               | Qué significa                                                             |
+| ----------------- | ----- | ------------------- | ------------------------------------------------------------------------- |
+| **Identificado**  | 1     | Rojo (`#fd625e`)    | El estado en el que entra un incidente recién creado. Es el estado de creación. |
+| **Reconocido**    | 2     | Amarillo (`#ffbf53`) | Alguien ha tomado el incidente y está trabajando en él.                  |
+| **Resuelto**      | 3     | Verde (`#2ab57d`)   | El incidente ha terminado. Resolverlo es lo que lo retira de tu página de estado. |
+
+Los nombres son solo etiquetas: lo que de verdad dirige el comportamiento son tres booleanos en la fila del estado: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Se espera que solo un estado por proyecto tenga cada indicador.
+
+Esa distinción importa más de lo que parece:
+
+- `isCreatedState` decide dónde empieza un incidente nuevo. Si al crearlo no se elige explícitamente ningún estado, OneUptime busca el estado de creación del proyecto y lo usa.
+- `isAcknowledgedState` e `isResolvedState` marcan el estado reconocido y el estado resuelto. La posición del estado de un incidente respecto a ellos decide los botones **Reconocer** y **Resolver** de la cabecera del incidente, los dos indicadores de la **Vista general** del incidente y el contador **Incidentes activos** del menú lateral: un incidente en el estado reconocido o en cualquier estado posterior está reconocido, y uno en el estado resuelto o en cualquier estado posterior está resuelto.
+- **Incidentes activos** se define únicamente como «el estado actual está por encima del estado resuelto». Por eso, un estado personalizado que añadas por encima del estado resuelto está activo; uno que coloques después cuenta como resuelto, igual que el estado resuelto.
+
+> [!NOTE]
+> El primer estado inicial se llama **Identificado**, aunque varias descripciones del producto todavía lo llaman estado de creación («created»). Si buscas «Created» en la lista de estados de tu proyecto, es la fila llamada **Identificado**.
+
+Puedes añadir tus propios estados en **Incidentes → Ajustes → Estado del incidente**. Un estado nuevo se añade justo por encima del estado resuelto, y reordenas las filas arrastrándolas; la columna **Cuenta como** muestra cómo cuenta un incidente en cada estado: no reconocido, reconocido o resuelto. Los tres estados marcados llevan la etiqueta **Predefinido**: conservan su orden y no se pueden eliminar, pero puedes renombrarlos, recolorearlos y moverlos, y por eso la interfaz lee los nombres de los estados de forma dinámica.
+
+El orden se aplica, no es decorativo: un incidente no puede pasar a un estado que esté antes en el orden que su estado actual. Todos los detalles están en [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
+
+## Las tres gravedades que OneUptime crea en cada proyecto
+
+Todo proyecto nuevo recibe además tres gravedades:
+
+| Gravedad              | Orden | Color                | Qué significa                                              |
+| --------------------- | ----- | -------------------- | ---------------------------------------------------------- |
+| **Critical Incident** | 1     | Granate (`#b70400`)  | Impacto muy alto en los clientes, que requiere una respuesta inmediata. |
+| **Major Incident**    | 2     | Rojo (`#fd625e`)     | Impacto importante, que suele requerir una respuesta inmediata. |
+| **Minor Incident**    | 3     | Amarillo (`#ffbf53`) | Impacto bajo, que suele resolverse en horario laboral.     |
+
+Las gravedades tienen `name`, `description`, `color` y `order`, y nada más. No hay indicadores, y ninguna ruta de código trata «Critical Incident» de forma distinta a cualquier otra fila. La gravedad es la forma en que las personas priorizan, y está disponible como criterio de coincidencia cuando escribes reglas de guardia, pero elegir una gravedad no avisa, por sí sola, a nadie.
+
+Edita o añade gravedades en **Incidentes → Ajustes → Gravedad del incidente**. Las descripciones iniciales completas están en [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
+
+## Dónde están los incidentes en el panel
+
+Abre **Incidentes** desde el menú **Productos** de la barra superior. Su menú lateral está organizado en secciones:
+
+| Sección                  | Qué haces allí                                                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vista general**        | **Todos los incidentes** e **Incidentes activos**; este último lleva una insignia roja con el número de incidentes en un estado situado por encima del estado resuelto.       |
+| **Episodios**            | Los episodios de incidente, una función de agrupación aparte con sus propias páginas.                                                                                      |
+| **IA**                   | **Análisis**, **Registros**, **Ajustes**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo por ellos, y lo que puede hacer por su cuenta, con las reglas de qué incidentes investiga y corrige. Consulta [AI SRE](/docs/ai/ai-sre). |
+| **Espacio de trabajo**   | Los espacios de chat que este proyecto ha conectado: **Slack**, **Microsoft Teams** o ambos, cada uno con sus reglas de notificación para incidentes. Si no hay ninguno conectado, contiene **Conectar Slack o Teams**, una página que muestra ambos y cómo conectarlos. |
+| **Integraciones**        | Herramientas que abren incidentes por su cuenta: **Huntress**, cuyos informes de incidente se convierten en incidentes que avisan a la guardia. Consulta [Huntress](/docs/integrations/huntress). |
+| **Reglas**               | Los motores de reglas: **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reglas de recordatorio**. |
+| **Ajustes**              | **Estado del incidente**, **Gravedad del incidente**, **Plantillas de incidente**, **Plantillas de notas**, **Plantillas de post mortem**, **Campos personalizados**, **Roles de incidente**, **Mediciones**, **Alertas vinculadas**, **Prefijo de número**. |
+
+**Vista general** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Integraciones**, **Reglas**, **Ajustes** y **Desarrolladores** están plegadas por defecto, para que el menú se abra con las listas que usas cada día. Haz clic en el título de una sección para desplegarla y encontrar las páginas a las que se refiere el resto de esta documentación; una sección también se abre sola siempre que estás en una de sus páginas. La configuración de incidentes no está en los ajustes del proyecto; vive toda aquí.
+
+La lista de incidentes muestra **Número de incidente**, **Título**, **Estado**, **Gravedad**, **Recursos afectados**, **Declarado**, **Duración**, **Etiquetas** y **Propietarios**, con una acción masiva **Cambiar estado** para cerrar varios a la vez.
 
 ## Qué muestra cada página de un incidente
 
-Abre un incidente y tendrás un menú lateral izquierdo, agrupado así:
+Abre un incidente y su propio menú lateral agrupa sus páginas así:
 
-- **Vista General** — la tarjeta **Detalles del incidente** (título, severidad, etiquetas, número de incidente, declarado el, declarado por, políticas de guardia), una tarjeta **Recursos afectados** y el **Incidente Feed**. Encima, mosaicos de estadísticas con el tiempo hasta el reconocimiento, el tiempo hasta la resolución y la **Duración** total.
-- **Línea de Tiempo de Estado** — todos los estados por los que ha pasado el incidente, con **Comienza en**, **Termina en**, **Duración** y el estado de notificación a suscriptores de cada transición. **Ver causa** y **Ver registros** explican por qué se produjo cada cambio.
-- **SLA** — el seguimiento de SLA de este incidente.
-- **Descripción**, **Causa Raíz**, **Remediación** — tres páginas en Markdown. La descripción es la que se muestra en tu página de estado.
+| Sección del menú lateral | Páginas                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| **Vista general**        | **Vista general**, **Cronología de estados**, **SLA**                                     |
+| **Investigación**        | **Descripción**, **Causa raíz**, **Remediación**, **Runbooks**, **Post mortem**, **Alertas vinculadas** |
+| **Equipo**               | **Roles**, **Ejecuciones de guardia**, **Propietarios**                                   |
+| **Notificaciones**       | **Registros de notificación**, **Registros de IA** — plegada hasta que haces clic en **Notificaciones** |
+| **Notas**                | **Notas privadas**, **Notas públicas**                                                    |
+| **Desarrolladores**      | **Terraform**, **API**, **Asistentes de IA** — plegada hasta que haces clic en **Desarrolladores** |
+| **Avanzado**             | **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar incidente** — plegada hasta que haces clic en **Avanzado** |
+
+Qué contiene cada una:
+
+- **Vista general** — la respuesta de un vistazo. Bajo la cabecera, unos indicadores muestran el tiempo hasta el reconocimiento, el tiempo hasta la resolución y la **Duración** total. La tarjeta **Investigación de IA** encabeza la página —lo que encontró OneUptime AI, o por qué no empezó—, con el **Feed del incidente** debajo. A su lado están la tarjeta **Videollamada**, la tarjeta **Detalles del incidente** (título, gravedad, etiquetas, número de incidente, declarado el, declarado por, políticas de guardia, y el ID del incidente en una pequeña línea **ID** al pie, a un clic de tu portapapeles), **Roles de incidente**, una tarjeta **Recursos afectados** y los campos personalizados del incidente. Cuando tu proyecto tiene [mediciones](/docs/incidents/settings#mediciones), una tarjeta **Mediciones** bajo **Detalles del incidente** indica qué muestra cada una para este incidente: **12 minutos**, **En curso desde hace 5 minutos**, **No alcanzado**.
+- **Cronología de estados** — cada estado por el que ha pasado el incidente, con **Comienza en**, **Termina en**, **Duración** y el estado de notificación a suscriptores de cada transición. **Ver causa** y **Ver registros** explican por qué ocurrió cada cambio.
+- **SLA** — el seguimiento del SLA de este incidente.
+- **Descripción**, **Causa raíz**, **Remediación** — tres páginas en Markdown. La descripción es la que se muestra en tu página de estado.
 - **Runbooks** — las ejecuciones de runbook adjuntas a este incidente.
-- **Post-mortem** — el análisis posterior, que puedes publicar en la página de estado si quieres.
-- **Roles**, **Ejecuciones de Guardia**, **Propietarios** — quién está en ello, qué políticas se dispararon y a quién se avisa.
-- **Registros de notificación**, **Registros de IA**, **Registros de Auditoría** — qué se envió y qué cambió.
-- **Notas Privadas** y **Notas Públicas** — bajo la sección **Notas** del menú lateral.
-- **Campos Personalizados**, **Ajustes**, **Eliminar Incidente** — bajo **Avanzado**. La página **Ajustes** contiene **Visible en la página de estado**, **Incidente privado** y la tarjeta **Reminders**.
-
-[Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed) cubre en profundidad las páginas de colaboración.
+- **Post mortem** — el informe y sus adjuntos, que puedes publicar opcionalmente en la página de estado. **Editar nota de análisis post mortem** pide la nota y los adjuntos, y luego **Publicar en la página de estado**; solo mientras esa opción está activada pide **Notificar a los suscriptores** y **Análisis post mortem publicado el**, que al activar la publicación se fija en ahora. **Generar con IA** redacta la nota por ti, y **Aplicar plantilla** —que se muestra en cuanto el proyecto tiene una plantilla de post mortem— la empieza a partir de una. A los suscriptores se les avisa una vez, cuando se publica el post mortem: la primera vez que la página de estado lo muestra, lo que requiere **Publicar en la página de estado** activado y una nota escrita. Guardarlo de nuevo, o editarlo mientras está publicado, actualiza la página de estado sin avisar a nadie; volver a publicarlo después de retirarlo de la página de estado les avisa de nuevo. Uno publicado mientras el incidente está oculto se envía cuando el incidente se hace visible. Consulta [El post mortem](/docs/status-pages/subscribers#incidentes).
+- **Alertas vinculadas** — las alertas vinculadas a este incidente, con el estado actual de cada alerta, y quién la vinculó y cuándo. Las alertas tienen una página **Incidentes vinculados** equivalente. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
+- **Roles**, **Ejecuciones de guardia**, **Propietarios** — quién está en él, qué políticas se activaron y a quién se notifica.
+- **Registros de notificación**, **Registros de IA**, **Registros de auditoría** — qué se envió y qué cambió.
+- **Notas privadas** y **Notas públicas** — qué se le dijo a tu equipo y a tus clientes. Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed).
+- **Campos personalizados**, **Ajustes**, **Eliminar incidente** — la página **Ajustes** contiene **Visible en la página de estado** e **Incidente privado**, la tarjeta **Alcance de páginas de estado** que limita el incidente a algunas páginas de estado, y la tarjeta **Recordatorios**, cuyo interruptor **Enviar recordatorios** se guarda en cuanto lo cambias y muestra cuándo sale el próximo recordatorio.
 
 ## Cómo encajan los incidentes con el resto de OneUptime
 
-- **Los monitores detectan el problema; los incidentes lo registran.** Una regla de criterios de monitor puede declarar un incidente automáticamente, rellenando de antemano título, severidad, políticas de guardia, propietarios, etiquetas y notas de remediación. Las variables disponibles ahí están en [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
-- **Las políticas de guardia son las que avisan.** Adjunta políticas en el paso **De guardia** del asistente de declaración, en una plantilla, o mediante **Incidentes → Reglas → Reglas de guardia**. Se dispara toda regla coincidente: el conjunto ejecutado es la unión de todas las coincidencias más lo adjuntado directamente, sin duplicados.
-- **Los runbooks le dicen a la gente qué hacer.** Las reglas de runbook adjuntan un procedimiento automáticamente cuando se crea un incidente coincidente, y quienes responden pueden iniciar uno a mano desde el incidente. Consulta [Visión general de los Runbooks](/docs/runbooks/index).
-- **Las páginas de estado informan a los clientes.** Un incidente aparece en la lista activa de una página de estado cuando la página tiene los incidentes activados, el incidente está marcado como visible en la página de estado y su estado actual está por encima del estado resuelto. Los incidentes privados quedan ocultos en todas las páginas de estado, siempre. Consulta [Visión general de las páginas de estado](/docs/status-pages/index).
+- **Los monitores detectan el problema; los incidentes lo registran.** Una regla de criterios de un monitor puede declarar un incidente automáticamente, rellenando título, gravedad, políticas de guardia, propietarios, etiquetas y notas de remediación. Consulta [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating) para las variables disponibles.
+- **Las alertas son las señales; los incidentes, la respuesta.** Vincula a un incidente las alertas que explica, desde cualquiera de los dos lados, y dos interruptores del proyecto, activados en los proyectos nuevos, reconocen y resuelven esas alertas junto con el incidente. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
+- **Las políticas de guardia se encargan de avisar.** Adjunta políticas en el paso **Guardia y roles** del asistente de declaración, en una plantilla o mediante **Incidentes → Reglas → Reglas de guardia**. Se activa toda regla que coincide: el conjunto ejecutado es la unión de todas las coincidencias más lo adjuntado directamente, sin duplicados.
+- **Los runbooks dicen a la gente qué hacer.** Las reglas de runbook adjuntan un procedimiento automáticamente cuando se crea un incidente que coincide, y los respondedores pueden iniciar uno a mano desde el incidente. Consulta [Visión general de los Runbooks](/docs/runbooks/index).
+- **Las páginas de estado informan a los clientes.** Un incidente aparece en la lista activa de una página de estado cuando la página lista uno de sus monitores, la página tiene los incidentes activados, el incidente está marcado como visible en la página de estado y su estado actual está por encima del estado resuelto. Un incidente limitado a algunas páginas de estado solo aparece en esas. Los incidentes privados se ocultan siempre en todas las páginas de estado. Consulta [Visión general de las páginas de estado](/docs/status-pages/index) y [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
 - **Los flujos de trabajo automatizan alrededor.** Los disparadores **On Create Incident**, **On Update Incident** y **On Delete Incident** te permiten construir automatización sin código sobre el ciclo de vida del incidente. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
-## Qué leer a continuación
+## Próximos pasos
 
-- [Declarar un incidente](/docs/incidents/declaring-incidents) — el asistente, las plantillas, los criterios de monitor y la API.
-- [Estados y severidades de incidentes](/docs/incidents/states-and-severities) — los indicadores de estado, los estados propios y la clasificación por severidad.
-- [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed) — notas públicas y privadas, propietarios y el feed de actividad.
-- [Configuración y automatización de incidentes](/docs/incidents/settings) — plantillas, campos personalizados, prefijos de número y los motores de reglas.
-- [Visión general de las páginas de estado](/docs/status-pages/index) — cómo llegan los incidentes a tus clientes.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers) — a quién se avisa cuando un incidente se mueve.
+:::cards
+- [Declarar un incidente](/docs/incidents/declaring-incidents): Recorre el asistente campo por campo, o declara desde una plantilla, un monitor o la API.
+- [Estados y severidades de incidentes](/docs/incidents/states-and-severities): Añade tus propios estados y mira exactamente qué hace cada uno.
+- [Visión general de las páginas de estado](/docs/status-pages/index): Cómo llegan los incidentes a tus clientes.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers): A quién se notifica cuando un incidente avanza.
+:::

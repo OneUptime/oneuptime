@@ -26,7 +26,7 @@
 
 ## Зонды и интервал
 
-Мониторы, которые проверяют зонды, заканчиваются этим шагом: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code и External Status Page. **Зонды** — это машины, которые выполняют проверки; зонды проекта по умолчанию уже выбраны. **Интервал мониторинга** начинается с **Каждые 5 минут**. Нажмите **Создать монитор**.
+Мониторы, которые проверяют зонды, заканчиваются этим шагом: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code и External Status Page. **Зонды** — это машины, которые выполняют проверки; зонды проекта по умолчанию уже выбраны. **Интервал мониторинга** начинается с **Каждые 5 минут**. Нажмите **Создать монитор**.
 
 Все остальные типы создаются на шаге **Критерии**.
 

@@ -8,9 +8,9 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The "Default Criteria" sections of the Website, API, SSL Certificate and
- * Domain monitor pages, against the criteria a new monitor actually starts
- * with (MonitorCriteria.getDefaultMonitorCriteria).
+ * The "Default Criteria" sections of the Website, API, SSL Certificate,
+ * Domain and NTP monitor pages, against the criteria a new monitor actually
+ * starts with (MonitorCriteria.getDefaultMonitorCriteria).
  *
  * Markdown is not compiled, so nothing else notices when a default these
  * pages quote moves - a status code range, a number of days, the order the
@@ -102,6 +102,7 @@ const PAGES: Array<{ fileName: string; monitorType: MonitorType }> = [
     monitorType: MonitorType.SSLCertificate,
   },
   { fileName: "domain-monitor.md", monitorType: MonitorType.Domain },
+  { fileName: "ntp-monitor.md", monitorType: MonitorType.NTP },
 ];
 
 describe("Every page describes the criteria a new monitor starts with", () => {
