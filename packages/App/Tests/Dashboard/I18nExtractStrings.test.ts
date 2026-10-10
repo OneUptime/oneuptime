@@ -844,7 +844,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI and the data models", () => {
+  test("cover the Dashboard, the shared UI, the data models and the vCenter collection errors", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -854,6 +854,8 @@ describe("the real source roots", () => {
       "ui packages/Common/UI",
       "models packages/Common/Models/DatabaseModels",
       "models packages/Common/Models/AnalyticsModels",
+      // What a failed vCenter collection means and what fixes it.
+      "ui packages/Common/Types/VMware",
     ]);
   });
 

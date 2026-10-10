@@ -33,7 +33,9 @@ import path from "path";
  *   - no service holds a lock around create() itself (a try/finally of its
  *     own): the hooks own it, the same way for every service;
  *   - DatabaseService hands every failure of a create to onCreateError, with
- *     what onBeforeCreate handed back.
+ *     what onBeforeCreate handed back - and which step of the create failed
+ *     (WriteProgress: the INSERT itself, or a step around it), for a hook
+ *     whose lock is kept while the create may still land.
  *
  * A service that starts taking a lock in a create hook must be added to the
  * list below - and give it back in both hooks.
@@ -68,9 +70,12 @@ const TAKES_A_LOCK: RegExp =
 const GIVES_IT_BACK: RegExp =
   /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite|GlobalSsoProviderChanges\.afterFailedCreate)\s*\(/;
 
-// onCreateError takes what onBeforeCreate handed back.
+/*
+ * onCreateError takes what onBeforeCreate handed back - and, where the hook
+ * decides by it, which step of the create failed.
+ */
 const ERROR_HOOK_TAKES_THE_CREATE: RegExp =
-  /onCreateError\(\s*error: Exception,\s*onCreate\?: OnCreate<\w+> \| undefined,?\s*\)/;
+  /onCreateError\(\s*error: Exception,\s*onCreate\?: OnCreate<\w+> \| undefined,?\s*(failedStatement\?: StatementContext \| undefined,?\s*)?\)/;
 
 /*
  * Every service whose create hooks take a lock, and what it locks.
@@ -242,10 +247,31 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
   const create: string = methodText(classSource, "create");
   const createItself: string = methodText(classSource, "_create");
 
-  test("create runs the create itself in one try, and hands what fails to onCreateError with what onBeforeCreate handed back", () => {
+  test("create runs the create itself in one try, and hands what fails to onCreateError with what onBeforeCreate handed back, and which step failed", () => {
     expect(create).toMatch(
-      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.onCreateError\(error as Exception, handedBack\.onCreate\);\s*throw this\.getException\(error as Exception\);\s*\}/,
+      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.onCreateError\(\s*error as Exception,\s*handedBack\.onCreate,\s*handedBack\.progress\.getFailedStatement\(\),?\s*\);\s*throw this\.getException\(error as Exception\);\s*\}/,
     );
+    // One record of the create's steps, from its start.
+    expect(create).toMatch(
+      /handedBack: CreateHandedBack<TBaseModel> = \{\s*onCreate: undefined,\s*progress: new WriteProgress\(\),?\s*\}/,
+    );
+  });
+
+  test("the INSERT is recorded as the create's write, in save()'s own transaction", () => {
+    const writes: Array<string> = callArguments(
+      createItself,
+      /handedBack\.progress\.write/,
+    );
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!).toMatch(
+      /^\s*true,\s*async \(\): Promise<TBaseModel> => \{\s*return await this\.getRepository\(\)\.save\(createBy\.data\);\s*\},?\s*$/,
+    );
+    // The one save() of the create is that one.
+    expect(
+      (createItself.match(/\.getRepository\(\)\s*\.\s*save\s*\(/g) || [])
+        .length,
+    ).toBe(1);
   });
 
   test("what onBeforeCreate hands back is handed on as soon as it has run", () => {
@@ -261,9 +287,9 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
     ).toBe(1);
   });
 
-  test("the default onCreateError takes what onBeforeCreate handed back", () => {
+  test("the default onCreateError takes what onBeforeCreate handed back, and which step failed", () => {
     expect(methodText(classSource, "onCreateError")).toMatch(
-      /onCreateError\(\s*error: Exception,\s*_onCreate\?: OnCreate<TBaseModel> \| undefined,?\s*\)/,
+      /onCreateError\(\s*error: Exception,\s*_onCreate\?: OnCreate<TBaseModel> \| undefined,\s*_failedStatement\?: StatementContext \| undefined,?\s*\)/,
     );
   });
 });

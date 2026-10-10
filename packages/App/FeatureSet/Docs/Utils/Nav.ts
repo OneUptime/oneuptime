@@ -607,6 +607,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/vmware",
       },
       {
+        title: "VMware Without an Agent",
+        url: "/docs/telemetry/vmware-agentless",
+      },
+      {
         title: "Databases",
         url: "/docs/telemetry/databases",
       },
@@ -926,6 +930,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "LLM Providers",
         url: "/docs/ai/llm-provider",
+      },
+      {
+        title: "Microsoft Foundry",
+        url: "/docs/ai/microsoft-foundry",
       },
       {
         title: "MCP Server",

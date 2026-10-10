@@ -1,105 +1,169 @@
-# Monitoring Criteria: JavaScript Expression
+# JavaScript अभिव्यक्तियाँ
 
-आप custom monitoring criteria बनाने के लिए JavaScript expressions उपयोग कर सकते हैं। expression को monitored object के context में evaluate किया जाता है। expression एक boolean value return करना चाहिए। यदि expression `true` return करता है, तो monitoring criteria पूरी होती है। यदि expression `false` return करता है, तो monitoring criteria पूरी नहीं होती।
+**JavaScript Expression** मानदंड फ़िल्टर किसी तय तुलना की जगह JavaScript की एक पंक्ति से तय करता है कि मॉनिटर का मानदंड पूरा हुआ या नहीं। इसका उपयोग तब करें जब बिल्ट-इन फ़िल्टर शर्त को व्यक्त न कर सकें — JSON जवाब के भीतर गहराई में कोई फ़ील्ड, आपस में तुलना किए जाने वाले दो मान, या `&&` और `||` से जोड़ी गई कई जांचें।
 
-Monitoring criteria के रूप में JavaScript expression निम्नलिखित monitoring types के लिए उपलब्ध है: API, Website, और Incoming Request।
+:::cards
+- [यह कैसे काम करता है](#यह-कैसे-काम-करता-है): प्लेसहोल्डर भरे जाते हैं, फिर अभिव्यक्ति चलती है।
+- [वेरिएबल](#मॉनिटर-प्रकार-के-अनुसार-वेरिएबल): हर मॉनिटर प्रकार आपको क्या देता है।
+- [उदाहरण](#उदाहरण): API, आने वाले अनुरोधों और डेटाबेस के लिए अभिव्यक्तियाँ।
+- [उद्धरण चिह्नों के नियम](#उद्धरण-चिह्नों-के-नियम): वह गलती जो लगभग हर कोई करता है।
+:::
 
-### Website और API monitors
+## यह कैसे काम करता है
 
-निम्नलिखित variables monitored object के context में उपलब्ध हैं:
+अभिव्यक्ति चलने से पहले उसमें मौजूद हर `{{variable}}` प्लेसहोल्डर को मॉनिटर की सबसे नई जांच के मान से बदल दिया जाता है — सादे टेक्स्ट के रूप में। फिर नतीजे को JavaScript के रूप में चलाया जाता है। अगर उसका मान truthy निकलता है, तो फ़िल्टर मेल खाता है; बाकी कुछ भी, किसी त्रुटि समेत, यानी मेल नहीं खाता।
 
-| Variable             | विवरण                                                                                                                         | Type                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `responseBody`       | response body object। यदि response body HTML/XML में है तो यह string type होगा। यदि response body JSON में है तो यह JSON होगा | `string` या `JSON`   |
-| `responseHeaders`    | response headers object।                                                                                                      | `Dictionary<string>` |
-| `responseStatusCode` | response status code।                                                                                                         | `number`             |
-| `responseTimeInMs`   | milliseconds में response time।                                                                                               | `number`             |
-
-#### उदाहरण
-
-निम्नलिखित उदाहरण दिखाता है कि response body में एक specific string के लिए website monitor करने के लिए JavaScript expression कैसे उपयोग करें:
-
-```javascript
-
-/**
- *
- * यदि response body JSON में है तो responseBody एक JSON object होगा
- * {
- *    "item": "hello"
- * }
- *
- *  **/
-
-"{{responseBody.item}}" === "hello"
-
-// या आप response headers उपयोग कर सकते हैं
-
-"{{responseHeaders.contentType}} === "application/json"
-
-
-// आप regular expressions भी उपयोग कर सकते हैं
-
-"{{responseBody.item}}".match(/hello/)
-
-// आप response status code भी उपयोग कर सकते हैं
-
-{{responseStatusCode}} === 200
-
-// आप logical operators का उपयोग करके multiple expressions combine कर सकते हैं
-
-"{{responseBody.item}}" === "hello" && {{responseStatusCode}} === 200
-
-// arrays के लिए आप निम्नलिखित उपयोग कर सकते हैं
-
-/**
- *
- * यदि response body है:
- * {
- *    "item": [{
- *          "name": "hello"
- *      }]
- * }
- *
- *  **/
-
-"{{responseBody.items[0].name}}" === "hello"
+```mermaid title="एक जांच से मेल खाते फ़िल्टर तक"
+flowchart TB
+    check["जांच का परिणाम"] --> fill["प्लेसहोल्डर को टेक्स्ट के रूप में भरें"]
+    fill --> run["अभिव्यक्ति चलाएं"]
+    run --> result{"Truthy?"}
+    result -->|हां| match["फ़िल्टर मेल खाता है"]
+    result -->|"नहीं, या कोई त्रुटि"| nomatch["फ़िल्टर मेल नहीं खाता"]
 ```
 
-### Incoming Request monitors
+क्योंकि प्लेसहोल्डर टेक्स्ट के रूप में बदले जाते हैं, `{{responseBody.item}}` कच्चा मान बन जाता है। किसी स्ट्रिंग को JavaScript स्ट्रिंग बनने के लिए उद्धरण चिह्नों में होना चाहिए; किसी संख्या या boolean को नहीं — [उद्धरण चिह्नों के नियम](#उद्धरण-चिह्नों-के-नियम) देखें। अभिव्यक्तियाँ OneUptime सर्वर पर एक अलग-थलग सैंडबॉक्स में चलती हैं।
 
-निम्नलिखित variables monitored object के context में उपलब्ध हैं:
+## JavaScript Expression फ़िल्टर जोड़ें
 
-| Variable         | विवरण                   | Type                 |
-| ---------------- | ----------------------- | -------------------- |
-| `requestBody`    | request body object।    | `string` या `JSON`   |
-| `requestHeaders` | request headers object। | `Dictionary<string>` |
+:::steps
+### मानदंड खोलें
 
-#### उदाहरण
+मॉनिटर पर **कॉन्फ़िगरेशन → मानदंड** खोलें और **निगरानी मानदंड संपादित करें** पर क्लिक करें, या **मॉनिटर बनाएं** के **मानदंड** चरण का उपयोग करें। जिस मानदंड को बदलना है उसमें काम करें, या नए के लिए **मानदंड जोड़ें** पर क्लिक करें।
 
-निम्नलिखित उदाहरण दिखाता है कि request body में एक specific string के लिए incoming request monitor करने के लिए JavaScript expression कैसे उपयोग करें:
+### फ़िल्टर जोड़ें
 
-```javascript
-"{{requestBody.item}}" === "hello";
+**फ़िल्टर** के नीचे **फ़िल्टर जोड़ें** पर क्लिक करें, और उसका **फ़िल्टर प्रकार** **JavaScript Expression** पर सेट करें। **फ़िल्टर शर्त** **Evaluates To True** होती है।
 
-// या आप request headers उपयोग कर सकते हैं
+### अभिव्यक्ति लिखें
 
-"{{requestHeaders.contentType}}" === "text/html";
+[मॉनिटर के प्रकार के वेरिएबल](#मॉनिटर-प्रकार-के-अनुसार-वेरिएबल) का उपयोग करते हुए **मान** में अभिव्यक्ति डालें। फ़िल्टर के नीचे का लिंक, **Read documentation for using JavaScript expressions here.**, यही पेज खोलता है।
 
-// आप regular expressions भी उपयोग कर सकते हैं
+### सहेजें
 
-"{{requestBody.item}}".match(/hello/);
+मॉनिटर सहेजें। फ़िल्टर का मूल्यांकन मॉनिटर की अगली जांच में होता है।
+:::
 
-// आप logical operators का उपयोग करके multiple expressions combine कर सकते हैं
+## मॉनिटर प्रकार के अनुसार वेरिएबल
 
-"{{requestBody.item}}" === "hello" &&
-  "{{requestHeaders.contentType}}" === "text/html";
+JavaScript अभिव्यक्तियाँ Website, API, Incoming Request, Incoming Email, SQL Query और Database Health मॉनिटर के लिए उपलब्ध हैं।
 
-// arrays के लिए आप निम्नलिखित उपयोग कर सकते हैं
+### वेबसाइट और API मॉनिटर
 
-"{{requestBody.items[0].name}}" === "hello";
+| वेरिएबल | विवरण | प्रकार |
+| --- | --- | --- |
+| `responseBody` | जवाब की बॉडी। अगर बॉडी JSON है, तो उसे पार्स किया जाता है; नहीं तो, जैसे HTML या XML के लिए, यह एक स्ट्रिंग है। | `string` या `JSON` |
+| `responseHeaders` | जवाब के हेडर, छोटे अक्षरों वाले नामों के साथ। | `Dictionary<string>` |
+| `responseStatusCode` | जवाब का स्टेटस कोड। | `number` |
+| `responseTimeInMs` | मिलीसेकंड में प्रतिक्रिया समय। | `number` |
+| `isOnline` | क्या मॉनिटर जवाब को ऑनलाइन गिनता है। | `boolean` |
+
+### आने वाले अनुरोध मॉनिटर
+
+| वेरिएबल | विवरण | प्रकार |
+| --- | --- | --- |
+| `requestBody` | अनुरोध की बॉडी। | `string` या `JSON` |
+| `requestHeaders` | अनुरोध के हेडर, छोटे अक्षरों वाले नामों के साथ। | `Dictionary<string>` |
+
+### SQL क्वेरी मॉनिटर
+
+| वेरिएबल | विवरण | प्रकार |
+| --- | --- | --- |
+| `rowCount` | क्वेरी से लौटी पंक्तियों की संख्या। | `number` |
+| `scalarValue` | पहली पंक्ति का पहला कॉलम। | कोई भी |
+| `firstRow` | पहली पंक्ति, कॉलम/मान जोड़ों के रूप में। | `JSON` |
+| `executionTimeInMs` | क्वेरी में कितना समय लगा, मिलीसेकंड में। | `number` |
+| `queryError` | क्वेरी की त्रुटि, अगर कोई थी। | `string` |
+| `isOnline` | क्या डेटाबेस तक पहुंचा जा सका और क्वेरी सफल हुई। | `boolean` |
+
+### डेटाबेस हेल्थ मॉनिटर
+
+`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` और `metrics`। डेटाबेस हेल्थ मॉनिटर पेज पर [JavaScript अभिव्यक्ति के वेरिएबल](/docs/monitor/database-health-monitor#javascript-एक्सप्रेशन-वेरिएबल) देखें।
+
+### आने वाले ईमेल मॉनिटर
+
+फ़िल्टर उपलब्ध है, पर इससे कोई ईमेल फ़ील्ड नहीं जुड़ा है: कोई अभिव्यक्ति विषय, भेजने वाला, बॉडी या पाने वाला नहीं पढ़ सकती। इसकी जगह ईमेल फ़िल्टर प्रकारों का उपयोग करें — [आने वाले ईमेल मॉनिटर](/docs/monitor/incoming-email-monitor#उपलब्ध-criteria-fields) देखें।
+
+## उदाहरण
+
+नीचे की हर पंक्ति एक पूरी अभिव्यक्ति है। इस तरह की JSON जवाब बॉडी के लिए:
+
+```json
+{
+  "item": "hello",
+  "count": 3,
+  "items": [{ "name": "hello" }]
+}
 ```
 
-### ध्यान देने योग्य बातें
+| अभिव्यक्ति | कब मेल खाती है |
+| --- | --- |
+| `"{{responseBody.item}}" === "hello"` | `item` फ़ील्ड `hello` है। |
+| `{{responseBody.count}} > 2` | `count` फ़ील्ड 2 से ज़्यादा है। |
+| `"{{responseBody.items[0].name}}" === "hello"` | `items` के पहले तत्व का नाम `hello` है। |
+| `{{responseStatusCode}} === 200 && {{responseTimeInMs}} < 500` | स्टेटस 200 है और जवाब में आधे सेकंड से कम लगा। |
+| `/hel+o/.test("{{responseBody.item}}")` | `item` फ़ील्ड किसी रेगुलर एक्सप्रेशन से मेल खाता है। |
+| `"{{responseHeaders.content-type}}".startsWith("application/json")` | जवाब JSON है। हेडर के नाम छोटे अक्षरों में होते हैं। |
 
-- scripts का timeout 1 second है, यदि script 1 second से अधिक समय लेती है तो यह `false` return करेगी।
-- `{{var}}` variable को value से replace करेगा, इसलिए यदि आप string compare करना चाहते हैं, तो आपको इसे quotes में wrap करना होगा, जैसे `"{{responseBody.item}}" === "hello"` और यदि आप number compare करना चाहते हैं, तो आपको quotes में wrap करने की आवश्यकता नहीं है, जैसे `{{responseStatusCode}} === 200`
+शर्तों को `&&` और `||` से जोड़ें, और कोष्ठकों से समूह बनाएं:
+
+```javascript
+({{responseStatusCode}} === 200 || {{responseStatusCode}} === 204) && {{responseTimeInMs}} < 1000
+```
+
+ऐसे आने वाले अनुरोध मॉनिटर के लिए जिसे `Content-Type: application/json` के रूप में `{"status": "degraded", "region": "eu"}` मिलता है:
+
+```javascript
+"{{requestBody.status}}" === "degraded" && "{{requestBody.region}}" === "eu"
+```
+
+ऐसे SQL क्वेरी मॉनिटर के लिए जिसकी क्वेरी एक गिनती लौटाती है, ज़्यादा गिनती या धीमी क्वेरी पर अलर्ट करें:
+
+```javascript
+{{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
+```
+
+डेटाबेस हेल्थ मॉनिटर के लिए, पूरे `metrics` ऑब्जेक्ट में इंडेक्स करके एक मेट्रिक पढ़ें — सीरीज़ के नामों में बिंदु होते हैं, इसलिए वे ब्रेसेस के अंदर नहीं जा सकते:
+
+```javascript
+{{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
+```
+
+## उद्धरण चिह्नों के नियम
+
+`{{var}}` को मान से, टेक्स्ट के रूप में, बदला जाता है। किसी स्ट्रिंग की तुलना करने के लिए उसे उद्धरण चिह्नों में रखें, जैसे `"{{responseBody.item}}" === "hello"` में; किसी संख्या की तुलना करने के लिए उसे बिना उद्धरण चिह्नों के छोड़ें, जैसे `{{responseStatusCode}} === 200` में।
+
+| मान का प्रकार | कैसे लिखें | उदाहरण |
+| --- | --- | --- |
+| स्ट्रिंग | उद्धरण चिह्नों में | `"{{responseBody.status}}" === "ok"` |
+| संख्या | बिना उद्धरण चिह्नों के | `{{responseTimeInMs}} < 500` |
+| Boolean | बिना उद्धरण चिह्नों के | `{{isOnline}} === true` |
+| ऑब्जेक्ट या ऐरे | बिना उद्धरण चिह्नों के, फिर उसमें इंडेक्स करें | `{{responseHeaders}}['content-type']` |
+
+तीन बातों का ध्यान रखें:
+
+- **उद्धरण चिह्नों में अकेला प्लेसहोल्डर हमेशा सही होता है।** जब फ़ील्ड `false` हो, तब `"{{responseBody.healthy}}"` गैर-खाली स्ट्रिंग `"false"` होता है। इसकी तुलना करें: `"{{responseBody.healthy}}" === "true"`, या इसे बिना उद्धरण चिह्नों के छोड़ें: `{{responseBody.healthy}} === true`।
+- **मान एस्केप नहीं किए जाते।** जिस मान में डबल कोट या लाइन ब्रेक हो, वह स्ट्रिंग को जल्दी खत्म कर देता है, और अभिव्यक्ति विफल हो जाती है। किसी HTML पेज में टेक्स्ट खोजने के लिए इसकी जगह **प्रतिक्रिया बॉडी** फ़िल्टर का उपयोग करें।
+- **मौजूद न होने वाला पाथ वैसा ही रहता है जैसा लिखा गया।** अगर जांच में ऐसा कोई फ़ील्ड नहीं है, तो `{{responseBody.item}}` अभिव्यक्ति में जस का तस रह जाता है, जो आम तौर पर सिंटैक्स त्रुटि होती है — इसलिए फ़िल्टर मेल नहीं खाता।
+
+## सीमाएं
+
+किसी अभिव्यक्ति के पास चलने के लिए 5 सेकंड होते हैं। जो इससे ज़्यादा समय ले, या कोई त्रुटि फेंके, वह मेल नहीं खाती, और त्रुटि OneUptime सर्वर लॉग में लिखी जाती है।
+
+## समस्या निवारण
+
+:::details अभिव्यक्ति कभी मेल नहीं खाती
+पहले उद्धरण चिह्न जांचें: बिना उद्धरण चिह्नों वाला स्ट्रिंग प्लेसहोल्डर एक अकेला शब्द बन जाता है, जो सिंटैक्स त्रुटि है, और त्रुटि कभी मेल नहीं खाती। फिर जांचें कि पाथ जांच के परिणाम में मौजूद है — जो पाथ मौजूद नहीं, उसका प्लेसहोल्डर भरा नहीं जाता।
+:::
+
+:::details अभिव्यक्ति हमेशा मेल खाती है
+उद्धरण चिह्नों में अकेला प्लेसहोल्डर एक गैर-खाली स्ट्रिंग होता है, जो हमेशा truthy होती है। इसकी तुलना किसी मान से करें।
+:::
+
+## अगले कदम
+
+:::cards
+- [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating): घटना के शीर्षकों और विवरणों में यही प्लेसहोल्डर इस्तेमाल करें।
+- [API मॉनिटर](/docs/monitor/api-monitor): किसी HTTP एंडपॉइंट और उसके जवाब की जांच करें।
+- [आने वाले अनुरोध मॉनिटर](/docs/monitor/incoming-request-monitor): दूसरे सिस्टम से आपको भेजे गए अनुरोधों का मूल्यांकन करें।
+:::

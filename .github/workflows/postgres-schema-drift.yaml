@@ -1006,6 +1006,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/SchemaMigrationWaitPostgres.test.ts
           --forceExit
 
+      # Runs app statements that wait on a lock past their client timeout,
+      # through the app's own pool options (CancelOnTimeoutClient): each is
+      # cancelled on the database, its connection closed rather than handed
+      # to the next borrower, and a save() it was part of never committed by
+      # the next request - the database answers the cancel, so nothing of it
+      # lands; where the cancel cannot reach, the save is still rolled back.
+      # With node-postgres' own query_timeout the next borrower committed it.
+      # Its table lives in a schema of its own; it needs no migrated table.
+      - name: Test statements the app stops waiting for on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ABANDONED_STATEMENT_TESTS: "true"
+          ABANDONED_STATEMENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ABANDONED_STATEMENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ABANDONED_STATEMENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AbandonedStatementsPostgres.test.ts
+          --forceExit
+
       - name: Test the configurable rule criteria migration on migrated Postgres
         working-directory: packages/Common
         env:
@@ -1236,6 +1256,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
+
+      # Clones the migrated Project, Probe, VMwareVCenter and
+      # VMwareVCenterConnectionTest tables into an isolated schema and runs
+      # VMware probe collection's hand-written SQL: a probe claims only its
+      # own due vCenters of live projects (FOR UPDATE SKIP LOCKED, the tenancy
+      # backstop, the subscription rule) and two claims never share one; a
+      # report writes only the current settings' status; a settings change
+      # bumps the settings version in one statement; and a connection test is
+      # claimed once - its password wiped as it is handed out - answered only
+      # by its probe, and expired with the reason.
+      - name: Test VMware probe collection's SQL on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_VMWARE_PROBE_COLLECTION_TESTS: "true"
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/VMwareProbeCollectionSqlPostgres.test.ts --forceExit
 
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats

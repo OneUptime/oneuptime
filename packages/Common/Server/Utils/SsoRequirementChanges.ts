@@ -8,6 +8,9 @@ import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import StatementOutcome, {
+  StatementContext,
+} from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
   SignInChangeFailure,
@@ -417,18 +420,20 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Once the write has failed (the error hooks, with what failed): its locks
-   * are given back, once - unless the database may still apply the write,
-   * when they are kept until it would have cancelled it
+   * Once the write has failed (the error hooks, with what failed, and which
+   * step of the update it was - DatabaseService's `failedStatement`): its
+   * locks are given back, once - unless the database may still apply the
+   * write, when they are kept until it would have cancelled it
    * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). Never throws.
    */
   public static async afterFailedUpdate<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await SsoRequirementChanges.release(
       updateBy as unknown as UpdateBy<BaseModel>,
-      { error },
+      { error, context: failedStatement },
     );
   }
 
@@ -451,16 +456,17 @@ export default class SsoRequirementChanges {
 
   /*
    * Once a project's create has failed after the check (ProjectService.
-   * onCreateError, with what failed): the lock its check took is given back,
-   * once - unless the database may still apply the create, when it is kept
-   * until the database would have cancelled it. A project is written by
-   * save(), in a transaction of its own, so only a COMMIT that went
-   * unanswered may still land: an INSERT the client stopped waiting for is
-   * rolled back. Never throws.
+   * onCreateError, with what failed, and which step of the create it was):
+   * the lock its check took is given back, once - unless the database may
+   * still apply the create, when it is kept until the database would have
+   * cancelled it. A project is written by save(), in a transaction of its
+   * own, so only a COMMIT that went unanswered may still land: an INSERT the
+   * client stopped waiting for is rolled back. Never throws.
    */
   public static async afterFailedProjectCreate(
     createBy: CreateBy<Project> | null | undefined,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     if (!createBy) {
       return;
@@ -468,7 +474,10 @@ export default class SsoRequirementChanges {
 
     await SsoRequirementChanges.release(
       createBy as unknown as CreateBy<BaseModel>,
-      { error, context: { inOwnTransaction: true } },
+      {
+        error,
+        context: StatementOutcome.ofCreate(failedStatement),
+      },
     );
   }
 

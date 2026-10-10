@@ -1,6 +1,7 @@
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
+import { getLongestStatementWaitInMs } from "../../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
 import AiCommandCredentialReach, {
   ABANDONED_WRITE_MARGIN_IN_MS,
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
@@ -9,7 +10,10 @@ import AiCommandCredentialReach, {
   LOCK_WAIT_IN_MS,
   getLockTimeoutInMs,
 } from "../../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
-import { PostgresStatementTimeoutMs } from "../../../../Server/EnvironmentConfig";
+import {
+  PostgresQueryTimeoutMs,
+  PostgresStatementTimeoutMs,
+} from "../../../../Server/EnvironmentConfig";
 import {
   COMMIT_STATEMENT,
   INSERT_STATEMENT,
@@ -345,6 +349,20 @@ describe("AiCommandCredentialReach", () => {
       expect(LOCK_TIMEOUT_IN_MS).toBeGreaterThanOrEqual(
         PostgresStatementTimeoutMs + ABANDONED_WRITE_MARGIN_IN_MS,
       );
+    });
+
+    it("outlasts the client's whole wait for a statement: its timeout, and then the answer to the cancel it sends", () => {
+      expect(LOCK_TIMEOUT_IN_MS).toBe(
+        getLockTimeoutInMs(
+          getLongestStatementWaitInMs(PostgresQueryTimeoutMs),
+          PostgresStatementTimeoutMs,
+        ),
+      );
+      expect(LOCK_TIMEOUT_IN_MS).toBeGreaterThan(
+        getLongestStatementWaitInMs(PostgresQueryTimeoutMs),
+      );
+      // The defaults: 35 seconds, 5 more for the cancel's answer, 25 to spare.
+      expect(LOCK_TIMEOUT_IN_MS).toBe(65_000);
     });
 
     it("waits for another write for less than a lock lasts", () => {

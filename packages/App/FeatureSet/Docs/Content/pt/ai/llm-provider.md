@@ -61,7 +61,7 @@ O OneUptime atualmente suporta os seguintes provedores de LLM:
 | Provedor              | Descrição                                                                    | Chave de API Necessária | URL Base Necessária |
 | --------------------- | ---------------------------------------------------------------------------- | ----------------------- | ------------------- |
 | **OpenAI**            | GPT-5.1 e outros modelos OpenAI                                              | Sim                     | Não (usa o padrão)  |
-| **Azure OpenAI**      | Modelos OpenAI hospedados na sua implantação Azure                           | Sim                     | Sim                 |
+| **Azure OpenAI / Microsoft Foundry** | Modelos que você implanta no Microsoft Foundry ou no Azure OpenAI: modelos da OpenAI, Foundry Models e Claude | Sim | Sim |
 | **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 e outros modelos Claude | Sim                     | Não (usa o padrão)  |
 | **Groq**              | Inferência rápida para Llama, Mixtral e outros modelos abertos               | Sim                     | Não (usa o padrão)  |
 | **Mistral**           | Modelos hospedados da Mistral                                                | Sim                     | Não (usa o padrão)  |
@@ -82,7 +82,7 @@ Preencha os seguintes campos:
 
 - **Nome**: Um nome amigável para esta configuração de LLM (ex.: "OpenAI de Produção", "Ollama Local")
 - **Descrição** (opcional): Uma descrição para ajudar a identificar o propósito deste provedor
-- **Provedor LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
+- **Provedor LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
 - **Chave de API**: Sua chave de API (obrigatória para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
 - **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **URL base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
@@ -130,6 +130,10 @@ Nome do Modelo: claude-sonnet-5-5
 O Claude Opus 4.7 e todos os modelos Claude posteriores escolhem a própria amostragem e recusam uma requisição que defina `temperature`, `top_p` ou `top_k`. O OneUptime omite essas configurações nesses modelos. Se mesmo assim um modelo recusar alguma, o OneUptime envia a requisição de novo sem ela e se lembra disso para aquele provedor.
 
 Os modelos Claude 5 pensam antes de responder, e esse raciocínio conta para o limite de tokens da resposta, então o OneUptime reserva espaço para ele. Para que pensem menos, e respondam mais rápido e gastando menos, defina `{"output_config": {"effort": "low"}}` no campo **Parâmetros adicionais** do provedor. O OneUptime envia à Anthropic, em cada requisição, as configurações que você adicionar ali, exceto `model`, `messages`, `system`, `tools`, `tool_choice` e `stream`, que ele mesmo define.
+
+### Azure OpenAI e Microsoft Foundry
+
+Use **Azure OpenAI / Microsoft Foundry** para os modelos que você implanta no Microsoft Foundry ou no Azure OpenAI: modelos da OpenAI, outros Foundry Models e Claude. Digite uma das chaves do recurso como **Chave de API**, o nome da implantação como **Nome do Modelo** e o endpoint do recurso como **URL base**, como `https://contoso-ai.openai.azure.com/openai/v1`. [Microsoft Foundry e Azure OpenAI](/docs/ai/microsoft-foundry) percorre o lado do Azure: o recurso, as permissões, a implantação do modelo, os requisitos de rede e a solução de problemas.
 
 ### Ollama (Auto-Hospedado)
 
@@ -251,7 +255,7 @@ Consulte o [guia de vLLM do Helm chart](https://github.com/OneUptime/oneuptime/b
 
 Para implantações empresariais ou ao usar serviços de proxy, você pode especificar uma URL Base personalizada:
 
-- **Azure OpenAI**: Use a URL do seu endpoint Azure
+- **Azure OpenAI / Microsoft Foundry**: Use o endpoint do seu recurso, como `https://contoso-ai.openai.azure.com/openai/v1`
 - **APIs compatíveis com OpenAI**: Qualquer API que siga a especificação de API da OpenAI
 - **Instâncias privadas do Ollama**: A URL do seu servidor Ollama interno
 
@@ -267,6 +271,7 @@ Para implantações empresariais ou ao usar serviços de proxy, você pode espec
 ### Problemas de Conexão
 
 - **OpenAI/Anthropic**: Verifique se sua chave de API é válida e tem créditos suficientes
+- **Azure OpenAI / Microsoft Foundry**: O erro começa pelo que mudar. [Microsoft Foundry e Azure OpenAI](/docs/ai/microsoft-foundry) explica cada erro com que o Azure responde
 - **Ollama**: Certifique-se de que o servidor Ollama está em execução, escuta em um endereço que o servidor do OneUptime consegue alcançar (`OLLAMA_HOST=0.0.0.0:11434` em uma instalação nativa) e que a URL Base aponta para esse endereço
 - **OpenAI Compatible**: Certifique-se de que a URL Base termina em `/v1` (ou corresponde ao seu servidor), que o Nome do Modelo corresponde a um modelo exposto pelo seu servidor, e defina uma Chave de API somente se o seu servidor exigir uma
 - **"…points to an address OneUptime is not allowed to connect to"**: a URL Base resolve para um endereço recusado — `localhost` ou outro endereço de loopback ou, no OneUptime Cloud, um endereço de rede privada. (O OneUptime Cloud informa um nome de host recusado como "…could not be reached".) Veja [Como escolher a URL base de um modelo auto-hospedado](#como-escolher-a-url-base-de-um-modelo-auto-hospedado)

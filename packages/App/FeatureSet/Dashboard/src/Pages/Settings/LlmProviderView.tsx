@@ -12,6 +12,7 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider, {
@@ -159,7 +160,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
+              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
           },
           {
             field: {
@@ -171,7 +172,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
           },
           {
             field: {
@@ -182,8 +183,12 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: false,
             placeholder: "http://ollama:11434",
+            // The column holds 100 characters; see LlmProviders.tsx.
+            validation: {
+              maxLength: ColumnLength.ShortURL,
+            },
             description:
-              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
+              "Required for Azure OpenAI / Microsoft Foundry, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI / Microsoft Foundry use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
           },
           {
             field: {

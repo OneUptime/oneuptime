@@ -113,7 +113,7 @@ const TITLES: Record<VMwareMetric, string> = {
   overviewVirtualMachineCount: "Virtual Machines",
   overviewDatastoreCount: "Datastores",
   overviewResourcePoolCount: "Resource Pools",
-  overviewAgentStatus: "Agent Status",
+  overviewAgentStatus: "Data Status",
   topHostsByCpu: "Host CPU",
   topHostsByMemory: "Host Memory",
   topDatastoresByUtilization: "Datastore Utilization",

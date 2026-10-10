@@ -1,6 +1,10 @@
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
+import {
+  CANCEL_ANSWER_WAIT_IN_MS,
+  getLongestStatementWaitInMs,
+} from "../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
@@ -456,7 +460,7 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(keeps).toHaveLength(rounds);
     expect(isKept(project)).toBe(false);
     expect(errors).toEqual([
-      "SSO sign-in change: still being written 60 seconds after its check; its locks are no longer kept, and run out.",
+      `SSO sign-in change: still being written ${WRITE_KEEP_LIMIT_IN_MS / 1000} seconds after its check; its locks are no longer kept, and run out.`,
     ]);
 
     await nextRound();
@@ -482,7 +486,7 @@ describe("a checked sign-in change holds its locks for its write", () => {
 
     expect(isKept(project)).toBe(false);
     expect(errors).toEqual([
-      "SSO sign-in change: still being written 60 seconds after its check; its locks are no longer kept, and run out.",
+      `SSO sign-in change: still being written ${WRITE_KEEP_LIMIT_IN_MS / 1000} seconds after its check; its locks are no longer kept, and run out.`,
     ]);
 
     // It comes back at last: nothing more is kept, and no lock counts as lost.
@@ -564,9 +568,19 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(WRITE_KEEP_INTERVAL_IN_MS * 3).toBeLessThanOrEqual(
       LOCK_TIMEOUT_IN_MS,
     );
-    // Longer than the client waits for any one statement; far shorter than holding everyone for good.
-    expect(WRITE_KEEP_LIMIT_IN_MS).toBeGreaterThan(PostgresQueryTimeoutMs);
-    expect(WRITE_KEEP_LIMIT_IN_MS).toBe(60_000);
+    /*
+     * Longer than the client waits for any one statement - its timeout, and
+     * then the answer to the cancel it sends - far shorter than holding
+     * everyone for good.
+     */
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBeGreaterThan(
+      getLongestStatementWaitInMs(PostgresQueryTimeoutMs),
+    );
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBe(
+      getWriteKeepLimitInMs(PostgresQueryTimeoutMs + CANCEL_ANSWER_WAIT_IN_MS),
+    );
+    // The defaults: a 35 second client timeout, 5 more for the cancel's answer, 25 to spare.
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBe(65_000);
   });
 
   test("the keeping outlasts the client's wait for a statement whatever it is set to, and lasts a minute at the least", () => {
