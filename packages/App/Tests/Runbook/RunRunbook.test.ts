@@ -733,3 +733,297 @@ describe("RunRunbook state machine", () => {
     );
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * A run that ends while one of its steps is in flight.
+ *
+ * Cancel Execution writes the run Cancelled and its unfinished steps
+ * Cancelled while a step may still be running - on the Worker (an HTTP or AI
+ * step) or on a Runner, whose job the cancel marks Cancelled too. The
+ * stuck-execution sweep can fail a run the same way. The loop used to write
+ * the step's result straight back when the step returned: the status
+ * Running and its own copy of the steps, so the cancelled steps were Pending
+ * again and it went on to run them. A run cancelled during an HTTP step
+ * finished Completed; one cancelled during a Runner step came back Failed,
+ * because the cancelled job reads as a failed step.
+ *
+ * These tests keep the row the way the database would - every write lands
+ * on it, every read sees it - so a write that revives a finished run is seen
+ * here, which mocks answering the same row each time cannot show.
+ * ---------------------------------------------------------------------------
+ */
+
+interface StoredRow {
+  status: RunbookExecutionStatus;
+  stepExecutions: Array<RunbookStepExecutionState>;
+  failureReason?: string | undefined;
+  startedAt?: Date | undefined;
+  completedAt?: Date | undefined;
+}
+
+const SWEEP_REASON: string =
+  "This runbook execution stopped making progress because the server running it restarted or stopped responding. Run the runbook again to retry it.";
+
+function copyOf<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/*
+ * The execution's row, as the database holds it: findOneById reads a copy of
+ * it, updateOneById writes onto it.
+ */
+function storeRow(stepExecutions: Array<RunbookStepExecutionState>): {
+  row: StoredRow;
+  updateSpy: jest.SpyInstance;
+} {
+  const row: StoredRow = {
+    status: RunbookExecutionStatus.Scheduled,
+    stepExecutions: copyOf(stepExecutions),
+  };
+
+  jest
+    .spyOn(RunbookExecutionService, "findOneById")
+    .mockImplementation((async () => {
+      return {
+        _id: "exec1",
+        projectId: new ObjectID("proj1"),
+        runbookId: new ObjectID("rb1"),
+        runbookNameSnapshot: "Test Runbook",
+        ...copyOf(row),
+      } as unknown as RunbookExecution;
+    }) as never);
+
+  const updateSpy: jest.SpyInstance = jest
+    .spyOn(RunbookExecutionService, "updateOneById")
+    .mockImplementation((async (args: { data: JSONObject }) => {
+      Object.assign(row, copyOf(args.data));
+    }) as never);
+
+  return { row, updateSpy };
+}
+
+// What the cancel route writes (API/Runbook.ts cancelExecution).
+function cancelRow(row: StoredRow): void {
+  row.status = RunbookExecutionStatus.Cancelled;
+  row.completedAt = new Date();
+
+  for (const stepExecution of row.stepExecutions) {
+    if (
+      stepExecution.status === RunbookStepExecutionStatus.Pending ||
+      stepExecution.status === RunbookStepExecutionStatus.Running ||
+      stepExecution.status === RunbookStepExecutionStatus.WaitingForUser
+    ) {
+      stepExecution.status = RunbookStepExecutionStatus.Cancelled;
+    }
+  }
+}
+
+// What the stuck-execution sweep writes (Jobs/Runbook/TimeoutStuckExecutions).
+function sweepRow(row: StoredRow): void {
+  row.status = RunbookExecutionStatus.Failed;
+  row.failureReason = SWEEP_REASON;
+  row.completedAt = new Date();
+}
+
+function statusesOf(row: StoredRow): Array<RunbookStepExecutionStatus> {
+  return row.stepExecutions.map(
+    (stepExecution: RunbookStepExecutionState): RunbookStepExecutionStatus => {
+      return stepExecution.status;
+    },
+  );
+}
+
+async function runStored(): Promise<void> {
+  await new RunRunbook().runExecution({
+    runbookExecutionId: new ObjectID("exec1"),
+  });
+}
+
+describe("RunRunbook: a run that ends while a step is in flight", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    runHttpStepMock.mockReset();
+    runBashStepMock.mockReset();
+    runAiStepMock.mockReset();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a run nobody ends still runs every step and completes (control)", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    runHttpStepMock.mockResolvedValue({ success: true, output: "ok" });
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(2);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.Completed,
+    ]);
+  });
+
+  test("cancelled during a Worker step: it stays Cancelled and no later step runs", async () => {
+    const { row, updateSpy } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+    let writesBeforeCancel: number = 0;
+
+    runHttpStepMock.mockImplementation(async () => {
+      writesBeforeCancel = updateSpy.mock.calls.length;
+      cancelRow(row);
+      return { success: true, output: "HTTP 200" };
+    });
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Cancelled,
+      RunbookStepExecutionStatus.Cancelled,
+      RunbookStepExecutionStatus.Cancelled,
+    ]);
+    // Nothing is written once the run has been cancelled.
+    expect(updateSpy.mock.calls.length).toBe(writesBeforeCancel);
+  });
+
+  test("cancelled during a Runner step: the cancelled job does not turn the run into Failed", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.Bash)),
+    ]);
+
+    runBashStepMock.mockImplementation(async () => {
+      cancelRow(row);
+      // What dispatchToAgent returns for the job the cancel marked Cancelled.
+      return {
+        success: false,
+        output: "",
+        errorMessage: "Step ended with status Cancelled",
+      };
+    });
+
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+    expect(row.failureReason).toBeUndefined();
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Cancelled,
+      RunbookStepExecutionStatus.Cancelled,
+    ]);
+  });
+
+  test("cancelled during a step that may fail: Continue on failure does not carry the run on", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.Bash, { continueOnFailure: true })),
+      pending(makeStep(RunbookStepType.Bash)),
+    ]);
+
+    runBashStepMock.mockImplementation(async () => {
+      cancelRow(row);
+      return {
+        success: false,
+        output: "",
+        errorMessage: "Step ended with status Cancelled",
+      };
+    });
+
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+  });
+
+  test("cancelled during a step that requires approval: the run is not paused again", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest, { requireApproval: true })),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    runHttpStepMock.mockImplementation(async () => {
+      cancelRow(row);
+      return { success: true, output: "HTTP 200" };
+    });
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+    expect(statusesOf(row)).not.toContain(
+      RunbookStepExecutionStatus.WaitingForUser,
+    );
+  });
+
+  test("cancelled during an AI step: it stays Cancelled", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.AI)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    runAiStepMock.mockImplementation(async () => {
+      cancelRow(row);
+      return { success: true, output: "Looks safe to fail over." };
+    });
+
+    await runStored();
+
+    expect(runAiStepMock).toHaveBeenCalledTimes(1);
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+  });
+
+  test("failed by the stuck-execution sweep during a step: the sweep's reason stands", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    runHttpStepMock.mockImplementation(async () => {
+      sweepRow(row);
+      return { success: true, output: "HTTP 200" };
+    });
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Failed);
+    expect(row.failureReason).toBe(SWEEP_REASON);
+  });
+
+  test("a run cancelled while it waits on a person is not touched when the Worker picks it up", async () => {
+    const { row, updateSpy } = storeRow([
+      pending(makeStep(RunbookStepType.Manual)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    // The run reaches the Manual step and pauses.
+    await runStored();
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+
+    // Cancelled while paused; a stray redelivery then reaches the Worker.
+    cancelRow(row);
+    const writes: number = updateSpy.mock.calls.length;
+
+    await runStored();
+
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+    expect(updateSpy.mock.calls.length).toBe(writes);
+  });
+});

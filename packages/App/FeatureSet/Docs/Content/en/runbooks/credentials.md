@@ -54,7 +54,7 @@ On the **Runners** step, pick the Runners that may use the credential, then clic
 
 ### Use it in a step
 
-In an [SSH or Kubernetes step](/docs/runbooks/authoring#step-types), pick one of those Runners, then the credential under **Credential**. A step only offers credentials of its own type.
+In an [SSH or Kubernetes step](/docs/runbooks/authoring#step-types), pick one of those Runners, then the credential under **Credential**. A step only offers credentials of its own type, and saving a step that names a credential takes permission to read runbook credentials.
 :::
 
 ## What is stored

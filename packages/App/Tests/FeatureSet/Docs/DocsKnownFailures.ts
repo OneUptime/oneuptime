@@ -477,25 +477,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "runbooks/agents": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/authoring": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "runbooks/configuration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/credentials": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "runbooks/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "runbooks/rules": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "self-hosted/enterprise": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION,
