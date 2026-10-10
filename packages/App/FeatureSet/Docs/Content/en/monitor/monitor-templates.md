@@ -50,7 +50,7 @@ On **Monitor Defaults**, pick the **Monitor Type**, with the same picker as Crea
 On **Criteria**, fill in what to check and the criteria, as on [Create Monitor](/docs/monitor/create-monitor#criteria). The **Template sync settings** card at the top lets you protect fields from syncs (see [Keep values specific to each monitor](#keep-values-specific-to-each-monitor)). For a monitor type that probes check, the last step, **Interval**, asks for the **Monitoring Interval**. Click **Create Monitor Template** on the last step.
 :::
 
-The template is added to the list. Open it to see its page, with a card for each part: **Template Info**, **Monitor Defaults**, **Monitoring Criteria**, **Monitoring Interval** (with **Minimum Probe Agreement**), **Labels**, **Custom Field Defaults** and **Linked Monitors**. You change each part on its own card, for example with **Edit Criteria** or **Edit Interval**.
+The template is added to the list. Open it to see its page, with a card for each part: **Template Info**, **Monitor Defaults**, **Monitoring Criteria**, **Monitoring Interval** (with **Minimum Probe Agreement**), **Labels**, **Custom Field Defaults** (when the project has monitor custom fields) and **Linked Monitors**. You change each part on its own card, for example with **Edit Criteria** or **Edit Interval**.
 
 ## Create monitors from a template
 
@@ -93,7 +93,7 @@ In **Template sync settings**, check **Do not sync this field** beside each fiel
 
 ### Save
 
-Save your changes. The **Monitoring Criteria** card, and the confirmation of every sync, list the protected fields.
+Save your changes. The **Monitoring Criteria** card, and the confirmation of both syncs below, list the protected fields.
 
 ### Sync
 
@@ -144,10 +144,10 @@ Omit the array or set it to `[]` to sync every supported step setting. Unsupport
 :::details Field names for doNotSyncFields, by monitor type
 | Monitor type | Field names |
 | --- | --- |
-| Website, API, Ping, IP, Port, SSL Certificate | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Website, API, Ping, IP, Port, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | API only | `requestHeaders`, `requestType`, `requestBody` |
 | Website and API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (the client certificate, key and passphrase together) |
-| Port | `monitorDestinationPort` |
+| Port, NTP | `monitorDestinationPort` |
 | Synthetic Monitor, Custom JavaScript Code | `customCode` |
 | Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (the DNS server and port together), `dnsMonitor.timeout`, `dnsMonitor.retries` |
@@ -156,9 +156,9 @@ Omit the array or set it to `[]` to sync every supported step setting. Unsupport
 | SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Logs, Security Events, Traces, Metrics, Exceptions | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `metricMonitor`, `exceptionMonitor` (the whole query configuration) |
+| Logs, Security Events, Traces, AI / LLM, Metrics, Exceptions | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (the monitor's whole configuration) |
 
-Infrastructure monitors (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters, metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
+Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
 :::
 
 ## Troubleshooting
