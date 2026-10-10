@@ -4,21 +4,28 @@ import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublic
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
-import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import { RUNBOOK_RUN_PERMISSIONS } from "../../../../Types/Runbook/RunbookRunPermissions";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import IncidentPublicNoteService from "../../../Services/IncidentPublicNoteService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookRuleEngineService from "../../../Services/RunbookRuleEngineService";
+import { assertCanExecuteRunbooks } from "../../Runbook/RunbookExecutePermission";
+import RunbookRunAccess from "../../Runbook/RunbookRunAccess";
+import WorkspaceMemberActions, {
+  WorkspaceEventType,
+} from "../../Workspace/WorkspaceMemberActions";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -33,10 +40,12 @@ import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
  * AI "action belt" — Phase 0.
  *
  * Mutating tools that let the copilot OPERATE the platform (not just answer
- * questions), each a thin wrapper over an already-RBAC-tested service method.
- * They are gated twice: by the tool's requiredPermissions (RBAC) and by the
- * conversation's permission mode (approval / auto-run / hidden in read-only).
- * The acting user is always ctx.props.userId — never a tool argument.
+ * questions). They are gated twice: by the tool's requiredPermissions (RBAC)
+ * and by the conversation's permission mode (approval / auto-run / hidden in
+ * read-only). Each makes the change the dashboard makes for the same action,
+ * held to the same checks, with the requesting user's props (ctx.props,
+ * never a tool argument): what they may not do in the dashboard, they may
+ * not do here.
  *
  * Permissions are resolved lazily (not at module load) because this module is
  * pulled in through the service import graph before the model classes are fully
@@ -63,13 +72,18 @@ const resolvePublicNoteCreatePermissions: () => Array<Permission> =
     return cachedPublicNoteCreatePermissions;
   };
 
-let cachedRunbookUpdatePermissions: Array<Permission> | null = null;
-const resolveRunbookUpdatePermissions: () => Array<Permission> =
+/*
+ * Paging an on-call policy is the creation of its execution log, as the
+ * dashboard's Execute On-Call Policy creates it.
+ */
+let cachedExecutionLogCreatePermissions: Array<Permission> | null = null;
+const resolveExecutionLogCreatePermissions: () => Array<Permission> =
   (): Array<Permission> => {
-    if (!cachedRunbookUpdatePermissions) {
-      cachedRunbookUpdatePermissions = new Runbook().getUpdatePermissions();
+    if (!cachedExecutionLogCreatePermissions) {
+      cachedExecutionLogCreatePermissions =
+        new OnCallDutyPolicyExecutionLog().getCreatePermissions();
     }
-    return cachedRunbookUpdatePermissions;
+    return cachedExecutionLogCreatePermissions;
   };
 
 /*
@@ -97,7 +111,7 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
     required: ["onCallDutyPolicyId", "incidentId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveIncidentUpdatePermissions();
+    return resolveExecutionLogCreatePermissions();
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
@@ -127,7 +141,7 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
       );
     }
 
-    // Visibility checks under the user's RBAC (execution runs as root inside the service).
+    // The policy and the incident as the person reads them.
     const policy: OnCallDutyPolicy | null =
       await OnCallDutyPolicyService.findOneById({
         id: policyId,
@@ -140,9 +154,9 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
       );
     }
     /*
-     * Refused here rather than left to executePolicy, which would record a
-     * skipped execution: this tool would then tell the user "responders are
-     * being notified" when nobody is.
+     * Refused here rather than left to the execution log, which records an
+     * archived policy's execution as skipped: this tool would then tell the
+     * user "responders are being notified" when nobody is.
      */
     if (policy.isArchived) {
       throw new BadDataException(
@@ -161,9 +175,17 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
       );
     }
 
-    await OnCallDutyPolicyService.executePolicy(policyId, {
-      triggeredByIncidentId: incidentId,
-      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+    /*
+     * Paging is the policy's execution log, triggered by the incident, as
+     * the dashboard's Execute On-Call Policy creates it - created as the
+     * person who asked (WorkspaceMemberActions), so it is held to their
+     * permission to execute on-call policies, their read of the policy and
+     * of the incident, and the project's plan.
+     */
+    await WorkspaceMemberActions.executeOnCallPolicy({
+      event: { type: WorkspaceEventType.Incident, id: incidentId },
+      onCallDutyPolicyId: policyId,
+      props: ctx.props,
     });
 
     const incidentIdString: string = incidentId.toString();
@@ -229,7 +251,8 @@ export const RunRunbookTool: ObservabilityTool = {
     required: ["runbookId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveRunbookUpdatePermissions();
+    // Who may start a run, as the dashboard's Run Runbook asks.
+    return [...RUNBOOK_RUN_PERMISSIONS];
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
@@ -261,7 +284,15 @@ export const RunRunbookTool: ObservabilityTool = {
       "incidentId",
     );
 
-    // Visibility check under the user's RBAC.
+    /*
+     * Asked as the dashboard's Run Runbook asks it
+     * (App/FeatureSet/Runbook/API/Runbook): a permission to start runs,
+     * which runbooks the person's grant reaches (their labels, owned scope
+     * and blocks), and a read of the incident the run is linked to. The run
+     * is then written by OneUptime, as that route writes it.
+     */
+    assertCanExecuteRunbooks(ctx.props, ctx.projectId);
+
     const runbook: Runbook | null = await RunbookService.findOneById({
       id: runbookId,
       select: { _id: true, name: true },
@@ -272,6 +303,12 @@ export const RunRunbookTool: ObservabilityTool = {
         "Runbook not found (or you do not have access to it).",
       );
     }
+
+    await RunbookRunAccess.assertMayStart({
+      databaseProps: ctx.props,
+      projectId: ctx.projectId,
+      runbookId: runbookId,
+    });
 
     /*
      * Only link an incident the caller can actually read in this project.
@@ -577,13 +614,26 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
       );
     }
 
-    await IncidentService.updateOneById({
+    /*
+     * Changed as the person: an incident they may read but not change
+     * (outside their labels or owners, say) changes nothing, and they are
+     * told so rather than told it changed.
+     */
+    const updatedCount: number = await IncidentService.updateOneById({
       id: incidentId,
       data: {
         incidentSeverityId: severity.id!,
       },
       props: ctx.props,
     });
+
+    if (updatedCount === 0) {
+      throw await IncidentService.getUnwrittenByIdError({
+        id: incidentId,
+        props: ctx.props,
+        type: DatabaseRequestType.Update,
+      });
+    }
 
     const incidentIdString: string = incidentId.toString();
 

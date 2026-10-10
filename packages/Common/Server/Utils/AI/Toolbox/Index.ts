@@ -1,5 +1,7 @@
 import { JSONObject } from "../../../../Types/JSON";
-import Permission from "../../../../Types/Permission";
+import Permission, { PermissionHelper } from "../../../../Types/Permission";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
@@ -334,10 +336,25 @@ export default class AIToolbox {
       };
     }
 
+    /*
+     * A tool that changes the project writes as the person who asked for it,
+     * with their props: what they may not do in the dashboard, it does not
+     * do (every write tool makes the dashboard's own write). A run with no
+     * such person - a system run as OneUptime - has nobody to write as, so
+     * it changes nothing.
+     */
+    if (tool.isMutation && !this.isPersonContext(data.ctx)) {
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
+      };
+    }
+
     if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
       return {
         success: false,
-        textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.`,
+        textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.${this.describeRequiredPermissions(tool, data.args)}`,
         errorMessage: `Permission denied for tool: ${data.name}`,
       };
     }
@@ -363,6 +380,24 @@ export default class AIToolbox {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
+      /*
+       * A refusal - the person may not make this change, or the project's
+       * plan does not include it - is no mistake in the arguments: retrying
+       * cannot help, so the model is told to say what was refused, plainly.
+       */
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException
+      ) {
+        logger.debug(`AI toolbox tool ${data.name} was refused: ${message}`);
+
+        return {
+          success: false,
+          textForLlm: `Refused: ${data.name} was not allowed for the current user. ${message} Do not retry it. Tell the user plainly that it was not done, and why.`,
+          errorMessage: message,
+        };
+      }
+
       logger.error(`AI toolbox tool ${data.name} failed: ${message}`);
 
       return {
@@ -371,5 +406,29 @@ export default class AIToolbox {
         errorMessage: message,
       };
     }
+  }
+
+  /*
+   * Whether a tool runs for a signed-in person: a user, not OneUptime
+   * itself. Only then is there someone a change can be made as.
+   */
+  public static isPersonContext(ctx: ToolContext): boolean {
+    return Boolean(ctx.props.userId) && !ctx.props.isRoot;
+  }
+
+  // " It needs one of these permissions: ...", for a tool with one list.
+  private static describeRequiredPermissions(
+    tool: ObservabilityTool,
+    args: JSONObject,
+  ): string {
+    const groups: Array<Array<Permission>> = tool.getRequiredPermissionGroups
+      ? tool.getRequiredPermissionGroups(args)
+      : [tool.requiredPermissions];
+
+    if (groups.length !== 1 || groups[0]!.length === 0) {
+      return "";
+    }
+
+    return ` It needs one of these permissions: ${PermissionHelper.getPermissionTitles(groups[0]!).join(", ")}.`;
   }
 }

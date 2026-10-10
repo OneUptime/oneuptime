@@ -763,82 +763,29 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  @CaptureSpan()
-  public async resolveIncident(
-    incidentId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    // check if the incident is already resolved.
-    const isIncidentResolved: boolean = await this.isIncidentResolved({
-      incidentId: incidentId,
-    });
-
-    if (isIncidentResolved) {
-      throw new BadDataException("Incident is already resolved.");
-    }
-
-    const incident: Model | null = await this.findOneById({
-      id: incidentId,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!incident || !incident.projectId) {
-      throw new BadDataException("Incident not found.");
-    }
-
-    // The project's resolved state: the first from the top flagged resolved.
-    const incidentState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState.id) {
-      throw new BadDataException(
-        "Resolved state not found for this project. Please add resolved state from settings.",
-      );
-    }
-
-    const incidentStateTimeline: IncidentStateTimeline =
-      new IncidentStateTimeline();
-    incidentStateTimeline.projectId = incident.projectId;
-    incidentStateTimeline.incidentId = incidentId;
-    incidentStateTimeline.incidentStateId = incidentState.id;
-    incidentStateTimeline.createdByUserId = resolvedByUserId;
-
-    await IncidentStateTimelineService.create({
-      data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store incident metric
-
-    return incident;
-  }
-
   /*
-   * Acknowledges the incident, as the user: moves it into its project's
-   * acknowledged state - the first from the top flagged acknowledged. One
-   * that is acknowledged already, or further along, is refused with a
-   * sentence that says which (Common/Utils/AcknowledgedState) rather than
-   * moved back up its list - whichever channel asked: Slack, Microsoft
-   * Teams, OneUptime AI.
+   * Acknowledges the incident: moves it into its project's acknowledged
+   * state - the first from the top flagged acknowledged. One that is
+   * acknowledged already, or further along, is refused with a sentence that
+   * says which (Common/Utils/AcknowledgedState) rather than moved back up
+   * its list. The state timeline row is created with `props`, crediting
+   * `acknowledgedByUserId`.
+   *
+   * A person's acknowledge - from the dashboard, Slack, Microsoft Teams or
+   * OneUptime AI - is the state timeline row created with their own props
+   * (WorkspaceMemberActions). What is left here is OneUptime's own
+   * acknowledge, made once a responder has answered an on-call page about
+   * the incident (UserOnCallLogTimelineService), which says so by passing
+   * root props.
    */
   @CaptureSpan()
-  public async acknowledgeIncident(
-    incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<Model> {
+  public async acknowledgeIncident(data: {
+    incidentId: ObjectID;
+    acknowledgedByUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    const { incidentId, acknowledgedByUserId } = data;
+
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
@@ -895,9 +842,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await IncidentStateTimelineService.create({
       data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     // store incident metric

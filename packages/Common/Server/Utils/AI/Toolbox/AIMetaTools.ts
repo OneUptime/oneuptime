@@ -6,6 +6,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Query from "../../../../Types/BaseDatabase/Query";
 import OneUptimeDate from "../../../../Types/Date";
@@ -126,6 +127,45 @@ interface AIInvestigationSubject {
   // First affected monitor — the dedupe key the automatic investigation lanes record.
   monitorId: ObjectID | undefined;
 }
+
+/*
+ * Starting an investigation posts its findings to the subject's timeline,
+ * so the person asking must be one who may change that incident or alert:
+ * the gate's update permission, held to this record - their labels, owners
+ * and team's blocks - as an update of it is held (findOneUpdatableById).
+ * The run itself is OneUptime's, as the automatic investigations are.
+ */
+const assertMayChangeInvestigationSubject: (
+  incidentId: ObjectID | undefined,
+  alertId: ObjectID | undefined,
+  ctx: ToolContext,
+  subject: AIInvestigationSubject,
+) => Promise<void> = async (
+  incidentId: ObjectID | undefined,
+  alertId: ObjectID | undefined,
+  ctx: ToolContext,
+  subject: AIInvestigationSubject,
+): Promise<void> => {
+  const changeable: Incident | Alert | null = incidentId
+    ? await IncidentService.findOneUpdatableById({
+        id: incidentId,
+        select: { _id: true },
+        props: ctx.props,
+      })
+    : alertId
+      ? await AlertService.findOneUpdatableById({
+          id: alertId,
+          select: { _id: true },
+          props: ctx.props,
+        })
+      : null;
+
+  if (!changeable) {
+    throw new NotAuthorizedException(
+      `You do not have permission to change ${subject.label}, so you cannot start an AI investigation of it.`,
+    );
+  }
+};
 
 const fetchInvestigationSubject: (
   incidentId: ObjectID | undefined,
@@ -727,6 +767,8 @@ export const StartInvestigationTool: ObservabilityTool = {
         `${incidentId ? "Incident" : "Alert"} not found (or you do not have access to it).`,
       );
     }
+
+    await assertMayChangeInvestigationSubject(incidentId, alertId, ctx, subject);
 
     const subjectRunQuery: Query<AIRun> = buildSubjectRunQuery(
       incidentId,
