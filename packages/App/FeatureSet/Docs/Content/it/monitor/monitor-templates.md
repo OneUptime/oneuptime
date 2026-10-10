@@ -93,7 +93,7 @@ In **Template sync settings**, spuntate **Do not sync this field** accanto a ogn
 
 ### Salvare
 
-Salvate le modifiche. La scheda **Criteri di monitoraggio**, e la conferma di ogni sincronizzazione, elencano i campi protetti.
+Salvate le modifiche. La scheda **Criteri di monitoraggio**, e la conferma di entrambe le sincronizzazioni qui sotto, elencano i campi protetti.
 
 ### Sincronizzare
 
@@ -158,7 +158,7 @@ Omettete l'array o impostatelo a `[]` per sincronizzare tutte le impostazioni de
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Registri, Security Events, Tracce, IA / LLM, Metriche, Eccezioni | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (l'intera configurazione del monitor) |
 
-I monitor dell'infrastruttura (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Array di storage, IoT Device) offrono il loro selettore di risorse, i filtri, le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Template sync settings** su un modello di quel tipo.
+I monitor dell'infrastruttura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array di storage, IoT Device) offrono il loro selettore di risorse, i filtri (tutti tranne Host), le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Template sync settings** su un modello di quel tipo.
 :::
 
 ## Risoluzione dei problemi

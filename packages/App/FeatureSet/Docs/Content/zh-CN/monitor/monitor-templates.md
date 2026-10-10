@@ -93,7 +93,7 @@ flowchart TB
 
 ### 保存
 
-保存更改。**监控条件** 卡片以及每次同步的确认框都会列出受保护的字段。
+保存更改。**监控条件** 卡片以及下方两种同步的确认框都会列出受保护的字段。
 
 ### 同步
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | 日志、Security Events、追踪、AI / LLM、指标、异常 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`（监视器的整个配置） |
 
-基础设施监视器（Kubernetes、Docker、主机、Podman、Proxmox、Docker Swarm、Ceph、存储阵列、IoT Device）可以保护它们的资源选择器、筛选条件、指标查询和查询时间窗口。这些名称列在该类型模板的 **Template sync settings** 中。
+基础设施监视器（Kubernetes、Docker Container、主机、Podman Container、Proxmox、Docker Swarm、Ceph、存储阵列、IoT Device）可以保护它们的资源选择器、筛选条件（主机除外）、指标查询和查询时间窗口。这些名称列在该类型模板的 **Template sync settings** 中。
 :::
 
 ## 故障排查

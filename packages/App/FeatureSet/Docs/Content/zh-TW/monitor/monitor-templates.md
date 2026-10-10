@@ -93,7 +93,7 @@ flowchart TB
 
 ### 儲存
 
-儲存變更。**監測條件** 卡片以及每次同步的確認對話方塊都會列出受保護的欄位。
+儲存變更。**監測條件** 卡片以及下方兩種同步的確認對話方塊都會列出受保護的欄位。
 
 ### 同步
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | 日誌、Security Events、追蹤、AI / LLM、指標、例外 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`（監測器的整個設定） |
 
-基礎設施監測器（Kubernetes、Docker、主機、Podman、Proxmox、Docker Swarm、Ceph、儲存陣列、IoT Device）可以保護它們的資源選擇器、篩選條件、指標查詢和查詢時間範圍。這些名稱列在該類型範本的 **Template sync settings** 中。
+基礎設施監測器（Kubernetes、Docker Container、主機、Podman Container、Proxmox、Docker Swarm、Ceph、儲存陣列、IoT Device）可以保護它們的資源選擇器、篩選條件（主機除外）、指標查詢和查詢時間範圍。這些名稱列在該類型範本的 **Template sync settings** 中。
 :::
 
 ## 疑難排解

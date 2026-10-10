@@ -93,7 +93,7 @@ En **Ajustes de sincronización de la plantilla**, marque **No sincronizar este 
 
 ### Guardar
 
-Guarde los cambios. La tarjeta **Criterios de monitoreo**, y la confirmación de cada sincronización, listan los campos protegidos.
+Guarde los cambios. La tarjeta **Criterios de monitoreo**, y la confirmación de las dos sincronizaciones de abajo, listan los campos protegidos.
 
 ### Sincronizar
 
@@ -158,7 +158,7 @@ Omita el array o póngalo en `[]` para sincronizar todos los ajustes de paso adm
 | Página de estado externa | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Registros, Eventos de seguridad, Trazas, IA / LLM, Métricas, Excepciones | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (toda la configuración del monitor) |
 
-Los monitores de infraestructura (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Cabina de almacenamiento, Dispositivo IoT) ofrecen su selector de recursos, filtros, consultas de métricas y ventana de tiempo de consulta. Sus nombres aparecen en **Ajustes de sincronización de la plantilla** en una plantilla de ese tipo.
+Los monitores de infraestructura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Cabina de almacenamiento, Dispositivo IoT) ofrecen su selector de recursos, filtros (todos salvo Host), consultas de métricas y ventana de tiempo de consulta. Sus nombres aparecen en **Ajustes de sincronización de la plantilla** en una plantilla de ese tipo.
 :::
 
 ## Solución de problemas

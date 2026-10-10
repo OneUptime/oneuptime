@@ -93,7 +93,7 @@ flowchart TB
 
 ### ذخیره
 
-تغییراتتان را ذخیره کنید. کارت **معیارهای پایش** و تأییدیهٔ هر همگام‌سازی فیلدهای محافظت‌شده را فهرست می‌کنند.
+تغییراتتان را ذخیره کنید. کارت **معیارهای پایش** و تأییدیهٔ هر دو همگام‌سازی زیر فیلدهای محافظت‌شده را فهرست می‌کنند.
 
 ### همگام‌سازی
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | لاگ‌ها، Security Events، ترِیس‌ها، هوش مصنوعی / LLM، متریک‌ها، استثناها | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (کل پیکربندی مانیتور) |
 
-مانیتورهای زیرساخت (Kubernetes، Docker، میزبان، Podman، Proxmox، Docker Swarm، Ceph، آرایه ذخیره‌سازی، IoT Device) انتخاب‌گر منبع، فیلترها، کوئری‌های متریک و بازهٔ زمانی کوئری خود را برای محافظت ارائه می‌کنند. نام آن‌ها در **Template sync settings** روی قالبی از همان نوع فهرست شده است.
+مانیتورهای زیرساخت (Kubernetes، Docker Container، میزبان، Podman Container، Proxmox، Docker Swarm، Ceph، آرایه ذخیره‌سازی، IoT Device) انتخاب‌گر منبع، فیلترها (همه جز میزبان)، کوئری‌های متریک و بازهٔ زمانی کوئری خود را برای محافظت ارائه می‌کنند. نام آن‌ها در **Template sync settings** روی قالبی از همان نوع فهرست شده است.
 :::
 
 ## رفع اشکال

@@ -93,7 +93,7 @@ flowchart TB
 
 ### 保存する
 
-変更を保存します。**監視条件** カードと各同期の確認画面に、保護されたフィールドが一覧表示されます。
+変更を保存します。**監視条件** カードと次の 2 つの同期の確認画面に、保護されたフィールドが一覧表示されます。
 
 ### 同期する
 
@@ -158,7 +158,7 @@ flowchart TB
 | 外部ステータスページ | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | ログ、セキュリティイベント、トレース、AI / LLM、メトリクス、例外 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`（モニターの構成全体） |
 
-インフラストラクチャのモニター（Kubernetes、Docker、ホスト、Podman、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
+インフラストラクチャのモニター（Kubernetes、Docker Container、ホスト、Podman Container、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
 :::
 
 ## トラブルシューティング

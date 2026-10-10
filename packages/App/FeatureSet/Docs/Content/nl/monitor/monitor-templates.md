@@ -93,7 +93,7 @@ Vink onder **Template sync settings** **Do not sync this field** aan naast elk v
 
 ### Opslaan
 
-Sla uw wijzigingen op. De kaart **Bewakingscriteria**, en de bevestiging van elke synchronisatie, tonen de beschermde velden.
+Sla uw wijzigingen op. De kaart **Bewakingscriteria**, en de bevestiging van beide synchronisaties hieronder, tonen de beschermde velden.
 
 ### Synchroniseren
 
@@ -158,7 +158,7 @@ Laat de array weg of zet hem op `[]` om elke ondersteunde stapinstelling te sync
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Logboeken, Security Events, Traces, AI / LLM, Metrieken, Uitzonderingen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (de hele configuratie van de monitor) |
 
-Infrastructuurmonitoren (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters, metriekquery's en het tijdvenster van de query. Hun namen staan onder **Template sync settings** op een sjabloon van dat type.
+Infrastructuurmonitoren (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Template sync settings** op een sjabloon van dat type.
 :::
 
 ## Problemen oplossen

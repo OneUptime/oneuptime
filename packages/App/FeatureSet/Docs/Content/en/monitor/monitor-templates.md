@@ -93,7 +93,7 @@ In **Template sync settings**, check **Do not sync this field** beside each fiel
 
 ### Save
 
-Save your changes. The **Monitoring Criteria** card, and the confirmation of every sync, list the protected fields.
+Save your changes. The **Monitoring Criteria** card, and the confirmation of both syncs below, list the protected fields.
 
 ### Sync
 
@@ -158,7 +158,7 @@ Omit the array or set it to `[]` to sync every supported step setting. Unsupport
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Logs, Security Events, Traces, AI / LLM, Metrics, Exceptions | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (the monitor's whole configuration) |
 
-Infrastructure monitors (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters, metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
+Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
 :::
 
 ## Troubleshooting

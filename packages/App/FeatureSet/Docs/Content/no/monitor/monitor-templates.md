@@ -93,7 +93,7 @@ Under **Template sync settings** krysser du av for **Do not sync this field** ve
 
 ### Lagre
 
-Lagre endringene. Kortet **Overvåkingskriterier**, og bekreftelsen av hver synkronisering, viser de beskyttede feltene.
+Lagre endringene. Kortet **Overvåkingskriterier**, og bekreftelsen av begge synkroniseringene nedenfor, viser de beskyttede feltene.
 
 ### Synkroniser
 
@@ -158,7 +158,7 @@ Utelat matrisen, eller sett den til `[]`, for å synkronisere alle støttede tri
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Logger, Security Events, Spor, AI / LLM, Målinger, Unntak | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (hele monitorens konfigurasjon) |
 
-Infrastrukturmonitorer (Kubernetes, Docker, Vert, Podman, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre, metrikkspørringer og spørringens tidsvindu. Navnene deres står under **Template sync settings** på en mal av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), metrikkspørringer og spørringens tidsvindu. Navnene deres står under **Template sync settings** på en mal av den typen.
 :::
 
 ## Feilsøking

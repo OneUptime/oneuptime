@@ -93,7 +93,7 @@ Em **Template sync settings**, marque **Do not sync this field** ao lado de cada
 
 ### Salvar
 
-Salve as alterações. O cartão **Critérios de Monitoramento**, e a confirmação de cada sincronização, listam os campos protegidos.
+Salve as alterações. O cartão **Critérios de Monitoramento**, e a confirmação das duas sincronizações abaixo, listam os campos protegidos.
 
 ### Sincronizar
 
@@ -158,7 +158,7 @@ Omita o array ou defina-o como `[]` para sincronizar todas as configurações de
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Registros, Security Events, Traços, IA / LLM, Métricas, Exceções | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (toda a configuração do monitor) |
 
-Os monitores de infraestrutura (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Array de armazenamento, IoT Device) oferecem o seu seletor de recursos, filtros, consultas de métricas e janela de tempo da consulta. Os nomes deles aparecem em **Template sync settings** em um modelo desse tipo.
+Os monitores de infraestrutura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array de armazenamento, IoT Device) oferecem o seu seletor de recursos, filtros (todos exceto Host), consultas de métricas e janela de tempo da consulta. Os nomes deles aparecem em **Template sync settings** em um modelo desse tipo.
 :::
 
 ## Solução de problemas

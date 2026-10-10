@@ -93,7 +93,7 @@ flowchart TB
 
 ### सहेजें
 
-अपने बदलाव सहेजें। **निगरानी मानदंड** कार्ड, और हर सिंक की पुष्टि, सुरक्षित फ़ील्ड की सूची दिखाते हैं।
+अपने बदलाव सहेजें। **निगरानी मानदंड** कार्ड, और नीचे के दोनों सिंक की पुष्टि, सुरक्षित फ़ील्ड की सूची दिखाते हैं।
 
 ### सिंक करें
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | लॉग, Security Events, ट्रेस, AI / LLM, मेट्रिक्स, अपवाद | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (मॉनिटर का पूरा कॉन्फ़िगरेशन) |
 
-इन्फ्रास्ट्रक्चर मॉनिटर (Kubernetes, Docker, होस्ट, Podman, Proxmox, Docker Swarm, Ceph, स्टोरेज ऐरे, IoT Device) अपना संसाधन सेलेक्टर, फ़िल्टर, मेट्रिक क्वेरी और क्वेरी टाइम विंडो सुरक्षित करने देते हैं। उनके नाम उस प्रकार के टेम्पलेट पर **Template sync settings** में दिखते हैं।
+इन्फ्रास्ट्रक्चर मॉनिटर (Kubernetes, Docker Container, होस्ट, Podman Container, Proxmox, Docker Swarm, Ceph, स्टोरेज ऐरे, IoT Device) अपना संसाधन सेलेक्टर, फ़िल्टर (होस्ट को छोड़कर), मेट्रिक क्वेरी और क्वेरी टाइम विंडो सुरक्षित करने देते हैं। उनके नाम उस प्रकार के टेम्पलेट पर **Template sync settings** में दिखते हैं।
 :::
 
 ## समस्या निवारण

@@ -93,7 +93,7 @@ Under **Template sync settings** markerar du **Do not sync this field** bredvid 
 
 ### Spara
 
-Spara dina ändringar. Kortet **Övervakningskriterier** och bekräftelsen av varje synkronisering listar de skyddade fälten.
+Spara dina ändringar. Kortet **Övervakningskriterier** och bekräftelsen av båda synkroniseringarna nedan listar de skyddade fälten.
 
 ### Synkronisera
 
@@ -158,7 +158,7 @@ Utelämna arrayen eller sätt den till `[]` för att synkronisera alla steginst�
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Loggar, Security Events, Spår, AI / LLM, Mätvärden, Undantag | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (monitorns hela konfiguration) |
 
-Infrastrukturmonitorer (Kubernetes, Docker, Värd, Podman, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) erbjuder sin resursväljare, filter, mätvärdesfrågor och frågans tidsfönster. Deras namn listas under **Template sync settings** på en mall av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Värd, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) erbjuder sin resursväljare, filter (alla utom Värd), mätvärdesfrågor och frågans tidsfönster. Deras namn listas under **Template sync settings** på en mall av den typen.
 :::
 
 ## Felsökning

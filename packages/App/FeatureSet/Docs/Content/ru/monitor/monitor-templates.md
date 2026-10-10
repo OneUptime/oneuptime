@@ -93,7 +93,7 @@ flowchart TB
 
 ### Сохраните
 
-Сохраните изменения. Карточка **Критерии мониторинга** и подтверждение каждой синхронизации перечисляют защищённые поля.
+Сохраните изменения. Карточка **Критерии мониторинга** и подтверждение обеих синхронизаций ниже перечисляют защищённые поля.
 
 ### Синхронизируйте
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Журналы, Security Events, Трассировки, ИИ / LLM, Метрики, Исключения | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (вся конфигурация монитора) |
 
-Мониторы инфраструктуры (Kubernetes, Docker, Хост, Podman, Proxmox, Docker Swarm, Ceph, Система хранения, IoT Device) предлагают свой селектор ресурсов, фильтры, запросы метрик и временное окно запроса. Их имена перечислены в **Template sync settings** в шаблоне этого типа.
+Мониторы инфраструктуры (Kubernetes, Docker Container, Хост, Podman Container, Proxmox, Docker Swarm, Ceph, Система хранения, IoT Device) предлагают свой селектор ресурсов, фильтры (все, кроме Хоста), запросы метрик и временное окно запроса. Их имена перечислены в **Template sync settings** в шаблоне этого типа.
 :::
 
 ## Устранение неполадок

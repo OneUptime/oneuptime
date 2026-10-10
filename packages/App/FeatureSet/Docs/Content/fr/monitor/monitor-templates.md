@@ -93,7 +93,7 @@ Dans **Template sync settings**, cochez **Ne pas synchroniser ce champ** à côt
 
 ### Enregistrer
 
-Enregistrez vos modifications. La carte **Critères de surveillance**, et la confirmation de chaque synchronisation, listent les champs protégés.
+Enregistrez vos modifications. La carte **Critères de surveillance**, et la confirmation des deux synchronisations ci-dessous, listent les champs protégés.
 
 ### Synchroniser
 
@@ -158,7 +158,7 @@ Omettez le tableau ou mettez-le à `[]` pour synchroniser chaque réglage d'éta
 | Page de statut externe | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Journaux, Événements de sécurité, Traces, IA / LLM, Métriques, Exceptions | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (toute la configuration du moniteur) |
 
-Les moniteurs d'infrastructure (Kubernetes, Docker, Hôte, Podman, Proxmox, Docker Swarm, Ceph, Baie de stockage, Appareil IoT) proposent leur sélecteur de ressources, leurs filtres, leurs requêtes de métriques et leur fenêtre de requête. Leurs noms sont listés dans **Template sync settings** sur un modèle de ce type.
+Les moniteurs d'infrastructure (Kubernetes, Docker Container, Hôte, Podman Container, Proxmox, Docker Swarm, Ceph, Baie de stockage, Appareil IoT) proposent leur sélecteur de ressources, leurs filtres (tous sauf Hôte), leurs requêtes de métriques et leur fenêtre de requête. Leurs noms sont listés dans **Template sync settings** sur un modèle de ce type.
 :::
 
 ## Dépannage

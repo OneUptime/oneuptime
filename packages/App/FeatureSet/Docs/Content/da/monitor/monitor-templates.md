@@ -93,7 +93,7 @@ Sæt under **Template sync settings** flueben i **Do not sync this field** ud fo
 
 ### Gem
 
-Gem dine ændringer. Kortet **Overvågningskriterier** og bekræftelsen af hver synkronisering viser de beskyttede felter.
+Gem dine ændringer. Kortet **Overvågningskriterier** og bekræftelsen af begge synkroniseringer nedenfor viser de beskyttede felter.
 
 ### Synkronisér
 
@@ -158,7 +158,7 @@ Udelad arrayet, eller sæt det til `[]`, for at synkronisere alle understøttede
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Protokoller, Security Events, Spor, AI / LLM, Metrikker, Undtagelser | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (monitorens hele konfiguration) |
 
-Infrastrukturmonitorer (Kubernetes, Docker, Vært, Podman, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT Device) tilbyder deres ressourcevælger, filtre, metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Template sync settings** på en skabelon af den type.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Vært, Podman Container, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT Device) tilbyder deres ressourcevælger, filtre (alle undtagen Vært), metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Template sync settings** på en skabelon af den type.
 :::
 
 ## Fejlfinding

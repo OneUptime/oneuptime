@@ -93,7 +93,7 @@ flowchart TB
 
 ### 저장
 
-변경 사항을 저장합니다. **모니터링 기준** 카드와 각 동기화의 확인 창에 보호된 필드가 나열됩니다.
+변경 사항을 저장합니다. **모니터링 기준** 카드와 아래 두 동기화의 확인 창에 보호된 필드가 나열됩니다.
 
 ### 동기화
 
@@ -158,7 +158,7 @@ flowchart TB
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | 로그, Security Events, 트레이스, AI / LLM, 메트릭, 예외 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`(모니터의 전체 구성) |
 
-인프라 모니터(Kubernetes, Docker, 호스트, Podman, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT Device)는 리소스 선택기, 필터, 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **Template sync settings**에 나열됩니다.
+인프라 모니터(Kubernetes, Docker Container, 호스트, Podman Container, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT Device)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **Template sync settings**에 나열됩니다.
 :::
 
 ## 문제 해결

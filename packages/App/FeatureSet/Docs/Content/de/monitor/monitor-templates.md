@@ -93,7 +93,7 @@ Setzen Sie unter **Einstellungen für die Vorlagensynchronisierung** neben jedem
 
 ### Speichern
 
-Speichern Sie Ihre Änderungen. Die Karte **Überwachungskriterien** und die Bestätigung jeder Synchronisierung listen die geschützten Felder auf.
+Speichern Sie Ihre Änderungen. Die Karte **Überwachungskriterien** und die Bestätigung beider Synchronisierungen unten listen die geschützten Felder auf.
 
 ### Synchronisieren
 
@@ -158,7 +158,7 @@ Lassen Sie das Array weg oder setzen Sie es auf `[]`, um jede unterstützte Schr
 | Externe Statusseite | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Protokolle, Sicherheitsereignisse, Traces, KI / LLM, Metriken, Ausnahmen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (die gesamte Konfiguration des Monitors) |
 
-Infrastruktur-Monitore (Kubernetes, Docker, Host, Podman, Proxmox, Docker Swarm, Ceph, Speicher-Array, IoT-Gerät) bieten ihren Ressourcen-Selektor, Filter, Metrikabfragen und das Abfragezeitfenster an. Ihre Namen stehen unter **Einstellungen für die Vorlagensynchronisierung** in einer Vorlage dieses Typs.
+Infrastruktur-Monitore (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Speicher-Array, IoT-Gerät) bieten ihren Ressourcen-Selektor, Filter (alle außer Host), Metrikabfragen und das Abfragezeitfenster an. Ihre Namen stehen unter **Einstellungen für die Vorlagensynchronisierung** in einer Vorlage dieses Typs.
 :::
 
 ## Fehlerbehebung
