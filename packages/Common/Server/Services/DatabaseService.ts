@@ -385,7 +385,11 @@ interface RowWrite<TBaseModel extends BaseModel> {
   comparedAs: Record<string, unknown>;
 }
 
-// What onBeforeCreate handed back, for onCreateError (see create).
+/*
+ * The create's one OnCreate, for onCreateError (see create): what
+ * onBeforeCreate handed back, the very object onCreatePermitted and
+ * onCreateSuccess are handed after it.
+ */
 interface CreateHandedBack<TBaseModel extends BaseModel> {
   onCreate: OnCreate<TBaseModel> | undefined;
   // Whether a failure came from the INSERT itself (see WriteProgress).
@@ -1663,9 +1667,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * value OneUptime records about the create itself, which no caller may
    * write, is written here: written before, it would be held against the
    * caller's column permissions and refused (the template an incident is
-   * declared from: IncidentService). It is handed what onBeforeCreate
-   * carried forward. A throw here refuses the create. Skipped with
-   * ignoreHooks.
+   * declared from: IncidentService). It is handed the create's one
+   * OnCreate - the object onBeforeCreate handed back, holding the create as
+   * it is written - which is the very object onCreateSuccess and
+   * onCreateError are handed: a lock taken here is given back through it
+   * (SsoRequirementChanges, GlobalSsoProviderChanges), never through the
+   * create it holds, which a hook may hand back anew. A throw here refuses
+   * the create. Skipped with ignoreHooks.
    */
   protected async onCreatePermitted(
     _onCreate: OnCreate<TBaseModel>,
@@ -1713,6 +1721,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return {};
   }
 
+  /*
+   * Once the record is saved: handed the create's one OnCreate, the very
+   * object onCreatePermitted was handed (see onCreateError).
+   */
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
     createdItem: TBaseModel,
@@ -1723,12 +1735,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * A create that failed - refused or thrown - once onBeforeCreate had run,
-   * with what onBeforeCreate handed back: refused by a check after the hook,
-   * failed at the INSERT, or thrown by a success hook. A refused create never
-   * reaches onCreateSuccess, and one that threw there may not have finished
-   * it, so this is where a service gives back what its hooks took for the
-   * write - a lock (StateChangeLock, SsoRequirementChanges). Undefined when
-   * the create failed before onBeforeCreate ran. `failedStatement` says
+   * with the create's one OnCreate: the object onBeforeCreate handed back,
+   * the very object onCreatePermitted and onCreateSuccess are handed
+   * (DatabaseService keeps one for the whole create). It fails refused by a
+   * check after the hook, at the INSERT, or thrown by a success hook. A
+   * refused create never reaches onCreateSuccess, and one that threw there
+   * may not have finished it, so this is where a service gives back what its
+   * hooks took for the write - a lock (StateChangeLock,
+   * SsoRequirementChanges) - through that object: by the OnCreate itself or
+   * what it carries forward, never by assuming the create onBeforeCreate
+   * handed back is the one a later hook was handed. Undefined when the
+   * create failed before onBeforeCreate ran. `failedStatement` says
    * whether the INSERT itself failed or a step around it
    * (StatementOutcome.mayStillApply decides by it whether the create may
    * still land).
@@ -2809,6 +2826,105 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: data.row,
       props: data.props,
       pending: data.pending,
+    });
+  }
+
+  /*
+   * WHETHER A CALLER MAY CREATE A RECORD, ASKED WITHOUT CREATING IT: every
+   * permission check a create of `data` runs, in the order it runs them, on
+   * `data` as it would be written - the caller and the table
+   * (checkCallerBeforeHooks: a credential that may write, a sign-in where
+   * the table needs one, the plan, the table's create permission and its
+   * blocks), the parent the record goes under (checkCreateParents), the
+   * records it names (checkNamedLists), its columns
+   * (ModelPermission.checkCreatePermissions) and what the caller's create
+   * permission reaches (checkCreateScope: grants limited to labels or to
+   * owned records, blocks with labels) - without the service's hooks or the
+   * write. As a create that runs no hooks, it looks up the parent, and every
+   * record it holds to the caller's read, itself (referencesCheckedInProjectFor),
+   * in the project the record would be created in. What a service's hooks
+   * decide besides - that a state is one of the project's, the order of
+   * states, the permission of a note posted with a change - is theirs, and
+   * is not asked here.
+   *
+   * For a write OneUptime makes for a person once it has asked this, so the
+   * person needs exactly what creating the record themselves would need:
+   * the alerts an incident is declared from, acknowledged as the declarer
+   * (AlertStateChangeAuthorization). Throws what the create would throw;
+   * root and master admin callers pass. `data` is changed as the create
+   * changes a record before its checks (its project stamped from the
+   * request, its references under both names), so pass one of its own.
+   */
+  @CaptureSpan()
+  public async checkCallerMayCreate(data: {
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const record: TBaseModel = data.data;
+
+    // Every switch as the database stores it, before anything reads one.
+    this.coerceBooleanColumns(record);
+
+    const callerProps: DatabaseCommonInteractionProps =
+      await this.checkCallerBeforeHooks(
+        data.props,
+        DatabaseRequestType.Create,
+        record,
+      );
+
+    if (callerProps.isRoot || callerProps.isMasterAdmin) {
+      return;
+    }
+
+    /*
+     * No hook of the service runs, so none holds the records the create
+     * names to its project: the checks below look each one up themselves,
+     * as they do for a create that skips its hooks.
+     */
+    const props: DatabaseCommonInteractionProps = {
+      ...callerProps,
+      ignoreHooks: true,
+    };
+
+    // The record as the create shapes it before its first checks.
+    this.rejectQueryOperatorsInData(record);
+    this.refuseUnstorableBooleanValues(record);
+    this.decideUserAttributionOnCreate(record, props);
+    this.assertRelationNamesAgree(record, props);
+    this.fillIdColumnsFromRelations(record);
+    this.stampTenantOnCreate(record, props);
+
+    // Under a parent the caller may read. See the helper.
+    await this.checkCreateParents({
+      data: record,
+      props: props,
+    });
+
+    // Naming only records the caller may read. See the helper.
+    await this.checkNamedLists({
+      data: record,
+      props: props,
+      projectId: this.getRecordProjectId(record, props),
+    });
+
+    const propsWithPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlanFor({
+        props: props,
+        modelType: this.modelType,
+        type: DatabaseRequestType.Create,
+        data: record,
+      });
+
+    ModelPermission.checkCreatePermissions(
+      this.modelType,
+      record,
+      propsWithPlan,
+    );
+
+    // A record the caller's create permission reaches. See the helper.
+    await this.checkCreateScope({
+      data: record,
+      props: propsWithPlan,
     });
   }
 
@@ -4885,13 +5001,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   /*
    * Creates a record: the checks, the hooks, the INSERT and what follows it
    * (_create). A create refused or failed at any of those steps reaches
-   * onCreateError with what onBeforeCreate handed back, once that has run -
-   * as onUpdateError and onDeleteError are handed what onBeforeUpdate and
-   * onBeforeDelete handed back - so a service gives back there what its
-   * hooks took for the write. A lock taken in onBeforeCreate and given back
-   * only in onCreateSuccess used to be held for as long as the process lived
-   * by a create refused in between. The hook is told too whether the INSERT
-   * itself failed or a step around it (WriteProgress).
+   * onCreateError with the create's one OnCreate, once onBeforeCreate has
+   * run - the object it handed back, the very one onCreatePermitted and
+   * onCreateSuccess are handed, as onUpdateError and onDeleteError are
+   * handed what onBeforeUpdate and onBeforeDelete handed back - so a service
+   * gives back there, through that object, what its hooks took for the
+   * write. A lock taken in onBeforeCreate and given back only in
+   * onCreateSuccess used to be held for as long as the process lived by a
+   * create refused in between, and one taken in onCreatePermitted was looked
+   * up again by the create onBeforeCreate handed back. The hook is told too
+   * whether the INSERT itself failed or a step around it (WriteProgress).
    */
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
@@ -4914,7 +5033,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private async _create(
     createBy: CreateBy<TBaseModel>,
-    // Given what onBeforeCreate hands back, for create to hand onCreateError.
+    // Given the create's one OnCreate once onBeforeCreate hands it back, for create to hand onCreateError.
     handedBack: CreateHandedBack<TBaseModel>,
   ): Promise<TBaseModel> {
     // Every switch as the database stores it, before anything reads one.
@@ -4982,14 +5101,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }),
     );
 
+    /*
+     * The create's one OnCreate, from here to its end: the object
+     * onBeforeCreate hands back is the very one onCreatePermitted,
+     * onCreateSuccess and onCreateError are handed (see create), so whatever
+     * a hook takes for the write is given back through it, however the
+     * create ends.
+     */
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
     handedBack.onCreate = onCreate;
 
     let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
-
-    const carryForward: any = onCreate.carryForward;
 
     _createdBy = this.generateSlug(_createdBy);
 
@@ -5103,12 +5227,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     await this.checkUniqueColumnsTogether(createBy.data);
 
+    /*
+     * From here on the create's OnCreate holds the create as it is written:
+     * the hooks after this one are handed the create they always were, in
+     * the one object onCreateError is handed too - so a create a hook handed
+     * back in its place, or anything keyed by the create a later hook is
+     * handed, is never lost on the way to onCreateError.
+     */
+    onCreate.createBy = createBy;
+
     // What OneUptime records about a create it has let through. See the hook.
     if (!createBy.props.ignoreHooks) {
-      await this.onCreatePermitted({
-        createBy: createBy,
-        carryForward: carryForward,
-      });
+      await this.onCreatePermitted(onCreate);
     }
 
     // serialize.
@@ -5166,13 +5296,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       if (!createBy.props.ignoreHooks) {
-        createBy.data = await this.onCreateSuccess(
-          {
-            createBy,
-            carryForward,
-          },
-          createBy.data,
-        );
+        createBy.data = await this.onCreateSuccess(onCreate, createBy.data);
       }
 
       /*

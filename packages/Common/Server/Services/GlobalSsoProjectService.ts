@@ -226,9 +226,10 @@ export class Service extends DatabaseService<Model> {
    * when the create fails once its check ran - refused after it, at the
    * INSERT, or in onCreateSuccess before it gave the lock back:
    * DatabaseService.create hands every failure after onBeforeCreate to this
-   * hook, with what onBeforeCreate handed back. A create the database may
-   * still apply - its COMMIT went unanswered - keeps the lock until it would
-   * have cancelled it (GlobalSsoProviderChanges.afterFailedCreate).
+   * hook, with the create's one OnCreate - the very object onCreatePermitted
+   * kept the lock by. A create the database may still apply - its COMMIT
+   * went unanswered - keeps the lock until it would have cancelled it
+   * (GlobalSsoProviderChanges.afterFailedCreate).
    */
   @CaptureSpan()
   protected override async onCreateError(
@@ -238,7 +239,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     if (onCreate) {
       await GlobalSsoProviderChanges.afterFailedCreate(
-        onCreate.createBy,
+        onCreate,
         error,
         failedStatement,
       );
@@ -259,9 +260,8 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     // Written: the lock is given back before anything else.
-    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
-      onCreate.createBy,
-    );
+    const changedReach: boolean =
+      await GlobalSsoProviderChanges.afterWrite(onCreate);
 
     clearGlobalSsoAuthorizationCaches();
 
@@ -429,7 +429,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     await GlobalSsoProviderChanges.beforeAttachmentCreate({
       providerType: SsoProviderType.GlobalSSO,
-      createBy: onCreate.createBy as unknown as CreateBy<BaseModel>,
+      create: onCreate as unknown as OnCreate<BaseModel>,
     });
   }
 
