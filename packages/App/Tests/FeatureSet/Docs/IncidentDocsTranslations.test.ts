@@ -298,9 +298,7 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
         });
       }
 
-      expect(cardTargets(translated)).toEqual(
-        cardTargets(cardLines(english)),
-      );
+      expect(cardTargets(translated)).toEqual(cardTargets(cardLines(english)));
     });
 
     it("links only to anchors that are headings of the page they open", () => {

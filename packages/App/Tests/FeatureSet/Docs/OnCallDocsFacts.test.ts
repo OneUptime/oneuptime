@@ -655,9 +655,17 @@ describe("the Escalation Rules page's message limits", () => {
       return value.toLocaleString("en-US");
     };
 
-    expect(rows.map((cells: Array<string>): string => {
-      return cells[0] as string;
-    })).toEqual(["SMS", "Phone call", "Push notification", "WhatsApp", "Telegram"]);
+    expect(
+      rows.map((cells: Array<string>): string => {
+        return cells[0] as string;
+      }),
+    ).toEqual([
+      "SMS",
+      "Phone call",
+      "Push notification",
+      "WhatsApp",
+      "Telegram",
+    ]);
     expect(limitOf("SMS")).toBe(`${thousands(MAX_SMS_LENGTH)} characters`);
     expect(limitOf("Phone call")).toBe(
       `What fits in Twilio's ${thousands(MAX_CALL_TWIML_LENGTH)}-character call script`,

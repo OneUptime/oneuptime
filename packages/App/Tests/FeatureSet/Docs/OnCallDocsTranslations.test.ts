@@ -1,5 +1,10 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { ScannedPage, hasPage, readPage, scanMarkdown } from "./DocsContentSupport";
+import {
+  ScannedPage,
+  hasPage,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
 import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 import {
   CARD_LINE,
@@ -239,14 +244,9 @@ describe("the lists this test keeps", () => {
 });
 
 describe("the English pages", () => {
-  it.each(PAGES)(
-    "$page is titled as its nav link",
-    (entry: OnCallPage) => {
-      expect(englishPage(entry.page).split("\n")[0]).toBe(
-        `# ${entry.navTitle}`,
-      );
-    },
-  );
+  it.each(PAGES)("$page is titled as its nav link", (entry: OnCallPage) => {
+    expect(englishPage(entry.page).split("\n")[0]).toBe(`# ${entry.navTitle}`);
+  });
 });
 
 describe.each(LANGUAGES)("%s on-call pages", (language: string) => {
@@ -311,9 +311,7 @@ describe.each(LANGUAGES)("%s on-call pages", (language: string) => {
         });
       }
 
-      expect(cardTargets(translated)).toEqual(
-        cardTargets(cardLines(english)),
-      );
+      expect(cardTargets(translated)).toEqual(cardTargets(cardLines(english)));
     });
 
     it("links only to anchors that are headings of the page they open", () => {

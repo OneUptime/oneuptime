@@ -873,7 +873,7 @@ describe("Calendar Feeds docs page", () => {
     it("tells a self-hosted reader why Google stays empty, and how to check", () => {
       // Two troubleshooting entries of their own, as collapsible answers.
       expect(english).toContain(
-          ':::details Google Calendar says "Unable to add calendar. Check the URL."\n',
+        ':::details Google Calendar says "Unable to add calendar. Check the URL."\n',
       );
       expect(english).toContain(
         ":::details Google Calendar shows the calendar but no shifts\n",
