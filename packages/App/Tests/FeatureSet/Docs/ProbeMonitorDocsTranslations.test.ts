@@ -154,7 +154,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Monitor destination",
     "Request headers",
   ],
-  [WEBSITE_MONITOR]: [...CRITERIA_NAMES_IN_ENGLISH, ...HTTP_CRITERIA_IN_ENGLISH],
+  [WEBSITE_MONITOR]: [
+    ...CRITERIA_NAMES_IN_ENGLISH,
+    ...HTTP_CRITERIA_IN_ENGLISH,
+  ],
   [API_MONITOR]: [
     ...CRITERIA_NAMES_IN_ENGLISH,
     ...HTTP_CRITERIA_IN_ENGLISH,
@@ -662,7 +665,9 @@ describe("the helpers, on these pages' shapes", () => {
     const markdown: string =
       "**Monitors → Settings → Templates** and **Create Monitor Template**";
 
-    expect(menuPaths(markdown)).toEqual([["Monitors", "Settings", "Templates"]]);
+    expect(menuPaths(markdown)).toEqual([
+      ["Monitors", "Settings", "Templates"],
+    ]);
     expect(boldLabels(markdown)).toEqual(["Create Monitor Template"]);
   });
 

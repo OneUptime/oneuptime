@@ -8,6 +8,14 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import ProbesAndIntervalCopy from "../../../FeatureSet/Dashboard/src/Components/Monitor/ProbesAndIntervalCopy";
+import {
+  MONITOR_TYPES_OFFERED_5_MINUTES_OR_LONGER,
+  getMonitoringIntervalOptions,
+} from "../../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { PermissionHelper } from "Common/Types/Permission";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -60,6 +68,10 @@ const INTERVAL_OPTIONS_FILE: string =
   "App/FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions.ts";
 const INTERVAL_DEFAULT_FILE: string =
   "App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault.ts";
+const MONITOR_VIEW_MENU_FILE: string =
+  "App/FeatureSet/Dashboard/src/Pages/Monitor/View/SideMenu.tsx";
+const CRITERIA_STEPS_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx";
 
 // Create Monitor's steps, in order: the page's first three sections.
 const STEP_TITLES: Array<string> = [
@@ -384,6 +396,106 @@ describe("the Creating a Monitor docs page", () => {
       );
       expect(probes).toContain("**Every 5 Minutes**");
       expect(probes).toContain("**Monitoring Interval**");
+    });
+
+    it("says who can create a monitor, as the Monitor model's create list does", () => {
+      const note: string = ENGLISH.split("\n").find((line: string) => {
+        return line.startsWith("> To create a monitor you need");
+      })!;
+      const titles: Array<string> = PermissionHelper.getPermissionTitles(
+        new Monitor().getCreatePermissions(),
+      );
+
+      expect(note).toBeDefined();
+      expect(titles).toContain("Create Monitor");
+
+      for (const title of titles) {
+        expect({ title, named: note.includes(title) }).toEqual({
+          title,
+          named: true,
+        });
+      }
+
+      expect(note).toContain(
+        "a custom role with the Create Monitor permission",
+      );
+    });
+
+    it("offers the intervals the form does, five minutes or longer for the types held to that", () => {
+      const probes: string = pageSections[2]!.body;
+      const labels: (type: MonitorType) => Array<string> = (
+        type: MonitorType,
+      ): Array<string> => {
+        return getMonitoringIntervalOptions({ monitorType: type }).map(
+          (option: DropdownOption): string => {
+            return option.label;
+          },
+        );
+      };
+      const website: Array<string> = labels(MonitorType.Website);
+      const heldBack: string = probes.slice(
+        probes.indexOf("**Every Week**. ") + "**Every Week**. ".length,
+        probes.indexOf(
+          " monitors are offered intervals of 5 minutes or longer.",
+        ),
+      );
+
+      expect(probes).toContain(
+        `Pick a **Monitoring Interval**, from **${website[0]}** to **${website[website.length - 1]}**.`,
+      );
+      expect(website[0]).toBe("Every Minute");
+
+      // Only these types start their list at five minutes.
+      for (const type of OFFERED_TYPES.filter((candidate: MonitorType) => {
+        return MonitorTypeHelper.doesMonitorTypeHaveInterval(candidate);
+      })) {
+        expect({ type, first: labels(type)[0] }).toEqual({
+          type,
+          first: MONITOR_TYPES_OFFERED_5_MINUTES_OR_LONGER.includes(type)
+            ? "Every 5 Minutes"
+            : "Every Minute",
+        });
+      }
+
+      expect(
+        heldBack
+          .replace(" and ", ", ")
+          .split(", ")
+          .map((name: string): string => {
+            return name.trim();
+          })
+          .sort(),
+      ).toEqual(
+        MONITOR_TYPES_OFFERED_5_MINUTES_OR_LONGER.map(
+          (type: MonitorType): string => {
+            return MonitorTypeHelper.getTitle(type);
+          },
+        ).sort(),
+      );
+    });
+
+    it("points Probe Agreement at the monitor's Configuration, Probes & Interval page", () => {
+      const menu: string = readRepoFile(MONITOR_VIEW_MENU_FILE);
+
+      expect(ProbesAndIntervalCopy.pageTitle).toBe("Probes & Interval");
+      expect(ProbesAndIntervalCopy.agreementCardTitle).toBe("Probe Agreement");
+      expect(menu).toContain('title: "Probes & Interval"');
+      expect(menu).toContain('title: "Configuration"');
+      expect(ENGLISH).toContain(
+        "set **Probe Agreement** on the monitor's **Configuration → Probes & Interval** page.",
+      );
+      expect(pageSections[2]!.body).toContain(
+        "open **Configuration → Probes & Interval** on that page.",
+      );
+    });
+
+    it("names the status a monitor falls back to as the criteria form does", () => {
+      expect(readRepoFile(CRITERIA_STEPS_FILE)).toContain(
+        'title="Default Monitor Status"',
+      );
+      expect(ENGLISH).toContain(
+        `the monitor shows its **Default Monitor Status**, set under **${MORE_FIELDS_SECTION_TITLE}** below the criteria`,
+      );
     });
   });
 
