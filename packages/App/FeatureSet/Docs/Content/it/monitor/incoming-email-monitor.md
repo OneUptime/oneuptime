@@ -1,213 +1,323 @@
-# Monitor Email In Entrata
+# Monitor email in arrivo
 
-Il Monitor Email In Entrata consente di creare e risolvere avvisi in base alle email inviate a indirizzi email univoci specifici per monitor. Questo è utile per integrare sistemi legacy, strumenti di avviso di terze parti o qualsiasi servizio in grado di inviare notifiche via email.
+Un monitor di email in arrivo vi dà un indirizzo email che appartiene a un solo monitor. Qualsiasi cosa sappia inviare email (un job di backup, un sistema legacy, gli avvisi di un provider cloud) vi manda i propri risultati, e OneUptime controlla ogni email in base ai vostri criteri per segnare il monitor come guasto, aprire un incidente o creare un avviso, e per risolverli quando arriva il cessato allarme.
 
-## Come Funziona
+:::cards
+- [Creare il monitor](#creare-un-monitor-di-email-in-arrivo): Ottenete un indirizzo e indirizzatevi il vostro mittente.
+- [Verificare l'indirizzo](#verificare-lindirizzo-con-il-mittente): Leggete sul monitor l'email di conferma di un mittente.
+- [Scrivere criteri](#tipi-di-filtro-disponibili): Confrontate oggetto, mittente o corpo, oppure avvisate quando le email smettono di arrivare.
+- [Usare l'email negli avvisi](#variabili-del-modello): Inserite oggetto e corpo in titoli e descrizioni.
+:::
 
-1. Quando si crea un Monitor Email In Entrata, OneUptime genera un indirizzo email univoco per quel monitor
-2. Qualsiasi email inviata a quell'indirizzo viene ricevuta e valutata in base ai criteri configurati
-3. In base ai criteri, OneUptime può creare nuovi avvisi o risolvere quelli esistenti
+## Come funziona
 
-Questo è un modo efficace per integrare i sistemi di avviso basati su email con il flusso di gestione degli incidenti di OneUptime.
+L'email è un modello push: il vostro sistema invia e OneUptime ascolta. Ogni email viene controllata in base ai criteri del monitor appena arriva. Anche i criteri che cercano un'email che *sarebbe dovuta* arrivare vengono controllati a intervalli regolari, ogni 30 secondi.
 
-## Creazione di un Monitor Email In Entrata
-
-1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea monitor**
-3. Selezionare **Email In Entrata** come tipo di monitor
-4. Configurare le impostazioni del monitor:
-   - **Nome:** Un nome descrittivo per il monitor
-   - **Descrizione:** Lo scopo di questo monitor
-5. Configurare i **Criteri di Creazione Avvisi** (condizioni che creano avvisi)
-6. Configurare i **Criteri di Risoluzione Avvisi** (condizioni che risolvono gli avvisi)
-7. Fare clic su **Crea**
-
-Dopo la creazione, verrà visualizzato l'indirizzo email univoco per questo monitor nella pagina dei dettagli del monitor.
-
-## Formato dell'Indirizzo Email
-
-Ogni Monitor Email In Entrata riceve un indirizzo email univoco nel formato:
-
-```
-monitor-{chiave-segreta}@{dominio-inbound}
+```mermaid title="Da un'email a un avviso"
+sequenceDiagram
+    participant S as Il vostro sistema
+    participant O as OneUptime
+    participant T as Team di reperibilità
+    S->>O: Email all'indirizzo del monitor
+    O->>O: Salvarla sul monitor
+    O->>O: Controllare i criteri
+    O->>T: Avviso o incidente, se uno corrisponde
+    Note over O: Ogni 30 secondi, controllare<br/>i criteri Email Received
 ```
 
-Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
+1. Quando create un monitor di email in arrivo, OneUptime gli assegna un indirizzo email univoco.
+2. Ogni email inviata a quell'indirizzo viene salvata sul monitor e valutata in base ai suoi criteri, dall'alto; decide il primo criterio che corrisponde.
+3. Un criterio che corrisponde può cambiare lo stato del monitor, creare un avviso e dichiarare un incidente. Un incidente con **Risoluzione automatica dell'incidente** attiva, o un avviso con **Risoluzione automatica dell'avviso** attiva, viene risolto quando in seguito corrisponde un altro criterio: per esempio quello che segna il monitor online.
 
-È possibile copiare questo indirizzo dalla pagina dei dettagli del monitor e configurare i propri sistemi esterni per inviare email a tale indirizzo.
+## Creare un monitor di email in arrivo
 
-## Campi Criteri Disponibili
+:::steps
+### Iniziare un nuovo monitor
 
-È possibile creare criteri basati sui seguenti campi dell'email:
+Andate in **Monitor** e fate clic su **Crea monitor**.
 
-| Campo                      | Descrizione                                                      |
-| -------------------------- | ---------------------------------------------------------------- |
-| **Oggetto dell'email**     | La riga dell'oggetto dell'email in entrata                       |
-| **Email mittente**         | L'indirizzo email del mittente                                   |
-| **Corpo Email**            | Il contenuto testuale del corpo dell'email                       |
-| **Email A**                | L'indirizzo email del destinatario                               |
-| **Email Ricevuta**         | Criteri basati sul tempo per quando le email vengono ricevute    |
-| **Espressione JavaScript** | Un'espressione JavaScript personalizzata che deve risultare vera |
+### Scegliere Incoming Email
 
-## Tipi di Filtro Disponibili
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Incoming Email** sotto **Inbound Monitoring**, oppure digitate `email` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
-### Filtri Stringa (Oggetto, Da, Corpo, A)
+### Rivedere i criteri
 
-| Filtro           | Descrizione                                           | Esempio                            |
-| ---------------- | ----------------------------------------------------- | ---------------------------------- |
-| **Contiene**     | Il campo contiene il testo specificato                | Oggetto contiene "CRITICO"         |
-| **Non Contiene** | Il campo non contiene il testo specificato            | Oggetto non contiene "TEST"        |
-| **Uguale a**     | Il campo corrisponde esattamente al testo specificato | Da uguale a "avvisi@servizio.com"  |
-| **Diverso da**   | Il campo non corrisponde al testo specificato         | Oggetto diverso da "OK"            |
-| **Inizia Con**   | Il campo inizia con il testo specificato              | Oggetto inizia con "[AVVISO]"      |
-| **Termina Con**  | Il campo termina con il testo specificato             | Oggetto termina con "- Produzione" |
-| **È Vuoto**      | Il campo è vuoto                                      | Corpo è vuoto                      |
-| **Non È Vuoto**  | Il campo ha contenuto                                 | Oggetto non è vuoto                |
+Il passaggio **Criteri** parte con [i criteri predefiniti](#cosa-ottenete-subito), che segnano il monitor offline quando un'email menziona `error`. Fate clic su un criterio per modificarlo, oppure su **Aggiungi criteri** per aggiungerne uno. Consultate [Configurazioni di esempio](#configurazioni-di-esempio) per le configurazioni più comuni.
 
-### Filtri Basati sul Tempo (Email Ricevuta)
+### Creare il monitor
 
-| Filtro                     | Descrizione                             | Esempio                         |
-| -------------------------- | --------------------------------------- | ------------------------------- |
-| **Ricevuta In Minuti**     | L'email è stata ricevuta entro X minuti | Email ricevuta in 30 minuti     |
-| **Non Ricevuta In Minuti** | Nessuna email ricevuta in X minuti      | Email non ricevuta in 60 minuti |
+Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica**, dove la scheda **Incoming Email Address** mostra l'indirizzo con un pulsante di copia finché non arriva la prima email.
 
-### Espressione JavaScript
+### Inviare email all'indirizzo
 
-L'unica condizione di filtro è **Valutata Come Vera**: il criterio è soddisfatto quando l'espressione restituisce un valore vero.
+Configurate il vostro sistema perché invii le sue notifiche all'indirizzo. Se il mittente vi chiede prima di confermare l'indirizzo, consultate [Verificare l'indirizzo con il mittente](#verificare-lindirizzo-con-il-mittente).
+:::
 
-L'espressione viene eseguita in una sandbox a cui non è associato alcun campo dell'email, quindi non può leggere oggetto, mittente, corpo o destinatario del messaggio che ha attivato il controllo. Usa i tipi di filtro **Oggetto Email**, **Email Da**, **Corpo Email** e **Email A** per confrontare il contenuto dell'email.
+> [!NOTE]
+> L'indirizzo contiene la chiave segreta del monitor, quindi possono vederlo solo le persone che possono modificare i monitor. Tutti gli altri vedono che i dettagli di configurazione sono nascosti.
 
-## Configurazioni di Esempio
+## Formato dell'indirizzo email
 
-### Esempio 1: Creazione Avviso per Email Critiche
+Ogni monitor di email in arrivo riceve un indirizzo univoco in questo formato:
 
-**Criteri di Creazione Avvisi:**
+```text
+monitor-{secret-key}@{inbound-domain}
+```
 
-- Oggetto Email **Contiene** "CRITICO"
-- OPPURE Oggetto Email **Contiene** "AVVISO"
-- OPPURE Oggetto Email **Contiene** "ERRORE"
+La chiave segreta è un UUID, per esempio `monitor-3f2b8c1e-5d4a-4f6b-9a7c-2e1d0b9f8a6c@inbound.yourdomain.com`. Dopo l'arrivo della prima email, l'indirizzo resta nella pagina **Panoramica** del monitor nella scheda **Inbound email address**, accanto all'ora dell'ultima email. Lo mostra anche la pagina **Documentazione** del monitor.
 
-**Criteri di Risoluzione Avvisi:**
+## Reimpostare o personalizzare l'indirizzo email
 
-- Oggetto Email **Contiene** "RISOLTO"
-- OPPURE Oggetto Email **Contiene** "OK"
-- OPPURE Oggetto Email **Contiene** "RECUPERATO"
+Andate nella scheda **Impostazioni** del monitor. La scheda **Incoming Email Address** mostra l'indirizzo attuale e offre due modi per sostituirlo:
 
-### Esempio 2: Monitoraggio di un Mittente Specifico
+| Azione | Cosa fa | Quando usarla |
+| --- | --- | --- |
+| **Reset Address** | Dà al monitor un nuovo indirizzo `monitor-{secret-key}@{inbound-domain}` generato a caso. Se il monitor ha un indirizzo personalizzato, la reimpostazione lo rimuove. Vi chiede prima conferma. | L'indirizzo è trapelato, oppure volete tagliare fuori qualunque cosa vi stia inviando email. |
+| **Customize Address** | Vi lascia scegliere la parte prima della @, per esempio `nightly-backups@{inbound-domain}`. Inseritela in **Address name** (potete digitare il nome o incollare l'indirizzo intero) e fate clic su **Save Address**. | Volete un indirizzo che le persone riconoscano. |
 
-**Criteri di Creazione Avvisi:**
+Entrambe le azioni terminano mostrando il nuovo indirizzo con un pulsante di copia.
 
-- Email Da **Uguale a** "monitoraggio@sistema-legacy.com"
-- E Oggetto Email **Contiene** "Fallito"
+> [!WARNING]
+> **Il vecchio indirizzo smette di funzionare subito**: le email inviate a quell'indirizzo vengono ignorate, quindi aggiornate ogni sistema che invia email a questo monitor.
 
-**Criteri di Risoluzione Avvisi:**
+Regole per gli indirizzi personalizzati:
 
-- Email Da **Uguale a** "monitoraggio@sistema-legacy.com"
-- E Oggetto Email **Contiene** "Successo"
+- Da 3 a 64 caratteri: lettere minuscole, numeri, punti (`.`), trattini (`-`) e trattini bassi (`_`), senza due punti di fila. Deve iniziare e finire con una lettera o un numero. Le maiuscole inserite vengono convertite in minuscole.
+- Il dominio è sempre il dominio di ricezione email del server.
+- Il nome non deve essere già usato da un altro monitor. Tutti i progetti del server condividono il dominio di ricezione, quindi il nome deve essere unico tra tutti.
+- I nomi nella forma `monitor-{id}` e `workflow-{id}` sono riservati agli indirizzi generati. Sono riservati anche i nomi di casella che appartengono al dominio stesso: `abuse`, `admin`, `administrator`, `hostmaster`, `mailer-daemon`, `noc`, `postmaster`, `root`, `security` e `webmaster`.
 
-### Esempio 3: Monitor Heartbeat (Nessuna Email = Avviso)
+Un indirizzo personalizzato è una credenziale tanto quanto uno generato: chiunque lo conosca può inviare email che questo monitor valuta. Gli indirizzi generati sono praticamente impossibili da indovinare, mentre un nome breve e ovvio non lo è. Scegliete qualcosa di difficile da indovinare, se per voi conta.
 
-**Criteri di Creazione Avvisi:**
+Gli utenti dell'API possono fare lo stesso tramite l'API dei monitor, su un monitor esistente: impostate `incomingEmailCustomLocalPart` con il nome per usare un indirizzo personalizzato, oppure con `null` per tornare a quello generato. Reimpostare significa scrivere un nuovo `incomingEmailSecretKey` e impostare `incomingEmailCustomLocalPart` a `null` nello stesso aggiornamento.
 
-- Email Ricevuta **Non Ricevuta In Minuti** con valore `60`
+## Verificare l'indirizzo con il mittente
 
-Questo crea un avviso se non viene ricevuta nessuna email per 60 minuti - utile per monitorare processi pianificati o batch che dovrebbero inviare email di completamento.
+Alcuni servizi non inviano avvisi a un nuovo indirizzo finché qualcuno non dimostra di poterne leggere la posta. Prima inviano un'email di verifica, che arriva al monitor come qualsiasi altra email. Per leggerla:
 
-**Criteri di Risoluzione Avvisi:**
+:::steps
+### Aggiungere l'indirizzo al servizio
 
-- Email Ricevuta **Ricevuta In Minuti** con valore `5`
+Aggiungete l'indirizzo del monitor al servizio e salvate. Il servizio invia la sua email di verifica.
 
-Questo risolve l'avviso quando viene ricevuta un'email.
+### Aprire l'email più recente
 
-## Casi d'Uso
+In OneUptime, aprite il monitor. Nella sua pagina **Panoramica**, la scheda **Riepilogo del monitor** mostra l'email più recente. Controllate che **Da** e **Oggetto** siano quelli dell'email di verifica, poi fate clic su **Mostra altri dettagli**.
 
-### Integrazione con Sistemi Legacy
+### Copiare il codice o il link
 
-Molti sistemi più vecchi supportano solo avvisi basati su email. Usare il Monitor Email In Entrata per:
+Il codice o il link si trova in **Corpo dell'email (testo)**. **Corpo dell'email (HTML)** mostra il sorgente HTML, quindi se copiate un link da lì, sostituite ogni `&amp;` con `&`.
 
-- Convertire gli avvisi email in incidenti OneUptime
-- Risolvere automaticamente gli incidenti quando arrivano email di recupero
-- Centralizzare gli avvisi da più sistemi legacy
+### Completare la verifica
 
-### Monitoraggio di Servizi di Terze Parti
+Completate la verifica come vi indica l'email.
+:::
 
-Integrazione con servizi che inviano notifiche via email:
+Se nel frattempo è arrivata un'altra email, la scheda non mostra più l'email di verifica. Aprite **Registri di monitoraggio**, trovate l'email di verifica dal suo oggetto nella colonna **E-mail** e fate clic su **Visualizza riepilogo** su quella riga.
 
-- Avvisi del provider cloud (AWS, GCP, Azure)
-- Strumenti di scansione della sicurezza
-- Notifiche di completamento backup
-- Avvisi di scadenza certificato SSL
+> [!IMPORTANT]
+> **Anche i vostri criteri la vedono.** L'email di verifica viene valutata come qualsiasi altra email. Una formulazione come "if you received this in error" corrisponde al criterio predefinito `error` e segna il monitor offline. Per evitarlo, disattivate **Controlla questo monitor** nella scheda **Monitoraggio** della pagina **Impostazioni** del monitor mentre verificate (vi chiede conferma). Un monitor con il monitoraggio disattivato registra comunque l'email, e la scheda **Riepilogo del monitor** continua a mostrarla. Però non valuta nulla, quindi l'email non ha una riga in **Registri di monitoraggio**: leggetela prima che arrivi un'altra email. Quando avete finito, premete **Attiva il monitoraggio** nel banner in cima alle pagine del monitor, oppure riattivate l'interruttore.
 
-### Monitoraggio di Job Pianificati
+**La verifica appartiene all'indirizzo.** Se [reimpostate o personalizzate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email), il servizio vede un nuovo destinatario, e dovete verificare di nuovo.
 
-Monitorare job batch e attività pianificate:
+### Gruppi di azioni di Azure Monitor
 
-- Creare avvisi se le email di completamento non vengono ricevute puntualmente
-- Tracciare i fallimenti dei job tramite email di notifica degli errori
-- Monitorare i completamenti delle pipeline dati
+Da luglio 2026 Azure sta introducendo l'obbligo di verificare con un codice monouso ogni nuovo destinatario **Email** di un gruppo di azioni. Finché non è verificato, il gruppo di azioni non invia a quell'indirizzo né avvisi né notifiche di test.
 
-### Aggregazione di Avvisi Multi-Vendor
+:::steps
+1. Aggiungete al gruppo di azioni una notifica **Email** con l'indirizzo del monitor, e salvate il gruppo di azioni. Azure invia l'email di verifica da un indirizzo Microsoft come `azure-noreply@microsoft.com`.
+2. Leggetela sul monitor come descritto sopra, e seguitene le istruzioni entro 30 minuti dal salvataggio del gruppo di azioni. Se il codice scade, aprite il gruppo di azioni e selezionate **Resend**.
+3. Aprite il gruppo di azioni e selezionate **Test** per inviare una notifica di test. Arriva sul monitor come un avviso vero, quindi mostra anche se i vostri criteri corrispondono alle email di Azure.
+:::
 
-Consolidare gli avvisi da più strumenti di monitoraggio:
+La verifica copre tutti i gruppi di azioni dello stesso tenant Azure, quindi ogni indirizzo va verificato una sola volta.
 
-- Ricevere avvisi da Nagios, Zabbix o altri strumenti tramite email
-- Unificare la gestione degli incidenti in OneUptime
-- Mantenere un'unica fonte di verità per tutti gli avvisi
+### Amazon SNS
 
-## Variabili Template
+Una sottoscrizione email a un topic SNS non riceve nulla finché non è confermata. Quando create la sottoscrizione, Amazon SNS invia un'email di conferma all'indirizzo. Leggetela sul monitor come descritto sopra, e aprite il suo link **Confirm subscription** nel browser. SNS elimina una sottoscrizione che non viene confermata entro 48 ore; in quel caso, create di nuovo la sottoscrizione.
 
-Quando si configurano i template degli incidenti, è possibile usare queste variabili dalle email in entrata:
+## Cosa ottenete subito
 
-| Variabile             | Descrizione                        |
-| --------------------- | ---------------------------------- |
-| `{{emailSubject}}`    | L'oggetto dell'email ricevuta      |
-| `{{emailFrom}}`       | L'indirizzo email del mittente     |
-| `{{emailTo}}`         | L'indirizzo email del destinatario |
-| `{{emailBody}}`       | Il corpo testuale dell'email       |
-| `{{emailReceivedAt}}` | Quando è stata ricevuta l'email    |
+Un nuovo monitor di email in arrivo viene creato con due criteri che leggono il corpo dell'email:
 
-## Visualizzazione Riepilogo Monitor
+| Criterio | Tipo di filtro | Condizione del filtro | Valore | Effetto |
+| -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
+| Offline  | Email Body  | Contiene | `error` | Segna il monitor offline, apre un incidente |
+| Online   | Email Body  | Not Contains | `error` | Segna il monitor online |
 
-Il riepilogo del monitor mostra:
+È adatto al caso comune in cui un job o uno strumento di terze parti invia per email il proprio risultato: un messaggio il cui corpo menziona `error` porta il monitor offline, e il messaggio successivo senza quella parola lo riporta online e risolve l'incidente. Il confronto sul corpo non distingue maiuscole e minuscole, quindi corrispondono anche `Error` ed `ERROR`.
 
-- **Ultima Email Ricevuta Alle:** Quando è stata ricevuta l'email più recente
-- **Da:** Il mittente dell'ultima email
-- **Oggetto:** La riga dell'oggetto dell'ultima email
-- **Intestazioni Email:** Intestazioni complete dell'ultima email (espandibile)
-- **Corpo Email:** Contenuto dell'ultima email (espandibile)
+Sostituite il valore con ciò che il vostro mittente scrive davvero (`FAILED`, `exit code 1` e così via).
 
-## Configurazione Self-Hosted
+> [!NOTE]
+> Questi criteri predefiniti **non** sono un interruttore a uomo morto: niente qui scatta quando le email smettono di arrivare. I criteri che leggono solo oggetto, mittente, corpo o destinatario vengono valutati quando arriva un'email e in nessun altro momento. Per essere avvisati del silenzio, aggiungete un criterio **Email Received** / **Not Recieved In Minutes**: vedete l'[Esempio 3](#esempio-3-monitor-heartbeat-nessuna-email-avviso).
 
-Se si ospita OneUptime autonomamente, è necessario configurare un provider di email in entrata. Attualmente supportato:
+## Tipi di filtro disponibili
 
-- **SendGrid Inbound Parse** - Vedere [Integrazione Email In Entrata SendGrid](/docs/self-hosted/sendgrid-inbound-email) per le istruzioni di configurazione
+Potete creare criteri basati su questi campi dell'email:
 
-## Considerazioni
+| Tipo di filtro | Descrizione |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| **Oggetto dell'email** | La riga dell'oggetto dell'email in arrivo |
+| **Email From Address** | L'indirizzo del mittente: solo l'indirizzo, in minuscolo, senza nome visualizzato |
+| **Email Body** | La parte in testo semplice del corpo dell'email |
+| **Email To Address** | L'indirizzo email del destinatario |
+| **Email Received** | Criteri temporali su quando vengono ricevute le email |
+| **JavaScript Expression** | Un'espressione JavaScript personalizzata che deve risultare vera |
 
-- **Sicurezza dell'Indirizzo Email:** L'indirizzo email del monitor contiene una chiave segreta. Trattarla come una password e non condividerla pubblicamente.
-- **Dimensione dell'Email:** Le email molto grandi (con allegati grandi) potrebbero essere troncate o rifiutate dal provider email.
-- **Tempo di Elaborazione:** Le email vengono elaborate in modo asincrono. Potrebbero trascorrere alcuni secondi tra l'invio di un'email e la creazione dell'avviso.
-- **Insensibilità alle Maiuscole:** Tutti i confronti tra stringhe (Contiene, Uguale a, ecc.) non distinguono tra maiuscole e minuscole.
-- **Testo Normale:** I criteri sul corpo dell'email usano la versione in testo normale. La formattazione HTML viene rimossa.
+L'indirizzo del monitor stesso viene mascherato prima che un criterio legga l'email, quindi in **Email To Address**, **Oggetto dell'email** e **Email Body** appare come `[REDACTED]`.
 
-## Risoluzione dei Problemi
+## Condizioni del filtro
 
-### Email Non Ricevute
+### Filtri di stringa (oggetto, mittente, corpo, destinatario)
 
-1. Verificare che l'indirizzo email sia corretto (controllare errori di battitura)
-2. Verificare che l'email non venga bloccata dai filtri antispam
-3. Verificare che il provider di email in entrata sia configurato correttamente
-4. Controllare i log di OneUptime per eventuali messaggi di errore
+| Condizione del filtro | Descrizione | Esempio |
+| ---------------- | ----------------------------------------- | ---------------------------------- |
+| **Contiene** | Il campo contiene il testo indicato | L'oggetto contiene "CRITICAL" |
+| **Not Contains** | Il campo non contiene il testo indicato | L'oggetto non contiene "TEST" |
+| **Equal To** | Il campo corrisponde esattamente al testo indicato | Il mittente è uguale a "alerts@service.com" |
+| **Not Equal To** | Il campo non corrisponde al testo indicato | L'oggetto è diverso da "OK" |
+| **Starts With** | Il campo inizia con il testo indicato | L'oggetto inizia con "[ALERT]" |
+| **Ends With** | Il campo termina con il testo indicato | L'oggetto termina con "- Production" |
+| **Is Empty** | Il campo è vuoto o bianco | Il corpo è vuoto |
+| **Is Not Empty** | Il campo ha un contenuto | L'oggetto non è vuoto |
 
-### Avvisi Non Creati
+Tutti questi confronti non distinguono maiuscole e minuscole. Un filtro con un valore vuoto non corrisponde mai.
 
-1. Verificare che i criteri corrispondano al contenuto dell'email
-2. Verificare che il monitor non sia disabilitato
-3. Esaminare i log di valutazione nei dettagli del monitor
-4. Testare con corrispondenze di stringa esatte prima di usare la corrispondenza per pattern
+### Filtri temporali (Email Received)
 
-### Avvisi Non Risolti
+La dashboard scrive queste condizioni "Recieved".
 
-1. Verificare che i criteri di risoluzione corrispondano all'email di recupero
-2. Assicurarsi che esista un avviso attivo da risolvere
-3. Verificare che l'email di risoluzione venga inviata allo stesso indirizzo del monitor
+| Condizione del filtro | Descrizione | Esempio |
+| --------------------------- | ----------------------------------- | -------------------------------- |
+| **Recieved In Minutes** | È stata ricevuta un'email entro X minuti | Email ricevuta entro 30 minuti |
+| **Not Recieved In Minutes** | Nessuna email ricevuta in X minuti | Nessuna email ricevuta in 60 minuti |
+
+Un monitor che non ha mai ricevuto un'email conta la propria ora di creazione come ultima email.
+
+### JavaScript Expression
+
+| Condizione del filtro | Descrizione |
+| --------------------- | ------------------------------------- |
+| **Evaluates To True** | L'espressione restituisce un valore vero |
+
+L'espressione viene eseguita in una sandbox senza campi email collegati, quindi non può leggere oggetto, mittente, corpo o destinatario del messaggio che ha avviato il controllo. Usate i tipi di filtro **Oggetto dell'email**, **Email From Address**, **Email Body** ed **Email To Address** per confrontare il contenuto dell'email.
+
+## Configurazioni di esempio
+
+Ogni esempio è una coppia di criteri. Un criterio ha dei filtri, una **Condizione di corrispondenza** (**Tutti** o **Qualsiasi** dei suoi filtri) e delle azioni: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente. Attivate **Risoluzione automatica dell'avviso** (o **Risoluzione automatica dell'incidente**) sotto **Altri campi** nell'avviso o nell'incidente, così il secondo criterio risolve ciò che ha aperto il primo.
+
+### Esempio 1: creare un avviso con le email critiche
+
+| Criterio | Filtri | Condizione di corrispondenza | Azioni |
+| --- | --- | --- | --- |
+| Email critica | **Oggetto dell'email** Contiene `CRITICAL`; **Oggetto dell'email** Contiene `ALERT`; **Oggetto dell'email** Contiene `ERROR` | **Qualsiasi** | Portare lo stato offline; creare un avviso |
+| Email di ripristino | **Oggetto dell'email** Contiene `RESOLVED`; **Oggetto dell'email** Contiene `RECOVERED` | **Qualsiasi** | Portare lo stato online |
+
+Mettete per primo il criterio critico: i criteri vengono controllati dall'alto, e decide il primo che corrisponde.
+
+### Esempio 2: monitorare un mittente specifico
+
+| Criterio | Filtri | Condizione di corrispondenza | Azioni |
+| --- | --- | --- | --- |
+| Job fallito | **Email From Address** Equal To `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Failed` | **Tutti** | Portare lo stato offline; dichiarare un incidente |
+| Job riuscito | **Email From Address** Equal To `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Success` | **Tutti** | Portare lo stato online |
+
+### Esempio 3: monitor heartbeat (nessuna email = avviso)
+
+| Criterio | Filtri | Azioni |
+| --- | --- | --- |
+| L'email è in ritardo | **Email Received** Not Recieved In Minutes `60` | Portare lo stato offline; creare un avviso |
+| L'email è arrivata | **Email Received** Recieved In Minutes `60` | Portare lo stato online |
+
+Il primo criterio scatta quando non è arrivata alcuna email per 60 minuti: utile per job pianificati o processi batch che inviano un'email di completamento. Il secondo risolve l'avviso appena ne arriva una. I minuti in cui OneUptime stesso non riceveva email non contano nei 60, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+
+## Casi d'uso
+
+| Caso d'uso | Cosa fa il monitor |
+| --- | --- |
+| Integrazione di sistemi legacy | Trasforma in incidenti di OneUptime gli avvisi solo via email dei sistemi più vecchi, e li risolve quando arriva l'email di ripristino. |
+| Servizi di terze parti | Riceve notifiche da provider cloud (AWS, GCP, Azure), scanner di sicurezza, strumenti di backup e avvisi di scadenza dei certificati. |
+| Job pianificati | Avvisa quando un'email di completamento è in ritardo, o quando un job segnala un errore via email. |
+| Aggregazione degli avvisi | Raccoglie gli avvisi via email di Nagios, Zabbix o altri strumenti, così OneUptime è l'unico posto in cui gestirli. |
+
+## Variabili del modello
+
+I titoli, le descrizioni e le note di rimedio degli avvisi e degli incidenti creati da questo monitor possono usare queste variabili. I moduli di avviso e di incidente del criterio le elencano in **Variabili del modello**, e [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating) ne spiega la sintassi.
+
+| Variabile | Descrizione |
+| --------------------- | ----------------------------------------------------------------- |
+| `{{emailSubject}}`    | L'oggetto dell'email ricevuta |
+| `{{emailFrom}}`       | L'indirizzo email del mittente |
+| `{{emailTo}}`         | A chi è stata inviata l'email, con l'indirizzo di questo monitor mascherato |
+| `{{emailBody}}`       | Il corpo in testo semplice dell'email |
+| `{{emailReceivedAt}}` | Quando è stata ricevuta l'email, come timestamp ISO 8601 in UTC |
+
+- **Un titolo riceve una riga di ciascuna.** In un titolo, ogni variabile viene troncata a una riga di al massimo 150 caratteri, e termina con `...` quando era più lunga. Un titolo non può superare i 500 caratteri, e un avviso o un incidente con un titolo troppo lungo non viene creato affatto, quindi citare un'email intera impedirebbe al monitor di avvisare sulle email lunghe. Descrizioni e note di rimedio ricevono il valore completo.
+- **L'indirizzo di questo monitor è mascherato.** L'indirizzo funziona come una password, quindi viene mascherato prima che l'email venga salvata, e `{{emailTo}}` vale `monitor-[REDACTED]@{inbound-domain}` (o `[REDACTED]@{inbound-domain}` per un indirizzo personalizzato).
+- **Un controllo di email mancante usa l'ultima email.** Quando un criterio **Email Received** apre un avviso perché nessuna email è arrivata in tempo, le variabili descrivono l'ultima email ricevuta dal monitor. Sono vuote se non ne è ancora arrivata nessuna.
+
+## Vista Riepilogo del monitor
+
+Una volta che il monitor ha ricevuto un'email, la scheda **Riepilogo del monitor** nella sua pagina **Panoramica** mostra la più recente:
+
+- **Ultima email ricevuta il**: quando è stata ricevuta l'email più recente
+- **Da**: il mittente dell'ultima email
+- **Oggetto**: la riga dell'oggetto dell'ultima email
+
+Fate clic su **Mostra altri dettagli** per vedere il resto:
+
+- **Intestazioni email**: le intestazioni complete dell'ultima email
+- **Corpo dell'email (testo)**: il corpo in testo semplice
+- **Corpo dell'email (HTML)**: il corpo HTML, mostrato come sorgente HTML invece che renderizzato
+
+### Email precedenti
+
+La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Registri di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email Received**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
+
+## Configurazione self-hosted
+
+Se ospitate OneUptime da voi, dovete configurare un provider di email in arrivo. Attualmente è supportato:
+
+- **SendGrid Inbound Parse** - Consultate [Email in arrivo SendGrid](/docs/self-hosted/sendgrid-inbound-email) per le istruzioni di configurazione
+
+Finché non è configurato, la scheda dell'indirizzo del monitor indica che la ricezione email non è configurata.
+
+## Aspetti da considerare
+
+- **Sicurezza dell'indirizzo email**: l'indirizzo email del monitor funziona come una password: chiunque lo conosca può inviare email al monitor. Non condividetelo pubblicamente, e reimpostatelo dalla scheda **Impostazioni** del monitor se trapela.
+- **Dimensione delle email**: OneUptime accetta un'email in arrivo fino a 50 MB, allegati compresi. Gli allegati non vengono salvati, solo i loro nomi, tipi e dimensioni.
+- **Tempo di elaborazione**: le email vengono elaborate in modo asincrono. Tra l'invio di un'email e la creazione dell'avviso possono passare alcuni secondi.
+- **Nessuna distinzione tra maiuscole e minuscole**: tutti i confronti tra stringhe (Contiene, Equal To, ecc.) non distinguono maiuscole e minuscole.
+- **Testo semplice**: i criteri sul corpo leggono la parte in testo semplice dell'email. Un'email inviata solo in HTML ha un corpo vuoto per i criteri, quindi non contiene `error`, e i criteri predefiniti segnano il monitor online.
+
+## Risoluzione dei problemi
+
+### Le email non arrivano
+
+1. Verificate che l'indirizzo email sia corretto (controllate i refusi).
+2. Controllate se il mittente sta aspettando che verifichiate l'indirizzo. I gruppi di azioni di Azure Monitor e Amazon SNS non inviano nulla a un nuovo indirizzo finché non è verificato. Consultate [Verificare l'indirizzo con il mittente](#verificare-lindirizzo-con-il-mittente).
+3. Controllate se l'email viene bloccata dai filtri antispam.
+4. Verificate che il provider di email in arrivo sia configurato correttamente.
+5. Cercate messaggi d'errore nei log di OneUptime.
+
+### Gli avvisi non vengono creati
+
+1. Verificate che i vostri criteri corrispondano al contenuto dell'email. Ricordate che l'indirizzo del monitor stesso appare come `[REDACTED]`, e che un'email solo HTML ha il corpo vuoto.
+2. Controllate che il monitoraggio sia attivo: pagina **Impostazioni** del monitor, scheda **Monitoraggio**.
+3. Aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** sulla riga dell'email per vedere cosa hanno letto i criteri.
+4. Controllate l'ordine dei criteri: decide il primo che corrisponde.
+
+### Gli avvisi non vengono risolti
+
+1. Verificate che i criteri di risoluzione corrispondano all'email di ripristino.
+2. Controllate che **Risoluzione automatica dell'avviso** (o **Risoluzione automatica dell'incidente**) sia attiva nel criterio che lo ha aperto.
+3. Controllate che l'email di risoluzione venga inviata allo stesso indirizzo del monitor.
+
+## Passi successivi
+
+:::cards
+- [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating): Inserite oggetto e corpo dell'email negli avvisi.
+- [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor): Ricevete invece heartbeat e webhook via HTTP.
+- [Email in arrivo SendGrid](/docs/self-hosted/sendgrid-inbound-email): Configurate la ricezione email su un server self-hosted.
+:::
