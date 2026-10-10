@@ -15,18 +15,14 @@ A problem moves through OneUptime in one direction. Probes and your own telemetr
 
 ```mermaid title="How a problem moves through OneUptime"
 flowchart TB
-    subgraph signals["Signals"]
-        direction LR
-        probes["Probes run checks"]
-        telemetry["Apps and agents<br/>send telemetry"]
-    end
-    signals --> monitors["Monitors evaluate<br/>their criteria"]
+    probes["Probes run checks"] --> monitors["Monitors"]
+    telemetry["Apps and agents<br/>send telemetry"] --> monitors
     monitors -->|"declares"| incident["Incident"]
     monitors -->|"creates"| alert["Alert"]
     incident --> policy["On-call policy"]
     alert --> policy
-    policy --> person["Whoever is on call"]
     incident --> statuspage["Status page"]
+    policy --> person["Whoever is on call"]
     statuspage --> subscribers["Subscribers"]
 ```
 

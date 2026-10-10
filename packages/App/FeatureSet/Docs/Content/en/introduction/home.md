@@ -33,10 +33,10 @@ Under the steps, **How OneUptime works** shows the four core products in the ord
 ```mermaid title="When the welcome checklist goes away"
 flowchart TB
     open["Home opens"] --> dismissed{"Dismissed in<br/>this browser?"}
-    dismissed -->|Yes| hidden["No checklist"]
     dismissed -->|No| done{"All four<br/>steps done?"}
+    dismissed -->|Yes| hidden["No checklist"]
     done -->|Yes| hidden
-    done -->|No| shown["Checklist shows<br/>steps completed"]
+    done -->|No| shown["The checklist, with<br/>the steps left to do"]
 ```
 
 The checklist goes away once all four steps are done. To hide it sooner, click **Dismiss**. Dismissing is remembered in this browser, for this project; everything the steps open is still in the **Products** menu.

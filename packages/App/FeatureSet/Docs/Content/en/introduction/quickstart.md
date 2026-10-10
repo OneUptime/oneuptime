@@ -5,10 +5,11 @@ This guide takes you from a new account to a working setup in about fifteen minu
 ```mermaid title="What you set up in this guide"
 flowchart TB
     monitor["Website monitor"] -->|"site is down"| incident["Incident"]
-    incident -->|"on-call rule"| policy["On-call policy"]
-    policy --> you["You: email, SMS,<br/>call or push"]
+    incident --> rule["On-call rule"]
     incident --> page["Status page"]
+    rule --> policy["On-call policy"]
     page --> customers["Your customers"]
+    policy --> you["You: email, SMS,<br/>call or push"]
 ```
 
 ## Before you begin

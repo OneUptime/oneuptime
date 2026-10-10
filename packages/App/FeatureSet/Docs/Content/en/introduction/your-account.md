@@ -4,10 +4,10 @@ Your account is how OneUptime knows you: the email and password you sign in with
 
 ```mermaid title="What belongs to your account, and what each project keeps for you"
 flowchart TB
-    account["Your account:<br/>email, password, name,<br/>time zone, passkeys, 2FA"] --> projectA["Project A"]
+    account["Your account:<br/>sign-in and profile"] --> projectA["Project A"]
     account --> projectB["Project B"]
-    projectA --> settingsA["User Settings in A:<br/>notification methods,<br/>on-call rules"]
-    projectB --> settingsB["User Settings in B:<br/>notification methods,<br/>on-call rules"]
+    projectA --> settingsA["User Settings in A:<br/>how you are paged"]
+    projectB --> settingsB["User Settings in B:<br/>how you are paged"]
 ```
 
 :::cards

@@ -17,25 +17,11 @@ Everything starts with something you watch. A monitor checks it on a schedule, o
 
 ```mermaid title="From a failed check to a paged team and an updated status page"
 flowchart TB
-    subgraph watch["What you watch"]
-        direction LR
-        site["Websites and APIs"]
-        infra["Servers and Kubernetes"]
-        apps["Apps with OpenTelemetry"]
-    end
-    site --> probes["Probes"]
-    infra --> agents["Agents"]
-    apps --> telemetry["Logs, metrics, traces"]
-    agents --> telemetry
-    probes --> monitors["Monitors"]
-    telemetry --> monitors
-    monitors -->|"criteria met"| incidents["Incidents"]
-    monitors -->|"criteria met"| alerts["Alerts"]
-    incidents --> oncall["On-call policies"]
-    alerts --> oncall
-    oncall --> people["Email, SMS, call, push, Slack, Teams"]
-    incidents --> status["Status pages"]
-    status --> subscribers["Subscribers"]
+    probes["Probes check your<br/>sites and APIs"] --> monitors["Monitors"]
+    telemetry["Your apps and agents<br/>send telemetry"] --> monitors
+    monitors -->|"criteria met"| problems["Incidents and alerts"]
+    problems --> oncall["On-call policies<br/>page your team"]
+    problems --> status["Status pages<br/>tell your customers"]
 ```
 
 - An **incident** is a problem that affects your users. It can page whoever is on call, and show on your status page.
