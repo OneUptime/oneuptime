@@ -82,7 +82,7 @@ JavaScript-udtryk tilbydes for monitorer af typen Website, API, Incoming Request
 
 ### Monitorer for indgående e-mail
 
-Filteret tilbydes, men der er ingen e-mailfelter knyttet til det: et udtryk kan ikke læse emnet, afsenderen, brødteksten eller modtageren. Brug i stedet e-mailfiltertyperne — se [Indgående e-mail-monitor](/docs/monitor/incoming-email-monitor#tilgængelige-kriteriefelter).
+Filteret tilbydes, men der er ingen e-mailfelter knyttet til det: et udtryk kan ikke læse emnet, afsenderen, brødteksten eller modtageren. Brug i stedet e-mailfiltertyperne — se [Indgående e-mail-monitor](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
 
 ## Eksempler
 

@@ -289,7 +289,7 @@ flowchart TB
 
 Pfade müssen mit dem wörtlichen Präfix `requestBody.` beginnen. Ein Pfad ohne es — `alerts[*].labels.alertname` — trifft auf nichts zu, stillschweigend. Die Hülle `{{ }}` ist optional: `requestBody.status` und `{{requestBody.status}}` verhalten sich gleich.
 
-- `[*]` fächert über ein Array auf — ein Vorfall pro **unterschiedlichem** Wert. Zwei Elemente mit demselben Wert fallen zu einem Vorfall zusammen, und dessen Zustand (auslösend/behoben) stammt vom **first** passenden Element. **Nur das erste `[*]` eines Pfads ist ein Platzhalter**; `requestBody.groups[*].alerts[*].name` trifft auf nichts zu.
+- `[*]` fächert über ein Array auf — ein Vorfall pro **unterschiedlichem** Wert. Zwei Elemente mit demselben Wert fallen zu einem Vorfall zusammen, und dessen Zustand (auslösend/behoben) stammt vom **ersten** passenden Element. **Nur das erste `[*]` eines Pfads ist ein Platzhalter**; `requestBody.groups[*].alerts[*].name` trifft auf nichts zu.
 - `[0]` und `[last]` wählen ein einzelnes Element und dürfen auf ein `[*]` folgen.
 - Objekt- und Array-Werte, leere Zeichenketten und Nullwerte werden übersprungen. `0` und `false` sind gültige Schlüssel.
 - Der Body muss ein JSON-Objekt sein; eine Nutzlast, deren oberste Ebene ein Array ist, wird nicht gruppiert.

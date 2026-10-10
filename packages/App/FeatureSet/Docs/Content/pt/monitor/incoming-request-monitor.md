@@ -289,7 +289,7 @@ flowchart TB
 
 Os caminhos precisam começar com o prefixo literal `requestBody.`. Um caminho sem ele, como `alerts[*].labels.alertname`, não corresponde a nada, sem avisar. O invólucro `{{ }}` é opcional: `requestBody.status` e `{{requestBody.status}}` se comportam igual.
 
-- `[*]` se expande sobre um array: um incidente por valor **distinto**. Dois elementos que dão o mesmo valor se fundem em um único incidente, e o estado dele (disparado/resolvido) vem do **first** elemento correspondente. **Só o primeiro `[*]` de um caminho é um curinga**; `requestBody.groups[*].alerts[*].name` não corresponde a nada.
+- `[*]` se expande sobre um array: um incidente por valor **distinto**. Dois elementos que dão o mesmo valor se fundem em um único incidente, e o estado dele (disparado/resolvido) vem do **primeiro** elemento correspondente. **Só o primeiro `[*]` de um caminho é um curinga**; `requestBody.groups[*].alerts[*].name` não corresponde a nada.
 - `[0]` e `[last]` selecionam um único elemento, e podem vir depois de um `[*]`.
 - Valores de objeto e de array, strings vazias e valores nulos são ignorados. `0` e `false` são chaves válidas.
 - O corpo precisa ser um objeto JSON; um payload cujo nível superior é um array não é agrupado.

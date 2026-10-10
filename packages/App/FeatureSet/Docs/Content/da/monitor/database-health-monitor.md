@@ -191,7 +191,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Vært** | Databaseværten, som proben kan nå (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Den database, der forbindes til. Metrikker på databaseniveau (størrelse, cache-hitrate, udskrivning til midlertidige filer) rapporteres for denne database; metrikker på serverniveau (forbindelser, oppetid, replikering) for hele serveren — undtagen på Azure SQL Database, hvor forbindelser kun tælles for den overvågede database. |
-| **Use Windows Integrated Authentication** | Kun Microsoft SQL Server. Godkend med probeprocessens identitet i stedet for et brugernavn og en adgangskode. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor) på siden om SQL Query-monitoren — opsætningen er den samme. |
+| **Use Windows Integrated Authentication** | Kun Microsoft SQL Server. Godkend med probeprocessens identitet i stedet for et brugernavn og en adgangskode. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
 | **Brugernavn** | Overvågningsbrugeren. Påkrævet, medmindre du bruger integreret Windows-godkendelse. |
 | **Adgangskode** | Adgangskoden. Henvis til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive den i klartekst (se [Brug en monitorhemmelighed](#brug-en-monitorhemmelighed-til-adgangskoden)). |
 | **Use SSL/TLS** | Forbind over TLS. Når det er slået til, kan du slå **Verify server certificate** fra for et selvsigneret certifikat. |

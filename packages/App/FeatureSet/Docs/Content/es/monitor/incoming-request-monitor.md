@@ -289,7 +289,7 @@ flowchart TB
 
 Las rutas deben empezar por el prefijo literal `requestBody.`. Una ruta sin él —`alerts[*].labels.alertname`— no coincide con nada, sin avisar. La envoltura `{{ }}` es opcional: `requestBody.status` y `{{requestBody.status}}` se comportan igual.
 
-- `[*]` se despliega sobre un array: un incidente por valor **distinto**. Dos elementos que dan el mismo valor se funden en un solo incidente, y su estado (activo/resuelto) se toma del **first** elemento que coincide. **Solo el primer `[*]` de una ruta es un comodín**; `requestBody.groups[*].alerts[*].name` no coincide con nada.
+- `[*]` se despliega sobre un array: un incidente por valor **distinto**. Dos elementos que dan el mismo valor se funden en un solo incidente, y su estado (activo/resuelto) se toma del **primer** elemento que coincide. **Solo el primer `[*]` de una ruta es un comodín**; `requestBody.groups[*].alerts[*].name` no coincide con nada.
 - `[0]` y `[last]` seleccionan un único elemento, y pueden ir después de un `[*]`.
 - Los valores de objeto y de array, las cadenas vacías y los valores nulos se omiten. `0` y `false` son claves válidas.
 - El cuerpo debe ser un objeto JSON; una carga útil cuyo nivel superior es un array no se agrupa.

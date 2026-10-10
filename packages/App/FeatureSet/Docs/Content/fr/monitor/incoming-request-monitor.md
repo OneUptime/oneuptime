@@ -289,7 +289,7 @@ flowchart TB
 
 Les chemins doivent commencer par le préfixe littéral `requestBody.`. Un chemin sans lui — `alerts[*].labels.alertname` — ne correspond à rien, sans le signaler. L'enveloppe `{{ }}` est facultative : `requestBody.status` et `{{requestBody.status}}` se comportent de la même façon.
 
-- `[*]` se déploie sur un tableau — un incident par valeur **différente**. Deux éléments qui donnent la même valeur fusionnent en un seul incident, dont l'état (déclenché/résolu) est pris sur le **first** élément correspondant. **Seul le premier `[*]` d'un chemin est un joker** ; `requestBody.groups[*].alerts[*].name` ne correspond à rien.
+- `[*]` se déploie sur un tableau — un incident par valeur **différente**. Deux éléments qui donnent la même valeur fusionnent en un seul incident, dont l'état (déclenché/résolu) est pris sur le **premier** élément correspondant. **Seul le premier `[*]` d'un chemin est un joker** ; `requestBody.groups[*].alerts[*].name` ne correspond à rien.
 - `[0]` et `[last]` sélectionnent un seul élément, et peuvent suivre un `[*]`.
 - Les valeurs objet et tableau, les chaînes vides et les valeurs nulles sont ignorées. `0` et `false` sont des clés valides.
 - Le corps doit être un objet JSON ; une charge utile dont le niveau supérieur est un tableau n'est pas regroupée.
