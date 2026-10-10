@@ -25,15 +25,22 @@ import path from "path";
  * out the acquire timeout and then went ahead unlocked (or, for a monitor,
  * was refused).
  *
- * DatabaseService.create now runs every step in one try and hands
- * onCreateError what onBeforeCreate handed back, so the rule is:
+ * DatabaseService.create now runs every step in one try and keeps one
+ * OnCreate for the whole create - the object onBeforeCreate hands back is the
+ * very one onCreatePermitted, onCreateSuccess and onCreateError are handed -
+ * so the rule is:
  *
  *   - every service that takes a lock in a create hook gives it back in
  *     onCreateSuccess AND in onCreateError (which takes the OnCreate);
+ *   - it gives it back through that one object - by the OnCreate itself, or
+ *     what it carries forward - never by the create the OnCreate holds, which
+ *     onBeforeCreate may hand back anew: a lock looked up by the create
+ *     onBeforeCreate returned was found only while that happened to be the
+ *     create onCreatePermitted was handed;
  *   - no service holds a lock around create() itself (a try/finally of its
  *     own): the hooks own it, the same way for every service;
  *   - DatabaseService hands every failure of a create to onCreateError, with
- *     what onBeforeCreate handed back - and which step of the create failed
+ *     the create's one OnCreate - and which step of the create failed
  *     (WriteProgress: the INSERT itself, or a step around it), for a hook
  *     whose lock is kept while the create may still land.
  *
@@ -56,7 +63,7 @@ const HOOKS_THAT_TAKE: Array<string> = ["onBeforeCreate", "onCreatePermitted"];
  * nobody gave back would be kept alive for minutes.
  */
 const TAKES_A_LOCK: RegExp =
-  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate)\s*\(/;
+  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate|AiCommandCredentialReach\.take)\s*\(/;
 
 /*
  * Giving one back. A sign-in change's lock is handed back after a failed
@@ -68,7 +75,7 @@ const TAKES_A_LOCK: RegExp =
  * handing them what failed).
  */
 const GIVES_IT_BACK: RegExp =
-  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite|GlobalSsoProviderChanges\.afterFailedCreate)\s*\(/;
+  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite|GlobalSsoProviderChanges\.afterFailedCreate|AiCommandCredentialReach\.giveBack|AiCommandCredentialReach\.giveBackAfterCreate|AiCommandCredentialReach\.giveBackAfterFailedCreate)\s*\(/;
 
 /*
  * onCreateError takes what onBeforeCreate handed back - and, where the hook
@@ -89,9 +96,40 @@ const LOCKING_CREATES: Record<string, string> = {
   "IncidentStateTimelineService.ts": "the incident",
   "MonitorStatusTimelineService.ts": "the monitor (failing closed)",
   "ProjectService.ts": "the server's sign-in rules",
+  "RunbookCredentialService.ts":
+    "the project's runbook credentials and AI Runners (failing closed)",
   "ScheduledMaintenanceStateTimelineService.ts":
     "the scheduled maintenance event",
 };
+
+// The create hooks that run once onBeforeCreate has handed back the create's one OnCreate.
+const HOOKS_HANDED_THE_ONE_ONCREATE: Array<string> = [
+  "onCreatePermitted",
+  "onCreateSuccess",
+  "onCreateError",
+];
+
+/*
+ * The create a hook's OnCreate holds, handed as the key where a lock is taken
+ * or given back: `onCreate.createBy`, `onCreate?.createBy`, cast or not - but
+ * not a value read from it for the log (`onCreate?.createBy.data.projectId`).
+ */
+const KEYED_BY_THE_CREATE_IT_HOLDS: RegExp =
+  /\bonCreate\s*\??\.\s*createBy\b(?!\s*\??\.)/;
+
+// The arguments of every call in `text` that takes or gives back a lock.
+function lockCallArguments(text: string): Array<string> {
+  return [
+    ...callArguments(
+      text,
+      new RegExp(TAKES_A_LOCK.source.replace(/\\s\*\\\($/, "")),
+    ),
+    ...callArguments(
+      text,
+      new RegExp(GIVES_IT_BACK.source.replace(/\\s\*\\\($/, "")),
+    ),
+  ];
+}
 
 // The state timelines that go ahead unlocked without Valkey (StateChangeLock).
 const STATE_TIMELINES: Array<string> = [
@@ -150,7 +188,7 @@ describe.each(Object.keys(LOCKING_CREATES))(
       );
     });
 
-    test("once the create is refused or fails after the hook: in onCreateError, which takes what onBeforeCreate handed back", () => {
+    test("once the create is refused or fails after the hook: in onCreateError, which takes the create's one OnCreate", () => {
       expect(hasMethod(classSource, "onCreateError")).toBe(true);
       expect(methodText(classSource, "onCreateError")).toMatch(
         ERROR_HOOK_TAKES_THE_CREATE,
@@ -169,6 +207,88 @@ describe.each(Object.keys(LOCKING_CREATES))(
     });
   },
 );
+
+describe.each(Object.keys(LOCKING_CREATES))(
+  "%s gives its lock back through the create's one OnCreate, never through the create it holds",
+  (file: string) => {
+    const classSource: ClassSource = SOURCES.get(file)!;
+
+    test.each(HOOKS_HANDED_THE_ONE_ONCREATE)(
+      "%s takes and gives back its locks by the OnCreate or what it carries forward",
+      (hook: string) => {
+        const calls: Array<string> = lockCallArguments(
+          reachableText(classSource, hook),
+        );
+
+        for (const call of calls) {
+          // Never the create the OnCreate holds...
+          expect([hook, call, KEYED_BY_THE_CREATE_IT_HOLDS.test(call)]).toEqual(
+            [hook, call, false],
+          );
+        }
+      },
+    );
+
+    test("every lock call of its success and error hooks names the OnCreate itself", () => {
+      for (const hook of ["onCreateSuccess", "onCreateError"]) {
+        const calls: Array<string> = lockCallArguments(
+          methodText(classSource, hook),
+        );
+
+        expect([hook, calls.length > 0]).toEqual([hook, true]);
+
+        for (const call of calls) {
+          // ...but the OnCreate, as a whole argument.
+          expect([hook, call, /(^|[\s,(:])onCreate\s*(,|$|\))/.test(call)]).toEqual(
+            [hook, call, true],
+          );
+        }
+      }
+    });
+  },
+);
+
+describe("the helpers that hold a create's sign-in lock keep it by the create's one OnCreate", () => {
+  const UTILS_DIR: string = path.join(COMMON_DIR, "Server", "Utils");
+  const requirement: ClassSource = readClassSource(
+    path.join(UTILS_DIR, "SsoRequirementChanges.ts"),
+  );
+  const globalProviders: ClassSource = readClassSource(
+    path.join(UTILS_DIR, "GlobalSsoProviderChanges.ts"),
+  );
+
+  test("a project's create: SsoRequirementChanges is handed the OnCreate, and keeps the lock by it", () => {
+    expect(methodText(requirement, "beforeProjectCreate")).toMatch(
+      /create:\s*OnCreate<Project>;/,
+    );
+    expect(methodText(requirement, "beforeProjectCreate")).toMatch(
+      /key:\s*data\.create as unknown as OnCreate<BaseModel>,/,
+    );
+    expect(methodText(requirement, "afterProjectCreate")).toMatch(
+      /create:\s*OnCreate<Project> \| null \| undefined,/,
+    );
+    expect(methodText(requirement, "afterFailedProjectCreate")).toMatch(
+      /create:\s*OnCreate<Project> \| null \| undefined,/,
+    );
+    expect(requirement.source).not.toMatch(/\bCreateBy\b/);
+  });
+
+  test("a global provider's attachment: GlobalSsoProviderChanges is handed the OnCreate, and keeps the lock by it", () => {
+    expect(methodText(globalProviders, "beforeAttachmentCreate")).toMatch(
+      /create:\s*OnCreate<BaseModel>;/,
+    );
+    expect(methodText(globalProviders, "beforeAttachmentCreate")).toMatch(
+      /key:\s*keyOf\(data\.create\),/,
+    );
+    expect(methodText(globalProviders, "afterFailedCreate")).toMatch(
+      /create:\s*OnCreate<TModel>,/,
+    );
+    expect(globalProviders.source).toMatch(
+      /type WriteKey = UpdateBy<BaseModel> \| DeleteBy<BaseModel> \| OnCreate<BaseModel>;/,
+    );
+    expect(globalProviders.source).not.toMatch(/\bCreateBy\b/);
+  });
+});
 
 describe.each(STATE_TIMELINES)(
   "%s takes its event's lock through StateChangeLock",
@@ -277,6 +397,53 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
   test("what onBeforeCreate hands back is handed on as soon as it has run", () => {
     expect(createItself).toMatch(
       /:\s*await this\._onBeforeCreate\(createBy\);\s*handedBack\.onCreate = onCreate;/,
+    );
+  });
+
+  test("onCreatePermitted and onCreateSuccess are handed that very OnCreate - the one onCreateError is handed - never an object of their own", () => {
+    expect(callArguments(createItself, /this\.onCreatePermitted/)).toEqual([
+      "onCreate",
+    ]);
+    expect(
+      callArguments(createItself, /this\.onCreateSuccess/).map(
+        (call: string): string => {
+          return call.replace(/\s+/g, " ").trim();
+        },
+      ),
+    ).toEqual(["onCreate, createBy.data"]);
+    expect(
+      callArguments(classSource.source, /this\.onCreatePermitted/),
+    ).toHaveLength(1);
+    expect(
+      callArguments(classSource.source, /this\.onCreateSuccess/),
+    ).toHaveLength(1);
+  });
+
+  test("the create's OnCreate is one object: declared once and never replaced", () => {
+    expect(
+      (createItself.match(/const onCreate: OnCreate<TBaseModel> =/g) || [])
+        .length,
+    ).toBe(1);
+    // No `onCreate = ...` after it: only what it holds changes.
+    expect(createItself).not.toMatch(/(^|[^.\w])onCreate\s*=[^=]/m);
+  });
+
+  test("it holds the create as it is written before onCreatePermitted is handed it, and nothing points it elsewhere after", () => {
+    const pointedAt: number = createItself.indexOf(
+      "onCreate.createBy = createBy;",
+    );
+    const permittedAt: number = createItself.search(
+      /this\.onCreatePermitted\(/,
+    );
+
+    expect(pointedAt).toBeGreaterThan(-1);
+    expect(pointedAt).toBeLessThan(permittedAt);
+    expect(
+      (createItself.match(/onCreate\.createBy\s*=[^=]/g) || []).length,
+    ).toBe(1);
+    // The create it holds is the one written: not handed back anew after it.
+    expect(createItself.slice(pointedAt)).not.toMatch(
+      /(^|[^.\w])createBy\s*=[^=]/m,
     );
   });
 
