@@ -1,17 +1,18 @@
 import type { jsPDF } from "jspdf";
 import OneUptimeDate from "Common/Types/Date";
 import downloadFile, { getExportFilename } from "Common/UI/Utils/DownloadFile";
-import { ExportPage } from "./ExportItems";
+import { ExportPage, orientationOfPage } from "./ExportItems";
 import {
   NetworkTopologyExportDocument,
   NetworkTopologyExportInput,
-  buildNetworkTopologyExportDocument,
+  buildNetworkTopologyExportDocumentAsync,
 } from "./NetworkTopologyExportDocument";
 import { TextMeasure } from "./ExportText";
 import {
   PDF_FONT_NAME,
   TopologyPdfCanvas,
   paintNetworkTopologyDocument,
+  pauseForBrowser,
 } from "./NetworkTopologyPdfPainter";
 
 /*
@@ -81,34 +82,37 @@ export function createPdfTextMeasure(doc: jsPDF): TextMeasure {
   };
 }
 
-function orientationOf(page: ExportPage): "portrait" | "landscape" {
-  return page.width > page.height ? "landscape" : "portrait";
-}
-
 /** Builds the PDF of one map. */
 export async function buildNetworkTopologyPdf(
   input: NetworkTopologyExportInput,
   options?: NetworkTopologyPdfOptions | undefined,
 ): Promise<NetworkTopologyPdf> {
   const library: PdfLibrary = await (options?.loadPdfLibrary || loadJsPdf)();
+  const pause: () => Promise<void> = options?.yieldToBrowser || pauseForBrowser;
 
-  // A scratch document to measure text with; the real one needs the page size.
+  /*
+   * Text is measured on a document of its own: the one the PDF is drawn on
+   * is created with its first page, whose size the layout decides — and the
+   * layout needs the measurements first. A jsPDF document costs next to
+   * nothing until something is drawn on it.
+   */
   const measuringDoc: jsPDF = new library.jsPDF({
     unit: "pt",
     format: "a4",
     orientation: "landscape",
   });
   const document: NetworkTopologyExportDocument =
-    buildNetworkTopologyExportDocument(
+    await buildNetworkTopologyExportDocumentAsync(
       input,
       createPdfTextMeasure(measuringDoc),
+      pause,
     );
 
   const firstPage: ExportPage = document.pages[0]!;
   const doc: jsPDF = new library.jsPDF({
     unit: "pt",
     format: [firstPage.width, firstPage.height],
-    orientation: orientationOf(firstPage),
+    orientation: orientationOfPage(firstPage),
     compress: true,
     putOnlyUsedFonts: true,
   });
@@ -116,8 +120,9 @@ export async function buildNetworkTopologyPdf(
   await paintNetworkTopologyDocument(
     doc as unknown as TopologyPdfCanvas,
     document,
-    { yieldToBrowser: options?.yieldToBrowser },
+    { yieldToBrowser: pause },
   );
+  await pause();
 
   return { blob: doc.output("blob"), document: document };
 }

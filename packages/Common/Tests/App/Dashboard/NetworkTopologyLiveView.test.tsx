@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -556,6 +557,9 @@ describe("network topology live view: Export PDF", () => {
   });
 
   test("a failed export says so in the card, and the next one clears it", async () => {
+    const consoleError: SpyInstance<typeof console.error> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
     exportMock.mockRejectedValueOnce(new Error("Failed to fetch module"));
     await renderSite();
     fireEvent.click(exportButton());
@@ -564,6 +568,11 @@ describe("network topology live view: Export PDF", () => {
     );
     expect(alert).toHaveAttribute("role", "alert");
     expect(alert).toHaveTextContent("We couldn't create the PDF. Try again.");
+    // The reason goes to the console, where it can be diagnosed.
+    expect(consoleError).toHaveBeenCalledWith(
+      "Could not export the network topology as a PDF: Failed to fetch module",
+    );
+    consoleError.mockRestore();
     // The map stays, and so does the way to try again.
     expect(screen.getByTestId("live-network-graph")).toBeVisible();
     await waitFor(() => {

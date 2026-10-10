@@ -4,14 +4,29 @@ import {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
+  TOPOLOGY_DRAWING_STYLE,
   TOPOLOGY_HULL_PADDING,
   TOPOLOGY_VIEW_HEIGHT,
   TOPOLOGY_VIEW_WIDTH,
   TopologyHullView,
   UNLINKED_HULL_CAPTION,
+  attentionHaloRadiusFor,
   buildTopologyHulls,
   computeTopologyLayoutModel,
+  glyphFillOpacityFor,
+  glyphStrokeWidthFor,
+  labelFontSizeFor,
+  labelLineHeightFor,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyDrawing";
+import {
+  DEVICE_LABEL_FONT_SIZE,
+  DEVICE_LABEL_LINE_HEIGHT,
+  ENDPOINT_LABEL_FONT_SIZE,
+  ENDPOINT_LABEL_LINE_HEIGHT,
+  footprintForNode,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
+import fs from "fs";
+import path from "path";
 import {
   ALL_NODE_KINDS,
   TopologyNodeKind,
@@ -389,4 +404,161 @@ describe("buildTopologyHulls: the soft hulls behind the graph", () => {
   test("no drawn nodes means no hulls", () => {
     expect(buildTopologyHulls(force, [])).toEqual([]);
   });
+});
+
+describe("TOPOLOGY_DRAWING_STYLE: how the map is painted, in one place", () => {
+  test("the values the canvas has always drawn with", () => {
+    /*
+     * Pinned so a change is a decision: the canvas AND the PDF both paint
+     * with these, and changing one restyles both.
+     */
+    expect(TOPOLOGY_DRAWING_STYLE).toEqual({
+      dimmedNodeOpacity: 0.2,
+      dimmedEdgeOpacity: 0.15,
+      deviceFillOpacity: 0.9,
+      endpointFillOpacity: 0.85,
+      deviceStrokeWidth: 2,
+      endpointStrokeWidth: 1.5,
+      hullCornerRadius: 14,
+      hullFill: "var(--ou-surface-secondary, #f9fafb)",
+      hullFillOpacity: 0.4,
+      dashedHullFillOpacity: 0.65,
+      hullStroke: "var(--ou-border-subtle, #e5e7eb)",
+      hullStrokeWidth: 1,
+      hullDash: "5 4",
+      hullCaptionOffset: 6,
+      hullCaptionFontSize: 12,
+      hullCaptionColor: "var(--ou-text-muted, #6b7280)",
+      attentionHaloPadding: 5,
+      attentionHaloFillOpacity: 0.16,
+      attentionHaloStrokeOpacity: 0.55,
+      badgeFontSize: 9,
+      deviceBadgeColor: "#ffffff",
+      labelColor: "var(--ou-text-secondary, #374151)",
+      labelHaloColor: "var(--ou-surface-primary, #ffffff)",
+      labelHaloWidth: 3,
+    });
+  });
+
+  test("glyph fills are a little see-through, endpoints more so; unmanaged peers are hollow", () => {
+    expect(glyphFillOpacityFor("device")).toBe(0.9);
+    expect(glyphFillOpacityFor("endpoint")).toBe(0.85);
+    expect(glyphFillOpacityFor("unmanaged")).toBe(1);
+  });
+
+  test("endpoints are drawn with a finer outline", () => {
+    expect(glyphStrokeWidthFor("endpoint")).toBe(1.5);
+    expect(glyphStrokeWidthFor("device")).toBe(2);
+    expect(glyphStrokeWidthFor("unmanaged")).toBe(2);
+  });
+
+  test("names are set at the sizes the layout reserved room for", () => {
+    expect(labelFontSizeFor("device")).toBe(DEVICE_LABEL_FONT_SIZE);
+    expect(labelFontSizeFor("unmanaged")).toBe(DEVICE_LABEL_FONT_SIZE);
+    expect(labelFontSizeFor("endpoint")).toBe(ENDPOINT_LABEL_FONT_SIZE);
+    expect(labelLineHeightFor("device")).toBe(DEVICE_LABEL_LINE_HEIGHT);
+    expect(labelLineHeightFor("endpoint")).toBe(ENDPOINT_LABEL_LINE_HEIGHT);
+  });
+
+  test("the attention ring clears the glyph by its padding", () => {
+    const footprint: ReturnType<typeof footprintForNode> = footprintForNode(
+      device("core", { role: "firewall" }),
+    );
+    expect(attentionHaloRadiusFor(footprint)).toBe(
+      Math.max(footprint.halfWidth, footprint.halfHeight) + 5,
+    );
+  });
+});
+
+describe("the canvas and the PDF both paint with the shared style", () => {
+  const TOPOLOGY_DIR: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Components",
+    "Topology",
+  );
+
+  function code(...parts: Array<string>): string {
+    return fs
+      .readFileSync(path.join(TOPOLOGY_DIR, ...parts), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+  }
+
+  const graph: string = code("NetworkDeviceGraph.tsx");
+  const pdf: string = code("Export", "ExportDiagram.ts");
+
+  test.each([
+    ["graph", graph],
+    ["PDF", pdf],
+  ])(
+    "the %s reads every style value from TOPOLOGY_DRAWING_STYLE",
+    (_name: string, source: string) => {
+      for (const helper of [
+        "glyphFillOpacityFor(",
+        "glyphStrokeWidthFor(",
+        "labelFontSizeFor(",
+        "labelLineHeightFor(",
+        "attentionHaloRadiusFor(",
+        "TOPOLOGY_DRAWING_STYLE",
+      ]) {
+        expect(source).toContain(helper);
+      }
+      for (const key of [
+        "dimmedNodeOpacity",
+        "dimmedEdgeOpacity",
+        "hullCornerRadius",
+        "hullFill",
+        "hullFillOpacity",
+        "dashedHullFillOpacity",
+        "hullStroke",
+        "hullStrokeWidth",
+        "hullDash",
+        "hullCaptionOffset",
+        "hullCaptionFontSize",
+        "hullCaptionColor",
+        "attentionHaloFillOpacity",
+        "attentionHaloStrokeOpacity",
+        "badgeFontSize",
+        "deviceBadgeColor",
+        "labelColor",
+        "labelHaloColor",
+        "labelHaloWidth",
+      ]) {
+        expect(source).toMatch(new RegExp(`\\.${key}\\b`));
+      }
+    },
+  );
+
+  test.each([
+    ["graph", graph],
+    ["PDF", pdf],
+  ])(
+    "the %s keeps no copy of a style value",
+    (_name: string, source: string) => {
+      for (const copy of [
+        "0.85",
+        "0.9 ",
+        "0.65",
+        "0.16",
+        "0.55",
+        "0.15",
+        "rx={14}",
+        "fontSize={9}",
+        "fontSize={12}",
+        '"5 4"',
+        "#f9fafb",
+        "#e5e7eb",
+        "#374151",
+        "--ou-text-muted",
+      ]) {
+        expect(source).not.toContain(copy);
+      }
+    },
+  );
 });

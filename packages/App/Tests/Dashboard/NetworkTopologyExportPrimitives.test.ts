@@ -1,14 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   PRINT_FALLBACK_COLOR,
-  PRINT_PAPER_COLOR,
-  blendWithPaper,
+  clampOpacity,
   resolvePrintColor,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportColor";
 import {
   PdfStringCollector,
   TEXT_ELLIPSIS,
   TextMeasure,
+  formatCount,
+  pluralize,
   truncateText,
   wrapText,
   wrapTextToLines,
@@ -19,6 +20,7 @@ import {
   ExportPathItem,
   ExportTextItem,
   baselineFor,
+  orientationOfPage,
   textItem,
   transformExportItem,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportItems";
@@ -103,30 +105,44 @@ describe("resolvePrintColor: every colour on paper is its light value", () => {
   });
 });
 
-describe("blendWithPaper: translucency as the colour it makes on white", () => {
-  test("opaque is the colour itself, and transparent is the paper", () => {
-    expect(blendWithPaper("#dc2626", 1)).toBe("#dc2626");
-    expect(blendWithPaper("#dc2626", 0)).toBe(PRINT_PAPER_COLOR);
+describe("clampOpacity: an opacity PDF accepts", () => {
+  test("a number from 0 to 1 passes through", () => {
+    expect(clampOpacity(0)).toBe(0);
+    expect(clampOpacity(0.2)).toBe(0.2);
+    expect(clampOpacity(1)).toBe(1);
   });
 
-  test("in between mixes each channel with white", () => {
-    // 0x00 at 50% over 0xff is 0x80 (127.5 rounds up).
-    expect(blendWithPaper("#000000", 0.5)).toBe("#808080");
-    /*
-     * Each channel at 20% over white: 0x16 (22) -> 208.4 -> 0xd0,
-     * 0xa3 (163) -> 236.6 -> 0xed, 0x4a (74) -> 218.8 -> 0xdb.
-     */
-    expect(blendWithPaper("#16a34a", 0.2)).toBe("#d0eddb");
+  test("out of range is clamped, and nothing usable is opaque", () => {
+    expect(clampOpacity(7)).toBe(1);
+    expect(clampOpacity(-3)).toBe(0);
+    expect(clampOpacity(Number.NaN)).toBe(1);
+    expect(clampOpacity(Number.POSITIVE_INFINITY)).toBe(1);
+    expect(clampOpacity(undefined)).toBe(1);
+    expect(clampOpacity(null)).toBe(1);
+  });
+});
+
+describe("counts and pages", () => {
+  test("counts are written with thousands separators, in English", () => {
+    expect(formatCount(0)).toBe("0");
+    expect(formatCount(1203)).toBe("1,203");
+    expect(formatCount(1234567)).toBe("1,234,567");
   });
 
-  test("out-of-range and missing opacities are clamped, not trusted", () => {
-    expect(blendWithPaper("#123456", 7)).toBe("#123456");
-    expect(blendWithPaper("#123456", -3)).toBe("#ffffff");
-    expect(blendWithPaper("#123456", Number.NaN)).toBe("#123456");
+  test("one of a thing is singular, and every other count plural", () => {
+    expect(pluralize(1, "device", "devices")).toBe("1 device");
+    expect(pluralize(0, "device", "devices")).toBe("0 devices");
+    expect(pluralize(1203, "device", "devices")).toBe("1,203 devices");
   });
 
-  test("theme variables are resolved before they are mixed", () => {
-    expect(blendWithPaper("var(--x, #000000)", 0.5)).toBe("#808080");
+  test("a page wider than it is tall is landscape", () => {
+    expect(orientationOfPage({ width: 841.89, height: 595.28 })).toBe(
+      "landscape",
+    );
+    expect(orientationOfPage({ width: 595.28, height: 841.89 })).toBe(
+      "portrait",
+    );
+    expect(orientationOfPage({ width: 600, height: 600 })).toBe("portrait");
   });
 });
 
@@ -305,6 +321,18 @@ describe("export items", () => {
       { op: "m", points: [102, 1002] },
       { op: "c", points: [102, 1004, 106, 1008, 110, 1012] },
     ]);
+  });
+
+  test("transparency survives a transform untouched", () => {
+    const item: ExportItem = {
+      ...textItem("t", "x", 5, 6, 8, "#000000"),
+      fillOpacity: 0.2,
+      strokeOpacity: 0.2,
+    };
+    expect(transformExportItem(item, 3)).toMatchObject({
+      fillOpacity: 0.2,
+      strokeOpacity: 0.2,
+    });
   });
 
   test("an identity transform hands back the same item", () => {

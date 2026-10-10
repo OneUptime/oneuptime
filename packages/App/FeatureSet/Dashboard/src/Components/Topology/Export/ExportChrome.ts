@@ -16,7 +16,13 @@ import {
   textItem,
 } from "./ExportItems";
 import { shapeItems } from "./ExportShapes";
-import { TextMeasure, wrapTextToLines } from "./ExportText";
+import {
+  TextMeasure,
+  formatCount,
+  pluralize,
+  truncateText,
+  wrapTextToLines,
+} from "./ExportText";
 
 /*
  * The parts of the map page that are not the map: the header that says
@@ -60,14 +66,6 @@ const STATUS_WORDS: Record<NetworkTopologyNodeStatus, string> = {
   down: "down",
   unknown: "unknown",
 };
-
-function formatCount(count: number): string {
-  return count.toLocaleString("en-US");
-}
-
-function pluralize(count: number, singular: string, plural: string): string {
-  return `${formatCount(count)} ${count === 1 ? singular : plural}`;
-}
 
 /*
  * A line of tokens — a dot, a word, a swatch — laid left to right and
@@ -490,6 +488,8 @@ export function layoutLegend(
 
 // Where the footer's baseline sits, measured up from the page's bottom edge.
 export const FOOTER_BASELINE_FROM_BOTTOM: number = 20;
+// The least space kept between the footer's two sides.
+const FOOTER_GAP: number = 24;
 
 /**
  * The line at the foot of every page: what this is, and which page of how
@@ -502,13 +502,31 @@ export function footerItems(
   pageWidth: number,
   pageHeight: number,
   factor: number,
+  measure: TextMeasure,
 ): Array<ExportItem> {
   const size: number = 7 * factor;
   const baseline: number = pageHeight - FOOTER_BASELINE_FROM_BOTTOM * factor;
+  const pageText: string = `Page ${pageNumber} of ${pageCount}`;
+  /*
+   * A deep site path in a long-named project is longer than the line, so
+   * the left side is shortened to end clear of the page number rather than
+   * run into it.
+   */
+  const room: number =
+    pageWidth -
+    PAGE_MARGIN * factor * 2 -
+    measure(pageText, size, false) -
+    FOOTER_GAP * factor;
   return [
     textItem(
       "footer:scope",
-      `Network topology · ${scopeLabel}`,
+      truncateText(
+        `Network topology · ${scopeLabel}`,
+        Math.max(room, 0),
+        measure,
+        size,
+        false,
+      ),
       PAGE_MARGIN * factor,
       baseline,
       size,
@@ -516,7 +534,7 @@ export function footerItems(
     ),
     textItem(
       "footer:page",
-      `Page ${pageNumber} of ${pageCount}`,
+      pageText,
       pageWidth - PAGE_MARGIN * factor,
       baseline,
       size,

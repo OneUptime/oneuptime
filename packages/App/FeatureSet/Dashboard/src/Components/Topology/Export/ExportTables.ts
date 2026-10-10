@@ -10,6 +10,7 @@ import {
 } from "../../NetworkDevice/TopologyNodeShape";
 import { portLabelForEdgeEnd } from "../../NetworkDevice/EndpointNodeUtil";
 import {
+  ALL_NODE_KINDS,
   TopologyNodeKind,
   TopologyViewModel,
   kindOfNode,
@@ -30,7 +31,12 @@ import {
   baselineFor,
   textItem,
 } from "./ExportItems";
-import { PdfStringCollector, TextMeasure, wrapTextToLines } from "./ExportText";
+import {
+  PdfStringCollector,
+  TextMeasure,
+  formatCount,
+  wrapTextToLines,
+} from "./ExportText";
 
 /*
  * The two tables after the map: every device on it, and every connection
@@ -83,7 +89,8 @@ const KIND_LABELS: Record<TopologyNodeKind, string> = {
   endpoint: "Endpoint",
 };
 
-const KIND_ORDER: Array<TopologyNodeKind> = ["device", "unmanaged", "endpoint"];
+// Managed devices first, then the peers and endpoints they reported.
+const KIND_ORDER: Array<TopologyNodeKind> = Array.from(ALL_NODE_KINDS);
 
 const LINK_STATE_LABELS: Record<NetworkLinkState, string> = {
   healthy: "Healthy",
@@ -119,10 +126,6 @@ export const CONNECTION_TABLE_COLUMNS: Array<ExportTableColumn> = [
   { name: "Utilization", share: 9 },
   { name: "Source", share: 21 },
 ];
-
-function formatCount(count: number): string {
-  return count.toLocaleString("en-US");
-}
 
 function compareNames(a: string, b: string): number {
   return a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
@@ -390,6 +393,9 @@ function drawTableHeader(
   cursor.y += TABLE_HEADER_HEIGHT;
 }
 
+// How many rows are laid out between two pauses for the browser.
+export const TABLE_ROWS_PER_STEP: number = 250;
+
 /**
  * The tables, broken across A4 landscape pages. A row is never split; a
  * page that a table continues onto starts with "<title>, continued" and the
@@ -399,6 +405,28 @@ export function layoutTables(
   tables: Array<ExportTable>,
   measure: TextMeasure,
 ): Array<ExportPage> {
+  const steps: Generator<void, Array<ExportPage>, void> = layoutTablesInSteps(
+    tables,
+    measure,
+  );
+  let step: IteratorResult<void, Array<ExportPage>> = steps.next();
+  while (!step.done) {
+    step = steps.next();
+  }
+  return step.value;
+}
+
+/**
+ * layoutTables, pausing every few hundred rows: every wrapped cell is
+ * measured, and a network of thousands of devices has tens of thousands of
+ * cells. The caller decides what a pause is (see
+ * buildNetworkTopologyExportDocumentAsync).
+ */
+export function* layoutTablesInSteps(
+  tables: Array<ExportTable>,
+  measure: TextMeasure,
+  rowsPerStep: number = TABLE_ROWS_PER_STEP,
+): Generator<void, Array<ExportPage>, void> {
   const pages: Array<ExportPage> = [];
   const tableWidth: number = TABLE_PAGE_WIDTH - PAGE_MARGIN * 2;
   let cursor: TableCursor = newTablePage(pages);
@@ -481,6 +509,9 @@ export function layoutTables(
     }
 
     for (let rowIndex: number = 0; rowIndex < table.rows.length; rowIndex++) {
+      if (rowIndex > 0 && rowIndex % rowsPerStep === 0) {
+        yield;
+      }
       const row: Array<ExportTableCell> = table.rows[rowIndex]!;
       const cellLines: Array<Array<string>> = [];
       let lineCount: number = 1;

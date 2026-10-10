@@ -12,8 +12,14 @@ import { computeForceTopologyModel } from "../NetworkDevice/ForceTopologyLayout"
 import { computeRadialTopologyModel } from "../NetworkDevice/RadialTopologyLayout";
 import { computeStarTopologyModel } from "../NetworkDevice/StarTopologyLayout";
 import { computeParentChildTopologyModel } from "../NetworkDevice/ParentChildTopologyLayout";
-import { TopologyNodeFootprint } from "../NetworkDevice/TopologyFootprint";
-import { TopologyNodeView } from "./NetworkTopologyViewModel";
+import {
+  DEVICE_LABEL_FONT_SIZE,
+  DEVICE_LABEL_LINE_HEIGHT,
+  ENDPOINT_LABEL_FONT_SIZE,
+  ENDPOINT_LABEL_LINE_HEIGHT,
+  TopologyNodeFootprint,
+} from "../NetworkDevice/TopologyFootprint";
+import { TopologyNodeKind, TopologyNodeView } from "./NetworkTopologyViewModel";
 import { TopologyLayoutMode } from "./TopologyPositionOverrides";
 
 /*
@@ -27,7 +33,9 @@ import { TopologyLayoutMode } from "./TopologyPositionOverrides";
  *
  *   - which layout a mode means, and the frame it is computed for;
  *   - the soft hulls drawn behind the nodes: one per island, one per
- *     endpoint group, and the "Not linked to anything" strip.
+ *     endpoint group, and the "Not linked to anything" strip;
+ *   - how everything is painted: the opacities, stroke widths, radii,
+ *     font sizes and theme colours (TOPOLOGY_DRAWING_STYLE).
  *
  * Pure and react-free, like the layouts it dispatches to, so App/Tests can
  * hold both media to it.
@@ -46,6 +54,108 @@ export const TOPOLOGY_HULL_PADDING: number = 22;
 
 // The caption over the strip that collects devices with no links at all.
 export const UNLINKED_HULL_CAPTION: string = "Not linked to anything";
+
+/*
+ * How the map is painted, in layout units. The canvas draws with these and
+ * the PDF draws with these, so restyling the map restyles both. Colours are
+ * theme variables with their light-mode value as the fallback: the canvas
+ * follows the reader's theme, and the PDF prints the fallback.
+ */
+export const TOPOLOGY_DRAWING_STYLE: {
+  // A node or a link the reader is not focused on is drawn see-through.
+  dimmedNodeOpacity: number;
+  dimmedEdgeOpacity: number;
+  // Glyph fills: a little translucent, so a link under a node still shows.
+  deviceFillOpacity: number;
+  endpointFillOpacity: number;
+  deviceStrokeWidth: number;
+  endpointStrokeWidth: number;
+  hullCornerRadius: number;
+  hullFill: string;
+  hullFillOpacity: number;
+  dashedHullFillOpacity: number;
+  hullStroke: string;
+  hullStrokeWidth: number;
+  hullDash: string;
+  // The caption sits this far right of and above the hull's corner.
+  hullCaptionOffset: number;
+  hullCaptionFontSize: number;
+  hullCaptionColor: string;
+  // The attention ring around a health-filter match, past the glyph.
+  attentionHaloPadding: number;
+  attentionHaloFillOpacity: number;
+  attentionHaloStrokeOpacity: number;
+  badgeFontSize: number;
+  deviceBadgeColor: string;
+  labelColor: string;
+  // The paper-coloured outline that keeps a name readable across a link.
+  labelHaloColor: string;
+  labelHaloWidth: number;
+} = {
+  dimmedNodeOpacity: 0.2,
+  dimmedEdgeOpacity: 0.15,
+  deviceFillOpacity: 0.9,
+  endpointFillOpacity: 0.85,
+  deviceStrokeWidth: 2,
+  endpointStrokeWidth: 1.5,
+  hullCornerRadius: 14,
+  hullFill: "var(--ou-surface-secondary, #f9fafb)",
+  hullFillOpacity: 0.4,
+  dashedHullFillOpacity: 0.65,
+  hullStroke: "var(--ou-border-subtle, #e5e7eb)",
+  hullStrokeWidth: 1,
+  hullDash: "5 4",
+  hullCaptionOffset: 6,
+  hullCaptionFontSize: 12,
+  hullCaptionColor: "var(--ou-text-muted, #6b7280)",
+  attentionHaloPadding: 5,
+  attentionHaloFillOpacity: 0.16,
+  attentionHaloStrokeOpacity: 0.55,
+  badgeFontSize: 9,
+  deviceBadgeColor: "#ffffff",
+  labelColor: "var(--ou-text-secondary, #374151)",
+  labelHaloColor: "var(--ou-surface-primary, #ffffff)",
+  labelHaloWidth: 3,
+};
+
+/** How opaque a node's glyph fill is, by what the node is. */
+export function glyphFillOpacityFor(kind: TopologyNodeKind): number {
+  if (kind === "endpoint") {
+    return TOPOLOGY_DRAWING_STYLE.endpointFillOpacity;
+  }
+  return kind === "device" ? TOPOLOGY_DRAWING_STYLE.deviceFillOpacity : 1;
+}
+
+/** How wide a node's glyph outline is, by what the node is. */
+export function glyphStrokeWidthFor(kind: TopologyNodeKind): number {
+  return kind === "endpoint"
+    ? TOPOLOGY_DRAWING_STYLE.endpointStrokeWidth
+    : TOPOLOGY_DRAWING_STYLE.deviceStrokeWidth;
+}
+
+/** The size a node's name is set at: endpoints a step smaller. */
+export function labelFontSizeFor(kind: TopologyNodeKind): number {
+  return kind === "endpoint"
+    ? ENDPOINT_LABEL_FONT_SIZE
+    : DEVICE_LABEL_FONT_SIZE;
+}
+
+/** Baseline to baseline, for a name wrapped onto a second line. */
+export function labelLineHeightFor(kind: TopologyNodeKind): number {
+  return kind === "endpoint"
+    ? ENDPOINT_LABEL_LINE_HEIGHT
+    : DEVICE_LABEL_LINE_HEIGHT;
+}
+
+/** The radius of the attention ring a health-filter match is drawn with. */
+export function attentionHaloRadiusFor(
+  footprint: TopologyNodeFootprint,
+): number {
+  return (
+    Math.max(footprint.halfWidth, footprint.halfHeight) +
+    TOPOLOGY_DRAWING_STYLE.attentionHaloPadding
+  );
+}
 
 /**
  * The layout one mode draws, for one graph.

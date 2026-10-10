@@ -6,7 +6,9 @@ import NetworkTopology, {
 import { TopologyLayoutModel } from "../../NetworkDevice/TopologyLayout";
 import { TopologyPoint } from "../../NetworkDevice/TopologyGraphUtil";
 import {
+  ALL_NODE_KINDS,
   TopologyNodeKind,
+  TopologyNodeView,
   TopologyViewModel,
   buildTopologyViewModel,
   kindOfNode,
@@ -30,6 +32,7 @@ import {
   TopologyHullView,
   buildTopologyHulls,
   computeTopologyLayoutModel,
+  labelFontSizeFor,
 } from "../NetworkTopologyDrawing";
 import {
   HeaderContent,
@@ -42,7 +45,6 @@ import {
   DrawnLabel,
   WorldBounds,
   buildDiagramItems,
-  labelFontSizeFor,
   measureWorldBounds,
 } from "./ExportDiagram";
 import {
@@ -52,16 +54,21 @@ import {
   ExportPage,
   PAGE_MARGIN,
   PDF_INK,
+  PageOrientation,
   textItem,
   transformExportItem,
 } from "./ExportItems";
-import { ExportTable, buildTopologyTables, layoutTables } from "./ExportTables";
-import { PdfStringCollector, TextMeasure } from "./ExportText";
+import {
+  ExportTable,
+  buildTopologyTables,
+  layoutTablesInSteps,
+} from "./ExportTables";
+import { PdfStringCollector, TextMeasure, pluralize } from "./ExportText";
 
 /*
  * The PDF export of the network topology map (issue #4616), laid out —
- * every page, every shape, every line of text and where it goes — by one
- * pure function.
+ * every page, every shape, every line of text and where it goes — by pure
+ * code.
  *
  * Network teams need the topology as a document for an assessment, a change
  * request or an incident review, and a screenshot only holds the part of the
@@ -86,6 +93,13 @@ import { PdfStringCollector, TextMeasure } from "./ExportText";
  *
  * Light only: colours are resolved to their light-mode values whatever the
  * exporting dashboard's theme (see ExportColor).
+ *
+ * The layout is written as a sequence of steps (a generator), so that one
+ * implementation serves two callers: the tests run it straight through
+ * (buildNetworkTopologyExportDocument), and the dashboard lets the browser
+ * paint between steps (buildNetworkTopologyExportDocumentAsync), because a
+ * network of thousands of devices takes long enough to lay out that doing
+ * it in one go would freeze the tab.
  */
 
 export type { ExportPage, ExportItem } from "./ExportItems";
@@ -142,7 +156,7 @@ export interface NetworkTopologyExportSummary {
   drawnEdgeCount: number;
   // Points per layout unit on the map page.
   diagramScale: number;
-  // How much the map page's header, legend and margins were enlarged.
+  // How much the map page's header, legend, margins and footer were enlarged.
   chromeScale: number;
   // True when the map page is larger than A4.
   isEnlargedPage: boolean;
@@ -193,7 +207,8 @@ const FRAME_TO_LEGEND_GAP: number = 10;
 const LEGEND_TO_FOOTER_GAP: number = 8;
 const FOOTER_HEIGHT: number = 12;
 
-export type PageOrientation = "landscape" | "portrait";
+// Two scales closer than this draw the same map.
+const SCALE_TOLERANCE: number = 1e-6;
 
 /** The header and legend as laid out on one A4 orientation. */
 export interface PageChrome {
@@ -298,49 +313,15 @@ function planWithChrome(
   };
 }
 
-/**
- * How big the map page is and how large the map is drawn on it.
- *
- * A map that fits A4 with its device names legible gets A4 — landscape or
- * portrait, whichever draws it larger — and is drawn as large as fits, up to
- * the live map's own 100%.
- *
- * A map that does not gets a page cut to its own size instead of shrinking
- * into illegibility: the names stay at the legible minimum and the page
- * grows around them. A map wider than A4 at that size widens the page, with
- * the header, legend and margins enlarged in proportion, so the page opens
- * looking like a normal page at any size; a map that is only taller gets a
- * longer page. Either way the page stops at the size PDF readers accept,
- * and the map shrinks to fit it after that. It is all vectors, so the reader
- * zooms in as far as they like, and a printer shrinks it onto paper.
+/*
+ * A page cut to a map too large for A4: as large as the map needs at the
+ * legible minimum, wider than A4 only when the map is, with its header and
+ * legend enlarged in proportion; and never past what PDF readers open.
  */
-export function planDiagramPage(
-  world: { width: number; height: number } | null,
-  landscape: PageChrome,
-  portrait: PageChrome,
+function planCutToMap(
+  chrome: PageChrome,
+  world: { width: number; height: number },
 ): DiagramPagePlan {
-  if (!world) {
-    return planWithChrome(landscape, 1, landscape.width, landscape.height, 1);
-  }
-
-  const landscapeFit: number = fitScaleOn(landscape, world);
-  const portraitFit: number = fitScaleOn(portrait, world);
-  const a4: PageChrome =
-    portraitFit > landscapeFit * 1.0001 ? portrait : landscape;
-  const a4Fit: number = Math.max(landscapeFit, portraitFit);
-
-  if (a4Fit >= MIN_LEGIBLE_DIAGRAM_SCALE) {
-    return planWithChrome(
-      a4,
-      1,
-      a4.width,
-      a4.height,
-      Math.min(a4Fit, MAX_DIAGRAM_SCALE),
-    );
-  }
-
-  // Too large for A4: a page cut to the map.
-  const chrome: PageChrome = world.width >= world.height ? landscape : portrait;
   const widthScale: number = boxWidthOf(chrome) / Math.max(1, world.width);
   let diagramScale: number;
   let chromeScale: number;
@@ -365,13 +346,84 @@ export function planDiagramPage(
     chromeScale *= shrink;
     diagramScale *= shrink;
   }
-
   return planWithChrome(
     chrome,
     chromeScale,
     pageWidth,
     pageHeight,
     diagramScale,
+  );
+}
+
+/*
+ * The better of two plans: the one that draws the map larger, and between
+ * two that draw it the same size, the smaller page; landscape on a tie.
+ */
+function betterPlan(
+  landscape: DiagramPagePlan,
+  portrait: DiagramPagePlan,
+): DiagramPagePlan {
+  if (portrait.diagramScale > landscape.diagramScale + SCALE_TOLERANCE) {
+    return portrait;
+  }
+  if (landscape.diagramScale > portrait.diagramScale + SCALE_TOLERANCE) {
+    return landscape;
+  }
+  return portrait.width * portrait.height <
+    landscape.width * landscape.height * (1 - SCALE_TOLERANCE)
+    ? portrait
+    : landscape;
+}
+
+/**
+ * How big the map page is and how large the map is drawn on it.
+ *
+ * A map that fits A4 with its device names legible gets A4 — landscape or
+ * portrait, whichever draws it larger — and is drawn as large as fits, up to
+ * the live map's own 100%.
+ *
+ * A map that does not gets a page cut to its own size instead of shrinking
+ * into illegibility, in whichever orientation draws its names larger: the
+ * page grows around the map, wider than A4 only when the map is (with the
+ * header, legend and margins enlarged in proportion, so the page still opens
+ * looking like a normal page), longer otherwise. The page stops at the size
+ * PDF readers accept, and the map shrinks to fit it after that. It is all
+ * vectors, so the reader zooms in as far as they like, and a printer shrinks
+ * it onto paper.
+ */
+export function planDiagramPage(
+  world: { width: number; height: number } | null,
+  landscape: PageChrome,
+  portrait: PageChrome,
+): DiagramPagePlan {
+  if (!world) {
+    return planWithChrome(landscape, 1, landscape.width, landscape.height, 1);
+  }
+
+  const landscapeFit: number = fitScaleOn(landscape, world);
+  const portraitFit: number = fitScaleOn(portrait, world);
+  if (Math.max(landscapeFit, portraitFit) >= MIN_LEGIBLE_DIAGRAM_SCALE) {
+    return betterPlan(
+      planWithChrome(
+        landscape,
+        1,
+        landscape.width,
+        landscape.height,
+        Math.min(landscapeFit, MAX_DIAGRAM_SCALE),
+      ),
+      planWithChrome(
+        portrait,
+        1,
+        portrait.width,
+        portrait.height,
+        Math.min(portraitFit, MAX_DIAGRAM_SCALE),
+      ),
+    );
+  }
+
+  return betterPlan(
+    planCutToMap(landscape, world),
+    planCutToMap(portrait, world),
   );
 }
 
@@ -394,8 +446,6 @@ const KIND_FILTER_LABELS: Record<TopologyNodeKind, string> = {
   endpoint: "Endpoints",
 };
 
-const KIND_ORDER: Array<TopologyNodeKind> = ["device", "unmanaged", "endpoint"];
-
 // The health chips' own names.
 const HEALTH_FILTER_LABELS: Record<TopologyHealthFilterMode, string> = {
   all: "All",
@@ -403,10 +453,6 @@ const HEALTH_FILTER_LABELS: Record<TopologyHealthFilterMode, string> = {
   down: "Down",
   degraded: "Degraded",
 };
-
-function pluralize(count: number, singular: string, plural: string): string {
-  return `${count.toLocaleString("en-US")} ${count === 1 ? singular : plural}`;
-}
 
 /**
  * The header's "Filtered view" sentence, naming every filter that changes
@@ -423,13 +469,13 @@ export function describeExportFilters(
   if (isHealthFilterActive(input.healthFilterMode)) {
     parts.push(`Health: ${HEALTH_FILTER_LABELS[input.healthFilterMode]}`);
   }
-  const hiddenKinds: Array<string> = KIND_ORDER.filter(
-    (kind: TopologyNodeKind): boolean => {
+  const hiddenKinds: Array<string> = Array.from(ALL_NODE_KINDS)
+    .filter((kind: TopologyNodeKind): boolean => {
       return availableKinds.has(kind) && !input.visibleKinds.has(kind);
-    },
-  ).map((kind: TopologyNodeKind): string => {
-    return KIND_FILTER_LABELS[kind];
-  });
+    })
+    .map((kind: TopologyNodeKind): string => {
+      return KIND_FILTER_LABELS[kind];
+    });
   if (hiddenKinds.length > 0) {
     parts.push(`Hidden: ${hiddenKinds.join(", ")}`);
   }
@@ -513,6 +559,9 @@ export function countDrawn(viewModel: TopologyViewModel): SummaryCounts {
  * ---------------------------------------------------------------------------
  */
 
+// How many names are measured between two pauses for the browser.
+const LABELS_PER_STEP: number = 1000;
+
 function chromeFor(
   orientation: PageOrientation,
   header: HeaderContent,
@@ -540,13 +589,14 @@ function chromeFor(
 }
 
 /**
- * Lays out the whole PDF: the map page, then the device and connection
- * tables. Pure — the only outside knowledge it takes is how wide text is.
+ * The whole PDF — the map page, then the device and connection tables — as
+ * a sequence of steps. Pure: the only outside knowledge it takes is how wide
+ * text is.
  */
-export function buildNetworkTopologyExportDocument(
+export function* layOutNetworkTopologyExport(
   input: NetworkTopologyExportInput,
   measure: TextMeasure,
-): NetworkTopologyExportDocument {
+): Generator<void, NetworkTopologyExportDocument, void> {
   const strings: PdfStringCollector = new PdfStringCollector();
   const nodes: Array<NetworkTopologyNode> = (
     input.topology?.nodes || []
@@ -587,6 +637,7 @@ export function buildNetworkTopologyExportDocument(
     model,
     viewModel.nodes,
   );
+  yield;
 
   const nodeById: Map<string, NetworkTopologyNode> = new Map<
     string,
@@ -605,16 +656,20 @@ export function buildNetworkTopologyExportDocument(
 
   // Device names, cleaned for the font, and measured for the map's extent.
   const labels: Map<string, DrawnLabel> = new Map<string, DrawnLabel>();
-  for (const nodeView of viewModel.nodes) {
-    const lines: Array<string> = nodeView.labelLines.map(
-      (line: string): string => {
-        return strings.clean(line);
-      },
-    );
-    const fontSize: number = labelFontSizeFor(nodeView);
+  for (let index: number = 0; index < viewModel.nodes.length; index++) {
+    if (index > 0 && index % LABELS_PER_STEP === 0) {
+      yield;
+    }
+    const nodeView: TopologyNodeView = viewModel.nodes[index]!;
+    const lines: Array<string> = [];
     let widestLine: number = 0;
-    for (const line of lines) {
-      widestLine = Math.max(widestLine, measure(line, fontSize, false));
+    for (const line of nodeView.labelLines) {
+      const cleaned: string = strings.clean(line);
+      lines.push(cleaned);
+      widestLine = Math.max(
+        widestLine,
+        measure(cleaned, labelFontSizeFor(nodeView.kind), false),
+      );
     }
     labels.set(nodeView.id, { lines: lines, widestLine: widestLine });
   }
@@ -625,6 +680,7 @@ export function buildNetworkTopologyExportDocument(
     viewModel.isHealthFilterActive,
     measure,
   );
+  yield;
 
   // The tables read the same nodes and links, and clean their own strings.
   const tables: Array<ExportTable> = buildTopologyTables(
@@ -633,6 +689,7 @@ export function buildNetworkTopologyExportDocument(
     edgeByKey,
     strings,
   );
+  yield;
 
   // Who, where and when.
   const scopeNames: Array<string> = (input.scopeNames || [])
@@ -687,19 +744,27 @@ export function buildNetworkTopologyExportDocument(
     footnote: strings.isLossy ? LOSSY_TEXT_NOTICE : "",
   };
 
-  const plan: DiagramPagePlan = planDiagramPage(
-    world
-      ? { width: world.maxX - world.minX, height: world.maxY - world.minY }
-      : null,
-    chromeFor("landscape", headerContent, legendEntries, measure),
-    chromeFor("portrait", headerContent, legendEntries, measure),
-  );
-  const chrome: PageChrome = chromeFor(
-    plan.orientation,
+  const landscape: PageChrome = chromeFor(
+    "landscape",
     headerContent,
     legendEntries,
     measure,
   );
+  const portrait: PageChrome = chromeFor(
+    "portrait",
+    headerContent,
+    legendEntries,
+    measure,
+  );
+  const plan: DiagramPagePlan = planDiagramPage(
+    world
+      ? { width: world.maxX - world.minX, height: world.maxY - world.minY }
+      : null,
+    landscape,
+    portrait,
+  );
+  const chrome: PageChrome =
+    plan.orientation === "landscape" ? landscape : portrait;
   const c: number = plan.chromeScale;
 
   const diagramPage: ExportPage = {
@@ -752,18 +817,21 @@ export function buildNetworkTopologyExportDocument(
   for (const item of chrome.legend.items) {
     diagramPage.items.push(transformExportItem(item, c, 0, plan.legendTop));
   }
+  yield;
 
-  const pages: Array<ExportPage> = [
-    diagramPage,
-    ...layoutTables(tables, measure),
-  ];
+  const tablePages: Array<ExportPage> = yield* layoutTablesInSteps(
+    tables,
+    measure,
+  );
+  const pages: Array<ExportPage> = [diagramPage, ...tablePages];
 
   const scopeLabel: string = isScoped
     ? scopeNames.join(" > ")
     : projectName
       ? `${projectName} > ${ALL_DEVICES_SCOPE}`
       : ALL_DEVICES_SCOPE;
-  pages.forEach((page: ExportPage, index: number) => {
+  for (let index: number = 0; index < pages.length; index++) {
+    const page: ExportPage = pages[index]!;
     page.items.push(
       ...footerItems(
         scopeLabel,
@@ -772,9 +840,10 @@ export function buildNetworkTopologyExportDocument(
         page.width,
         page.height,
         page.kind === "diagram" ? c : 1,
+        measure,
       ),
     );
-  });
+  }
 
   return {
     title: `Network topology - ${title}`,
@@ -793,4 +862,38 @@ export function buildNetworkTopologyExportDocument(
       isLossy: strings.isLossy,
     },
   };
+}
+
+/** The whole PDF, laid out in one go. */
+export function buildNetworkTopologyExportDocument(
+  input: NetworkTopologyExportInput,
+  measure: TextMeasure,
+): NetworkTopologyExportDocument {
+  const steps: Generator<void, NetworkTopologyExportDocument, void> =
+    layOutNetworkTopologyExport(input, measure);
+  let step: IteratorResult<void, NetworkTopologyExportDocument> = steps.next();
+  while (!step.done) {
+    step = steps.next();
+  }
+  return step.value;
+}
+
+/**
+ * The whole PDF, laid out with a pause between steps, so the browser can
+ * paint — and the Export PDF button keep spinning — while a large network
+ * is laid out.
+ */
+export async function buildNetworkTopologyExportDocumentAsync(
+  input: NetworkTopologyExportInput,
+  measure: TextMeasure,
+  pause: () => Promise<void>,
+): Promise<NetworkTopologyExportDocument> {
+  const steps: Generator<void, NetworkTopologyExportDocument, void> =
+    layOutNetworkTopologyExport(input, measure);
+  let step: IteratorResult<void, NetworkTopologyExportDocument> = steps.next();
+  while (!step.done) {
+    await pause();
+    step = steps.next();
+  }
+  return step.value;
 }

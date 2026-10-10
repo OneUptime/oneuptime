@@ -123,6 +123,7 @@ const DRAWING_METHODS: Array<string> = [
   "fill",
   "stroke",
   "fillStroke",
+  "setGState",
 ];
 for (const method of DRAWING_METHODS) {
   (FakeJsPdf.prototype as unknown as Record<string, unknown>)[method] =
@@ -130,6 +131,13 @@ for (const method of DRAWING_METHODS) {
       (this as unknown as { calls: Array<Call> }).calls.push([method, ...args]);
     };
 }
+// jsPDF's graphics-state constructor, reached through the document.
+(FakeJsPdf.prototype as unknown as Record<string, unknown>)["GState"] = class {
+  public readonly parameters: Record<string, number>;
+  public constructor(parameters: Record<string, number>) {
+    this.parameters = parameters;
+  }
+};
 
 const library: PdfLibrary = {
   jsPDF: FakeJsPdf as unknown as PdfLibrary["jsPDF"],
@@ -244,6 +252,39 @@ describe("buildNetworkTopologyPdf: the PDF of one map", () => {
     expect(FakeJsPdf.instances[1]!.names()).toContain("output");
     expect(pdf.document.summary.drawnNodeCount).toBe(2);
     expect(pdf.document.summary.drawnEdgeCount).toBe(1);
+  });
+
+  test("hulls and faded devices are drawn see-through, through jsPDF's graphics state", async () => {
+    await buildNetworkTopologyPdf(
+      { ...request(), searchText: "switch", exportedAtText: "now" },
+      { loadPdfLibrary: loadPdfLibrary, yieldToBrowser: noPause },
+    );
+    const states: Array<Call> = FakeJsPdf.instances[1]!.calls.filter(
+      (call: Call) => {
+        return call[0] === "setGState";
+      },
+    );
+    expect(states.length).toBeGreaterThan(0);
+    const faded: Array<Record<string, number>> = states.map((call: Call) => {
+      return (call[1] as { parameters: Record<string, number> }).parameters;
+    });
+    // The router does not match the search: it is drawn at 20%, as on screen.
+    expect(faded).toContainEqual({ opacity: 0.2, "stroke-opacity": 0.2 });
+  });
+
+  test("the browser gets a turn while the PDF is laid out and while it is drawn", async () => {
+    let pauses: number = 0;
+    await buildNetworkTopologyPdf(
+      { ...request(), exportedAtText: "now" },
+      {
+        loadPdfLibrary: loadPdfLibrary,
+        yieldToBrowser: async (): Promise<void> => {
+          pauses++;
+        },
+      },
+    );
+    // The layout's steps, a page break, and the pause before the file is written.
+    expect(pauses).toBeGreaterThanOrEqual(5);
   });
 
   test("a library that fails to load fails the export, so the button can say so", async () => {

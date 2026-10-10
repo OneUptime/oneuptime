@@ -23,6 +23,23 @@ export const TEXT_ELLIPSIS: string = "...";
 
 const WHITESPACE: RegExp = /\s+/;
 
+/*
+ * Counts, written the same way everywhere in the PDF. English, like the
+ * rest of its text: "1,203".
+ */
+export function formatCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
+/** "1 device", "1,203 devices". */
+export function pluralize(
+  count: number,
+  singular: string,
+  plural: string,
+): string {
+  return `${formatCount(count)} ${count === 1 ? singular : plural}`;
+}
+
 /**
  * Collects the strings that go into one PDF, made drawable.
  *

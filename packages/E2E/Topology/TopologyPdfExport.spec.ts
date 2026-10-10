@@ -57,6 +57,9 @@ const PATH_MOVE: RegExp = /[\d.] m\n/;
 const PATH_LINE: RegExp = /[\d.] l\n/;
 const PATH_CURVE: RegExp = /[\d.] c\n/;
 const PATH_PAINT: RegExp = /\n(B|f)\n/;
+// A graphics state drawing at 20% (/ca is fill opacity) and its use on a page.
+const FADED_GRAPHICS_STATE: RegExp = /\/ca\s+0?\.2\b/;
+const GRAPHICS_STATE_OPERATOR: RegExp = /\/GS\d+ gs/;
 
 function decodePdfString(raw: string): string {
   return raw
@@ -259,6 +262,30 @@ test("the PDF is the map as the reader filtered it", async ({
   expect(pdf.texts.join(" ")).toContain(
     "Filtered view: Hidden: Discovered neighbors.",
   );
+});
+
+test("a search fades the other devices in the PDF too, see-through as on screen", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openLondon(page);
+  await page
+    .getByRole("textbox", { name: "Find a network device" })
+    .fill("switch");
+  const { pdf } = await exportPdf(page, "network-map-search");
+  expect(pdf.texts.join(" ")).toContain(
+    'Filtered view: Search: "switch". Faded devices are shown for context.',
+  );
+  // Every device is still on the page and in the table...
+  expect(pdf.texts).toContain("Devices (7)");
+  /*
+   * ...and the faded ones are drawn through PDF transparency (a graphics
+   * state at the canvas's 20%), so a link under one still shows.
+   */
+  const latin1: string = pdf.bytes.toString("latin1");
+  expect(latin1).toMatch(FADED_GRAPHICS_STATE);
+  expect(pdf.content).toMatch(GRAPHICS_STATE_OPERATOR);
 });
 
 test("a PDF exported in dark mode is the same light document", async ({

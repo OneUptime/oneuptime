@@ -4,8 +4,16 @@ import {
   TopologyViewModel,
 } from "../NetworkTopologyViewModel";
 import { HEALTH_STATE_COLORS } from "../TopologyHealthFilter";
-import { TopologyHullView } from "../NetworkTopologyDrawing";
-import { blendWithPaper, resolvePrintColor } from "./ExportColor";
+import {
+  TOPOLOGY_DRAWING_STYLE,
+  TopologyHullView,
+  attentionHaloRadiusFor,
+  glyphFillOpacityFor,
+  glyphStrokeWidthFor,
+  labelFontSizeFor,
+  labelLineHeightFor,
+} from "../NetworkTopologyDrawing";
+import { resolvePrintColor } from "./ExportColor";
 import { ExportItem, textItem } from "./ExportItems";
 import { shapeItems } from "./ExportShapes";
 import { TextMeasure } from "./ExportText";
@@ -13,44 +21,20 @@ import { TextMeasure } from "./ExportText";
 /*
  * The map itself, on paper.
  *
- * Everything here mirrors one decision of the live canvas
- * (NetworkDeviceGraph): hulls behind links behind nodes; a node as its
- * attention halo, its silhouette, its interface badge and its wrapped name;
- * the same colours, stroke widths and dash patterns, in layout units scaled
- * to points. Where the canvas makes something translucent (a dimmed node, a
- * hull's fill), the page draws the opaque colour that translucency makes on
- * white paper (see ExportColor).
+ * Everything here is one decision of the live canvas (NetworkDeviceGraph),
+ * read from the same place (TOPOLOGY_DRAWING_STYLE and the helpers beside
+ * it): hulls behind links behind nodes; a node as its attention ring, its
+ * silhouette, its interface badge and its wrapped name; the same colours,
+ * opacities, stroke widths and dash patterns, in layout units scaled to
+ * points. What the canvas draws see-through — a dimmed device, a hull, an
+ * attention ring — the page draws see-through too, so a link under a faded
+ * device is still there on paper.
  */
 
 // Room kept under a label's last baseline for descenders, in layout units.
 const LABEL_DESCENT: number = 4;
 // Clearance around the drawing inside the frame, in layout units.
 const DIAGRAM_BOUNDS_PADDING: number = 8;
-// The hull caption sits this far above the hull, and is this tall.
-const HULL_CAPTION_OFFSET: number = 6;
-export const HULL_CAPTION_FONT_SIZE: number = 12;
-
-/*
- * The opacities the live map draws with: a dimmed node's group, a dimmed
- * link, the glyph fills, the hulls and the attention halo.
- */
-export const DIMMED_NODE_OPACITY: number = 0.2;
-export const DIMMED_EDGE_OPACITY: number = 0.15;
-const ENDPOINT_FILL_OPACITY: number = 0.85;
-const DEVICE_FILL_OPACITY: number = 0.9;
-const HULL_FILL_OPACITY: number = 0.4;
-const DASHED_HULL_FILL_OPACITY: number = 0.65;
-const HALO_FILL_OPACITY: number = 0.16;
-const HALO_STROKE_OPACITY: number = 0.55;
-
-// The hull's outline is one layout unit wide, as on the canvas.
-const HULL_STROKE_WIDTH: number = 1;
-const HULL_FILL: string = "var(--ou-surface-secondary, #f9fafb)";
-const HULL_STROKE: string = "var(--ou-border-subtle, #e5e7eb)";
-const HULL_CAPTION_COLOR: string = "var(--ou-text-muted, #6b7280)";
-const LABEL_COLOR: string = "var(--ou-text-secondary, #374151)";
-const LABEL_HALO_COLOR: string = "var(--ou-surface-primary, #ffffff)";
-const DEVICE_BADGE_COLOR: string = "#ffffff";
 
 /** A node's name as the page draws it: wrapped lines, cleaned for the font. */
 export interface DrawnLabel {
@@ -74,18 +58,6 @@ export interface DiagramTransform {
   offsetY: number;
 }
 
-export function haloRadiusFor(footprint: TopologyNodeFootprint): number {
-  return Math.max(footprint.halfWidth, footprint.halfHeight) + 5;
-}
-
-export function labelFontSizeFor(nodeView: TopologyNodeView): number {
-  return nodeView.kind === "endpoint" ? 10 : 12;
-}
-
-function labelLineHeightFor(nodeView: TopologyNodeView): number {
-  return nodeView.kind === "endpoint" ? 11 : 13;
-}
-
 function dashFor(
   pattern: string | undefined,
   scale: number,
@@ -103,7 +75,7 @@ function dashFor(
 
 /**
  * How far the drawing reaches, in layout units: every node's glyph and its
- * label (measured, not estimated), the attention halos, and every hull with
+ * label (measured, not estimated), the attention rings, and every hull with
  * its caption, plus a little clearance. Null when nothing is drawn.
  */
 export function measureWorldBounds(
@@ -116,6 +88,7 @@ export function measureWorldBounds(
   if (nodeViews.length === 0) {
     return null;
   }
+  const style: typeof TOPOLOGY_DRAWING_STYLE = TOPOLOGY_DRAWING_STYLE;
   let minX: number = Infinity;
   let minY: number = Infinity;
   let maxX: number = -Infinity;
@@ -124,7 +97,9 @@ export function measureWorldBounds(
   for (const nodeView of nodeViews) {
     const footprint: TopologyNodeFootprint = nodeView.footprint;
     const halo: number =
-      showHalos && nodeView.isHealthMatch ? haloRadiusFor(footprint) : 0;
+      showHalos && nodeView.isHealthMatch
+        ? attentionHaloRadiusFor(footprint)
+        : 0;
     const label: DrawnLabel | undefined = labels.get(nodeView.id);
     const halfInk: number = Math.max(
       footprint.halfWidth,
@@ -142,15 +117,15 @@ export function measureWorldBounds(
   for (const hull of hulls) {
     const captionRight: number = hull.caption
       ? hull.x +
-        HULL_CAPTION_OFFSET +
-        measure(hull.caption, HULL_CAPTION_FONT_SIZE, true)
+        style.hullCaptionOffset +
+        measure(hull.caption, style.hullCaptionFontSize, true)
       : hull.x;
     minX = Math.min(minX, hull.x);
     maxX = Math.max(maxX, hull.x + hull.width, captionRight);
     minY = Math.min(
       minY,
       hull.caption
-        ? hull.y - HULL_CAPTION_OFFSET - HULL_CAPTION_FONT_SIZE
+        ? hull.y - style.hullCaptionOffset - style.hullCaptionFontSize
         : hull.y,
     );
     maxY = Math.max(maxY, hull.y + hull.height);
@@ -165,7 +140,7 @@ export function measureWorldBounds(
 
 /**
  * The drawing's items, in paint order: hulls (and their captions), links,
- * then each node — halo, silhouette, badge, name.
+ * then each node — attention ring, silhouette, badge, name.
  */
 export function buildDiagramItems(
   viewModel: TopologyViewModel,
@@ -173,6 +148,7 @@ export function buildDiagramItems(
   labels: ReadonlyMap<string, DrawnLabel>,
   transform: DiagramTransform,
 ): Array<ExportItem> {
+  const style: typeof TOPOLOGY_DRAWING_STYLE = TOPOLOGY_DRAWING_STYLE;
   const s: number = transform.scale;
   const px: (x: number) => number = (x: number): number => {
     return transform.offsetX + x * s;
@@ -191,15 +167,15 @@ export function buildDiagramItems(
       y: py(hull.y),
       width: hull.width * s,
       height: hull.height * s,
-      radius: 14 * s,
-      fill: blendWithPaper(
-        HULL_FILL,
-        hull.isDashed ? DASHED_HULL_FILL_OPACITY : HULL_FILL_OPACITY,
-      ),
+      radius: style.hullCornerRadius * s,
+      fill: resolvePrintColor(style.hullFill),
+      fillOpacity: hull.isDashed
+        ? style.dashedHullFillOpacity
+        : style.hullFillOpacity,
       stroke: {
-        color: resolvePrintColor(HULL_STROKE),
-        width: HULL_STROKE_WIDTH * s,
-        dash: hull.isDashed ? [5 * s, 4 * s] : undefined,
+        color: resolvePrintColor(style.hullStroke),
+        width: style.hullStrokeWidth * s,
+        dash: hull.isDashed ? dashFor(style.hullDash, s) : undefined,
       },
     });
     if (hull.caption) {
@@ -207,10 +183,10 @@ export function buildDiagramItems(
         textItem(
           `hull-caption:${hull.key}`,
           hull.caption,
-          px(hull.x + HULL_CAPTION_OFFSET),
-          py(hull.y - HULL_CAPTION_OFFSET),
-          HULL_CAPTION_FONT_SIZE * s,
-          resolvePrintColor(HULL_CAPTION_COLOR),
+          px(hull.x + style.hullCaptionOffset),
+          py(hull.y - style.hullCaptionOffset),
+          style.hullCaptionFontSize * s,
+          resolvePrintColor(style.hullCaptionColor),
           { isBold: true },
         ),
       );
@@ -219,7 +195,6 @@ export function buildDiagramItems(
 
   // Links under the nodes, so a node is never covered by a line.
   for (const edgeView of viewModel.edges) {
-    const alpha: number = edgeView.isDimmed ? DIMMED_EDGE_OPACITY : 1;
     items.push({
       type: "line",
       tag: `edge:${edgeView.key}`,
@@ -228,77 +203,84 @@ export function buildDiagramItems(
       x2: px(edgeView.x2),
       y2: py(edgeView.y2),
       stroke: {
-        color: blendWithPaper(edgeView.color, alpha),
+        color: resolvePrintColor(edgeView.color),
         width: edgeView.strokeWidth * s,
         dash: dashFor(edgeView.strokeDashArray, s),
       },
+      strokeOpacity: edgeView.isDimmed ? style.dimmedEdgeOpacity : 1,
       roundCaps: true,
     });
   }
 
-  const labelColor: string = resolvePrintColor(LABEL_COLOR);
-  const haloColor: string = resolvePrintColor(LABEL_HALO_COLOR);
+  const labelColor: string = resolvePrintColor(style.labelColor);
+  const haloColor: string = resolvePrintColor(style.labelHaloColor);
 
   for (const nodeView of viewModel.nodes) {
-    // The live map dims a node by drawing its whole group translucent.
-    const alpha: number = nodeView.isDimmed ? DIMMED_NODE_OPACITY : 1;
+    // The live map dims a device by drawing all of it see-through.
+    const opacity: number = nodeView.isDimmed ? style.dimmedNodeOpacity : 1;
     const footprint: TopologyNodeFootprint = nodeView.footprint;
     const cx: number = px(nodeView.x);
     const cy: number = py(nodeView.y);
 
     if (viewModel.isHealthFilterActive && nodeView.isHealthMatch) {
-      const color: string = HEALTH_STATE_COLORS[nodeView.health];
+      const color: string = resolvePrintColor(
+        HEALTH_STATE_COLORS[nodeView.health],
+      );
       items.push({
         type: "circle",
         tag: `node-halo:${nodeView.id}`,
         cx: cx,
         cy: cy,
-        r: haloRadiusFor(footprint) * s,
-        fill: blendWithPaper(color, HALO_FILL_OPACITY * alpha),
-        stroke: {
-          color: blendWithPaper(color, HALO_STROKE_OPACITY * alpha),
-          width: Math.max(0.5, 1.5 * s),
-        },
+        r: attentionHaloRadiusFor(footprint) * s,
+        fill: color,
+        fillOpacity: style.attentionHaloFillOpacity * opacity,
+        stroke: { color: color, width: Math.max(0.5, 1.5 * s) },
+        strokeOpacity: style.attentionHaloStrokeOpacity * opacity,
       });
     }
 
-    const isEndpoint: boolean = nodeView.kind === "endpoint";
-    const fillOpacity: number = isEndpoint
-      ? ENDPOINT_FILL_OPACITY
-      : nodeView.kind === "device"
-        ? DEVICE_FILL_OPACITY
-        : 1;
-    items.push(
-      ...shapeItems(`node-shape:${nodeView.id}`, footprint.shape, cx, cy, s, {
-        fill: blendWithPaper(nodeView.fill, fillOpacity * alpha),
+    for (const item of shapeItems(
+      `node-shape:${nodeView.id}`,
+      footprint.shape,
+      cx,
+      cy,
+      s,
+      {
+        fill: resolvePrintColor(nodeView.fill),
         stroke: {
-          color: blendWithPaper(nodeView.stroke, alpha),
-          width: (isEndpoint ? 1.5 : 2) * s,
+          color: resolvePrintColor(nodeView.stroke),
+          width: glyphStrokeWidthFor(nodeView.kind) * s,
           dash: dashFor(nodeView.strokeDashArray, s),
         },
-      }),
-    );
+      },
+    )) {
+      items.push({
+        ...item,
+        fillOpacity: glyphFillOpacityFor(nodeView.kind) * opacity,
+        strokeOpacity: opacity,
+      });
+    }
 
     if (nodeView.badge) {
-      items.push(
-        textItem(
+      items.push({
+        ...textItem(
           `node-badge:${nodeView.id}`,
           nodeView.badge,
           cx,
           py(nodeView.y + footprint.shape.badgeBaselineOffset),
-          9 * s,
-          blendWithPaper(
-            nodeView.kind === "device" ? DEVICE_BADGE_COLOR : labelColor,
-            alpha,
+          style.badgeFontSize * s,
+          resolvePrintColor(
+            nodeView.kind === "device" ? style.deviceBadgeColor : labelColor,
           ),
           { isBold: true, align: "center" },
         ),
-      );
+        fillOpacity: opacity,
+      });
     }
 
     const lines: Array<string> = labels.get(nodeView.id)?.lines || [];
-    const fontSize: number = labelFontSizeFor(nodeView);
-    const lineHeight: number = labelLineHeightFor(nodeView);
+    const fontSize: number = labelFontSizeFor(nodeView.kind);
+    const lineHeight: number = labelLineHeightFor(nodeView.kind);
     for (let lineIndex: number = 0; lineIndex < lines.length; lineIndex++) {
       items.push({
         ...textItem(
@@ -309,10 +291,12 @@ export function buildDiagramItems(
             nodeView.y + footprint.labelBaselineOffset + lineIndex * lineHeight,
           ),
           fontSize * s,
-          blendWithPaper(labelColor, alpha),
+          labelColor,
           { align: "center" },
         ),
-        halo: { color: haloColor, width: 3 * s },
+        halo: { color: haloColor, width: style.labelHaloWidth * s },
+        fillOpacity: opacity,
+        strokeOpacity: opacity,
       });
     }
   }

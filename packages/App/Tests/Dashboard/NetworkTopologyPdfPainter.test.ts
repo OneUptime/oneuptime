@@ -4,6 +4,7 @@ import {
   DEFAULT_ITEMS_PER_SLICE,
   PDF_FONT_NAME,
   TopologyPdfCanvas,
+  TopologyPdfOpacity,
   createCanvasState,
   paintExportItem,
   paintNetworkTopologyDocument,
@@ -100,6 +101,24 @@ class RecordingCanvas implements TopologyPdfCanvas {
   };
   public fillStroke = (): void => {
     this.record("fillStroke", []);
+  };
+  // Each graph state made, in order, so a test can see it was made once.
+  public madeStates: Array<TopologyPdfOpacity> = [];
+  public GState: new (parameters: TopologyPdfOpacity) => unknown = ((
+    canvas: RecordingCanvas,
+  ): new (parameters: TopologyPdfOpacity) => unknown => {
+    return class {
+      public readonly parameters: TopologyPdfOpacity;
+      public constructor(parameters: TopologyPdfOpacity) {
+        this.parameters = parameters;
+        canvas.madeStates.push(parameters);
+      }
+    };
+  })(this);
+  public setGState = (state: unknown): void => {
+    this.record("setGState", [
+      (state as { parameters: TopologyPdfOpacity }).parameters,
+    ]);
   };
 
   public named(name: string): Array<Call> {
@@ -482,5 +501,107 @@ describe("paintNetworkTopologyDocument: the pages, in order", () => {
       documentOf([{ kind: "diagram", width: 10, height: 10, items: [RECT] }]),
     );
     expect(canvas.named("rect")).toHaveLength(1);
+  });
+});
+
+describe("transparency, as the live map draws it", () => {
+  const FADED: ExportItem = { ...RECT, fillOpacity: 0.18, strokeOpacity: 0.2 };
+
+  test("a see-through item sets a graphics state with its fill and stroke opacity", () => {
+    const canvas: RecordingCanvas = paint([FADED]);
+    expect(canvas.named("setGState")).toEqual([
+      ["setGState", { opacity: 0.18, "stroke-opacity": 0.2 }],
+    ]);
+    const order: Array<string> = canvas.names();
+    expect(order.indexOf("setGState")).toBeLessThan(order.indexOf("rect"));
+  });
+
+  test("opaque items never touch the graphics state", () => {
+    const canvas: RecordingCanvas = paint([
+      RECT,
+      { ...RECT, fillOpacity: 1, strokeOpacity: 1 },
+      textItem("t", "label", 0, 0, 8, "#000000"),
+    ]);
+    expect(canvas.named("setGState")).toEqual([]);
+  });
+
+  test("a run of equally faded items sets the state once, and opaque again after", () => {
+    const canvas: RecordingCanvas = paint([FADED, FADED, FADED, RECT]);
+    expect(canvas.named("setGState")).toEqual([
+      ["setGState", { opacity: 0.18, "stroke-opacity": 0.2 }],
+      ["setGState", { opacity: 1, "stroke-opacity": 1 }],
+    ]);
+  });
+
+  test("each distinct opacity is made once and reused", () => {
+    const canvas: RecordingCanvas = paint([FADED, RECT, FADED, RECT, FADED]);
+    expect(canvas.named("setGState")).toHaveLength(5);
+    expect(canvas.madeStates).toEqual([
+      { opacity: 0.18, "stroke-opacity": 0.2 },
+      { opacity: 1, "stroke-opacity": 1 },
+    ]);
+  });
+
+  test("a faded name fades its halo too", () => {
+    const canvas: RecordingCanvas = paint([
+      {
+        ...textItem("t", "Core switch", 0, 0, 6, "#374151"),
+        halo: { color: "#ffffff", width: 1.35 },
+        fillOpacity: 0.2,
+        strokeOpacity: 0.2,
+      },
+    ]);
+    const order: Array<string> = canvas.names();
+    expect(canvas.named("setGState")).toEqual([
+      ["setGState", { opacity: 0.2, "stroke-opacity": 0.2 }],
+    ]);
+    // Before both passes: the halo's stroke and the glyphs.
+    expect(order.indexOf("setGState")).toBeLessThan(order.indexOf("text"));
+  });
+
+  test("an item that draws nothing sets nothing, its opacity included", () => {
+    const canvas: RecordingCanvas = paint([
+      { ...RECT, fill: undefined, fillOpacity: 0.2 },
+      { ...textItem("t", "", 0, 0, 8, "#000000"), fillOpacity: 0.2 },
+    ]);
+    expect(canvas.calls).toEqual([]);
+  });
+
+  test("out-of-range opacities are clamped before they reach the PDF", () => {
+    const canvas: RecordingCanvas = paint([
+      { ...RECT, fillOpacity: -1, strokeOpacity: 4 },
+    ]);
+    expect(canvas.named("setGState")).toEqual([
+      ["setGState", { opacity: 0, "stroke-opacity": 1 }],
+    ]);
+  });
+
+  test("a page that ends see-through goes back to opaque before the next page", async () => {
+    /*
+     * A new page starts opaque, but jsPDF only forgets the state it last set
+     * when a graphics state is restored — so without this, the same faded
+     * state on the next page would be skipped and print opaque.
+     */
+    const canvas: RecordingCanvas = new RecordingCanvas();
+    await paintNetworkTopologyDocument(
+      canvas,
+      documentOf([
+        { kind: "diagram", width: 100, height: 100, items: [FADED] },
+        { kind: "table", width: 100, height: 100, items: [FADED] },
+      ]),
+      {
+        yieldToBrowser: async (): Promise<void> => {},
+      },
+    );
+    const sequence: Array<string> = canvas.calls
+      .filter((call: Call): boolean => {
+        return call[0] === "setGState" || call[0] === "addPage";
+      })
+      .map((call: Call): string => {
+        return call[0] === "addPage"
+          ? "addPage"
+          : `gs ${(call[1] as TopologyPdfOpacity).opacity}`;
+      });
+    expect(sequence).toEqual(["gs 0.18", "gs 1", "addPage", "gs 0.18"]);
   });
 });

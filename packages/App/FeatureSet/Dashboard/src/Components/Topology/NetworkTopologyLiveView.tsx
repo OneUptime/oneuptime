@@ -65,6 +65,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Logger } from "Common/UI/Utils/Logger";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { APP_API_URL } from "Common/UI/Config";
 import React, {
@@ -581,7 +582,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         suppressedNodeCount: topology.suppressedNodeCount,
       },
     })
-      .catch(() => {
+      .catch((err: unknown) => {
+        /*
+         * The reader is told in a sentence they can act on; the reason —
+         * a library chunk that did not load, a page jsPDF refused — goes to
+         * the console, where it can be diagnosed.
+         */
+        Logger.error(
+          `Could not export the network topology as a PDF: ${API.getFriendlyMessage(err)}`,
+        );
         if (isMounted.current) {
           setExportError(
             translateString("We couldn't create the PDF. Try again.") ||

@@ -21,6 +21,15 @@ export interface ExportStroke {
 interface ExportItemBase {
   // What the item draws ("node-shape:<id>", "edge:<key>", "legend-text"...).
   tag: string;
+  /*
+   * How opaque the item's fill is (for text, its glyphs) and how opaque its
+   * stroke is (a line, an outline, a name's halo). Absent is fully opaque.
+   * The live map draws a dimmed device, a hull and an attention ring
+   * see-through, so that what lies under them still shows; the page does
+   * the same with real PDF transparency.
+   */
+  fillOpacity?: number | undefined;
+  strokeOpacity?: number | undefined;
 }
 
 export interface ExportRectItem extends ExportItemBase {
@@ -93,6 +102,16 @@ export type ExportItem =
   | ExportTextItem;
 
 export type ExportPageKind = "diagram" | "table";
+
+export type PageOrientation = "landscape" | "portrait";
+
+/** Landscape when a page is wider than it is tall. */
+export function orientationOfPage(page: {
+  width: number;
+  height: number;
+}): PageOrientation {
+  return page.width > page.height ? "landscape" : "portrait";
+}
 
 export interface ExportPage {
   kind: ExportPageKind;

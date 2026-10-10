@@ -86,8 +86,9 @@ ingestion or the SQL itself (the Postgres suites under
 the file and reads it back without a PDF library — the content streams are
 inflated and their text operators decoded — to check that a site's whole map
 is in it (every device and connection, the legend, the header, numbered
-pages) and drawn as vectors; that it follows the map's filters; that an export
-from dark mode is the same light document; that the map of every device shows
+pages) and drawn as vectors; that it follows the map's filters, a search fading
+the other devices with real PDF transparency; that an export from dark mode is
+the same light document; that the map of every device shows
 its unlinked devices; that a 1,203-device network exports without freezing the
 page (the longest gap between painted frames stays under half the export); and
 that the button fits a phone. The downloaded files are kept in

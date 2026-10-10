@@ -8,11 +8,6 @@
  * read the same whoever exported it and whatever their dashboard looked
  * like at the time — so every colour is resolved to its LIGHT value here,
  * and nothing about the viewer's theme ever reaches the file.
- *
- * Transparency is resolved here too. The map dims a node by drawing its
- * whole group at 20% opacity; on a white page that is the same colour as
- * the opaque mix of the ink with white, which every PDF reader and printer
- * draws identically and which keeps the file free of transparency groups.
  */
 
 // What a colour the export cannot read is drawn as: the map's muted grey.
@@ -63,30 +58,10 @@ export function resolvePrintColor(
     : resolvePrintColor(fallback, PRINT_FALLBACK_COLOR);
 }
 
-function channel(hex: string, index: number): number {
-  return parseInt(hex.slice(1 + index * 2, 3 + index * 2), 16);
-}
-
-function toHexChannel(value: number): string {
-  const clamped: number = Math.max(0, Math.min(255, Math.round(value)));
-  return clamped.toString(16).padStart(2, "0");
-}
-
-/**
- * `color` drawn at `alpha` opacity over white paper, as an opaque colour.
- * Alpha 1 is the colour itself and alpha 0 is the paper.
- */
-export function blendWithPaper(color: string, alpha: number): string {
-  const hex: string = resolvePrintColor(color);
-  const a: number = Math.max(
-    0,
-    Math.min(1, Number.isFinite(alpha) ? alpha : 1),
-  );
-  if (a >= 1) {
-    return hex;
+/** An opacity as PDF takes it: a number from 0 to 1, opaque when unknown. */
+export function clampOpacity(opacity: number | null | undefined): number {
+  if (typeof opacity !== "number" || !Number.isFinite(opacity)) {
+    return 1;
   }
-  const mixed: Array<string> = [0, 1, 2].map((index: number): string => {
-    return toHexChannel(channel(hex, index) * a + 255 * (1 - a));
-  });
-  return `#${mixed.join("")}`;
+  return Math.max(0, Math.min(1, opacity));
 }

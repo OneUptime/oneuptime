@@ -1,3 +1,4 @@
+import { clampOpacity } from "./ExportColor";
 import {
   ExportItem,
   ExportLineItem,
@@ -6,6 +7,7 @@ import {
   ExportPathItem,
   ExportStroke,
   ExportTextItem,
+  orientationOfPage,
 } from "./ExportItems";
 import { NetworkTopologyExportDocument } from "./NetworkTopologyExportDocument";
 
@@ -31,6 +33,12 @@ export interface TopologyPdfTextOptions {
   align: "left" | "center" | "right";
   baseline: "alphabetic";
   renderingMode?: "stroke" | undefined;
+}
+
+// What PDF transparency is set with: jsPDF's GState parameters.
+export interface TopologyPdfOpacity {
+  opacity: number;
+  "stroke-opacity": number;
 }
 
 /** The subset of jsPDF's API the painter draws with. */
@@ -93,6 +101,9 @@ export interface TopologyPdfCanvas {
   fill: () => unknown;
   stroke: () => unknown;
   fillStroke: () => unknown;
+  // jsPDF's graphics-state constructor, and the call that applies one.
+  GState: new (parameters: TopologyPdfOpacity) => unknown;
+  setGState: (state: unknown) => unknown;
 }
 
 export interface PaintOptions {
@@ -109,11 +120,18 @@ export const DEFAULT_ITEMS_PER_SLICE: number = 2500;
 
 export const PDF_FONT_NAME: string = "helvetica";
 
-const yieldWithTimeout: () => Promise<void> = (): Promise<void> => {
+/*
+ * Lets the browser run everything waiting for the main thread — painting
+ * included — before the export goes on.
+ */
+export const pauseForBrowser: () => Promise<void> = (): Promise<void> => {
   return new Promise<void>((resolve: () => void) => {
     setTimeout(resolve, 0);
   });
 };
+
+// The key of full opacity: what every page starts with.
+const OPAQUE_KEY: string = "1/1";
 
 /*
  * The state the canvas was last set to, so a long run of items in the same
@@ -130,6 +148,12 @@ class CanvasState {
   private lineCap: string | null = null;
   private lineJoin: string | null = null;
   private fontKey: string | null = null;
+  private opacityKey: string = OPAQUE_KEY;
+  // One graphics state per distinct opacity pair, made once and reused.
+  private readonly opacityStates: Map<string, unknown> = new Map<
+    string,
+    unknown
+  >();
 
   public constructor(private readonly canvas: TopologyPdfCanvas) {}
 
@@ -142,6 +166,41 @@ class CanvasState {
     this.lineCap = null;
     this.lineJoin = null;
     this.fontKey = null;
+    // A new page starts opaque; endPage made sure jsPDF agrees.
+    this.opacityKey = OPAQUE_KEY;
+  }
+
+  public opacity(
+    fillOpacity: number | undefined,
+    strokeOpacity: number | undefined,
+  ): void {
+    const fill: number = clampOpacity(fillOpacity);
+    const stroke: number = clampOpacity(strokeOpacity);
+    const key: string = `${fill}/${stroke}`;
+    if (key === this.opacityKey) {
+      return;
+    }
+    let state: unknown = this.opacityStates.get(key);
+    if (state === undefined) {
+      state = new this.canvas.GState({
+        opacity: fill,
+        "stroke-opacity": stroke,
+      });
+      this.opacityStates.set(key, state);
+    }
+    this.canvas.setGState(state);
+    this.opacityKey = key;
+  }
+
+  /*
+   * Return to full opacity before a page break. A new page starts opaque,
+   * but jsPDF only forgets the state it last set when a graphics state is
+   * restored, not at a page break — so a page that ended see-through would
+   * leave jsPDF skipping the same see-through state on the next page, and
+   * those items would print opaque.
+   */
+  public endPage(): void {
+    this.opacity(1, 1);
   }
 
   public fill(color: string): void {
@@ -322,12 +381,32 @@ function paintText(
   state.afterText();
 }
 
+// False for an item that would put nothing on the page.
+function drawsSomething(item: ExportItem): boolean {
+  switch (item.type) {
+    case "text":
+      return Boolean(item.text);
+    case "line":
+      return true;
+    case "path":
+      return (
+        item.commands.length > 0 && styleFor(item.fill, item.stroke) !== null
+      );
+    default:
+      return styleFor(item.fill, item.stroke) !== null;
+  }
+}
+
 /** Draws one item. Exported for the tests. */
 export function paintExportItem(
   canvas: TopologyPdfCanvas,
   state: CanvasState,
   item: ExportItem,
 ): void {
+  if (!drawsSomething(item)) {
+    return;
+  }
+  state.opacity(item.fillOpacity, item.strokeOpacity);
   switch (item.type) {
     case "rect": {
       const style: TopologyPdfDrawStyle | null = styleFor(
@@ -384,10 +463,6 @@ export function createCanvasState(canvas: TopologyPdfCanvas): CanvasState {
   return new CanvasState(canvas);
 }
 
-function orientationOf(page: ExportPage): "p" | "l" {
-  return page.width > page.height ? "l" : "p";
-}
-
 /**
  * Draws every page of `document` onto `canvas`, whose first page must
  * already have the size of the document's first page (jsPDF creates it
@@ -399,7 +474,7 @@ export async function paintNetworkTopologyDocument(
   options?: PaintOptions | undefined,
 ): Promise<void> {
   const yieldToBrowser: () => Promise<void> =
-    options?.yieldToBrowser || yieldWithTimeout;
+    options?.yieldToBrowser || pauseForBrowser;
   const itemsPerSlice: number = Math.max(
     1,
     Math.floor(options?.itemsPerSlice || DEFAULT_ITEMS_PER_SLICE),
@@ -421,7 +496,11 @@ export async function paintNetworkTopologyDocument(
   ) {
     const page: ExportPage = document.pages[pageIndex]!;
     if (pageIndex > 0) {
-      canvas.addPage([page.width, page.height], orientationOf(page));
+      state.endPage();
+      canvas.addPage(
+        [page.width, page.height],
+        orientationOfPage(page) === "landscape" ? "l" : "p",
+      );
       await yieldToBrowser();
       sinceLastPause = 0;
     }

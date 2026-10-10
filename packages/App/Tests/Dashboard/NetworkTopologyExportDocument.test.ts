@@ -12,9 +12,12 @@ import {
   MIN_LEGIBLE_DIAGRAM_SCALE,
   NetworkTopologyExportDocument,
   NetworkTopologyExportInput,
+  PageChrome,
   buildNetworkTopologyExportDocument,
+  buildNetworkTopologyExportDocumentAsync,
   describeExportFilters,
   describeExportNotices,
+  planDiagramPage,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/NetworkTopologyExportDocument";
 import {
   A4_LONG_SIDE,
@@ -28,10 +31,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportItems";
 import { TABLE_BOTTOM_LIMIT } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportTables";
 import { TextMeasure } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportText";
-import {
-  blendWithPaper,
-  resolvePrintColor,
-} from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportColor";
+import { resolvePrintColor } from "../../FeatureSet/Dashboard/src/Components/Topology/Export/ExportColor";
 import {
   ALL_NODE_KINDS,
   TopologyNodeKind,
@@ -42,7 +42,10 @@ import {
   buildTopologyLegend,
   edgeKeyForEdge,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyMeta";
-import { computeTopologyLayoutModel } from "../../FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyDrawing";
+import {
+  TOPOLOGY_DRAWING_STYLE,
+  computeTopologyLayoutModel,
+} from "../../FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyDrawing";
 import { TopologyLayoutModel } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
 import { TopologyPoint } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyGraphUtil";
 import { HEALTH_STATE_COLORS } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyHealthFilter";
@@ -474,25 +477,40 @@ describe("the map page draws the whole map the reader is looking at", () => {
   });
 
   test("status is the fill: up green, down red, unknown slate", () => {
-    expect(fillOf(shapeOf(page, "r1"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.up, 0.9),
-    );
-    expect(fillOf(shapeOf(page, "fw1"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.down, 0.9),
-    );
-    expect(fillOf(shapeOf(page, "lb1"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.unknown, 0.9),
-    );
+    expect(fillOf(shapeOf(page, "r1"))).toBe("#16a34a");
+    expect(fillOf(shapeOf(page, "fw1"))).toBe("#dc2626");
+    expect(fillOf(shapeOf(page, "lb1"))).toBe("#64748b");
     expect(resolvePrintColor(NODE_STATUS_COLORS.up)).toBe("#16a34a");
+    // A little see-through, as on the canvas, so a link under it still shows.
+    expect(shapeOf(page, "r1").fillOpacity).toBe(
+      TOPOLOGY_DRAWING_STYLE.deviceFillOpacity,
+    );
+    expect(shapeOf(page, "r1").strokeOpacity).toBe(1);
   });
 
   test("an unmanaged peer is hollow with a dashed outline; an endpoint is violet", () => {
     const phone: ExportItem = shapeOf(page, "unmanaged:phone");
     expect(fillOf(phone)).toBe("#ffffff");
+    expect(phone.fillOpacity).toBe(1);
     expect(
       phone.type !== "text" && phone.type !== "line" && phone.stroke?.dash,
     ).toBeTruthy();
-    expect(fillOf(shapeOf(page, "ep1"))).toBe(blendWithPaper("#a78bfa", 0.85));
+    expect(fillOf(shapeOf(page, "ep1"))).toBe("#a78bfa");
+    expect(shapeOf(page, "ep1").fillOpacity).toBe(
+      TOPOLOGY_DRAWING_STYLE.endpointFillOpacity,
+    );
+  });
+
+  test("hulls are drawn see-through, as on the canvas", () => {
+    for (const item of items(page, "hull:")) {
+      const hull: ExportRectItem = item as ExportRectItem;
+      expect(hull.fill).toBe("#f9fafb");
+      expect(hull.fillOpacity).toBe(
+        hull.stroke?.dash
+          ? TOPOLOGY_DRAWING_STYLE.dashedHullFillOpacity
+          : TOPOLOGY_DRAWING_STYLE.hullFillOpacity,
+      );
+    }
   });
 
   test("the type is the silhouette: routers round, switches boxes, firewalls diamonds, storage a drum", () => {
@@ -818,13 +836,20 @@ describe("the reader's own arrangement and filters", () => {
       page,
       "node-halo:fw1",
     )[0] as ExportCircleItem;
-    expect(downHalo.fill).toBe(blendWithPaper(HEALTH_STATE_COLORS.down, 0.16));
+    expect(downHalo.fill).toBe(resolvePrintColor(HEALTH_STATE_COLORS.down));
+    // See-through, as on the canvas: the links into the device show through.
+    expect(downHalo.fillOpacity).toBe(
+      TOPOLOGY_DRAWING_STYLE.attentionHaloFillOpacity,
+    );
+    expect(downHalo.strokeOpacity).toBe(
+      TOPOLOGY_DRAWING_STYLE.attentionHaloStrokeOpacity,
+    );
     const degradedHalo: ExportCircleItem = items(
       page,
       "node-halo:sw1",
     )[0] as ExportCircleItem;
     expect(degradedHalo.fill).toBe(
-      blendWithPaper(HEALTH_STATE_COLORS.degraded, 0.16),
+      resolvePrintColor(HEALTH_STATE_COLORS.degraded),
     );
     // Healthy devices with no link to a match are gone...
     expect(items(page, "node-shape:lab1")).toHaveLength(0);
@@ -832,8 +857,11 @@ describe("the reader's own arrangement and filters", () => {
     // ...and a healthy neighbour stays, faded, without a ring.
     expect(items(page, "node-shape:sw2")).toHaveLength(1);
     expect(items(page, "node-halo:sw2")).toHaveLength(0);
-    expect(fillOf(shapeOf(page, "sw2"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.up, 0.9 * 0.2),
+    expect(fillOf(shapeOf(page, "sw2"))).toBe("#16a34a");
+    expect(shapeOf(page, "sw2").fillOpacity).toBeCloseTo(
+      TOPOLOGY_DRAWING_STYLE.deviceFillOpacity *
+        TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity,
+      9,
     );
     expect(texts(page, "header:filters").join(" ")).toBe(
       "Filtered view: Health: Needs attention. Faded devices are shown for context.",
@@ -842,17 +870,45 @@ describe("the reader's own arrangement and filters", () => {
 
   test("a search fades every device that does not match, as on screen", () => {
     const page: ExportPage = mapPage(build({ searchText: "switch" }));
-    expect(fillOf(shapeOf(page, "sw1"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.up, 0.9),
+    const dimmed: number = TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity;
+    expect(shapeOf(page, "sw1").fillOpacity).toBe(
+      TOPOLOGY_DRAWING_STYLE.deviceFillOpacity,
     );
-    expect(fillOf(shapeOf(page, "r1"))).toBe(
-      blendWithPaper(NODE_STATUS_COLORS.up, 0.9 * 0.2),
+    expect(shapeOf(page, "sw1").strokeOpacity).toBe(1);
+    expect(fillOf(shapeOf(page, "r1"))).toBe("#16a34a");
+    expect(shapeOf(page, "r1").fillOpacity).toBeCloseTo(
+      TOPOLOGY_DRAWING_STYLE.deviceFillOpacity * dimmed,
+      9,
     );
+    expect(shapeOf(page, "r1").strokeOpacity).toBe(dimmed);
+    /*
+     * The faded name keeps its colour and fades whole, halo included, so a
+     * link crossing under it shows through as it does on the canvas.
+     */
     const r1Label: ExportTextItem = items(
       page,
       "node-label:r1",
     )[0] as ExportTextItem;
-    expect(r1Label.color).toBe(blendWithPaper("#374151", 0.2));
+    expect(r1Label.color).toBe("#374151");
+    expect(r1Label.fillOpacity).toBe(dimmed);
+    expect(r1Label.strokeOpacity).toBe(dimmed);
+    const sw1Label: ExportTextItem = items(
+      page,
+      "node-label:sw1",
+    )[0] as ExportTextItem;
+    expect(sw1Label.fillOpacity).toBe(1);
+    expect(sw1Label.strokeOpacity).toBe(1);
+    // A link to a faded device fades with it.
+    const faded: ExportItem = items(
+      page,
+      `edge:${edgeKeyForEdge({ fromNodeId: "r1", toNodeId: "fw1" })}`,
+    )[0]!;
+    expect(faded.strokeOpacity).toBe(TOPOLOGY_DRAWING_STYLE.dimmedEdgeOpacity);
+    const bright: ExportItem = items(
+      page,
+      `edge:${edgeKeyForEdge({ fromNodeId: "sw1", toNodeId: "sw2" })}`,
+    )[0]!;
+    expect(bright.strokeOpacity).toBe(1);
     expect(texts(page, "header:filters").join(" ")).toBe(
       'Filtered view: Search: "switch". Faded devices are shown for context.',
     );
@@ -949,17 +1005,32 @@ describe("the PDF is light, whatever the dashboard's theme", () => {
     }
   });
 
-  test("the page is white: no item paints a dark background", () => {
+  test("the page is white: the frame is an outline and hulls the palest grey", () => {
     const page: ExportPage = mapPage(build());
     expect(frameOf(page).fill).toBeUndefined();
     for (const item of items(page, "hull:")) {
-      expect((item as ExportRectItem).fill).toBe(
-        blendWithPaper(
-          "#f9fafb",
-          (item as ExportRectItem).stroke?.dash ? 0.65 : 0.4,
-        ),
-      );
+      expect((item as ExportRectItem).fill).toBe("#f9fafb");
     }
+  });
+
+  test("every opacity on the page is a fraction PDF accepts", () => {
+    const page: ExportPage = mapPage(
+      build({ healthFilterMode: "attention", searchText: "switch" }),
+    );
+    let seeThrough: number = 0;
+    for (const item of page.items) {
+      for (const opacity of [item.fillOpacity, item.strokeOpacity]) {
+        if (opacity === undefined) {
+          continue;
+        }
+        expect(opacity).toBeGreaterThanOrEqual(0);
+        expect(opacity).toBeLessThanOrEqual(1);
+        if (opacity < 1) {
+          seeThrough++;
+        }
+      }
+    }
+    expect(seeThrough).toBeGreaterThan(0);
   });
 
   test("the same map always lays out to the same document", () => {
@@ -1463,5 +1534,180 @@ describe("edge cases", () => {
     });
     expect(document.summary.drawnNodeCount).toBe(STORE_NODES.length);
     expect(document.summary.drawnEdgeCount).toBe(STORE_EDGES.length);
+  });
+});
+
+describe("a large network is laid out in steps, so the page keeps painting", () => {
+  test("laying out with pauses gives exactly the document laid out in one go", async () => {
+    let pauses: number = 0;
+    const stepped: NetworkTopologyExportDocument =
+      await buildNetworkTopologyExportDocumentAsync(
+        input(),
+        measure,
+        async (): Promise<void> => {
+          pauses++;
+        },
+      );
+    expect(stepped).toEqual(build());
+    expect(pauses).toBeGreaterThan(0);
+  });
+
+  test("the more there is to lay out, the more often the browser gets a turn", async () => {
+    const large: Estate = estate(1500, 1500);
+    const model: TopologyLayoutModel = computeTopologyLayoutModel(
+      "force",
+      large.nodes,
+      large.edges,
+    );
+    const pausesFor: (topology: Estate) => Promise<number> = async (
+      topology: Estate,
+    ): Promise<number> => {
+      let pauses: number = 0;
+      await buildNetworkTopologyExportDocumentAsync(
+        input({
+          topology: topology,
+          layoutModel: topology === large ? model : undefined,
+        }),
+        measure,
+        async (): Promise<void> => {
+          pauses++;
+        },
+      );
+      return pauses;
+    };
+    const small: number = await pausesFor({
+      nodes: STORE_NODES,
+      edges: STORE_EDGES,
+    });
+    const big: number = await pausesFor(large);
+    // Every thousand names and every 250 table rows, on top of the phases.
+    expect(big).toBeGreaterThanOrEqual(small + 10);
+  });
+});
+
+describe("planDiagramPage: the page for a map too large for A4", () => {
+  // A header 80 points tall and a legend of 30, on either orientation.
+  function chrome(orientation: "landscape" | "portrait"): PageChrome {
+    return {
+      orientation: orientation,
+      width: orientation === "landscape" ? A4_LONG_SIDE : A4_SHORT_SIDE,
+      height: orientation === "landscape" ? A4_SHORT_SIDE : A4_LONG_SIDE,
+      header: { items: [], height: 80 },
+      legend: { items: [], height: 30 },
+    };
+  }
+
+  test("a nearly square map takes the orientation that keeps its names larger", () => {
+    /*
+     * 1,200 x 1,300 layout units: on portrait the width forces the minimum
+     * scale and an enlarged page; on landscape the map fits A4's width at a
+     * larger scale and only the page's length grows.
+     */
+    const plan: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      { width: 1200, height: 1300 },
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect(plan.orientation).toBe("landscape");
+    expect(plan.chromeScale).toBe(1);
+    expect(plan.width).toBeCloseTo(A4_LONG_SIDE, 6);
+    expect(plan.height).toBeGreaterThan(A4_SHORT_SIDE);
+    expect(plan.diagramScale).toBeCloseTo((A4_LONG_SIDE - 72 - 32) / 1200, 6);
+    expect(plan.diagramScale).toBeGreaterThan(MIN_LEGIBLE_DIAGRAM_SCALE);
+  });
+
+  test("a very wide map widens the page, header and legend with it", () => {
+    const plan: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      { width: 6000, height: 800 },
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect(plan.orientation).toBe("landscape");
+    expect(plan.diagramScale).toBeCloseTo(MIN_LEGIBLE_DIAGRAM_SCALE, 9);
+    expect(plan.chromeScale).toBeGreaterThan(1);
+    expect(plan.width).toBeCloseTo(A4_LONG_SIDE * plan.chromeScale, 6);
+    // The map fills the frame's width exactly.
+    expect(plan.box.width).toBeCloseTo(6000 * plan.diagramScale, 6);
+  });
+
+  test("a very tall, narrow map keeps A4's width and gets a long page", () => {
+    const plan: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      { width: 400, height: 9000 },
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect(plan.chromeScale).toBe(1);
+    expect(plan.diagramScale).toBeGreaterThanOrEqual(MIN_LEGIBLE_DIAGRAM_SCALE);
+    expect(plan.box.height).toBeCloseTo(9000 * plan.diagramScale, 6);
+    expect(plan.height).toBeGreaterThan(plan.width);
+  });
+
+  test("a map that fits A4 legibly gets A4, in the orientation that draws it larger", () => {
+    const wide: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      { width: 700, height: 300 },
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect([wide.width, wide.height]).toEqual([A4_LONG_SIDE, A4_SHORT_SIDE]);
+    const tall: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      { width: 300, height: 700 },
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect([tall.width, tall.height]).toEqual([A4_SHORT_SIDE, A4_LONG_SIDE]);
+  });
+
+  test("an empty map is an A4 landscape page", () => {
+    const plan: ReturnType<typeof planDiagramPage> = planDiagramPage(
+      null,
+      chrome("landscape"),
+      chrome("portrait"),
+    );
+    expect([plan.width, plan.height]).toEqual([A4_LONG_SIDE, A4_SHORT_SIDE]);
+  });
+});
+
+describe("the footer never runs into the page number", () => {
+  test("a deep site path in a long-named project is shortened to fit", () => {
+    const document: NetworkTopologyExportDocument = build({
+      projectName: "Acme Global Retail Operations and Logistics Holdings",
+      scopeNames: [
+        "North America and Caribbean Region",
+        "East Coast Metropolitan Markets",
+        "New York Metro and Northern New Jersey",
+        "Manhattan Flagship Stores",
+        "Store 1042 Fifth Avenue Flagship",
+      ],
+    });
+    const full: string =
+      "Network topology · North America and Caribbean Region > East Coast Metropolitan Markets > New York Metro and Northern New Jersey > Manhattan Flagship Stores > Store 1042 Fifth Avenue Flagship";
+    let shortened: number = 0;
+    for (const page of document.pages) {
+      const scope: ExportTextItem = items(
+        page,
+        "footer:scope",
+      )[0] as ExportTextItem;
+      const pageNumber: ExportTextItem = items(
+        page,
+        "footer:page",
+      )[0] as ExportTextItem;
+      // Clear of the page number, on every page...
+      expect(extentOf(scope).maxX).toBeLessThan(extentOf(pageNumber).minX);
+      // ...whole where it fits, and its start with "..." where it does not.
+      if (scope.text !== full) {
+        expect(scope.text.endsWith("...")).toBe(true);
+        expect(full.startsWith(scope.text.slice(0, -3).trimEnd())).toBe(true);
+        shortened++;
+      }
+    }
+    // The portrait map page is too narrow for all of it.
+    expect(shortened).toBeGreaterThan(0);
+  });
+
+  test("a short one is left whole", () => {
+    const page: ExportPage = mapPage(build());
+    expect(texts(page, "footer:scope")).toEqual([
+      "Network topology · North America > East > Store 1042",
+    ]);
   });
 });

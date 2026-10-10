@@ -10,11 +10,17 @@ import {
 } from "../NetworkDevice/TopologyLayout";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 import {
+  TOPOLOGY_DRAWING_STYLE,
   TOPOLOGY_VIEW_HEIGHT,
   TOPOLOGY_VIEW_WIDTH,
   TopologyHullView,
+  attentionHaloRadiusFor,
   buildTopologyHulls,
   computeTopologyLayoutModel,
+  glyphFillOpacityFor,
+  glyphStrokeWidthFor,
+  labelFontSizeFor,
+  labelLineHeightFor,
 } from "./NetworkTopologyDrawing";
 import {
   HEALTH_STATE_COLORS,
@@ -200,13 +206,9 @@ const renderNodeSilhouette: (nodeView: TopologyNodeView) => ReactElement = (
   nodeView: TopologyNodeView,
 ): ReactElement => {
   const geometry: TopologyShapeGeometry = nodeView.footprint.shape;
-  const isEndpoint: boolean = nodeView.kind === "endpoint";
-  const fillOpacity: number = isEndpoint
-    ? 0.85
-    : nodeView.kind === "device"
-      ? 0.9
-      : 1;
-  const strokeWidth: number = isEndpoint ? 1.5 : 2;
+  // Shared with the PDF export, which paints the same glyphs.
+  const fillOpacity: number = glyphFillOpacityFor(nodeView.kind);
+  const strokeWidth: number = glyphStrokeWidthFor(nodeView.kind);
   const paint: {
     fill: string;
     fillOpacity: number;
@@ -1415,20 +1417,28 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       y={hull.y}
                       width={hull.width}
                       height={hull.height}
-                      rx={14}
-                      fill="var(--ou-surface-secondary, #f9fafb)"
-                      fillOpacity={hull.isDashed ? 0.65 : 0.4}
-                      stroke="var(--ou-border-subtle, #e5e7eb)"
-                      strokeWidth={1}
-                      strokeDasharray={hull.isDashed ? "5 4" : undefined}
+                      rx={TOPOLOGY_DRAWING_STYLE.hullCornerRadius}
+                      fill={TOPOLOGY_DRAWING_STYLE.hullFill}
+                      fillOpacity={
+                        hull.isDashed
+                          ? TOPOLOGY_DRAWING_STYLE.dashedHullFillOpacity
+                          : TOPOLOGY_DRAWING_STYLE.hullFillOpacity
+                      }
+                      stroke={TOPOLOGY_DRAWING_STYLE.hullStroke}
+                      strokeWidth={TOPOLOGY_DRAWING_STYLE.hullStrokeWidth}
+                      strokeDasharray={
+                        hull.isDashed
+                          ? TOPOLOGY_DRAWING_STYLE.hullDash
+                          : undefined
+                      }
                     />
                     {hull.caption ? (
                       <text
-                        x={hull.x + 6}
-                        y={hull.y - 6}
-                        fontSize={12}
+                        x={hull.x + TOPOLOGY_DRAWING_STYLE.hullCaptionOffset}
+                        y={hull.y - TOPOLOGY_DRAWING_STYLE.hullCaptionOffset}
+                        fontSize={TOPOLOGY_DRAWING_STYLE.hullCaptionFontSize}
                         fontWeight={600}
-                        fill="var(--ou-text-muted, #6b7280)"
+                        fill={TOPOLOGY_DRAWING_STYLE.hullCaptionColor}
                       >
                         {hull.caption}
                       </text>
@@ -1463,7 +1473,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       role={isClickable ? "button" : undefined}
                       tabIndex={isClickable ? 0 : undefined}
                       aria-label={edgeView.ariaLabel}
-                      opacity={edgeView.isDimmed ? 0.15 : 1}
+                      opacity={
+                        edgeView.isDimmed
+                          ? TOPOLOGY_DRAWING_STYLE.dimmedEdgeOpacity
+                          : 1
+                      }
                       style={isClickable ? { cursor: "pointer" } : undefined}
                       onKeyDown={
                         isClickable
@@ -1512,7 +1526,6 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
               {viewModel.nodes.map(
                 (nodeView: TopologyNodeView): ReactElement => {
                   const footprint: TopologyNodeFootprint = nodeView.footprint;
-                  const isEndpoint: boolean = nodeView.kind === "endpoint";
                   return (
                     <g
                       key={nodeView.id}
@@ -1523,7 +1536,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       role="button"
                       tabIndex={0}
                       aria-label={nodeView.ariaLabel}
-                      opacity={nodeView.isDimmed ? 0.2 : 1}
+                      opacity={
+                        nodeView.isDimmed
+                          ? TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity
+                          : 1
+                      }
                       style={{ cursor: "grab" }}
                       onPointerDown={(
                         event: React.PointerEvent<SVGGElement>,
@@ -1588,16 +1605,15 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                         <circle
                           cx={nodeView.x}
                           cy={nodeView.y}
-                          r={
-                            Math.max(
-                              footprint.halfWidth,
-                              footprint.halfHeight,
-                            ) + 5
-                          }
+                          r={attentionHaloRadiusFor(footprint)}
                           fill={HEALTH_STATE_COLORS[nodeView.health]}
-                          fillOpacity={0.16}
+                          fillOpacity={
+                            TOPOLOGY_DRAWING_STYLE.attentionHaloFillOpacity
+                          }
                           stroke={HEALTH_STATE_COLORS[nodeView.health]}
-                          strokeOpacity={0.55}
+                          strokeOpacity={
+                            TOPOLOGY_DRAWING_STYLE.attentionHaloStrokeOpacity
+                          }
                           strokeWidth={1.5 * hairline}
                           pointerEvents="none"
                           data-testid={`network-topology-attention-halo-${nodeView.id}`}
@@ -1652,12 +1668,12 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                           x={nodeView.x}
                           y={nodeView.y + footprint.shape.badgeBaselineOffset}
                           textAnchor="middle"
-                          fontSize={9}
+                          fontSize={TOPOLOGY_DRAWING_STYLE.badgeFontSize}
                           fontWeight={600}
                           fill={
                             nodeView.kind === "device"
-                              ? "#ffffff"
-                              : "var(--ou-text-secondary, #374151)"
+                              ? TOPOLOGY_DRAWING_STYLE.deviceBadgeColor
+                              : TOPOLOGY_DRAWING_STYLE.labelColor
                           }
                           pointerEvents="none"
                         >
@@ -1678,8 +1694,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                            */
                           y={nodeView.y + footprint.labelBaselineOffset}
                           textAnchor="middle"
-                          fontSize={isEndpoint ? 10 : 12}
-                          fill="var(--ou-text-secondary, #374151)"
+                          fontSize={labelFontSizeFor(nodeView.kind)}
+                          fill={TOPOLOGY_DRAWING_STYLE.labelColor}
                           /*
                            * A halo drawn behind the glyphs (paint-order
                            * puts the stroke first) is what keeps a label
@@ -1687,8 +1703,10 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                            * the view scale holds it at a constant three
                            * screen pixels at any zoom.
                            */
-                          stroke="var(--ou-surface-primary, #ffffff)"
-                          strokeWidth={3 * hairline}
+                          stroke={TOPOLOGY_DRAWING_STYLE.labelHaloColor}
+                          strokeWidth={
+                            TOPOLOGY_DRAWING_STYLE.labelHaloWidth * hairline
+                          }
                           strokeLinejoin="round"
                           paintOrder="stroke"
                           pointerEvents="none"
@@ -1700,7 +1718,9 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                                   key={`${nodeView.id}-label-${lineIndex}`}
                                   x={nodeView.x}
                                   dy={
-                                    lineIndex === 0 ? 0 : isEndpoint ? 11 : 13
+                                    lineIndex === 0
+                                      ? 0
+                                      : labelLineHeightFor(nodeView.kind)
                                   }
                                 >
                                   {line}
