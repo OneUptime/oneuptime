@@ -37,10 +37,7 @@ import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
 } from "../../Types/AI/AgentAiSettings";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { PermissionHelper } from "../../Types/Permission";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
@@ -200,10 +197,17 @@ export function getAgentSetAiAccessRefusal(
   }, so AI investigation and fixes cannot be changed here. Set aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart instead; the cluster's AI agent page (AI → Agent) shows the command for each option.`;
 }
 
-export function getAiAccessCredentialRefusal(): string {
-  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-  ).join(", ")}.`;
+/*
+ * Why a caller cannot bind a Kubernetes credential: it takes the read of
+ * runbook credentials (RunbookCredentialReaders) - and, for a workflow's
+ * step, that a person has to bind it.
+ */
+export function getAiAccessCredentialRefusal(
+  props?: DatabaseCommonInteractionProps | undefined,
+): string {
+  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${RunbookCredentialReaders.getTitles()}.${
+    props ? RunbookCredentialReaders.getWorkflowNote(props) : ""
+  }`;
 }
 
 /*
@@ -365,7 +369,7 @@ export class Service extends ProjectReferencesService<Model> {
      * them is a loosening like any other.
      */
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
-      await this.assertMayChangeAiAccess({
+      this.assertMayChangeAiAccess({
         data,
         props: createBy.props,
         current: [{ ...NEVER_CONFIGURED_AI_ACCESS, projectId }],
@@ -474,7 +478,7 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
       if (!updateBy.props.isMasterAdmin) {
-        await this.assertMayChangeAiAccess({
+        this.assertMayChangeAiAccess({
           data,
           props: updateBy.props,
           current: Object.values(previousAiAccessSettings),
@@ -776,9 +780,11 @@ export class Service extends ProjectReferencesService<Model> {
    * A cluster's AI mode does the job of a FullAuto AutoRemediationRule with
    * no rule row, so making AI do MORE on a cluster takes the same
    * permissions as authoring such a rule (KUBERNETES_AI_ACCESS_ADMIN_
-   * PERMISSIONS), and binding a credential additionally takes the right to
-   * read credentials — the rule the dashboard's picker applies, now enforced
-   * where it cannot be skipped. The column ACLs stay open to every cluster
+   * PERMISSIONS), and binding a credential additionally takes the read of
+   * runbook credentials - the one rule every use of a runbook credential
+   * asks, people and workflow steps alike (RunbookCredentialReaders), which
+   * the dashboard's picker applies too, enforced where it cannot be skipped.
+   * The column ACLs stay open to every cluster
    * editor on purpose: a column ACL cannot say "tightening is free", and
    * turning AI remediation off must never need more than editing the
    * cluster.
@@ -788,11 +794,11 @@ export class Service extends ProjectReferencesService<Model> {
    * in the caller's tenant, so the answer does not depend on whether the id
    * exists; with no project to check against at all it fails closed.
    */
-  private async assertMayChangeAiAccess(data: {
+  private assertMayChangeAiAccess(data: {
     data: JSONObject;
     props: DatabaseCommonInteractionProps;
     current: Array<AiAccessSettingsSnapshot>;
-  }): Promise<void> {
+  }): void {
     const baselines: Array<AiAccessSettingsSnapshot> =
       data.current.length > 0
         ? data.current
@@ -821,34 +827,13 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         loosening.bindsCredential &&
-        !(await this.mayBindCredential(data.props, baseline.projectId))
+        !RunbookCredentialReaders.mayRead(data.props, baseline.projectId)
       ) {
         throw new NotAuthorizedException(
-          `${getAiAccessCredentialRefusal()}${RunbookCredentialReaders.getWorkflowNote(data.props)}`,
+          getAiAccessCredentialRefusal(data.props),
         );
       }
     }
-  }
-
-  /*
-   * Whether `props` may bind a credential to a cluster in `projectId`: read
-   * credentials there. A workflow's step acts as a Project Admin, but is not
-   * lent that read: it may only when the person who last saved the
-   * workflow's steps may (RunbookCredentialReaders).
-   */
-  private async mayBindCredential(
-    props: DatabaseCommonInteractionProps,
-    projectId: ObjectID,
-  ): Promise<boolean> {
-    if (RunbookCredentialReaders.isWorkflowStep(props)) {
-      return await RunbookCredentialReaders.mayRead(props);
-    }
-
-    return CallerPermission.holdsAnyOf(
-      props,
-      KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-      { projectId: projectId },
-    );
   }
 
   /*

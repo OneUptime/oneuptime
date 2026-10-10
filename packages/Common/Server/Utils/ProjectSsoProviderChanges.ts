@@ -89,6 +89,13 @@ import SsoSignInWays, {
  * other teams, a new name - leaves the sign-ins the provider gave as they
  * are: they were checked when they were made, and the next sign-in uses
  * the new settings.
+ *
+ * AiCommandCredentialReach holds a project's lock around a check and its
+ * write too, by other rules: one long lock nothing keeps on a timer, and a
+ * write refused when Valkey cannot be reached or its lock is gone, where
+ * these locks are kept alive while a write runs, taken again when found
+ * gone, and skipped when Valkey cannot be reached. See its header for why
+ * the two do not share a helper.
  */
 
 // A provider row, as these hooks read it.

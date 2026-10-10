@@ -19,6 +19,8 @@ import TablePermission from "../../../Server/Types/Database/Permissions/TablePer
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -501,53 +503,32 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
   });
 
   /*
-   * A workflow's step acts as a Project Admin, who may read credentials -
-   * but that read is not lent to it: binding a credential is asked of the
-   * person who last saved the workflow's steps, as they are in the project
-   * now (RunbookCredentialReaders).
+   * ONE RULE FOR PEOPLE AND STEPS. Binding a credential asks
+   * RunbookCredentialReaders - RunbookCredential's own read list - whoever
+   * binds it. A workflow's step acts as a Project Admin, who may read
+   * credentials, but that read is never lent to it: the binding is refused,
+   * with a refusal that says a person has to make it, and nobody is looked
+   * up to answer it.
    */
   describe("binding a credential from a workflow's step", () => {
     const WORKFLOW_ID: ObjectID = new ObjectID(
       "12121212-1212-4121-8121-121212121212",
     );
-    const SAVER_ID: ObjectID = new ObjectID(
-      "13131313-1313-4131-8131-131313131313",
-    );
 
-    // What the person who last saved the workflow's steps holds in the project.
-    let saverRows: Array<UserPermission>;
-    let saverLookUp: jest.SpyInstance;
-
-    beforeEach(() => {
-      saverRows = [permissionRow(Permission.EditAutoRemediationRule)];
-
-      saverLookUp = jest
-        .spyOn(
-          AccessTokenService,
-          "getDatabaseCommonInteractionPropsByUserAndProject",
-        )
-        .mockImplementation(
-          async (data: {
-            userId: ObjectID;
-            projectId: ObjectID;
-          }): Promise<DatabaseCommonInteractionProps> => {
-            return { ...userProps(saverRows), userId: data.userId };
-          },
-        );
-    });
-
-    function step(
-      savedBy: ObjectID | null = SAVER_ID,
-    ): DatabaseCommonInteractionProps {
+    function step(): DatabaseCommonInteractionProps {
       return WorkflowPrincipal.getPropsWithoutPlan({
         projectId: PROJECT_ID,
         workflowId: WORKFLOW_ID,
         workflowName: "Point the cluster at the new credential",
-        savedByUserId: savedBy,
       });
     }
 
-    it("is refused when the person who last saved the workflow's steps may not read credentials, and says whose permission was asked about", async () => {
+    it("is refused, though the step acts as a Project Admin, and says a person has to bind it", async () => {
+      const lookUp: jest.SpyInstance = jest.spyOn(
+        AccessTokenService,
+        "getDatabaseCommonInteractionPropsByUserAndProject",
+      );
+
       for (const data of [
         { aiAccessCredentialId: CREDENTIAL_ID },
         { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
@@ -559,65 +540,40 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         await expect(refusal).rejects.toThrow(NotAuthorizedException);
         await expect(refusal).rejects.toThrow(getAiAccessCredentialRefusal());
         await expect(refusal).rejects.toThrow(
-          "A workflow's step has this permission only when the person who last saved the workflow's steps has it, and they do not.",
+          "Workflow steps never have this permission, so a person who has it has to make this change.",
         );
       }
 
-      const asked: { userId: ObjectID; projectId: ObjectID } = saverLookUp.mock
-        .calls[0]![0] as { userId: ObjectID; projectId: ObjectID };
-      expect(asked.userId.toString()).toBe(SAVER_ID.toString());
-      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(lookUp).not.toHaveBeenCalled();
     });
 
-    it("is refused when a block takes the read away from the person who last saved them", async () => {
-      saverRows = [
-        permissionRow(Permission.ProjectAdmin),
-        permissionRow(Permission.ReadRunbookCredential, true),
-      ];
+    it("is refused whatever the step's props carry, even Read Runbook Credential", async () => {
+      const props: DatabaseCommonInteractionProps = step();
+
+      props.userTenantAccessPermission![
+        PROJECT_ID.toString()
+      ]!.permissions.push(
+        permissionRow(Permission.ReadRunbookCredential),
+        permissionRow(Permission.ProjectOwner),
+      );
 
       await expect(
         hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, props),
         ),
       ).rejects.toThrow(getAiAccessCredentialRefusal());
     });
 
-    it.each([Permission.ReadRunbookCredential, Permission.ProjectAdmin])(
-      "is allowed when the person who last saved them holds %s",
-      async (permission: Permission) => {
-        saverRows = [permissionRow(permission)];
-
-        await expect(
-          hooks().onBeforeUpdate(
-            updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
-          ),
-        ).resolves.toBeDefined();
-      },
-    );
-
-    it("is refused, asking about nobody, when the workflow names nobody as its last saver", async () => {
-      saverRows = [permissionRow(Permission.ProjectOwner)];
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step(null)),
-        ),
-      ).rejects.toThrow(getAiAccessCredentialRefusal());
-      expect(saverLookUp).not.toHaveBeenCalled();
-    });
-
-    it("asks nothing of the saver for a write that binds no credential", async () => {
+    it("asks nothing of a write that binds no credential", async () => {
       for (const data of LOOSENING_WRITES_WITHOUT_CREDENTIAL.map(
         ([, write]: [string, Record<string, unknown>]) => {
           return write;
         },
       )) {
         await expect(
-          hooks().onBeforeUpdate(updateBy(data, step(null))),
+          hooks().onBeforeUpdate(updateBy(data, step())),
         ).resolves.toBeDefined();
       }
-
-      expect(saverLookUp).not.toHaveBeenCalled();
     });
 
     it("leaves a person's binding to their own permissions", async () => {
@@ -629,7 +585,53 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
           ),
         ),
       ).resolves.toBeDefined();
-      expect(saverLookUp).not.toHaveBeenCalled();
+    });
+
+    it("asks RunbookCredentialReaders for people and steps alike, and no second list", async () => {
+      const mayRead: jest.SpyInstance = jest.spyOn(
+        RunbookCredentialReaders,
+        "mayRead",
+      );
+      const holdsAnyOf: jest.SpyInstance = jest.spyOn(
+        CallerPermission,
+        "holdsAnyOf",
+      );
+
+      const person: DatabaseCommonInteractionProps = propsWith(
+        Permission.EditAutoRemediationRule,
+        Permission.ReadRunbookCredential,
+      );
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, person),
+        ),
+      ).resolves.toBeDefined();
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
+        ),
+      ).rejects.toThrow(getAiAccessCredentialRefusal());
+
+      const asked: Array<DatabaseCommonInteractionProps> =
+        mayRead.mock.calls.map(
+          (call: Array<unknown>): DatabaseCommonInteractionProps => {
+            return call[0] as DatabaseCommonInteractionProps;
+          },
+        );
+
+      expect(asked).toContain(person);
+      expect(
+        asked.some((props: DatabaseCommonInteractionProps): boolean => {
+          return WorkflowPrincipal.isWorkflow(props);
+        }),
+      ).toBe(true);
+
+      // CallerPermission answers only who may loosen AI access, never who may read credentials.
+      for (const call of holdsAnyOf.mock.calls) {
+        expect(call[1]).toEqual(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS);
+      }
     });
   });
 
@@ -1081,6 +1083,75 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
           ),
         ),
       ).rejects.toThrow(NotAuthorizedException);
+    });
+
+    /*
+     * The credential read is asked in the project of the cluster the write
+     * binds it on - the project the admin check two lines above asks about
+     * - not in whichever project the request named, or none.
+     */
+    describe("the credential read", () => {
+      function holding(
+        tenantId: ObjectID | null,
+        rows: Array<[ObjectID, Array<Permission>]>,
+      ): DatabaseCommonInteractionProps {
+        const access: Record<string, UserTenantAccessPermission> = {};
+
+        for (const [projectId, permissions] of rows) {
+          access[projectId.toString()] = {
+            _type: "UserTenantAccessPermission",
+            projectId: projectId,
+            permissions: permissions.map((permission: Permission) => {
+              return permissionRow(permission);
+            }),
+          };
+        }
+
+        return {
+          userId: ObjectID.generate(),
+          ...(tenantId ? { tenantId } : {}),
+          userTenantAccessPermission: access,
+        } as DatabaseCommonInteractionProps;
+      }
+
+      beforeEach(() => {
+        clusterLookup.mockResolvedValue([
+          cluster({ projectId: OTHER_PROJECT_ID }),
+        ]);
+      });
+
+      it("is the cluster's project's, when the request names no project", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(null, [
+                [
+                  OTHER_PROJECT_ID,
+                  [
+                    Permission.EditAutoRemediationRule,
+                    Permission.ReadRunbookCredential,
+                  ],
+                ],
+              ]),
+            ),
+          ),
+        ).resolves.toBeDefined();
+      });
+
+      it("is not one held in the project the request names, when the cluster is another's", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(PROJECT_ID, [
+                [OTHER_PROJECT_ID, [Permission.EditAutoRemediationRule]],
+                [PROJECT_ID, [Permission.ReadRunbookCredential]],
+              ]),
+            ),
+          ),
+        ).rejects.toThrow(getAiAccessCredentialRefusal());
+      });
     });
   });
 

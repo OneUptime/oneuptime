@@ -386,7 +386,7 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
     ).toBeUndefined();
   });
 
-  it("refuses an approver who may not read credentials, and nobody else", async () => {
+  it("refuses an approver who may not read credentials, and nobody else", () => {
     const sshPlan: AiRemediationCommandPlan = plan([
       command({
         stepType: RunbookStepType.SSH,
@@ -395,12 +395,12 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
       }),
     ]);
 
-    await expect(
+    expect(() => {
       AiRemediationCredentialUse.assertApproverMayUseCredentials({
         plan: sshPlan,
         props: editor([Permission.ProjectMember]),
-      }),
-    ).rejects.toThrow(NotAuthorizedException);
+      });
+    }).toThrow(NotAuthorizedException);
 
     for (const props of [
       editor([Permission.ReadRunbookCredential]),
@@ -411,20 +411,45 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
         tenantId: PROJECT_ID,
       } as DatabaseCommonInteractionProps,
     ]) {
-      await expect(
+      expect(() => {
         AiRemediationCredentialUse.assertApproverMayUseCredentials({
           plan: sshPlan,
           props: props,
-        }),
-      ).resolves.toBeUndefined();
+        });
+      }).not.toThrow();
     }
 
-    await expect(
+    expect(() => {
       AiRemediationCredentialUse.assertApproverMayUseCredentials({
         plan: plan([command({})]),
         props: editor([Permission.ProjectMember]),
+      });
+    }).not.toThrow();
+  });
+
+  it("refuses a workflow's step, though it acts as a Project Admin", () => {
+    const sshPlan: AiRemediationCommandPlan = plan([
+      command({
+        stepType: RunbookStepType.SSH,
+        credentialId: RUNNER_B,
+        credentialNameSnapshot: "web-hosts",
       }),
-    ).resolves.toBeUndefined();
+    ]);
+
+    const step: DatabaseCommonInteractionProps =
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: new ObjectID("ca000000-0000-4000-8000-000000000032"),
+      });
+
+    expect(AiRemediationCredentialUse.mayUseCredentials(step)).toBe(false);
+
+    expect(() => {
+      AiRemediationCredentialUse.assertApproverMayUseCredentials({
+        plan: sshPlan,
+        props: step,
+      });
+    }).toThrow(NotAuthorizedException);
   });
 });
 
@@ -966,42 +991,21 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
 });
 
 /*
- * A WORKFLOW'S STEP IS HELD TO THE PERSON WHO LAST SAVED THE WORKFLOW.
+ * A WORKFLOW'S STEP NEVER LETS A RULE RUN AI COMMANDS WITHOUT ASKING.
  *
  * A step acts as a Project Admin of its project (WorkflowPrincipal), and a
- * Project Admin may read runbook credentials - but that read is not lent:
- * saving a rule that runs OneUptime AI's commands without asking, or widening
- * one, is asked of the person who last saved the workflow
- * (RunbookCredentialReaders), with a refusal that says so.
+ * Project Admin may read runbook credentials - but that read is never lent
+ * to a step (RunbookCredentialReaders): saving a rule that runs OneUptime
+ * AI's commands without asking, or widening one, is refused with a refusal
+ * that says a person has to save it. Nobody is looked up to answer it.
  */
 describe("AutoRemediationRuleService - a workflow's step saving a rule that runs AI commands without asking", () => {
   const WORKFLOW_ID: ObjectID = new ObjectID(
     "ca000000-0000-4000-8000-000000000031",
   );
-  const SAVER_ID: ObjectID = new ObjectID(
-    "ca000000-0000-4000-8000-000000000041",
-  );
-
-  let saverPermissions: Array<Permission>;
-  let lookUp: jest.SpyInstance;
 
   beforeEach(() => {
     stubProjectDirectory({});
-    saverPermissions = [Permission.WorkflowAdmin];
-
-    lookUp = jest
-      .spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      )
-      .mockImplementation(
-        async (data: {
-          userId: ObjectID;
-          projectId: ObjectID;
-        }): Promise<DatabaseCommonInteractionProps> => {
-          return { ...editor(saverPermissions), userId: data.userId };
-        },
-      );
 
     // No Runner these rules name is a cluster's in-cluster agent.
     jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
@@ -1011,14 +1015,11 @@ describe("AutoRemediationRuleService - a workflow's step saving a rule that runs
     jest.restoreAllMocks();
   });
 
-  function step(
-    savedBy: ObjectID | null = SAVER_ID,
-  ): DatabaseCommonInteractionProps {
+  function step(): DatabaseCommonInteractionProps {
     return WorkflowPrincipal.getPropsWithoutPlan({
       projectId: PROJECT_ID,
       workflowId: WORKFLOW_ID,
       workflowName: "Restart web when it is slow",
-      savedByUserId: savedBy,
     });
   }
 
@@ -1039,7 +1040,7 @@ describe("AutoRemediationRuleService - a workflow's step saving a rule that runs
     }
   }
 
-  it("refuses it when the person who last saved the workflow may not read credentials, and says whose permission was asked about", async () => {
+  it("refuses it, and says a person who may read runbook credentials has to save it", async () => {
     const thrown: unknown = await create(unattended(), step());
 
     expect(thrown).toBeInstanceOf(NotAuthorizedException);
@@ -1047,37 +1048,29 @@ describe("AutoRemediationRuleService - a workflow's step saving a rule that runs
       "needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential.",
     );
     expect((thrown as Error).message).toContain(
-      "A workflow's step has this permission only when the person who last saved the workflow's steps has it, and they do not.",
+      "Workflow steps never have this permission, so a person who has it has to make this change.",
+    );
+    expect((thrown as Error).message).not.toContain("saved the workflow");
+  });
+
+  it("refuses it whoever saved the workflow, looking nobody up", async () => {
+    const lookUp: jest.SpyInstance = jest.spyOn(
+      AccessTokenService,
+      "getDatabaseCommonInteractionPropsByUserAndProject",
     );
 
-    const asked: { userId: ObjectID } = lookUp.mock.calls[0]![0] as {
-      userId: ObjectID;
-    };
-    expect(asked.userId.toString()).toBe(SAVER_ID.toString());
-  });
-
-  it("saves it when the person who last saved the workflow may read credentials", async () => {
-    saverPermissions = [Permission.ReadRunbookCredential];
-
-    expect(await create(unattended(), step())).toBeNull();
-  });
-
-  it("refuses it, looking nobody up, when the workflow names nobody as its last saver", async () => {
-    saverPermissions = [Permission.ProjectOwner];
-
-    expect(await create(unattended(), step(null))).toBeInstanceOf(
+    expect(await create(unattended(), step())).toBeInstanceOf(
       NotAuthorizedException,
     );
     expect(lookUp).not.toHaveBeenCalled();
   });
 
-  it("asks nothing of the saver for a rule that asks before fixing", async () => {
+  it("asks nothing for a rule that asks before fixing", async () => {
     expect(
       await create(
         unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
-        step(null),
+        step(),
       ),
     ).toBeNull();
-    expect(lookUp).not.toHaveBeenCalled();
   });
 });

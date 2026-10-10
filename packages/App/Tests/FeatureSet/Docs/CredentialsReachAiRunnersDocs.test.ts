@@ -11,10 +11,11 @@ import path from "path";
  * From either side: assigning the credential to such a Runner
  * (RunbookCredentialService) and turning the Runner's "Runs AI Remediation
  * Commands" on (RunnerService), saved one at a time in a project when
- * made by someone who may not read them (AiCommandCredentialReach). A
- * workflow's step is not lent a Project Admin's read of runbook
- * credentials: it is asked about the person who last saved the workflow's
- * steps (RunbookCredentialReaders, Workflow.lastSavedByUserId).
+ * made by someone who may not read them (AiCommandCredentialReach); a
+ * Runner save that leaves the switch as it is never waits. A workflow's
+ * step is never lent a Project Admin's read of runbook credentials, or of
+ * any other setting that holds credentials (RunbookCredentialReaders,
+ * RelationListPermission): a person who has it has to make the change.
  *
  * The credentials page says so where credentials are assigned, the Runners
  * page where the switch is, the AI SRE page and Users, Teams & Permissions
@@ -103,11 +104,14 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Without it, the save is refused and names the Runner: assign the credential to Runners that don't run AI remediation commands, or ask someone who has the permission to assign it.",
       "**Turning the switch on.** Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission.",
       "Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more",
-      "Assigning credentials and turning the switch on by someone without that permission are saved one at a time in a project, so the two can't pass their checks together;",
+      "Creating a credential with Runners and turning the switch on by someone without that permission are saved one at a time in a project, so the two can't pass their checks together;",
       "it is refused with *Try again in a moment*. Save it again.",
-      "A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow's steps has it.",
+      "Saving a Runner without changing its switch, such as editing its description, never waits.",
+      "A workflow's steps act as a Project Admin, but are never lent a Project Admin's read of runbook credentials: a person who has it has to make these changes.",
       STEPS_LINK,
     ]);
+
+    expect(text).not.toContain("last saved");
 
     // The words it quotes are the server's.
     expect(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE).toContain(
@@ -147,8 +151,10 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission, since a rule that names no Runners reaches every Runner that runs OneUptime AI's commands.",
       "Assigning an SSH credential to a Runner that runs OneUptime AI's commands - creating the credential with that Runner, or adding the Runner to it - takes it too, so an SSH credential reaches such a Runner only through someone who may read it, whichever is saved first, the credential or the switch",
       CREDENTIALS_LINK,
-      "A workflow's step is not lent this permission by acting as a Project Admin: it has it only when the person who last saved the workflow's steps has it.",
+      "A workflow's step is never lent this permission by acting as a Project Admin: a person who has it has to make these changes.",
     ]);
+
+    expect(paragraph).not.toContain("last saved");
   });
 
   test("Users, Teams & Permissions closes the paragraph on settings that hold credentials with the assignment and the workflow rule", () => {
@@ -167,12 +173,12 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
 
     expect(
       credentials.endsWith(
-        "turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is not lent that read: it has it only when the person who last saved the workflow's steps has it.",
+        "turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them and makes none of these changes, and a person who may read them has to.",
       ),
     ).toBe(true);
   });
 
-  test("What workflow steps can do says a step is not lent the read of runbook credentials, after what a Project Admin may do", () => {
+  test("What workflow steps can do says a step is never lent the read of settings that hold credentials, after what a Project Admin may do", () => {
     const text: string = section(
       read("workflows/configuration.md"),
       "## What workflow steps can do",
@@ -181,7 +187,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "- **Only what a Project Admin may do.**",
     );
     const credentials: number = text.indexOf(
-      "- **Not the read of runbook credentials.**",
+      "- **Not the read of settings that hold credentials.**",
     );
     const plan: number = text.indexOf("- **Only what your plan includes.**");
 
@@ -189,13 +195,46 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
     expect(credentials).toBeGreaterThan(admin);
     expect(plan).toBeGreaterThan(credentials);
 
-    expectSentences(text.slice(credentials, plan), [
-      "A Project Admin may read runbook credentials, but a step is not lent that.",
-      "letting OneUptime AI run its commands without asking, turning on **Runs AI Remediation Commands** for a Runner, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a runbook credential, such as in a runbook's steps",
-      "a step is asked about the person who last saved the workflow's steps instead, and is refused unless they may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin).",
-      "OneUptime records that person when someone creates the workflow and each time someone saves its steps; renaming the workflow, changing its labels or turning it on or off keeps who last saved its steps.",
-      "A save of its steps with an API key records nobody, so the workflow's steps can't make these changes until a person saves them.",
+    const bullet: string = text.slice(credentials, plan);
+
+    expectSentences(bullet, [
+      "A Project Admin may read runbook credentials, SMTP servers, call and SMS providers, SNMP credentials, video call connections and API keys, but a step is never lent that, whoever built or saved the workflow.",
+      "A step can't name one of these settings, such as the SMTP server a status page sends email with or the API key a permission is granted to,",
+      "letting OneUptime AI run its commands without asking, turning on **Runs AI Remediation Commands** for a Runner, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a runbook credential, such as in a runbook's steps.",
+      "The step is refused, and its run log says a person who may read them (**Read Runbook Credential**, the read permission of that kind of setting, or a Project Owner or Project Admin) has to make the change.",
+      "A step that keeps the setting a record names already, or clears it, is not refused.",
     ]);
+
+    expect(bullet).not.toContain("last saved");
+  });
+
+  test("no English page says a workflow's step is answered by whoever last saved it", () => {
+    const pages: Array<string> = [];
+
+    const walk: (directory: string) => void = (directory: string): void => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const full: string = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          walk(full);
+        } else if (entry.name.endsWith(".md")) {
+          const flat: string = fs
+            .readFileSync(full, "utf8")
+            .replace(/\s+/g, " ");
+
+          if (
+            flat.includes("last saved the workflow") ||
+            flat.includes("records that person")
+          ) {
+            pages.push(path.relative(CONTENT_DIR, full));
+          }
+        }
+      }
+    };
+
+    walk(CONTENT_DIR);
+
+    expect(pages).toEqual([]);
   });
 
   test("the upgrade notes say what changes, after the chat buttons and before the endpoint changes", () => {
@@ -214,17 +253,38 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
     expect(here).toBeGreaterThan(buttons);
     expect(endpoints).toBeGreaterThan(here);
 
-    expectSentences(page.slice(here, endpoints), [
+    const note: string = page.slice(here, endpoints);
+
+    expectSentences(note, [
       "Creating an SSH runbook credential with a Runner that has **Runs AI Remediation Commands** on, or adding such a Runner to one, now needs permission to read runbook credentials (`ReadRunbookCredential`, or `ProjectOwner` or `ProjectAdmin`),",
       "without it the save is refused with a `422` that names the Runner.",
       "Credentials keep the Runners they were assigned before the upgrade,",
-      "the switch on by someone without that permission are saved one at a time in a project: such a save that waits too long for another, or that cannot reach Valkey, is refused with a `400` asking to try again in a moment.",
-      "where a change takes that read, a step is asked about the person who last saved the workflow's steps, and is refused unless they may read runbook credentials.",
-      "A workflow whose steps were last saved with an API key, or not since the upgrade, names nobody until a person saves its steps.",
-      "OneUptime records that person when a workflow is created and each time its steps are saved - not when it is renamed or turned on or off -",
-      "in a new read-only `lastSavedByUserId` column on workflows added on start.",
+      "Creating such a credential and turning the switch on by someone without that permission are saved one at a time in a project: such a save that waits too long for another, or that cannot reach Valkey, is refused with a `400` asking to try again in a moment.",
+      "Saving a Runner without changing its switch - editing its description, say - never waits and needs no Valkey, whoever saves it.",
+      "A workflow's steps act as a Project Admin but are never lent the read of runbook credentials, or of any other setting that holds credentials:",
+      "that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential, is refused, and its run log says a person who may read them has to make the change.",
+      // For an install that ran 14.0.26 to 14.0.31.
+      "Upgrading from 14.0.26 to 14.0.31: those releases asked instead about the person who last saved a workflow's steps, recorded in a read-only `lastSavedByUserId` column on workflows.",
+      "That column is dropped on start, the API and Terraform no longer return it, and a step is refused whoever saved the workflow.",
       CREDENTIALS_LINK,
       STEPS_LINK,
+    ]);
+
+    expect(note.replace(/\s+/g, " ")).not.toContain(
+      "OneUptime records that person",
+    );
+  });
+
+  test("the upgrade notes on workflow steps say a step names no setting that holds credentials", () => {
+    const text: string = section(
+      read("installation/upgrading.md"),
+      "### Workflow steps act as a Project Admin",
+    );
+
+    expectSentences(text, [
+      "A step that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential is refused - one that sets a status page's SMTP server, say, or grants an API key a permission.",
+      "A step is never lent the read of settings that hold credentials: a person who may read them has to make that change.",
+      "A step that keeps the one a record names already, or clears it, is not refused.",
     ]);
   });
 });
