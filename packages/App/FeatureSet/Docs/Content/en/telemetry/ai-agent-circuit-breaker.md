@@ -117,7 +117,7 @@ Design notes:
 - **Make it idempotent.** The breaker may be tripped more than once (warning then breach, or budget plus traces monitor firing together). Tripping an already-tripped breaker must be harmless.
 - **Acknowledge quickly** and do slow cleanup in the background; the workflow's API component treats any 2xx as success.
 - **Require a secret.** Anyone who can call this endpoint can stop your agents. Check a bearer token (stored as a secret OneUptime [global variable](/docs/workflows/variables) on the sending side).
-- **Human reset.** A tripped breaker should stay tripped until someone looks at the run — auto-resetting defeats the purpose. Investigate with **AI / LLM → LLM Calls**, filtering by the conversation/session id to see exactly what the agent was doing.
+- **Human reset.** A tripped breaker should stay tripped until someone looks at the run — auto-resetting defeats the purpose. Investigate with **AI / LLM → Conversations**: open the agent's conversation to read or replay exactly what it did, or filter **Calls** by the conversation/session id.
 
 ## Step 3 — The workflow
 
