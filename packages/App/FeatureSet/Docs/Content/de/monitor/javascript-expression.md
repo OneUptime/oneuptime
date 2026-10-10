@@ -82,7 +82,7 @@ JavaScript-Ausdrücke werden für Monitore der Typen Website, API, Eingehende An
 
 ### Monitore für eingehende E-Mails
 
-Der Filter wird angeboten, aber keine E-Mail-Felder sind an ihn gebunden: Ein Ausdruck kann weder den Betreff noch den Absender, den Text oder den Empfänger lesen. Verwenden Sie stattdessen die E-Mail-Filtertypen — siehe [Eingehende-E-Mail-Überwachung](/docs/monitor/incoming-email-monitor#verfügbare-kriterienfelder).
+Der Filter wird angeboten, aber keine E-Mail-Felder sind an ihn gebunden: Ein Ausdruck kann weder den Betreff noch den Absender, den Text oder den Empfänger lesen. Verwenden Sie stattdessen die E-Mail-Filtertypen — siehe [Eingehende-E-Mail-Überwachung](/docs/monitor/incoming-email-monitor#verfügbare-filtertypen).
 
 ## Beispiele
 
