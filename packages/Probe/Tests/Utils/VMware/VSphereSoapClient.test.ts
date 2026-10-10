@@ -48,8 +48,9 @@ function scripted(
       request: VSphereHttpRequest,
     ): Promise<VSphereHttpResponse> => {
       requests.push(request);
-      const next: ((request: VSphereHttpRequest) => VSphereHttpResponse) | undefined =
-        queue.shift();
+      const next:
+        | ((request: VSphereHttpRequest) => VSphereHttpResponse)
+        | undefined = queue.shift();
 
       if (!next) {
         throw new Error(`unexpected ${soapMethodOf(request.body)}`);
@@ -68,7 +69,11 @@ function ok(body: string, setCookie?: string): VSphereHttpResponse {
   };
 }
 
-function fault(faultType: string, faultString: string, detailXml?: string): VSphereHttpResponse {
+function fault(
+  faultType: string,
+  faultString: string,
+  detailXml?: string,
+): VSphereHttpResponse {
   return {
     status: 500,
     headers: {},
@@ -177,7 +182,9 @@ describe("VSphereSoapClient", () => {
       },
       () => {
         return ok(
-          soapEnvelope('<LoginResponse xmlns="urn:vim25"><returnval/></LoginResponse>'),
+          soapEnvelope(
+            '<LoginResponse xmlns="urn:vim25"><returnval/></LoginResponse>',
+          ),
           'vmware_soap_session="abc-123"; Path=/; HttpOnly',
         );
       },
@@ -244,7 +251,9 @@ describe("VSphereSoapClient", () => {
       },
       () => {
         return ok(
-          soapEnvelope('<LoginResponse xmlns="urn:vim25"><returnval/></LoginResponse>'),
+          soapEnvelope(
+            '<LoginResponse xmlns="urn:vim25"><returnval/></LoginResponse>',
+          ),
           'vmware_soap_session="session-2"; Path=/',
         );
       },
@@ -359,7 +368,7 @@ describe("VSphereSoapClient", () => {
 
     const body: string = requests[3]!.body || "";
     expect(body).toContain(
-      "<specSet><propSet><type>VirtualMachine</type><all>false</all><pathSet>name</pathSet><pathSet>runtime.powerState</pathSet></propSet><objectSet><obj type=\"ContainerView\">v</obj><skip>true</skip><selectSet xsi:type=\"TraversalSpec\"><name>traverseEntities</name><type>ContainerView</type><path>view</path><skip>false</skip></selectSet></objectSet></specSet><options><maxObjects>500</maxObjects></options>",
+      '<specSet><propSet><type>VirtualMachine</type><all>false</all><pathSet>name</pathSet><pathSet>runtime.powerState</pathSet></propSet><objectSet><obj type="ContainerView">v</obj><skip>true</skip><selectSet xsi:type="TraversalSpec"><name>traverseEntities</name><type>ContainerView</type><path>view</path><skip>false</skip></selectSet></objectSet></specSet><options><maxObjects>500</maxObjects></options>',
     );
   });
 
@@ -386,7 +395,12 @@ describe("VSphereSoapClient", () => {
   });
 
   test("names performance counters group.name.rollup, and caches them", async () => {
-    const counter: (key: number, group: string, name: string, rollup: string) => string = (
+    const counter: (
+      key: number,
+      group: string,
+      name: string,
+      rollup: string,
+    ) => string = (
       key: number,
       group: string,
       name: string,
@@ -546,7 +560,9 @@ describe("VSphereSoapClient", () => {
         'vmware_soap_session="xyz"; Path=/; HttpOnly',
       ]),
     ).toBe('"xyz"');
-    expect(readSessionCookie("vmware_soap_session=plain; Path=/")).toBe("plain");
+    expect(readSessionCookie("vmware_soap_session=plain; Path=/")).toBe(
+      "plain",
+    );
     expect(readSessionCookie(undefined)).toBeNull();
     expect(readSessionCookie(["broken"])).toBeNull();
   });

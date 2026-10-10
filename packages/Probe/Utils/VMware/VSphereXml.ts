@@ -59,13 +59,15 @@ function localName(qualifiedName: string): string {
 
 function isNameCharacter(code: number): boolean {
   return !(
-    code === 32 ||
-    code === 9 ||
-    code === 10 ||
-    code === 13 ||
-    code === 47 || // "/"
-    code === 62 || // ">"
-    code === 61 // "="
+    (
+      code === 32 ||
+      code === 9 ||
+      code === 10 ||
+      code === 13 ||
+      code === 47 || // "/"
+      code === 62 || // ">"
+      code === 61
+    ) // "="
   );
 }
 
@@ -157,7 +159,10 @@ function parseAttributes(source: string): Record<string, string> {
   let index: number = 0;
 
   while (index < source.length) {
-    while (index < source.length && !isNameCharacter(source.charCodeAt(index))) {
+    while (
+      index < source.length &&
+      !isNameCharacter(source.charCodeAt(index))
+    ) {
       index++;
     }
 

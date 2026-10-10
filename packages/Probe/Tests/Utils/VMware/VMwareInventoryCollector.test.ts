@@ -60,7 +60,9 @@ async function collectFrom(fixture: string): Promise<{
   return { snapshot: snapshot, replay: replay };
 }
 
-function byName<T extends { name: string }>(items: Iterable<T>): Map<string, T> {
+function byName<T extends { name: string }>(
+  items: Iterable<T>,
+): Map<string, T> {
   const map: Map<string, T> = new Map();
 
   for (const item of items) {
@@ -72,7 +74,9 @@ function byName<T extends { name: string }>(items: Iterable<T>): Map<string, T> 
 
 describe("VMwareInventoryCollector against the recorded vCenter simulator", () => {
   test("reads every datacenter, cluster, host, pool, VM and datastore, and asks nothing more", async () => {
-    const { snapshot, replay } = await collectFrom("vcsim-vcenter-collect.json");
+    const { snapshot, replay } = await collectFrom(
+      "vcsim-vcenter-collect.json",
+    );
 
     expect(replay.remaining()).toBe(0);
     expect(snapshot.collectedAt).toEqual(COLLECTED_AT);
@@ -125,7 +129,10 @@ describe("VMwareInventoryCollector against the recorded vCenter simulator", () =
     const pools: Map<string, VMwareResourcePool> = new Map();
 
     for (const pool of snapshot.datacenters[0]!.resourcePools.values()) {
-      pools.set(`${pool.isVirtualApp ? "app" : "pool"}:${pool.inventoryPath}`, pool);
+      pools.set(
+        `${pool.isVirtualApp ? "app" : "pool"}:${pool.inventoryPath}`,
+        pool,
+      );
     }
 
     expect(Array.from(pools.keys()).sort()).toEqual([
@@ -161,7 +168,9 @@ describe("VMwareInventoryCollector against the recorded vCenter simulator", () =
   });
 
   test("asks real-time samples of hosts and of powered-on VMs, in receiver-sized batches", async () => {
-    const { snapshot, replay } = await collectFrom("vcsim-vcenter-collect.json");
+    const { snapshot, replay } = await collectFrom(
+      "vcsim-vcenter-collect.json",
+    );
     const datacenter: VMwareDatacenter = snapshot.datacenters[0]!;
 
     expect(datacenter.hostPerf.size).toBe(5);
@@ -410,8 +419,9 @@ class FakeClient {
 
     this.queries.push(entities);
 
-    const failure: ((entities: Array<string>) => VSphereFault | null) | undefined =
-      this.perfFailures.shift();
+    const failure:
+      | ((entities: Array<string>) => VSphereFault | null)
+      | undefined = this.perfFailures.shift();
     const fault: VSphereFault | null = failure ? failure(entities) : null;
 
     if (fault) {
@@ -444,7 +454,11 @@ function object(
     map.set(path, parseXml(xml));
   }
 
-  return { ref: { type: type, value: value }, properties: map, missing: new Map() };
+  return {
+    ref: { type: type, value: value },
+    properties: map,
+    missing: new Map(),
+  };
 }
 
 function inventoryWithVms(client: FakeClient, vmCount: number): void {
@@ -458,7 +472,8 @@ function inventoryWithVms(client: FakeClient, vmCount: number): void {
     object("ClusterComputeResource", "c-1", {
       name: "<val>Cluster</val>",
       host: '<val><ManagedObjectReference type="HostSystem">h-1</ManagedObjectReference></val>',
-      summary: "<val><numHosts>1</numHosts><numEffectiveHosts>1</numEffectiveHosts></val>",
+      summary:
+        "<val><numHosts>1</numHosts><numEffectiveHosts>1</numEffectiveHosts></val>",
     }),
   ]);
   client.objects.set("HostSystem", [
@@ -497,10 +512,11 @@ describe("VMwareInventoryCollector recovery", () => {
       },
     ];
 
-    const snapshot: VMwareInventorySnapshot = await new VMwareInventoryCollector(
-      client as unknown as VSphereSoapClient,
-      { collectVsan: false },
-    ).collect();
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
 
     expect(client.queries).toEqual([
       ["vm-0", "vm-1", "vm-2"],
@@ -517,23 +533,30 @@ describe("VMwareInventoryCollector recovery", () => {
     inventoryWithVms(client, 3);
     client.perfFailures = [
       (): VSphereFault => {
-        return new VSphereFault({ faultType: "SystemError", faultString: "boom" });
+        return new VSphereFault({
+          faultType: "SystemError",
+          faultString: "boom",
+        });
       },
       (): null => {
         return null;
       },
       (): VSphereFault => {
-        return new VSphereFault({ faultType: "SystemError", faultString: "vm-1 broke" });
+        return new VSphereFault({
+          faultType: "SystemError",
+          faultString: "vm-1 broke",
+        });
       },
       (): null => {
         return null;
       },
     ];
 
-    const snapshot: VMwareInventorySnapshot = await new VMwareInventoryCollector(
-      client as unknown as VSphereSoapClient,
-      { collectVsan: false },
-    ).collect();
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
 
     expect(client.queries).toEqual([
       ["vm-0", "vm-1", "vm-2"],
@@ -570,10 +593,11 @@ describe("VMwareInventoryCollector recovery", () => {
       return counter.name !== "net.usage.average";
     });
 
-    const snapshot: VMwareInventorySnapshot = await new VMwareInventoryCollector(
-      client as unknown as VSphereSoapClient,
-      { collectVsan: false },
-    ).collect();
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
 
     expect(client.queries).toHaveLength(1);
     expect(snapshot.warnings).toContain(
@@ -621,17 +645,18 @@ describe("VMwareInventoryCollector recovery", () => {
       "<returnval><entityRefId>cluster-domclient:52aa-cluster</entityRefId><sampleInfo>2026-10-10 12:00:00</sampleInfo><value><metricId><label>iopsRead</label><metricsCollectInterval>300</metricsCollectInterval></metricId><values>42</values></value></returnval>",
     );
 
-    const snapshot: VMwareInventorySnapshot = await new VMwareInventoryCollector(
-      client as unknown as VSphereSoapClient,
-      { collectVsan: true },
-    ).collect();
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: true },
+      ).collect();
 
     const datacenter: VMwareDatacenter = snapshot.datacenters[0]!;
     expect(datacenter.computes.get("c-1")!.vsanEnabled).toBe(true);
     expect(datacenter.computes.get("c-1")!.vsanUuid).toBe("52aa-cluster");
-    expect(datacenter.vsan.clustersByUuid.get("52aa-cluster")![0]!.values).toEqual([
-      42,
-    ]);
+    expect(
+      datacenter.vsan.clustersByUuid.get("52aa-cluster")![0]!.values,
+    ).toEqual([42]);
 
     // vCenter without the vSAN service: no metrics, and no warning either.
     const noVsan: FakeClient = new FakeClient();

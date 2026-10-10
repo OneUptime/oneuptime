@@ -169,10 +169,7 @@ export function aboutFromServiceContent(
  * its text. Null when vSphere did not return the property or it is not a
  * number.
  */
-export function readNumber(
-  object: VSphereObject,
-  path: string,
-): number | null {
+export function readNumber(object: VSphereObject, path: string): number | null {
   const element: XmlElement | undefined = object.properties.get(path);
 
   if (!element) {
@@ -197,10 +194,7 @@ export function parseNumber(text: string | null | undefined): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-export function readString(
-  object: VSphereObject,
-  path: string,
-): string | null {
+export function readString(object: VSphereObject, path: string): string | null {
   const element: XmlElement | undefined = object.properties.get(path);
   return element ? element.text : null;
 }

@@ -60,7 +60,11 @@ export default class VSphereSessionCache {
     return session.cookie;
   }
 
-  public static set(key: string, cookie: string, now: number = Date.now()): void {
+  public static set(
+    key: string,
+    cookie: string,
+    now: number = Date.now(),
+  ): void {
     this.sessions.delete(key);
     this.sessions.set(key, { cookie: cookie, lastUsedAt: now });
 

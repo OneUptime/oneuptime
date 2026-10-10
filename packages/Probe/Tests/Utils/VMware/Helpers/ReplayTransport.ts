@@ -24,7 +24,11 @@ export interface RecordedExchange {
   setCookie?: string | Array<string> | undefined;
 }
 
-export const FIXTURES_DIRECTORY: string = path.join(__dirname, "..", "Fixtures");
+export const FIXTURES_DIRECTORY: string = path.join(
+  __dirname,
+  "..",
+  "Fixtures",
+);
 
 export function loadExchanges(name: string): Array<RecordedExchange> {
   return JSON.parse(

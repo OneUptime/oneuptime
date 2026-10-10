@@ -52,8 +52,7 @@ export function createVSphereTransport(data: {
 
         const headers: Record<string, string | number> = {
           ...request.headers,
-          Host:
-            data.port === 443 ? data.host : `${data.host}:${data.port}`,
+          Host: data.port === 443 ? data.host : `${data.host}:${data.port}`,
         };
 
         if (body) {

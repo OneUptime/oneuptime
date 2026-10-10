@@ -62,7 +62,12 @@ export function toUnixNano(date: Date): string {
   return (BigInt(date.getTime()) * BigInt(1_000_000)).toString();
 }
 
-const ENTITY_STATUSES: ReadonlyArray<string> = ["red", "yellow", "green", "gray"];
+const ENTITY_STATUSES: ReadonlyArray<string> = [
+  "red",
+  "yellow",
+  "green",
+  "gray",
+];
 
 function entityStatusOf(status: string | null): string {
   return status && ENTITY_STATUSES.includes(status) ? status : "gray";
@@ -259,10 +264,7 @@ export default class VMwareOtlpBuilder {
   private readonly warnings: Array<string> = [];
   private datapointCount: number = 0;
 
-  private constructor(
-    snapshot: VMwareInventorySnapshot,
-    scopeVersion: string,
-  ) {
+  private constructor(snapshot: VMwareInventorySnapshot, scopeVersion: string) {
     this.snapshot = snapshot;
     this.scope = { name: VMWARE_PROBE_SCOPE_NAME, version: scopeVersion };
     this.startTimeUnixNano = toUnixNano(snapshot.collectedAt);
@@ -448,7 +450,9 @@ export default class VMwareOtlpBuilder {
     const vmGroups: Map<string, VmGroupInfo> = new Map();
 
     for (const vm of datacenter.vms.values()) {
-      const computeRef: string | undefined = vmRefToComputeRef.get(vm.ref.value);
+      const computeRef: string | undefined = vmRefToComputeRef.get(
+        vm.ref.value,
+      );
 
       if (!computeRef) {
         this.warn(
@@ -468,7 +472,11 @@ export default class VMwareOtlpBuilder {
         group.templates++;
       } else if (vm.powerState === "poweredOff") {
         group.poweredOff++;
-        increment(stats.vmStats, "poweredOff", entityStatusOf(vm.overallStatus));
+        increment(
+          stats.vmStats,
+          "poweredOff",
+          entityStatusOf(vm.overallStatus),
+        );
       } else if (vm.powerState === "poweredOn") {
         group.poweredOn++;
         increment(stats.vmStats, "poweredOn", entityStatusOf(vm.overallStatus));
@@ -497,7 +505,12 @@ export default class VMwareOtlpBuilder {
         (stats.clusterStatusCounts.get(status) || 0) + 1,
       );
 
-      this.buildCluster(datacenter, compute, vmGroups.get(compute.ref.value), now);
+      this.buildCluster(
+        datacenter,
+        compute,
+        vmGroups.get(compute.ref.value),
+        now,
+      );
     }
 
     this.buildDatacenter(datacenter, stats, now);
@@ -549,7 +562,10 @@ export default class VMwareOtlpBuilder {
     }
 
     attributes.push(["vcenter.resource_pool.name", pool.name]);
-    attributes.push(["vcenter.resource_pool.inventory_path", pool.inventoryPath]);
+    attributes.push([
+      "vcenter.resource_pool.inventory_path",
+      pool.inventoryPath,
+    ]);
 
     const builder: ResourceMetricsBuilder = this.newBuilder();
     const quickStats: VMwareResourcePool["quickStats"] = pool.quickStats;
@@ -603,7 +619,11 @@ export default class VMwareOtlpBuilder {
     }
 
     builder.record("vcenter.resource_pool.cpu.shares", pool.cpuShares, now);
-    builder.record("vcenter.resource_pool.memory.shares", pool.memoryShares, now);
+    builder.record(
+      "vcenter.resource_pool.memory.shares",
+      pool.memoryShares,
+      now,
+    );
 
     this.emit(builder, attributes);
   }
@@ -735,7 +755,10 @@ export default class VMwareOtlpBuilder {
 
       if (pool.isVirtualApp) {
         attributes.push(["vcenter.virtual_app.name", pool.name]);
-        attributes.push(["vcenter.virtual_app.inventory_path", pool.inventoryPath]);
+        attributes.push([
+          "vcenter.virtual_app.inventory_path",
+          pool.inventoryPath,
+        ]);
       } else {
         attributes.push(["vcenter.resource_pool.name", pool.name]);
         attributes.push([
@@ -749,7 +772,9 @@ export default class VMwareOtlpBuilder {
     const used: number = vm.storageCommitted ?? 0;
     const free: number = vm.storageUncommitted ?? 0;
 
-    builder.record("vcenter.vm.disk.usage", used, now, [["disk_state", "used"]]);
+    builder.record("vcenter.vm.disk.usage", used, now, [
+      ["disk_state", "used"],
+    ]);
     builder.record("vcenter.vm.disk.usage", free, now, [
       ["disk_state", "available"],
     ]);
@@ -1009,7 +1034,9 @@ export default class VMwareOtlpBuilder {
 
     switch (data.name) {
       case "disk.maxTotalLatency.latest":
-        b.record(`${prefix}.disk.latency.max`, value, time, [["object", object]]);
+        b.record(`${prefix}.disk.latency.max`, value, time, [
+          ["object", object],
+        ]);
         return;
       case "net.usage.average":
         b.record(`${prefix}.network.usage`, value, time, [["object", object]]);
@@ -1160,7 +1187,9 @@ export default class VMwareOtlpBuilder {
 
         switch (metric.label) {
           case "iopsRead":
-            builder.record(`${prefix}.operations`, value, time, [["type", "read"]]);
+            builder.record(`${prefix}.operations`, value, time, [
+              ["type", "read"],
+            ]);
             return;
           case "iopsWrite":
             builder.record(`${prefix}.operations`, value, time, [
@@ -1179,10 +1208,7 @@ export default class VMwareOtlpBuilder {
             return;
           case "latencyAvgRead":
           case "latencyRead":
-            if (
-              (kind === "vm") ===
-              (metric.label === "latencyRead")
-            ) {
+            if ((kind === "vm") === (metric.label === "latencyRead")) {
               builder.record(`${prefix}.latency.avg`, value, time, [
                 ["type", "read"],
               ]);
@@ -1190,10 +1216,7 @@ export default class VMwareOtlpBuilder {
             return;
           case "latencyAvgWrite":
           case "latencyWrite":
-            if (
-              (kind === "vm") ===
-              (metric.label === "latencyWrite")
-            ) {
+            if ((kind === "vm") === (metric.label === "latencyWrite")) {
               builder.record(`${prefix}.latency.avg`, value, time, [
                 ["type", "write"],
               ]);
