@@ -100,6 +100,23 @@ describe("the list statement", () => {
     expect(sql).toContain("GROUP BY conversationKey");
   });
 
+  /*
+   * Ingest stores startTime and endTime to the whole second: a
+   * conversation's start, end, first trace and title read the exact
+   * columns. The window still filters on startTime (the sort key).
+   */
+  test("start, end, first trace and title come from the exact call times", () => {
+    expect(sql).toContain("argMin(traceId, startTimeUnixNano) AS firstTraceId");
+    expect(sql).toContain(
+      "intDiv(min(startTimeUnixNano), 1000000) AS startedAtMs",
+    );
+    expect(sql).toContain("intDiv(max(endTimeUnixNano), 1000000) AS endedAtMs");
+    expect(sql).toContain(
+      "argMinIf(llmUserMessagePreview, startTimeUnixNano, llmUserMessagePreview != '') AS title",
+    );
+    expect(sql).not.toContain("toUnixTimestamp64Milli(");
+  });
+
   test("conversation filters are HAVING clauses, after the grouping", () => {
     const having: string = sql.slice(sql.indexOf(" HAVING "));
 
@@ -226,7 +243,7 @@ describe("the calls statement (one conversation)", () => {
 
     expect(statement.query).toContain("AND llmConversationId = ");
     expect(paramValues(statement)).toContain("conv-1");
-    expect(statement.query).toContain("ORDER BY startTime ASC");
+    expect(statement.query).toContain("ORDER BY startTimeUnixNano ASC");
     expect(paramValues(statement)).toContain(LLM_CONVERSATION_MAX_CALLS + 1);
     expect(statement.query).toContain("attributes, events");
   });
@@ -255,6 +272,16 @@ describe("the calls statement (one conversation)", () => {
     );
 
     expect(statement.query).toContain("AND primaryEntityId NOT IN (");
+  });
+
+  test("a call's start and end are read to the millisecond, not the second", () => {
+    const query: string =
+      LlmConversationService.buildCallsStatement(detailQuery()).query;
+
+    expect(query).toContain("intDiv(startTimeUnixNano, 1000000) AS startMs");
+    expect(query).toContain("intDiv(endTimeUnixNano, 1000000) AS endMs");
+    expect(query).not.toContain("toUnixTimestamp64Milli(");
+    expect(query).not.toContain("ORDER BY startTime ASC");
   });
 });
 
