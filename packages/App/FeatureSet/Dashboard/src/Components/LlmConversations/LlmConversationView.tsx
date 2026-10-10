@@ -489,7 +489,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
             <div
-              className="hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 sm:flex"
+              className="max-sm:hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 sm:flex"
               aria-hidden="true"
             >
               <Icon

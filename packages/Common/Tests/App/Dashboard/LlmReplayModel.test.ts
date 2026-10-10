@@ -269,7 +269,9 @@ describe("getLlmPendingAnswer", () => {
         startMs: T0 + 100,
         atMs: T0 + 3100,
         model: "claude-sonnet-4",
-        fromHistory: data.fromHistory,
+        ...(data.fromHistory === undefined
+          ? {}
+          : { fromHistory: data.fromHistory }),
       }),
     ];
   }

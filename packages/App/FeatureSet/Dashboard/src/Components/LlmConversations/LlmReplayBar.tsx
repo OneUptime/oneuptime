@@ -173,7 +173,7 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
           dataTestId="llm-replay-clock"
         />
 
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="max-sm:hidden items-center gap-2 sm:flex">
           <ReplayToolbarDivider />
 
           <ReplayToolButton

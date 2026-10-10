@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -22,8 +23,7 @@ import { MemoryRouter } from "react-router-dom";
  * be seen in the props the step view passes.
  */
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
-  const mockReact: { createElement: typeof React.createElement } =
-    jest.requireActual("react");
+  const mockReact: typeof React = jest.requireActual("react") as typeof React;
 
   return {
     __esModule: true,
@@ -520,7 +520,7 @@ describe("failures, unrecorded answers, activity and instructions", () => {
 
 describe("the time a message arrived", () => {
   test("is a button that replays the conversation from that message", () => {
-    const onReplayFromHere: jest.Mock<() => void> = jest.fn<() => void>();
+    const onReplayFromHere: Mock<() => void> = jest.fn<() => void>();
 
     renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), {
       onReplayFromHere: onReplayFromHere,

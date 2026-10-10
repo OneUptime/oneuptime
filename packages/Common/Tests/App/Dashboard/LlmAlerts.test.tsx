@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -615,8 +616,8 @@ describe("the AI / LLM monitor's form", () => {
       return new Promise(() => {}) as never;
     });
 
-    const onChanged: jest.Mock<(value: MonitorStepLlmMonitor) => void> =
-      jest.fn();
+    const onChanged: Mock<(value: MonitorStepLlmMonitor) => void> =
+      jest.fn<(value: MonitorStepLlmMonitor) => void>();
 
     render(
       <MemoryRouter>

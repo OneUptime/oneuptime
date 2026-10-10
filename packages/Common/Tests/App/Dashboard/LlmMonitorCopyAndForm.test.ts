@@ -136,10 +136,14 @@ describe("every template has its words", () => {
 
 describe("the words match what the template does", () => {
   test.each(
-    LlmMonitorTemplates.getAll().map((template: LlmMonitorTemplate) => {
-      return [template.id, template];
-    }),
-  )("%s", (_id: unknown, template: LlmMonitorTemplate) => {
+    LlmMonitorTemplates.getAll().map(
+      (
+        template: LlmMonitorTemplate,
+      ): [LlmMonitorTemplateId, LlmMonitorTemplate] => {
+        return [template.id, template];
+      },
+    ),
+  )("%s", (_id: LlmMonitorTemplateId, template: LlmMonitorTemplate) => {
     const copy: LlmMonitorTemplateCopy = LLM_MONITOR_TEMPLATE_COPY[template.id];
     const window: string = minutes(template.step.lastXSecondsOfCalls);
     const share: LlmMonitorTemplateFilter | undefined = filterOf(

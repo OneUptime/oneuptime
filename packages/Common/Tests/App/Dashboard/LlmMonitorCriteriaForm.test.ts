@@ -12,6 +12,7 @@ import {
 import LlmMonitorTemplates, {
   LlmMonitorTemplate,
   LlmMonitorTemplateFilter,
+  LlmMonitorTemplateId,
 } from "../../../Types/Monitor/LlmMonitor/LlmMonitorTemplates";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -181,20 +182,27 @@ describe("every criteria the product ships draws in the form", () => {
   });
 
   test.each(
-    LlmMonitorTemplates.getAll().map((template: LlmMonitorTemplate) => {
-      return [template.id, template];
-    }),
-  )("the ready-made alert %s", (_id: unknown, template: LlmMonitorTemplate) => {
-    for (const filter of [
-      ...template.unhealthyFilters,
-      ...template.healthyFilters,
-    ]) {
-      expect({
-        filter,
-        renderable: isRenderable(filter as LlmMonitorTemplateFilter),
-      }).toEqual({ filter, renderable: true });
-    }
-  });
+    LlmMonitorTemplates.getAll().map(
+      (
+        template: LlmMonitorTemplate,
+      ): [LlmMonitorTemplateId, LlmMonitorTemplate] => {
+        return [template.id, template];
+      },
+    ),
+  )(
+    "the ready-made alert %s",
+    (_id: LlmMonitorTemplateId, template: LlmMonitorTemplate) => {
+      for (const filter of [
+        ...template.unhealthyFilters,
+        ...template.healthyFilters,
+      ]) {
+        expect({
+          filter,
+          renderable: isRenderable(filter as LlmMonitorTemplateFilter),
+        }).toEqual({ filter, renderable: true });
+      }
+    },
+  );
 });
 
 /*

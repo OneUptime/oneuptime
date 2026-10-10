@@ -24,8 +24,7 @@ import { MemoryRouter } from "react-router-dom";
  * these tests are about, not a lazily loaded renderer.
  */
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
-  const mockReact: { createElement: typeof React.createElement } =
-    jest.requireActual("react");
+  const mockReact: typeof React = jest.requireActual("react") as typeof React;
 
   return {
     __esModule: true,

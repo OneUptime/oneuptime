@@ -50,7 +50,7 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
   const content: ReactElement = (
     <div className="flex items-start gap-3">
       <div
-        className={`hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg sm:flex ${props.iconTileClassName}`}
+        className={`max-sm:hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg sm:flex ${props.iconTileClassName}`}
         aria-hidden="true"
       >
         <Icon icon={props.icon} className={`h-5 w-5 ${props.iconClassName}`} />

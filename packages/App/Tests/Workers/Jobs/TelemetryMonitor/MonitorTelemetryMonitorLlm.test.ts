@@ -9,6 +9,7 @@ import {
 import LlmMonitorResponse from "Common/Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import { LlmAnswerIssue } from "Common/Types/Telemetry/LlmAnswerIssue";
 import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { ReceivingPeriod } from "Common/Utils/Telemetry/ReceivingGaps";
@@ -114,7 +115,7 @@ const countAnswers: jest.Mock =
 const readLedger: jest.Mock =
   InstanceReceivingPeriodService.readLedger as unknown as jest.Mock;
 
-function llmStep(overrides: Record<string, unknown> = {}): MonitorStep {
+function llmStep(overrides: JSONObject = {}): MonitorStep {
   const step: MonitorStep = new MonitorStep();
   step.setLlmMonitor(
     MonitorStepLlmMonitorUtil.fromJSON({

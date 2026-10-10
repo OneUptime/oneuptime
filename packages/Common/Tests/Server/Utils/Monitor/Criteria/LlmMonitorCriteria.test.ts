@@ -407,12 +407,14 @@ describe("the ready-made AI alerts", () => {
   });
 
   test.each(
-    LlmMonitorTemplates.getAll().map((t: LlmMonitorTemplate) => {
-      return [t.id, t];
-    }),
+    LlmMonitorTemplates.getAll().map(
+      (t: LlmMonitorTemplate): [LlmMonitorTemplateId, LlmMonitorTemplate] => {
+        return [t.id, t];
+      },
+    ),
   )(
     "%s: every check lands on exactly one of its two criteria",
-    async (_id: string, template: LlmMonitorTemplate) => {
+    async (_id: LlmMonitorTemplateId, template: LlmMonitorTemplate) => {
       for (const [answers, bad] of GRID) {
         const unhealthy: boolean = await meets(
           template.unhealthyFilters,

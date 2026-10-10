@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -337,7 +338,7 @@ describe("LlmSummaryTiles", () => {
   });
 
   test("Need attention leads to those conversations when there are any", () => {
-    const onShowProblems: jest.Mock<() => void> = jest.fn<() => void>();
+    const onShowProblems: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <LlmSummaryTiles
