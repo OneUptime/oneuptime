@@ -829,8 +829,12 @@ export const ExceptionsRoutePath: Dictionary<string> = {
 };
 
 export const LlmRoutePath: Dictionary<string> = {
-  [PageMap.LLM]: "overview",
+  // The product opens on its conversations.
+  [PageMap.LLM]: "conversations",
   [PageMap.LLM_OVERVIEW]: "overview",
+  [PageMap.LLM_CONVERSATIONS]: "conversations",
+  [PageMap.LLM_CONVERSATION_VIEW]: `conversations/${RouteParams.ModelID}`,
+  [PageMap.LLM_ALERTS]: "alerts",
   [PageMap.LLM_USAGE]: "usage",
   [PageMap.LLM_CALLS]: "calls",
   [PageMap.LLM_BUDGETS]: "budgets",
@@ -7458,6 +7462,22 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/llm/${
       LlmRoutePath[PageMap.LLM_OVERVIEW]
     }`,
+  ),
+
+  [PageMap.LLM_CONVERSATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_CONVERSATIONS]
+    }`,
+  ),
+
+  [PageMap.LLM_CONVERSATION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_CONVERSATION_VIEW]
+    }`,
+  ),
+
+  [PageMap.LLM_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_ALERTS]}`,
   ),
 
   [PageMap.LLM_USAGE]: new Route(
