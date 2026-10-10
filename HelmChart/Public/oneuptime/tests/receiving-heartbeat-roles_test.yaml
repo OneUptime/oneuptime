@@ -1,0 +1,43 @@
+# Which pods may vouch that OneUptime is receiving data (issue #2825).
+#
+# Every App process that takes ingress traffic records a receiving heartbeat;
+# the time between two heartbeats is time OneUptime was not receiving, and no
+# host or monitor is marked down for it. Worker pods run the same image but no
+# ingress routes to them, so they set RECEIVES_INGRESS_TRAFFIC=false: if every
+# app pod is down while the workers keep running, that time is still a gap.
+# App pods leave it unset (the App reads unset as true), as does the single
+# App process of a deployment without a separate worker tier.
+suite: receiving heartbeat roles
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/app.yaml
+  - templates/worker.yaml
+set:
+  worker:
+    enabled: true
+tests:
+  - it: worker pods never record that OneUptime is receiving
+    template: templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RECEIVES_INGRESS_TRAFFIC
+            value: "false"
+
+  - it: app pods take ingress traffic, so they record it
+    template: templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: RECEIVES_INGRESS_TRAFFIC
+            value: "false"

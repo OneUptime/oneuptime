@@ -54,6 +54,16 @@ export interface TelemetryRequest extends ExpressRequest {
    * replay this is a synthesized, normalized app:// origin.
    */
   resolvedClientOrigin?: string;
+
+  /*
+   * When the ingest endpoint accepted this request: set on the copy a queue
+   * worker processes, from the job's ingestionTimestamp (a string once it
+   * has been through the queue). Processing can run minutes behind arrival
+   * while the queue drains; anything that must be placed on the timeline the
+   * data arrived on - the synthetic host heartbeat - reads this instead of
+   * the worker's clock (issue #2825).
+   */
+  receivedAt?: Date | string | undefined;
 }
 
 /*

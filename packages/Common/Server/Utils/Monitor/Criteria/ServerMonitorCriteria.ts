@@ -15,6 +15,7 @@ import ServerMonitorResponse, {
 } from "../../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ReceivingSilence from "../ReceivingSilence";
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()
@@ -82,7 +83,7 @@ export default class ServerMonitorCriteria {
       (input.dataToProcess as ServerMonitorResponse).timeNow ||
       OneUptimeDate.getCurrentDate();
 
-    const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
+    let differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
       lastCheckTime,
       timeNow,
     );
@@ -96,6 +97,23 @@ export default class ServerMonitorCriteria {
     ) {
       offlineIfNotCheckedInMinutes =
         input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 3;
+    }
+
+    /*
+     * An agent cannot check in while OneUptime itself is not receiving - a
+     * restart, an upgrade, a backed-up ingest queue - so that time is not
+     * silence the server is blamed for (issue #2825): it is offline once it
+     * has been silent for the threshold while OneUptime was receiving. With
+     * no such time the two are the same number.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      differenceInMinutes = (
+        await ReceivingSilence.measure({
+          lastHeardAt: lastCheckTime,
+          now: timeNow,
+          thresholdInMinutes: offlineIfNotCheckedInMinutes,
+        })
+      ).receivingMinutes;
     }
 
     logger.debug("Server Monitor Criteria Filter");

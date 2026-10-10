@@ -329,8 +329,9 @@ describe("VMware metric descriptions: the time window each number covers", () =>
       service.indexOf("public async markDisconnectedVCenters()"),
     );
 
+    // 15 minutes of time OneUptime was receiving (issue #2825).
     expect(disconnect.replace(WHITESPACE, " ")).toContain(
-      "OneUptimeDate.getCurrentDate(), -15, );",
+      "ReceivingCoverage.getSilenceCutoff({ silenceInMinutes: 15, });",
     );
     expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
     expect(D.overviewAgentStatus).toContain(
