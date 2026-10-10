@@ -4,7 +4,11 @@ import path from "path";
 import CriteriaFilterUtil, {
   LLM_CHECK_ON_LABELS,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
-import { CheckOn, CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import LlmMonitorTemplates, {
   LlmMonitorTemplate,
   LlmMonitorTemplateFilter,
@@ -43,48 +47,64 @@ function values(options: Array<DropdownOption>): Array<unknown> {
   });
 }
 
-function isRenderable(filter: { checkOn: CheckOn; filterType?: FilterType | undefined }): boolean {
+function isRenderable(filter: {
+  checkOn: CheckOn;
+  filterType?: FilterType | undefined;
+}): boolean {
   return (
-    values(CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Llm)).includes(
-      filter.checkOn,
-    ) &&
-    values(CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(filter.checkOn)).includes(
-      filter.filterType,
-    )
+    values(
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Llm),
+    ).includes(filter.checkOn) &&
+    values(
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(filter.checkOn),
+    ).includes(filter.filterType)
   );
 }
 
 describe("what an AI / LLM monitor compares", () => {
   test("the share of bad answers first, then their count, then the answers", () => {
-    expect(values(CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Llm))).toEqual(
-      LLM_CHECKS,
-    );
+    expect(
+      values(
+        CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Llm),
+      ),
+    ).toEqual(LLM_CHECKS);
   });
 
   test("a new filter starts on the share of bad answers, greater than", () => {
-    expect(CriteriaFilterUtil.getDefaultCheckOnByMonitorType(MonitorType.Llm)).toBe(
-      CheckOn.LlmBadAnswerPercent,
-    );
     expect(
-      CriteriaFilterUtil.getDefaultFilterTypeByCheckOn(CheckOn.LlmBadAnswerPercent),
+      CriteriaFilterUtil.getDefaultCheckOnByMonitorType(MonitorType.Llm),
+    ).toBe(CheckOn.LlmBadAnswerPercent);
+    expect(
+      CriteriaFilterUtil.getDefaultFilterTypeByCheckOn(
+        CheckOn.LlmBadAnswerPercent,
+      ),
     ).toBe(FilterType.GreaterThan);
   });
 
   test("no other monitor type offers these numbers", () => {
-    for (const monitorType of [MonitorType.Traces, MonitorType.Logs, MonitorType.API]) {
+    for (const monitorType of [
+      MonitorType.Traces,
+      MonitorType.Logs,
+      MonitorType.API,
+    ]) {
       for (const checkOn of LLM_CHECKS) {
         expect(
-          values(CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType)),
+          values(
+            CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType),
+          ),
         ).not.toContain(checkOn);
       }
     }
   });
 
-  test.each(LLM_CHECKS)("%s is compared as a number, six ways, Greater Than first", (checkOn: CheckOn) => {
-    expect(values(CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn))).toEqual(
-      NUMBER_COMPARISONS,
-    );
-  });
+  test.each(LLM_CHECKS)(
+    "%s is compared as a number, six ways, Greater Than first",
+    (checkOn: CheckOn) => {
+      expect(
+        values(CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn)),
+      ).toEqual(NUMBER_COMPARISONS);
+    },
+  );
 
   test("the value placeholders suggest the ready-made thresholds", () => {
     expect(
@@ -165,7 +185,10 @@ describe("every criteria the product ships draws in the form", () => {
       return [template.id, template];
     }),
   )("the ready-made alert %s", (_id: unknown, template: LlmMonitorTemplate) => {
-    for (const filter of [...template.unhealthyFilters, ...template.healthyFilters]) {
+    for (const filter of [
+      ...template.unhealthyFilters,
+      ...template.healthyFilters,
+    ]) {
       expect({
         filter,
         renderable: isRenderable(filter as LlmMonitorTemplateFilter),
@@ -234,18 +257,30 @@ describe("the numbers it compares, in every language", () => {
     for (const label of LLM_CHECK_ON_LABELS) {
       const value: unknown = translations[label];
 
-      expect({ label, translated: typeof value === "string" && value.trim() !== "" && value !== label }).toEqual({
+      expect({
+        label,
+        translated:
+          typeof value === "string" && value.trim() !== "" && value !== label,
+      }).toEqual({
         label,
         translated: true,
       });
     }
   });
 
+  // The percent sign, Latin or Persian.
+  const PERCENT_SIGN: RegExp = /[%٪]/;
+
   test("the share keeps its percent sign in every language", () => {
     for (const locale of LOCALES) {
-      const value: string = readLocale(locale)["Bad AI Answers (in %)"] as string;
+      const value: string = readLocale(locale)[
+        "Bad AI Answers (in %)"
+      ] as string;
 
-      expect({ locale, percent: /[%٪]/.test(value) }).toEqual({ locale, percent: true });
+      expect({ locale, percent: PERCENT_SIGN.test(value) }).toEqual({
+        locale,
+        percent: true,
+      });
     }
   });
 });

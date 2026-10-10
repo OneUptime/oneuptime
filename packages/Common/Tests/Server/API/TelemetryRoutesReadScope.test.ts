@@ -1308,7 +1308,11 @@ describe("the AI / LLM conversation routes", () => {
   test("the list passes its filters through, trimmed and bounded", async () => {
     currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
     const read: Spy = spyOn(LlmConversationService, "listConversations");
-    read.mockResolvedValue({ summary: null, conversations: [], hasMore: false });
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
 
     await callRoute({
       uri: LIST,
@@ -1342,7 +1346,11 @@ describe("the AI / LLM conversation routes", () => {
   test("unknown or blank filters read as none, and the summary only when asked", async () => {
     currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
     const read: Spy = spyOn(LlmConversationService, "listConversations");
-    read.mockResolvedValue({ summary: null, conversations: [], hasMore: false });
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
 
     await callRoute({
       uri: LIST,
@@ -1367,7 +1375,11 @@ describe("the AI / LLM conversation routes", () => {
   test("without dates the list reads the last seven days", async () => {
     currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
     const read: Spy = spyOn(LlmConversationService, "listConversations");
-    read.mockResolvedValue({ summary: null, conversations: [], hasMore: false });
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
 
     await callRoute({ uri: LIST, principal: currentPrincipal, body: {} });
 

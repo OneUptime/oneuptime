@@ -49,7 +49,10 @@ function issues(input: Partial<LlmAnswerIssueInput>): Array<LlmAnswerIssue> {
   });
 }
 
-function evaluation(label: string, name: string = "relevance"): LlmEvaluationResult {
+function evaluation(
+  label: string,
+  name: string = "relevance",
+): LlmEvaluationResult {
   return { name: name, label: label, score: null, explanation: "" };
 }
 
@@ -69,9 +72,18 @@ describe("a good answer has no issues", () => {
   });
 
   test("a model asking for a tool is not empty even when the content was not recorded", () => {
-    for (const reason of ["tool_calls", "tool_use", "function_call", "tool-calls"]) {
+    for (const reason of [
+      "tool_calls",
+      "tool_use",
+      "function_call",
+      "tool-calls",
+    ]) {
       expect(
-        issues({ finishReasons: [reason], outputTokens: 0, answer: NOT_RECORDED }),
+        issues({
+          finishReasons: [reason],
+          outputTokens: 0,
+          answer: NOT_RECORDED,
+        }),
       ).toEqual([]);
     }
   });
@@ -153,7 +165,9 @@ describe("refused", () => {
 
   test("a refusal part in the answer (OpenAI's refusal field)", () => {
     expect(
-      issues({ answer: { ...RECORDED_TEXT, hasText: false, hasRefusal: true } }),
+      issues({
+        answer: { ...RECORDED_TEXT, hasText: false, hasRefusal: true },
+      }),
     ).toEqual([LlmAnswerIssue.Refused]);
   });
 
@@ -170,9 +184,9 @@ describe("refused", () => {
     "  \n**I'm sorry, but I can't** continue.",
     '"I can\'t help with that."',
   ])("an answer opening with a stock refusal: %s", (text: string) => {
-    expect(
-      issues({ answer: { ...RECORDED_TEXT, leadingText: text } }),
-    ).toEqual([LlmAnswerIssue.Refused]);
+    expect(issues({ answer: { ...RECORDED_TEXT, leadingText: text } })).toEqual(
+      [LlmAnswerIssue.Refused],
+    );
   });
 
   test.each([
@@ -183,9 +197,9 @@ describe("refused", () => {
     "Unfortunately the API is down; retry in a minute.",
     "",
   ])("an answer that does not open with a refusal: %s", (text: string) => {
-    expect(
-      issues({ answer: { ...RECORDED_TEXT, leadingText: text } }),
-    ).toEqual([]);
+    expect(issues({ answer: { ...RECORDED_TEXT, leadingText: text } })).toEqual(
+      [],
+    );
   });
 
   test("a refusal is only an ANSWER's issue: a tool's output saying it is never one", () => {

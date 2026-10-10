@@ -26,14 +26,16 @@ export interface LlmReplayMarker {
 }
 
 // Scrubber dot colours (mid-tone hues read the same in both themes).
-export const LLM_REPLAY_MARKER_CLASS_NAMES: Record<LlmReplayMarkerTone, string> =
-  {
-    user: "bg-indigo-500",
-    answer: "bg-violet-500",
-    tool: "bg-cyan-500",
-    activity: "bg-gray-400",
-    problem: "bg-red-500",
-  };
+export const LLM_REPLAY_MARKER_CLASS_NAMES: Record<
+  LlmReplayMarkerTone,
+  string
+> = {
+  user: "bg-indigo-500",
+  answer: "bg-violet-500",
+  tool: "bg-cyan-500",
+  activity: "bg-gray-400",
+  problem: "bg-red-500",
+};
 
 function hasProblem(step: LlmTranscriptStep): boolean {
   return LlmAnswerIssueUtil.fromValues(step.call.issues).length > 0;
@@ -73,15 +75,17 @@ export function buildLlmReplayMarkers(
     return [];
   }
 
-  return steps.map((step: LlmTranscriptStep, index: number): LlmReplayMarker => {
-    const point: number = timeline.points[index] ?? 0;
+  return steps.map(
+    (step: LlmTranscriptStep, index: number): LlmReplayMarker => {
+      const point: number = timeline.points[index] ?? 0;
 
-    return {
-      index: index,
-      position: Math.min(1, Math.max(0, point / timeline.durationMs)),
-      tone: getLlmReplayMarkerTone(step),
-    };
-  });
+      return {
+        index: index,
+        position: Math.min(1, Math.max(0, point / timeline.durationMs)),
+        tone: getLlmReplayMarkerTone(step),
+      };
+    },
+  );
 }
 
 export interface LlmPendingAnswer {

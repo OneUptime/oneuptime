@@ -39,7 +39,8 @@ function read(params: Dictionary<string>): LlmConversationListView {
 
 // What a written view reads back as, through a real URLSearchParams.
 function roundTrip(view: LlmConversationListView): LlmConversationListView {
-  const params: Dictionary<string | null> = toLlmConversationListUrlParams(view);
+  const params: Dictionary<string | null> =
+    toLlmConversationListUrlParams(view);
   const search: URLSearchParams = new URLSearchParams();
 
   for (const [name, value] of Object.entries(params)) {
@@ -99,7 +100,9 @@ describe("reading the time range", () => {
     expect(read({ range: "PAST_TEN_YEARS" }).range).toEqual({
       range: TimeRange.PAST_ONE_WEEK,
     });
-    expect(read({ range: "" }).range).toEqual({ range: TimeRange.PAST_ONE_WEEK });
+    expect(read({ range: "" }).range).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
   });
 
   test("a custom range reads its start and end", () => {
@@ -257,26 +260,31 @@ describe("writing the view into the URL", () => {
       "a search with characters the URL must escape",
       {
         ...getDefaultLlmConversationListView(),
-        search: "a&b=c?#100% \"quoted\" ünïcødé",
+        search: 'a&b=c?#100% "quoted" ünïcødé',
       },
     ],
-  ])("%s reads back as the same view", (_name: string, view: LlmConversationListView) => {
-    const back: LlmConversationListView = roundTrip(view);
+  ])(
+    "%s reads back as the same view",
+    (_name: string, view: LlmConversationListView) => {
+      const back: LlmConversationListView = roundTrip(view);
 
-    expect(back.range.range).toBe(view.range.range);
-    expect(back.range.startAndEndDate?.startValue.toISOString()).toBe(
-      view.range.startAndEndDate?.startValue.toISOString(),
-    );
-    expect(back.range.startAndEndDate?.endValue.toISOString()).toBe(
-      view.range.startAndEndDate?.endValue.toISOString(),
-    );
-    expect({ ...back, range: null }).toEqual({ ...view, range: null });
-  });
+      expect(back.range.range).toBe(view.range.range);
+      expect(back.range.startAndEndDate?.startValue.toISOString()).toBe(
+        view.range.startAndEndDate?.startValue.toISOString(),
+      );
+      expect(back.range.startAndEndDate?.endValue.toISOString()).toBe(
+        view.range.startAndEndDate?.endValue.toISOString(),
+      );
+      expect({ ...back, range: null }).toEqual({ ...view, range: null });
+    },
+  );
 });
 
 describe("isLlmConversationListFiltered", () => {
   test("the time range and the sort do not narrow the list", () => {
-    expect(isLlmConversationListFiltered(getDefaultLlmConversationListView())).toBe(false);
+    expect(
+      isLlmConversationListFiltered(getDefaultLlmConversationListView()),
+    ).toBe(false);
     expect(
       isLlmConversationListFiltered({
         ...getDefaultLlmConversationListView(),
@@ -290,9 +298,15 @@ describe("isLlmConversationListFiltered", () => {
   test("a search, an app or a chip does", () => {
     const view: LlmConversationListView = getDefaultLlmConversationListView();
 
-    expect(isLlmConversationListFiltered({ ...view, search: "refund" })).toBe(true);
-    expect(isLlmConversationListFiltered({ ...view, search: "   " })).toBe(false);
-    expect(isLlmConversationListFiltered({ ...view, serviceId: APP_ID })).toBe(true);
+    expect(isLlmConversationListFiltered({ ...view, search: "refund" })).toBe(
+      true,
+    );
+    expect(isLlmConversationListFiltered({ ...view, search: "   " })).toBe(
+      false,
+    );
+    expect(isLlmConversationListFiltered({ ...view, serviceId: APP_ID })).toBe(
+      true,
+    );
     expect(isLlmConversationListFiltered({ ...view, issue: "any" })).toBe(true);
     expect(
       isLlmConversationListFiltered({ ...view, issue: LlmAnswerIssue.Empty }),

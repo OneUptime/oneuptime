@@ -64,9 +64,12 @@ describe("formatLlmDuration", () => {
     [1050, "1.1 s"],
     [2345, "2.3 s"],
     [9949, "9.9 s"],
-  ])("%p ms reads as seconds with a tenth: %s", (ms: number, expected: string) => {
-    expect(formatLlmDuration(ms)).toBe(expected);
-  });
+  ])(
+    "%p ms reads as seconds with a tenth: %s",
+    (ms: number, expected: string) => {
+      expect(formatLlmDuration(ms)).toBe(expected);
+    },
+  );
 
   test.each([
     [9950, "10 s"],
@@ -82,9 +85,12 @@ describe("formatLlmDuration", () => {
     [60_000, "1m 00s"],
     [245_000, "4m 05s"],
     [3_599_499, "59m 59s"],
-  ])("%p ms reads as minutes and seconds: %s", (ms: number, expected: string) => {
-    expect(formatLlmDuration(ms)).toBe(expected);
-  });
+  ])(
+    "%p ms reads as minutes and seconds: %s",
+    (ms: number, expected: string) => {
+      expect(formatLlmDuration(ms)).toBe(expected);
+    },
+  );
 
   test.each([
     [3_599_500, "1h 00m"],
@@ -128,9 +134,12 @@ describe("formatLlmCost", () => {
     [0.0001, "$0.0001"],
     [0.0012, "$0.0012"],
     [0.00994, "$0.0099"],
-  ])("a call's cost keeps four places: %p -> %s", (usd: number, expected: string) => {
-    expect(formatLlmCost(usd)).toBe(expected);
-  });
+  ])(
+    "a call's cost keeps four places: %p -> %s",
+    (usd: number, expected: string) => {
+      expect(formatLlmCost(usd)).toBe(expected);
+    },
+  );
 
   test.each([
     [0.00995, "$0.010"],
@@ -177,7 +186,9 @@ describe("formatLlmTokens", () => {
   });
 
   test("never writes 1000 of a unit, or 100.0 of a tenth", () => {
-    for (const count of nearBoundaries([1000, 100_000, 1_000_000, 100_000_000])) {
+    for (const count of nearBoundaries([
+      1000, 100_000, 1_000_000, 100_000_000,
+    ])) {
       expect(formatLlmTokens(count)).not.toMatch(/^1000[kM]?$/);
       expect(formatLlmTokens(count)).not.toMatch(/^100\.\d[kM]$/);
     }

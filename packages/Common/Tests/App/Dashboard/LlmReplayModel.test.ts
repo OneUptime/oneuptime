@@ -75,7 +75,10 @@ function makeStep(
   };
 }
 
-function timeline(points: Array<number>, durationMs: number): LlmReplayTimeline {
+function timeline(
+  points: Array<number>,
+  durationMs: number,
+): LlmReplayTimeline {
   return {
     points: points,
     realTimes: points.map((point: number): number => {
@@ -89,15 +92,27 @@ function timeline(points: Array<number>, durationMs: number): LlmReplayTimeline 
 
 describe("getLlmReplayMarkerTone", () => {
   test("the person's messages are indigo, tools cyan, quiet activity grey", () => {
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.UserMessage))).toBe("user");
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.ToolCall))).toBe("tool");
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.ToolResult))).toBe("tool");
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Activity))).toBe("activity");
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Instructions))).toBe("activity");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.UserMessage)),
+    ).toBe("user");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.ToolCall)),
+    ).toBe("tool");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.ToolResult)),
+    ).toBe("tool");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Activity)),
+    ).toBe("activity");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Instructions)),
+    ).toBe("activity");
   });
 
   test("a failed call is always a problem", () => {
-    expect(getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Failure))).toBe("problem");
+    expect(
+      getLlmReplayMarkerTone(makeStep(LlmTranscriptStepType.Failure)),
+    ).toBe("problem");
   });
 
   test("an answer is violet unless something went wrong with it", () => {
@@ -199,7 +214,9 @@ describe("buildLlmReplayMarkers", () => {
       makeStep(LlmTranscriptStepType.AssistantMessage),
     ];
 
-    expect(buildLlmReplayMarkers(steps, timeline([400], 1000))[1]?.position).toBe(0);
+    expect(
+      buildLlmReplayMarkers(steps, timeline([400], 1000))[1]?.position,
+    ).toBe(0);
   });
 
   test("a replay with no length has no markers to place", () => {
@@ -234,10 +251,13 @@ describe("buildLlmReplayMarkers", () => {
 });
 
 describe("getLlmPendingAnswer", () => {
-  const question: LlmTranscriptStep = makeStep(LlmTranscriptStepType.UserMessage, {
-    startMs: T0,
-    atMs: T0,
-  });
+  const question: LlmTranscriptStep = makeStep(
+    LlmTranscriptStepType.UserMessage,
+    {
+      startMs: T0,
+      atMs: T0,
+    },
+  );
 
   function answerAfterQuestion(
     type: LlmTranscriptStepType,
@@ -366,9 +386,12 @@ describe("readLlmStepParam", () => {
     ["2", 5, 2],
     ["4", 5, 4],
     [" 3 ", 5, 3],
-  ])("?step=%p of %p steps is step %p", (value: string, count: number, expected: number) => {
-    expect(readLlmStepParam(value, count)).toBe(expected);
-  });
+  ])(
+    "?step=%p of %p steps is step %p",
+    (value: string, count: number, expected: number) => {
+      expect(readLlmStepParam(value, count)).toBe(expected);
+    },
+  );
 
   test.each([
     [null, 5],
@@ -380,7 +403,10 @@ describe("readLlmStepParam", () => {
     ["abc", 5],
     ["2", 0],
     ["Infinity", 5],
-  ])("?step=%p of %p steps names no step", (value: string | null, count: number) => {
-    expect(readLlmStepParam(value, count)).toBeNull();
-  });
+  ])(
+    "?step=%p of %p steps names no step",
+    (value: string | null, count: number) => {
+      expect(readLlmStepParam(value, count)).toBeNull();
+    },
+  );
 });

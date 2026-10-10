@@ -177,7 +177,10 @@ export class LlmConversationKeyUtil {
    * a value too long to be an id.
    */
   public static decode(raw: unknown): LlmConversationKey | null {
-    if (typeof raw !== "string" || raw.length > LlmConversationKeyUtil.MAX_LENGTH) {
+    if (
+      typeof raw !== "string" ||
+      raw.length > LlmConversationKeyUtil.MAX_LENGTH
+    ) {
       return null;
     }
 
@@ -389,7 +392,9 @@ export function readConversationListResponse(
         return readConversationListItem(row);
       })
       .filter(
-        (row: LlmConversationListItem | null): row is LlmConversationListItem => {
+        (
+          row: LlmConversationListItem | null,
+        ): row is LlmConversationListItem => {
           return row !== null;
         },
       ),

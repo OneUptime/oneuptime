@@ -246,7 +246,10 @@ describe("gen_ai.client.inference.operation.details (content on an event)", () =
     const content: LlmCallContent = read(
       {
         "gen_ai.output.messages": JSON.stringify([
-          { role: "assistant", parts: [{ type: "text", content: "From span" }] },
+          {
+            role: "assistant",
+            parts: [{ type: "text", content: "From span" }],
+          },
         ]),
       },
       [
@@ -373,9 +376,9 @@ describe("OpenInference (llm.input_messages, input.value, output.value)", () => 
     });
 
     expect(textOf(content.input[0])).toBe("Describe this");
-    expect(
-      partsOf(content.input[0], LlmMessagePartType.Media)[0]?.uri,
-    ).toBe("https://example.com/cat.png");
+    expect(partsOf(content.input[0], LlmMessagePartType.Media)[0]?.uri).toBe(
+      "https://example.com/cat.png",
+    );
     expect(
       partsOf(content.output[0], LlmMessagePartType.ToolCall)[0],
     ).toMatchObject({ toolCallId: "t1", toolName: "classify" });
@@ -497,7 +500,12 @@ describe("provider message shapes inside any convention", () => {
           role: "assistant",
           content: [
             { type: "thinking", thinking: "Need the order first." },
-            { type: "tool_use", id: "tu_1", name: "get_order", input: { id: "A-1" } },
+            {
+              type: "tool_use",
+              id: "tu_1",
+              name: "get_order",
+              input: { id: "A-1" },
+            },
           ],
         },
         {
@@ -551,13 +559,21 @@ describe("provider message shapes inside any convention", () => {
         },
       ]),
       "gen_ai.output.messages": JSON.stringify([
-        { role: "assistant", content: null, refusal: "I can't help with that." },
+        {
+          role: "assistant",
+          content: null,
+          refusal: "I can't help with that.",
+        },
       ]),
     });
 
     expect(
       partsOf(content.input[0], LlmMessagePartType.ToolCall)[0],
-    ).toMatchObject({ toolCallId: "c1", toolName: "search", arguments: '{"q":"x"}' });
+    ).toMatchObject({
+      toolCallId: "c1",
+      toolName: "search",
+      arguments: '{"q":"x"}',
+    });
     expect(
       partsOf(content.input[1], LlmMessagePartType.ToolCall)[0]?.toolName,
     ).toBe("legacy");
@@ -572,7 +588,9 @@ describe("provider message shapes inside any convention", () => {
         { role: "user", parts: [{ text: "Weather?" }] },
         {
           role: "model",
-          parts: [{ functionCall: { name: "weather", args: { city: "Oslo" } } }],
+          parts: [
+            { functionCall: { name: "weather", args: { city: "Oslo" } } },
+          ],
         },
         {
           role: "function",
@@ -610,13 +628,21 @@ describe("provider message shapes inside any convention", () => {
     const content: LlmCallContent = read({
       "output.value": JSON.stringify({
         output: [
-          { type: "reasoning", summary: [{ type: "summary_text", text: "Plan" }] },
+          {
+            type: "reasoning",
+            summary: [{ type: "summary_text", text: "Plan" }],
+          },
           {
             type: "message",
             role: "assistant",
             content: [{ type: "output_text", text: "Working on it." }],
           },
-          { type: "function_call", name: "do_it", arguments: "{}", call_id: "f1" },
+          {
+            type: "function_call",
+            name: "do_it",
+            arguments: "{}",
+            call_id: "f1",
+          },
         ],
       }),
     });
@@ -793,7 +819,9 @@ describe("readAnswer (the ingest path)", () => {
     const huge: string = JSON.stringify([
       {
         role: "assistant",
-        parts: [{ type: "text", content: "y".repeat(LLM_ANSWER_MAX_JSON_LENGTH) }],
+        parts: [
+          { type: "text", content: "y".repeat(LLM_ANSWER_MAX_JSON_LENGTH) },
+        ],
       },
     ]);
 

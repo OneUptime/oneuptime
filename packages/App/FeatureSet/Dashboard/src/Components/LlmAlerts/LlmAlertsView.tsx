@@ -100,9 +100,9 @@ export const LlmAlertTemplateCard: FunctionComponent<TemplateCardProps> = (
  * with the alerts because "tell me when the AI costs too much" is the same
  * question in the reader's mind.
  */
-export const LlmSpendCard: FunctionComponent<{ budgetsRoute: Route }> = (props: {
+export const LlmSpendCard: FunctionComponent<{
   budgetsRoute: Route;
-}): ReactElement => {
+}> = (props: { budgetsRoute: Route }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (

@@ -1,11 +1,21 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import LlmReplayBar from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmReplayBar";
 import { LlmConversationReplayController } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/useLlmConversationReplay";
 import LlmConversationReplay from "../../../Utils/Telemetry/LlmConversationReplay";
-import { LlmTranscriptStep, LlmTranscriptStepType } from "../../../Utils/Telemetry/LlmConversationTranscript";
+import {
+  LlmTranscriptStep,
+  LlmTranscriptStepType,
+} from "../../../Utils/Telemetry/LlmConversationTranscript";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { T0, makeStep } from "./LlmConversationFixtures";
 
@@ -18,8 +28,14 @@ import { T0, makeStep } from "./LlmConversationFixtures";
 
 const STEPS: Array<LlmTranscriptStep> = [
   makeStep(LlmTranscriptStepType.UserMessage, { atMs: T0, text: "Hi" }),
-  makeStep(LlmTranscriptStepType.AssistantMessage, { atMs: T0 + 2000, text: "Hello" }),
-  makeStep(LlmTranscriptStepType.ToolCall, { atMs: T0 + 3000, toolName: "search" }),
+  makeStep(LlmTranscriptStepType.AssistantMessage, {
+    atMs: T0 + 2000,
+    text: "Hello",
+  }),
+  makeStep(LlmTranscriptStepType.ToolCall, {
+    atMs: T0 + 3000,
+    toolName: "search",
+  }),
   makeStep(LlmTranscriptStepType.AssistantMessage, {
     atMs: T0 + 6000,
     text: "No.",
@@ -49,7 +65,10 @@ function controller(
   const timeline: LlmConversationReplayController["timeline"] =
     LlmConversationReplay.buildTimeline(steps, { skipWaiting: true });
   const clockMs: number = state.clockMs ?? timeline.durationMs;
-  const visibleCount: number = LlmConversationReplay.visibleCount(timeline, clockMs);
+  const visibleCount: number = LlmConversationReplay.visibleCount(
+    timeline,
+    clockMs,
+  );
 
   return {
     timeline: timeline,
@@ -113,7 +132,10 @@ describe("the play button", () => {
     renderBar({ clockMs: 1000, isPlaying: true });
 
     expect(screen.getByTestId("llm-replay-play")).toHaveTextContent("Pause");
-    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute("data-state", "playing");
+    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute(
+      "data-state",
+      "playing",
+    );
   });
 
   test("toggles the replay", () => {
@@ -173,9 +195,18 @@ describe("moving through the messages", () => {
       "title",
       "Previous message (J)",
     );
-    expect(screen.getByTestId("llm-replay-next")).toHaveAttribute("title", "Next message (L)");
-    expect(screen.getByTestId("llm-replay-restart")).toHaveAttribute("title", "First message");
-    expect(screen.getByTestId("llm-replay-end")).toHaveAttribute("title", "Whole conversation");
+    expect(screen.getByTestId("llm-replay-next")).toHaveAttribute(
+      "title",
+      "Next message (L)",
+    );
+    expect(screen.getByTestId("llm-replay-restart")).toHaveAttribute(
+      "title",
+      "First message",
+    );
+    expect(screen.getByTestId("llm-replay-end")).toHaveAttribute(
+      "title",
+      "Whole conversation",
+    );
   });
 });
 
@@ -184,14 +215,20 @@ describe("where the replay is", () => {
     // Points 0, 2000, 3000, 6000; the replay ends at 6800.
     renderBar({ clockMs: 3000 });
 
-    expect(screen.getByTestId("llm-replay-clock")).toHaveTextContent("0:03 / 0:06");
-    expect(screen.getByTestId("llm-replay-position")).toHaveTextContent("Message 3 of 4");
+    expect(screen.getByTestId("llm-replay-clock")).toHaveTextContent(
+      "0:03 / 0:06",
+    );
+    expect(screen.getByTestId("llm-replay-position")).toHaveTextContent(
+      "Message 3 of 4",
+    );
   });
 
   test("at the end, the last message", () => {
     renderBar();
 
-    expect(screen.getByTestId("llm-replay-position")).toHaveTextContent("Message 4 of 4");
+    expect(screen.getByTestId("llm-replay-position")).toHaveTextContent(
+      "Message 4 of 4",
+    );
   });
 
   test("the scrubber is a slider over the messages", () => {
@@ -211,7 +248,10 @@ describe("where the replay is", () => {
   test("with no messages the scrubber cannot be focused", () => {
     renderBar({}, []);
 
-    expect(screen.getByTestId("llm-replay-scrubber")).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByTestId("llm-replay-scrubber")).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
   });
 
   test("the progress fill follows the clock", () => {
@@ -226,9 +266,11 @@ describe("the scrubber's dots", () => {
     renderBar();
 
     expect(
-      screen.getAllByTestId("llm-replay-marker").map((marker: HTMLElement): string | null => {
-        return marker.getAttribute("data-tone");
-      }),
+      screen
+        .getAllByTestId("llm-replay-marker")
+        .map((marker: HTMLElement): string | null => {
+          return marker.getAttribute("data-tone");
+        }),
     ).toEqual(["user", "answer", "tool", "problem"]);
   });
 
@@ -236,9 +278,11 @@ describe("the scrubber's dots", () => {
     renderBar({ clockMs: 2000 });
 
     expect(
-      screen.getAllByTestId("llm-replay-marker").map((marker: HTMLElement): boolean => {
-        return marker.className.includes("opacity-40");
-      }),
+      screen
+        .getAllByTestId("llm-replay-marker")
+        .map((marker: HTMLElement): boolean => {
+          return marker.className.includes("opacity-40");
+        }),
     ).toEqual([false, false, true, true]);
   });
 });
@@ -256,13 +300,17 @@ describe("the scrubber's keys", () => {
     fireEvent.keyDown(screen.getByTestId("llm-replay-scrubber"), { key: key });
 
     expect(replay.pause).toHaveBeenCalled();
-    expect(replay[action as "previous" | "next" | "restart"]).toHaveBeenCalledTimes(1);
+    expect(
+      replay[action as "previous" | "next" | "restart"],
+    ).toHaveBeenCalledTimes(1);
   });
 
   test("End shows the whole conversation", () => {
     const replay: Controller = renderBar({ clockMs: 2500 });
 
-    fireEvent.keyDown(screen.getByTestId("llm-replay-scrubber"), { key: "End" });
+    fireEvent.keyDown(screen.getByTestId("llm-replay-scrubber"), {
+      key: "End",
+    });
 
     expect(replay.goToEnd).toHaveBeenCalledTimes(1);
   });
@@ -281,7 +329,9 @@ describe("the scrubber's keys", () => {
   test("with no messages, no key does anything", () => {
     const replay: Controller = renderBar({}, []);
 
-    fireEvent.keyDown(screen.getByTestId("llm-replay-scrubber"), { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByTestId("llm-replay-scrubber"), {
+      key: "ArrowRight",
+    });
 
     expect(replay.next).not.toHaveBeenCalled();
   });

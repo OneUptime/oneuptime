@@ -186,11 +186,14 @@ describe("the list statement", () => {
       LlmConversationSort.MostCalls,
       "callCount DESC, startedAtMs DESC, conversationKey ASC",
     ],
-  ])("sort %s orders by %s, with a stable tie-break", (sort: LlmConversationSort, order: string) => {
-    expect(
-      LlmConversationService.buildListStatement(listQuery({ sort })).query,
-    ).toContain(`ORDER BY ${order}`);
-  });
+  ])(
+    "sort %s orders by %s, with a stable tie-break",
+    (sort: LlmConversationSort, order: string) => {
+      expect(
+        LlmConversationService.buildListStatement(listQuery({ sort })).query,
+      ).toContain(`ORDER BY ${order}`);
+    },
+  );
 });
 
 describe("the summary statement", () => {
@@ -205,7 +208,9 @@ describe("the summary statement", () => {
 
   test("answer latency merges per-conversation quantile states", () => {
     expect(sql).toContain("quantilesStateIf(0.5, 0.95)(durationUnixNano, ");
-    expect(sql).toContain("quantilesMerge(0.5, 0.95)(inner_answerLatencyState)");
+    expect(sql).toContain(
+      "quantilesMerge(0.5, 0.95)(inner_answerLatencyState)",
+    );
   });
 
   test("an outer aggregate never shares its alias with the inner column it reads", () => {
@@ -216,9 +221,8 @@ describe("the summary statement", () => {
 
 describe("the calls statement (one conversation)", () => {
   test("a conversation reads by its id", () => {
-    const statement: Statement = LlmConversationService.buildCallsStatement(
-      detailQuery(),
-    );
+    const statement: Statement =
+      LlmConversationService.buildCallsStatement(detailQuery());
 
     expect(statement.query).toContain("AND llmConversationId = ");
     expect(paramValues(statement)).toContain("conv-1");
@@ -380,13 +384,17 @@ describe("reading rows back", () => {
           { role: "user", content: "Hi" },
         ]),
       },
-      events: "[{\"name\":\"gen_ai.evaluation.result\",\"attributes\":{\"gen_ai.evaluation.score.label\":\"fail\"}}]",
+      events:
+        '[{"name":"gen_ai.evaluation.result","attributes":{"gen_ai.evaluation.score.label":"fail"}}]',
     } as unknown as JSONObject);
 
     expect(call.startMs).toBe(1760086800000);
     expect(call.endMs).toBe(1760086801500);
     expect(call.statusIsError).toBe(true);
-    expect(call.issues).toEqual([LlmAnswerIssue.Failed, LlmAnswerIssue.Refused]);
+    expect(call.issues).toEqual([
+      LlmAnswerIssue.Failed,
+      LlmAnswerIssue.Refused,
+    ]);
     // An empty stored kind is derived again from the operation.
     expect(call.kind).toBe(LlmCallKind.Answer);
     // The model the provider served is the one shown.
@@ -437,9 +445,11 @@ describe("the answer count statement (the AI / LLM monitor)", () => {
     expect(sql).toContain("AND startTime >= ");
     expect(sql).toContain("AND startTime <= ");
     expect(sql).toContain("AND retentionDate >= now()");
-    expect(paramValues(
-      LlmConversationService.buildAnswerCountStatement(countQuery()),
-    )).toContain(PROJECT.toString());
+    expect(
+      paramValues(
+        LlmConversationService.buildAnswerCountStatement(countQuery()),
+      ),
+    ).toContain(PROJECT.toString());
   });
 
   test("only answers are counted: kind answer, or a pre-kind row with a model", () => {

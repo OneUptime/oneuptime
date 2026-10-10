@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import {
@@ -91,7 +98,9 @@ const LlmRoutes: React.FunctionComponent<Record<string, unknown>> = (
   }
 ).default;
 
-const { getActiveLlmTab } = jest.requireActual(`${DASHBOARD}/Pages/Llm/Layout`) as {
+const { getActiveLlmTab } = jest.requireActual(
+  `${DASHBOARD}/Pages/Llm/Layout`,
+) as {
   getActiveLlmTab: (path: string) => string;
 };
 
@@ -105,7 +114,9 @@ const { default: LlmNavTabs, LLM_TAB_ORDER } = jest.requireActual(
 const { getLlmBreadcrumbs } = jest.requireActual(
   `${DASHBOARD}/Utils/Breadcrumbs/LlmBreadcrumbs`,
 ) as {
-  getLlmBreadcrumbs: (path: string) => Array<{ title: string; to: Route }> | undefined;
+  getLlmBreadcrumbs: (
+    path: string,
+  ) => Array<{ title: string; to: Route }> | undefined;
 };
 
 const { PAGE_SEARCH_AREAS } = jest.requireActual(
@@ -113,7 +124,13 @@ const { PAGE_SEARCH_AREAS } = jest.requireActual(
 ) as {
   PAGE_SEARCH_AREAS: ReadonlyArray<{
     title: string;
-    sections: ReadonlyArray<{ pages: ReadonlyArray<{ page: string; title: string; keywords?: Array<string> }> }>;
+    sections: ReadonlyArray<{
+      pages: ReadonlyArray<{
+        page: string;
+        title: string;
+        keywords?: Array<string>;
+      }>;
+    }>;
   }>;
 };
 
@@ -280,35 +297,58 @@ describe("the breadcrumbs", () => {
   }
 
   test("every page has its trail", () => {
-    expect(titles(PageMap.LLM_CONVERSATIONS)).toEqual(["Project", "AI / LLM", "Conversations"]);
+    expect(titles(PageMap.LLM_CONVERSATIONS)).toEqual([
+      "Project",
+      "AI / LLM",
+      "Conversations",
+    ]);
     expect(titles(PageMap.LLM_CONVERSATION_VIEW)).toEqual([
       "Project",
       "AI / LLM",
       "Conversations",
       "Conversation",
     ]);
-    expect(titles(PageMap.LLM_ALERTS)).toEqual(["Project", "AI / LLM", "Alerts"]);
+    expect(titles(PageMap.LLM_ALERTS)).toEqual([
+      "Project",
+      "AI / LLM",
+      "Alerts",
+    ]);
     expect(titles(PageMap.LLM_CALLS)).toEqual(["Project", "AI / LLM", "Calls"]);
     expect(titles(PageMap.LLM_USAGE)).toEqual(["Project", "AI / LLM", "Usage"]);
-    expect(titles(PageMap.LLM_BUDGETS)).toEqual(["Project", "AI / LLM", "Budgets"]);
-    expect(titles(PageMap.LLM_PRICING)).toEqual(["Project", "AI / LLM", "Pricing"]);
+    expect(titles(PageMap.LLM_BUDGETS)).toEqual([
+      "Project",
+      "AI / LLM",
+      "Budgets",
+    ]);
+    expect(titles(PageMap.LLM_PRICING)).toEqual([
+      "Project",
+      "AI / LLM",
+      "Pricing",
+    ]);
   });
 
   test("a conversation's trail leads back to the conversations", () => {
     // The trail's links are resolved against the address the reader is on.
     goTo(`${BASE}/conversations/c%3Achat-1`);
 
-    const trail: Array<{ title: string; to: Route }> | undefined = getLlmBreadcrumbs(
-      RouteMap[PageMap.LLM_CONVERSATION_VIEW]!.toString(),
-    );
+    const trail: Array<{ title: string; to: Route }> | undefined =
+      getLlmBreadcrumbs(RouteMap[PageMap.LLM_CONVERSATION_VIEW]!.toString());
 
     expect(trail?.[2]?.to.toString()).toBe(`${BASE}/conversations`);
   });
 });
 
 describe("the command palette", () => {
-  function llmPages(): Array<{ page: string; title: string; keywords?: Array<string> }> {
-    const pages: Array<{ page: string; title: string; keywords?: Array<string> }> = [];
+  function llmPages(): Array<{
+    page: string;
+    title: string;
+    keywords?: Array<string>;
+  }> {
+    const pages: Array<{
+      page: string;
+      title: string;
+      keywords?: Array<string>;
+    }> = [];
 
     for (const area of PAGE_SEARCH_AREAS) {
       for (const section of area.sections) {
@@ -324,18 +364,26 @@ describe("the command palette", () => {
   }
 
   test("finds the conversations, the calls and the alerts, and no Overview", () => {
-    const pages: Array<string> = llmPages().map((page: { page: string }): string => {
-      return page.page;
-    });
+    const pages: Array<string> = llmPages().map(
+      (page: { page: string }): string => {
+        return page.page;
+      },
+    );
 
     expect(pages).toEqual(
-      expect.arrayContaining([PageMap.LLM_CONVERSATIONS, PageMap.LLM_CALLS, PageMap.LLM_ALERTS]),
+      expect.arrayContaining([
+        PageMap.LLM_CONVERSATIONS,
+        PageMap.LLM_CALLS,
+        PageMap.LLM_ALERTS,
+      ]),
     );
     expect(pages).not.toContain(PageMap.LLM_OVERVIEW);
   });
 
   test("by the words people search with", () => {
-    const keywordsOf: (page: PageMap) => Array<string> = (page: PageMap): Array<string> => {
+    const keywordsOf: (page: PageMap) => Array<string> = (
+      page: PageMap,
+    ): Array<string> => {
       return (
         llmPages().find((entry: { page: string }): boolean => {
           return entry.page === page;

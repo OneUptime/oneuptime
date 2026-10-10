@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import LlmConversationReplay, {
   LlmReplayStepTime,
   LlmReplayTimeline,
@@ -97,16 +104,16 @@ export function useLlmConversationReplay(
     setClockMs(getOpeningClock(steps, initialStepIndex, skipWaiting));
   }
 
-  const stepsRef: React.MutableRefObject<ReadonlyArray<LlmReplayStepTime>> =
+  const stepsRef: MutableRefObject<ReadonlyArray<LlmReplayStepTime>> =
     useRef<ReadonlyArray<LlmReplayStepTime>>(steps);
   stepsRef.current = steps;
 
   // Time passing while playing.
-  const timelineRef: React.MutableRefObject<LlmReplayTimeline> =
+  const timelineRef: MutableRefObject<LlmReplayTimeline> =
     useRef<LlmReplayTimeline>(timeline);
   timelineRef.current = timeline;
 
-  const clockRef: React.MutableRefObject<number> = useRef<number>(clockMs);
+  const clockRef: MutableRefObject<number> = useRef<number>(clockMs);
   clockRef.current = clockMs;
 
   useEffect(() => {

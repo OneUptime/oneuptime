@@ -251,7 +251,8 @@ const AnswerMeta: FunctionComponent<{
   const step: LlmTranscriptStep = props.step;
   const issues: Array<LlmAnswerIssue> = issuesOf(step);
   const tokens: number =
-    (Number(step.call.inputTokens) || 0) + (Number(step.call.outputTokens) || 0);
+    (Number(step.call.inputTokens) || 0) +
+    (Number(step.call.outputTokens) || 0);
 
   const facts: Array<string> = [];
 

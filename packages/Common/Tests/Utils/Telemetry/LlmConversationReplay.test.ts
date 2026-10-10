@@ -111,8 +111,12 @@ describe("Next and Previous", () => {
   });
 
   test("Next to the last message finishes the replay, so it reads as finished", () => {
-    expect(LlmConversationReplay.nextStepTime(real, 122_000)).toBe(real.durationMs);
-    expect(LlmConversationReplay.nextStepTime(real, 122_500)).toBe(real.durationMs);
+    expect(LlmConversationReplay.nextStepTime(real, 122_000)).toBe(
+      real.durationMs,
+    );
+    expect(LlmConversationReplay.nextStepTime(real, 122_500)).toBe(
+      real.durationMs,
+    );
   });
 
   test("Next finishes the replay when the last messages share a moment", () => {
@@ -121,7 +125,9 @@ describe("Next and Previous", () => {
       { skipWaiting: false },
     );
 
-    expect(LlmConversationReplay.nextStepTime(shared, 0)).toBe(shared.durationMs);
+    expect(LlmConversationReplay.nextStepTime(shared, 0)).toBe(
+      shared.durationMs,
+    );
   });
 
   test("Previous shows one step fewer, and stays at the start from the first", () => {
@@ -153,9 +159,9 @@ describe("play, speed and the scrubber", () => {
   test("play resumes where the clock is, and starts over from the end", () => {
     expect(LlmConversationReplay.playFrom(skipped, 1500)).toBe(1500);
     expect(LlmConversationReplay.playFrom(skipped, skipped.durationMs)).toBe(0);
-    expect(LlmConversationReplay.playFrom(skipped, skipped.durationMs + 5)).toBe(
-      0,
-    );
+    expect(
+      LlmConversationReplay.playFrom(skipped, skipped.durationMs + 5),
+    ).toBe(0);
     expect(LlmConversationReplay.playFrom(skipped, -10)).toBe(0);
   });
 

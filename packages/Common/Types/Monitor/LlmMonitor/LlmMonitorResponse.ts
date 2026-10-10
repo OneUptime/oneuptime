@@ -40,7 +40,8 @@ export class LlmMonitorResponseUtil {
       return 0;
     }
 
-    const percent: number = (Math.max(0, Math.min(bad, answers)) / answers) * 100;
+    const percent: number =
+      (Math.max(0, Math.min(bad, answers)) / answers) * 100;
 
     return Math.round(percent * 100) / 100;
   }

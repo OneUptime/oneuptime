@@ -32,7 +32,8 @@ export const LLM_CONVERSATION_LIST_URL_PARAMS: Array<string> = [
   "page",
 ];
 
-export const LLM_CONVERSATION_DEFAULT_RANGE: TimeRange = TimeRange.PAST_ONE_WEEK;
+export const LLM_CONVERSATION_DEFAULT_RANGE: TimeRange =
+  TimeRange.PAST_ONE_WEEK;
 
 export interface LlmConversationListView {
   range: RangeStartAndEndDateTime;

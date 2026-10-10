@@ -1,5 +1,7 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import {
   LLM_MONITOR_DEFAULT_WINDOW_SECONDS,
   MonitorStepLlmMonitorUtil,
@@ -126,8 +128,9 @@ function llmStep(overrides: Record<string, unknown> = {}): MonitorStep {
 }
 
 function lastCount(): LlmAnswerCountQuery {
-  return countAnswers.mock.calls[countAnswers.mock.calls.length - 1]![0] as
-    LlmAnswerCountQuery;
+  return countAnswers.mock.calls[
+    countAnswers.mock.calls.length - 1
+  ]![0] as LlmAnswerCountQuery;
 }
 
 function givenLedger(
@@ -394,9 +397,7 @@ describe("An AI / LLM check in the worker", () => {
     await runOnce();
 
     expect(countAnswers).toHaveBeenCalledTimes(1);
-    expect(lastCount().endTime.getTime()).toBeLessThan(
-      Date.now() - 5 * MINUTE,
-    );
+    expect(lastCount().endTime.getTime()).toBeLessThan(Date.now() - 5 * MINUTE);
   });
 });
 

@@ -536,7 +536,9 @@ describe("the conversation keys the view and the answer checks read", () => {
   test("the Vercel AI SDK's prompt and answer are content sources", () => {
     expect(LlmPromptJsonAttributeKeys).toContain("ai.prompt.messages");
     expect(LlmCompletionJsonAttributeKeys).toContain("ai.response.text");
-    expect(LlmResponseToolCallsAttributeKeys).toEqual(["ai.response.toolCalls"]);
+    expect(LlmResponseToolCallsAttributeKeys).toEqual([
+      "ai.response.toolCalls",
+    ]);
     expect(LlmFinishReasonAttributeKeys).toContain("ai.response.finishReason");
   });
 

@@ -332,16 +332,16 @@ describe("getUserMessagePreview", () => {
   });
 
   test("no prompt recorded, an image-only question and garbage all have no preview", () => {
-    expect(
-      LlmSpanUtil.getUserMessagePreview({ attributes: chat() }),
-    ).toBe("");
+    expect(LlmSpanUtil.getUserMessagePreview({ attributes: chat() })).toBe("");
     expect(
       LlmSpanUtil.getUserMessagePreview({
         attributes: {
           "gen_ai.input.messages": JSON.stringify([
             {
               role: "user",
-              content: [{ type: "image_url", image_url: { url: "https://x/y.png" } }],
+              content: [
+                { type: "image_url", image_url: { url: "https://x/y.png" } },
+              ],
             },
           ]),
         },

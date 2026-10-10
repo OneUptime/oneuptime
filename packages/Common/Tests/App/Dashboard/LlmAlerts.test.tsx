@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -14,21 +21,28 @@ type CapturedTableProps = {
   description?: string;
   emptyState?: { title?: string; description?: string };
   disableCreate?: boolean;
-  cardButtons?: Array<{ title: string; onClick: () => void; disabled?: boolean }>;
+  cardButtons?: Array<{
+    title: string;
+    onClick: () => void;
+    disabled?: boolean;
+  }>;
   saveFilterProps?: { tableId: string };
 };
 
 let mockTableProps: CapturedTableProps | null = null;
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable", () => {
-  return {
-    __esModule: true,
-    default: (props: CapturedTableProps) => {
-      mockTableProps = props;
-      return null;
-    },
-  };
-});
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: CapturedTableProps) => {
+        mockTableProps = props;
+        return null;
+      },
+    };
+  },
+);
 
 type CapturedFormProps = {
   initialValues: Record<string, unknown>;
@@ -97,7 +111,9 @@ let postSpy: ReturnType<typeof jest.spyOn>;
 beforeEach(() => {
   mockTableProps = null;
   mockFormProps = null;
-  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
   postSpy = jest.spyOn(API, "post");
 });
 
@@ -124,7 +140,8 @@ describe("the Alerts tab", () => {
       </MemoryRouter>,
     );
 
-    const cards: Array<HTMLElement> = screen.getAllByTestId("llm-alert-template");
+    const cards: Array<HTMLElement> =
+      screen.getAllByTestId("llm-alert-template");
 
     expect(
       cards.map((card: HTMLElement): string | null => {
@@ -138,13 +155,17 @@ describe("the Alerts tab", () => {
 
     for (const card of cards) {
       const copy: (typeof LLM_MONITOR_TEMPLATE_COPY)[LlmMonitorTemplateId] =
-        LLM_MONITOR_TEMPLATE_COPY[card.getAttribute("data-template-id") as LlmMonitorTemplateId];
+        LLM_MONITOR_TEMPLATE_COPY[
+          card.getAttribute("data-template-id") as LlmMonitorTemplateId
+        ];
 
       expect(card).toHaveTextContent(copy.title);
       expect(card).toHaveTextContent(copy.description);
     }
 
-    expect(screen.getByTestId("llm-alerts-spend")).toHaveTextContent("Spend goes over budget");
+    expect(screen.getByTestId("llm-alerts-spend")).toHaveTextContent(
+      "Spend goes over budget",
+    );
     expect(screen.getByText("Open Budgets").closest("a")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/llm/budgets`,
@@ -163,14 +184,19 @@ describe("the Alerts tab", () => {
     const card: HTMLElement = screen
       .getAllByTestId("llm-alert-template")
       .find((element: HTMLElement): boolean => {
-        return element.getAttribute("data-template-id") === LlmMonitorTemplateId.Refusals;
+        return (
+          element.getAttribute("data-template-id") ===
+          LlmMonitorTemplateId.Refusals
+        );
       })!;
     const href: string | null = card.querySelector("a")!.getAttribute("href");
 
-    expect(href?.split("?")[0]).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
-    expect(new URLSearchParams(href?.split("?")[1]).get("llmMonitorTemplate")).toBe(
-      LlmMonitorTemplateId.Refusals,
+    expect(href?.split("?")[0]).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/create`,
     );
+    expect(
+      new URLSearchParams(href?.split("?")[1]).get("llmMonitorTemplate"),
+    ).toBe(LlmMonitorTemplateId.Refusals);
     expect(card).toHaveTextContent("Create alert");
   });
 
@@ -189,7 +215,9 @@ describe("the Alerts tab", () => {
     expect(mockTableProps?.emptyState?.title).toBe("No AI alerts yet");
     // Creating goes through the AI form, not the table's generic one.
     expect(mockTableProps?.disableCreate).toBe(true);
-    expect(mockTableProps?.saveFilterProps?.tableId).toBe("llm-alerts-monitors-table");
+    expect(mockTableProps?.saveFilterProps?.tableId).toBe(
+      "llm-alerts-monitors-table",
+    );
   });
 
   test("Create AI alert opens Create Monitor on the AI / LLM type", () => {
@@ -204,7 +232,8 @@ describe("the Alerts tab", () => {
       </MemoryRouter>,
     );
 
-    const button: { title: string; onClick: () => void } = mockTableProps!.cardButtons![0]!;
+    const button: { title: string; onClick: () => void } =
+      mockTableProps!.cardButtons![0]!;
 
     expect(button.title).toBe("Create AI alert");
 
@@ -212,8 +241,12 @@ describe("the Alerts tab", () => {
 
     const target: string = String(navigate.mock.calls[0]![0]);
 
-    expect(target.split("?")[0]).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
-    expect(new URLSearchParams(target.split("?")[1]).get("monitorType")).toBe(MonitorType.Llm);
+    expect(target.split("?")[0]).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/create`,
+    );
+    expect(new URLSearchParams(target.split("?")[1]).get("monitorType")).toBe(
+      MonitorType.Llm,
+    );
   });
 
   test("someone who may not create monitors is told so, not handed a form they cannot save", () => {
@@ -227,7 +260,9 @@ describe("the Alerts tab", () => {
 
     expect(screen.queryByText("Create alert")).not.toBeInTheDocument();
     expect(
-      screen.getAllByText("You need permission to create monitors to set this up."),
+      screen.getAllByText(
+        "You need permission to create monitors to set this up.",
+      ),
     ).toHaveLength(LlmMonitorTemplates.getAll().length);
     expect(mockTableProps?.cardButtons).toEqual([]);
   });
@@ -237,7 +272,7 @@ describe("the Alerts tab", () => {
       .spyOn(PermissionGate, "gateCardButton")
       .mockImplementation((button: unknown): never => {
         return {
-          ...(button as object),
+          ...(button as Record<string, unknown>),
           disabled: true,
           tooltip: "You need the Create Monitor permission.",
         } as never;
@@ -264,7 +299,9 @@ describe("the Alerts tab", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("llm-alert-template")).toHaveTextContent("The AI stops answering");
+    expect(screen.getByTestId("llm-alert-template")).toHaveTextContent(
+      "The AI stops answering",
+    );
   });
 });
 
@@ -292,18 +329,30 @@ describe("the preview of what a monitor would count", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("llm-monitor-preview-window")).toHaveTextContent("Last 15 minutes");
-    expect(screen.getByTestId("llm-monitor-preview-loading")).toBeInTheDocument();
-
-    expect(await screen.findByTestId("llm-monitor-preview-answers-value")).toHaveTextContent(
-      "1,204",
+    expect(screen.getByTestId("llm-monitor-preview-window")).toHaveTextContent(
+      "Last 15 minutes",
     );
-    expect(screen.getByTestId("llm-monitor-preview-bad-value")).toHaveTextContent("9");
-    expect(screen.getByTestId("llm-monitor-preview-share-value")).toHaveTextContent("0.75%");
-    // Bad answers read in red.
-    expect(screen.getByTestId("llm-monitor-preview-bad-value").className).toContain("text-red-700");
+    expect(
+      screen.getByTestId("llm-monitor-preview-loading"),
+    ).toBeInTheDocument();
 
-    const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<Array<unknown>>;
+    expect(
+      await screen.findByTestId("llm-monitor-preview-answers-value"),
+    ).toHaveTextContent("1,204");
+    expect(
+      screen.getByTestId("llm-monitor-preview-bad-value"),
+    ).toHaveTextContent("9");
+    expect(
+      screen.getByTestId("llm-monitor-preview-share-value"),
+    ).toHaveTextContent("0.75%");
+    // Bad answers read in red.
+    expect(
+      screen.getByTestId("llm-monitor-preview-bad-value").className,
+    ).toContain("text-red-700");
+
+    const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<
+      Array<unknown>
+    >;
 
     expect(
       (calls[0]![0] as { url: { toString: () => string } }).url.toString(),
@@ -325,7 +374,9 @@ describe("the preview of what a monitor would count", () => {
     const href: string = link.getAttribute("href") || "";
     const query: URLSearchParams = new URLSearchParams(href.split("?")[1]);
 
-    expect(href.split("?")[0]).toBe(`/dashboard/${PROJECT_ID}/llm/conversations`);
+    expect(href.split("?")[0]).toBe(
+      `/dashboard/${PROJECT_ID}/llm/conversations`,
+    );
     expect(query.get("range")).toBe(TimeRange.CUSTOM);
     expect(query.get("start")).toBe("2026-10-10T08:45:00.000Z");
     expect(query.get("end")).toBe("2026-10-10T09:00:00.000Z");
@@ -341,14 +392,21 @@ describe("the preview of what a monitor would count", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId("llm-monitor-preview-bad-value")).toHaveTextContent("0");
-    expect(screen.getByTestId("llm-monitor-preview-bad-value").className).not.toContain(
-      "text-red-700",
-    );
+    expect(
+      await screen.findByTestId("llm-monitor-preview-bad-value"),
+    ).toHaveTextContent("0");
+    expect(
+      screen.getByTestId("llm-monitor-preview-bad-value").className,
+    ).not.toContain("text-red-700");
   });
 
   test("no answers yet: says the monitor counts them as they arrive", async () => {
-    respondWith({ ...STATS, answerCount: 0, badAnswerCount: 0, badAnswerPercent: 0 });
+    respondWith({
+      ...STATS,
+      answerCount: 0,
+      badAnswerCount: 0,
+      badAnswerPercent: 0,
+    });
 
     render(
       <MemoryRouter>
@@ -356,15 +414,21 @@ describe("the preview of what a monitor would count", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId("llm-monitor-preview-empty")).toHaveTextContent(
-      "No AI answers in this window yet.",
-    );
-    expect(screen.queryByText("See the conversations that need attention")).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId("llm-monitor-preview-empty"),
+    ).toHaveTextContent("No AI answers in this window yet.");
+    expect(
+      screen.queryByText("See the conversations that need attention"),
+    ).not.toBeInTheDocument();
   });
 
   test("an error is said in place", async () => {
     postSpy.mockImplementation(async (): Promise<HTTPErrorResponse> => {
-      return new HTTPErrorResponse(403, { error: "You cannot read traces." }, {});
+      return new HTTPErrorResponse(
+        403,
+        { error: "You cannot read traces." },
+        {},
+      );
     });
 
     render(
@@ -373,15 +437,17 @@ describe("the preview of what a monitor would count", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId("llm-monitor-preview-error")).toHaveTextContent(
-      "You cannot read traces.",
-    );
+    expect(
+      await screen.findByTestId("llm-monitor-preview-error"),
+    ).toHaveTextContent("You cannot read traces.");
   });
 
   test("an answer it cannot read is an error too", async () => {
-    postSpy.mockImplementation(async (): Promise<HTTPResponse<Array<JSONObject>>> => {
-      return new HTTPResponse<Array<JSONObject>>(200, [], {});
-    });
+    postSpy.mockImplementation(
+      async (): Promise<HTTPResponse<Array<JSONObject>>> => {
+        return new HTTPResponse<Array<JSONObject>>(200, [], {});
+      },
+    );
 
     render(
       <MemoryRouter>
@@ -389,9 +455,9 @@ describe("the preview of what a monitor would count", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId("llm-monitor-preview-error")).toHaveTextContent(
-      "The preview could not be read.",
-    );
+    expect(
+      await screen.findByTestId("llm-monitor-preview-error"),
+    ).toHaveTextContent("The preview could not be read.");
   });
 
   test("settings changed in a burst are read once they settle", async () => {
@@ -416,9 +482,8 @@ describe("the preview of what a monitor would count", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(
-      ((postSpy.mock.calls[0] as Array<unknown>)[0] as { data: JSONObject }).data[
-        "slowAnswerSeconds"
-      ],
+      ((postSpy.mock.calls[0] as Array<unknown>)[0] as { data: JSONObject })
+        .data["slowAnswerSeconds"],
     ).toBe(20);
     expect(LLM_MONITOR_PREVIEW_DEBOUNCE_MS).toBe(500);
   });
@@ -453,9 +518,11 @@ describe("the preview of what a monitor would count", () => {
     const resolvers: Array<(response: HTTPResponse<JSONObject>) => void> = [];
 
     postSpy.mockImplementation((): Promise<HTTPResponse<JSONObject>> => {
-      return new Promise((resolve: (response: HTTPResponse<JSONObject>) => void) => {
-        resolvers.push(resolve);
-      });
+      return new Promise(
+        (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+          resolvers.push(resolve);
+        },
+      );
     });
 
     const step: MonitorStepLlmMonitor = MonitorStepLlmMonitorUtil.getDefault();
@@ -471,7 +538,9 @@ describe("the preview of what a monitor would count", () => {
 
     view.rerender(
       <MemoryRouter>
-        <LlmMonitorPreview step={{ ...step, issues: [LlmAnswerIssue.Failed] }} />
+        <LlmMonitorPreview
+          step={{ ...step, issues: [LlmAnswerIssue.Failed] }}
+        />
       </MemoryRouter>,
     );
 
@@ -480,13 +549,19 @@ describe("the preview of what a monitor would count", () => {
     });
 
     await act(async () => {
-      resolvers[1]!(new HTTPResponse<JSONObject>(200, { ...STATS, answerCount: 2 }, {}));
+      resolvers[1]!(
+        new HTTPResponse<JSONObject>(200, { ...STATS, answerCount: 2 }, {}),
+      );
     });
     await act(async () => {
-      resolvers[0]!(new HTTPResponse<JSONObject>(200, { ...STATS, answerCount: 999 }, {}));
+      resolvers[0]!(
+        new HTTPResponse<JSONObject>(200, { ...STATS, answerCount: 999 }, {}),
+      );
     });
 
-    expect(screen.getByTestId("llm-monitor-preview-answers-value")).toHaveTextContent("2");
+    expect(
+      screen.getByTestId("llm-monitor-preview-answers-value"),
+    ).toHaveTextContent("2");
   });
 });
 
@@ -540,7 +615,8 @@ describe("the AI / LLM monitor's form", () => {
       return new Promise(() => {}) as never;
     });
 
-    const onChanged: jest.Mock<(value: MonitorStepLlmMonitor) => void> = jest.fn();
+    const onChanged: jest.Mock<(value: MonitorStepLlmMonitor) => void> =
+      jest.fn();
 
     render(
       <MemoryRouter>
@@ -571,7 +647,9 @@ describe("the AI / LLM monitor's form", () => {
     expect(step.model).toBe("gpt-4o");
 
     // The preview reads the window the form now shows.
-    expect(screen.getByTestId("llm-monitor-preview-window")).toHaveTextContent("Last 30 minutes");
+    expect(screen.getByTestId("llm-monitor-preview-window")).toHaveTextContent(
+      "Last 30 minutes",
+    );
   });
 
   test("a monitor opened for editing fills the form", () => {

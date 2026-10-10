@@ -233,7 +233,10 @@ export default class LlmConversationReplay {
       return real;
     }
 
-    const share: number = Math.min(1, Math.max(0, (clockMs - point) / replaySpan));
+    const share: number = Math.min(
+      1,
+      Math.max(0, (clockMs - point) / replaySpan),
+    );
 
     return real + share * Math.max(0, nextReal - real);
   }

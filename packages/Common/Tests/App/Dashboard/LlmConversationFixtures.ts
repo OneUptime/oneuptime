@@ -132,15 +132,24 @@ export function travelTranscript(): LlmTranscript {
 
 export function conversationResponse(
   transcript: LlmTranscript,
-  data: { kind?: LlmConversationKeyKind; conversationId?: string; truncated?: boolean } = {},
+  data: {
+    kind?: LlmConversationKeyKind;
+    conversationId?: string;
+    truncated?: boolean;
+  } = {},
 ): JSONObject {
-  const kind: LlmConversationKeyKind = data.kind || LlmConversationKeyKind.Conversation;
+  const kind: LlmConversationKeyKind =
+    data.kind || LlmConversationKeyKind.Conversation;
   const conversationId: string = data.conversationId ?? "chat-1";
 
   return {
-    key: kind === LlmConversationKeyKind.Request ? `t:${TRACE_ID}` : `c:${conversationId}`,
+    key:
+      kind === LlmConversationKeyKind.Request
+        ? `t:${TRACE_ID}`
+        : `c:${conversationId}`,
     kind: kind,
-    conversationId: kind === LlmConversationKeyKind.Request ? "" : conversationId,
+    conversationId:
+      kind === LlmConversationKeyKind.Request ? "" : conversationId,
     truncated: data.truncated === true,
     transcript: transcript as unknown as JSONObject,
   };

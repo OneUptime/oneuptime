@@ -1397,7 +1397,9 @@ export default class MonitorStep extends DatabaseProperty {
        */
       llmMonitor: json["llmMonitor"]
         ? MonitorStepLlmMonitorUtil.toJSON(
-            MonitorStepLlmMonitorUtil.fromJSON(json["llmMonitor"] as JSONObject),
+            MonitorStepLlmMonitorUtil.fromJSON(
+              json["llmMonitor"] as JSONObject,
+            ),
           )
         : undefined,
       /*

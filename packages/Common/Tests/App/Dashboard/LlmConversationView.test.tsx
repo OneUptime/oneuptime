@@ -1,6 +1,21 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -15,7 +30,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
     default: (props: { text: string }) => {
-      return mockReact.createElement("div", { "data-testid": "llm-markdown" }, props.text);
+      return mockReact.createElement(
+        "div",
+        { "data-testid": "llm-markdown" },
+        props.text,
+      );
     },
   };
 });
@@ -88,7 +107,9 @@ function respondWith(body: JSONObject): void {
 }
 
 function postedBody(): JSONObject {
-  const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<Array<unknown>>;
+  const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<
+    Array<unknown>
+  >;
 
   return (calls[calls.length - 1]![0] as { data: JSONObject }).data;
 }
@@ -105,20 +126,25 @@ async function openConversation(
   );
 
   await waitFor(() => {
-    expect(screen.queryByTestId("llm-conversation-loading")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-loading"),
+    ).not.toBeInTheDocument();
   });
 }
 
 function stepTypes(): Array<string | null> {
-  return screen.getAllByTestId("llm-step").map((step: HTMLElement): string | null => {
-    return step.getAttribute("data-step-type");
-  });
+  return screen
+    .getAllByTestId("llm-step")
+    .map((step: HTMLElement): string | null => {
+      return step.getAttribute("data-step-type");
+    });
 }
 
 function fact(key: string): string | null {
   return (
-    screen.getByTestId("llm-conversation-header").querySelector(`[data-fact="${key}"]`)
-      ?.textContent || null
+    screen
+      .getByTestId("llm-conversation-header")
+      .querySelector(`[data-fact="${key}"]`)?.textContent || null
   );
 }
 
@@ -140,14 +166,18 @@ beforeEach(() => {
     },
   });
 
-  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(new ObjectID(PROJECT_ID));
-  jest.spyOn(ModelAPI, "getList").mockImplementation(async (): Promise<never> => {
-    const service: Service = new Service();
-    service._id = APP_ID;
-    service.name = "Support bot";
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation(async (): Promise<never> => {
+      const service: Service = new Service();
+      service._id = APP_ID;
+      service.name = "Support bot";
 
-    return { data: [service], count: 1, skip: 0, limit: 1 } as never;
-  });
+      return { data: [service], count: 1, skip: 0, limit: 1 } as never;
+    });
   postSpy = jest.spyOn(API, "post");
 });
 
@@ -162,7 +192,9 @@ describe("reading a conversation", () => {
 
     await openConversation();
 
-    const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<Array<unknown>>;
+    const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<
+      Array<unknown>
+    >;
 
     expect(
       (calls[0]![0] as { url: { toString: () => string } }).url.toString(),
@@ -215,7 +247,9 @@ describe("reading a conversation", () => {
       ),
     ).toHaveTextContent("1 refusal");
     // Fully drawn: nothing is waiting in a replay.
-    expect(screen.queryByTestId("llm-replay-hidden-note")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-replay-hidden-note"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("llm-replay-play")).toHaveTextContent("Replay");
   });
 
@@ -224,7 +258,9 @@ describe("reading a conversation", () => {
 
     await openConversation();
 
-    const instructions: HTMLElement = screen.getByTestId("llm-conversation-instructions");
+    const instructions: HTMLElement = screen.getByTestId(
+      "llm-conversation-instructions",
+    );
 
     expect(instructions.tagName).toBe("DETAILS");
     expect(instructions).toHaveTextContent("Instructions the AI was given");
@@ -258,29 +294,38 @@ describe("reading a conversation", () => {
 
     await openConversation();
 
-    expect(screen.queryByTestId("llm-conversation-request-note")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("llm-conversation-no-content-note")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("llm-conversation-truncated-note")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-request-note"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-no-content-note"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversation-truncated-note"),
+    ).not.toBeInTheDocument();
   });
 });
 
 describe("what the page says about the conversation it shows", () => {
   test("one request, when the app sent no conversation id", async () => {
     respondWith(
-      conversationResponse(travelTranscript(), { kind: LlmConversationKeyKind.Request }),
+      conversationResponse(travelTranscript(), {
+        kind: LlmConversationKeyKind.Request,
+      }),
     );
 
     await openConversation(`${BASE}/t%3A${TRACE_ID}`);
 
-    const note: HTMLElement = screen.getByTestId("llm-conversation-request-note");
+    const note: HTMLElement = screen.getByTestId(
+      "llm-conversation-request-note",
+    );
 
     expect(note).toHaveTextContent(
       "Your app did not send a conversation id, so this shows one request",
     );
-    expect(within(note).getByText("Group calls into conversations").closest("a")).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/llm/documentation`,
-    );
+    expect(
+      within(note).getByText("Group calls into conversations").closest("a"),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/llm/documentation`);
   });
 
   test("prompts and answers that were not recorded", async () => {
@@ -292,7 +337,9 @@ describe("what the page says about the conversation it shows", () => {
 
     await openConversation();
 
-    expect(screen.getByTestId("llm-conversation-no-content-note")).toHaveTextContent(
+    expect(
+      screen.getByTestId("llm-conversation-no-content-note"),
+    ).toHaveTextContent(
       "Prompts and answers were not recorded for this conversation",
     );
     expect(stepTypes()).toEqual(["silent_answer"]);
@@ -303,9 +350,9 @@ describe("what the page says about the conversation it shows", () => {
 
     await openConversation();
 
-    expect(screen.getByTestId("llm-conversation-truncated-note")).toHaveTextContent(
-      "it shows its first 500 AI calls",
-    );
+    expect(
+      screen.getByTestId("llm-conversation-truncated-note"),
+    ).toHaveTextContent("it shows its first 500 AI calls");
   });
 });
 
@@ -324,12 +371,18 @@ describe("when the conversation cannot be shown", () => {
 
     fireEvent.click(screen.getByTestId("llm-conversation-back"));
 
-    expect(String(navigate.mock.calls[0]![0])).toBe(`/dashboard/${PROJECT_ID}/llm/conversations`);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/llm/conversations`,
+    );
   });
 
   test("an error says what went wrong, and Try again tries again", async () => {
     postSpy.mockImplementationOnce(async (): Promise<HTTPErrorResponse> => {
-      return new HTTPErrorResponse(403, { error: "You cannot read traces." }, {});
+      return new HTTPErrorResponse(
+        403,
+        { error: "You cannot read traces." },
+        {},
+      );
     });
 
     await openConversation();
@@ -344,7 +397,9 @@ describe("when the conversation cannot be shown", () => {
     respondWith(conversationResponse(travelTranscript()));
     fireEvent.click(screen.getByTestId("refresh-button"));
 
-    expect(await screen.findByTestId("llm-conversation-view")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("llm-conversation-view"),
+    ).toBeInTheDocument();
     expect(postSpy).toHaveBeenCalledTimes(2);
   });
 
@@ -383,7 +438,9 @@ describe("replaying", () => {
     fireEvent.click(screen.getByTestId("llm-replay-show-all"));
 
     expect(stepTypes()).toHaveLength(4);
-    expect(screen.queryByTestId("llm-replay-hidden-note")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-replay-hidden-note"),
+    ).not.toBeInTheDocument();
   });
 
   test("J and L step back and forward; the URL keeps the message", async () => {
@@ -424,7 +481,10 @@ describe("replaying", () => {
 
     fireEvent.keyDown(window, { key: "k" });
 
-    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute("data-state", "playing");
+    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute(
+      "data-state",
+      "playing",
+    );
     expect(stepTypes()).toEqual(["user"]);
   });
 
@@ -456,11 +516,15 @@ describe("replaying", () => {
       "AI is answering… 1.0 s",
     );
     // While playing, what is still to come is not announced.
-    expect(screen.queryByTestId("llm-replay-hidden-note")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-replay-hidden-note"),
+    ).not.toBeInTheDocument();
 
     runFrame(2100);
 
-    expect(screen.queryByTestId("llm-replay-pending-answer")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-replay-pending-answer"),
+    ).not.toBeInTheDocument();
     expect(stepTypes()).toEqual(["user", "assistant"]);
   });
 
@@ -473,7 +537,10 @@ describe("replaying", () => {
 
     fireEvent.click(times[2]!);
 
-    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute("data-state", "playing");
+    expect(screen.getByTestId("llm-replay-play")).toHaveAttribute(
+      "data-state",
+      "playing",
+    );
     expect(stepTypes()).toEqual(["user", "assistant", "user"]);
   });
 
@@ -490,7 +557,10 @@ describe("replaying", () => {
 });
 
 describe("getLlmConversationTitle", () => {
-  const translator: ReturnType<typeof createTranslator> = createTranslator(undefined, "en");
+  const translator: ReturnType<typeof createTranslator> = createTranslator(
+    undefined,
+    "en",
+  );
 
   test("the first thing the person asked, cut to two hundred characters", () => {
     expect(

@@ -79,7 +79,9 @@ function strings(key: string, values: Array<string>): OtlpAttribute {
   };
 }
 
-function chatAttributes(extra: Array<OtlpAttribute> = []): Array<OtlpAttribute> {
+function chatAttributes(
+  extra: Array<OtlpAttribute> = [],
+): Array<OtlpAttribute> {
   return [
     str("gen_ai.operation.name", "chat"),
     str("gen_ai.system", "openai"),
@@ -281,9 +283,11 @@ describe("the AI call columns on a stored span", () => {
       request({ attributes: chatAttributes(), statusCode: 2 }),
     );
 
-    expect(rows.map((row: JSONObject) => {
-      return row["llmIssues"];
-    })).toEqual([["refused"], ["failed"]]);
+    expect(
+      rows.map((row: JSONObject) => {
+        return row["llmIssues"];
+      }),
+    ).toEqual([["refused"], ["failed"]]);
   });
 
   test("an evaluation event on the span flags the answer", async () => {
@@ -332,7 +336,10 @@ describe("the preview is read AFTER the scrub rules", () => {
           str(
             "gen_ai.input.messages",
             JSON.stringify([
-              { role: "user", content: "Please email ada@example.com the invoice" },
+              {
+                role: "user",
+                content: "Please email ada@example.com the invoice",
+              },
             ]),
           ),
         ]),

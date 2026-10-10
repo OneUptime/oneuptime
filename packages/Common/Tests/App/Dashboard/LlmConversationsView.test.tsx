@@ -1,6 +1,20 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import LlmConversationsView from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationsView";
@@ -47,9 +61,11 @@ let postSpy: ReturnType<typeof jest.spyOn>;
 let navigateSpy: ReturnType<typeof jest.spyOn>;
 
 function bodies(): Array<JSONObject> {
-  return (postSpy.mock.calls as Array<Array<unknown>>).map((call: Array<unknown>): JSONObject => {
-    return (call[0] as { data: JSONObject }).data;
-  });
+  return (postSpy.mock.calls as Array<Array<unknown>>).map(
+    (call: Array<unknown>): JSONObject => {
+      return (call[0] as { data: JSONObject }).data;
+    },
+  );
 }
 
 function lastBody(): JSONObject {
@@ -72,14 +88,18 @@ async function openList(query: string = ""): Promise<void> {
   );
 
   await waitFor(() => {
-    expect(screen.queryByTestId("llm-conversations-loading")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversations-loading"),
+    ).not.toBeInTheDocument();
   });
 }
 
 async function settled(requests: number): Promise<void> {
   await waitFor(() => {
     expect(postSpy).toHaveBeenCalledTimes(requests);
-    expect(screen.queryByTestId("llm-conversations-loading")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversations-loading"),
+    ).not.toBeInTheDocument();
   });
 }
 
@@ -103,32 +123,40 @@ beforeEach(() => {
     hasMore: false,
   };
 
-  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(new ObjectID(PROJECT_ID));
-  jest.spyOn(ModelAPI, "getList").mockImplementation(async (): Promise<never> => {
-    const service: Service = new Service();
-    service._id = APP_ID;
-    service.name = "Support bot";
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation(async (): Promise<never> => {
+      const service: Service = new Service();
+      service._id = APP_ID;
+      service.name = "Support bot";
 
-    return { data: [service], count: 1, skip: 0, limit: 1 } as never;
-  });
-  navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
-  postSpy = jest.spyOn(API, "post").mockImplementation(
-    async (args: unknown): Promise<HTTPResponse<JSONObject>> => {
-      const body: JSONObject = (args as { data: JSONObject }).data;
+      return { data: [service], count: 1, skip: 0, limit: 1 } as never;
+    });
+  navigateSpy = jest
+    .spyOn(Navigation, "navigate")
+    .mockImplementation((): void => {});
+  postSpy = jest
+    .spyOn(API, "post")
+    .mockImplementation(
+      async (args: unknown): Promise<HTTPResponse<JSONObject>> => {
+        const body: JSONObject = (args as { data: JSONObject }).data;
 
-      return new HTTPResponse<JSONObject>(
-        200,
-        {
-          summary: body["includeSummary"]
-            ? (server.summary as unknown as JSONObject)
-            : null,
-          conversations: server.conversations as unknown as Array<JSONObject>,
-          hasMore: server.hasMore,
-        } as JSONObject,
-        {},
-      );
-    },
-  );
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            summary: body["includeSummary"]
+              ? (server.summary as unknown as JSONObject)
+              : null,
+            conversations: server.conversations as unknown as Array<JSONObject>,
+            hasMore: server.hasMore,
+          } as JSONObject,
+          {},
+        );
+      },
+    );
 });
 
 afterEach(() => {
@@ -159,16 +187,23 @@ describe("opening the list", () => {
   test("the numbers, the chips with their counts, and a row per conversation", async () => {
     await openList();
 
-    expect(screen.getByTestId("llm-summary-conversations-value")).toHaveTextContent("120");
+    expect(
+      screen.getByTestId("llm-summary-conversations-value"),
+    ).toHaveTextContent("120");
     expect(screen.getByTestId("llm-chip-all-count")).toHaveTextContent("120");
     expect(screen.getByTestId("llm-chip-any-count")).toHaveTextContent("6");
     expect(screen.getByTestId("llm-chip-refused-count")).toHaveTextContent("4");
     expect(screen.getByTestId("llm-chip-failed-count")).toHaveTextContent("2");
     // A problem no conversation had is not offered as a chip.
     expect(screen.queryByTestId("llm-chip-cut_off")).not.toBeInTheDocument();
-    expect(screen.getByTestId("llm-chip-all")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("llm-chip-all")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
-    const rows: Array<HTMLElement> = screen.getAllByTestId("llm-conversation-row");
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "llm-conversation-row",
+    );
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("Where should I go in May?");
@@ -178,8 +213,10 @@ describe("opening the list", () => {
   test("each row opens its conversation, with where to look for it", async () => {
     await openList();
 
-    const href: string | null =
-      screen.getAllByTestId("llm-conversation-row")[0]!.closest("a")!.getAttribute("href");
+    const href: string | null = screen
+      .getAllByTestId("llm-conversation-row")[0]!
+      .closest("a")!
+      .getAttribute("href");
 
     expect(href?.split("?")[0]).toBe(`${PAGE}/c%3Achat-1`);
     expect(new URLSearchParams(href?.split("?")[1]).get("from")).toBe(
@@ -202,8 +239,13 @@ describe("opening the list", () => {
     expect(body["sort"]).toBe(LlmConversationSort.MostExpensive);
     expect(body["skip"]).toBe(2 * LLM_CONVERSATION_PAGE_SIZE);
     expect(body["serviceIds"]).toEqual([APP_ID]);
-    expect(screen.getByTestId("llm-conversations-search")).toHaveValue("refund");
-    expect(screen.getByTestId("llm-chip-refused")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("llm-conversations-search")).toHaveValue(
+      "refund",
+    );
+    expect(screen.getByTestId("llm-chip-refused")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });
 
@@ -218,9 +260,14 @@ describe("narrowing the list", () => {
     expect(lastBody()["includeSummary"]).toBe(false);
     expect(lastBody()["skip"]).toBe(0);
     expect(urlParam("issue")).toBe("any");
-    expect(screen.getByTestId("llm-chip-any")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("llm-chip-any")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     // The numbers stay: they describe the time range, not the chip.
-    expect(screen.getByTestId("llm-summary-conversations-value")).toHaveTextContent("120");
+    expect(
+      screen.getByTestId("llm-summary-conversations-value"),
+    ).toHaveTextContent("120");
   });
 
   test("the Need attention tile does the same", async () => {
@@ -251,7 +298,10 @@ describe("narrowing the list", () => {
   test("a chosen problem keeps its chip even when nothing has it", async () => {
     await openList("?issue=cut_off");
 
-    expect(screen.getByTestId("llm-chip-cut_off")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("llm-chip-cut_off")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByTestId("llm-chip-cut_off-count")).toHaveTextContent("0");
   });
 
@@ -277,7 +327,13 @@ describe("narrowing the list", () => {
         .map((option: HTMLElement): string | null => {
           return option.textContent;
         }),
-    ).toEqual(["Newest first", "Oldest first", "Most expensive", "Slowest answers", "Most calls"]);
+    ).toEqual([
+      "Newest first",
+      "Oldest first",
+      "Most expensive",
+      "Slowest answers",
+      "Most calls",
+    ]);
   });
 
   test("a search waits for typing to settle, then re-counts", async () => {
@@ -325,10 +381,16 @@ describe("narrowing the list", () => {
   test("one app", async () => {
     await openList();
 
-    const select: HTMLElement = await screen.findByTestId("llm-conversations-app");
+    const select: HTMLElement = await screen.findByTestId(
+      "llm-conversations-app",
+    );
 
-    expect(within(select).getByRole("option", { name: "All apps" })).toBeInTheDocument();
-    expect(within(select).getByRole("option", { name: "Support bot" })).toBeInTheDocument();
+    expect(
+      within(select).getByRole("option", { name: "All apps" }),
+    ).toBeInTheDocument();
+    expect(
+      within(select).getByRole("option", { name: "Support bot" }),
+    ).toBeInTheDocument();
 
     fireEvent.change(select, { target: { value: APP_ID } });
     await settled(2);
@@ -339,13 +401,17 @@ describe("narrowing the list", () => {
   });
 
   test("with no apps to choose from, there is no app filter", async () => {
-    jest.spyOn(ModelAPI, "getList").mockImplementation(async (): Promise<never> => {
-      return { data: [], count: 0, skip: 0, limit: 0 } as never;
-    });
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation(async (): Promise<never> => {
+        return { data: [], count: 0, skip: 0, limit: 0 } as never;
+      });
 
     await openList();
 
-    expect(screen.queryByTestId("llm-conversations-app")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversations-app"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -355,7 +421,9 @@ describe("pages", () => {
 
     await openList();
 
-    const pagination: HTMLElement = screen.getByTestId("llm-conversations-pagination");
+    const pagination: HTMLElement = screen.getByTestId(
+      "llm-conversations-pagination",
+    );
 
     expect(pagination).toHaveTextContent("Showing 1–2 of 120");
     expect(screen.getByTestId("llm-conversations-previous")).toBeDisabled();
@@ -366,7 +434,9 @@ describe("pages", () => {
     expect(lastBody()["skip"]).toBe(LLM_CONVERSATION_PAGE_SIZE);
     expect(lastBody()["includeSummary"]).toBe(false);
     expect(urlParam("page")).toBe("1");
-    expect(screen.getByTestId("llm-conversations-pagination")).toHaveTextContent(
+    expect(
+      screen.getByTestId("llm-conversations-pagination"),
+    ).toHaveTextContent(
       `Showing ${LLM_CONVERSATION_PAGE_SIZE + 1}–${LLM_CONVERSATION_PAGE_SIZE + 2} of 120`,
     );
 
@@ -382,15 +452,17 @@ describe("pages", () => {
 
     await openList("?issue=refused");
 
-    expect(screen.getByTestId("llm-conversations-pagination")).toHaveTextContent(
-      "Showing 1–2 of 4",
-    );
+    expect(
+      screen.getByTestId("llm-conversations-pagination"),
+    ).toHaveTextContent("Showing 1–2 of 4");
   });
 
   test("one page is no pagination", async () => {
     await openList();
 
-    expect(screen.queryByTestId("llm-conversations-pagination")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversations-pagination"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -410,7 +482,9 @@ describe("when there is nothing to show", () => {
     expect(empty).toHaveTextContent("No AI conversations here yet");
     expect(empty).toHaveTextContent("OpenLLMetry");
     expect(screen.queryByTestId("llm-summary-tiles")).not.toBeInTheDocument();
-    expect(screen.getByTestId("llm-conversations-chips").parentElement).toHaveClass("hidden");
+    expect(
+      screen.getByTestId("llm-conversations-chips").parentElement,
+    ).toHaveClass("hidden");
 
     fireEvent.click(screen.getByTestId("llm-conversations-setup"));
 
@@ -424,7 +498,10 @@ describe("when there is nothing to show", () => {
   });
 
   test("an empty week offers the past month", async () => {
-    server.summary = summary({ conversationCount: 0, problemConversationCount: 0 });
+    server.summary = summary({
+      conversationCount: 0,
+      problemConversationCount: 0,
+    });
     server.conversations = [];
 
     await openList();
@@ -445,12 +522,17 @@ describe("when there is nothing to show", () => {
   });
 
   test("an empty month does not offer the month again", async () => {
-    server.summary = summary({ conversationCount: 0, problemConversationCount: 0 });
+    server.summary = summary({
+      conversationCount: 0,
+      problemConversationCount: 0,
+    });
     server.conversations = [];
 
     await openList(`?range=${TimeRange.PAST_ONE_MONTH}`);
 
-    expect(screen.queryByTestId("llm-conversations-widen-range")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-conversations-widen-range"),
+    ).not.toBeInTheDocument();
   });
 
   test("a search that matches nothing offers to clear it", async () => {
@@ -473,7 +555,11 @@ describe("when there is nothing to show", () => {
 
   test("an error says what went wrong, and Try again re-counts", async () => {
     postSpy.mockImplementationOnce(async (): Promise<HTTPErrorResponse> => {
-      return new HTTPErrorResponse(403, { error: "You cannot read traces." }, {});
+      return new HTTPErrorResponse(
+        403,
+        { error: "You cannot read traces." },
+        {},
+      );
     });
 
     await openList();

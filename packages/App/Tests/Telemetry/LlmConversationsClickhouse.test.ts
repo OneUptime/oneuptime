@@ -560,7 +560,9 @@ integration("AI conversations against ClickHouse", () => {
     expect(refused.summary!.conversationCount).toBe(4);
 
     const anyProblem: LlmConversationListResponse =
-      await LlmConversationService.listConversations(listQuery({ issue: "any" }));
+      await LlmConversationService.listConversations(
+        listQuery({ issue: "any" }),
+      );
     expect(keysOf(anyProblem)).toHaveLength(4);
 
     const failed: LlmConversationListResponse =

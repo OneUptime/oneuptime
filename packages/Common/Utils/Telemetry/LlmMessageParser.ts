@@ -585,7 +585,9 @@ function partsFromElement(element: unknown): Array<LlmMessagePart> {
           text: "",
           toolCallId: readString(functionCall, "id") || undefined,
           toolName: readString(functionCall, "name"),
-          arguments: valueToText(functionCall["args"] ?? functionCall["arguments"]),
+          arguments: valueToText(
+            functionCall["args"] ?? functionCall["arguments"],
+          ),
         },
       ];
     }
@@ -1145,9 +1147,7 @@ export default class LlmMessageParser {
         options,
       );
 
-      return message
-        ? [{ ...message, role: message.role || defaultRole }]
-        : [];
+      return message ? [{ ...message, role: message.role || defaultRole }] : [];
     }
 
     // A chain's input or output object: the first field that holds text.
@@ -1439,8 +1439,11 @@ export default class LlmMessageParser {
     // 3. Indexed attributes (OpenLLMetry, OpenInference).
     if (!recorded) {
       for (const convention of LlmCompletionIndexedMessageConventions) {
-        const messages: Array<LlmMessage> | null =
-          LlmMessageParser.readIndexed(reader, convention, maxJsonLength);
+        const messages: Array<LlmMessage> | null = LlmMessageParser.readIndexed(
+          reader,
+          convention,
+          maxJsonLength,
+        );
 
         if (messages) {
           recorded = true;
@@ -1532,7 +1535,9 @@ export default class LlmMessageParser {
       evaluations: LlmMessageParser.readEvaluations(events),
       errorType:
         reader.firstString(LlmErrorTypeAttributeKeys) ||
-        (detailsEvent ? detailsEvent.firstString(LlmErrorTypeAttributeKeys) : ""),
+        (detailsEvent
+          ? detailsEvent.firstString(LlmErrorTypeAttributeKeys)
+          : ""),
       summary: summary,
     };
   }
@@ -1740,7 +1745,11 @@ export default class LlmMessageParser {
       const indexText: string = rest.slice(0, dot);
       const index: number = Number(indexText);
 
-      if (!Number.isInteger(index) || index < 0 || indexText !== String(index)) {
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        indexText !== String(index)
+      ) {
         continue;
       }
 
@@ -1764,7 +1773,11 @@ export default class LlmMessageParser {
       const bag: Map<string, unknown> = bags.get(index) as Map<string, unknown>;
       const message: LlmMessage | null =
         convention.style === "openinference"
-          ? LlmMessageParser.openInferenceMessage(bag, convention, maxJsonLength)
+          ? LlmMessageParser.openInferenceMessage(
+              bag,
+              convention,
+              maxJsonLength,
+            )
           : LlmMessageParser.openLlmetryMessage(bag, convention, maxJsonLength);
 
       if (message) {
@@ -1817,8 +1830,10 @@ export default class LlmMessageParser {
     maxJsonLength: number,
   ): LlmMessage | null {
     const toolCalls: Array<Dictionary> = [];
-    const calls: Map<number, Map<string, unknown>> =
-      LlmMessageParser.subIndexed(bag, "tool_calls.");
+    const calls: Map<
+      number,
+      Map<string, unknown>
+    > = LlmMessageParser.subIndexed(bag, "tool_calls.");
 
     for (const index of Array.from(calls.keys()).sort(
       (left: number, right: number): number => {
@@ -1861,8 +1876,10 @@ export default class LlmMessageParser {
       content.push(text);
     }
 
-    const contents: Map<number, Map<string, unknown>> =
-      LlmMessageParser.subIndexed(bag, "message.contents.");
+    const contents: Map<
+      number,
+      Map<string, unknown>
+    > = LlmMessageParser.subIndexed(bag, "message.contents.");
 
     for (const index of Array.from(contents.keys()).sort(
       (left: number, right: number): number => {
@@ -1891,8 +1908,10 @@ export default class LlmMessageParser {
     }
 
     const toolCalls: Array<Dictionary> = [];
-    const calls: Map<number, Map<string, unknown>> =
-      LlmMessageParser.subIndexed(bag, "message.tool_calls.");
+    const calls: Map<
+      number,
+      Map<string, unknown>
+    > = LlmMessageParser.subIndexed(bag, "message.tool_calls.");
 
     for (const index of Array.from(calls.keys()).sort(
       (left: number, right: number): number => {

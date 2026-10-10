@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   LLM_CONVERSATION_PATH_SEGMENT,
   getLlmConversationRoute,
@@ -83,7 +90,9 @@ describe("getLlmConversationRoute", () => {
   });
 
   test("no hint, no query string", () => {
-    expect(getLlmConversationRoute({ key: "c:a" })?.toString()).not.toContain("?");
+    expect(getLlmConversationRoute({ key: "c:a" })?.toString()).not.toContain(
+      "?",
+    );
   });
 
   test.each([
@@ -109,7 +118,7 @@ describe("a conversation id survives the trip through the URL", () => {
     ["%2F already escaped"],
     ["ünïcødé ✓ 👍"],
     ["c:t:nested-prefixes"],
-    ["..", ],
+    [".."],
     ["../../admin"],
   ])("%p", (conversationId: string) => {
     const key: LlmConversationKey = {
@@ -133,7 +142,9 @@ describe("a conversation id survives the trip through the URL", () => {
   });
 
   test("a request key comes back as the same trace", () => {
-    const route: Route | null = getLlmConversationRoute({ key: `t:${TRACE_ID}` });
+    const route: Route | null = getLlmConversationRoute({
+      key: `t:${TRACE_ID}`,
+    });
 
     expect(readLlmConversationKeyFromPath(pathOf(route!))).toEqual({
       kind: LlmConversationKeyKind.Request,
@@ -185,7 +196,9 @@ describe("getLlmTraceRoute", () => {
   test("opens the trace, with the call selected when one is named", () => {
     const route: Route = getLlmTraceRoute(TRACE_ID, "00f067aa0ba902b7");
 
-    expect(pathOf(route)).toBe(`/dashboard/${PROJECT_ID}/traces/view/${TRACE_ID}`);
+    expect(pathOf(route)).toBe(
+      `/dashboard/${PROJECT_ID}/traces/view/${TRACE_ID}`,
+    );
     expect(queryOf(route).get("spanId")).toBe("00f067aa0ba902b7");
   });
 

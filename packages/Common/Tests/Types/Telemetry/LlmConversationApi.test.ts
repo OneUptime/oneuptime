@@ -26,8 +26,14 @@ import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 describe("LlmConversationKeyUtil", () => {
   test("a conversation id and a trace id round-trip", () => {
     const keys: Array<LlmConversationKey> = [
-      { kind: LlmConversationKeyKind.Conversation, value: "conv_5j66UpCpwteGg4YSxUnt7lPY" },
-      { kind: LlmConversationKeyKind.Conversation, value: "a/b?c#d e%f:ünïcode" },
+      {
+        kind: LlmConversationKeyKind.Conversation,
+        value: "conv_5j66UpCpwteGg4YSxUnt7lPY",
+      },
+      {
+        kind: LlmConversationKeyKind.Conversation,
+        value: "a/b?c#d e%f:ünïcode",
+      },
       {
         kind: LlmConversationKeyKind.Request,
         value: "0af7651916cd43dd8448eb211c80319c",
@@ -35,9 +41,9 @@ describe("LlmConversationKeyUtil", () => {
     ];
 
     for (const key of keys) {
-      expect(LlmConversationKeyUtil.decode(LlmConversationKeyUtil.encode(key))).toEqual(
-        key,
-      );
+      expect(
+        LlmConversationKeyUtil.decode(LlmConversationKeyUtil.encode(key)),
+      ).toEqual(key);
       expect(
         LlmConversationKeyUtil.fromPathSegment(
           LlmConversationKeyUtil.toPathSegment(key),

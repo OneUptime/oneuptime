@@ -189,7 +189,10 @@ describe("what makes an answer bad", () => {
       issues: [LlmAnswerIssue.Refused],
     });
 
-    expect(rule).toEqual({ issues: [LlmAnswerIssue.Refused], slowAnswerMs: null });
+    expect(rule).toEqual({
+      issues: [LlmAnswerIssue.Refused],
+      slowAnswerMs: null,
+    });
   });
 
   test("the picked problems, or slower than the limit", () => {
@@ -199,7 +202,10 @@ describe("what makes an answer bad", () => {
       slowAnswerSeconds: 2.5,
     });
 
-    expect(rule).toEqual({ issues: [LlmAnswerIssue.Failed], slowAnswerMs: 2500 });
+    expect(rule).toEqual({
+      issues: [LlmAnswerIssue.Failed],
+      slowAnswerMs: 2500,
+    });
   });
 
   test("only slow answers, when no problem is picked", () => {
@@ -307,8 +313,10 @@ describe("the window a check reads", () => {
       }),
     ).toBe(3600 * 1000);
 
-    // A step saved without its config waits on the default minute, as the
-    // other telemetry types do.
+    /*
+     * A step saved without its config waits on the default minute, as the
+     * other telemetry types do.
+     */
     expect(
       TelemetryMonitorWindow.getWindowInMs({
         monitorType: MonitorType.Llm,
@@ -321,14 +329,15 @@ describe("the window a check reads", () => {
 describe("the AI calls a check links to", () => {
   test("AI spans in the window, of the step's apps", () => {
     const until: Date = new Date("2026-10-10T08:00:00.000Z");
-    const query: Record<string, unknown> = MonitorStepLlmMonitorUtil.toSpanQuery(
-      {
-        ...MonitorStepLlmMonitorUtil.getDefault(),
-        telemetryServiceIds: [new ObjectID(SERVICE_A)],
-        lastXSecondsOfCalls: 300,
-      },
-      until,
-    ) as Record<string, unknown>;
+    const query: Record<string, unknown> =
+      MonitorStepLlmMonitorUtil.toSpanQuery(
+        {
+          ...MonitorStepLlmMonitorUtil.getDefault(),
+          telemetryServiceIds: [new ObjectID(SERVICE_A)],
+          lastXSecondsOfCalls: 300,
+        },
+        until,
+      ) as Record<string, unknown>;
 
     expect(query["isLlmSpan"]).toBe(true);
     const window: InBetween<Date> = query["startTime"] as InBetween<Date>;
@@ -345,9 +354,10 @@ describe("the AI calls a check links to", () => {
   });
 
   test("every app: no app filter at all", () => {
-    const query: Record<string, unknown> = MonitorStepLlmMonitorUtil.toSpanQuery(
-      MonitorStepLlmMonitorUtil.getDefault(),
-    ) as Record<string, unknown>;
+    const query: Record<string, unknown> =
+      MonitorStepLlmMonitorUtil.toSpanQuery(
+        MonitorStepLlmMonitorUtil.getDefault(),
+      ) as Record<string, unknown>;
 
     expect(query["primaryEntityId"]).toBeUndefined();
   });
@@ -412,7 +422,9 @@ describe("the step inside a monitor step", () => {
 
     expect(monitor.issues).toEqual(ALL_ISSUES);
     expect(monitor.model).toBe("claude");
-    expect(monitor.lastXSecondsOfCalls).toBe(LLM_MONITOR_DEFAULT_WINDOW_SECONDS);
+    expect(monitor.lastXSecondsOfCalls).toBe(
+      LLM_MONITOR_DEFAULT_WINDOW_SECONDS,
+    );
   });
 
   test("a template can keep its AI / LLM settings out of a sync", () => {

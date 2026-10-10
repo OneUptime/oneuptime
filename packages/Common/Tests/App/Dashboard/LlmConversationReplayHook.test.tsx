@@ -1,6 +1,18 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, render, renderHook, RenderHookResult } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  render,
+  renderHook,
+  RenderHookResult,
+} from "@testing-library/react";
 import * as React from "react";
 import {
   LlmConversationReplayController,
@@ -53,7 +65,10 @@ function useReplay(
   initial: number | null = null,
 ): Hook {
   return renderHook(
-    (props: { steps: ReadonlyArray<LlmReplayStepTime>; initial: number | null }) => {
+    (props: {
+      steps: ReadonlyArray<LlmReplayStepTime>;
+      initial: number | null;
+    }) => {
       return useLlmConversationReplay(props.steps, props.initial);
     },
     { initialProps: { steps: steps, initial: initial } },
@@ -412,7 +427,9 @@ describe("a different conversation", () => {
 
     const Probe: React.FunctionComponent<{
       steps: ReadonlyArray<LlmReplayStepTime>;
-    }> = (props: { steps: ReadonlyArray<LlmReplayStepTime> }): React.ReactElement => {
+    }> = (props: {
+      steps: ReadonlyArray<LlmReplayStepTime>;
+    }): React.ReactElement => {
       const replay: LlmConversationReplayController = useLlmConversationReplay(
         props.steps,
         null,

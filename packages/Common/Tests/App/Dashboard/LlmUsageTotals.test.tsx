@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
@@ -65,7 +72,9 @@ import {
   LlmMicroUsdCostMetricNames,
 } from "../../../Types/Telemetry/LlmMetricConventions";
 
-const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
 const RANGE: InBetween<Date> = new InBetween<Date>(
   new Date("2026-10-03T00:00:00.000Z"),
   new Date("2026-10-10T00:00:00.000Z"),
@@ -134,7 +143,9 @@ function serve(streams: Streams): void {
   aggregateMock.mockImplementation((call: unknown) => {
     const aggregateCall: AggregateCall = call as AggregateCall;
 
-    const answer: (value: number | Error | undefined) => Promise<AggregatedResult> = (
+    const answer: (
+      value: number | Error | undefined,
+    ) => Promise<AggregatedResult> = (
       value: number | Error | undefined,
     ): Promise<AggregatedResult> => {
       if (value instanceof Error) {
@@ -204,7 +215,9 @@ beforeEach(() => {
   countMock.mockImplementation((_model: unknown, query: unknown) => {
     // 200 calls, 3 of them errored.
     return Promise.resolve(
-      ((query as JSONObject)["statusCode"] === SpanStatus.Error ? 3 : 200) as never,
+      ((query as JSONObject)["statusCode"] === SpanStatus.Error
+        ? 3
+        : 200) as never,
     );
   });
 });
@@ -219,13 +232,21 @@ describe("the totals of an instrumented app (spans)", () => {
 
     await renderTiles();
 
-    expect(screen.getByTestId("llm-usage-totals-calls-value")).toHaveTextContent("200");
+    expect(
+      screen.getByTestId("llm-usage-totals-calls-value"),
+    ).toHaveTextContent("200");
     expect(screen.getByTestId("llm-usage-totals-calls-hint")).toHaveTextContent(
       "1.5% error rate",
     );
-    expect(screen.getByTestId("llm-usage-totals-input-value")).toHaveTextContent("12.3k");
-    expect(screen.getByTestId("llm-usage-totals-output-value")).toHaveTextContent("678");
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("$4.20");
+    expect(
+      screen.getByTestId("llm-usage-totals-input-value"),
+    ).toHaveTextContent("12.3k");
+    expect(
+      screen.getByTestId("llm-usage-totals-output-value"),
+    ).toHaveTextContent("678");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "$4.20",
+    );
     expect(screen.getByTestId("llm-usage-totals-cost-hint")).toHaveTextContent(
       "when reported by SDK",
     );
@@ -243,8 +264,12 @@ describe("the totals of an instrumented app (spans)", () => {
 
     await renderTiles();
 
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("$4.00");
-    expect(screen.getByTestId("llm-usage-totals-input-value")).toHaveTextContent("120");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "$4.00",
+    );
+    expect(
+      screen.getByTestId("llm-usage-totals-input-value"),
+    ).toHaveTextContent("120");
     expect(metricCalls()).toHaveLength(0);
   });
 
@@ -263,9 +288,9 @@ describe("the totals of an instrumented app (spans)", () => {
     const query: JSONObject = spanCall.aggregateBy["query"] as JSONObject;
 
     expect(query["isLlmSpan"]).toBe(true);
-    expect((query["startTime"] as InBetween<Date>).startValue.toISOString()).toBe(
-      "2026-10-03T00:00:00.000Z",
-    );
+    expect(
+      (query["startTime"] as InBetween<Date>).startValue.toISOString(),
+    ).toBe("2026-10-03T00:00:00.000Z");
     expect((query["startTime"] as InBetween<Date>).endValue.toISOString()).toBe(
       "2026-10-10T00:00:00.000Z",
     );
@@ -284,24 +309,37 @@ describe("the totals of a coding-assistant fleet (metrics only)", () => {
 
     await renderTiles();
 
-    expect(screen.getByTestId("llm-usage-totals-input-value")).toHaveTextContent("5k");
-    expect(screen.getByTestId("llm-usage-totals-output-value")).toHaveTextContent("1.2k");
+    expect(
+      screen.getByTestId("llm-usage-totals-input-value"),
+    ).toHaveTextContent("5k");
+    expect(
+      screen.getByTestId("llm-usage-totals-output-value"),
+    ).toHaveTextContent("1.2k");
     expect(screen.getByTestId("llm-usage-totals-input-hint")).toHaveTextContent(
       "from GenAI metrics",
     );
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("$2.00");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "$2.00",
+    );
     expect(screen.getByTestId("llm-usage-totals-cost-hint")).toHaveTextContent(
       "from GenAI metrics",
     );
   });
 
   test("folds micro-USD cost, so a Codex-only project does not read $0", async () => {
-    serve({ spanInput: 0, spanOutput: 0, spanCost: 0, metricMicroUsd: 1_500_000 });
+    serve({
+      spanInput: 0,
+      spanOutput: 0,
+      spanCost: 0,
+      metricMicroUsd: 1_500_000,
+    });
 
     await renderTiles();
 
     // 1,500,000 millionths of a dollar is $1.50, not $1,500,000.
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("$1.50");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "$1.50",
+    );
   });
 
   test("adds the USD and micro-USD streams after scaling each, never before", async () => {
@@ -316,7 +354,9 @@ describe("the totals of a coding-assistant fleet (metrics only)", () => {
     await renderTiles();
 
     // $2.00 + $1.50; a shared Sum would read as $1,500,002.
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("$3.50");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "$3.50",
+    );
     expect(
       metricCalls().some((call: AggregateCall): boolean => {
         return isMetricList(call, LlmCostMetricNames);
@@ -354,8 +394,12 @@ describe("when nothing, or a failure, comes back", () => {
     await renderTiles();
 
     expect(metricCalls()).toHaveLength(0);
-    expect(screen.getByTestId("llm-usage-totals-input-value")).toHaveTextContent("—");
-    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent("—");
+    expect(
+      screen.getByTestId("llm-usage-totals-input-value"),
+    ).toHaveTextContent("—");
+    expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
+      "—",
+    );
   });
 
   test("a failed count is a dash, not 0 calls", async () => {
@@ -366,8 +410,12 @@ describe("when nothing, or a failure, comes back", () => {
 
     await renderTiles();
 
-    expect(screen.getByTestId("llm-usage-totals-calls-value")).toHaveTextContent("—");
-    expect(screen.queryByTestId("llm-usage-totals-calls-hint")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("llm-usage-totals-calls-value"),
+    ).toHaveTextContent("—");
+    expect(
+      screen.queryByTestId("llm-usage-totals-calls-hint"),
+    ).not.toBeInTheDocument();
   });
 
   test("failed metric reads leave the fallback at no signal", async () => {

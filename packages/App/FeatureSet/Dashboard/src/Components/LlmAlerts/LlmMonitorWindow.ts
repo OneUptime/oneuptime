@@ -1,9 +1,6 @@
 import { LLM_MONITOR_WINDOW_OPTIONS } from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { formatLlmDuration } from "../LlmConversations/LlmConversationFormat";
 
 /*

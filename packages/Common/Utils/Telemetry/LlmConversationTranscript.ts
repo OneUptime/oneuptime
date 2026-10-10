@@ -258,7 +258,10 @@ function addUnique(list: Array<string>, value: string): void {
   }
 }
 
-function joinText(parts: Array<LlmMessagePart>, type: LlmMessagePartType): string {
+function joinText(
+  parts: Array<LlmMessagePart>,
+  type: LlmMessagePartType,
+): string {
   return parts
     .filter((part: LlmMessagePart): boolean => {
       return part.type === type && part.text.trim().length > 0;
@@ -306,7 +309,8 @@ function isQuestion(message: LlmMessage): boolean {
     message.role === "user" &&
     message.parts.some((part: LlmMessagePart): boolean => {
       return (
-        (part.type === LlmMessagePartType.Text && part.text.trim().length > 0) ||
+        (part.type === LlmMessagePartType.Text &&
+          part.text.trim().length > 0) ||
         part.type === LlmMessagePartType.Media
       );
     })
@@ -389,7 +393,10 @@ class TranscriptBuilder {
    * Whether this copy of a message is one the transcript has not shown yet;
    * records it either way.
    */
-  public takeIfNew(message: LlmMessage, occurrences: Map<string, number>): boolean {
+  public takeIfNew(
+    message: LlmMessage,
+    occurrences: Map<string, number>,
+  ): boolean {
     const key: string = fingerprint(message);
     const seenInThisCall: number = (occurrences.get(key) || 0) + 1;
     occurrences.set(key, seenInThisCall);
@@ -473,9 +480,12 @@ class TranscriptBuilder {
       }
     } else if (role === "tool") {
       // Results without a text part of their own are the tool parts below.
-      if (text && !parts.some((part: LlmMessagePart): boolean => {
-        return part.type === LlmMessagePartType.ToolResult;
-      })) {
+      if (
+        text &&
+        !parts.some((part: LlmMessagePart): boolean => {
+          return part.type === LlmMessagePartType.ToolResult;
+        })
+      ) {
         this.push({
           type: LlmTranscriptStepType.ToolResult,
           atMs: atMs,
@@ -538,7 +548,11 @@ class TranscriptBuilder {
     }
   }
 
-  public emitToolRun(call: LlmTranscriptCallMeta, content: LlmCallContent, toolName: string): void {
+  public emitToolRun(
+    call: LlmTranscriptCallMeta,
+    content: LlmCallContent,
+    toolName: string,
+  ): void {
     const tool: LlmCallContent["tool"] = content.tool;
     const id: string = tool?.id || "";
     const name: string = tool?.name || toolName;
@@ -685,7 +699,11 @@ export default class LlmConversationTranscriptUtil {
           return right.endMs - left.endMs;
         }
 
-        return left.spanId < right.spanId ? -1 : left.spanId > right.spanId ? 1 : 0;
+        return left.spanId < right.spanId
+          ? -1
+          : left.spanId > right.spanId
+            ? 1
+            : 0;
       },
     );
 
@@ -879,7 +897,11 @@ export default class LlmConversationTranscriptUtil {
           call: meta,
           text: "",
         });
-      } else if (call.kind === LlmCallKind.Answer || call.kind === LlmCallKind.Other || call.kind === LlmCallKind.Agent) {
+      } else if (
+        call.kind === LlmCallKind.Answer ||
+        call.kind === LlmCallKind.Other ||
+        call.kind === LlmCallKind.Agent
+      ) {
         builder.push({
           type: LlmTranscriptStepType.SilentAnswer,
           atMs: meta.endMs,

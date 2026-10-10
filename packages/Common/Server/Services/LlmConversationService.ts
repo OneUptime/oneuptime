@@ -1,4 +1,8 @@
-import { SQL, Statement, escapeIlikePattern } from "../Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
@@ -559,7 +563,9 @@ export default class LlmConversationService {
   }
 
   // Every AI call of one conversation, oldest first, with its content.
-  public static buildCallsStatement(query: LlmConversationDetailQuery): Statement {
+  public static buildCallsStatement(
+    query: LlmConversationDetailQuery,
+  ): Statement {
     const statement: Statement = new Statement();
 
     statement.append(
@@ -672,9 +678,7 @@ export default class LlmConversationService {
       value: unknown,
     ): number | null => {
       const nano: number | null = readOptionalNumber(value);
-      return nano === null || answerCount === 0
-        ? null
-        : Math.round(nano / 1e6);
+      return nano === null || answerCount === 0 ? null : Math.round(nano / 1e6);
     };
 
     return {
@@ -783,7 +787,9 @@ export default class LlmConversationService {
     return counts;
   }
 
-  private static async readRows(statement: Statement): Promise<Array<JSONObject>> {
+  private static async readRows(
+    statement: Statement,
+  ): Promise<Array<JSONObject>> {
     const result: Results = await SpanService.executeQuery(statement);
     const response: DbJSONResponse = await result.json<{
       data?: Array<JSONObject>;

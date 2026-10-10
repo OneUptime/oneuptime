@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   LlmConversationView,
   buildLlmConversationListBody,
@@ -46,7 +53,9 @@ function respondWith(data: JSONObject): void {
 }
 
 function lastPost(): PostArguments {
-  const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<Array<unknown>>;
+  const calls: Array<Array<unknown>> = postSpy.mock.calls as Array<
+    Array<unknown>
+  >;
 
   return calls[calls.length - 1]![0] as PostArguments;
 }
@@ -173,7 +182,8 @@ describe("readLlmConversationView", () => {
 
   test("a request is a request; anything else is a conversation", () => {
     expect(
-      readLlmConversationView({ kind: "request", transcript: transcript })?.kind,
+      readLlmConversationView({ kind: "request", transcript: transcript })
+        ?.kind,
     ).toBe(LlmConversationKeyKind.Request);
     expect(
       readLlmConversationView({ kind: "bogus", transcript: transcript })?.kind,
@@ -182,7 +192,8 @@ describe("readLlmConversationView", () => {
 
   test("only true is truncated", () => {
     expect(
-      readLlmConversationView({ truncated: "yes", transcript: transcript })?.truncated,
+      readLlmConversationView({ truncated: "yes", transcript: transcript })
+        ?.truncated,
     ).toBe(false);
   });
 
@@ -275,8 +286,12 @@ describe("fetchLlmConversations", () => {
     // ClickHouse's 64-bit counters arrive as strings and are read as numbers.
     expect(response.conversations[0]?.callCount).toBe(3);
     expect(response.conversations[0]?.durationMs).toBe(60000);
-    expect(response.conversations[0]?.issueCounts[LlmAnswerIssue.Refused]).toBe(1);
-    expect(response.conversations[0]?.issueCounts[LlmAnswerIssue.Failed]).toBe(0);
+    expect(response.conversations[0]?.issueCounts[LlmAnswerIssue.Refused]).toBe(
+      1,
+    );
+    expect(response.conversations[0]?.issueCounts[LlmAnswerIssue.Failed]).toBe(
+      0,
+    );
   });
 
   test("an empty body is an empty list, not a crash", async () => {
@@ -350,9 +365,9 @@ describe("fetchLlmConversation", () => {
       return new HTTPErrorResponse(500, { error: "Boom" }, {});
     });
 
-    await expect(fetchLlmConversation({ key: "c:chat-1" })).rejects.toBeInstanceOf(
-      HTTPErrorResponse,
-    );
+    await expect(
+      fetchLlmConversation({ key: "c:chat-1" }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
   });
 });
 
@@ -368,7 +383,9 @@ describe("fetchLlmAnswerStats", () => {
 
     const step: ReturnType<typeof MonitorStepLlmMonitorUtil.getDefault> = {
       ...MonitorStepLlmMonitorUtil.getDefault(),
-      telemetryServiceIds: [new ObjectID("6f1e2d3c-4b5a-4968-8776-655443322110")],
+      telemetryServiceIds: [
+        new ObjectID("6f1e2d3c-4b5a-4968-8776-655443322110"),
+      ],
       issues: [LlmAnswerIssue.Refused],
       model: "  gpt-4o  ",
     };

@@ -125,22 +125,20 @@ export async function fetchLlmUsageTotals(
     column: keyof Span,
   ): Promise<number | null> => {
     try {
-      const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Span>(
-        {
-          modelType: Span,
-          aggregateBy: {
-            // The window bounds the rows; the timestamps only pick buckets.
-            query: spanQuery,
-            aggregationType: AggregationType.Sum,
-            aggregateColumnName: column,
-            aggregationTimestampColumnName: "startTime",
-            startTimestamp: startDate,
-            endTimestamp: endDate,
-            limit: 10000,
-            skip: 0,
-          } as AggregateBy<Span>,
-        },
-      );
+      const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Span>({
+        modelType: Span,
+        aggregateBy: {
+          // The window bounds the rows; the timestamps only pick buckets.
+          query: spanQuery,
+          aggregationType: AggregationType.Sum,
+          aggregateColumnName: column,
+          aggregationTimestampColumnName: "startTime",
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          limit: 10000,
+          skip: 0,
+        } as AggregateBy<Span>,
+      });
 
       return sumBuckets(result);
     } catch {
@@ -295,10 +293,15 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
     };
   }, [props.range.startValue.getTime(), props.range.endValue.getTime()]);
 
-  const number: (value: number | null, write: (n: number) => string) => string =
-    (value: number | null, write: (n: number) => string): string => {
-      return value === null ? "—" : write(value);
-    };
+  const number: (
+    value: number | null,
+    write: (n: number) => string,
+  ) => string = (
+    value: number | null,
+    write: (n: number) => string,
+  ): string => {
+    return value === null ? "—" : write(value);
+  };
 
   const metricHint: string =
     translator.translateText(LLM_METRIC_SOURCE_HINT) || LLM_METRIC_SOURCE_HINT;

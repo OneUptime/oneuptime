@@ -82,9 +82,7 @@ export function readLlmConversationKeyFromPath(
     return null;
   }
 
-  return LlmConversationKeyUtil.fromPathSegment(
-    segments[segments.length - 1],
-  );
+  return LlmConversationKeyUtil.fromPathSegment(segments[segments.length - 1]);
 }
 
 // One AI call in the trace view, with the span selected.

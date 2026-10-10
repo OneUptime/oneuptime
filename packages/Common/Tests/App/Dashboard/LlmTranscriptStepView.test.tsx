@@ -1,6 +1,19 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 /*
@@ -31,7 +44,10 @@ import LlmTranscriptStepView, {
   LLM_STEP_FOLD_LENGTH,
   LlmStepTime,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmTranscriptStepView";
-import { LlmTranscriptStep, LlmTranscriptStepType } from "../../../Utils/Telemetry/LlmConversationTranscript";
+import {
+  LlmTranscriptStep,
+  LlmTranscriptStepType,
+} from "../../../Utils/Telemetry/LlmConversationTranscript";
 import { LlmMessagePartType } from "../../../Utils/Telemetry/LlmMessageParser";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../Types/Telemetry/LlmCallKind";
@@ -51,7 +67,9 @@ import { PROJECT_ID, T0, TRACE_ID, makeStep } from "./LlmConversationFixtures";
 const TRACE_ROUTE: Route = new Route(
   `/dashboard/${PROJECT_ID}/traces/view/${TRACE_ID}?spanId=abc`,
 );
-const SETUP_ROUTE: Route = new Route(`/dashboard/${PROJECT_ID}/llm/documentation`);
+const SETUP_ROUTE: Route = new Route(
+  `/dashboard/${PROJECT_ID}/llm/documentation`,
+);
 
 function renderStep(
   step: LlmTranscriptStep,
@@ -78,7 +96,9 @@ function renderStep(
 }
 
 function expectNoNestedControls(root: HTMLElement): void {
-  for (const control of Array.from(root.querySelectorAll("button, a, summary"))) {
+  for (const control of Array.from(
+    root.querySelectorAll("button, a, summary"),
+  )) {
     expect(control.parentElement?.closest("button, a")).toBeNull();
   }
 }
@@ -97,19 +117,25 @@ afterEach(() => {
 describe("what the person said", () => {
   test("their words, as typed, under their name", () => {
     const element: HTMLElement = renderStep(
-      makeStep(LlmTranscriptStepType.UserMessage, { text: "**not** markdown\nsecond line" }),
+      makeStep(LlmTranscriptStepType.UserMessage, {
+        text: "**not** markdown\nsecond line",
+      }),
     );
 
     expect(element).toHaveAttribute("data-step-type", "user");
     expect(element).toHaveTextContent("ada@example.com");
     // A person's message is plain text: no markdown is rendered from it.
-    expect(screen.getByTestId("llm-step-text")).toHaveTextContent("**not** markdown second line");
+    expect(screen.getByTestId("llm-step-text")).toHaveTextContent(
+      "**not** markdown second line",
+    );
     expect(element.querySelector("strong")).toBeNull();
   });
 
   test("an unknown person is 'User'", () => {
     expect(
-      renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), { personLabel: "" }),
+      renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), {
+        personLabel: "",
+      }),
     ).toHaveTextContent("User");
   });
 
@@ -118,7 +144,12 @@ describe("what the person said", () => {
       makeStep(LlmTranscriptStepType.UserMessage, {
         text: "What is in this picture?",
         media: [
-          { type: LlmMessagePartType.Media, text: "", modality: "image", uri: "" },
+          {
+            type: LlmMessagePartType.Media,
+            text: "",
+            modality: "image",
+            uri: "",
+          },
           {
             type: LlmMessagePartType.Media,
             text: "",
@@ -132,7 +163,9 @@ describe("what the person said", () => {
     const media: Array<HTMLElement> = screen.getAllByTestId("llm-step-media");
 
     expect(media[0]).toHaveTextContent("Attached image");
-    expect(Array.from(media[1]?.textContent || "").length).toBeLessThanOrEqual(60);
+    expect(Array.from(media[1]?.textContent || "").length).toBeLessThanOrEqual(
+      60,
+    );
     expect(document.querySelector("img")).toBeNull();
   });
 
@@ -159,7 +192,9 @@ describe("what the person said", () => {
   test("a short message has nothing to fold", () => {
     renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }));
 
-    expect(screen.queryByTestId("llm-step-text-toggle")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("llm-step-text-toggle"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -177,7 +212,9 @@ describe("what the AI answered", () => {
     );
 
     expect(element).toHaveAttribute("data-step-type", "assistant");
-    expect(await screen.findByText("Lisbon is lovely in May.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Lisbon is lovely in May."),
+    ).toBeInTheDocument();
 
     const meta: HTMLElement = screen.getByTestId("llm-step-meta");
 
@@ -212,13 +249,20 @@ describe("what the AI answered", () => {
         provider: "openai",
         agentName: "booking-agent",
         evaluations: [
-          { name: "toxicity", label: "fail", score: 0.92, explanation: "Unsafe tone" },
+          {
+            name: "toxicity",
+            label: "fail",
+            score: 0.92,
+            explanation: "Unsafe tone",
+          },
           { name: "", label: "", score: 0.4, explanation: "" },
         ],
       }),
     );
 
-    expect(screen.getByTestId("llm-issue-badge-refused")).toHaveTextContent("Refused");
+    expect(screen.getByTestId("llm-issue-badge-refused")).toHaveTextContent(
+      "Refused",
+    );
     expect(screen.queryByTestId("llm-step-details")).not.toBeInTheDocument();
 
     const toggle: HTMLElement = screen.getByTestId("llm-step-details-toggle");
@@ -233,11 +277,15 @@ describe("what the AI answered", () => {
     expect(details).toHaveTextContent("1,200 / 300");
     expect(details).toHaveTextContent("content_filter");
     expect(details).toHaveTextContent("booking-agent");
-    expect(within(details).getByTestId("llm-step-issue-explanations")).toHaveTextContent(
+    expect(
+      within(details).getByTestId("llm-step-issue-explanations"),
+    ).toHaveTextContent(
       "The AI declined to answer, or a safety filter blocked its answer.",
     );
 
-    const evaluations: HTMLElement = within(details).getByTestId("llm-step-evaluations");
+    const evaluations: HTMLElement = within(details).getByTestId(
+      "llm-step-evaluations",
+    );
 
     expect(evaluations).toHaveTextContent("toxicity");
     expect(evaluations).toHaveTextContent("fail");
@@ -245,10 +293,9 @@ describe("what the AI answered", () => {
     // An evaluation with no name or label still says something.
     expect(evaluations).toHaveTextContent("Evaluation");
     expect(evaluations).toHaveTextContent("0.4");
-    expect(within(details).getByText("Open this call in Traces").closest("a")).toHaveAttribute(
-      "href",
-      TRACE_ROUTE.toString(),
-    );
+    expect(
+      within(details).getByText("Open this call in Traces").closest("a"),
+    ).toHaveAttribute("href", TRACE_ROUTE.toString());
   });
 
   test("the model's thinking is folded away", () => {
@@ -287,7 +334,9 @@ describe("what the AI answered", () => {
     );
     expect(screen.queryByTestId("llm-step-meta")).not.toBeInTheDocument();
     expect(screen.queryByTestId("llm-step-time")).not.toBeInTheDocument();
-    expect(await screen.findByText("Lisbon is lovely in May.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Lisbon is lovely in May."),
+    ).toBeInTheDocument();
   });
 
   test("an answer is Markdown in safe mode, so its links are not clickable and its images never load", () => {
@@ -322,8 +371,12 @@ describe("tools", () => {
     );
 
     expect(element).toHaveAttribute("data-step-type", "tool_call");
-    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent("Called search_flights");
-    expect(screen.getByTestId("llm-tool-one-line")).toHaveTextContent('{"from":"LHR","to":"LIS"}');
+    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent(
+      "Called search_flights",
+    );
+    expect(screen.getByTestId("llm-tool-one-line")).toHaveTextContent(
+      '{"from":"LHR","to":"LIS"}',
+    );
 
     fireEvent.click(screen.getByTestId("llm-tool-toggle"));
 
@@ -342,21 +395,39 @@ describe("tools", () => {
       }),
     );
 
-    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent("search_flights returned");
-    expect(screen.getByTestId("llm-tool-one-line")).toHaveTextContent("3 flights found");
+    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent(
+      "search_flights returned",
+    );
+    expect(screen.getByTestId("llm-tool-one-line")).toHaveTextContent(
+      "3 flights found",
+    );
   });
 
   test("a result that was not recorded says so, with nothing to open", () => {
-    renderStep(makeStep(LlmTranscriptStepType.ToolResult, { toolName: "lookup", text: "" }));
+    renderStep(
+      makeStep(LlmTranscriptStepType.ToolResult, {
+        toolName: "lookup",
+        text: "",
+      }),
+    );
 
-    expect(screen.getByText("The result was not recorded.")).toBeInTheDocument();
+    expect(
+      screen.getByText("The result was not recorded."),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("llm-tool-toggle")).not.toBeInTheDocument();
   });
 
   test("an unnamed tool is named by its call", () => {
-    renderStep(makeStep(LlmTranscriptStepType.ToolCall, { toolName: "", toolArguments: "{}" }));
+    renderStep(
+      makeStep(LlmTranscriptStepType.ToolCall, {
+        toolName: "",
+        toolArguments: "{}",
+      }),
+    );
 
-    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent("Called chat gpt-4o");
+    expect(screen.getByTestId("llm-tool-heading")).toHaveTextContent(
+      "Called chat gpt-4o",
+    );
   });
 });
 
@@ -371,7 +442,9 @@ describe("failures, unrecorded answers, activity and instructions", () => {
 
     expect(element).toHaveAttribute("data-step-type", "failure");
     expect(element).toHaveTextContent("The AI call failed");
-    expect(screen.getByTestId("llm-step-error")).toHaveTextContent("429 Too Many Requests");
+    expect(screen.getByTestId("llm-step-error")).toHaveTextContent(
+      "429 Too Many Requests",
+    );
     expect(screen.getByTestId("llm-issue-badge-failed")).toBeInTheDocument();
   });
 
@@ -385,7 +458,9 @@ describe("failures, unrecorded answers, activity and instructions", () => {
     );
 
     expect(screen.getByText("The tool charge_card failed")).toBeInTheDocument();
-    expect(screen.getByText("No error message was reported.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No error message was reported."),
+    ).toBeInTheDocument();
   });
 
   test("an answer whose content was not recorded links to how to record it", () => {
@@ -409,7 +484,9 @@ describe("failures, unrecorded answers, activity and instructions", () => {
       }),
     );
 
-    expect(element).toHaveTextContent("Searched for context · text-embedding-3-small · 120 ms");
+    expect(element).toHaveTextContent(
+      "Searched for context · text-embedding-3-small · 120 ms",
+    );
   });
 
   test("every kind of activity has its words", () => {
@@ -420,7 +497,9 @@ describe("failures, unrecorded answers, activity and instructions", () => {
       [LlmCallKind.Answer, "Called the model"],
       [LlmCallKind.Other, "Did some work"],
     ] as Array<[LlmCallKind, string]>) {
-      renderStep(makeStep(LlmTranscriptStepType.Activity, { kind: kind, model: "" }));
+      renderStep(
+        makeStep(LlmTranscriptStepType.Activity, { kind: kind, model: "" }),
+      );
 
       expect(screen.getByTestId("llm-step")).toHaveTextContent(words);
       cleanup();
@@ -429,7 +508,9 @@ describe("failures, unrecorded answers, activity and instructions", () => {
 
   test("changed instructions are folded between the messages", () => {
     const element: HTMLElement = renderStep(
-      makeStep(LlmTranscriptStepType.Instructions, { text: "You are now a pirate." }),
+      makeStep(LlmTranscriptStepType.Instructions, {
+        text: "You are now a pirate.",
+      }),
     );
 
     expect(element).toHaveTextContent("The AI's instructions changed");
@@ -448,7 +529,9 @@ describe("the time a message arrived", () => {
     const time: HTMLElement = screen.getByTestId("llm-step-time");
 
     expect(time.tagName).toBe("BUTTON");
-    expect(time.getAttribute("aria-label")).toMatch(/^Replay the conversation from /);
+    expect(time.getAttribute("aria-label")).toMatch(
+      /^Replay the conversation from /,
+    );
     expect(time.getAttribute("title")).toMatch(/^Replay from here \(/);
 
     fireEvent.click(time);
@@ -463,13 +546,17 @@ describe("the time a message arrived", () => {
   });
 
   test("no time, or an impossible one, shows nothing", () => {
-    const { container } = render(<LlmStepTime atMs={0} onReplayFromHere={jest.fn()} />);
+    const { container } = render(
+      <LlmStepTime atMs={0} onReplayFromHere={jest.fn()} />,
+    );
 
     expect(container).toBeEmptyDOMElement();
 
     cleanup();
 
-    const second: ReturnType<typeof render> = render(<LlmStepTime atMs={Number.NaN} />);
+    const second: ReturnType<typeof render> = render(
+      <LlmStepTime atMs={Number.NaN} />,
+    );
 
     expect(second.container).toBeEmptyDOMElement();
   });
@@ -477,15 +564,23 @@ describe("the time a message arrived", () => {
 
 describe("the replay's current message", () => {
   test("is drawn with a ring; the others are not", () => {
-    renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), { isCurrent: true });
+    renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), {
+      isCurrent: true,
+    });
 
-    expect(screen.getByTestId("llm-step").innerHTML).toContain("ring-indigo-400");
+    expect(screen.getByTestId("llm-step").innerHTML).toContain(
+      "ring-indigo-400",
+    );
 
     cleanup();
 
-    renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), { isCurrent: false });
+    renderStep(makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }), {
+      isCurrent: false,
+    });
 
-    expect(screen.getByTestId("llm-step").innerHTML).not.toContain("ring-indigo-400");
+    expect(screen.getByTestId("llm-step").innerHTML).not.toContain(
+      "ring-indigo-400",
+    );
   });
 });
 
@@ -512,7 +607,9 @@ describe("no control inside another", () => {
     );
 
     // Open everything that opens, then look again.
-    for (const toggle of Array.from(element.querySelectorAll("button[aria-expanded]"))) {
+    for (const toggle of Array.from(
+      element.querySelectorAll("button[aria-expanded]"),
+    )) {
       fireEvent.click(toggle);
     }
 

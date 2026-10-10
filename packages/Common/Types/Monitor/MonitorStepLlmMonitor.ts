@@ -127,7 +127,9 @@ export class MonitorStepLlmMonitorUtil {
    * by hand. Never throws: anything unreadable takes its default, so a
    * monitor always has a config its check can run.
    */
-  public static fromJSON(json: JSONObject | undefined | null): MonitorStepLlmMonitor {
+  public static fromJSON(
+    json: JSONObject | undefined | null,
+  ): MonitorStepLlmMonitor {
     const object: JSONObject =
       json && typeof json === "object" && !Array.isArray(json) ? json : {};
 
@@ -159,9 +161,8 @@ export class MonitorStepLlmMonitorUtil {
   }
 
   public static toJSON(monitor: MonitorStepLlmMonitor): JSONObject {
-    const normalized: MonitorStepLlmMonitor = MonitorStepLlmMonitorUtil.fromJSON(
-      monitor as unknown as JSONObject,
-    );
+    const normalized: MonitorStepLlmMonitor =
+      MonitorStepLlmMonitorUtil.fromJSON(monitor as unknown as JSONObject);
 
     return {
       telemetryServiceIds: ObjectID.toJSONArray(normalized.telemetryServiceIds),

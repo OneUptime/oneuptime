@@ -14,7 +14,10 @@ import {
   LlmAnswerIssue,
   LlmAnswerIssueUtil,
 } from "../../../Types/Telemetry/LlmAnswerIssue";
-import { LlmCallKind, LlmCallKindUtil } from "../../../Types/Telemetry/LlmCallKind";
+import {
+  LlmCallKind,
+  LlmCallKindUtil,
+} from "../../../Types/Telemetry/LlmCallKind";
 import { LlmConversationSort } from "../../../Types/Telemetry/LlmConversationApi";
 
 /*
@@ -68,7 +71,9 @@ function readJson(file: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
 }
 
-const ENGLISH: Record<string, unknown> = readJson(path.join(LOCALES_DIR, "en.json"));
+const ENGLISH: Record<string, unknown> = readJson(
+  path.join(LOCALES_DIR, "en.json"),
+);
 
 // The words a reader sees, as they are written in the tables.
 function allWords(): Array<string> {
@@ -145,7 +150,9 @@ describe("the answer problems' words", () => {
     expect(new Set(icons).size).toBe(icons.length);
     expect(dots).not.toContain(LLM_HEALTHY_DOT_CLASS_NAME);
     // A failure reads as red, wherever it is drawn.
-    expect(LLM_ISSUE_STYLES[LlmAnswerIssue.Failed].dotClassName).toBe("bg-red-500");
+    expect(LLM_ISSUE_STYLES[LlmAnswerIssue.Failed].dotClassName).toBe(
+      "bg-red-500",
+    );
     expect(LLM_ISSUE_STYLES[LlmAnswerIssue.Failed].badgeClassName).toContain(
       "text-red-700",
     );
@@ -191,8 +198,12 @@ describe("the sort options", () => {
   });
 
   test("a sort's label, and newest first for anything else", () => {
-    expect(getLlmSortLabel(LlmConversationSort.Slowest)).toBe("Slowest answers");
-    expect(getLlmSortLabel("cheapest" as LlmConversationSort)).toBe("Newest first");
+    expect(getLlmSortLabel(LlmConversationSort.Slowest)).toBe(
+      "Slowest answers",
+    );
+    expect(getLlmSortLabel("cheapest" as LlmConversationSort)).toBe(
+      "Newest first",
+    );
   });
 });
 

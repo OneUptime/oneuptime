@@ -61,6 +61,8 @@ export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<
     "all-monitors-table",
     "archived-monitors-table",
     "security-events-monitors-table",
+    // AI / LLM → Alerts: the AI / LLM monitors.
+    "llm-alerts-monitors-table",
   ],
   ScheduledMaintenanceCustomField: ["all-scheduled-maintenance-events-table"],
   StatusPageCustomField: ["all-status-pages-table"],

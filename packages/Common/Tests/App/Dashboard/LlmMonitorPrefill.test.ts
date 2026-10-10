@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   LLM_MONITOR_HEALTHY_DESCRIPTION,
   LLM_MONITOR_HEALTHY_NAME,
@@ -48,13 +55,23 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 
-const OPERATIONAL: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const OPERATIONAL: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
 const DEGRADED: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const OFFLINE: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-const INCIDENT_SEV1: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444441");
-const INCIDENT_SEV2: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444442");
-const ALERT_HIGH: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555551");
-const ALERT_LOW: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555552");
+const INCIDENT_SEV1: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444441",
+);
+const INCIDENT_SEV2: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444442",
+);
+const ALERT_HIGH: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555551",
+);
+const ALERT_LOW: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555552",
+);
 
 const SEEDS: LlmMonitorSeedIds = {
   operationalMonitorStatusId: OPERATIONAL,
@@ -80,7 +97,8 @@ function stepOf(prefill: JSONObject): MonitorStep {
 }
 
 function criteriaOf(prefill: JSONObject): Array<MonitorCriteriaInstance> {
-  return stepOf(prefill).data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
+  return stepOf(prefill).data!.monitorCriteria.data!
+    .monitorCriteriaInstanceArray;
 }
 
 function prefillFor(
@@ -114,7 +132,9 @@ describe("buildLlmMonitorPrefill", () => {
       const prefill: JSONObject = prefillFor(templateId);
 
       expect(prefill["monitorType"]).toBe(MonitorType.Llm);
-      expect(prefill["name"]).toBe(LLM_MONITOR_TEMPLATE_COPY[templateId].monitorName);
+      expect(prefill["name"]).toBe(
+        LLM_MONITOR_TEMPLATE_COPY[templateId].monitorName,
+      );
       expect(prefill["description"]).toBe(
         LLM_MONITOR_TEMPLATE_COPY[templateId].monitorDescription,
       );
@@ -132,7 +152,8 @@ describe("buildLlmMonitorPrefill", () => {
       expect(
         MonitorStepLlmMonitorUtil.toJSON(
           MonitorStepLlmMonitorUtil.fromJSON(
-            stepOf(prefillFor(templateId)).data!.llmMonitor as unknown as JSONObject,
+            stepOf(prefillFor(templateId)).data!
+              .llmMonitor as unknown as JSONObject,
           ),
         ),
       ).toEqual(MonitorStepLlmMonitorUtil.toJSON(template.step));
@@ -147,22 +168,36 @@ describe("buildLlmMonitorPrefill", () => {
 
       expect(unhealthy?.data?.filterCondition).toBe(FilterCondition.All);
       expect(unhealthy?.data?.filters).toEqual(
-        template.unhealthyFilters.map((filter: { checkOn: CheckOn; filterType: FilterType; value: number }) => {
-          return {
-            checkOn: filter.checkOn,
-            filterType: filter.filterType,
-            value: filter.value,
-          };
-        }),
+        template.unhealthyFilters.map(
+          (filter: {
+            checkOn: CheckOn;
+            filterType: FilterType;
+            value: number;
+          }) => {
+            return {
+              checkOn: filter.checkOn,
+              filterType: filter.filterType,
+              value: filter.value,
+            };
+          },
+        ),
       );
-      expect(unhealthy?.data?.monitorStatusId?.toString()).toBe(DEGRADED.toString());
+      expect(unhealthy?.data?.monitorStatusId?.toString()).toBe(
+        DEGRADED.toString(),
+      );
       expect(unhealthy?.data?.changeMonitorStatus).toBe(true);
       expect(unhealthy?.data?.createAlerts).toBe(true);
-      expect(unhealthy?.data?.name).toBe(LLM_MONITOR_TEMPLATE_COPY[templateId].monitorName);
+      expect(unhealthy?.data?.name).toBe(
+        LLM_MONITOR_TEMPLATE_COPY[templateId].monitorName,
+      );
 
       expect(healthy?.data?.filterCondition).toBe(FilterCondition.Any);
-      expect(healthy?.data?.filters).toHaveLength(template.healthyFilters.length);
-      expect(healthy?.data?.monitorStatusId?.toString()).toBe(OPERATIONAL.toString());
+      expect(healthy?.data?.filters).toHaveLength(
+        template.healthyFilters.length,
+      );
+      expect(healthy?.data?.monitorStatusId?.toString()).toBe(
+        OPERATIONAL.toString(),
+      );
       expect(healthy?.data?.createAlerts).toBe(false);
       expect(healthy?.data?.createIncidents).toBe(false);
       expect(healthy?.data?.alerts).toEqual([]);
@@ -196,11 +231,15 @@ describe("buildLlmMonitorPrefill", () => {
       prefillFor(LlmMonitorTemplateId.Refusals),
     )[0]!;
 
-    expect(failed.data?.alerts[0]?.alertSeverityId?.toString()).toBe(ALERT_HIGH.toString());
+    expect(failed.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
+      ALERT_HIGH.toString(),
+    );
     expect(failed.data?.incidents[0]?.incidentSeverityId?.toString()).toBe(
       INCIDENT_SEV1.toString(),
     );
-    expect(refusals.data?.alerts[0]?.alertSeverityId?.toString()).toBe(ALERT_LOW.toString());
+    expect(refusals.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
+      ALERT_LOW.toString(),
+    );
     expect(refusals.data?.incidents[0]?.incidentSeverityId?.toString()).toBe(
       INCIDENT_SEV2.toString(),
     );
@@ -221,12 +260,17 @@ describe("buildLlmMonitorPrefill", () => {
 
   test("the monitor starts operational", () => {
     expect(
-      stepsOf(prefillFor(LlmMonitorTemplateId.BadAnswers)).data?.defaultMonitorStatusId?.toString(),
+      stepsOf(
+        prefillFor(LlmMonitorTemplateId.BadAnswers),
+      ).data?.defaultMonitorStatusId?.toString(),
     ).toBe(OPERATIONAL.toString());
   });
 
   test("a project missing statuses and severities gets criteria without those parts, not broken ones", () => {
-    const prefill: JSONObject = prefillFor(LlmMonitorTemplateId.BadAnswers, NO_SEEDS);
+    const prefill: JSONObject = prefillFor(
+      LlmMonitorTemplateId.BadAnswers,
+      NO_SEEDS,
+    );
     const [unhealthy, healthy] = criteriaOf(prefill);
 
     expect(unhealthy?.data?.changeMonitorStatus).toBe(false);
@@ -262,7 +306,9 @@ describe("buildLlmMonitorPrefill", () => {
     [42],
     [{ id: "llm-bad-answers" }],
   ])("%p is not a template", (templateId: unknown) => {
-    expect(buildLlmMonitorPrefill({ templateId: templateId, seeds: SEEDS })).toBeNull();
+    expect(
+      buildLlmMonitorPrefill({ templateId: templateId, seeds: SEEDS }),
+    ).toBeNull();
   });
 
   test("a template a caller changed does not change the next prefill", () => {
@@ -274,7 +320,8 @@ describe("buildLlmMonitorPrefill", () => {
     template.unhealthyFilters[0]!.value = 99;
 
     expect(
-      criteriaOf(prefillFor(LlmMonitorTemplateId.FailedCalls))[0]?.data?.filters[0]?.value,
+      criteriaOf(prefillFor(LlmMonitorTemplateId.FailedCalls))[0]?.data
+        ?.filters[0]?.value,
     ).toBe(10);
   });
 });
@@ -292,10 +339,18 @@ describe("buildLlmMonitorCriteria", () => {
     const [unhealthy, healthy] = criteria.data!.monitorCriteriaInstanceArray;
 
     expect(unhealthy?.data?.filters).toEqual([
-      { checkOn: CheckOn.LlmAnswerCount, filterType: FilterType.EqualTo, value: 0 },
+      {
+        checkOn: CheckOn.LlmAnswerCount,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      },
     ]);
     expect(healthy?.data?.filters).toEqual([
-      { checkOn: CheckOn.LlmAnswerCount, filterType: FilterType.GreaterThan, value: 0 },
+      {
+        checkOn: CheckOn.LlmAnswerCount,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      },
     ]);
   });
 });
@@ -315,7 +370,9 @@ describe("pickLlmMonitorStatuses", () => {
   });
 
   test("the order decides between two in-between statuses", () => {
-    const partial: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
+    const partial: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
 
     expect(
       pickLlmMonitorStatuses([
@@ -357,7 +414,7 @@ describe("pickLlmMonitorStatuses", () => {
 describe("fetchLlmMonitorSeedIds", () => {
   function row<T>(Model: new () => T, data: Partial<T>): T {
     const model: T = new Model();
-    Object.assign(model as object, data);
+    Object.assign(model as Record<string, unknown>, data);
     return model;
   }
 
@@ -370,9 +427,17 @@ describe("fetchLlmMonitorSeedIds", () => {
         if (modelType === MonitorStatus) {
           return {
             data: [
-              row(MonitorStatus, { _id: OPERATIONAL.toString(), isOperationalState: true } as Partial<MonitorStatus>),
-              row(MonitorStatus, { _id: DEGRADED.toString() } as Partial<MonitorStatus>),
-              row(MonitorStatus, { _id: OFFLINE.toString(), isOfflineState: true } as Partial<MonitorStatus>),
+              row(MonitorStatus, {
+                _id: OPERATIONAL.toString(),
+                isOperationalState: true,
+              } as Partial<MonitorStatus>),
+              row(MonitorStatus, {
+                _id: DEGRADED.toString(),
+              } as Partial<MonitorStatus>),
+              row(MonitorStatus, {
+                _id: OFFLINE.toString(),
+                isOfflineState: true,
+              } as Partial<MonitorStatus>),
             ],
             count: 3,
             skip: 0,
@@ -383,8 +448,12 @@ describe("fetchLlmMonitorSeedIds", () => {
         if (modelType === IncidentSeverity) {
           return {
             data: [
-              row(IncidentSeverity, { _id: INCIDENT_SEV1.toString() } as Partial<IncidentSeverity>),
-              row(IncidentSeverity, { _id: INCIDENT_SEV2.toString() } as Partial<IncidentSeverity>),
+              row(IncidentSeverity, {
+                _id: INCIDENT_SEV1.toString(),
+              } as Partial<IncidentSeverity>),
+              row(IncidentSeverity, {
+                _id: INCIDENT_SEV2.toString(),
+              } as Partial<IncidentSeverity>),
             ],
             count: 2,
             skip: 0,
@@ -393,7 +462,11 @@ describe("fetchLlmMonitorSeedIds", () => {
         }
 
         return {
-          data: [row(AlertSeverity, { _id: ALERT_HIGH.toString() } as Partial<AlertSeverity>)],
+          data: [
+            row(AlertSeverity, {
+              _id: ALERT_HIGH.toString(),
+            } as Partial<AlertSeverity>),
+          ],
           count: 1,
           skip: 0,
           limit: 1,
@@ -402,8 +475,12 @@ describe("fetchLlmMonitorSeedIds", () => {
 
     const seeds: LlmMonitorSeedIds = await fetchLlmMonitorSeedIds();
 
-    expect(seeds.operationalMonitorStatusId?.toString()).toBe(OPERATIONAL.toString());
-    expect(seeds.unhealthyMonitorStatusId?.toString()).toBe(DEGRADED.toString());
+    expect(seeds.operationalMonitorStatusId?.toString()).toBe(
+      OPERATIONAL.toString(),
+    );
+    expect(seeds.unhealthyMonitorStatusId?.toString()).toBe(
+      DEGRADED.toString(),
+    );
     expect(
       seeds.rankedIncidentSeverityIds.map((id: ObjectID): string => {
         return id.toString();
@@ -415,7 +492,9 @@ describe("fetchLlmMonitorSeedIds", () => {
       }),
     ).toEqual([ALERT_HIGH.toString()]);
 
-    const calls: Array<Array<unknown>> = getList.mock.calls as Array<Array<unknown>>;
+    const calls: Array<Array<unknown>> = getList.mock.calls as Array<
+      Array<unknown>
+    >;
     const sortFor: (model: unknown) => unknown = (model: unknown): unknown => {
       return (
         calls.find((call: Array<unknown>): boolean => {
@@ -433,13 +512,15 @@ describe("fetchLlmMonitorSeedIds", () => {
 
 describe("the routes to Create Monitor", () => {
   test("a template's card opens Create Monitor on that template", () => {
-    const route: Route = getLlmMonitorTemplateRoute(LlmMonitorTemplateId.Refusals);
+    const route: Route = getLlmMonitorTemplateRoute(
+      LlmMonitorTemplateId.Refusals,
+    );
     const [path, query] = route.toString().split("?");
 
     expect(path).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
-    expect(new URLSearchParams(query).get(LLM_MONITOR_TEMPLATE_QUERY_PARAM)).toBe(
-      "llm-refusals",
-    );
+    expect(
+      new URLSearchParams(query).get(LLM_MONITOR_TEMPLATE_QUERY_PARAM),
+    ).toBe("llm-refusals");
   });
 
   test("Create AI alert opens Create Monitor on the AI / LLM type alone", () => {
@@ -450,6 +531,8 @@ describe("the routes to Create Monitor", () => {
   });
 
   test("a link naming no template says so in words the reader can act on", () => {
-    expect(LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR).toContain("Alerts tab of AI / LLM");
+    expect(LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR).toContain(
+      "Alerts tab of AI / LLM",
+    );
   });
 });

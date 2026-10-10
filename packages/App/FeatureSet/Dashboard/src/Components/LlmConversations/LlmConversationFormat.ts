@@ -128,7 +128,10 @@ export function formatLlmShare(part: number, whole: number): string {
 
 // The replay clock: "0:07", "1:05", "1:02:09".
 export function formatLlmClock(ms: number): string {
-  const totalSeconds: number = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+  const totalSeconds: number = Math.max(
+    0,
+    Math.floor((Number(ms) || 0) / 1000),
+  );
   const hours: number = Math.floor(totalSeconds / 3600);
   const minutes: number = Math.floor((totalSeconds % 3600) / 60);
   const seconds: number = totalSeconds % 60;
@@ -151,7 +154,10 @@ export function truncateLlmText(text: string, length: number): string {
     return characters.join("");
   }
 
-  return `${characters.slice(0, Math.max(0, length - 1)).join("").trimEnd()}…`;
+  return `${characters
+    .slice(0, Math.max(0, length - 1))
+    .join("")
+    .trimEnd()}…`;
 }
 
 /*

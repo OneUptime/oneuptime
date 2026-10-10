@@ -1828,7 +1828,11 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
     expect(row(rows, "llmBadAnswerIssues")?.translateValue).toBe(true);
 
     // Data the customer typed is not.
-    for (const key of ["llmModel", "llmSlowAnswerSeconds", "lastXSecondsOfCalls"]) {
+    for (const key of [
+      "llmModel",
+      "llmSlowAnswerSeconds",
+      "lastXSecondsOfCalls",
+    ]) {
       expect(row(rows, key)?.translateValue).toBeFalsy();
     }
   });
@@ -1881,7 +1885,11 @@ describe("MonitorStepViewModel.translateRowValue", () => {
 
   it("leaves every other row as it is", () => {
     expect(
-      MonitorStepViewModel.translateRowValue(rowOf(undefined), ["Failed"], translate),
+      MonitorStepViewModel.translateRowValue(
+        rowOf(undefined),
+        ["Failed"],
+        translate,
+      ),
     ).toEqual(["Failed"]);
     expect(
       MonitorStepViewModel.translateRowValue(rowOf(false), "Failed", translate),
@@ -1889,7 +1897,9 @@ describe("MonitorStepViewModel.translateRowValue", () => {
   });
 
   it("a value that is not words is returned untouched", () => {
-    expect(MonitorStepViewModel.translateRowValue(rowOf(true), 42, translate)).toBe(42);
+    expect(
+      MonitorStepViewModel.translateRowValue(rowOf(true), 42, translate),
+    ).toBe(42);
     expect(
       MonitorStepViewModel.translateRowValue(rowOf(true), undefined, translate),
     ).toBeUndefined();

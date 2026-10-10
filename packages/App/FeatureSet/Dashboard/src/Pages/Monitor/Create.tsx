@@ -1158,16 +1158,15 @@ const MonitorCreate: FunctionComponent<
       return;
     }
 
-    const llmMonitorTemplateId: string | null =
-      Navigation.getQueryStringByName(LLM_MONITOR_TEMPLATE_QUERY_PARAM);
+    const llmMonitorTemplateId: string | null = Navigation.getQueryStringByName(
+      LLM_MONITOR_TEMPLATE_QUERY_PARAM,
+    );
 
     if (llmMonitorTemplateId) {
       setIsLoading(true);
-      preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(
-        () => {
-          setIsLoading(false);
-        },
-      );
+      preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(() => {
+        setIsLoading(false);
+      });
       return;
     }
 

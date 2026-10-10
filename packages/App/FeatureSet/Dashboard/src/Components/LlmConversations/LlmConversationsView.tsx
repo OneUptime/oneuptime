@@ -56,7 +56,10 @@ import {
   toLlmConversationListUrlParams,
 } from "./LlmConversationListUrlState";
 import { fetchLlmConversations } from "./LlmConversationsApi";
-import { getLlmConversationRoute, getLlmPageRoute } from "./LlmConversationRoutes";
+import {
+  getLlmConversationRoute,
+  getLlmPageRoute,
+} from "./LlmConversationRoutes";
 import { formatLlmCount } from "./LlmConversationFormat";
 import {
   LlmServiceNames,
@@ -235,13 +238,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     return () => {
       cancelled = true;
     };
-  }, [
-    summaryKeyOf(view),
-    view.issue,
-    view.sort,
-    view.page,
-    reloadToken,
-  ]);
+  }, [summaryKeyOf(view), view.issue, view.sort, view.page, reloadToken]);
 
   const isFiltered: boolean = isLlmConversationListFiltered(view);
 
@@ -273,10 +270,11 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     return summary.issueConversationCounts[view.issue] || 0;
   }, [summary, view.issue]);
 
-  const selectIssue: (issue: LlmConversationIssueFilter | undefined) => void =
-    (issue: LlmConversationIssueFilter | undefined): void => {
-      setView({ ...view, issue: issue, page: 0 });
-    };
+  const selectIssue: (issue: LlmConversationIssueFilter | undefined) => void = (
+    issue: LlmConversationIssueFilter | undefined,
+  ): void => {
+    setView({ ...view, issue: issue, page: 0 });
+  };
 
   const clearFilters: () => void = (): void => {
     setSearchText("");
@@ -292,15 +290,18 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     state.kind === "loaded" ? state.response.hasMore : false;
 
   const visibleIssueChips: Array<LlmAnswerIssue> =
-    LlmAnswerIssueUtil.getAllIssues().filter((issue: LlmAnswerIssue): boolean => {
-      return (
-        view.issue === issue ||
-        (summary ? (summary.issueConversationCounts[issue] || 0) > 0 : false)
-      );
-    });
+    LlmAnswerIssueUtil.getAllIssues().filter(
+      (issue: LlmAnswerIssue): boolean => {
+        return (
+          view.issue === issue ||
+          (summary ? (summary.issueConversationCounts[issue] || 0) > 0 : false)
+        );
+      },
+    );
 
   const firstShown: number = view.page * LLM_CONVERSATION_PAGE_SIZE + 1;
-  const lastShown: number = view.page * LLM_CONVERSATION_PAGE_SIZE + conversations.length;
+  const lastShown: number =
+    view.page * LLM_CONVERSATION_PAGE_SIZE + conversations.length;
 
   const renderList: () => ReactElement = (): ReactElement => {
     if (state.kind === "error") {
@@ -325,10 +326,16 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
 
     if (state.kind === "loading") {
       return (
-        <div className="divide-y divide-gray-100" data-testid="llm-conversations-loading">
+        <div
+          className="divide-y divide-gray-100"
+          data-testid="llm-conversations-loading"
+        >
           {[0, 1, 2, 3, 4].map((index: number) => {
             return (
-              <div key={index} className="flex items-start gap-3 px-4 py-4 sm:px-6">
+              <div
+                key={index}
+                className="flex items-start gap-3 px-4 py-4 sm:px-6"
+              >
                 <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-gray-200" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
@@ -418,7 +425,10 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     }
 
     return (
-      <div className="divide-y divide-gray-100" data-testid="llm-conversations-list">
+      <div
+        className="divide-y divide-gray-100"
+        data-testid="llm-conversations-list"
+      >
         {conversations.map((conversation: LlmConversationListItem) => {
           const route: Route | null = getLlmConversationRoute({
             key: conversation.key,
@@ -515,13 +525,19 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         />
       )}
 
-      <div className="rounded-lg bg-white shadow" data-testid="llm-conversations-card">
+      <div
+        className="rounded-lg bg-white shadow"
+        data-testid="llm-conversations-card"
+      >
         <div
           className={`flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
             isFirstRun ? "hidden" : "flex"
           }`}
         >
-          <div className="flex flex-wrap gap-2" data-testid="llm-conversations-chips">
+          <div
+            className="flex flex-wrap gap-2"
+            data-testid="llm-conversations-chips"
+          >
             <Chip
               label={translator.translateText("All") || ""}
               count={summary ? summary.conversationCount : null}
@@ -545,8 +561,13 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
               return (
                 <Chip
                   key={issue}
-                  label={translator.translateText(LLM_ISSUE_STYLES[issue].title) || ""}
-                  count={summary ? summary.issueConversationCounts[issue] || 0 : null}
+                  label={
+                    translator.translateText(LLM_ISSUE_STYLES[issue].title) ||
+                    ""
+                  }
+                  count={
+                    summary ? summary.issueConversationCounts[issue] || 0 : null
+                  }
                   isSelected={view.issue === issue}
                   dotClassName={LLM_ISSUE_STYLES[issue].dotClassName}
                   dataTestId={`llm-chip-${issue}`}
@@ -598,7 +619,9 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
                     {
                       first: formatLlmCount(firstShown),
                       last: formatLlmCount(lastShown),
-                      total: formatLlmCount(Math.max(totalForFilter, lastShown)),
+                      total: formatLlmCount(
+                        Math.max(totalForFilter, lastShown),
+                      ),
                     },
                   )
                 : translator.translateTemplate("Showing {{first}}–{{last}}", {

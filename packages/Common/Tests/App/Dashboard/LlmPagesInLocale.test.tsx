@@ -1,5 +1,13 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -8,14 +16,17 @@ import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable", () => {
-  return {
-    __esModule: true,
-    default: () => {
-      return null;
-    },
-  };
-});
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 
 import LlmAlertsView from "../../../../App/FeatureSet/Dashboard/src/Components/LlmAlerts/LlmAlertsView";
 import LlmSummaryTiles from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmSummaryTiles";
@@ -32,7 +43,13 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { PROJECT_ID, T0, listItem, makeStep, summary } from "./LlmConversationFixtures";
+import {
+  PROJECT_ID,
+  T0,
+  listItem,
+  makeStep,
+  summary,
+} from "./LlmConversationFixtures";
 
 /*
  * The AI / LLM pages in the reader's language, from the locale files the
@@ -60,7 +77,11 @@ const LOCALES: Record<string, Record<string, string>> = {
   ja: readLocale("ja"),
 };
 
-function word(locale: string, key: string, values: Record<string, string> = {}): string {
+function word(
+  locale: string,
+  key: string,
+  values: Record<string, string> = {},
+): string {
   let value: string = LOCALES[locale]![key] || key;
 
   for (const [name, replacement] of Object.entries(values)) {
@@ -86,10 +107,14 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(new ObjectID(PROJECT_ID));
-  jest.spyOn(PermissionGate, "gateCardButton").mockImplementation((button: unknown): never => {
-    return button as never;
-  });
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(PermissionGate, "gateCardButton")
+    .mockImplementation((button: unknown): never => {
+      return button as never;
+    });
 });
 
 afterEach(() => {
@@ -111,7 +136,9 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
 
     const page: HTMLElement = screen.getByTestId("llm-alerts-view");
 
-    expect(page).toHaveTextContent(word(locale, "Get told when your AI answers badly"));
+    expect(page).toHaveTextContent(
+      word(locale, "Get told when your AI answers badly"),
+    );
 
     for (const copy of Object.values(LLM_MONITOR_TEMPLATE_COPY)) {
       expect(page).toHaveTextContent(word(locale, copy.title));
@@ -129,11 +156,19 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
 
     const tiles: HTMLElement = screen.getByTestId("llm-summary-tiles");
 
-    for (const label of ["Conversations", "AI answers", "Need attention", "Cost", "Typical answer time"]) {
+    for (const label of [
+      "Conversations",
+      "AI answers",
+      "Need attention",
+      "Cost",
+      "Typical answer time",
+    ]) {
       expect(tiles).toHaveTextContent(word(locale, label));
     }
 
-    expect(tiles).toHaveTextContent(word(locale, "Slowest 5%: {{duration}}", { duration: "9.1 s" }));
+    expect(tiles).toHaveTextContent(
+      word(locale, "Slowest 5%: {{duration}}", { duration: "9.1 s" }),
+    );
     expect(tiles).not.toHaveTextContent("Typical answer time");
   });
 
@@ -151,9 +186,13 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
 
     // One: the "one" form where the language has one; Japanese has none.
     expect(screen.getByTestId("llm-issue-badge-refused")).toHaveTextContent(
-      word(locale, locale === "ja" ? "{{count}} refusals" : "{{count}} refusals_one", {
-        count: "1",
-      }),
+      word(
+        locale,
+        locale === "ja" ? "{{count}} refusals" : "{{count}} refusals_one",
+        {
+          count: "1",
+        },
+      ),
     );
   });
 
@@ -161,9 +200,13 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
     render(<LlmIssueBadge issue={LlmAnswerIssue.Refused} count={21} />);
 
     expect(screen.getByTestId("llm-issue-badge-refused")).toHaveTextContent(
-      word(locale, locale === "ru" ? "{{count}} refusals_one" : "{{count}} refusals", {
-        count: "21",
-      }),
+      word(
+        locale,
+        locale === "ru" ? "{{count}} refusals_one" : "{{count}} refusals",
+        {
+          count: "21",
+        },
+      ),
     );
   });
 
@@ -175,7 +218,9 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
             answerCount: 5,
             issueCounts: { ...emptyIssueCounts(), [LlmAnswerIssue.Failed]: 2 },
           })}
-          route={new Route(`/dashboard/${PROJECT_ID}/llm/conversations/c%3Achat-1`)}
+          route={
+            new Route(`/dashboard/${PROJECT_ID}/llm/conversations/c%3Achat-1`)
+          }
           serviceNames={new Map<string, string>()}
         />
       </MemoryRouter>,
@@ -183,14 +228,21 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
 
     const row: HTMLElement = screen.getByTestId("llm-conversation-row");
 
-    expect(row).toHaveTextContent(word(locale, "{{count}} answers", { count: "5" }));
-    expect(row).toHaveTextContent(word(locale, "{{count}} failed calls", { count: "2" }));
+    expect(row).toHaveTextContent(
+      word(locale, "{{count}} answers", { count: "5" }),
+    );
+    expect(row).toHaveTextContent(
+      word(locale, "{{count}} failed calls", { count: "2" }),
+    );
   });
 
   test("the replay's transport", () => {
     const steps: ReturnType<typeof makeStep>[] = [
       makeStep(LlmTranscriptStepType.UserMessage, { atMs: T0, text: "Hi" }),
-      makeStep(LlmTranscriptStepType.AssistantMessage, { atMs: T0 + 2000, text: "Hello" }),
+      makeStep(LlmTranscriptStepType.AssistantMessage, {
+        atMs: T0 + 2000,
+        text: "Hello",
+      }),
     ];
     const timeline: LlmConversationReplayController["timeline"] =
       LlmConversationReplay.buildTimeline(steps, { skipWaiting: true });
@@ -224,9 +276,14 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
       />,
     );
 
-    expect(screen.getByTestId("llm-replay-play")).toHaveTextContent(word(locale, "Replay"));
+    expect(screen.getByTestId("llm-replay-play")).toHaveTextContent(
+      word(locale, "Replay"),
+    );
     expect(screen.getByTestId("llm-replay-position")).toHaveTextContent(
-      word(locale, "Message {{position}} of {{total}}", { position: "2", total: "2" }),
+      word(locale, "Message {{position}} of {{total}}", {
+        position: "2",
+        total: "2",
+      }),
     );
     expect(screen.getByTestId("llm-replay-skip-waiting")).toHaveTextContent(
       word(locale, "Skip waiting"),

@@ -76,12 +76,40 @@ describe("LlmMonitorCriteria: the three numbers", () => {
     // checkOn, filterType, threshold, answers, bad, met
     [CheckOn.LlmBadAnswerPercent, FilterType.GreaterThan, 5, 200, 15, true],
     [CheckOn.LlmBadAnswerPercent, FilterType.GreaterThan, 5, 200, 10, false],
-    [CheckOn.LlmBadAnswerPercent, FilterType.GreaterThanOrEqualTo, 5, 200, 10, true],
-    [CheckOn.LlmBadAnswerPercent, FilterType.LessThanOrEqualTo, 5, 200, 10, true],
+    [
+      CheckOn.LlmBadAnswerPercent,
+      FilterType.GreaterThanOrEqualTo,
+      5,
+      200,
+      10,
+      true,
+    ],
+    [
+      CheckOn.LlmBadAnswerPercent,
+      FilterType.LessThanOrEqualTo,
+      5,
+      200,
+      10,
+      true,
+    ],
     [CheckOn.LlmBadAnswerPercent, FilterType.LessThan, 5, 200, 10, false],
     [CheckOn.LlmBadAnswerPercent, FilterType.EqualTo, 0, 50, 0, true],
-    [CheckOn.LlmBadAnswerCount, FilterType.GreaterThanOrEqualTo, 3, 10, 3, true],
-    [CheckOn.LlmBadAnswerCount, FilterType.GreaterThanOrEqualTo, 3, 10, 2, false],
+    [
+      CheckOn.LlmBadAnswerCount,
+      FilterType.GreaterThanOrEqualTo,
+      3,
+      10,
+      3,
+      true,
+    ],
+    [
+      CheckOn.LlmBadAnswerCount,
+      FilterType.GreaterThanOrEqualTo,
+      3,
+      10,
+      2,
+      false,
+    ],
     [CheckOn.LlmBadAnswerCount, FilterType.LessThan, 3, 10, 2, true],
     [CheckOn.LlmBadAnswerCount, FilterType.NotEqualTo, 0, 10, 1, true],
     [CheckOn.LlmAnswerCount, FilterType.EqualTo, 0, 0, 0, true],
@@ -378,7 +406,11 @@ describe("the ready-made AI alerts", () => {
     expect(new Set(ids).size).toBe(7);
   });
 
-  test.each(LlmMonitorTemplates.getAll().map((t: LlmMonitorTemplate) => [t.id, t]))(
+  test.each(
+    LlmMonitorTemplates.getAll().map((t: LlmMonitorTemplate) => {
+      return [t.id, t];
+    }),
+  )(
     "%s: every check lands on exactly one of its two criteria",
     async (_id: string, template: LlmMonitorTemplate) => {
       for (const [answers, bad] of GRID) {
@@ -429,19 +461,32 @@ describe("the ready-made AI alerts", () => {
       const template: LlmMonitorTemplate = LlmMonitorTemplates.get(id)!;
 
       expect(
-        await meets(template.unhealthyFilters, FilterCondition.All, answers, bad),
+        await meets(
+          template.unhealthyFilters,
+          FilterCondition.All,
+          answers,
+          bad,
+        ),
       ).toBe(alerts);
     },
   );
 
   test("each counts what its card promises", () => {
-    expect(LlmMonitorTemplates.get(LlmMonitorTemplateId.BadAnswers)!.step.issues).toHaveLength(5);
+    expect(
+      LlmMonitorTemplates.get(LlmMonitorTemplateId.BadAnswers)!.step.issues,
+    ).toHaveLength(5);
     expect(
       LlmMonitorTemplates.get(LlmMonitorTemplateId.FailedCalls)!.step,
-    ).toMatchObject({ issues: [LlmAnswerIssue.Failed], lastXSecondsOfCalls: 300 });
+    ).toMatchObject({
+      issues: [LlmAnswerIssue.Failed],
+      lastXSecondsOfCalls: 300,
+    });
     expect(
       LlmMonitorTemplates.get(LlmMonitorTemplateId.Refusals)!.step,
-    ).toMatchObject({ issues: [LlmAnswerIssue.Refused], lastXSecondsOfCalls: 1800 });
+    ).toMatchObject({
+      issues: [LlmAnswerIssue.Refused],
+      lastXSecondsOfCalls: 1800,
+    });
     expect(
       LlmMonitorTemplates.get(LlmMonitorTemplateId.CutOffAnswers)!.step.issues,
     ).toEqual([LlmAnswerIssue.CutOff]);
@@ -454,7 +499,11 @@ describe("the ready-made AI alerts", () => {
     expect(
       LlmMonitorTemplates.get(LlmMonitorTemplateId.NoAnswers)!.unhealthyFilters,
     ).toEqual([
-      { checkOn: CheckOn.LlmAnswerCount, filterType: FilterType.EqualTo, value: 0 },
+      {
+        checkOn: CheckOn.LlmAnswerCount,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      },
     ]);
   });
 

@@ -35,7 +35,10 @@ import {
 } from "../../../Types/Telemetry/LlmAnswerIssue";
 import ObjectID from "../../../Types/ObjectID";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
-import { createTranslator, Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The AI alert cards promise things in words - "more than 5% of answers in
@@ -75,6 +78,9 @@ const LOCALES: Array<string> = [
 // The English translator: every lookup reads back the English it was given.
 const ENGLISH: Translator = createTranslator(undefined, "en");
 
+// A sentence that names a time window: "in 15 minutes".
+const NAMES_A_WINDOW: RegExp = /\d+ minutes/;
+
 function filterOf(
   filters: Array<LlmMonitorTemplateFilter>,
   checkOn: CheckOn,
@@ -96,12 +102,21 @@ describe("every template has its words", () => {
   });
 
   test("titles and monitor names are distinct", () => {
-    const copies: Array<LlmMonitorTemplateCopy> = Object.values(LLM_MONITOR_TEMPLATE_COPY);
+    const copies: Array<LlmMonitorTemplateCopy> = Object.values(
+      LLM_MONITOR_TEMPLATE_COPY,
+    );
 
-    for (const field of ["title", "monitorName", "description", "alertDescription"]) {
-      const values: Array<string> = copies.map((copy: LlmMonitorTemplateCopy): string => {
-        return copy[field as keyof LlmMonitorTemplateCopy] as string;
-      });
+    for (const field of [
+      "title",
+      "monitorName",
+      "description",
+      "alertDescription",
+    ]) {
+      const values: Array<string> = copies.map(
+        (copy: LlmMonitorTemplateCopy): string => {
+          return copy[field as keyof LlmMonitorTemplateCopy] as string;
+        },
+      );
 
       expect({ field, distinct: new Set(values).size }).toEqual({
         field,
@@ -120,9 +135,11 @@ describe("every template has its words", () => {
 });
 
 describe("the words match what the template does", () => {
-  test.each(LlmMonitorTemplates.getAll().map((template: LlmMonitorTemplate) => {
-    return [template.id, template];
-  }))("%s", (_id: unknown, template: LlmMonitorTemplate) => {
+  test.each(
+    LlmMonitorTemplates.getAll().map((template: LlmMonitorTemplate) => {
+      return [template.id, template];
+    }),
+  )("%s", (_id: unknown, template: LlmMonitorTemplate) => {
     const copy: LlmMonitorTemplateCopy = LLM_MONITOR_TEMPLATE_COPY[template.id];
     const window: string = minutes(template.step.lastXSecondsOfCalls);
     const share: LlmMonitorTemplateFilter | undefined = filterOf(
@@ -135,9 +152,16 @@ describe("the words match what the template does", () => {
     );
 
     // The window, in every sentence that names one ("15 minutes" is not "5 minutes").
-    for (const sentence of [copy.description, copy.monitorDescription, copy.alertDescription]) {
-      if (/\d+ minutes/.test(sentence)) {
-        expect({ sentence, window: new RegExp(`\\b${window}`).test(sentence) }).toEqual({
+    for (const sentence of [
+      copy.description,
+      copy.monitorDescription,
+      copy.alertDescription,
+    ]) {
+      if (NAMES_A_WINDOW.test(sentence)) {
+        expect({
+          sentence,
+          window: new RegExp(`\\b${window}`).test(sentence),
+        }).toEqual({
           sentence,
           window: true,
         });
@@ -164,26 +188,36 @@ describe("the words match what the template does", () => {
   });
 
   test("bad answers: every problem, more than 5% of answers in 15 minutes", () => {
-    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(LlmMonitorTemplateId.BadAnswers)!;
+    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(
+      LlmMonitorTemplateId.BadAnswers,
+    )!;
 
     expect(template.step.issues).toEqual(LlmAnswerIssueUtil.getAllIssues());
     expect(template.step.lastXSecondsOfCalls).toBe(900);
-    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain("15 minutes");
+    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain(
+      "15 minutes",
+    );
     expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain(
       "fail, are refused, cut off, empty or flagged",
     );
   });
 
   test("failed calls: failures only, in 5 minutes", () => {
-    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(LlmMonitorTemplateId.FailedCalls)!;
+    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(
+      LlmMonitorTemplateId.FailedCalls,
+    )!;
 
     expect(template.step.issues).toEqual([LlmAnswerIssue.Failed]);
     expect(template.step.lastXSecondsOfCalls).toBe(300);
-    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain("in 5 minutes");
+    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain(
+      "in 5 minutes",
+    );
   });
 
   test("slow answers: no problem counted, only answers over 30 seconds", () => {
-    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(LlmMonitorTemplateId.SlowAnswers)!;
+    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(
+      LlmMonitorTemplateId.SlowAnswers,
+    )!;
 
     expect(MonitorStepLlmMonitorUtil.getBadAnswerRule(template.step)).toEqual({
       issues: [],
@@ -195,13 +229,21 @@ describe("the words match what the template does", () => {
   });
 
   test("the AI stops answering: no answers in 30 minutes", () => {
-    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(LlmMonitorTemplateId.NoAnswers)!;
+    const template: LlmMonitorTemplate = LlmMonitorTemplates.get(
+      LlmMonitorTemplateId.NoAnswers,
+    )!;
 
     expect(template.unhealthyFilters).toEqual([
-      { checkOn: CheckOn.LlmAnswerCount, filterType: FilterType.EqualTo, value: 0 },
+      {
+        checkOn: CheckOn.LlmAnswerCount,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      },
     ]);
     expect(template.step.lastXSecondsOfCalls).toBe(1800);
-    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain("for 30 minutes");
+    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain(
+      "for 30 minutes",
+    );
   });
 
   test("flagged answers: one is enough", () => {
@@ -217,7 +259,9 @@ describe("the words match what the template does", () => {
         value: 1,
       },
     ]);
-    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain("As soon as");
+    expect(LLM_MONITOR_TEMPLATE_COPY[template.id].description).toContain(
+      "As soon as",
+    );
   });
 });
 
@@ -245,14 +289,16 @@ describe("the alert words in every language", () => {
     const progress: { sameAsEnglish?: Array<string> } = JSON.parse(
       fs.readFileSync(path.join(PROGRESS_DIR, `${locale}.json`), "utf8"),
     ) as { sameAsEnglish?: Array<string> };
-    const untranslated: Array<string> = words().filter((word: string): boolean => {
-      const value: unknown = translations[word];
+    const untranslated: Array<string> = words().filter(
+      (word: string): boolean => {
+        const value: unknown = translations[word];
 
-      return (
-        typeof value !== "string" ||
-        (value === word && !(progress.sameAsEnglish || []).includes(word))
-      );
-    });
+        return (
+          typeof value !== "string" ||
+          (value === word && !(progress.sameAsEnglish || []).includes(word))
+        );
+      },
+    );
 
     expect(untranslated).toEqual([]);
   });
@@ -316,14 +362,18 @@ describe("the monitor form's values", () => {
 
   test("the problems are offered in display order, by the chip's word", () => {
     expect(getLlmIssueOptions()).toEqual(
-      LlmAnswerIssueUtil.getAllIssues().map((issue: LlmAnswerIssue): DropdownOption => {
-        return { label: LLM_ISSUE_STYLES[issue].title, value: issue };
-      }),
+      LlmAnswerIssueUtil.getAllIssues().map(
+        (issue: LlmAnswerIssue): DropdownOption => {
+          return { label: LLM_ISSUE_STYLES[issue].title, value: issue };
+        },
+      ),
     );
   });
 
   test("a new monitor's form: every problem, no slow limit, 15 minutes, every app", () => {
-    expect(toLlmMonitorFormValues(MonitorStepLlmMonitorUtil.getDefault())).toEqual({
+    expect(
+      toLlmMonitorFormValues(MonitorStepLlmMonitorUtil.getDefault()),
+    ).toEqual({
       issues: LlmAnswerIssueUtil.getAllIssues(),
       slowAnswerSeconds: "",
       lastXSecondsOfCalls: LLM_MONITOR_DEFAULT_WINDOW_SECONDS,
@@ -351,9 +401,9 @@ describe("the monitor form's values", () => {
       telemetryServiceIds: [SERVICE],
       model: "gpt-4o-mini",
     });
-    expect(MonitorStepLlmMonitorUtil.toJSON(toLlmMonitorConfig(values))).toEqual(
-      MonitorStepLlmMonitorUtil.toJSON(monitor),
-    );
+    expect(
+      MonitorStepLlmMonitorUtil.toJSON(toLlmMonitorConfig(values)),
+    ).toEqual(MonitorStepLlmMonitorUtil.toJSON(monitor));
   });
 
   test("an empty slow-answer field is no limit, as are zero and nonsense", () => {
@@ -384,7 +434,9 @@ describe("the monitor form's values", () => {
     });
 
     expect(config.issues).toEqual([]);
-    expect(MonitorStepLlmMonitorUtil.getBadAnswerRule(config).issues).toEqual([]);
+    expect(MonitorStepLlmMonitorUtil.getBadAnswerRule(config).issues).toEqual(
+      [],
+    );
   });
 
   test("blank app picks and a cleared model are dropped", () => {

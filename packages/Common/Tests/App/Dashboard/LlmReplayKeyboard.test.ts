@@ -81,7 +81,9 @@ describe("keys the replay never takes", () => {
   );
 
   test("a key typed into an editable element", () => {
-    expect(press("k", { targetTagName: "DIV", targetIsContentEditable: true })).toBeNull();
+    expect(
+      press("k", { targetTagName: "DIV", targetIsContentEditable: true }),
+    ).toBeNull();
   });
 
   test.each([
@@ -109,8 +111,12 @@ describe("keys the replay never takes", () => {
   });
 
   test("an arrow on a plain button or a link still moves the replay", () => {
-    expect(press("ArrowLeft", { targetTagName: "BUTTON", targetRole: "button" })).toBe("previous");
-    expect(press("ArrowRight", { targetTagName: "A", targetRole: "" })).toBe("next");
+    expect(
+      press("ArrowLeft", { targetTagName: "BUTTON", targetRole: "button" }),
+    ).toBe("previous");
+    expect(press("ArrowRight", { targetTagName: "A", targetRole: "" })).toBe(
+      "next",
+    );
   });
 
   test("a missing target reads as the page", () => {

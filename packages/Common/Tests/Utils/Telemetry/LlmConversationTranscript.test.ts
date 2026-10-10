@@ -108,7 +108,10 @@ describe("a chat app that re-sends the history on every call", () => {
       startMs: T0,
       endMs: T0 + 2000,
       content: content({
-        input: [msg("system", text("You are a travel bot.")), msg("user", text("Hi"))],
+        input: [
+          msg("system", text("You are a travel bot.")),
+          msg("user", text("Hi")),
+        ],
         output: [msg("assistant", text("Hello! Where to?"))],
       }),
     }),
@@ -353,7 +356,10 @@ describe("de-duplication counts, it does not just remember", () => {
       }),
     ]);
 
-    expect(summary(transcript)).toEqual(["user:Name a color", "assistant:Blue"]);
+    expect(summary(transcript)).toEqual([
+      "user:Name a color",
+      "assistant:Blue",
+    ]);
   });
 });
 
@@ -366,7 +372,9 @@ describe("tools", () => {
         endMs: T0 + 1000,
         content: content({
           input: [msg("user", text("Weather in Paris?"))],
-          output: [msg("assistant", toolCall("t1", "get_weather", '{"city":"Paris"}'))],
+          output: [
+            msg("assistant", toolCall("t1", "get_weather", '{"city":"Paris"}')),
+          ],
           finishReasons: ["tool_calls"],
         }),
       }),
@@ -417,7 +425,12 @@ describe("tools", () => {
         endMs: T0 + 1900,
         costUsd: 0,
         content: content({
-          tool: { id: "t9", name: "refund", arguments: '{"id":"A-1"}', result: "OK" },
+          tool: {
+            id: "t9",
+            name: "refund",
+            arguments: '{"id":"A-1"}',
+            result: "OK",
+          },
         }),
       }),
       call({
@@ -454,7 +467,12 @@ describe("tools", () => {
         startMs: T0,
         endMs: T0 + 400,
         content: content({
-          tool: { id: "", name: "search", arguments: '{"q":"x"}', result: "3 hits" },
+          tool: {
+            id: "",
+            name: "search",
+            arguments: '{"q":"x"}',
+            result: "3 hits",
+          },
         }),
       }),
     ]);
@@ -684,7 +702,9 @@ describe("issues, titles and identities", () => {
     ]);
 
     expect(transcript.title.length).toBe(LLM_TRANSCRIPT_TITLE_LENGTH);
-    expect(transcript.title.startsWith("# Help I need help with aaa")).toBe(true);
+    expect(transcript.title.startsWith("# Help I need help with aaa")).toBe(
+      true,
+    );
     expect(transcript.title.endsWith("…")).toBe(true);
   });
 

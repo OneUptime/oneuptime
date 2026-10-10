@@ -57,11 +57,12 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const conversation: LlmConversationListItem = props.conversation;
 
-  const issues: Array<LlmAnswerIssue> = LlmAnswerIssueUtil.getAllIssues().filter(
-    (issue: LlmAnswerIssue): boolean => {
-      return (conversation.issueCounts[issue] || 0) > 0;
-    },
-  );
+  const issues: Array<LlmAnswerIssue> =
+    LlmAnswerIssueUtil.getAllIssues().filter(
+      (issue: LlmAnswerIssue): boolean => {
+        return (conversation.issueCounts[issue] || 0) > 0;
+      },
+    );
 
   const title: string = conversation.title
     ? truncateLlmText(conversation.title, 160)
@@ -158,27 +159,22 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
             className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-500"
             data-testid="llm-conversation-row-facts"
           >
-            {facts.map(
-              (fact: { key: string; text: string }, index: number) => {
-                return (
-                  <React.Fragment key={fact.key}>
-                    {index > 0 ? (
-                      <span className="text-gray-300" aria-hidden="true">
-                        ·
-                      </span>
-                    ) : (
-                      <></>
-                    )}
-                    <span
-                      className="max-w-[16rem] truncate"
-                      data-fact={fact.key}
-                    >
-                      {fact.text}
+            {facts.map((fact: { key: string; text: string }, index: number) => {
+              return (
+                <React.Fragment key={fact.key}>
+                  {index > 0 ? (
+                    <span className="text-gray-300" aria-hidden="true">
+                      ·
                     </span>
-                  </React.Fragment>
-                );
-              },
-            )}
+                  ) : (
+                    <></>
+                  )}
+                  <span className="max-w-[16rem] truncate" data-fact={fact.key}>
+                    {fact.text}
+                  </span>
+                </React.Fragment>
+              );
+            })}
           </div>
           {issues.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
