@@ -204,6 +204,8 @@ The Runner reads these on startup:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | How often the Runner renews a running job's lease. A value under `1000` falls back to the default. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Maximum simultaneous jobs on this Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Set to `false` to stop this Runner taking runbook steps, whatever the dashboard says. It can only turn the capability off. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, whatever the dashboard says. |
+| `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Set to `false` to stop this Runner running AI remediation commands, whatever the dashboard says. |
 
 ## Rotating an agent key
 
