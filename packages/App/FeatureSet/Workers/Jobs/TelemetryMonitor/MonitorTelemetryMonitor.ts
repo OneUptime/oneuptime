@@ -1282,14 +1282,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorId: ObjectID;
   projectId: ObjectID;
   evaluateUntil?: Date | undefined;
-}): Promise<
-  | LogMonitorResponse
-  | SecurityEventsMonitorResponse
-  | TraceMonitorResponse
-  | MetricMonitorResponse
-  | ExceptionMonitorResponse
-  | ProfileMonitorResponse
-> => {
+}): Promise<TelemetryMonitorResponse> => {
   const { monitorStep, monitorType, monitorId, projectId, evaluateUntil } =
     data;
 

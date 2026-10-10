@@ -18,6 +18,7 @@ import {
   LlmConversationSort,
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
+import { LLM_MONITOR_DEFAULT_WINDOW_SECONDS } from "../../../Types/Monitor/MonitorStepLlmMonitor";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import TelemetrySourceMapService from "../../../Server/Services/TelemetrySourceMapService";
@@ -655,6 +656,19 @@ const ROUTE_CASES: Array<RouteCase> = [
     },
     false,
   ),
+  /*
+   * The AI / LLM monitor form's preview. Its apps come as the monitor
+   * step's own telemetryServiceIds, not serviceIds - pinned in the AI / LLM
+   * describe below.
+   */
+  aggregationCase(
+    "/telemetry/llm/answer-stats",
+    LlmConversationService,
+    "countAnswers",
+    {},
+    { answerCount: 0, badAnswerCount: 0 },
+    false,
+  ),
 
   // Exceptions.
   aggregationCase(
@@ -1171,6 +1185,118 @@ describe("/telemetry/exceptions/resolve-stack-trace", () => {
  * what reaches the read: filters trimmed and bounded, the window, and the
  * refusals that must answer before anything is read.
  */
+describe("the AI / LLM monitor preview route", () => {
+  const STATS: string = "/telemetry/llm/answer-stats";
+
+  test.each(PRINCIPALS)(
+    "a %s reader asking for apps by id keeps only those they may read",
+    async (principalName: PrincipalName) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const read: Spy = spyOn(LlmConversationService, "countAnswers");
+      read.mockResolvedValue({ answerCount: 0, badAnswerCount: 0 });
+
+      await callRoute({
+        uri: STATS,
+        principal: currentPrincipal,
+        body: {
+          telemetryServiceIds: [SERVICE_A.toString(), SERVICE_C.toString()],
+        },
+      });
+
+      expect(read.mock.calls.length).toBe(1);
+      expect(filterOf(read.mock.calls[0]![0])).toEqual(
+        EXPECTED_WHEN_ASKING_FOR_A_AND_C[principalName],
+      );
+    },
+  );
+
+  test("the step's settings reach the count as the monitor's check reads them", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "countAnswers");
+    read.mockResolvedValue({ answerCount: 40, badAnswerCount: 3 });
+
+    const result: CallResult = await callRoute({
+      uri: STATS,
+      principal: currentPrincipal,
+      body: {
+        issues: [LlmAnswerIssue.Refused, "bogus", LlmAnswerIssue.CutOff],
+        slowAnswerSeconds: 30,
+        model: "  gpt-4o  ",
+        lastXSecondsOfCalls: 3600,
+      },
+    });
+
+    const request: Record<string, unknown> = read.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(request["projectId"]).toEqual(PROJECT_ID);
+    expect(request["issues"]).toEqual([
+      LlmAnswerIssue.Refused,
+      LlmAnswerIssue.CutOff,
+    ]);
+    expect(request["slowAnswerMs"]).toBe(30_000);
+    expect(request["model"]).toBe("gpt-4o");
+    expect(
+      (request["endTime"] as Date).getTime() -
+        (request["startTime"] as Date).getTime(),
+    ).toBe(3600 * 1000);
+
+    expect(result.errorResponse).toBeUndefined();
+    expect(
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
+    ).toMatchObject({
+      answerCount: 40,
+      badAnswerCount: 3,
+      badAnswerPercent: 7.5,
+    });
+  });
+
+  test("an empty step reads every problem over the default window", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "countAnswers");
+    read.mockResolvedValue({ answerCount: 0, badAnswerCount: 0 });
+
+    const result: CallResult = await callRoute({
+      uri: STATS,
+      principal: currentPrincipal,
+      body: {},
+    });
+
+    const request: Record<string, unknown> = read.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(request["issues"]).toEqual([
+      LlmAnswerIssue.Failed,
+      LlmAnswerIssue.Refused,
+      LlmAnswerIssue.CutOff,
+      LlmAnswerIssue.Empty,
+      LlmAnswerIssue.Flagged,
+    ]);
+    expect(request["slowAnswerMs"]).toBeNull();
+    expect(request["model"]).toBeUndefined();
+    expect(
+      (request["endTime"] as Date).getTime() -
+        (request["startTime"] as Date).getTime(),
+    ).toBe(LLM_MONITOR_DEFAULT_WINDOW_SECONDS * 1000);
+
+    // No answers is 0%, not a division by zero.
+    expect(result.errorResponse).toBeUndefined();
+    expect(
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
+    ).toMatchObject({
+      answerCount: 0,
+      badAnswerCount: 0,
+      badAnswerPercent: 0,
+    });
+  });
+});
+
 describe("the AI / LLM conversation routes", () => {
   const LIST: string = "/telemetry/llm/conversations";
   const DETAIL: string = "/telemetry/llm/conversation";

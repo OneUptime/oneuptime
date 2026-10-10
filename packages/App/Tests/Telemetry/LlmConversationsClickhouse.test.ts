@@ -67,6 +67,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import SpanService from "Common/Server/Services/SpanService";
 import LlmConversationService, {
+  LlmAnswerCountQuery,
+  LlmAnswerCounts,
   LlmConversationDetail,
   LlmConversationListQuery,
 } from "Common/Server/Services/LlmConversationService";
@@ -776,6 +778,192 @@ integration("AI conversations against ClickHouse", () => {
 
     expect(detail.transcript.callCount).toBe(1);
     expect(detail.transcript.costUsd).toBe(99);
+  });
+});
+
+/*
+ * What the AI / LLM monitor's check counts, from the same fixtures: six
+ * answers in the window (a1, a2, a3, b1, c1 in the support bot; d1 in the
+ * internal tool). The tool run and the embedding are not answers; the call
+ * in another project, the one outside the window and the plain HTTP span
+ * are never read.
+ */
+integration("the AI / LLM monitor's answer counts against ClickHouse", () => {
+  let clickhouse: ClickhouseDatabase;
+  let client: ClickhouseClient;
+  let original: ServiceConnection | undefined;
+  const countsDatabase: string = `${database}_counts`;
+
+  beforeAll(async (): Promise<void> => {
+    const url: URL = new URL(endpoint!);
+
+    const options: ClickHouseClientConfigOptions = {
+      url: `${url.protocol}//${url.host}`,
+      username: decodeURIComponent(url.username) || "default",
+      password: decodeURIComponent(url.password),
+      database: countsDatabase,
+      request_timeout: 60000,
+    };
+
+    clickhouse = new ClickhouseDatabase(options);
+    client = await clickhouse.connect(options);
+
+    const model: AnalyticsBaseModel = new Span();
+    const generator: StatementGenerator<AnalyticsBaseModel> =
+      new StatementGenerator<AnalyticsBaseModel>({
+        modelType: Span as unknown as { new (): AnalyticsBaseModel },
+        database: clickhouse,
+      });
+    const columns: Statement = generator.toColumnsCreateStatement(
+      model.tableColumns,
+    );
+
+    await client.command({
+      query: `CREATE TABLE ${countsDatabase}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
+      query_params: columns.query_params,
+    });
+
+    original = {
+      database: SpanService.database,
+      databaseClient: SpanService.databaseClient,
+      ingestDatabase: SpanService.ingestDatabase,
+      ingestDatabaseClient: SpanService.ingestDatabaseClient,
+    };
+
+    SpanService.database = clickhouse;
+    SpanService.databaseClient = client;
+    SpanService.ingestDatabase = clickhouse;
+    SpanService.ingestDatabaseClient = client;
+
+    await SpanService.insertJsonRows(calls.map(callRow), {
+      clickhouseSettings: { wait_for_async_insert: 1 },
+    });
+  });
+
+  afterAll(async (): Promise<void> => {
+    if (original) {
+      Object.assign(SpanService, original);
+    }
+
+    if (client) {
+      await client.command({
+        query: `DROP DATABASE IF EXISTS ${countsDatabase}`,
+      });
+    }
+
+    if (clickhouse) {
+      await clickhouse.disconnect();
+    }
+  });
+
+  function countQuery(
+    overrides: Partial<LlmAnswerCountQuery> = {},
+  ): LlmAnswerCountQuery {
+    return {
+      projectId: projectId,
+      startTime: windowStart,
+      endTime: windowEnd,
+      issues: [
+        LlmAnswerIssue.Failed,
+        LlmAnswerIssue.Refused,
+        LlmAnswerIssue.CutOff,
+        LlmAnswerIssue.Empty,
+        LlmAnswerIssue.Flagged,
+      ],
+      slowAnswerMs: null,
+      ...overrides,
+    };
+  }
+
+  test("counts answers only, and every answer with a problem as bad", async () => {
+    const counts: LlmAnswerCounts =
+      await LlmConversationService.countAnswers(countQuery());
+
+    expect(counts).toEqual({ answerCount: 6, badAnswerCount: 4 });
+  });
+
+  test.each([
+    [LlmAnswerIssue.Refused, 1],
+    [LlmAnswerIssue.CutOff, 1],
+    [LlmAnswerIssue.Flagged, 1],
+    [LlmAnswerIssue.Empty, 1],
+    // c1 was ingested before llmIssues: its error status still counts.
+    [LlmAnswerIssue.Failed, 1],
+  ])(
+    "counts only the answers with %s",
+    async (issue: LlmAnswerIssue, expected: number) => {
+      const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+        countQuery({ issues: [issue] }),
+      );
+
+      expect(counts).toEqual({ answerCount: 6, badAnswerCount: expected });
+    },
+  );
+
+  test("a slow-answer limit counts the answers slower than it", async () => {
+    const onlySlow: LlmAnswerCounts = await LlmConversationService.countAnswers(
+      countQuery({ issues: [], slowAnswerMs: 2000 }),
+    );
+
+    // a2 took 2.4 s and c1 30 s.
+    expect(onlySlow).toEqual({ answerCount: 6, badAnswerCount: 2 });
+
+    const slowOrRefused: LlmAnswerCounts =
+      await LlmConversationService.countAnswers(
+        countQuery({ issues: [LlmAnswerIssue.Refused], slowAnswerMs: 2000 }),
+      );
+
+    expect(slowOrRefused).toEqual({ answerCount: 6, badAnswerCount: 3 });
+  });
+
+  test("no problem and no limit counts nothing as bad", async () => {
+    const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+      countQuery({ issues: [], slowAnswerMs: null }),
+    );
+
+    expect(counts).toEqual({ answerCount: 6, badAnswerCount: 0 });
+  });
+
+  test("a model narrows both counts to its answers", async () => {
+    const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+      countQuery({ model: "gpt-4o" }),
+    );
+
+    // a1, a2, c1 and d1 asked for gpt-4o; c1 failed and d1 was flagged.
+    expect(counts).toEqual({ answerCount: 4, badAnswerCount: 2 });
+  });
+
+  test("apps narrow the counts, and a blocked app is left out", async () => {
+    const supportBotOnly: LlmAnswerCounts =
+      await LlmConversationService.countAnswers(
+        countQuery({ serviceIds: [supportBotId] }),
+      );
+
+    expect(supportBotOnly).toEqual({ answerCount: 5, badAnswerCount: 3 });
+
+    const withoutInternal: LlmAnswerCounts =
+      await LlmConversationService.countAnswers(
+        countQuery({ excludedServiceIds: [internalToolId] }),
+      );
+
+    expect(withoutInternal).toEqual(supportBotOnly);
+  });
+
+  test("the window bounds the counts", async () => {
+    const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+      countQuery({ startTime: new Date(now - 15 * 60 * 1000) }),
+    );
+
+    // c1 (10 minutes ago) and d1 (5 minutes ago).
+    expect(counts).toEqual({ answerCount: 2, badAnswerCount: 2 });
+  });
+
+  test("another project's answers are never counted", async () => {
+    const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+      countQuery({ projectId: otherProjectId }),
+    );
+
+    expect(counts).toEqual({ answerCount: 1, badAnswerCount: 0 });
   });
 });
 
