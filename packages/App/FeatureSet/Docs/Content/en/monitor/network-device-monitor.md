@@ -984,6 +984,19 @@ For the map to populate:
 
 Clicking an unmanaged peer offers **Add to Monitoring**, which registers it as a probe-polled device: it inherits the probe its neighbours agree on, so it is pinged from its first poll, and you add credentials afterwards if it turns out to have them.
 
+### Export the map as a PDF
+
+**Export PDF**, at the top of the map, downloads the map you are looking at as a PDF you can attach to an assessment, a change request or an incident review, or read offline. Every view of the device map has it: **Device Topology**, a site on the **Map**, and the **Network** tab of **Topology**.
+
+The PDF holds:
+
+- **The whole map**, not only the part on screen, drawn as vectors so it stays sharp at any zoom. Every device has its name, its shape for its type and its colour for its status (Up, Down or Unknown). Every link is drawn in its state, and devices with no links are grouped under **Not linked to anything**.
+- **Your view of it**: the layout you chose, the devices you dragged, and your filters — hidden node types, the endpoint VLAN, a health filter, or a search, which fades the devices that do not match. The header says which filters were on.
+- **The legend**, and a header with the project, the site and the time of the export.
+- **Two tables**: every device (type, kind, status, vendor and model, address, interfaces and number of links), and every connection (the port at each end, its state, its utilization and how it was found).
+
+A small site fits on one A4 page. A larger network gets a larger first page, so device names stay readable when you zoom in, and the tables follow on A4 pages. The PDF is always light, whichever theme you use, and is made in your browser from the map on screen. Its text is in English. Names in scripts its built-in font cannot draw, such as Chinese, Japanese or Cyrillic, are replaced, and the PDF says so.
+
 ### Ping and traceroute from the map
 
 Clicking a managed device on the map opens its drawer, and the drawer's **Connectivity** section answers the two questions that usually follow "is it up?": how has it been, and can I reach it right now.

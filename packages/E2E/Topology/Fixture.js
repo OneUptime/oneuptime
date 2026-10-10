@@ -302,6 +302,64 @@ networkEdges.forEach((edge) => {
   edge.toNodeId = managedIds.get(edge.toNodeId) || edge.toNodeId;
 });
 
+/*
+ * `?network=large` (issue #4616, the PDF export): a network of 1,200
+ * devices cabled as one tree, every seventh one down and some links busy,
+ * plus three devices with no links at all — large enough that exporting it
+ * must not freeze the page, and with an unlinked strip for the PDF to show.
+ * The default network above stays the seven devices every other test counts.
+ */
+const selectedNetwork = new URLSearchParams(window.location.search).get(
+  "network",
+);
+const LARGE_NETWORK_SIZE = 1200;
+function buildLargeNetwork() {
+  const nodes = [];
+  const edges = [];
+  const roles = ["router", "switch", "switch", "firewall", "server"];
+  let seed = 4616;
+  for (let index = 0; index < LARGE_NETWORK_SIZE; index++) {
+    nodes.push({
+      id: `00000000-0000-4000-8000-${String(index + 1001).padStart(12, "0")}`,
+      name: `branch-${Math.floor(index / 40)}-${roles[index % roles.length]}-${index}`,
+      role: roles[index % roles.length],
+      status: index % 7 === 3 ? "down" : "up",
+      kind: "device",
+      isManaged: true,
+      vendor: "Cisco",
+      interfacesUp: 24,
+      interfacesDown: index % 11 === 0 ? 1 : 0,
+    });
+    if (index > 0) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      const parent = Math.floor((seed / 2147483648) * index);
+      edges.push({
+        fromNodeId: nodes[parent].id,
+        toNodeId: nodes[index].id,
+        fromPort: `Gi1/0/${(index % 48) + 1}`,
+        toPort: "Gi0/1",
+        protocols: ["lldp"],
+        fromInterface: { utilizationPercent: (index * 37) % 100 },
+      });
+    }
+  }
+  ["Spare core switch", "Lab router", "Unpatched firewall"].forEach(
+    (name, index) => {
+      nodes.push({
+        id: `00000000-0000-4000-8000-${String(index + 9001).padStart(12, "0")}`,
+        name,
+        role: ["switch", "router", "firewall"][index],
+        status: "unknown",
+        kind: "device",
+        isManaged: true,
+      });
+    },
+  );
+  return { nodes, edges };
+}
+const largeNetwork =
+  selectedNetwork === "large" ? buildLargeNetwork() : null;
+
 const stats = { total: 7, healthy: 4, down: 1, degraded: 1, unknown: 1 };
 const site = (id, name) => ({
   id,
@@ -420,7 +478,9 @@ API.post = async ({ url, data }) => {
     };
   }
   if (route.includes("/network-device/topology")) {
-    return { data: { nodes: networkNodes, edges: networkEdges } };
+    return {
+      data: largeNetwork || { nodes: networkNodes, edges: networkEdges },
+    };
   }
   return { data: { data: [], count: 0 } };
 };
