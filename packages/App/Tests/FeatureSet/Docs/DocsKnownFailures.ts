@@ -151,10 +151,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "emails/notification-rollup": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "emails/smtp": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
