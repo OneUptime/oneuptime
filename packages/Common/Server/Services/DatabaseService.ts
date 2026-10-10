@@ -54,6 +54,8 @@ import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
 import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
+import WriteProgress from "../Utils/Database/WriteProgress";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
@@ -110,6 +112,7 @@ import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFie
 import {
   And,
   DataSource,
+  DeleteResult,
   Driver,
   EntityManager,
   FindOperator,
@@ -385,6 +388,8 @@ interface RowWrite<TBaseModel extends BaseModel> {
 // What onBeforeCreate handed back, for onCreateError (see create).
 interface CreateHandedBack<TBaseModel extends BaseModel> {
   onCreate: OnCreate<TBaseModel> | undefined;
+  // Whether a failure came from the INSERT itself (see WriteProgress).
+  progress: WriteProgress;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -1723,11 +1728,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * reaches onCreateSuccess, and one that threw there may not have finished
    * it, so this is where a service gives back what its hooks took for the
    * write - a lock (StateChangeLock, SsoRequirementChanges). Undefined when
-   * the create failed before onBeforeCreate ran.
+   * the create failed before onBeforeCreate ran. `failedStatement` says
+   * whether the INSERT itself failed or a step around it
+   * (StatementOutcome.mayStillApply decides by it whether the create may
+   * still land).
    */
   protected async onCreateError(
     error: Exception,
     _onCreate?: OnCreate<TBaseModel> | undefined,
+    _failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
@@ -1746,11 +1755,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * with what onBeforeUpdate handed back: onUpdateSuccess never runs for
    * it, so this is where a service gives back what its hooks took for the
    * write (a lock). Undefined when the update failed before
-   * onBeforeUpdate ran.
+   * onBeforeUpdate ran. `failedStatement` says whether a row's UPDATE
+   * itself failed or a step around it (StatementOutcome).
    */
   protected async onUpdateError(
     error: Exception,
     _onUpdate?: OnUpdate<TBaseModel> | undefined,
+    _failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
@@ -1766,11 +1777,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The same for a delete: one that failed once onBeforeDelete had run,
-   * with what onBeforeDelete handed back - a hard delete's too.
+   * with what onBeforeDelete handed back - a hard delete's too - and
+   * whether the DELETE itself failed or a step around it.
    */
   protected async onDeleteError(
     error: Exception,
     _onDelete?: OnDelete<TBaseModel> | undefined,
+    _failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
@@ -4877,16 +4890,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * onBeforeDelete handed back - so a service gives back there what its
    * hooks took for the write. A lock taken in onBeforeCreate and given back
    * only in onCreateSuccess used to be held for as long as the process lived
-   * by a create refused in between.
+   * by a create refused in between. The hook is told too whether the INSERT
+   * itself failed or a step around it (WriteProgress).
    */
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    const handedBack: CreateHandedBack<TBaseModel> = { onCreate: undefined };
+    const handedBack: CreateHandedBack<TBaseModel> = {
+      onCreate: undefined,
+      progress: new WriteProgress(),
+    };
 
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
-      await this.onCreateError(error as Exception, handedBack.onCreate);
+      await this.onCreateError(
+        error as Exception,
+        handedBack.onCreate,
+        handedBack.progress.getFailedStatement(),
+      );
       throw this.getException(error as Exception);
     }
   }
@@ -5110,7 +5131,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       OwnedScopePermission.hasOwnerTables(this.modelType);
 
     try {
-      createBy.data = await this.getRepository().save(createBy.data);
+      // The INSERT itself, in save()'s own transaction.
+      createBy.data = await handedBack.progress.write(
+        true,
+        async (): Promise<TBaseModel> => {
+          return await this.getRepository().save(createBy.data);
+        },
+      );
       this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
@@ -6465,6 +6492,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     // What onBeforeDelete handed back, for onDeleteError.
     let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
+    // Whether a failure came from the DELETE itself (see WriteProgress).
+    const progress: WriteProgress = new WriteProgress();
 
     // A hook's read of the rows it removes reads rows deleted before too.
     hardDeletes.add(deleteBy);
@@ -6560,8 +6589,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         const cascaded: Array<CascadedRow> =
           await this.readRowsDeletedWith(items);
 
+        // The DELETE itself, committed on its own.
         numberOfDocsAffected =
-          (await this.getRepository().delete(query as any)).affected || 0;
+          (
+            await progress.write(false, async (): Promise<DeleteResult> => {
+              return await this.getRepository().delete(query as any);
+            })
+          ).affected || 0;
 
         /*
          * Their images are private again, unless another record still shows
@@ -6591,7 +6625,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return numberOfDocsAffected;
     } catch (error) {
-      await this.onDeleteError(error as Exception, onDeleteOfError);
+      await this.onDeleteError(
+        error as Exception,
+        onDeleteOfError,
+        progress.getFailedStatement(),
+      );
       throw this.getException(error as Exception);
     }
   }
@@ -6625,6 +6663,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     // What onBeforeDelete handed back, for onDeleteError.
     let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
+    // Whether a failure came from the DELETE itself (see WriteProgress).
+    const progress: WriteProgress = new WriteProgress();
 
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
@@ -6759,8 +6799,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           deleteBy.props,
         );
 
+        // The DELETE itself, committed on its own.
         numberOfDocsAffected =
-          (await this.getRepository().delete(query as any)).affected || 0;
+          (
+            await progress.write(false, async (): Promise<DeleteResult> => {
+              return await this.getRepository().delete(query as any);
+            })
+          ).affected || 0;
 
         /*
          * The images the deleted rows - and the rows deleted with them -
@@ -6839,7 +6884,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return numberOfDocsAffected;
     } catch (error) {
-      await this.onDeleteError(error as Exception, onDeleteOfError);
+      await this.onDeleteError(
+        error as Exception,
+        onDeleteOfError,
+        progress.getFailedStatement(),
+      );
       throw this.getException(error as Exception);
     }
   }
@@ -8196,6 +8245,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     // What onBeforeUpdate handed back, for onUpdateError.
     let onUpdateOfError: OnUpdate<TBaseModel> | undefined = undefined;
+    // Whether a failure came from a row's UPDATE itself (see WriteProgress).
+    const progress: WriteProgress = new WriteProgress();
 
     try {
       this.setTelemetryContextFromProps(updateBy.props);
@@ -8617,24 +8668,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             delete savedItem[column];
           }
 
-          await this.getRepository().save(savedItem);
+          // The row's write itself, in save()'s own transaction.
+          await progress.write(true, async (): Promise<unknown> => {
+            return await this.getRepository().save(savedItem);
+          });
 
           if (rowWriteSqlColumns.length > 0) {
             storedByWrite = this.readRowReturnedByWrite(
-              await this.getRepository().update(
-                { _id: item._id! } as any,
-                {
-                  ...rowWriteSqlValues,
-                  /*
-                   * save() moved the version on already; update() moves it
-                   * again unless it is written, so it is written as it is.
-                   */
-                  version: () => {
-                    return '"version"';
-                  },
-                } as any,
-                { returning: returnedColumns },
-              ),
+              await progress.write(false, async (): Promise<UpdateResult> => {
+                return await this.getRepository().update(
+                  { _id: item._id! } as any,
+                  {
+                    ...rowWriteSqlValues,
+                    /*
+                     * save() moved the version on already; update() moves
+                     * it again unless it is written, so it is written as
+                     * it is.
+                     */
+                    version: () => {
+                      return '"version"';
+                    },
+                  } as any,
+                  { returning: returnedColumns },
+                );
+              }),
               returnedColumns,
             );
           } else if (returnedColumns.length > 0) {
@@ -8674,12 +8731,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             },
           };
 
-          const updateResult: UpdateResult =
-            returnedColumns.length > 0
-              ? await this.getRepository().update(criteria, values, {
-                  returning: returnedColumns,
-                })
-              : await this.getRepository().update(criteria, values);
+          // The row's write itself: one UPDATE, committed on its own.
+          const updateResult: UpdateResult = await progress.write(
+            false,
+            async (): Promise<UpdateResult> => {
+              return returnedColumns.length > 0
+                ? await this.getRepository().update(criteria, values, {
+                    returning: returnedColumns,
+                  })
+                : await this.getRepository().update(criteria, values);
+            },
+          );
 
           /*
            * The row was hard-deleted between the find above and this write,
@@ -8859,7 +8921,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return affectedItems.length;
     } catch (error) {
-      await this.onUpdateError(error as Exception, onUpdateOfError);
+      await this.onUpdateError(
+        error as Exception,
+        onUpdateOfError,
+        progress.getFailedStatement(),
+      );
       throw this.getException(error as Exception);
     }
   }

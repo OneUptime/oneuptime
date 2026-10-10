@@ -10,6 +10,10 @@ import AiCommandCredentialReach, {
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
 import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
+import {
+  StatementContext,
+  WriteStep,
+} from "../../../Server/Utils/Database/StatementOutcome";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -31,6 +35,11 @@ import {
 } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 import InMemoryLocks from "../TestingUtils/InMemoryLocks";
+import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  clientTimeout,
+} from "../TestingUtils/StatementFailures";
 
 /*
  * ASSIGNING AN SSH CREDENTIAL TO A RUNNER THAT RUNS ONEUPTIME AI'S COMMANDS
@@ -87,6 +96,7 @@ interface CredentialHookAccess {
   onCreateError(
     error: Exception,
     onCreate?: OnCreate<RunbookCredential> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception>;
   onBeforeUpdate(
     updateBy: UpdateBy<RunbookCredential>,
@@ -572,6 +582,54 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       await expect(hooks.onCreateError(error, undefined)).resolves.toBe(error);
       expect(locks.eventsOf("release")).toEqual([]);
     });
+
+    /*
+     * Which step of the create failed, as DatabaseService tells the hook:
+     * the INSERT, in save()'s own transaction, lands only by its COMMIT;
+     * a statement around it lands nothing of the create.
+     */
+    it.each([
+      [
+        "the INSERT, unanswered: rolled back with its transaction",
+        INSERT_STATEMENT,
+        { failedStep: WriteStep.Write, inOwnTransaction: true },
+        false,
+      ],
+      [
+        "the COMMIT, unanswered: it may still land, so the lock is left to run out",
+        COMMIT_STATEMENT,
+        { failedStep: WriteStep.Write, inOwnTransaction: true },
+        true,
+      ],
+      [
+        "a COMMIT around the write, unanswered: nothing of the create can land",
+        COMMIT_STATEMENT,
+        { failedStep: WriteStep.AroundWrite },
+        false,
+      ],
+    ])(
+      "a create that failed on %s",
+      async (
+        _label: string,
+        statement: string,
+        failedStatement: StatementContext,
+        isKept: boolean,
+      ) => {
+        const onCreate: OnCreate<RunbookCredential> =
+          await hooks.onBeforeCreate(sshCredential([PLAIN_RUNNER]));
+
+        const error: Exception = clientTimeout(
+          statement,
+        ) as unknown as Exception;
+
+        await expect(
+          hooks.onCreateError(error, onCreate, failedStatement),
+        ).resolves.toBe(error);
+
+        expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(isKept);
+        expect(locks.eventsOf("release")).toHaveLength(isKept ? 0 : 1);
+      },
+    );
 
     it("refuses, to be saved again, when another change holds the lock for longer than a write waits", async () => {
       locks.busy.add(lockKey);

@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/GlobalSsoProject";
 import Team from "../../Models/DatabaseModels/Team";
@@ -180,9 +181,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterFailedWrite(onDelete.deleteBy, error);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onDelete.deleteBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;
@@ -228,11 +234,13 @@ export class Service extends DatabaseService<Model> {
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onCreate) {
       await GlobalSsoProviderChanges.afterFailedCreate(
         onCreate.createBy,
         error,
+        failedStatement,
       );
     }
 
@@ -309,9 +317,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterFailedWrite(onUpdate.updateBy, error);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;

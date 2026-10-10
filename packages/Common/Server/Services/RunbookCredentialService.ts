@@ -1,4 +1,5 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -182,10 +183,15 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<RunbookCredential> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBackAfterFailedCreate(error, onCreate);
+    await AiCommandCredentialReach.giveBackAfterFailedCreate(
+      error,
+      onCreate,
+      failedStatement,
+    );
 
-    return await super.onCreateError(error, onCreate);
+    return await super.onCreateError(error, onCreate, failedStatement);
   }
 
   /*

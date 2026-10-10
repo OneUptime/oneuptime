@@ -180,8 +180,9 @@ class QuickCancelClient extends CancelOnTimeoutClient {
   protected override async sendCancelRequest(
     waitInMs: number,
   ): Promise<CancelRequestOutcome> {
-    const outcome: CancelRequestOutcome =
-      await super.sendCancelRequest(waitInMs);
+    const outcome: CancelRequestOutcome = await super.sendCancelRequest(
+      waitInMs,
+    );
     this.cancelOutcomes.push(outcome);
     return outcome;
   }
@@ -430,6 +431,9 @@ describe("CancelOnTimeoutClient", () => {
       const failure: unknown = await second;
 
       expect((failure as Error).message).toBe(QUERY_READ_TIMEOUT_MESSAGE);
+      // Marked as never sent: it applied nothing (StatementOutcome).
+      expect(failure).toBeInstanceOf(StatementNotSentError);
+      expect((failure as StatementNotSentError).isStatementNotSent).toBe(true);
       expect(connection.sent).toEqual(["UPDATE first"]);
 
       // The first statement is answered, and the connection takes the next.
@@ -453,9 +457,7 @@ describe("CancelOnTimeoutClient", () => {
     test("is cancelled on the database with the connection's own key", async () => {
       const client: QuickCancelClient = await connectedClient();
 
-      const running: Promise<unknown> = failureOf(
-        client.query("UPDATE held"),
-      );
+      const running: Promise<unknown> = failureOf(client.query("UPDATE held"));
 
       await eventually(() => {
         return listener.requests.length === 1;
@@ -469,7 +471,10 @@ describe("CancelOnTimeoutClient", () => {
       expect(request.readInt32BE(8)).toBe(PROCESS_ID);
       expect(request.readInt32BE(12)).toBe(SECRET_KEY);
 
-      connection.answerError("57014", "canceling statement due to user request");
+      connection.answerError(
+        "57014",
+        "canceling statement due to user request",
+      );
       await running;
 
       expect(client.cancelOutcomes).toEqual([CancelRequestOutcome.Delivered]);
@@ -478,16 +483,17 @@ describe("CancelOnTimeoutClient", () => {
     test("the caller is handed the database's answer to the cancel, and the connection is closed", async () => {
       const client: QuickCancelClient = await connectedClient();
 
-      const running: Promise<unknown> = failureOf(
-        client.query("UPDATE held"),
-      );
+      const running: Promise<unknown> = failureOf(client.query("UPDATE held"));
 
       await eventually(() => {
         return listener.requests.length === 1;
       });
       expect(client.isClosingAfterTimeout).toBe(true);
 
-      connection.answerError("57014", "canceling statement due to user request");
+      connection.answerError(
+        "57014",
+        "canceling statement due to user request",
+      );
 
       const failure: unknown = await running;
 
@@ -545,9 +551,7 @@ describe("CancelOnTimeoutClient", () => {
     test("a connection that fails meanwhile is no answer: the caller is told the read timed out", async () => {
       const client: QuickCancelClient = await connectedClient();
 
-      const running: Promise<unknown> = failureOf(
-        client.query("UPDATE held"),
-      );
+      const running: Promise<unknown> = failureOf(client.query("UPDATE held"));
 
       await eventually(() => {
         return client.isClosingAfterTimeout;
@@ -562,9 +566,7 @@ describe("CancelOnTimeoutClient", () => {
     test("the connection takes no further statement, in any calling convention", async () => {
       const client: QuickCancelClient = await connectedClient();
 
-      const running: Promise<unknown> = failureOf(
-        client.query("UPDATE held"),
-      );
+      const running: Promise<unknown> = failureOf(client.query("UPDATE held"));
 
       await eventually(() => {
         return client.isClosingAfterTimeout;
@@ -603,7 +605,10 @@ describe("CancelOnTimeoutClient", () => {
       // None of them reached the database.
       expect(connection.sent).toEqual(["UPDATE held"]);
 
-      connection.answerError("57014", "canceling statement due to user request");
+      connection.answerError(
+        "57014",
+        "canceling statement due to user request",
+      );
       await running;
     });
 
@@ -631,7 +636,10 @@ describe("CancelOnTimeoutClient", () => {
       await eventually(() => {
         return listener.requests.length === 1;
       });
-      connection.answerError("57014", "canceling statement due to user request");
+      connection.answerError(
+        "57014",
+        "canceling statement due to user request",
+      );
 
       expect(((await running) as DatabaseError).code).toBe("57014");
     });
@@ -676,16 +684,14 @@ describe("CancelOnTimeoutClient", () => {
         } as never);
 
         try {
-          const running: Promise<unknown> = pool
-            .query("UPDATE held")
-            .then(
-              (result: unknown) => {
-                return result;
-              },
-              (error: unknown) => {
-                return error;
-              },
-            );
+          const running: Promise<unknown> = pool.query("UPDATE held").then(
+            (result: unknown) => {
+              return result;
+            },
+            (error: unknown) => {
+              return error;
+            },
+          );
 
           await eventually(() => {
             return listener.requests.length === 1;
@@ -793,8 +799,11 @@ describe("CancelOnTimeoutClient", () => {
       });
 
       expect(
-        (client as unknown as { connectionParameters: { query_timeout: unknown } })
-          .connectionParameters.query_timeout,
+        (
+          client as unknown as {
+            connectionParameters: { query_timeout: unknown };
+          }
+        ).connectionParameters.query_timeout,
       ).toBe(false);
     });
 

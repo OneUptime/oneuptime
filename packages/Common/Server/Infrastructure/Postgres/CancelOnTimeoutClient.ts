@@ -27,7 +27,8 @@ import { Client, ClientConfig, Query } from "pg";
  * statement's own - and acts on it:
  *
  *   - a statement still waiting in this connection's own queue is taken out
- *     of it, never sent, and fails with the timeout, as before;
+ *     of it, never sent, and fails with the timeout, as before - marked as
+ *     never sent (StatementNotSentError);
  *   - a statement sent and not yet answered is cancelled on the database:
  *     the protocol's cancel request for this connection (what psql sends on
  *     Ctrl-C), which PgBouncer passes on to the server connection the
@@ -75,16 +76,19 @@ export const getLongestStatementWaitInMs: (queryTimeoutMs: number) => number = (
 export const QUERY_READ_TIMEOUT_MESSAGE: string = "Query read timeout";
 
 /*
- * A statement refused because its connection is being closed: an earlier
- * statement on it ran past its timeout. It was never sent, so it applied
- * nothing (StatementOutcome).
+ * A statement that failed before it was sent: refused because its
+ * connection is being closed - an earlier statement on it ran past its
+ * timeout - or timed out still waiting in its connection's own queue (told
+ * in node-postgres' words, QUERY_READ_TIMEOUT_MESSAGE). It applied nothing
+ * (StatementOutcome).
  */
 export class StatementNotSentError extends Error {
   public readonly isStatementNotSent: boolean = true;
 
-  public constructor() {
+  public constructor(message?: string | undefined) {
     super(
-      "The statement was not sent: its database connection is being closed because an earlier statement on it ran past its timeout.",
+      message ||
+        "The statement was not sent: its database connection is being closed because an earlier statement on it ran past its timeout.",
     );
     this.name = "StatementNotSentError";
   }
@@ -106,7 +110,10 @@ export enum CancelRequestOutcome {
 export type CancelOnTimeoutClientConfig = ClientConfig &
   Record<string, unknown>;
 
-type QueryCallback = (error: Error | null | undefined, result?: unknown) => void;
+type QueryCallback = (
+  error: Error | null | undefined,
+  result?: unknown,
+) => void;
 
 // The node-postgres internals this client works with (pg 8, lib/client.js).
 interface ClientInternals {
@@ -282,7 +289,9 @@ export default class CancelOnTimeoutClient extends Client {
 
         const sentOrFailed: () => void = (): void => {
           finish(
-            isSent ? CancelRequestOutcome.Delivered : CancelRequestOutcome.Failed,
+            isSent
+              ? CancelRequestOutcome.Delivered
+              : CancelRequestOutcome.Failed,
           );
         };
 
@@ -394,7 +403,7 @@ export default class CancelOnTimeoutClient extends Client {
       // Never sent: out of the queue, and failed, as node-postgres does.
       if (queuedAt >= 0) {
         internals.queryQueue.splice(queuedAt, 1);
-        settle(new Error(QUERY_READ_TIMEOUT_MESSAGE));
+        settle(new StatementNotSentError(QUERY_READ_TIMEOUT_MESSAGE));
         internals._pulseQueryQueue();
         return;
       }

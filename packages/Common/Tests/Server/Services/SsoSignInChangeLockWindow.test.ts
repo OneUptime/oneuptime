@@ -971,6 +971,29 @@ describe("a write the database never answered keeps its locks until the database
     await expect(deleteSamlProvider()).resolves.toBe(LAST_SSO_PROVIDER_MESSAGE);
   });
 
+  test("a statement around the write that was never answered - one a step before the UPDATE sent - applied nothing of it: the locks are given back at once, whatever its first word", async () => {
+    // The step between the check and the write, failed on a write of its own the client stopped waiting for.
+    getJestSpyOn(
+      ProjectService,
+      "chargeAutoRechargeTurnedOn",
+    ).mockRejectedValueOnce(
+      clientTimeout(
+        'UPDATE "Project" SET "smsOrCallCurrentBalanceInUSDCents" = $1 WHERE "_id" = $2',
+      ) as never,
+    );
+
+    await expect(saveProject({ requireSsoForLogin: true })).rejects.toThrow(
+      "Query read timeout",
+    );
+
+    // DatabaseService said it was around the write: the change itself was never sent.
+    expect(locks.eventsOf("release")).toEqual([`release:${ACME}`]);
+    expect(locks.isHeld(ACME)).toBe(false);
+    expect(keptForWrite(ACME)).toBe(false);
+
+    await expect(deleteSamlProvider()).resolves.toBe(LAST_SSO_PROVIDER_MESSAGE);
+  });
+
   test("a project provider's write the client stopped waiting for keeps its project's lock too", async () => {
     samlProviders.rows.push(providerRow(id(13), ACME));
 

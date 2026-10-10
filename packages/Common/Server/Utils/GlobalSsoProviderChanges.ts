@@ -16,6 +16,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
+import StatementOutcome, {
+  StatementContext,
+} from "./Database/StatementOutcome";
 import logger from "./Logger";
 import ProjectSsoProviderChanges, {
   SignInChangeFailure,
@@ -709,17 +712,20 @@ export default class GlobalSsoProviderChanges {
 
   /*
    * Once an update or a delete has failed (the error hooks, with what
-   * failed): its lock is given back, once - unless the database may still
-   * apply the write, when it is kept until the database would have
-   * cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
+   * failed, and which step of the write it was - DatabaseService's
+   * `failedStatement`): its lock is given back, once - unless the database
+   * may still apply the write, when it is kept until the database would
+   * have cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
    * Nobody is told: nothing was written. Never throws.
    */
   public static async afterFailedWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await GlobalSsoProviderChanges.giveBackAfterFailure(written, {
       error,
+      context: failedStatement,
     });
   }
 
@@ -731,10 +737,11 @@ export default class GlobalSsoProviderChanges {
   public static async afterFailedCreate<TModel extends BaseModel>(
     createBy: CreateBy<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await GlobalSsoProviderChanges.giveBackAfterFailure(createBy, {
       error,
-      context: { inOwnTransaction: true },
+      context: StatementOutcome.ofCreate(failedStatement),
     });
   }
 
