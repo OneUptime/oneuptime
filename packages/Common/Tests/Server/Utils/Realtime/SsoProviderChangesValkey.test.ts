@@ -2,6 +2,7 @@ import type RealtimeAccessChangesType from "../../../../Server/Utils/Realtime/Re
 import type ProjectSsoProviderChangesType from "../../../../Server/Utils/ProjectSsoProviderChanges";
 import type SsoRequirementChangesType from "../../../../Server/Utils/SsoRequirementChanges";
 import type CreateBy from "../../../../Server/Types/Database/CreateBy";
+import type { OnCreate } from "../../../../Server/Types/Database/Hooks";
 import type Project from "../../../../Models/DatabaseModels/Project";
 import type ProjectSsoProviderStandingType from "../../../../Server/Utils/ProjectSsoProviderStanding";
 import type {
@@ -852,10 +853,12 @@ describe("project SSO provider changes reach every server through Valkey", () =>
       data: {} as Project,
       props: {},
     };
+    // The create's one OnCreate, which DatabaseService hands every hook after onBeforeCreate.
+    const create: OnCreate<Project> = { createBy: createBy, carryForward: null };
 
     const write: unknown = await serverA.requirementChanges.beforeProjectCreate(
       {
-        createBy: createBy,
+        create: create,
         isCreatorExemptFromServerRule: false,
       },
     );
@@ -873,8 +876,8 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     expect(heldByB).toBeNull();
 
     // The project is written, and its lock given back once: B goes on.
-    await serverA.requirementChanges.afterProjectCreate(createBy);
-    await serverA.requirementChanges.afterProjectCreate(createBy);
+    await serverA.requirementChanges.afterProjectCreate(create);
+    await serverA.requirementChanges.afterProjectCreate(create);
     await waitingB;
 
     expect(heldByB).toHaveLength(1);
