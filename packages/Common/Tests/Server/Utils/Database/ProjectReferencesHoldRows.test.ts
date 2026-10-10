@@ -33,6 +33,9 @@ const ROW_IN_FIRST_WINDOW: string = "7b000000-0000-4000-8000-000000000001";
 const ROW_A: string = "7b000000-0000-4000-8000-00000000000a";
 const ROW_B: string = "7b000000-0000-4000-8000-00000000000b";
 const FOREIGN_LABEL: string = "7c000000-0000-4000-8000-0000000000ff";
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "7a000000-0000-4000-8000-000000000002",
+);
 
 interface Read {
   query: JSONObject;
@@ -41,10 +44,14 @@ interface Read {
   limit: number;
 }
 
-function monitor(id: string, labelIds: Array<string>): Monitor {
+function monitor(
+  id: string,
+  labelIds: Array<string>,
+  projectId: ObjectID = PROJECT_ID,
+): Monitor {
   const row: Monitor = new Monitor();
   row._id = id;
-  row.projectId = PROJECT_ID;
+  row.projectId = projectId;
   row.labels = labelIds.map((labelId: string): Label => {
     const label: Label = new Label();
     label._id = labelId;
@@ -359,7 +366,7 @@ describe("ProjectReferenceCheck.validateUpdate, for an update of many rows", () 
     expect((updateBy.query as JSONObject)["_id"]).toBe(ROW_A);
   });
 
-  it("reads no row, and leaves the update as it is, when every reference is the project's", async () => {
+  it("reads no row of a teammate's update, and leaves it as it is, when every reference is the request's project's", async () => {
     (
       ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
     ).mockResolvedValue([]);
@@ -368,6 +375,54 @@ describe("ProjectReferenceCheck.validateUpdate, for an update of many rows", () 
       Monitor,
     );
     const findBy: jest.SpyInstance = stubMonitors(service, [], []);
+
+    const updateBy: UpdateBy<Monitor> = update(
+      {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID("7d000000-0000-4000-8000-000000000001"),
+      },
+      { skip: 10000, limit: 50 },
+    );
+
+    await ProjectReferenceCheck.validateUpdate({
+      service: service,
+      updateBy: updateBy,
+    });
+
+    // Checked in the request's project, which the update is kept to.
+    expect(
+      (
+        ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+      ).mock.calls[0]![0].projectId,
+    ).toBe(PROJECT_ID);
+    expect(findBy).not.toHaveBeenCalled();
+    expect(updateBy.query).toEqual({ projectId: PROJECT_ID });
+    expect(updateBy.skip).toBe(10000);
+  });
+
+  /*
+   * OneUptime's update reaches every row its query names, whatever project
+   * the request is made in: each reference is checked in the project of the
+   * rows written, and the update is held to the rows read.
+   */
+  it("checks OneUptime's update in the project of each row it writes, not the request's", async () => {
+    // The label is the other project's alone.
+    (
+      ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+    ).mockImplementation((async (data: {
+      projectId: ObjectID;
+      references: Array<ProjectScopedReference>;
+    }): Promise<Array<ProjectScopedReference>> => {
+      return data.projectId.toString() === OTHER_PROJECT_ID.toString()
+        ? []
+        : data.references;
+    }) as never);
+
+    const service: DatabaseService<Monitor> = new DatabaseService<Monitor>(
+      Monitor,
+    );
+
+    stubMonitors(service, [monitor(ROW_A, [], OTHER_PROJECT_ID)], []);
 
     const updateBy: UpdateBy<Monitor> = update(
       { isRoot: true, tenantId: PROJECT_ID },
@@ -379,8 +434,81 @@ describe("ProjectReferenceCheck.validateUpdate, for an update of many rows", () 
       updateBy: updateBy,
     });
 
-    expect(findBy).not.toHaveBeenCalled();
-    expect(updateBy.query).toEqual({ projectId: PROJECT_ID });
-    expect(updateBy.skip).toBe(10000);
+    const checkedIn: Array<string> = (
+      ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+    ).mock.calls.map((call: Array<{ projectId: ObjectID }>): string => {
+      return call[0]!.projectId.toString();
+    });
+
+    expect(checkedIn).toEqual([OTHER_PROJECT_ID.toString()]);
+    expect((updateBy.query as JSONObject)["_id"]).toBe(ROW_A);
+    expect(updateBy.skip).toBe(0);
+    expect(updateBy.limit).toBe(1);
+  });
+
+  it("refuses OneUptime's update of another project's row naming a reference of the request's project alone", async () => {
+    // The label is the request's project's alone.
+    (
+      ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+    ).mockImplementation((async (data: {
+      projectId: ObjectID;
+      references: Array<ProjectScopedReference>;
+    }): Promise<Array<ProjectScopedReference>> => {
+      return data.projectId.toString() === PROJECT_ID.toString()
+        ? []
+        : data.references;
+    }) as never);
+
+    const service: DatabaseService<Monitor> = new DatabaseService<Monitor>(
+      Monitor,
+    );
+
+    stubMonitors(
+      service,
+      [monitor(ROW_A, []), monitor(ROW_B, [], OTHER_PROJECT_ID)],
+      [],
+    );
+
+    await expect(
+      ProjectReferenceCheck.validateUpdate({
+        service: service,
+        updateBy: update(
+          { isRoot: true, tenantId: PROJECT_ID },
+          { skip: 10000, limit: 50 },
+        ),
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("checks a master admin's update in the project of each row it writes", async () => {
+    (
+      ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+    ).mockResolvedValue([]);
+
+    const service: DatabaseService<Monitor> = new DatabaseService<Monitor>(
+      Monitor,
+    );
+
+    stubMonitors(service, [monitor(ROW_B, [], OTHER_PROJECT_ID)], []);
+
+    await ProjectReferenceCheck.validateUpdate({
+      service: service,
+      updateBy: update(
+        {
+          isMasterAdmin: true,
+          tenantId: PROJECT_ID,
+          userId: new ObjectID("7d000000-0000-4000-8000-000000000002"),
+        },
+        { skip: 10000, limit: 50 },
+      ),
+    });
+
+    expect(
+      (
+        ProjectScopedReferenceValidator.getUnavailableReferences as unknown as jest.Mock
+      ).mock.calls.map((call: Array<{ projectId: ObjectID }>): string => {
+        return call[0]!.projectId.toString();
+      }),
+    ).toEqual([OTHER_PROJECT_ID.toString()]);
   });
 });
