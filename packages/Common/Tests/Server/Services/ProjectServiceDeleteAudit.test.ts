@@ -12,6 +12,7 @@ import User from "../../../Models/DatabaseModels/User";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
+import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Deleting a project is the one moment OneUptime learns that a customer has
@@ -123,11 +124,16 @@ describe("ProjectService.onBeforeDelete", () => {
     findByCalls = [];
 
     getJestSpyOn(ProjectService, "findBy").mockImplementation((async (
-      findBy: FindBy<Project>,
+      findByArgument: FindBy<Project>,
     ) => {
-      findByCalls.push(findBy);
+      findByCalls.push(findByArgument);
       return [makeProject()];
     }) as never);
+
+    // The owner may delete the project.
+    stubRowsCallerMayDelete(ProjectService, () => {
+      return [makeProject()];
+    });
   });
 
   afterEach(() => {
@@ -142,12 +148,19 @@ describe("ProjectService.onBeforeDelete", () => {
     expect(onDelete.carryForward[0].name).toBe("Acme Monitoring");
   });
 
-  it("reads the projects the delete query matches, as root", async () => {
-    await callOnBeforeDelete(makeDeleteBy());
+  it("reads the projects the delete removes, as root, and holds the delete to them", async () => {
+    const deleteBy: DeleteBy<Project> = makeDeleteBy();
+
+    await callOnBeforeDelete(deleteBy);
 
     expect(findByCalls).toHaveLength(1);
     expect(findByCalls[0]?.query).toEqual({ _id: PROJECT_ID.toString() });
-    expect(findByCalls[0]?.props).toEqual({ isRoot: true });
+    expect(findByCalls[0]?.props).toEqual({ isRoot: true, ignoreHooks: true });
+
+    // The delete names the one project read, in a window that covers just it.
+    expect(deleteBy.query).toEqual({ _id: PROJECT_ID.toString() });
+    expect(deleteBy.limit).toBe(1);
+    expect(deleteBy.skip).toBe(0);
   });
 
   /*
