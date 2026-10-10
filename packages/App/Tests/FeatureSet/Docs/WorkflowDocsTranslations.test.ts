@@ -6,10 +6,12 @@ import ComponentMetadata, {
   ReturnValue,
 } from "Common/Types/Workflow/Component";
 import Components from "Common/Types/Workflow/Components";
+import { WorkflowDocsPaths } from "Common/Types/Workflow/Documentation/DocumentationLinks";
 import { WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
 import {
   ScannedPage,
+  anchorsOf,
   hasPage,
   readPage,
   scanMarkdown,
@@ -623,4 +625,103 @@ describe("the label helpers, on these pages' buttons", () => {
     expect(menuPaths(markdown)).toEqual([["Workflows", "Logs", "Runs"]]);
     expect(boldLabels(markdown)).toEqual(["Manual › JSON", "Run Workflow"]);
   });
+});
+
+/*
+ * Where a step's "How to use" help links (WorkflowDocsPaths). The docs answer
+ * in the reader's language, and a step's or a trigger's own section keeps its
+ * English heading in every language, so the help's link lands on that section
+ * whatever the reader's language is. The other sections are titled in each
+ * language's own words: a link to one of them lands on its heading in
+ * English, and on the right page in a translation.
+ */
+type StepHelpLink = keyof typeof WorkflowDocsPaths;
+
+const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
+  "webhookTrigger",
+  "incomingEmailTrigger",
+  "scheduleTrigger",
+  "manualTrigger",
+  "api",
+  "ai",
+  "slack",
+  "microsoftTeams",
+  "discord",
+  "telegram",
+  "irc",
+  "email",
+  "customCode",
+  "json",
+  "conditions",
+  "sleep",
+  "log",
+  "executeWorkflow",
+];
+
+const STEP_HELP_LINKS_TO_TRANSLATED: Array<StepHelpLink> = [
+  "eventTriggers",
+  "records",
+  "componentOutputs",
+  "loops",
+  "globalVariables",
+  "secrets",
+  "aiSafety",
+  "networkAccess",
+];
+
+interface StepHelpTarget {
+  page: string;
+  anchor: string;
+}
+
+// "/workflows/triggers#webhook" is the webhook anchor of workflows/triggers.
+function stepHelpTarget(link: StepHelpLink): StepHelpTarget {
+  const target: string = WorkflowDocsPaths[link];
+  const hash: number = target.indexOf("#");
+
+  return { page: target.slice(1, hash), anchor: target.slice(hash + 1) };
+}
+
+describe("the links a step's help gives into these pages", () => {
+  it("each go to a step's own section or to a translated one", () => {
+    const anchored: Array<StepHelpLink> = (
+      Object.keys(WorkflowDocsPaths) as Array<StepHelpLink>
+    ).filter((link: StepHelpLink): boolean => {
+      const target: string = WorkflowDocsPaths[link];
+
+      return target.startsWith("/workflows/") && target.includes("#");
+    });
+
+    expect([...anchored].sort()).toEqual(
+      [...STEP_HELP_LINKS_TO_STEPS, ...STEP_HELP_LINKS_TO_TRANSLATED].sort(),
+    );
+  });
+
+  it("land on a heading of the English page", () => {
+    for (const link of [
+      ...STEP_HELP_LINKS_TO_STEPS,
+      ...STEP_HELP_LINKS_TO_TRANSLATED,
+    ]) {
+      const target: StepHelpTarget = stepHelpTarget(link);
+
+      expect({
+        link,
+        lands: anchorsOf("en", target.page).has(target.anchor),
+      }).toEqual({ link, lands: true });
+    }
+  });
+
+  it.each(LANGUAGES)(
+    "land on the step's or the trigger's own section in %s",
+    (language: string) => {
+      for (const link of STEP_HELP_LINKS_TO_STEPS) {
+        const target: StepHelpTarget = stepHelpTarget(link);
+
+        expect({
+          link,
+          lands: anchorsOf(language, target.page).has(target.anchor),
+        }).toEqual({ link, lands: true });
+      }
+    },
+  );
 });
