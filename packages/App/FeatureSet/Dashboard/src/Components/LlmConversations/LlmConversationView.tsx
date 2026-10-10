@@ -189,29 +189,15 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     steps.length,
   );
 
+  /*
+   * A ?step= link arrives before the transcript does; the replay opens the
+   * transcript on that step the moment it loads (and at its end without
+   * one), in the same frame that first shows it.
+   */
   const replay: LlmConversationReplayController = useLlmConversationReplay(
     steps,
     initialStep,
   );
-
-  /*
-   * A ?step= link arrives before the transcript does: once it has loaded,
-   * put the clock on that step.
-   */
-  const appliedStepRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-
-  useEffect(() => {
-    if (appliedStepRef.current || steps.length === 0) {
-      return;
-    }
-
-    appliedStepRef.current = true;
-
-    if (initialStep !== null) {
-      replay.goToStep(initialStep);
-    }
-  }, [steps]);
 
   // Keep the URL on the message the replay stopped at.
   useEffect(() => {

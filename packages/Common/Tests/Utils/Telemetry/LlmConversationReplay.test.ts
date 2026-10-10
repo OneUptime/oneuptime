@@ -110,6 +110,20 @@ describe("Next and Previous", () => {
     );
   });
 
+  test("Next to the last message finishes the replay, so it reads as finished", () => {
+    expect(LlmConversationReplay.nextStepTime(real, 122_000)).toBe(real.durationMs);
+    expect(LlmConversationReplay.nextStepTime(real, 122_500)).toBe(real.durationMs);
+  });
+
+  test("Next finishes the replay when the last messages share a moment", () => {
+    const shared: LlmReplayTimeline = LlmConversationReplay.buildTimeline(
+      [{ atMs: T0 }, { atMs: T0 + 1000 }, { atMs: T0 + 1000 }],
+      { skipWaiting: false },
+    );
+
+    expect(LlmConversationReplay.nextStepTime(shared, 0)).toBe(shared.durationMs);
+  });
+
   test("Previous shows one step fewer, and stays at the start from the first", () => {
     expect(LlmConversationReplay.previousStepTime(real, 123_000)).toBe(122_000);
     expect(LlmConversationReplay.previousStepTime(real, 122_500)).toBe(2000);

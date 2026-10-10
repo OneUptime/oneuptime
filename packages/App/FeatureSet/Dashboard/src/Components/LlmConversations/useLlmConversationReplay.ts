@@ -42,6 +42,27 @@ export interface LlmConversationReplayController {
   setSkipWaiting: (skipWaiting: boolean) => void;
 }
 
+/*
+ * Where the clock stands when a conversation opens: on the step a link
+ * names, else at the end - the whole conversation drawn.
+ */
+export function getOpeningClock(
+  steps: ReadonlyArray<LlmReplayStepTime>,
+  initialStepIndex: number | null,
+  skipWaiting: boolean,
+): number {
+  const timeline: LlmReplayTimeline = LlmConversationReplay.buildTimeline(
+    steps,
+    { skipWaiting: skipWaiting },
+  );
+
+  return initialStepIndex !== null &&
+    initialStepIndex >= 0 &&
+    initialStepIndex < steps.length
+    ? LlmConversationReplay.timeOfStep(timeline, initialStepIndex)
+    : timeline.durationMs;
+}
+
 export function useLlmConversationReplay(
   steps: ReadonlyArray<LlmReplayStepTime>,
   initialStepIndex: number | null,
@@ -57,34 +78,28 @@ export function useLlmConversationReplay(
   }, [steps, skipWaiting]);
 
   const [clockMs, setClockMs] = useState<number>(() => {
-    const initial: LlmReplayTimeline = LlmConversationReplay.buildTimeline(
-      steps,
-      { skipWaiting: true },
-    );
-
-    return initialStepIndex !== null &&
-      initialStepIndex >= 0 &&
-      initialStepIndex < steps.length
-      ? LlmConversationReplay.timeOfStep(initial, initialStepIndex)
-      : initial.durationMs;
+    return getOpeningClock(steps, initialStepIndex, true);
   });
 
-  // A new conversation (a different steps array) opens at its end.
+  /*
+   * A new conversation (a different steps array) opens at its end, or on
+   * the step a link names - decided while rendering, not in an effect, so
+   * the first frame that shows the steps already shows the right ones: an
+   * effect would paint the transcript cut at its first message for a frame
+   * (the clock still at 0 from the empty array) before jumping to the end.
+   */
+  const [openedSteps, setOpenedSteps] =
+    useState<ReadonlyArray<LlmReplayStepTime>>(steps);
+
+  if (openedSteps !== steps) {
+    setOpenedSteps(steps);
+    setIsPlaying(false);
+    setClockMs(getOpeningClock(steps, initialStepIndex, skipWaiting));
+  }
+
   const stepsRef: React.MutableRefObject<ReadonlyArray<LlmReplayStepTime>> =
     useRef<ReadonlyArray<LlmReplayStepTime>>(steps);
-
-  useEffect(() => {
-    if (stepsRef.current === steps) {
-      return;
-    }
-
-    stepsRef.current = steps;
-    setIsPlaying(false);
-    setClockMs(
-      LlmConversationReplay.buildTimeline(steps, { skipWaiting: skipWaiting })
-        .durationMs,
-    );
-  }, [steps]);
+  stepsRef.current = steps;
 
   // Time passing while playing.
   const timelineRef: React.MutableRefObject<LlmReplayTimeline> =

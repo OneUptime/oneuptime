@@ -142,16 +142,22 @@ export default class LlmConversationReplay {
   }
 
   /*
-   * Where "Next" goes: the next step that is not yet visible. Past the last
-   * step it goes to the end of the replay.
+   * Where "Next" goes: the next step that is not yet visible. The last
+   * message is the end of the conversation, so Next to it goes straight to
+   * the end of the replay - everything on screen and the replay finished
+   * (Replay, not Play) - rather than to the last message with the tail
+   * still to run.
    */
   public static nextStepTime(
     timeline: LlmReplayTimeline,
     clockMs: number,
   ): number {
+    const lastPoint: number | undefined =
+      timeline.points[timeline.points.length - 1];
+
     for (const point of timeline.points) {
       if (point > clockMs) {
-        return point;
+        return point === lastPoint ? timeline.durationMs : point;
       }
     }
 

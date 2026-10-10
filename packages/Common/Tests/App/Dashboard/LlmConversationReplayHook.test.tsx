@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, renderHook, RenderHookResult } from "@testing-library/react";
+import { act, render, renderHook, RenderHookResult } from "@testing-library/react";
+import * as React from "react";
 import {
   LlmConversationReplayController,
   useLlmConversationReplay,
@@ -389,6 +390,46 @@ describe("a different conversation", () => {
     expect(hook.result.current.isPlaying).toBe(false);
     expect(hook.result.current.clockMs).toBe(1000 + 800);
     expect(hook.result.current.isAtEnd).toBe(true);
+  });
+
+  test("a conversation that arrives after the page opened, on the step its link names", () => {
+    const hook: Hook = useReplay([], null);
+
+    hook.rerender({ steps: STEPS, initial: 1 });
+
+    expect(hook.result.current.clockMs).toBe(2000);
+    expect(hook.result.current.visibleCount).toBe(2);
+  });
+
+  test("the first frame that shows the steps already shows the right ones", () => {
+    /*
+     * The transcript arrives after the page opened with no steps. Were the
+     * clock reset in an effect, one frame would be painted with the clock
+     * still at 0 - the transcript cut at its first message - before the jump
+     * to the end. Only committed renders are recorded here.
+     */
+    const committed: Array<number> = [];
+
+    const Probe: React.FunctionComponent<{
+      steps: ReadonlyArray<LlmReplayStepTime>;
+    }> = (props: { steps: ReadonlyArray<LlmReplayStepTime> }): React.ReactElement => {
+      const replay: LlmConversationReplayController = useLlmConversationReplay(
+        props.steps,
+        null,
+      );
+
+      React.useLayoutEffect(() => {
+        committed.push(replay.visibleCount);
+      });
+
+      return <></>;
+    };
+
+    const view: ReturnType<typeof render> = render(<Probe steps={[]} />);
+
+    view.rerender(<Probe steps={STEPS} />);
+
+    expect(committed).toEqual([0, 4]);
   });
 
   test("the same conversation re-rendered keeps its place", () => {
