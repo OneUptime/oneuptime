@@ -7,6 +7,15 @@ import RelatedFileAccess, {
 } from "../../../../Server/Utils/File/RelatedFileAccess";
 import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import NetworkSnmpCredentialProfile from "../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import ProjectCallSMSConfig from "../../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import ProjectSmtpConfig from "../../../../Models/DatabaseModels/ProjectSmtpConfig";
+import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
+import VideoCallConnection from "../../../../Models/DatabaseModels/VideoCallConnection";
+import RelationListPermission from "../../../../Server/Types/Database/Permissions/RelationListPermission";
+import RunbookCredentialReaders from "../../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -256,55 +265,52 @@ describe("the principal", () => {
   });
 
   /*
-   * The one permission a step is not lent: the read of runbook credentials
-   * is asked of the person who last saved the workflow
-   * (RunbookCredentialReaders), so the step carries who that is.
+   * One thing a Project Admin may do that a step is not lent: read the
+   * settings that hold credentials (RelationListPermission.mayReadTable,
+   * RunbookCredentialReaders). The props carry nothing to ask about instead:
+   * no person, and nobody who saved the workflow.
    */
-  test("carries who last saved the workflow, and grants nothing for it", () => {
-    const savedBy: ObjectID = ObjectID.generate();
+  test("holds Project Admin, yet is lent no read of a setting that holds credentials", () => {
+    const props: DatabaseCommonInteractionProps = principal();
 
-    const props: DatabaseCommonInteractionProps =
-      WorkflowPrincipal.getPropsWithoutPlan({
-        projectId: PROJECT_ID,
-        workflowId: WORKFLOW_ID,
-        savedByUserId: savedBy,
-      });
-
-    expect(props.workflowSavedByUserId).toBe(savedBy);
-    // Still no person: the saver is asked about, never acted as.
-    expect(props.userId).toBeUndefined();
-    expect(props.userType).toBe(UserType.Workflow);
     expect(
       HeldPermissionsUtil.isGrantedAny(heldBy(props), [
-        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
       ]),
-    ).toBe(false);
-  });
+    ).toBe(true);
+    expect(props.userId).toBeUndefined();
+    expect(props.userType).toBe(UserType.Workflow);
+    expect(Object.keys(props).sort()).toEqual(
+      [
+        "tenantId",
+        "userGlobalAccessPermission",
+        "userTenantAccessPermission",
+        "userType",
+        "workflowId",
+        "workflowName",
+      ].sort(),
+    );
 
-  test("carries nobody when the workflow names nobody as its last saver", () => {
-    for (const savedBy of [null, undefined]) {
-      const props: DatabaseCommonInteractionProps =
-        WorkflowPrincipal.getPropsWithoutPlan({
-          projectId: PROJECT_ID,
-          workflowId: WORKFLOW_ID,
-          savedByUserId: savedBy,
-        });
-
-      expect("workflowSavedByUserId" in props).toBe(false);
+    for (const modelType of [
+      RunbookCredential,
+      ProjectSmtpConfig,
+      ProjectCallSMSConfig,
+      NetworkSnmpCredentialProfile,
+      VideoCallConnection,
+      ApiKey,
+    ]) {
+      expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(true);
+      expect(RelationListPermission.mayReadTable(modelType, props)).toBe(false);
     }
+
+    expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
   });
 
-  test("carries who last saved it with the plan read too", async () => {
-    const savedBy: ObjectID = ObjectID.generate();
+  test("still reads what a Project Admin reads that holds no credentials", () => {
+    const props: DatabaseCommonInteractionProps = principal();
 
-    const props: DatabaseCommonInteractionProps =
-      await WorkflowPrincipal.getProps({
-        projectId: PROJECT_ID,
-        workflowId: WORKFLOW_ID,
-        savedByUserId: savedBy,
-      });
-
-    expect(props.workflowSavedByUserId).toBe(savedBy);
+    expect(RelationListPermission.isHeldToTableRead(Monitor)).toBe(false);
+    expect(RelationListPermission.mayReadTable(Monitor, props)).toBe(true);
   });
 });
 

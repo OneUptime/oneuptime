@@ -35,13 +35,14 @@ import UserType from "../../../Types/UserType";
  * not do either, and its error port says so in plain words, naming the step
  * (LogComponentError).
  *
- * One permission a Project Admin holds is not lent to a step: the read of
- * runbook credentials, which is what lets OneUptime AI's commands use them
- * (a rule that runs its commands without asking, a Runner that runs them, an
- * SSH credential given to such a Runner). Whoever may edit a workflow decides
- * what its steps do, so that read is asked of the person who last saved the
- * workflow's steps (Workflow.lastSavedByUserId, carried as
- * workflowSavedByUserId) and answered by RunbookCredentialReaders.
+ * One thing a Project Admin may do is not lent to a step: read the settings
+ * that hold credentials - runbook credentials, SMTP servers, call and SMS
+ * providers, SNMP credentials, video call connections and API keys. Whoever
+ * may edit a workflow decides what its steps do, with whatever its
+ * variables, webhooks and runs hand them, so a step names none of those
+ * settings, and makes no change that takes the read of runbook credentials
+ * (letting OneUptime AI's commands use them): a person who may read them
+ * has to (RelationListPermission.mayReadTable, RunbookCredentialReaders).
  *
  * The run itself - finding the workflow, its variables, writing its run log
  * - is OneUptime's own bookkeeping and stays as it was.
@@ -53,12 +54,6 @@ export interface WorkflowPrincipalOptions {
   workflowId: ObjectID;
   // For the audit trail only.
   workflowName?: string | undefined;
-  /*
-   * The person who last saved the workflow's steps, read with the steps the
-   * run is running: the one whose read of runbook credentials a step is held to
-   * (RunbookCredentialReaders). Nobody when the workflow names nobody.
-   */
-  savedByUserId?: ObjectID | null | undefined;
 }
 
 export default class WorkflowPrincipal {
@@ -132,10 +127,6 @@ export default class WorkflowPrincipal {
 
     if (options.workflowName) {
       props.workflowName = options.workflowName;
-    }
-
-    if (options.savedByUserId) {
-      props.workflowSavedByUserId = options.savedByUserId;
     }
 
     return props;

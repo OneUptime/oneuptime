@@ -38,7 +38,10 @@ import { getJestSpyOn } from "../../Spy";
  * written, so the second waits and reads what the first wrote. A write by
  * someone who may is not checked and takes no lock: with a checked write at
  * the same moment, it ends as the two would one after the other, the
- * unchecked one second.
+ * unchecked one second. A Runner form save that posts the switch as it is
+ * stored leaves the switch out of its write and takes no lock either: it
+ * writes nothing a credential's check reads, so whatever is saved beside
+ * it ends as if it were saved first.
  *
  * These run the two services' real hooks against one Runner and its
  * credentials held in memory - "written" when a hook passes, the way the
@@ -422,6 +425,110 @@ describe("an SSH credential assigned while the Runner's switch is turned on", ()
     expect(runnerOn).toBe(true);
     expect(sshCredentialsOfRunner).toBe(1);
     expect(locks.events).toEqual([]);
+  });
+
+  // A save of the Runner form - every field posted back - written as its hooks leave it.
+  async function saveRunnerForm(
+    props: DatabaseCommonInteractionProps,
+    data: JSONObject,
+    betweenCheckAndWrite?: () => Promise<void>,
+  ): Promise<void> {
+    const onUpdate: OnUpdate<Runner> = await runnerHooks.onBeforeUpdate({
+      query: { _id: RUNNER_ID },
+      data: { ...data } as unknown as Runner,
+      skip: 0,
+      limit: 1,
+      props: props,
+    } as unknown as UpdateBy<Runner>);
+
+    if (betweenCheckAndWrite) {
+      await betweenCheckAndWrite();
+    }
+
+    await runnerHooks.onUpdatePermitted(onUpdate.updateBy);
+
+    const written: JSONObject = onUpdate.updateBy.data as unknown as JSONObject;
+
+    if (written["canRunAiCommands"] !== undefined) {
+      runnerOn = written["canRunAiCommands"] === true;
+    }
+
+    await runnerHooks.onUpdateSuccess(onUpdate, [new ObjectID(RUNNER_ID)]);
+  }
+
+  it("a form save that leaves the switch as stored takes no lock, and a credential created beside it is checked against the switch as stored", async () => {
+    runnerOn = true;
+
+    await expect(
+      saveRunnerForm(
+        RUNNER_EDITOR,
+        {
+          name: "office-runner",
+          description: "Moved to the lab rack",
+          canRunAiCommands: true,
+        },
+        async (): Promise<void> => {
+          // Saved between the form save's check and its write.
+          await expect(assignCredential(CREDENTIAL_WRITER)).rejects.toThrow(
+            'Runner "office-runner"',
+          );
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(runnerOn).toBe(true);
+    expect(sshCredentialsOfRunner).toBe(0);
+    // Only the credential's create took the lock.
+    expect(locks.eventsOf("lock")).toHaveLength(1);
+  });
+
+  it("a form opened before the switch was turned off cannot turn it back on under a credential assigned meanwhile", async () => {
+    runnerOn = true;
+
+    await saveRunnerForm(
+      RUNNER_EDITOR,
+      {
+        name: "office-runner",
+        description: "In the office rack",
+        canRunAiCommands: true,
+      },
+      async (): Promise<void> => {
+        // Someone turns the switch off, then a credential is assigned while it is off.
+        await saveRunnerForm(ADMIN, { canRunAiCommands: false });
+        await expect(
+          assignCredential(CREDENTIAL_WRITER),
+        ).resolves.toBeUndefined();
+      },
+    );
+
+    // The stale form wrote its description, not the switch: the credential stays out of reach.
+    expect(runnerOn).toBe(false);
+    expect(sshCredentialsOfRunner).toBe(1);
+  });
+
+  it("a form save that turns the switch on still takes the lock: a credential created meanwhile waits for it and is refused", async () => {
+    credentialReadGate = gate();
+    const switchReading: Promise<void> = credentialReadGate.reached;
+    const switchGate: Gate = credentialReadGate;
+
+    const saved: Promise<void> = saveRunnerForm(RUNNER_EDITOR, {
+      name: "office-runner",
+      description: "In the office rack",
+      canRunAiCommands: true,
+    });
+    await switchReading;
+
+    expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+    const waited: Promise<void> = lockWaited(locks);
+    const assigned: Promise<void> = assignCredential(CREDENTIAL_WRITER);
+    await waited;
+
+    switchGate.open();
+    await expect(saved).resolves.toBeUndefined();
+    await expect(assigned).rejects.toThrow(NotAuthorizedException);
+
+    expect(runnerOn).toBe(true);
+    expect(sshCredentialsOfRunner).toBe(0);
   });
 
   it("without the lock both would pass, each on what it read before the other was written", async () => {

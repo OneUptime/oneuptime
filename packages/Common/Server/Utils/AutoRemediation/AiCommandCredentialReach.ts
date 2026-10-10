@@ -25,8 +25,7 @@ import ObjectID from "../../../Types/ObjectID";
  *   - turning that switch on for a Runner that holds SSH credentials
  *     (RunnerService), and
  *   - assigning an SSH credential to a Runner that has it on: creating the
- *     credential with that Runner, or adding the Runner to the credential's
- *     Runners (RunbookCredentialService).
+ *     credential with that Runner (RunbookCredentialService).
  *
  * Either one needs the read of runbook credentials (RunbookCredentialReaders),
  * and each is checked by reading the other side: the switch by the Runner's
@@ -35,12 +34,25 @@ import ObjectID from "../../../Types/ObjectID";
  * written, and both would pass. So every such write by someone who may not
  * read runbook credentials holds its project's lock from before its check
  * reads until it is written or has failed, and reads what its check decides
- * by (the Runners a credential holds, whether a Runner's switch is on) under
+ * by (whether a Runner's switch is on, the SSH credentials it holds) under
  * that lock, so the write that waits for the lock reads what the other one
  * wrote.
  *
+ * Nothing else takes it. A Runner save that posts the switch as it is
+ * stored - every save of the Runner form - leaves the switch out of the
+ * write, so it cannot turn it on and needs no lock (RunnerService). Adding
+ * Runners to a credential that exists is an update, which only someone who
+ * may read runbook credentials can make - changing a record takes the read
+ * of it - so it needs none either (RunbookCredentialService). What still
+ * holds it, for someone who may not read runbook credentials, is a Runner
+ * update that turns the switch on (or posts nothing but the switch, on
+ * already) and the create of an SSH credential with Runners: without the
+ * lock, the two at the same moment could each pass, the credential within
+ * reach of OneUptime AI's commands with nobody who may read it having
+ * decided so.
+ *
  * A write by someone who may read runbook credentials - OneUptime itself, a
- * server admin, a person or a workflow step answered as one who may - is not
+ * server admin, a person who may (a workflow's step never may) - is not
  * checked, and takes no lock. Whichever side it writes, it and a checked
  * write at the same moment end as they would one after the other with the
  * unchecked write second, which it may be whatever the other side holds: the
@@ -61,6 +73,18 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * The services' write hooks call it through the hook helpers at the bottom,
  * so each holds and gives back a write's locks the same way.
+ *
+ * It is not ProjectSsoProviderChanges' lock (a change to who can sign in
+ * with SSO), though both hold a project's lock from before a check reads
+ * until its write lands and keep a failed write's lock while the database
+ * may still apply it. That one keeps short locks alive on a timer while a
+ * write runs, takes a lock found gone again and checks the change again,
+ * and lets a change go on unlocked when Valkey cannot be reached - a
+ * change to who can sign in must never strand a project. This one takes
+ * one long lock that nothing keeps on a timer, refuses a write whose lock
+ * is gone, and refuses a write it cannot lock - a credential never comes
+ * within reach unchecked. One helper for both would have to be told each
+ * of those apart at every call, so each keeps its own.
  */
 
 export const CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE: string =

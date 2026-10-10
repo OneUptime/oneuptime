@@ -23,6 +23,7 @@ import DatabaseService from "./DatabaseService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 // The steps that run with a credential: SSH and Kubernetes.
 const CREDENTIAL_STEP_TYPES: Array<string> = [
@@ -135,23 +136,37 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Whether `props` may name credentials in a runbook's steps: whether it
    * may read them (RunbookCredentialReaders - the one rule for letting a
-   * command use a credential). OneUptime and master admins may.
+   * command use a credential). OneUptime and master admins may; a
+   * workflow's step may not.
    */
-  public static async mayNameCredentials(
+  public static mayNameCredentials(
     props: DatabaseCommonInteractionProps,
-  ): Promise<boolean> {
-    return await RunbookCredentialReaders.mayRead(props);
+  ): boolean {
+    return RunbookCredentialReaders.mayRead(props);
   }
 
   /*
    * Refuses `ids` - the credentials a write by a caller who may not read
    * credentials names, that its runbooks do not name already - in the words
-   * every reference check answers with. Nothing to refuse when there are
-   * none.
+   * every reference check answers with; a workflow's step is told plainly
+   * that a person has to name them. Nothing to refuse when there are none.
    */
-  public static refuseCredentialsNamed(ids: Array<string>): void {
+  public static refuseCredentialsNamed(
+    ids: Array<string>,
+    props?: DatabaseCommonInteractionProps | undefined,
+  ): void {
     if (ids.length === 0) {
       return;
+    }
+
+    const workflowNote: string = props
+      ? RunbookCredentialReaders.getWorkflowNote(props)
+      : "";
+
+    if (workflowNote) {
+      throw new NotAuthorizedException(
+        `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${workflowNote}`,
+      );
     }
 
     throw new UnreadableReferenceException(
@@ -168,9 +183,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
-    if (!(await Service.mayNameCredentials(createBy.props))) {
+    if (!Service.mayNameCredentials(createBy.props)) {
       Service.refuseCredentialsNamed(
         Service.getStepCredentialIds(createBy.data.steps),
+        createBy.props,
       );
     }
   }
@@ -183,12 +199,10 @@ export class Service extends ProjectReferencesService<Model> {
       (updateBy.data as unknown as Record<string, unknown>)["steps"],
     );
 
-    if (
-      named.length > 0 &&
-      !(await Service.mayNameCredentials(updateBy.props))
-    ) {
+    if (named.length > 0 && !Service.mayNameCredentials(updateBy.props)) {
       Service.refuseCredentialsNamed(
         await this.findCredentialsNotHeld({ updateBy: updateBy, ids: named }),
+        updateBy.props,
       );
     }
   }
