@@ -1,6 +1,7 @@
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import {
   ConnectableVideoCallProviders,
+  OAuthVideoCallProviders,
   VideoCallConnectionField,
   VideoCallProviderCatalog,
   VideoCallProviderDefinition,
@@ -87,6 +88,26 @@ describe("VideoCallProviderCatalog", () => {
       for (const field of definition.configFields) {
         expect(["password", "json"]).not.toContain(field.type);
       }
+    },
+  );
+
+  /*
+   * A provider with a one-click Connect is connected by signing in or with
+   * the project's own app, and its description is shown for both: on its
+   * tile, and above the sign-in and the app's form alike. Either way the
+   * meetings are the connected account's, so that is what it names - not a
+   * service account, which a sign-in is not.
+   */
+  test.each(OAuthVideoCallProviders)(
+    "%s's description holds for a sign-in and for the project's own app",
+    (provider: VideoCallProvider) => {
+      const description: string =
+        getVideoCallProviderDefinition(provider)!.description;
+
+      expect(description).not.toMatch(/service (account|user)/i);
+      expect(description).toContain("account you connect");
+      // One line, for the provider picker.
+      expect(description).not.toContain("\n");
     },
   );
 
