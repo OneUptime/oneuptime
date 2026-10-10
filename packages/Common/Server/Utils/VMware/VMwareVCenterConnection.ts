@@ -329,7 +329,11 @@ export default class VMwareVCenterConnection {
           : saved.vcenterUsername,
       vcenterPassword: isPasswordGiven ? update["vcenterPassword"] : undefined,
       collectionProbeId: RelationIdUtil.isPresent(update, PROBE_KEYS)
-        ? RelationIdUtil.readIntoIdColumn(update, PROBE_KEYS, "Collection Probe")
+        ? RelationIdUtil.readIntoIdColumn(
+            update,
+            PROBE_KEYS,
+            "Collection Probe",
+          )
         : saved.collectionProbeId,
       trustedCertificateFingerprint:
         update["trustedCertificateFingerprint"] !== undefined
@@ -374,22 +378,23 @@ export default class VMwareVCenterConnection {
       });
 
     if (!isPasswordGiven) {
-      const refusal: string | null =
-        VMwareVCenterConnection.getRebindRefusal({
-          saved: savedBinding,
-          next: nextBinding,
-          presentedFingerprint: saved.presentedCertificate?.fingerprint256,
-        });
+      const refusal: string | null = VMwareVCenterConnection.getRebindRefusal({
+        saved: savedBinding,
+        next: nextBinding,
+        presentedFingerprint: saved.presentedCertificate?.fingerprint256,
+      });
 
       if (refusal) {
         throw new BadDataException(refusal);
       }
     }
 
-    const isMethodSwitched: boolean = savedMethod !== VMwareCollectionMethod.Probe;
+    const isMethodSwitched: boolean =
+      savedMethod !== VMwareCollectionMethod.Probe;
     const isEndpointChanged: boolean =
       savedBinding.endpointKey !== nextBinding.endpointKey;
-    const isProbeChanged: boolean = savedBinding.probeId !== nextBinding.probeId;
+    const isProbeChanged: boolean =
+      savedBinding.probeId !== nextBinding.probeId;
     const isFingerprintChanged: boolean =
       (savedBinding.trustedCertificateFingerprint || null) !==
       (nextBinding.trustedCertificateFingerprint || null);
@@ -743,7 +748,7 @@ export default class VMwareVCenterConnection {
       throw new BadDataException("Enter the vCenter password.");
     }
 
-    if (!RelationIdUtil.read(data, PROBE_KEYS)) {
+    if (!RelationIdUtil.readConsistent(data, PROBE_KEYS, "Collection Probe")) {
       throw new BadDataException(
         "Pick the probe that collects this vCenter: one in a network that can reach vCenter on TCP 443.",
       );

@@ -258,7 +258,10 @@ export default class VMwareProbeCollectionStore {
   ): Promise<VMwareCollectionReportOutcome> {
     const report: VMwareCollectionReport = data.report;
 
-    if (!report.vmwareVCenterId || !ObjectID.isValidUUID(report.vmwareVCenterId)) {
+    if (
+      !report.vmwareVCenterId ||
+      !ObjectID.isValidUUID(report.vmwareVCenterId)
+    ) {
       return { accepted: false, reason: "The report names no vCenter." };
     }
 
@@ -315,7 +318,8 @@ export default class VMwareProbeCollectionStore {
       Number(vcenter.collectionSettingsVersion || 0);
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const isSuccess: boolean = report.status === VMwareCollectionStatus.Succeeded;
+    const isSuccess: boolean =
+      report.status === VMwareCollectionStatus.Succeeded;
 
     const values: Record<string, unknown> = {
       lastCollectionAt: now,
@@ -345,11 +349,10 @@ export default class VMwareProbeCollectionStore {
             : VMwareCollectionErrorCode.Internal;
 
         values["collectionErrorCode"] = errorCode;
-        values["collectionError"] = VMwareProbeCollectionStore.boundText(
-          report.errorMessage ||
-            VMwareCollectionErrorUtil.getAdvice(errorCode).title,
-          ColumnLength.LongText,
-        );
+        values["collectionError"] = VMwareProbeCollectionStore.getErrorText({
+          errorCode: errorCode,
+          errorMessage: report.errorMessage,
+        });
         values["presentedCertificate"] =
           VMwareCollectionErrorUtil.isCertificateTrustProblem(errorCode)
             ? VMwareProbeCollectionStore.sanitizePresentedCertificate(
@@ -391,6 +394,26 @@ export default class VMwareProbeCollectionStore {
     return Math.min(
       Math.max(Math.round(interval), MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES),
       MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+    );
+  }
+
+  /*
+   * The sentence stored for a failure: the probe's own, bounded - or, when
+   * it sent none (or only blanks), the code's title.
+   */
+  public static getErrorText(data: {
+    errorCode: VMwareCollectionErrorCode;
+    errorMessage: unknown;
+  }): string | null {
+    return (
+      VMwareProbeCollectionStore.boundText(
+        data.errorMessage,
+        ColumnLength.LongText,
+      ) ||
+      VMwareProbeCollectionStore.boundText(
+        VMwareCollectionErrorUtil.getAdvice(data.errorCode).title,
+        ColumnLength.LongText,
+      )
     );
   }
 
@@ -465,7 +488,9 @@ export default class VMwareProbeCollectionStore {
   }
 
   // A summary as the probe reported it: whole counts, bounded strings.
-  public static sanitizeSummary(value: unknown): VMwareCollectionSummary | null {
+  public static sanitizeSummary(
+    value: unknown,
+  ): VMwareCollectionSummary | null {
     if (!value || typeof value !== "object") {
       return null;
     }

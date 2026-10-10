@@ -184,6 +184,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     rule: "check",
     why: "Reports which bot this deployment is configured as.",
   },
+  {
+    file: "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts",
+    path: "/probe/vmware/test",
+    rule: "check",
+    why: "A probe reports the vCenter connection test it ran, as the probe the test names; sends nobody a message.",
+  },
 ];
 
 // The calls that send a test to the caller's own method.

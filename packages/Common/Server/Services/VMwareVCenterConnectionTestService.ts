@@ -13,7 +13,6 @@ import VMwareProbeCollectionStore from "../Utils/VMware/VMwareProbeCollectionSto
 import VMwareVCenterConnection from "../Utils/VMware/VMwareVCenterConnection";
 import Model from "../../Models/DatabaseModels/VMwareVCenterConnectionTest";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -65,7 +64,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override getRelationsCheckedByService(
     _write?: ProjectReferenceWrite,
   ): Array<string> {
-    return ["probe", "probeId", "vmwareVCenter", "vmwareVCenterId"];
+    return ["probe", "vmwareVCenter"];
   }
 
   @CaptureSpan()
@@ -162,7 +161,10 @@ export class Service extends ProjectReferencesService<Model> {
     const isPasswordGiven: boolean =
       typeof password === "string" && password.length > 0;
 
-    if (isPasswordGiven && (password as string).length > MAX_VMWARE_PASSWORD_LENGTH) {
+    if (
+      isPasswordGiven &&
+      (password as string).length > MAX_VMWARE_PASSWORD_LENGTH
+    ) {
       throw new BadDataException(
         `The vCenter password may be at most ${MAX_VMWARE_PASSWORD_LENGTH} characters.`,
       );
@@ -208,7 +210,9 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    if (activeTests.toNumber() >= MAX_ACTIVE_VMWARE_CONNECTION_TESTS_PER_PROJECT) {
+    if (
+      activeTests.toNumber() >= MAX_ACTIVE_VMWARE_CONNECTION_TESTS_PER_PROJECT
+    ) {
       throw new BadDataException(
         "Several connection tests are still running in this project. Wait for them to finish, then test again.",
       );
@@ -473,13 +477,13 @@ export class Service extends ProjectReferencesService<Model> {
         errorCode: errorCode,
         errorMessage: isSuccess
           ? null
-          : VMwareProbeCollectionStore.boundText(
-              report.errorMessage ||
-                VMwareCollectionErrorUtil.getAdvice(errorCode!).title,
-              ColumnLength.LongText,
-            ),
+          : VMwareProbeCollectionStore.getErrorText({
+              errorCode: errorCode!,
+              errorMessage: report.errorMessage,
+            }),
         presentedCertificate:
-          !isSuccess && VMwareCollectionErrorUtil.isCertificateTrustProblem(errorCode)
+          !isSuccess &&
+          VMwareCollectionErrorUtil.isCertificateTrustProblem(errorCode)
             ? VMwareProbeCollectionStore.sanitizePresentedCertificate(
                 report.presentedCertificate,
               )

@@ -1,4 +1,6 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import VMwareVCenterLabelRuleEngineService from "./VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterOwnerRuleEngineService from "./VMwareVCenterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/VMwareVCenter";
@@ -9,6 +11,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ResourceAiAccessSettings, {
   ResourceAiAccessFeedItem,
+  ResourceAiAccessWriteCarryForward,
 } from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
 import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
 import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
@@ -45,7 +48,6 @@ import {
   VMwareCollectionJob,
   VMwareCollectionReport,
 } from "../../Types/VMware/VMwareProbeCollection";
-import { ProjectReferenceWrite } from "./ProjectReferencesService";
 import Select from "../Types/Database/Select";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "vmware-vcenter-last-seen";
@@ -107,7 +109,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override getRelationsCheckedByService(
     _write?: ProjectReferenceWrite,
   ): Array<string> {
-    return ["collectionProbe", "collectionProbeId"];
+    return ["collectionProbe"];
   }
 
   /*
@@ -729,9 +731,10 @@ export class Service extends ProjectReferencesService<Model> {
     const connectionChange: VMwareConnectionChange | null =
       await VMwareVCenterConnection.prepareCreate(createBy);
 
-    const carryForward: VMwareVCenterWriteCarryForward = {
-      vmwareConnectionChanges: connectionChange ? [connectionChange] : [],
-    };
+    // Nothing to carry for a vCenter that names no collection setting.
+    const carryForward: VMwareVCenterWriteCarryForward | null = connectionChange
+      ? { vmwareConnectionChanges: [connectionChange] }
+      : null;
 
     return { createBy, carryForward: carryForward };
   }
@@ -748,7 +751,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    const aiAccessCarryForward: object | null =
+    const aiAccessCarryForward: ResourceAiAccessWriteCarryForward | null =
       await ResourceAiAccessSettings.checkUpdate({
         resourceType: AiResourceType.VMwareVCenter,
         service: this,
@@ -792,8 +795,13 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The AI access carry stays at the top level, where
-     * ResourceAiAccessSettings.afterUpdate looks for it.
+     * ResourceAiAccessSettings.afterUpdate looks for it - exactly as it was
+     * when the write changes no collection setting.
      */
+    if (vmwareConnectionChanges.length === 0) {
+      return { updateBy, carryForward: aiAccessCarryForward };
+    }
+
     return {
       updateBy,
       carryForward: {

@@ -93,6 +93,9 @@ const PROBE_PICKERS_ONLY: Array<Permission> = [
   Permission.CreateNetworkSite,
   Permission.EditNetworkSite,
   Permission.ReadNetworkSite,
+  Permission.CreateVMwareVCenter,
+  Permission.EditVMwareVCenter,
+  Permission.ReadVMwareVCenter,
 ];
 
 const PROBE_PICKERS: Array<Permission> = [

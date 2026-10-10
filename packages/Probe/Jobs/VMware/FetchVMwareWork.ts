@@ -1,4 +1,8 @@
-import { PROBE_API_REQUEST_TIMEOUT_IN_MS, PROBE_INGEST_URL } from "../../Config";
+import {
+  HasRegisterProbeKey,
+  PROBE_API_REQUEST_TIMEOUT_IN_MS,
+  PROBE_INGEST_URL,
+} from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import VMwareCollector from "../../Utils/VMware/VMwareCollector";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -16,6 +20,7 @@ import {
 } from "Common/Types/VMware/VMwareProbeCollection";
 import API from "Common/Utils/API";
 import { EVERY_TEN_SECONDS } from "Common/Utils/CronTime";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import logger from "Common/Server/Utils/Logger";
 import zlib from "zlib";
@@ -123,11 +128,11 @@ export async function fetchVMwareWork(): Promise<VMwareProbeWorkResponse> {
       ).map((job: unknown): VMwareCollectionJob => {
         return job as VMwareCollectionJob;
       }),
-      tests: ((Array.isArray(body["tests"]) ? body["tests"] : []) as JSONArray).map(
-        (job: unknown): VMwareConnectionTestJob => {
-          return job as VMwareConnectionTestJob;
-        },
-      ),
+      tests: (
+        (Array.isArray(body["tests"]) ? body["tests"] : []) as JSONArray
+      ).map((job: unknown): VMwareConnectionTestJob => {
+        return job as VMwareConnectionTestJob;
+      }),
     };
   } catch (err) {
     logger.error("Error fetching VMware work");
@@ -360,7 +365,34 @@ export async function runVMwareWorkTick(
   }
 }
 
+/*
+ * Whether this probe collects vCenters at all. A global probe of the hosted,
+ * open-signup product (registered with REGISTER_PROBE_KEY, BILLING_ENABLED in
+ * its own environment) never does: every sign-up shares it, and a vCenter's
+ * password only ever reaches a probe its own project runs. The server never
+ * hands such a probe a vCenter or a test; it does not even ask. A self-hosted
+ * instance's global probes are its operator's own, and collect.
+ */
+export function isVMwareCollectionAllowedOnThisProbe(data: {
+  isAutoRegisteredGlobalProbe: boolean;
+  isBillingEnabled: boolean;
+}): boolean {
+  return !(data.isAutoRegisteredGlobalProbe && data.isBillingEnabled);
+}
+
 const InitJob: VoidFunction = (): void => {
+  if (
+    !isVMwareCollectionAllowedOnThisProbe({
+      isAutoRegisteredGlobalProbe: HasRegisterProbeKey,
+      isBillingEnabled: IsBillingEnabled,
+    })
+  ) {
+    logger.info(
+      "VMware collection is off on this probe: a global probe of a billing-enabled instance never receives vCenter passwords.",
+    );
+    return;
+  }
+
   BasicCron({
     jobName: "Probe:VMwareWork",
     options: {

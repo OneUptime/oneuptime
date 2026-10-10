@@ -49,6 +49,7 @@ import InitFetchVMwareWork, {
   FetchVMwareWorkDependencies,
   REPORT_UPLOAD_TIMEOUT_IN_MS,
   getRunningVMwareVCenterIds,
+  isVMwareCollectionAllowedOnThisProbe,
   postCollectionReport,
   resetVMwareWorkState,
   runVMwareWorkTick,
@@ -243,6 +244,35 @@ describe("FetchVMwareWork", () => {
       options: { schedule: EVERY_TEN_SECONDS, runOnStartup: true },
     });
     expect(VMWARE_PROBE_WORK_POLL_INTERVAL_IN_SECONDS).toBe(10);
+  });
+
+  test("a global probe of the hosted product never collects a vCenter; every other probe does", () => {
+    expect(
+      isVMwareCollectionAllowedOnThisProbe({
+        isAutoRegisteredGlobalProbe: true,
+        isBillingEnabled: true,
+      }),
+    ).toBe(false);
+
+    // A self-hosted instance's own global probe, and any probe a customer runs.
+    expect(
+      isVMwareCollectionAllowedOnThisProbe({
+        isAutoRegisteredGlobalProbe: true,
+        isBillingEnabled: false,
+      }),
+    ).toBe(true);
+    expect(
+      isVMwareCollectionAllowedOnThisProbe({
+        isAutoRegisteredGlobalProbe: false,
+        isBillingEnabled: true,
+      }),
+    ).toBe(true);
+    expect(
+      isVMwareCollectionAllowedOnThisProbe({
+        isAutoRegisteredGlobalProbe: false,
+        isBillingEnabled: false,
+      }),
+    ).toBe(true);
   });
 
   test("asks for work as this probe, naming the vCenters it is collecting", async () => {
