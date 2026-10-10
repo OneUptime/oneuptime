@@ -34,8 +34,9 @@ import tls, { PeerCertificate, TLSSocket } from "tls";
 
 const vcenterCertificate: TestCertificate =
   makeSelfSignedCertificate("vcsa.example.com");
-const otherCertificate: TestCertificate =
-  makeSelfSignedCertificate("attacker.example.com");
+const otherCertificate: TestCertificate = makeSelfSignedCertificate(
+  "attacker.example.com",
+);
 
 interface RecordingServer {
   port: number;
@@ -88,7 +89,10 @@ async function startTlsServer(
 // An HTTPS server answering every request with `body`, counting requests.
 async function startHttpsServer(
   certificate: TestCertificate,
-  handler: (request: http.IncomingMessage, response: http.ServerResponse) => void,
+  handler: (
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+  ) => void,
 ): Promise<RecordingServer> {
   let requests: number = 0;
   const server: https.Server = https.createServer(
@@ -411,8 +415,10 @@ describe("createVSphereTransport through the verifying agent", () => {
 
   test("a request goes out only on a verified socket", async () => {
     const before: number = server.requests();
-    const untrusted: { transport: VSphereTransport; agent: VSphereVerifyingAgent } =
-      transportFor(null);
+    const untrusted: {
+      transport: VSphereTransport;
+      agent: VSphereVerifyingAgent;
+    } = transportFor(null);
 
     await expect(
       untrusted.transport({
@@ -425,8 +431,10 @@ describe("createVSphereTransport through the verifying agent", () => {
     expect(server.requests()).toBe(before);
     untrusted.agent.destroy();
 
-    const pinned: { transport: VSphereTransport; agent: VSphereVerifyingAgent } =
-      transportFor(vcenterCertificate.fingerprint256);
+    const pinned: {
+      transport: VSphereTransport;
+      agent: VSphereVerifyingAgent;
+    } = transportFor(vcenterCertificate.fingerprint256);
     const response: VSphereHttpResponse = await pinned.transport({
       method: "POST",
       path: "/sdk",
@@ -445,8 +453,12 @@ describe("createVSphereTransport through the verifying agent", () => {
   });
 
   test("an answer larger than the probe reads is cut off", async () => {
-    const pinned: { transport: VSphereTransport; agent: VSphereVerifyingAgent } =
-      transportFor(vcenterCertificate.fingerprint256, { maxResponseBytes: 100 });
+    const pinned: {
+      transport: VSphereTransport;
+      agent: VSphereVerifyingAgent;
+    } = transportFor(vcenterCertificate.fingerprint256, {
+      maxResponseBytes: 100,
+    });
 
     await expect(
       pinned.transport({ method: "GET", path: "/big", headers: {} }),
@@ -455,8 +467,12 @@ describe("createVSphereTransport through the verifying agent", () => {
   });
 
   test("a request vCenter does not answer in time fails with a timeout", async () => {
-    const pinned: { transport: VSphereTransport; agent: VSphereVerifyingAgent } =
-      transportFor(vcenterCertificate.fingerprint256, { requestTimeoutInMs: 300 });
+    const pinned: {
+      transport: VSphereTransport;
+      agent: VSphereVerifyingAgent;
+    } = transportFor(vcenterCertificate.fingerprint256, {
+      requestTimeoutInMs: 300,
+    });
 
     await expect(
       pinned.transport({ method: "GET", path: "/slow", headers: {} }),

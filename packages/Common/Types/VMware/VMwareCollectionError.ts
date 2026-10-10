@@ -77,99 +77,98 @@ export interface VMwareCollectionErrorAdvice {
   nextStep: string;
 }
 
-const ADVICE: Record<VMwareCollectionErrorCode, VMwareCollectionErrorAdvice> =
-  {
-    [VMwareCollectionErrorCode.InvalidAddress]: {
-      title: "The vCenter address is not valid",
-      nextStep:
-        "Enter vCenter's address as you would open it in a browser, such as https://vcsa.example.com - without a path.",
-    },
-    [VMwareCollectionErrorCode.AddressNotAllowed]: {
-      title: "OneUptime does not connect to this address",
-      nextStep:
-        "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
-    },
-    [VMwareCollectionErrorCode.AddressNotFound]: {
-      title: "The probe cannot find this host name",
-      nextStep:
-        "Check the spelling, or use vCenter's IP address. The name has to resolve in DNS on the probe's network.",
-    },
-    [VMwareCollectionErrorCode.ConnectionRefused]: {
-      title: "Nothing answers on that port",
-      nextStep:
-        "Check the address and port. vCenter serves its API on HTTPS port 443 unless you changed it.",
-    },
-    [VMwareCollectionErrorCode.ConnectionTimedOut]: {
-      title: "The probe gets no answer from vCenter",
-      nextStep:
-        "Allow the probe's machine to reach vCenter on TCP 443 through your firewall, or pick a probe in vCenter's network.",
-    },
-    [VMwareCollectionErrorCode.ConnectionFailed]: {
-      title: "The probe could not connect to vCenter",
-      nextStep:
-        "Check that vCenter is running and that the probe's network can reach it.",
-    },
-    [VMwareCollectionErrorCode.TlsFailed]: {
-      title: "The secure connection to vCenter failed",
-      nextStep:
-        "vCenter and the probe could not agree on TLS. Check that the address points at vCenter's HTTPS port.",
-    },
-    [VMwareCollectionErrorCode.UntrustedCertificate]: {
-      title: "vCenter's certificate is not trusted",
-      nextStep:
-        "vCenter uses a certificate from its own authority by default. Check the fingerprint below against vCenter's certificate, then trust it.",
-    },
-    [VMwareCollectionErrorCode.CertificateChanged]: {
-      title: "vCenter's certificate changed",
-      nextStep:
-        "Nothing is sent to vCenter until you trust the new certificate. If you renewed it, check the new fingerprint and trust it - and enter the password again.",
-    },
-    [VMwareCollectionErrorCode.NotVSphere]: {
-      title: "This address is not a vSphere API",
-      nextStep:
-        "Enter the address of vCenter Server or a standalone ESXi host - the one the vSphere Client opens.",
-    },
-    [VMwareCollectionErrorCode.InvalidLogin]: {
-      title: "vCenter refused the login",
-      nextStep:
-        "Check the user name - with its domain, such as oneuptime@vsphere.local - and the password, and that the account is not locked.",
-    },
-    [VMwareCollectionErrorCode.NoPermission]: {
-      title: "The user cannot read vCenter's inventory",
-      nextStep:
-        "Give the user the Read-Only role on the top-level vCenter object, with Propagate to children ticked.",
-    },
-    [VMwareCollectionErrorCode.ApiError]: {
-      title: "vCenter answered with an error",
-      nextStep:
-        "The message below is what vCenter said. If it keeps happening, check vCenter's health.",
-    },
-    [VMwareCollectionErrorCode.TimedOut]: {
-      title: "Collecting took too long",
-      nextStep:
-        "vCenter answered too slowly for this interval. Collect less often, or check vCenter's load.",
-    },
-    [VMwareCollectionErrorCode.PayloadTooLarge]: {
-      title: "This vCenter is too large to collect from a probe",
-      nextStep:
-        "Its inventory is larger than one probe upload may be. Use the VMware agent for this vCenter.",
-    },
-    [VMwareCollectionErrorCode.ProbeNotAllowed]: {
-      title: "This probe may not collect this vCenter",
-      nextStep:
-        "Pick a probe of this project's own. Shared OneUptime probes never receive vCenter passwords.",
-    },
-    [VMwareCollectionErrorCode.ProbeNotAvailable]: {
-      title: "The probe did not pick this up",
-      nextStep:
-        "Check that the probe is connected on the Probes page. A probe older than OneUptime's VMware collection cannot collect vCenters: update it.",
-    },
-    [VMwareCollectionErrorCode.Internal]: {
-      title: "The probe hit an unexpected error",
-      nextStep:
-        "The message below has the detail. Check the probe's logs, and try again.",
-    },
-  };
+const ADVICE: Record<VMwareCollectionErrorCode, VMwareCollectionErrorAdvice> = {
+  [VMwareCollectionErrorCode.InvalidAddress]: {
+    title: "The vCenter address is not valid",
+    nextStep:
+      "Enter vCenter's address as you would open it in a browser, such as https://vcsa.example.com - without a path.",
+  },
+  [VMwareCollectionErrorCode.AddressNotAllowed]: {
+    title: "OneUptime does not connect to this address",
+    nextStep:
+      "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
+  },
+  [VMwareCollectionErrorCode.AddressNotFound]: {
+    title: "The probe cannot find this host name",
+    nextStep:
+      "Check the spelling, or use vCenter's IP address. The name has to resolve in DNS on the probe's network.",
+  },
+  [VMwareCollectionErrorCode.ConnectionRefused]: {
+    title: "Nothing answers on that port",
+    nextStep:
+      "Check the address and port. vCenter serves its API on HTTPS port 443 unless you changed it.",
+  },
+  [VMwareCollectionErrorCode.ConnectionTimedOut]: {
+    title: "The probe gets no answer from vCenter",
+    nextStep:
+      "Allow the probe's machine to reach vCenter on TCP 443 through your firewall, or pick a probe in vCenter's network.",
+  },
+  [VMwareCollectionErrorCode.ConnectionFailed]: {
+    title: "The probe could not connect to vCenter",
+    nextStep:
+      "Check that vCenter is running and that the probe's network can reach it.",
+  },
+  [VMwareCollectionErrorCode.TlsFailed]: {
+    title: "The secure connection to vCenter failed",
+    nextStep:
+      "vCenter and the probe could not agree on TLS. Check that the address points at vCenter's HTTPS port.",
+  },
+  [VMwareCollectionErrorCode.UntrustedCertificate]: {
+    title: "vCenter's certificate is not trusted",
+    nextStep:
+      "vCenter uses a certificate from its own authority by default. Check the fingerprint below against vCenter's certificate, then trust it.",
+  },
+  [VMwareCollectionErrorCode.CertificateChanged]: {
+    title: "vCenter's certificate changed",
+    nextStep:
+      "Nothing is sent to vCenter until you trust the new certificate. If you renewed it, check the new fingerprint and trust it - and enter the password again.",
+  },
+  [VMwareCollectionErrorCode.NotVSphere]: {
+    title: "This address is not a vSphere API",
+    nextStep:
+      "Enter the address of vCenter Server or a standalone ESXi host - the one the vSphere Client opens.",
+  },
+  [VMwareCollectionErrorCode.InvalidLogin]: {
+    title: "vCenter refused the login",
+    nextStep:
+      "Check the user name - with its domain, such as oneuptime@vsphere.local - and the password, and that the account is not locked.",
+  },
+  [VMwareCollectionErrorCode.NoPermission]: {
+    title: "The user cannot read vCenter's inventory",
+    nextStep:
+      "Give the user the Read-Only role on the top-level vCenter object, with Propagate to children ticked.",
+  },
+  [VMwareCollectionErrorCode.ApiError]: {
+    title: "vCenter answered with an error",
+    nextStep:
+      "The message below is what vCenter said. If it keeps happening, check vCenter's health.",
+  },
+  [VMwareCollectionErrorCode.TimedOut]: {
+    title: "Collecting took too long",
+    nextStep:
+      "vCenter answered too slowly for this interval. Collect less often, or check vCenter's load.",
+  },
+  [VMwareCollectionErrorCode.PayloadTooLarge]: {
+    title: "This vCenter is too large to collect from a probe",
+    nextStep:
+      "Its inventory is larger than one probe upload may be. Use the VMware agent for this vCenter.",
+  },
+  [VMwareCollectionErrorCode.ProbeNotAllowed]: {
+    title: "This probe may not collect this vCenter",
+    nextStep:
+      "Pick a probe of this project's own. Shared OneUptime probes never receive vCenter passwords.",
+  },
+  [VMwareCollectionErrorCode.ProbeNotAvailable]: {
+    title: "The probe did not pick this up",
+    nextStep:
+      "Check that the probe is connected on the Probes page. A probe older than OneUptime's VMware collection cannot collect vCenters: update it.",
+  },
+  [VMwareCollectionErrorCode.Internal]: {
+    title: "The probe hit an unexpected error",
+    nextStep:
+      "The message below has the detail. Check the probe's logs, and try again.",
+  },
+};
 
 export class VMwareCollectionErrorUtil {
   public static getAll(): Array<VMwareCollectionErrorCode> {

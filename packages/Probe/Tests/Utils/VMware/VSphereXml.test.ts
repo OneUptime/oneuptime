@@ -22,17 +22,15 @@ describe("VSphereXml", () => {
   });
 
   test("keeps text exactly as written - inventory names keep their spaces", () => {
-    const document: XmlElement = parseXml(
-      "<val>  VM with spaces  </val>",
-    );
+    const document: XmlElement = parseXml("<val>  VM with spaces  </val>");
 
     expect(document.text).toBe("  VM with spaces  ");
   });
 
   test("decodes named, decimal and hex entities, and leaves unknown ones", () => {
-    expect(decodeXmlEntities("a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;")).toBe(
-      "a & b <c> \"d\" 'e'",
-    );
+    expect(
+      decodeXmlEntities("a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;"),
+    ).toBe("a & b <c> \"d\" 'e'");
     expect(decodeXmlEntities("%2f &#47; &#x2F;")).toBe("%2f / /");
     expect(decodeXmlEntities("&unknown; & alone")).toBe("&unknown; & alone");
   });
@@ -136,9 +134,7 @@ describe("VSphereXml", () => {
   });
 
   test("children and childText return every match, and null for none", () => {
-    const document: XmlElement = parseXml(
-      "<r><v>1</v><v>2</v><w>3</w></r>",
-    );
+    const document: XmlElement = parseXml("<r><v>1</v><v>2</v><w>3</w></r>");
 
     expect(
       VSphereXml.children(document, "v").map((element: XmlElement): string => {
@@ -166,9 +162,12 @@ describe("VSphereXml", () => {
   });
 
   test("reads a megabyte-long answer in linear time", () => {
-    const objects: string = Array.from({ length: 20000 }, (_: unknown, index: number) => {
-      return `<objects><obj type="VirtualMachine">vm-${index}</obj><propSet><name>name</name><val xsi:type="xsd:string">vm number ${index}</val></propSet></objects>`;
-    }).join("");
+    const objects: string = Array.from(
+      { length: 20000 },
+      (_: unknown, index: number) => {
+        return `<objects><obj type="VirtualMachine">vm-${index}</obj><propSet><name>name</name><val xsi:type="xsd:string">vm number ${index}</val></propSet></objects>`;
+      },
+    ).join("");
     const started: number = Date.now();
     const document: XmlElement = parseXml(`<returnval>${objects}</returnval>`);
 

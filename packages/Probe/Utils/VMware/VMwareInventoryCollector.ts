@@ -224,9 +224,10 @@ function readQuickStats(
  * UTC); a value that is not a whole number drops its sample, as does a
  * series whose lengths disagree.
  */
-export function parseVsanEntityMetrics(
-  entity: XmlElement,
-): { uuid: string | null; metrics: Array<VMwareVsanMetric> } {
+export function parseVsanEntityMetrics(entity: XmlElement): {
+  uuid: string | null;
+  metrics: Array<VMwareVsanMetric>;
+} {
   const entityRefId: string = (
     VSphereXml.childText(entity, "entityRefId") || ""
   ).trim();
@@ -285,7 +286,8 @@ export function parseVsanEntityMetrics(
 
     metrics.push({
       label: label,
-      intervalInSeconds: Number.isFinite(interval) && interval > 0 ? interval : 300,
+      intervalInSeconds:
+        Number.isFinite(interval) && interval > 0 ? interval : 300,
       timestamps: timestamps,
       values: values,
     });
@@ -556,7 +558,8 @@ export default class VMwareInventoryCollector {
           object,
           "summary.quickStats.overallCpuUsage",
         ),
-        overallStatus: readString(object, "summary.overallStatus")?.trim() || null,
+        overallStatus:
+          readString(object, "summary.overallStatus")?.trim() || null,
         vmRefs: readRefList(object, "vm"),
         parentRef: readRefValue(object, "parent"),
       };
@@ -667,19 +670,26 @@ export default class VMwareInventoryCollector {
           object,
           "summary.quickStats.guestMemoryUsage",
         ),
-        balloonedMemory: readNumber(object, "summary.quickStats.balloonedMemory"),
+        balloonedMemory: readNumber(
+          object,
+          "summary.quickStats.balloonedMemory",
+        ),
         swappedMemory: readNumber(object, "summary.quickStats.swappedMemory"),
         ssdSwappedMemory: readNumber(
           object,
           "summary.quickStats.ssdSwappedMemory",
         ),
         grantedMemory: null,
-        overallCpuUsage: readNumber(object, "summary.quickStats.overallCpuUsage"),
+        overallCpuUsage: readNumber(
+          object,
+          "summary.quickStats.overallCpuUsage",
+        ),
         overallCpuReadiness: readNumber(
           object,
           "summary.quickStats.overallCpuReadiness",
         ),
-        overallStatus: readString(object, "summary.overallStatus")?.trim() || null,
+        overallStatus:
+          readString(object, "summary.overallStatus")?.trim() || null,
         memorySizeMB: readNumber(object, "summary.config.memorySizeMB"),
         hasStorage: hasStorage,
         storageCommitted: readNumber(object, "summary.storage.committed"),
@@ -796,7 +806,11 @@ export default class VMwareInventoryCollector {
 
     const batchSize: number = getPerfBatchSize(counterIds.length);
 
-    for (let start: number = 0; start < data.entities.length; start += batchSize) {
+    for (
+      let start: number = 0;
+      start < data.entities.length;
+      start += batchSize
+    ) {
       let batch: Array<MoRef> = data.entities.slice(start, start + batchSize);
 
       while (batch.length > 0) {

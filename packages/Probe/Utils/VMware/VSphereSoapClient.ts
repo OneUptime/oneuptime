@@ -149,7 +149,9 @@ export function morefXml(tag: string, ref: MoRef): string {
   return `<${tag} type="${escapeXml(ref.type)}">${escapeXml(ref.value)}</${tag}>`;
 }
 
-export function readMoRef(element: XmlElement | null | undefined): MoRef | null {
+export function readMoRef(
+  element: XmlElement | null | undefined,
+): MoRef | null {
   if (!element) {
     return null;
   }
@@ -545,7 +547,9 @@ export default class VSphereSoapClient {
         sampleInfo: VSphereXml.children(entityMetric, "sampleInfo").map(
           (sample: XmlElement): PerfSampleInfo => {
             return {
-              timestamp: (VSphereXml.childText(sample, "timestamp") || "").trim(),
+              timestamp: (
+                VSphereXml.childText(sample, "timestamp") || ""
+              ).trim(),
               interval: Number.parseInt(
                 VSphereXml.childText(sample, "interval") || "20",
                 10,
