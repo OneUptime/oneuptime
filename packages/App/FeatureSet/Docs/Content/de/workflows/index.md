@@ -71,6 +71,7 @@ All das bauen Sie visuell auf einer Arbeitsfläche. Die meisten Workflows brauch
 - **Protokolle → Ausführungen** – der Ausführungsverlauf aller Workflows Ihres Projekts.
 - **Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** – neue Workflows automatisch beschriften und ihre Eigentümer zuweisen.
 - **Erweitert → Archiviert** – Workflows, die Sie archiviert haben. Sie laufen nie und fehlen in der Liste; heben Sie die Archivierung hier auf. Siehe [Einen Workflow archivieren](/docs/workflows/configuration#einen-workflow-archivieren).
+- **Entwickler** – wie Sie Workflows mit Terraform, der API oder einem KI-Assistenten verwalten.
 
 Öffnen Sie einen einzelnen Workflow, enthält sein eigenes Menü:
 

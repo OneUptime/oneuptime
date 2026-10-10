@@ -208,9 +208,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Project Member",
     "Edit Workflow",
     "Delete Workflow",
-    // Generate Text with AI's settings, and the Incoming Email trigger's values.
+    // Generate Text with AI's settings and value, and the Incoming Email trigger's values.
     "Prompt",
     "Context",
+    "Temperature",
+    "Response",
     "From",
     "To",
     // Create One Incident's setting, and the outputs a refused step takes.

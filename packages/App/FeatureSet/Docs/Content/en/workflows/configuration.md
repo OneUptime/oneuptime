@@ -54,7 +54,7 @@ See [Label & owner rules](/docs/configuration/label-and-owner-rules) for how the
 
 ## Secrets
 
-Mark a global variable as a **secret** if it contains something sensitive. The value is hidden from normal API and UI reads after you save it, and workflow logging scrubs the resolved value before the run log is persisted.
+Mark a variable as a **secret** if it holds something sensitive: its value is then scrubbed out of run logs and step traces. No variable's value can be read back once it is saved, secret or not, in the dashboard or over the API, and once a variable is secret, it stays secret.
 
 Use secret variables for:
 
@@ -128,21 +128,39 @@ See [Private Network Access](/docs/self-hosted/private-network-access) for how a
 
 ## AI components
 
-**Generate Text with AI** sends one request through OneUptime's configured LLM gateway. It uses the project's default LLM provider, or the installation's global provider when the project does not have one. Configure providers under **Project Settings → AI → LLM Providers**; never put a provider API key or an arbitrary model endpoint in the workflow itself.
+**Generate Text with AI** sends one request to an LLM: the project's default LLM provider, or the installation's global provider when the project has none. Set providers up under **Project Settings → AI → LLM Providers**, and never put a provider's API key or an endpoint of your own in a workflow.
 
-The AI component has an explicit egress boundary:
+What the provider receives, and what the model can do with it:
 
-- OneUptime sends a fixed component-safety instruction plus the resolved **System Instructions**, **Prompt**, and serialized **Context** to the configured provider. Context is appended after an explicit marker at the end of the user message; the fixed instruction says everything after that marker remains untrusted data even when it contains tags or instructions.
-- It does not automatically attach the trigger payload, workflow history, other component outputs, project records, telemetry, or secrets. Data leaves only when you reference it in one of those three inputs.
-- It sends no tool definitions or provider-native capability fields. The model cannot query OneUptime, make HTTP requests, or mutate project data through this component. The configured provider/model remains an administrator trust boundary, so installations that require strictly offline generation should select a model without intrinsic provider-managed retrieval.
-- Provider-level additional parameters are restricted to an allowlist of generation-only tuning fields. They cannot replace the workflow messages, add tools or provider-native web search/data sources, enable non-text modalities, request multiple choices, enable streaming, retain the request through provider storage flags, or raise this component's output-token cap. Unknown future capability fields are dropped by default.
-- System Instructions, Prompt, Context, and generated Response values are redacted from this AI component's own argument and return-value entries in the automatic workflow execution log. They remain available to downstream components while the run is executing. If you insert one into another component, that component's logging policy applies and may record the resolved value; treat reuse as an explicit disclosure. Provider/model names, token counts, the LLM Log ID, and safe error messages remain visible for operations and billing. Raw provider error bodies are excluded from workflow logs, LLM logs, application logs, and traces because a provider can echo request content.
+- **Only what you put in the block.** OneUptime sends a fixed safety instruction, then the block's **System Instructions**, **Prompt** and **Context**, with their references filled in. **Context** goes last, after a marker, and the safety instruction tells the model that everything after the marker is untrusted data, even text that looks like instructions.
+- **Nothing else.** The trigger's data, the workflow's history, other blocks' outputs, project records, telemetry and secrets are never attached. They leave OneUptime only when you reference them in one of those three settings.
+- **Text, and no tools.** The model can't query OneUptime, make HTTP requests or change data. A provider's additional parameters pass only an allowlist of generation-only tuning fields: they can't replace the messages, add tools, web search or other data sources, ask for anything but text or for several answers, stream, have the provider keep the request, or raise the block's output limit. Fields OneUptime doesn't know are dropped.
+- **The model is your administrator's choice.** If generation has to stay offline, pick a model that doesn't retrieve anything on its own on the provider's side.
 
-Treat every referenced variable as data you are intentionally sending to the provider. In particular, do not insert a secret global variable into the prompt or context unless that disclosure is required and the provider is approved to receive it. A self-hosted local provider such as Ollama can keep the request inside your own infrastructure; a hosted provider receives the request under that provider's data-processing terms.
+What is logged:
 
-Each call is recorded in **Project Settings → AI → AI Logs**, including provider, model, status, tokens, cost, and billing information. Prompt and response previews and raw provider error details are not stored in the AI log. Calls through a costed global provider consume the project's AI credit balance. Workflow AI also counts toward the project's daily autonomous AI token budget; when the budget is exhausted, the component takes its **Error** path without contacting the model. Project AI must be enabled. On OneUptime Cloud, the subscription must be paid and the Growth plan (or a plan that includes Growth features) is required; self-hosted installations with billing disabled do not have this plan gate.
+- The run's log hides the block's **System Instructions**, **Prompt**, **Context** and **Response**. Later blocks can still use them during the run, and a block you insert one into logs it by its own rules, so inserting one is a choice to show it.
+- The provider, model, token counts, **LLM Log ID** and a safe error message stay visible, for operations and billing. A provider's raw error is kept out of every log, because a provider can repeat the request in it.
+- Each call is listed under **Project Settings → AI → AI Logs** with its provider, model, status, tokens, cost and billing, without the prompt, the response or the raw error.
 
-Built-in bounds keep unattended calls finite: System Instructions, Prompt, and serialized Context are capped at 50,000 combined characters; Temperature must be from `0` through `1`; Maximum Output Tokens must be from `1` through `4096` (default `1024`); and the provider request is attempted once and times out after at most 60 seconds. No more than three workflow AI calls run concurrently per project; additional calls take the **Error** path and can be retried by a later workflow run. Validation, configuration, access, budget, balance, concurrency, provider, and timeout failures all take the **Error** path and populate the **Error** output. Connect that path before enabling a production workflow.
+What it needs, and what it costs:
+
+- **Enable AI** must be on, under **Project Settings → AI → AI Features**. On OneUptime Cloud, the project also needs the Growth plan or above and a paid subscription. Self-hosted installations without billing have no plan gate.
+- Calls through a costed global provider use the project's AI credits.
+- Every call counts toward the [project's own daily AI limits](/docs/ai/ai-sre#the-projects-own-daily-limits), when a project owner sets them. Once a limit is reached, the block takes **Error** without contacting the model, until midnight UTC.
+
+| Limit                                                        | Value                                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** and **Context** together | 50,000 characters                                                     |
+| **Temperature**                                              | From `0` to `1`                                                       |
+| **Maximum Output Tokens**                                    | From `1` to `4096`, `1024` by default                                 |
+| One request                                                  | Tried once, for 60 seconds at most                                    |
+| Calls at the same time                                       | 3 per project. Any more take **Error**, and a later run can try again. |
+
+Validation, configuration, access, limit, credit, concurrency, provider and timeout failures all take the **Error** path, with the reason in **Error**. Connect that path before the workflow goes live.
+
+> [!WARNING]
+> Every value you reference is data you send to the provider. Don't put a secret variable in the prompt or the context unless the provider is approved to receive it. A self-hosted local provider such as Ollama keeps requests inside your own infrastructure; a hosted provider receives them under its own data-processing terms.
 
 ## Permissions
 

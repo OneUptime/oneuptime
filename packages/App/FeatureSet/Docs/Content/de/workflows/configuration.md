@@ -54,7 +54,7 @@ Wie die Regeln greifen, steht unter [Beschriftungs- und Eigentümerregeln](/docs
 
 ## Geheimnisse
 
-Markieren Sie eine globale Variable als **Geheimnis**, wenn sie etwas Sensibles enthält. Der Wert ist nach dem Speichern vor normalen Lesezugriffen über API und Oberfläche verborgen, und die Protokollierung des Workflows entfernt den aufgelösten Wert, bevor das Protokoll der Ausführung gespeichert wird.
+Markieren Sie eine Variable als **Geheimnis**, wenn sie etwas Sensibles enthält: Ihr Wert wird dann aus den Protokollen der Ausführungen und den Schrittspuren entfernt. Kein Variablenwert lässt sich nach dem Speichern wieder auslesen, ob geheim oder nicht, weder im Dashboard noch über die API, und eine geheime Variable bleibt geheim.
 
 Verwenden Sie geheime Variablen für:
 
@@ -128,21 +128,39 @@ Wie ein Administrator einer selbst gehosteten Installation diese öffnet, steht 
 
 ## KI-Komponenten
 
-**Generate Text with AI** sendet eine Anfrage über das konfigurierte LLM-Gateway von OneUptime. Er verwendet den Standard-LLM-Anbieter des Projekts oder den globalen Anbieter der Installation, wenn das Projekt keinen hat. Konfigurieren Sie Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter**; tragen Sie nie einen API-Schlüssel eines Anbieters oder einen beliebigen Modell-Endpunkt in den Workflow selbst ein.
+**Generate Text with AI** sendet eine Anfrage an ein LLM: den Standard-LLM-Anbieter des Projekts oder den globalen Anbieter der Installation, wenn das Projekt keinen hat. Richten Sie Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter** ein, und tragen Sie nie den API-Schlüssel eines Anbieters oder einen eigenen Endpunkt in einen Workflow ein.
 
-Die KI-Komponente hat eine ausdrückliche Grenze dafür, was hinausgeht:
+Was der Anbieter erhält und was das Modell damit tun kann:
 
-- OneUptime sendet eine feste Sicherheitsanweisung der Komponente sowie die aufgelösten **System Instructions**, **Prompt** und den serialisierten **Context** an den konfigurierten Anbieter. Context wird nach einer ausdrücklichen Markierung am Ende der Benutzernachricht angehängt; die feste Anweisung sagt, dass alles nach dieser Markierung nicht vertrauenswürdige Daten bleiben, auch wenn es Tags oder Anweisungen enthält.
-- Sie hängt nicht automatisch die Nutzlast des Triggers, den Workflow-Verlauf, die Ausgaben anderer Komponenten, Projektdatensätze, Telemetrie oder Geheimnisse an. Daten gehen nur hinaus, wenn Sie in einer dieser drei Eingaben auf sie verweisen.
-- Sie sendet keine Tool-Definitionen und keine anbietereigenen Fähigkeitsfelder. Das Modell kann über diese Komponente weder OneUptime abfragen noch HTTP-Anfragen stellen noch Projektdaten ändern. Der konfigurierte Anbieter bzw. das Modell bleibt eine Vertrauensgrenze des Administrators, daher sollten Installationen, die streng offline erzeugen müssen, ein Modell ohne eingebauten, vom Anbieter verwalteten Abruf wählen.
-- Zusätzliche Parameter auf Anbieterebene sind auf eine Positivliste reiner Generierungsfelder beschränkt. Sie können die Workflow-Nachrichten nicht ersetzen, keine Tools oder anbietereigene Websuche bzw. Datenquellen hinzufügen, keine Nicht-Text-Modalitäten einschalten, keine mehreren Antworten anfordern, kein Streaming einschalten, die Anfrage nicht über Speicherschalter des Anbieters aufbewahren und die Ausgabe-Token-Grenze dieser Komponente nicht anheben. Unbekannte künftige Fähigkeitsfelder werden standardmäßig verworfen.
-- System Instructions, Prompt, Context und erzeugte Response-Werte werden in den eigenen Argument- und Rückgabewert-Einträgen dieser KI-Komponente im automatischen Ausführungsprotokoll des Workflows geschwärzt. Für nachgelagerte Komponenten bleiben sie verfügbar, solange die Ausführung läuft. Setzen Sie einen davon in eine andere Komponente ein, gilt deren Protokollierungsregel, und sie kann den aufgelösten Wert aufzeichnen; behandeln Sie eine Wiederverwendung als ausdrückliche Offenlegung. Namen von Anbieter und Modell, Token-Zahlen, die LLM Log ID und sichere Fehlermeldungen bleiben für Betrieb und Abrechnung sichtbar. Rohe Fehlertexte des Anbieters werden aus Workflow-Protokollen, LLM-Protokollen, Anwendungsprotokollen und Traces herausgehalten, weil ein Anbieter Inhalte der Anfrage wiederholen kann.
+- **Nur, was Sie in den Baustein schreiben.** OneUptime sendet eine feste Sicherheitsanweisung und danach **System Instructions**, **Prompt** und **Context** des Bausteins, mit eingesetzten Verweisen. **Context** kommt zuletzt, nach einer Markierung, und die Sicherheitsanweisung sagt dem Modell, dass alles nach der Markierung nicht vertrauenswürdige Daten sind, auch Text, der wie Anweisungen aussieht.
+- **Sonst nichts.** Die Daten des Triggers, der Verlauf des Workflows, die Ausgaben anderer Bausteine, Projektdatensätze, Telemetrie und Geheimnisse werden nie angehängt. Sie verlassen OneUptime nur, wenn Sie in einer dieser drei Einstellungen auf sie verweisen.
+- **Text, keine Tools.** Das Modell kann OneUptime nicht abfragen, keine HTTP-Anfragen stellen und keine Daten ändern. Zusätzliche Parameter eines Anbieters lassen nur eine Positivliste reiner Generierungsfelder durch: Sie können die Nachrichten nicht ersetzen, keine Tools, Websuche oder anderen Datenquellen hinzufügen, nichts außer Text und nicht mehrere Antworten anfordern, nicht streamen, die Anfrage nicht beim Anbieter aufbewahren lassen und die Ausgabegrenze des Bausteins nicht anheben. Felder, die OneUptime nicht kennt, werden verworfen.
+- **Das Modell wählt Ihr Administrator.** Muss die Generierung offline bleiben, wählen Sie ein Modell, das beim Anbieter nichts von selbst abruft.
 
-Behandeln Sie jede Variable, auf die Sie verweisen, als Daten, die Sie bewusst an den Anbieter senden. Fügen Sie insbesondere keine geheime globale Variable in Prompt oder Context ein, es sei denn, diese Offenlegung ist nötig und der Anbieter ist für den Empfang freigegeben. Ein selbst gehosteter lokaler Anbieter wie Ollama kann die Anfrage in Ihrer eigenen Infrastruktur halten; ein gehosteter Anbieter erhält die Anfrage zu seinen Datenverarbeitungsbedingungen.
+Was protokolliert wird:
 
-Jeder Aufruf wird unter **Projekteinstellungen → KI → KI-Protokolle** aufgezeichnet, mit Anbieter, Modell, Status, Token, Kosten und Abrechnungsangaben. Vorschauen von Prompt und Antwort sowie rohe Fehlerdetails des Anbieters werden im KI-Protokoll nicht gespeichert. Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts. Workflow-KI zählt außerdem zum täglichen Token-Budget des Projekts für autonome KI; ist das Budget erschöpft, nimmt die Komponente ihren Pfad **Error**, ohne das Modell anzufragen. Die KI des Projekts muss eingeschaltet sein. In OneUptime Cloud muss das Abonnement bezahlt sein, und der Growth-Plan (oder ein Plan, der Growth-Funktionen enthält) ist nötig; selbst gehostete Installationen mit ausgeschalteter Abrechnung haben diese Plan-Sperre nicht.
+- Das Protokoll der Ausführung verbirgt **System Instructions**, **Prompt**, **Context** und **Response** des Bausteins. Spätere Bausteine können sie während der Ausführung trotzdem verwenden, und ein Baustein, in den Sie einen davon einsetzen, protokolliert ihn nach seinen eigenen Regeln: Wer einen einsetzt, entscheidet sich, ihn dort zu zeigen.
+- Anbieter, Modell, Token-Zahlen, **LLM Log ID** und eine sichere Fehlermeldung bleiben für Betrieb und Abrechnung sichtbar. Der rohe Fehlertext eines Anbieters bleibt aus jedem Protokoll heraus, weil ein Anbieter darin die Anfrage wiederholen kann.
+- Jeder Aufruf steht unter **Projekteinstellungen → KI → KI-Protokolle**, mit Anbieter, Modell, Status, Token, Kosten und Abrechnung, aber ohne Prompt, Antwort und rohen Fehler.
 
-Eingebaute Grenzen halten unbeaufsichtigte Aufrufe endlich: System Instructions, Prompt und serialisierter Context sind zusammen auf 50.000 Zeichen begrenzt; Temperature muss von `0` bis `1` reichen; Maximum Output Tokens muss von `1` bis `4096` reichen (Standard `1024`); und die Anfrage an den Anbieter wird einmal versucht und bricht nach höchstens 60 Sekunden ab. Pro Projekt laufen nicht mehr als drei KI-Aufrufe von Workflows gleichzeitig; weitere Aufrufe nehmen den Pfad **Error** und können von einer späteren Ausführung wiederholt werden. Validierungs-, Konfigurations-, Zugriffs-, Budget-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Error** und füllen die Ausgabe **Error**. Verbinden Sie diesen Pfad, bevor Sie einen produktiven Workflow aktivieren.
+Was der Baustein braucht und was er kostet:
+
+- **KI aktivieren** muss eingeschaltet sein, unter **Projekteinstellungen → KI → KI-Funktionen**. In OneUptime Cloud braucht das Projekt außerdem den Plan Growth oder höher und ein bezahltes Abonnement. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Sperre.
+- Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts.
+- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#the-projects-own-daily-limits), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
+
+| Grenze                                                         | Wert                                                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **System Instructions**, **Prompt** und **Context** zusammen   | 50.000 Zeichen                                                                             |
+| **Temperature**                                                | Von `0` bis `1`                                                                            |
+| **Maximum Output Tokens**                                      | Von `1` bis `4096`, standardmäßig `1024`                                                   |
+| Eine Anfrage                                                   | Ein Versuch, höchstens 60 Sekunden                                                         |
+| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Error**, und eine spätere Ausführung kann es erneut versuchen. |
+
+Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Error**, mit dem Grund in **Error**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
+
+> [!WARNING]
+> Jeder Wert, auf den Sie verweisen, sind Daten, die Sie an den Anbieter senden. Setzen Sie keine geheime Variable in den Prompt oder den Kontext, es sei denn, der Anbieter ist für ihren Empfang freigegeben. Ein selbst gehosteter lokaler Anbieter wie Ollama hält Anfragen in Ihrer eigenen Infrastruktur; ein gehosteter Anbieter erhält sie zu seinen eigenen Datenverarbeitungsbedingungen.
 
 ## Berechtigungen
 

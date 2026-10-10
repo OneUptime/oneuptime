@@ -71,6 +71,7 @@ Open **Products** in the top bar and choose **Workflows**, under **Dashboards & 
 - **Logs → Runs** — execution history across every workflow in your project.
 - **Settings → Label Rules** and **Owner Rules** — label new workflows and assign their owners automatically.
 - **Advanced → Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
+- **Developer** — how to manage workflows with Terraform, the API or an AI assistant.
 
 Open a single workflow and its own menu holds:
 
