@@ -108,7 +108,11 @@
     "Real User Monitoring": "真實使用者監控"
   },
   "navLinks": {
-    "Getting Started": "快速入門",
+    "Getting Started": "入門指南",
+    "Quickstart": "快速開始",
+    "Core Concepts": "核心概念",
+    "Home Page & Shortcuts": "首頁與快捷鍵",
+    "Your Account": "您的帳戶",
     "Moving from Opsgenie": "從 Opsgenie 移轉",
     "Moving from PagerDuty": "從 PagerDuty 移轉",
     "Moving from incident.io": "從 incident.io 移轉",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "資料庫健康狀態監控",
     "Network Sites (Health Rollup & Uptime)": "網路站點(健康彙總與正常運作時間)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "網路設備廠商指南(Sophos、Extreme、Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "網路流量（NetFlow、IPFIX、sFlow）",
     "Host Monitor": "主機監控",
     "Podman Monitor": "Podman 監控",
     "Proxmox Monitor": "Proxmox 監控",

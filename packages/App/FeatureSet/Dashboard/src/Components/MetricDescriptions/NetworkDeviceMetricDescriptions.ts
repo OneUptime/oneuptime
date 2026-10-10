@@ -1,9 +1,11 @@
 /*
  * What each number on the network device pages means, in plain words: the
  * device Overview hero, its interface preview and latency trend, on-demand
- * ping and traceroute, the Interfaces and Traffic tabs, the device list, the
- * Network Overview, the Probe Latency Matrix and the Discovery Scans list.
- * Shown in the (i) tooltip beside a tile, column or section title.
+ * ping and traceroute, the Interfaces tab, the device list, the Network
+ * Overview, the Probe Latency Matrix and the Discovery Scans list. Shown in
+ * the (i) tooltip beside a tile, column or section title. (The Traffic
+ * pages' own texts are TILE_HELP and TRAFFIC_HELP in
+ * Components/NetworkTraffic.)
  *
  * Each text describes what the page actually computes, not what the title
  * might suggest:
@@ -14,8 +16,6 @@
  *     not live values;
  *   - the latency trend is fixed to the past hour and averaged per minute,
  *     so its "max" is the slowest minute, not the slowest ping;
- *   - flow totals are what the device exported, never scaled up for
- *     sampling, and only for flows that STARTED inside the range;
  *   - the endpoint count never shrinks - nothing ages endpoints out;
  *   - the latency matrix is each monitor's LATEST check per probe, and only
  *     the project's own probes get a column - global probes are not
@@ -51,14 +51,6 @@ export type NetworkDeviceMetric =
   | "interfaceInOutRate"
   | "interfaceUtilization"
   | "interfaceErrorsPerSecond"
-  | "flowTotalTraffic"
-  | "flowPackets"
-  | "flowCount"
-  | "flowBandwidth"
-  | "flowTopSources"
-  | "flowTopDestinations"
-  | "flowTopConversations"
-  | "flowTopProtocolsPorts"
   | "deviceStatus"
   | "deviceInterfacesUpDown"
   | "devicesUp"
@@ -153,32 +145,6 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
   ),
   interfaceErrorsPerSecond: translationKey(
     "Inbound plus outbound packets per second that the port counted as errors between the last two SNMP walks. Anything above zero can point to a bad cable, a failing port or a duplex mismatch.",
-  ),
-
-  // Traffic tab (FlowTopTalkers.tsx) - the card's own time range picker.
-  flowTotalTraffic: translationKey(
-    "Total bytes in the NetFlow records this device exported for flows that started in the selected range. If the device samples traffic, this is the sampled amount; it is not scaled up.",
-  ),
-  flowPackets: translationKey(
-    "Total packets in the NetFlow records this device exported for flows that started in the selected range, counted the same way as Total Traffic.",
-  ),
-  flowCount: translationKey(
-    "How many NetFlow records this device exported for flows that started in the selected range. Each record sums up one conversation (same addresses, protocol and ports) over a short stretch, so a long connection can produce many.",
-  ),
-  flowBandwidth: translationKey(
-    "Average megabits per second in each time slice, from the bytes in flow records that started in that slice; slices with no records count as zero. Min, Avg and Max are taken across those slices.",
-  ),
-  flowTopSources: translationKey(
-    "The 10 source IP addresses that sent the most bytes in the selected range, by this device's flow records. Bytes and Packets are each address's totals.",
-  ),
-  flowTopDestinations: translationKey(
-    "The 10 destination IP addresses that received the most bytes in the selected range, by this device's flow records. Bytes and Packets are each address's totals.",
-  ),
-  flowTopConversations: translationKey(
-    "The 10 source and destination pairs that exchanged the most bytes in the selected range, counting each direction separately. Bytes and Packets are totals for each pair.",
-  ),
-  flowTopProtocolsPorts: translationKey(
-    "The 10 protocol and destination port pairs, such as TCP 443, that carried the most bytes in the selected range. Bytes and Packets are totals for each pair.",
   ),
 
   // Device list columns (Pages/NetworkDevice/Devices.tsx).

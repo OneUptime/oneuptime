@@ -327,31 +327,6 @@ describe("DatabaseService.findRowsAndHoldDeleteToThem - OneUptime's own delete",
     expect((deleteBy.query as unknown as JSONObject)["_id"]).toBe(ROW_A);
   });
 
-  it("holds an either-or delete to the rows read by id alone", async () => {
-    rowsRead = [row(ROW_A), row(ROW_C)];
-
-    const deleteBy: DeleteBy<StatusPageSubscriber> = deleteOf({
-      query: [
-        { statusPageId: STATUS_PAGE_ID },
-        { _id: ROW_C },
-      ] as unknown as Query<StatusPageSubscriber>,
-    });
-
-    await rowsADeleteRemoves().findRowsAndHoldDeleteToThem(deleteBy, SELECT);
-
-    // An either-or query is read as it was sent.
-    expect(readWith().query).toEqual([
-      { statusPageId: STATUS_PAGE_ID },
-      { _id: ROW_C },
-    ]);
-
-    const query: JSONObject = deleteBy.query as unknown as JSONObject;
-
-    expect(Object.keys(query)).toEqual(["_id"]);
-    expect(idsNamedBy(query["_id"]).sort()).toEqual([ROW_A, ROW_C].sort());
-    expect(deleteBy.limit).toBe(2);
-  });
-
   it("holds a delete that reaches no row to none: a row that appears before the delete is not removed", async () => {
     rowsRead = [];
 

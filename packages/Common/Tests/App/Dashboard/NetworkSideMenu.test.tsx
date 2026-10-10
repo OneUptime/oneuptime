@@ -70,8 +70,9 @@ interface SideMenuWrapper {
 const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
   /*
    * The only section open on arrival, and only what people open Network
-   * for: whether it is healthy, the devices, where they are, the map, and
-   * the way to find more. Five rows, down from ten open before.
+   * for: whether it is healthy, the devices, where they are, the map,
+   * where the traffic goes, and the way to find more. Six rows, down from
+   * ten open before.
    */
   {
     title: "Network",
@@ -101,6 +102,12 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         getBreadcrumbs: getNetworkSiteBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Map"],
         resetsMapDrill: true,
+      },
+      {
+        title: "Traffic",
+        pageMapKey: PageMap.NETWORK_TRAFFIC,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Traffic"],
       },
       {
         title: "Discovery",
@@ -432,14 +439,21 @@ describe("Network side menu", () => {
       expect(openSections).toEqual(["Network"]);
     });
 
-    test("shows five rows on arrival: Overview, Devices, Sites, Map and Discovery", async () => {
+    test("shows six rows on arrival: Overview, Devices, Sites, Map, Traffic and Discovery", async () => {
       await renderNetworkMenu();
 
       expect(
         linksIn("Network").map((link: MenuLink): string => {
           return link.title;
         }),
-      ).toEqual(["Overview", "Devices", "Sites", "Map", "Discovery"]);
+      ).toEqual([
+        "Overview",
+        "Devices",
+        "Sites",
+        "Map",
+        "Traffic",
+        "Discovery",
+      ]);
 
       /*
        * Every other row sits in a folded section: drawn (so it can open
@@ -453,7 +467,7 @@ describe("Network side menu", () => {
           return count + linksIn(title).length;
         }, 0);
 
-      expect(visibleRows).toBe(5);
+      expect(visibleRows).toBe(6);
     });
 
     test("leaves the deeper views out of the open section", async () => {
@@ -586,11 +600,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-four destinations reachable exactly once", async () => {
+    test("keeps all twenty-five destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(24);
-      expect(allLinks()).toHaveLength(24);
+      expect(EXPECTED_ENTRIES).toHaveLength(25);
+      expect(allLinks()).toHaveLength(25);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );
@@ -674,6 +688,7 @@ describe("Network side menu", () => {
       [PageMap.NETWORK_OVERVIEW, "Overview"],
       [PageMap.NETWORK_DEVICES, "Devices"],
       [PageMap.NETWORK_SITES, "Sites"],
+      [PageMap.NETWORK_TRAFFIC, "Traffic"],
       [PageMap.NETWORK_DEVICE_DISCOVERY, "Discovery"],
     ])(
       "%s highlights %s and keeps every folded section folded",
@@ -801,6 +816,7 @@ describe("Network side menu", () => {
     test.each([
       [PageMap.NETWORK_DEVICE_ENDPOINTS, "Topology / Endpoints"],
       [PageMap.NETWORK_DEVICE_DISCOVERY, "Network / Discovery"],
+      [PageMap.NETWORK_TRAFFIC, "Network / Traffic"],
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Topology / Device Topology"],
       [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES, "Rules / Owner Rules"],
       [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Settings / Site Types"],

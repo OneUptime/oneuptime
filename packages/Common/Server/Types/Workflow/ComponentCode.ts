@@ -31,12 +31,6 @@ export interface RunOptions {
    * (WorkflowPrincipal). Nothing checks it.
    */
   workflowName?: string | undefined;
-  /*
-   * Who last saved the workflow's steps, read with the steps the run is running
-   * (Workflow.lastSavedByUserId): the person whose read of runbook
-   * credentials a step is held to (WorkflowPrincipal).
-   */
-  workflowSavedByUserId?: ObjectID | undefined;
   projectId: ObjectID;
   onError: (exception: Exception) => Exception;
   /**
@@ -98,7 +92,6 @@ export default class ComponentCode {
       projectId: options.projectId,
       workflowId: options.workflowId,
       workflowName: options.workflowName,
-      savedByUserId: options.workflowSavedByUserId,
     });
   }
 

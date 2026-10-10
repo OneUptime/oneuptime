@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Erste Schritte",
+    "Quickstart": "Schnellstart",
+    "Core Concepts": "Grundkonzepte",
+    "Home Page & Shortcuts": "Startseite & Tastenkürzel",
+    "Your Account": "Ihr Konto",
     "Moving from Opsgenie": "Wechsel von Opsgenie",
     "Moving from PagerDuty": "Wechsel von PagerDuty",
     "Moving from incident.io": "Wechsel von incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Datenbank-Integritätsüberwachung",
     "Network Sites (Health Rollup & Uptime)": "Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Leitfäden für Netzwerkhersteller (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Netzwerkverkehr (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Host-Überwachung",
     "Podman Monitor": "Podman-Überwachung",
     "Proxmox Monitor": "Proxmox-Überwachung",

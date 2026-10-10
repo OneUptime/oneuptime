@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Начало работы",
+    "Quickstart": "Быстрый старт",
+    "Core Concepts": "Основные понятия",
+    "Home Page & Shortcuts": "Главная страница и сочетания клавиш",
+    "Your Account": "Ваша учётная запись",
     "Moving from Opsgenie": "Переход с Opsgenie",
     "Moving from PagerDuty": "Переход с PagerDuty",
     "Moving from incident.io": "Переход с incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Мониторинг состояния баз данных",
     "Network Sites (Health Rollup & Uptime)": "Сетевые площадки (сводка состояния и доступность)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Руководства по сетевым вендорам (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Сетевой трафик (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Мониторинг хостов",
     "Podman Monitor": "Мониторинг Podman",
     "Proxmox Monitor": "Мониторинг Proxmox",

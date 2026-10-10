@@ -143,6 +143,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
 
 export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
+  [PageMap.NETWORK_TRAFFIC]: `traffic`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
   [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
@@ -205,6 +206,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW_DEVICES]: `view/${RouteParams.ModelID}/devices`,
   [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: `view/${RouteParams.ModelID}/child-sites`,
   [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: `view/${RouteParams.ModelID}/endpoints`,
+  [PageMap.NETWORK_SITE_VIEW_TRAFFIC]: `view/${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
   [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: `view/${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
@@ -3185,6 +3187,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_TRAFFIC]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
@@ -3380,6 +3388,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_TRAFFIC]
     }`,
   ),
 

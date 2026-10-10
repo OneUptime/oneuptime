@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Kom godt i gang",
+    "Quickstart": "Hurtigstart",
+    "Core Concepts": "Grundbegreber",
+    "Home Page & Shortcuts": "Startside og genveje",
+    "Your Account": "Din konto",
     "Moving from Opsgenie": "Skift fra Opsgenie",
     "Moving from PagerDuty": "Skift fra PagerDuty",
     "Moving from incident.io": "Skift fra incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Databasetilstands-monitor",
     "Network Sites (Health Rollup & Uptime)": "Netværkslokationer (tilstandsoversigt og oppetid)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Vejledninger pr. netværksleverandør (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Netværkstrafik (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Værts-monitor",
     "Podman Monitor": "Podman-monitor",
     "Proxmox Monitor": "Proxmox-monitor",

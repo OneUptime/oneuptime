@@ -14,6 +14,7 @@ import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAs
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import { fillDeviceNameOnCreate } from "../../Utils/NetworkDevice/DeviceNameDefault";
+import NetworkDeviceOtherAddressesUtil from "../../Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import {
   DEVICE_NAME_SOURCES_BEST_FIRST,
   readDeviceNameSource,
@@ -163,6 +164,35 @@ function normalizeMacAddressOnWrite(data: Record<string, unknown>): void {
 
   data["macAddress"] = normalized;
   data["isMacAddressLearned"] = false;
+}
+
+/*
+ * The device's Other Addresses, normalised on the way in: IP addresses only,
+ * canonical, each once (NetworkDeviceOtherAddressesUtil). A value with
+ * something that is not an address is refused with what was wrong, rather
+ * than stored to match nothing; blank clears the column. Like the MAC above,
+ * a SQL-expression function is left alone.
+ */
+function normalizeOtherAddressesOnWrite(data: Record<string, unknown>): void {
+  if (!("otherAddresses" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["otherAddresses"];
+
+  if (raw === undefined || raw === null || typeof raw === "function") {
+    return;
+  }
+
+  if (typeof raw !== "string") {
+    throw new BadDataException("Other Addresses must be text.");
+  }
+
+  try {
+    data["otherAddresses"] = NetworkDeviceOtherAddressesUtil.normalize(raw);
+  } catch (err) {
+    throw new BadDataException((err as Error).message);
+  }
 }
 
 /*
@@ -1267,6 +1297,10 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data as unknown as Record<string, unknown>,
     );
 
+    normalizeOtherAddressesOnWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
     /*
      * A device added without a name is named after its address. The Add
      * Device form asks for the address first and leaves the name optional,
@@ -1534,6 +1568,10 @@ export class Service extends ProjectReferencesService<Model> {
      * happen to need the snapshot.
      */
     normalizeMacAddressOnWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    normalizeOtherAddressesOnWrite(
       updateBy.data as unknown as Record<string, unknown>,
     );
 

@@ -305,26 +305,29 @@ describe("Require SSO for Login written to projects named by a filter", () => {
     ).toEqual([`lock:${FIRST_LOCKED}`, `lock:${SECOND_LOCKED}`]);
   });
 
-  test("a project created between the first read and the read under the locks is refused, to be saved again, and nothing is written", async () => {
+  /*
+   * The first read holds the write to the projects it read, so the read under
+   * the locks is among them: a project that comes to match the filter while
+   * the write waits for the locks was never read, nor locked, and is left
+   * alone - the write is not refused for it.
+   */
+  test("a project created between the first read and the read under the locks is left alone - never locked, nor checked - and the projects read are written", async () => {
     whileWaitingForLock = (): void => {
       projects.rows.push(projectRow(CREATED_LATER, GROUP));
       samlProviders.rows.push(ownSamlOn(CREATED_LATER));
     };
 
-    await expect(requireSsoForGroup()).resolves.toBe(
-      SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
-    );
+    await expect(requireSsoForGroup()).resolves.toBe(2);
 
-    expect(writtenProjects()).toEqual([]);
-    expect(ruleOf(ACME_EU)).toBe(false);
+    expect([...writtenProjects()].sort()).toEqual([ACME_EU, ACME_US].sort());
+    expect(ruleOf(ACME_EU)).toBe(true);
+    expect(ruleOf(ACME_US)).toBe(true);
     expect(ruleOf(CREATED_LATER)).toBe(false);
-    expect(events).toEqual([
-      `lock:${FIRST_LOCKED}`,
-      `lock:${SECOND_LOCKED}`,
-      `release:${FIRST_LOCKED}`,
-      `release:${SECOND_LOCKED}`,
-    ]);
-    expect(announced).toEqual([]);
+    expect(
+      events.filter((event: string): boolean => {
+        return event.startsWith("lock:");
+      }),
+    ).toEqual([`lock:${FIRST_LOCKED}`, `lock:${SECOND_LOCKED}`]);
   });
 
   test("a project that comes to match the filter after the read under the locks is left alone: it was never checked", async () => {

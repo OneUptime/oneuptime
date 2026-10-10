@@ -25,10 +25,7 @@ import {
   KubernetesClusterAiAccessStatus,
   getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
   KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
@@ -63,6 +60,7 @@ import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
 import AiActivityInsightsReader, {
   AiActivityInsightsScope,
@@ -596,8 +594,10 @@ function canReadCredentials(
   projectId: ObjectID,
 ): boolean {
   /*
-   * A block row for any of these is a denial even when a grant is present,
-   * labelled or not: a credential's name says nothing about its labels.
+   * The permissions that read runbook credentials
+   * (RunbookCredentialReaders.getReadPermissions). A block row for any of
+   * them is a denial even when a grant is present, labelled or not: a
+   * credential's name says nothing about its labels.
    */
   if (props.isRoot || props.isMasterAdmin) {
     return true;
@@ -605,7 +605,7 @@ function canReadCredentials(
 
   return CallerPermission.holdsAnyOf(
     props,
-    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+    RunbookCredentialReaders.getReadPermissions(),
     { projectId: projectId, labelledBlocksRefuse: true },
   );
 }

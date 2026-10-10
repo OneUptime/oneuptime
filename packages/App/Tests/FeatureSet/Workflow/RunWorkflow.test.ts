@@ -610,12 +610,12 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
   });
 
   /*
-   * A step is lent every permission of a Project Admin but one: the read of
-   * runbook credentials is asked of the person who last saved the workflow
-   * (RunbookCredentialReaders). The runner reads who that is with the steps
-   * it runs, in the same read, and hands it to every step.
+   * A step is lent no read of a setting that holds credentials, whoever
+   * saved the workflow (RunbookCredentialReaders): the runner reads the
+   * steps it runs, and nobody who saved them, and hands a step nothing to
+   * be answered for instead.
    */
-  test("and by who last saved it, read with the steps it runs", async () => {
+  test("reads the steps it runs, and nobody who saved them", async () => {
     let received: RunOptions | undefined = undefined;
 
     registry["TestWorkflowComponent"] = {
@@ -631,17 +631,13 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
     const componentNode: NodeDataProp = node(metadata());
     const runner: RunWorkflow = new RunWorkflow();
     prepareSingleComponentRun(runner, componentNode);
-
-    const savedBy: ObjectID = ObjectID.generate();
-    const saved: Workflow = workflow();
-    saved.lastSavedByUserId = savedBy;
 
     const read: RecordedSpy = jest
       .spyOn(
         WorkflowService as unknown as WorkflowServiceForTest,
         "findOneById",
       )
-      .mockResolvedValue(saved) as unknown as RecordedSpy;
+      .mockResolvedValue(workflow()) as unknown as RecordedSpy;
 
     await runner.runWorkflow({
       arguments: {},
@@ -650,44 +646,28 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
       timeout: 5_000,
     });
 
-    // One read brings the steps and who saved them.
     const select: Record<string, unknown> = (
       read.mock.calls[0]![0] as { select: Record<string, unknown> }
     ).select;
     expect(select["graph"]).toBe(true);
-    expect(select["lastSavedByUserId"]).toBe(true);
+    expect(
+      Object.keys(select).filter((column: string): boolean => {
+        return column.startsWith("lastSaved");
+      }),
+    ).toEqual([]);
 
     expect(received).toBeDefined();
-    expect(received!.workflowSavedByUserId?.toString()).toBe(
-      savedBy.toString(),
+    expect(Object.keys(received!).sort()).toEqual(
+      [
+        "executeWorkflow",
+        "getRemainingExecutionTimeInMs",
+        "log",
+        "onError",
+        "projectId",
+        "workflowId",
+        "workflowLogId",
+        "workflowName",
+      ].sort(),
     );
-  });
-
-  test("a workflow last saved by nobody gives its steps nobody", async () => {
-    let received: RunOptions | undefined = undefined;
-
-    registry["TestWorkflowComponent"] = {
-      run: async (
-        _args: JSONObject,
-        options: RunOptions,
-      ): Promise<RunReturnType> => {
-        received = options;
-        return { returnValues: {}, executePort: undefined };
-      },
-    } as unknown as ComponentCode;
-
-    const componentNode: NodeDataProp = node(metadata());
-    const runner: RunWorkflow = new RunWorkflow();
-    prepareSingleComponentRun(runner, componentNode);
-
-    await runner.runWorkflow({
-      arguments: {},
-      workflowId: WORKFLOW_ID,
-      workflowLogId: WORKFLOW_LOG_ID,
-      timeout: 5_000,
-    });
-
-    expect(received).toBeDefined();
-    expect(received!.workflowSavedByUserId).toBeUndefined();
   });
 });

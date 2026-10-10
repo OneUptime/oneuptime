@@ -1111,19 +1111,23 @@ API, SSO, or the Slack and Microsoft Teams apps.
   does; without it the save is refused with a `422` that names the Runner.
   Credentials keep the Runners they were assigned before the upgrade, and
   removing Runners, saving a credential with the Runners it has and
-  Kubernetes credentials need nothing more. Assigning credentials and turning
-  the switch on by someone without that permission are saved one at a time
-  in a project: such a save that waits too long for another, or that cannot
-  reach Valkey, is refused with a `400` asking to try again in a moment. A
-  workflow's steps act as a Project Admin
-  but are not lent a Project Admin's read of runbook credentials: where a
-  change takes that read, a step is asked about the person who last saved
-  the workflow's steps, and is refused unless they may read runbook
-  credentials. A workflow whose steps were last saved with an API key, or
-  not since the upgrade, names nobody until a person saves its steps.
-  OneUptime records that person when a workflow is created and each time its
-  steps are saved - not when it is renamed or turned on or off - in a new
-  read-only `lastSavedByUserId` column on workflows added on start. See
+  Kubernetes credentials need nothing more. Creating such a credential and
+  turning the switch on by someone without that permission are saved one at
+  a time in a project: such a save that waits too long for another, or that
+  cannot reach Valkey, is refused with a `400` asking to try again in a
+  moment. Saving a Runner without changing its switch - editing its
+  description, say - never waits and needs no Valkey, whoever saves it. A
+  workflow's steps act as a Project Admin but are never lent the read of
+  runbook credentials, or of any other setting that holds credentials: a
+  step that would let OneUptime AI's commands use a runbook credential, or
+  that names an SMTP server, a call and SMS provider, SNMP credentials, a
+  video call connection, an API key or a runbook credential, is refused, and
+  its run log says a person who may read them has to make the change.
+  Upgrading from 14.0.26 to 14.0.31: those releases asked instead about the
+  person who last saved a workflow's steps, recorded in a read-only
+  `lastSavedByUserId` column on workflows. That column is dropped on start,
+  the API and Terraform no longer return it, and a step is refused whoever
+  saved the workflow. See
   [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
   and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - **An LLM provider's Additional Parameters are read like its API key,
@@ -1155,6 +1159,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   monitors start with it - but not a probe's key, version, labels or packet
   capture report. A probe's key stays with project owners and admins. The
   lists of global probes and global AI agents answer signed-in users only.
+- **An update or a delete names its project.** A signed-in user's update
+  or delete of a project's records that names no project (no `tenantid`
+  header), or that asks across all of their projects (the
+  `is-multi-tenant-query` header), is refused with a `400` that says to pass
+  the project ID. Such a request used to fail with a `500`. API keys act in
+  their own project, and the Dashboard and the mobile app always send the
+  project with a change, so neither is affected. See
+  [Changes are made in one project at a time](/docs/api-reference/api-reference#changes-are-made-in-one-project-at-a-time).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
@@ -1171,6 +1183,7 @@ What changes for an existing workflow:
 - A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
 - A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
+- A step that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential is refused - one that sets a status page's SMTP server, say, or grants an API key a permission. A step is never lent the read of settings that hold credentials: a person who may read them has to make that change. A step that keeps the one a record names already, or clears it, is not refused.
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.
 

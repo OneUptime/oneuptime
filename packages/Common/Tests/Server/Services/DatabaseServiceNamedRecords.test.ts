@@ -163,6 +163,10 @@ class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
   public queryNarrowedByHook: boolean = false;
   // Run by the update hook, as it runs.
   public duringUpdateHook: (() => void) | null = null;
+  // A hook that checks the rows the update writes, holding it to them.
+  public holdsUpdateInHook: boolean = false;
+  // A hook that names the one row the update writes by its plain id.
+  public rowNamedByHook: string | null = null;
   public updateHookCalls: number = 0;
   public createHookCalls: number = 0;
 
@@ -190,6 +194,17 @@ class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
       (updateBy.query as Record<string, unknown>)["title"] = "Launch";
     }
 
+    if (this.holdsUpdateInHook) {
+      await this.findRowsAndHoldUpdateToThem(updateBy, { _id: true });
+    }
+
+    if (this.rowNamedByHook) {
+      updateBy.query = {
+        ...updateBy.query,
+        _id: this.rowNamedByHook,
+      } as UpdateBy<StatusPageAnnouncement>["query"];
+    }
+
     if (this.duringUpdateHook) {
       this.duringUpdateHook();
     }
@@ -211,6 +226,8 @@ interface RowRead {
 
 let service: AnnouncementService;
 let rowReads: Array<RowRead>;
+// The announcements an update reaches, as they are stored now.
+let storedAnnouncements: Array<string>;
 let storedPages: Array<string>;
 let storedMonitors: Array<string>;
 let readablePages: Array<string>;
@@ -259,6 +276,7 @@ beforeEach(() => {
   service = new AnnouncementService();
   rowReads = [];
   parentReads = [];
+  storedAnnouncements = [ANNOUNCEMENT_ID];
   storedPages = [PAGE_A];
   storedMonitors = [];
   readablePages = [PAGE_A, PAGE_C];
@@ -270,13 +288,14 @@ beforeEach(() => {
   ): Promise<Array<StatusPageAnnouncement>> => {
     rowReads.push({ findBy: findBy });
 
-    const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
-    announcement._id = ANNOUNCEMENT_ID;
-    announcement.projectId = PROJECT_ID;
-    announcement.statusPages = asStatusPages(storedPages);
-    announcement.monitors = asMonitors(storedMonitors);
-
-    return [announcement];
+    return storedAnnouncements.map((id: string): StatusPageAnnouncement => {
+      const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
+      announcement._id = id;
+      announcement.projectId = PROJECT_ID;
+      announcement.statusPages = asStatusPages(storedPages);
+      announcement.monitors = asMonitors(storedMonitors);
+      return announcement;
+    });
   }) as never);
 
   // The status pages and monitors the caller's read finds.
@@ -332,6 +351,30 @@ const updateAnnouncement: (
     id: new ObjectID(ANNOUNCEMENT_ID),
     data: data as never,
     props: props,
+  });
+};
+
+/*
+ * An update of the announcements a filter names - two of them, whose query
+ * names neither by id (keepRowsCallerMayWrite keeps it to the project).
+ */
+const SECOND_ANNOUNCEMENT_ID: string = "0193c0de-ffff-4aaa-8bbb-00000000c002";
+
+const updateAnnouncementsWhere: (
+  query: Record<string, unknown>,
+  data: Record<string, unknown>,
+) => Promise<number> = async (
+  query: Record<string, unknown>,
+  data: Record<string, unknown>,
+): Promise<number> => {
+  storedAnnouncements = [ANNOUNCEMENT_ID, SECOND_ANNOUNCEMENT_ID];
+
+  return await service.updateBy({
+    query: query as never,
+    data: data as never,
+    skip: 0,
+    limit: 10,
+    props: member(EDITOR),
   });
 };
 
@@ -471,7 +514,31 @@ describe("an update that gives a record a parent it does not have", () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  test("a hook that changes the query has the rows it writes read again", async () => {
+  test("a hook that changes the query of an update by filter has the rows it writes read again", async () => {
+    service.pageAddedByHook = PAGE_C;
+    service.queryNarrowedByHook = true;
+
+    await updateAnnouncementsWhere(
+      { description: "Planned" },
+      {
+        statusPages: [{ _id: PAGE_A }],
+      },
+    );
+
+    const reads: Array<RowRead> = rowReadsWithPages();
+
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(reads).toHaveLength(2);
+    expect(JSON.stringify(reads[1]!.findBy.query)).toContain("Launch");
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * An update that names its one row by id - updateOneById - writes no row
+   * but that one, whatever a hook adds to its query: what was asked of the
+   * row stands, and it is not read again.
+   */
+  test("a hook that narrows an update of one row by id has nothing read or asked again", async () => {
     service.pageAddedByHook = PAGE_C;
     service.queryNarrowedByHook = true;
 
@@ -479,11 +546,8 @@ describe("an update that gives a record a parent it does not have", () => {
       statusPages: [{ _id: PAGE_A }],
     });
 
-    const reads: Array<RowRead> = rowReadsWithPages();
-
     expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
-    expect(reads).toHaveLength(2);
-    expect(JSON.stringify(reads[1]!.findBy.query)).toContain("Launch");
+    expect(rowReadsWithPages()).toHaveLength(1);
     expect(save).toHaveBeenCalledTimes(1);
   });
 
@@ -514,9 +578,12 @@ describe("an update that gives a record a parent it does not have", () => {
     };
 
     const refusal: unknown = await refusalOf(
-      updateAnnouncement({
-        statusPages: [{ _id: PAGE_A }, { _id: PAGE_B }],
-      }),
+      updateAnnouncementsWhere(
+        { description: "Planned" },
+        {
+          statusPages: [{ _id: PAGE_A }, { _id: PAGE_B }],
+        },
+      ),
     );
 
     expect(refusal).toBeInstanceOf(UnreadableParentException);
@@ -564,6 +631,110 @@ describe("an update that gives a record a parent it does not have", () => {
 
     expect(parentReads).toEqual([]);
     expect(save).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A HOOK THAT HOLDS AN UPDATE TO THE ROWS IT READS LEAVES WHAT WAS ASKED OF
+ * THEM STANDING.
+ *
+ * The records an update names are asked about before its hooks, on the rows
+ * the caller may update (keepRowsCallerMayWrite). A hook that then reads the
+ * rows the update writes holds it to them by their ids
+ * (findRowsAndHoldUpdateToThem): the update writes no row but ones already
+ * asked about, so the asks after the hooks neither read the rows again nor
+ * ask about any record again. A hook that has the update reach a row that
+ * was not read has the rows read again.
+ */
+describe("a hook that holds an update to the rows it reads", () => {
+  const UNREAD_ANNOUNCEMENT_ID: string = "0193c0de-ffff-4aaa-8bbb-00000000c003";
+
+  // An update of every announcement named Launch: two of them.
+  const updateLaunches: (
+    data: Record<string, unknown>,
+  ) => Promise<number> = async (
+    data: Record<string, unknown>,
+  ): Promise<number> => {
+    return await updateAnnouncementsWhere({ title: "Launch" }, data);
+  };
+
+  test("an update of several rows reads them with their pages once, and asks about the page it adds once", async () => {
+    service.holdsUpdateInHook = true;
+
+    await updateLaunches({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    // Read once, before the hooks: the hold named only rows read then.
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    // Each announcement written, by the save a list of pages needs.
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  test("the update is held to the rows the hook read, by their ids", async () => {
+    service.holdsUpdateInHook = true;
+
+    let heldQuery: Record<string, unknown> = {};
+
+    const findRowsAndHoldUpdateToThem: (
+      ...args: Array<unknown>
+    ) => Promise<unknown> = service.findRowsAndHoldUpdateToThem.bind(
+      service,
+    ) as unknown as (...args: Array<unknown>) => Promise<unknown>;
+
+    getJestSpyOn(service, "findRowsAndHoldUpdateToThem").mockImplementation(
+      (async (...args: Array<unknown>): Promise<unknown> => {
+        const rows: unknown = await findRowsAndHoldUpdateToThem(...args);
+        heldQuery = (args[0] as { query: Record<string, unknown> }).query;
+        return rows;
+      }) as never,
+    );
+
+    await updateLaunches({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    expect(heldQuery["title"]).toBe("Launch");
+    expect(JSON.stringify(heldQuery["_id"])).toContain(ANNOUNCEMENT_ID);
+    expect(JSON.stringify(heldQuery["_id"])).toContain(SECOND_ANNOUNCEMENT_ID);
+  });
+
+  test("a hook that holds the update to the rows it reads and adds a page asks about that page alone, on the rows read before the hooks", async () => {
+    service.holdsUpdateInHook = true;
+    service.pageAddedByHook = PAGE_C;
+
+    await updateLaunches({
+      statusPages: [{ _id: PAGE_A }],
+    });
+
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+  });
+
+  test("a hook that has the update reach a row that was not read has the rows read again, and every page asked about on them", async () => {
+    service.rowNamedByHook = UNREAD_ANNOUNCEMENT_ID;
+
+    await updateLaunches({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    expect(rowReadsWithPages()).toHaveLength(2);
+    expect(parentReads).toEqual([
+      { modelType: "StatusPage", ids: [PAGE_C] },
+      { modelType: "StatusPage", ids: [PAGE_C] },
+    ]);
+  });
+
+  test("a hook that names one of the rows read by its plain id asks nothing again", async () => {
+    service.rowNamedByHook = SECOND_ANNOUNCEMENT_ID;
+
+    await updateLaunches({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
   });
 });
 
