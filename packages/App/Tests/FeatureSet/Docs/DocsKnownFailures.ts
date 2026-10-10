@@ -230,11 +230,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "integrations/zabbix": {
     pageLinks: EVERY_TRANSLATION,
   },
-  "introduction/getting-started": {
-    title: EVERY_LANGUAGE,
-    gettingStartedReachesGroups: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
   "inventory/cmdb-sync": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
