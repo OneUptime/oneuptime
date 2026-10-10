@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up se OneUptime ha ricevuto metriche da questo host in quell'intervallo, Down se non è arrivato nulla; un minuto mancante tra intervalli Up conta come Up. Il badge di disponibilità esclude il tempo in cui OneUptime non riceveva dati, e l'intervallo più recente non viene valutato finché non arrivano i dati.",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up per ogni intervallo in cui l'agente del cluster ha inviato metriche, Down se non ne ha inviate; un singolo minuto mancante tra intervalli Up conta come Up. Il badge è la quota Up, esclusi i più recenti ancora in attesa di dati e il tempo in cui OneUptime non riceveva dati.",
   "Has Additional Parameters": "Ha parametri aggiuntivi",
-  "Only project owners and admins can read them, like the API key.": "Come la chiave API, solo i proprietari e gli amministratori del progetto possono leggerli."
+  "Only project owners and admins can read them, like the API key.": "Come la chiave API, solo i proprietari e gli amministratori del progetto possono leggerli.",
+  "Download the whole map as a PDF, with every device and connection listed.": "Scarica l'intera mappa in PDF, con l'elenco di tutti i dispositivi e di tutte le connessioni.",
+  "Export PDF": "Esporta PDF",
+  "There is nothing on the map to export.": "Non c'è nulla da esportare sulla mappa.",
+  "We couldn't create the PDF. Try again.": "Non è stato possibile creare il PDF. Riprova."
 }

@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up hvis OneUptime modtog metrikker fra denne vært i det interval, Down hvis intet kom frem; et manglende minut mellem Up-intervaller tæller som Up. Oppetidsmærket udelader tid, hvor OneUptime ikke modtog noget, og det nyeste interval vurderes først, når data er kommet.",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up for hvert interval, hvor klyngens agent sendte metrikker, Down hvis den ikke sendte nogen; et enkelt manglende minut mellem Up-intervaller tæller som Up. Mærket er Up-andelen uden de nyeste intervaller, der stadig venter på data, og uden tid, hvor OneUptime ikke modtog noget.",
   "Has Additional Parameters": "Har yderligere parametre",
-  "Only project owners and admins can read them, like the API key.": "Ligesom API-nøglen kan kun projektejere og -administratorer læse dem."
+  "Only project owners and admins can read them, like the API key.": "Ligesom API-nøglen kan kun projektejere og -administratorer læse dem.",
+  "Download the whole map as a PDF, with every device and connection listed.": "Download hele kortet som PDF med en liste over alle enheder og forbindelser.",
+  "Export PDF": "Eksportér PDF",
+  "There is nothing on the map to export.": "Der er intet på kortet at eksportere.",
+  "We couldn't create the PDF. Try again.": "PDF'en kunne ikke oprettes. Prøv igen."
 }
