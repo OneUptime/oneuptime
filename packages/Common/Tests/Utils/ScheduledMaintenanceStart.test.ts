@@ -551,3 +551,52 @@ describe("ScheduledMaintenanceStartUtil.isInProgress", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * THE ongoing state: the one the start at an event's time and the chats'
+ * Mark as Ongoing move an event into - not every state it is in progress in.
+ */
+describe("ScheduledMaintenanceStartUtil.getOngoingState", () => {
+  test("is the state flagged ongoing, not a state of the project's own after it", () => {
+    const state: ScheduledMaintenanceState | null =
+      ScheduledMaintenanceStartUtil.getOngoingState({ states: STATE_MODELS });
+
+    expect(state?._id?.toString()).toBe(ONGOING.id);
+  });
+
+  test("is the first from the top flagged ongoing, whatever order the rows come in", () => {
+    const secondOngoing: ScheduledMaintenanceState = model({
+      id: "aaaaaaaa-0000-4000-8000-000000000009",
+      name: "Ongoing again",
+      order: 9,
+      kind: "ongoing",
+    });
+
+    const state: ScheduledMaintenanceState | null =
+      ScheduledMaintenanceStartUtil.getOngoingState({
+        states: [secondOngoing, ...[...STATE_MODELS].reverse()],
+      });
+
+    expect(state?._id?.toString()).toBe(ONGOING.id);
+  });
+
+  test("reads the API's JSON for the states as well", () => {
+    const state: Record<string, unknown> | null =
+      ScheduledMaintenanceStartUtil.getOngoingState({
+        states: PROJECT_STATES.map(json),
+      });
+
+    expect(state?.["_id"]).toBe(ONGOING.id);
+  });
+
+  test("is none in a project without one", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getOngoingState({
+        states: [model(SCHEDULED), model(ENDED), model(COMPLETED)],
+      }),
+    ).toBeNull();
+    expect(
+      ScheduledMaintenanceStartUtil.getOngoingState({ states: [] }),
+    ).toBeNull();
+  });
+});

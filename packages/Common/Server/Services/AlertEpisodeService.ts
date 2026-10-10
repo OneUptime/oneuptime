@@ -1150,25 +1150,6 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  /*
-   * Whether the episode is resolved: its state is at or below its project's
-   * resolved alert state, or flagged resolved - the one rule
-   * (Common/Utils/ResolvedState).
-   */
-  @CaptureSpan()
-  public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
-    const episode: Model = await this.getEpisodeWithState(episodeId);
-
-    if (!episode.currentAlertStateId) {
-      return false;
-    }
-
-    return await AlertStateService.isResolvedAlertState({
-      projectId: episode.projectId!,
-      alertStateId: episode.currentAlertStateId,
-    });
-  }
-
   // The episode's project and current state, as OneUptime.
   private async getEpisodeWithState(episodeId: ObjectID): Promise<Model> {
     const episode: Model | null = await this.findOneById({

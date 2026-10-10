@@ -9,14 +9,25 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization, {
   WorkspaceActionResource,
 } from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventRecord,
+} from "../../WorkspaceMemberActions";
 import SlackUtil from "../Slack";
 import { SlackRequest } from "./Auth";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import ObjectID from "../../../../../Types/ObjectID";
 
 export type SlackActionRequester = Pick<
   SlackRequest,
   "userId" | "projectId" | "projectAuthToken" | "slackUserId" | "slackUsername"
 >;
+
+// A Slack user who may press a button on a record, and the record as they read it.
+export interface SlackAuthorizedEvent {
+  props: DatabaseCommonInteractionProps;
+  event: WorkspaceEventRecord;
+}
 
 export default class SlackActionAuthorization {
   /*
@@ -32,6 +43,74 @@ export default class SlackActionAuthorization {
     action: string;
     resources?: Array<WorkspaceActionResource> | undefined;
   }): Promise<DatabaseCommonInteractionProps | null> {
+    return await this.refuseInDirectMessage({
+      requester: data.requester,
+      action: data.action,
+      run: async (
+        userId: ObjectID,
+        projectId: ObjectID,
+      ): Promise<DatabaseCommonInteractionProps> => {
+        return await WorkspaceActionAuthorization.authorize({
+          userId: userId,
+          projectId: projectId,
+          modelType: data.modelType,
+          action: data.action,
+          resources: data.resources,
+        });
+      },
+    });
+  }
+
+  /*
+   * authorize, for a button that changes a record (`event`): the same
+   * checks, refused the same way, and the record as the check read it
+   * (WorkspaceMemberActions.authorize) - for the button's own answer
+   * ("already acknowledged") and for the write, so the press reads it once.
+   */
+  @CaptureSpan()
+  public static async authorizeEvent(data: {
+    requester: SlackActionRequester;
+    modelType: DatabaseBaseModelType;
+    action: string;
+    event: WorkspaceEvent;
+    resources?: Array<WorkspaceActionResource> | undefined;
+  }): Promise<SlackAuthorizedEvent | null> {
+    return await this.refuseInDirectMessage({
+      requester: data.requester,
+      action: data.action,
+      run: async (
+        userId: ObjectID,
+        projectId: ObjectID,
+      ): Promise<SlackAuthorizedEvent> => {
+        const props: DatabaseCommonInteractionProps =
+          await WorkspaceActionAuthorization.getProjectMemberProps({
+            userId: userId,
+            projectId: projectId,
+          });
+
+        return {
+          props: props,
+          event: await WorkspaceMemberActions.authorize({
+            props: props,
+            modelType: data.modelType,
+            action: data.action,
+            event: data.event,
+            resources: data.resources,
+          }),
+        };
+      },
+    });
+  }
+
+  /*
+   * A check of the Slack user behind a request; a refusal of it is told to
+   * them in a direct message, and null comes back.
+   */
+  private static async refuseInDirectMessage<T>(data: {
+    requester: SlackActionRequester;
+    action: string;
+    run: (userId: ObjectID, projectId: ObjectID) => Promise<T>;
+  }): Promise<T | null> {
     const { requester } = data;
 
     try {
@@ -41,13 +120,7 @@ export default class SlackActionAuthorization {
         );
       }
 
-      return await WorkspaceActionAuthorization.authorize({
-        userId: requester.userId,
-        projectId: requester.projectId,
-        modelType: data.modelType,
-        action: data.action,
-        resources: data.resources,
-      });
+      return await data.run(requester.userId, requester.projectId);
     } catch (err) {
       if (!(err instanceof NotAuthorizedException)) {
         throw err;
@@ -120,11 +193,15 @@ export default class SlackActionAuthorization {
       return;
     }
 
+    /*
+     * The refusal is text - it can name a label, a record or a person - so
+     * it is placed as text, as the name before it is.
+     */
     const markdownPayload: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: requester.slackUsername
         ? mdText`@${requester.slackUsername}, ${data.message}`.toString()
-        : data.message,
+        : mdText`${data.message}`.toString(),
     };
 
     try {

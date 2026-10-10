@@ -27,7 +27,9 @@ import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateT
 import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SlackActionAuthorization from "./Authorization";
+import SlackActionAuthorization, {
+  SlackAuthorizedEvent,
+} from "./Authorization";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventStateOption,
@@ -116,35 +118,29 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      /*
+       * The alert is read once, as the member, by the check - and that read
+       * answers "already acknowledged" below and goes to the write.
+       */
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: AlertStateTimeline,
           action: "acknowledge this alert",
-          resources: [{ service: AlertService, id: alertId }],
+          event: { type: WorkspaceEventType.Alert, id: alertId },
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyAcknowledged: boolean =
-        await AlertService.isAlertAcknowledged({
-          alertId: alertId,
-        });
+      const { props, event: alert } = authorized;
 
-      if (isAlreadyAcknowledged) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
-
+      if ((await WorkspaceMemberActions.getStanding(alert)).isAcknowledged) {
         // send a message to the channel visible to user, that the alert has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been acknowledged.`.toString(),
+          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Alert ${alert.numberWithPrefix || "#" + alert.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been acknowledged.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -166,10 +162,7 @@ export default class SlackAlertActions {
           action: "acknowledge the alert",
           run: async (): Promise<boolean> => {
             await WorkspaceMemberActions.acknowledge({
-              event: {
-                type: WorkspaceEventType.Alert,
-                id: alertId,
-              },
+              event: alert,
               props: props,
             });
             return true;
@@ -278,33 +271,26 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      // Read once, by the check; that read answers "already resolved".
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: AlertStateTimeline,
           action: "resolve this alert",
-          resources: [{ service: AlertService, id: alertId }],
+          event: { type: WorkspaceEventType.Alert, id: alertId },
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
-        alertId: alertId,
-      });
+      const { props, event: alert } = authorized;
 
-      if (isAlreadyResolved) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
+      if ((await WorkspaceMemberActions.getStanding(alert)).isResolved) {
         // send a message to the channel visible to user, that the alert has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`.toString(),
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Alert ${alert.numberWithPrefix || "#" + alert.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -322,10 +308,7 @@ export default class SlackAlertActions {
         action: "resolve the alert",
         run: async (): Promise<void> => {
           await WorkspaceMemberActions.resolve({
-            event: {
-              type: WorkspaceEventType.Alert,
-              id: alertId,
-            },
+            event: alert,
             props: props,
           });
         },
@@ -589,21 +572,22 @@ export default class SlackAlertActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: AlertStateTimeline,
         action: SlackAlertActions.CHANGE_STATE_ACTION,
-        resources: [{ service: AlertService, id: alertId }],
+        event: { type: WorkspaceEventType.Alert, id: alertId },
       });
 
-    if (!props) {
+    if (!authorized) {
       return;
     }
 
     /*
      * The state change the dashboard makes: a row in the alert's state
-     * timeline, created by the member (WorkspaceMemberActions).
+     * timeline, created by the member (WorkspaceMemberActions), from the
+     * alert as the check read it.
      */
     const isStateChanged: boolean | null =
       await SlackActionAuthorization.runForRequester({
@@ -611,12 +595,9 @@ export default class SlackAlertActions {
         action: "change the state of the alert",
         run: async (): Promise<boolean> => {
           await WorkspaceMemberActions.changeState({
-            event: {
-              type: WorkspaceEventType.Alert,
-              id: alertId,
-            },
+            event: authorized.event,
             stateId: stateId,
-            props: props,
+            props: authorized.props,
           });
           return true;
         },
@@ -733,36 +714,26 @@ export default class SlackAlertActions {
       // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: OnCallDutyPolicyExecutionLog,
           action: "execute an on-call policy for this alert",
-          resources: [
-            { service: AlertService, id: alertId },
-            { service: OnCallDutyPolicyService, id: onCallPolicyId },
-          ],
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+          resources: [{ service: OnCallDutyPolicyService, id: onCallPolicyId }],
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
-        alertId: alertId,
-      });
+      const { props, event: alert } = authorized;
 
-      if (isAlreadyResolved) {
-        const alertNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await AlertService.getAlertNumber({
-          alertId: alertId,
-        });
+      if ((await WorkspaceMemberActions.getStanding(alert)).isResolved) {
         // send a message to the channel visible to user, that the alert has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`.toString(),
+          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Alert ${alert.numberWithPrefix || "#" + alert.number}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -783,10 +754,7 @@ export default class SlackAlertActions {
         action: "execute the on-call policy",
         run: async (): Promise<void> => {
           await WorkspaceMemberActions.executeOnCallPolicy({
-            event: {
-              type: WorkspaceEventType.Alert,
-              id: alertId,
-            },
+            event: alert,
             onCallDutyPolicyId: onCallPolicyId,
             props: props,
           });

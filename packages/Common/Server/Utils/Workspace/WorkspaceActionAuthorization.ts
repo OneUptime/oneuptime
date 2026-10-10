@@ -30,6 +30,12 @@ export interface WorkspaceActionResource {
   // The service that owns the resource, e.g. IncidentService.
   service: DatabaseService<DatabaseBaseModel>;
   id: ObjectID;
+  /*
+   * What the action needs of the record besides its id - the state an
+   * incident is in, say - read in the same read that checks the member may
+   * read it (assertCanCreateAndRead), so nothing reads it again.
+   */
+  select?: Select<DatabaseBaseModel> | undefined;
 }
 
 /*
@@ -145,6 +151,22 @@ export default class WorkspaceActionAuthorization {
     action: string;
     resources?: Array<WorkspaceActionResource> | undefined;
   }): Promise<void> {
+    await this.assertCanCreateAndRead(data);
+  }
+
+  /*
+   * assertCanCreate, handing back the records it read to check `resources`
+   * - one per resource, in the order given, each with the columns its
+   * `select` asks for - so the action that follows writes from them instead
+   * of reading them again (WorkspaceMemberActions.authorize).
+   */
+  @CaptureSpan()
+  public static async assertCanCreateAndRead(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    action: string;
+    resources?: Array<WorkspaceActionResource> | undefined;
+  }): Promise<Array<DatabaseBaseModel>> {
     const { props, modelType, action } = data;
     const projectId: ObjectID | undefined = props.tenantId;
 
@@ -178,6 +200,8 @@ export default class WorkspaceActionAuthorization {
       throw err;
     }
 
+    const readableResources: Array<DatabaseBaseModel> = [];
+
     for (const resource of data.resources || []) {
       let readableResource: DatabaseBaseModel | null = null;
 
@@ -188,6 +212,7 @@ export default class WorkspaceActionAuthorization {
             projectId: projectId,
           } as Query<DatabaseBaseModel>,
           select: {
+            ...(resource.select || {}),
             _id: true,
           } as Select<DatabaseBaseModel>,
           props: props,
@@ -207,7 +232,11 @@ export default class WorkspaceActionAuthorization {
           `You do not have permission to ${action}: the ${resourceName} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
         );
       }
+
+      readableResources.push(readableResource);
     }
+
+    return readableResources;
   }
 
   /*

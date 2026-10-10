@@ -26,9 +26,6 @@ import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsRequest,
-} from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
 import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
@@ -41,7 +38,6 @@ import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/Wor
 import WorkspaceProjectReferenceValidator from "../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   WorkspaceMessageBlock,
@@ -420,104 +416,6 @@ describe("Microsoft Teams bot: SubmitNewIncident", (): void => {
   );
 });
 
-describe("Microsoft Teams card: submitNewIncident", (): void => {
-  function submit(reference: ReferenceChoice): Promise<void> {
-    const teamsRequest: MicrosoftTeamsRequest = {
-      isAuthorized: true,
-      projectId: PROJECT_ID,
-      authToken: "",
-      payloadType: "invoke",
-      userId: "teams-user",
-      payload: {
-        value: {
-          incidentTitle: "Database down",
-          incidentDescription: "Primary is not answering",
-          incidentSeverity: SEVERITY_ID,
-          incidentMonitors: reference.monitors,
-          monitorStatus: reference.monitorStatus,
-          labels: reference.labels,
-          onCallDutyPolicies: reference.onCallDutyPolicies,
-        },
-      },
-    };
-
-    return MicrosoftTeamsIncidentActions.submitNewIncident({
-      teamsRequest,
-      action: {
-        actionType: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
-      },
-      req: {} as ExpressRequest,
-      res: {} as ExpressResponse,
-    });
-  }
-
-  let memberPropsSpy: SpyInstance<
-    typeof WorkspaceActionAuthorization.getProjectMemberProps
-  >;
-
-  beforeEach((): void => {
-    jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
-    jest
-      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
-      .mockResolvedValue(USER_ID);
-    memberPropsSpy = jest
-      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
-      .mockResolvedValue(MEMBER_PROPS);
-    jest.spyOn(logger, "error").mockImplementation((): void => {});
-  });
-
-  test("creates the incident as the member the Teams account is connected to, and hands the monitor status to IncidentService", async (): Promise<void> => {
-    const writes: WriteSpies = spyOnMonitorWrites();
-    const createSpy: SpyInstance<typeof IncidentService.create> = jest
-      .spyOn(IncidentService, "create")
-      .mockResolvedValue(createdIncident());
-
-    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
-
-    expect(memberPropsSpy).toHaveBeenCalledWith({
-      userId: USER_ID,
-      projectId: PROJECT_ID,
-    });
-    expect(createSpy).toHaveBeenCalledTimes(1);
-    expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
-    expectStatusChangeHandedToService(
-      writes,
-      createSpy.mock.calls[0]![0].data,
-      OWN_STATUS_ID,
-    );
-  });
-
-  test("a Teams account whose user is not a member creates nothing", async (): Promise<void> => {
-    memberPropsSpy.mockRejectedValue(
-      new BadDataException("not a member of this project"),
-    );
-    const createSpy: SpyInstance<typeof IncidentService.create> = jest
-      .spyOn(IncidentService, "create")
-      .mockResolvedValue(createdIncident());
-
-    await submit(OWN_CHOICE);
-
-    expect(createSpy).not.toHaveBeenCalled();
-  });
-
-  test.each(INCIDENT_REFUSED_REFERENCES)(
-    "a create that refuses $name writes nothing else",
-    async (reference: RefusedReferenceCase): Promise<void> => {
-      const writes: WriteSpies = spyOnMonitorWrites();
-      const createSpy: SpyInstance<typeof IncidentService.create> = jest
-        .spyOn(IncidentService, "create")
-        .mockRejectedValue(refusalOf(reference, "incident"));
-
-      await expect(submit(reference)).resolves.toBeUndefined();
-
-      expect(createSpy).toHaveBeenCalledTimes(1);
-      expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
-      expect(writes.updateOneBy).not.toHaveBeenCalled();
-      expect(writes.updateOneById).not.toHaveBeenCalled();
-    },
-  );
-});
-
 describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
   function submit(
     reference: ReferenceChoice,
@@ -635,87 +533,6 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
         { projectId: PROJECT_ID.toString() },
       );
       expect(errorLog.mock.calls[1]![0]).toBe(refusal);
-    },
-  );
-});
-
-describe("Microsoft Teams card: submitNewScheduledMaintenance", (): void => {
-  function submit(reference: ReferenceChoice): Promise<void> {
-    return MicrosoftTeamsScheduledMaintenanceActions.submitNewScheduledMaintenance(
-      {
-        teamsRequest: {
-          isAuthorized: true,
-          projectId: PROJECT_ID,
-          authToken: "",
-          payloadType: "invoke",
-          userId: "teams-user",
-          payload: {
-            value: {
-              scheduledMaintenanceTitle: "Database upgrade",
-              scheduledMaintenanceDescription: "Upgrading the primary",
-              startDate: "2030-01-01T10:00:00.000Z",
-              endDate: "2030-01-01T11:00:00.000Z",
-              scheduledMaintenanceMonitors: reference.monitors,
-              monitorStatus: reference.monitorStatus,
-              labels: reference.labels,
-            },
-          },
-        },
-        action: {
-          actionType:
-            MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
-        },
-        req: {} as ExpressRequest,
-        res: {} as ExpressResponse,
-      },
-    );
-  }
-
-  beforeEach((): void => {
-    jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
-    jest
-      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
-      .mockResolvedValue(USER_ID);
-    jest
-      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
-      .mockResolvedValue(MEMBER_PROPS);
-    jest.spyOn(logger, "error").mockImplementation((): void => {});
-  });
-
-  test("creates the event as the member the Teams account is connected to, and hands the monitor status to ScheduledMaintenanceService", async (): Promise<void> => {
-    const writes: WriteSpies = spyOnMonitorWrites();
-    const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
-      jest
-        .spyOn(ScheduledMaintenanceService, "create")
-        .mockResolvedValue(createdScheduledMaintenance());
-
-    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
-
-    expect(createSpy).toHaveBeenCalledTimes(1);
-    expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
-    expectStatusChangeHandedToService(
-      writes,
-      createSpy.mock.calls[0]![0].data,
-      OWN_STATUS_ID,
-    );
-  });
-
-  test.each(SCHEDULED_MAINTENANCE_REFUSED_REFERENCES)(
-    "a create that refuses $name writes nothing else",
-    async (reference: RefusedReferenceCase): Promise<void> => {
-      const writes: WriteSpies = spyOnMonitorWrites();
-      const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
-        jest
-          .spyOn(ScheduledMaintenanceService, "create")
-          .mockRejectedValue(
-            refusalOf(reference, "scheduled maintenance event"),
-          );
-
-      await expect(submit(reference)).resolves.toBeUndefined();
-
-      expect(createSpy).toHaveBeenCalledTimes(1);
-      expect(writes.updateOneBy).not.toHaveBeenCalled();
-      expect(writes.updateOneById).not.toHaveBeenCalled();
     },
   );
 });

@@ -151,6 +151,8 @@ import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftT
 import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventRecord,
   WorkspaceEventType,
 } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import URL from "../../../../../Types/API/URL";
@@ -466,7 +468,11 @@ function stubExecuteOnCallPolicy(expected: {
   return (): void => {
     expect(executeOnCallPolicy).toHaveBeenCalledTimes(1);
     expect(executeOnCallPolicy).toHaveBeenCalledWith({
-      event: { type: expected.type, id: new ObjectID(expected.id) },
+      // The record as the member's check read it.
+      event: expect.objectContaining({
+        type: expected.type,
+        id: new ObjectID(expected.id),
+      }),
       onCallDutyPolicyId: new ObjectID(ON_CALL_POLICY_ID),
       props: MEMBER_PROPS,
     });
@@ -490,7 +496,11 @@ function stubChangeState(expected: {
   return (): void => {
     expect(changeState).toHaveBeenCalledTimes(1);
     expect(changeState).toHaveBeenCalledWith({
-      event: { type: expected.type, id: new ObjectID(expected.id) },
+      // The record as the member's check read it.
+      event: expect.objectContaining({
+        type: expected.type,
+        id: new ObjectID(expected.id),
+      }),
       stateId: new ObjectID(expected.stateId),
       props: MEMBER_PROPS,
     });
@@ -1230,6 +1240,22 @@ beforeEach((): void => {
   jest
     .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
     .mockResolvedValue();
+  jest
+    .spyOn(WorkspaceMemberActions, "authorize")
+    .mockImplementation(
+      async (data: {
+        event: WorkspaceEvent;
+      }): Promise<WorkspaceEventRecord> => {
+        return {
+          type: data.event.type,
+          id: data.event.id,
+          projectId: PROJECT_ID,
+          currentStateId: undefined,
+          number: null,
+          numberWithPrefix: null,
+        };
+      },
+    );
 
   // Where a failed create sends the user instead.
   jest
