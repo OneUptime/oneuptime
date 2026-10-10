@@ -29,10 +29,7 @@ import {
 const PROBE: ObjectID = ObjectID.generate();
 const PROJECT: ObjectID = ObjectID.generate();
 
-function device(
-  hostname: string,
-  otherAddresses?: string,
-): NetworkDevice {
+function device(hostname: string, otherAddresses?: string): NetworkDevice {
   const value: NetworkDevice = new NetworkDevice(ObjectID.generate());
   value.projectId = PROJECT;
   value.hostname = hostname;
@@ -66,9 +63,8 @@ beforeEach(() => {
 
   resolve = jest
     .spyOn(
-      (
-        NetworkDeviceHydrationUtil as unknown as { dnsCache: DnsCache }
-      ).dnsCache,
+      (NetworkDeviceHydrationUtil as unknown as { dnsCache: DnsCache })
+        .dnsCache,
       "resolve",
     )
     .mockResolvedValue([] as never) as unknown as MockFunction;

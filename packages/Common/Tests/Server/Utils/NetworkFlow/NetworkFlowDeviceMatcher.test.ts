@@ -66,7 +66,11 @@ beforeEach(() => {
     .spyOn(NetworkDeviceService, "findBy")
     .mockResolvedValue([
       device(OTHER_PROBE_DEVICE, "10.0.0.7"),
-      device(LOOPBACK_DEVICE, "core-router.example.com", "10.255.0.1, 2001:db8::1"),
+      device(
+        LOOPBACK_DEVICE,
+        "core-router.example.com",
+        "10.255.0.1, 2001:db8::1",
+      ),
       device(ObjectID.generate(), ""),
     ] as never) as unknown as MockFunction;
 });

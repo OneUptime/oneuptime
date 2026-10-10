@@ -151,10 +151,7 @@ function expandedFlowSample(
 function counterSample(): Buffer {
   // A generic interface counter record (0,1) inside a counter sample (0,2).
   const counters: Buffer = structure(1, Buffer.alloc(88));
-  return structure(
-    2,
-    Buffer.concat([word(1), word(3), word(1), counters]),
-  );
+  return structure(2, Buffer.concat([word(1), word(3), word(1), counters]));
 }
 
 function datagram(
@@ -178,7 +175,11 @@ function datagram(
 
 // ---- Frames ------------------------------------------------------------------
 
-function ethernet(etherType: number, payload: Buffer, vlans: Array<number> = []): Buffer {
+function ethernet(
+  etherType: number,
+  payload: Buffer,
+  vlans: Array<number> = [],
+): Buffer {
   const header: Buffer = Buffer.alloc(12);
   header.fill(0x02);
   const tags: Array<Buffer> = vlans.map((vlan: number, index: number) => {
@@ -218,7 +219,11 @@ function ipv4Packet(data: {
   return Buffer.concat([header, data.payload]);
 }
 
-function tcpSegment(sourcePort: number, destinationPort: number, flags: number): Buffer {
+function tcpSegment(
+  sourcePort: number,
+  destinationPort: number,
+  flags: number,
+): Buffer {
   const segment: Buffer = Buffer.alloc(20);
   segment.writeUInt16BE(sourcePort, 0);
   segment.writeUInt16BE(destinationPort, 2);
@@ -371,7 +376,11 @@ describe("SFlowParser", () => {
         source: "2001:db8:10::5",
         destination: "2001:db8:20::443",
         nextHeader: 0,
-        payload: Buffer.concat([hopByHop, fragment, tcpSegment(41000, 443, 0x02)]),
+        payload: Buffer.concat([
+          hopByHop,
+          fragment,
+          tcpSegment(41000, 443, 0x02),
+        ]),
       }),
     );
 

@@ -264,9 +264,7 @@ describe("real exporters, decoded end to end", () => {
       sourceIpAddress: "198.51.100.20",
     })[0]!;
 
-    expect(download.flowStartAt.toISOString()).toBe(
-      "2026-01-01T00:00:00.220Z",
-    );
+    expect(download.flowStartAt.toISOString()).toBe("2026-01-01T00:00:00.220Z");
     expect(download.flowEndAt.toISOString()).toBe("2026-01-01T00:00:00.780Z");
 
     for (const record of records) {
@@ -343,7 +341,11 @@ describe("real exporters, decoded end to end", () => {
   });
 
   test("the exporter of NetFlow and IPFIX is where the datagram came from", () => {
-    for (const name of ["softflowd-v5", "softflowd-v9", "pmacct-ipfix-sampled"]) {
+    for (const name of [
+      "softflowd-v5",
+      "softflowd-v9",
+      "pmacct-ipfix-sampled",
+    ]) {
       for (const record of decodeFixture(name).records) {
         expect(record.exporterIpAddress).toBe(EXPORTER.address);
       }

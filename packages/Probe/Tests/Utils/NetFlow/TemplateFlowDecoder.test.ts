@@ -64,12 +64,11 @@ function ipfix(
   sets: Array<Buffer>,
   options?: { address?: string; port?: number; domain?: number },
 ): TemplateDecodeResult {
-  const decoded: { result: TemplateDecodeResult } | null =
-    decoder.decodeIpfix(
-      ipfixMessage(sets, { observationDomainId: options?.domain ?? 0 }),
-      options?.address ?? "192.0.2.1",
-      options?.port ?? 50000,
-    );
+  const decoded: { result: TemplateDecodeResult } | null = decoder.decodeIpfix(
+    ipfixMessage(sets, { observationDomainId: options?.domain ?? 0 }),
+    options?.address ?? "192.0.2.1",
+    options?.port ?? 50000,
+  );
   expect(decoded).not.toBeNull();
   return decoded!.result;
 }
@@ -367,12 +366,11 @@ describe("exporters behind one NAT", () => {
 
     ipfix(decoder, [ipfixTemplateSet([IPV4_TEMPLATE])]);
 
-    const v9: { result: TemplateDecodeResult } | null =
-      decoder.decodeNetFlowV9(
-        netFlowV9Datagram([dataSet(256, [ipv4Record(FLOW)])]),
-        "192.0.2.1",
-        50000,
-      );
+    const v9: { result: TemplateDecodeResult } | null = decoder.decodeNetFlowV9(
+      netFlowV9Datagram([dataSet(256, [ipv4Record(FLOW)])]),
+      "192.0.2.1",
+      50000,
+    );
 
     expect(v9!.result.records).toHaveLength(0);
     expect(v9!.result.dataSetsWaitingForTemplate).toBe(1);

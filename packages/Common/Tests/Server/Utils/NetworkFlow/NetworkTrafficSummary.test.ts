@@ -107,9 +107,7 @@ beforeEach(() => {
     .mockResolvedValue(null as never) as unknown as MockFunction;
 
   jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([] as never);
-  jest
-    .spyOn(NetworkInterfaceService, "findBy")
-    .mockResolvedValue([] as never);
+  jest.spyOn(NetworkInterfaceService, "findBy").mockResolvedValue([] as never);
 });
 
 afterEach(() => {
@@ -117,9 +115,7 @@ afterEach(() => {
 });
 
 function queryOf(mock: MockFunction): NetworkTrafficQuery {
-  return (
-    mock.mock.calls[0]![0] as { query: NetworkTrafficQuery }
-  ).query;
+  return (mock.mock.calls[0]![0] as { query: NetworkTrafficQuery }).query;
 }
 
 function deviceFilterOf(mock: MockFunction): TelemetryServiceFilter {
@@ -165,11 +161,20 @@ describe("NetworkTrafficSummaryUtil.parseRequest", () => {
   });
 
   test.each([
-    ["a device and a site at once", { networkDeviceId: ROUTER.toString(), networkSiteId: SITE.toString() }],
+    [
+      "a device and a site at once",
+      { networkDeviceId: ROUTER.toString(), networkSiteId: SITE.toString() },
+    ],
     ["a device ID that is not one", { networkDeviceId: "router-1" }],
     ["a site ID that is not one", { networkSiteId: 42 }],
-    ["an end before the start", { startTime: "2026-09-01T11:00:00Z", endTime: "2026-09-01T10:00:00Z" }],
-    ["a window longer than the retention", { startTime: "2026-07-01T00:00:00Z", endTime: "2026-09-01T00:00:00Z" }],
+    [
+      "an end before the start",
+      { startTime: "2026-09-01T11:00:00Z", endTime: "2026-09-01T10:00:00Z" },
+    ],
+    [
+      "a window longer than the retention",
+      { startTime: "2026-07-01T00:00:00Z", endTime: "2026-09-01T00:00:00Z" },
+    ],
     ["a date that is not one", { startTime: "last tuesday" }],
     ["a date that is not text", { endTime: 1767225600000 }],
     ["a filter that is not well formed", { filters: { sourceIp: "router-1" } }],
@@ -289,7 +294,9 @@ describe("NetworkTrafficSummaryUtil.build: whose flows", () => {
   });
 
   test("a site the caller cannot read is not found", async () => {
-    jest.spyOn(NetworkSiteService, "findOneBy").mockResolvedValue(null as never);
+    jest
+      .spyOn(NetworkSiteService, "findOneBy")
+      .mockResolvedValue(null as never);
 
     await expect(
       NetworkTrafficSummaryUtil.build({
@@ -318,7 +325,10 @@ describe("NetworkTrafficSummaryUtil.build: whose flows", () => {
   });
 
   test("a reader limited to some devices reads those, and a block is left out", async () => {
-    scope = { readableIds: [SWITCH.toString()], blockedIds: [ROUTER.toString()] };
+    scope = {
+      readableIds: [SWITCH.toString()],
+      blockedIds: [ROUTER.toString()],
+    };
 
     await NetworkTrafficSummaryUtil.build({
       props: PROPS,
@@ -368,8 +378,18 @@ describe("NetworkTrafficSummaryUtil.build: the answer", () => {
     getAggregates.mockResolvedValue({
       ...emptyAggregates(),
       topDevices: [
-        { networkDeviceId: ROUTER.toString(), exporterIp: "10.0.0.1", octets: 9, packets: 1 },
-        { networkDeviceId: PROJECT.toString(), exporterIp: "10.9.9.9", octets: 1, packets: 1 },
+        {
+          networkDeviceId: ROUTER.toString(),
+          exporterIp: "10.0.0.1",
+          octets: 9,
+          packets: 1,
+        },
+        {
+          networkDeviceId: PROJECT.toString(),
+          exporterIp: "10.9.9.9",
+          octets: 1,
+          packets: 1,
+        },
       ],
     } as never);
     getSources.mockResolvedValue([
@@ -451,14 +471,19 @@ describe("NetworkTrafficSummaryUtil.build: the answer", () => {
       { interfaceIndex: 9, inOctets: 1, outOctets: 2 },
     ]);
     expect(
-      (interfaceLookup.mock.calls[0]![0] as {
-        props: DatabaseCommonInteractionProps;
-      }).props,
+      (
+        interfaceLookup.mock.calls[0]![0] as {
+          props: DatabaseCommonInteractionProps;
+        }
+      ).props,
     ).toBe(PROPS);
   });
 
   test("a read that ran out of time says to pick a shorter range", async () => {
-    getAggregates.mockRejectedValue({ code: "159", type: "TIMEOUT_EXCEEDED" } as never);
+    getAggregates.mockRejectedValue({
+      code: "159",
+      type: "TIMEOUT_EXCEEDED",
+    } as never);
 
     await expect(
       NetworkTrafficSummaryUtil.build({

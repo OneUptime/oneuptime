@@ -82,9 +82,7 @@ describe("getNetworkTrafficBucketSeconds", () => {
   ])(
     "a %i-second window is cut into %i-second buckets",
     (windowSeconds: number, bucketSeconds: number) => {
-      expect(getNetworkTrafficBucketSeconds(windowSeconds)).toBe(
-        bucketSeconds,
-      );
+      expect(getNetworkTrafficBucketSeconds(windowSeconds)).toBe(bucketSeconds);
     },
   );
 

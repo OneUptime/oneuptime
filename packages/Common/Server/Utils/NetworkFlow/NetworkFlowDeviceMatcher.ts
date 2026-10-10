@@ -133,8 +133,12 @@ export default class NetworkFlowDeviceMatcher {
       NetworkFlowDeviceMatcher.toMatches(probeDevices);
 
     if (matches.length === 0 && probe.projectId && IP.isIP(address)) {
-      const index: Map<string, Array<FlowDeviceMatch>> =
-        await NetworkFlowDeviceMatcher.getProjectAddressIndex(probe.projectId);
+      const index: Map<
+        string,
+        Array<FlowDeviceMatch>
+      > = await NetworkFlowDeviceMatcher.getProjectAddressIndex(
+        probe.projectId,
+      );
 
       matches = index.get(IpCanonicalUtil.canonicalize(address)) || [];
     }

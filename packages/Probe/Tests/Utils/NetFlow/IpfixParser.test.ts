@@ -291,10 +291,7 @@ describe("IpfixParser", () => {
       const buffer: Buffer = Buffer.alloc(8);
       const seconds: number = Math.floor(ms / 1000) + 2208988800;
       buffer.writeUInt32BE(seconds, 0);
-      buffer.writeUInt32BE(
-        Math.round(((ms % 1000) / 1000) * 0x100000000),
-        4,
-      );
+      buffer.writeUInt32BE(Math.round(((ms % 1000) / 1000) * 0x100000000), 4);
       return buffer;
     };
 
@@ -364,9 +361,10 @@ describe("IpfixParser", () => {
         ]),
       );
 
-      expect([variant.name, parsed.records[0]!.flowStartAt.getTime()]).toEqual(
-        [variant.name, startMs],
-      );
+      expect([variant.name, parsed.records[0]!.flowStartAt.getTime()]).toEqual([
+        variant.name,
+        startMs,
+      ]);
       expect([variant.name, parsed.records[0]!.flowEndAt.getTime()]).toEqual([
         variant.name,
         endMs,

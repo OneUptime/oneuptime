@@ -532,7 +532,9 @@ export default class NetworkTrafficAggregationService {
    * apart by exporter address; a device's rows sum whatever address it sent
    * from.
    */
-  public static buildTopDevicesStatement(query: NetworkTrafficQuery): Statement {
+  public static buildTopDevicesStatement(
+    query: NetworkTrafficQuery,
+  ): Statement {
     return SQL`
       SELECT
         networkDeviceId,

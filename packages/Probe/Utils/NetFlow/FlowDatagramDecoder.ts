@@ -292,11 +292,12 @@ export default class FlowDatagramDecoder {
         ? Math.min(Math.round(record.samplingRate), MAX_SAMPLING_RATE)
         : 1;
 
-    const ports: NetworkFlowPorts = NetworkFlowApplicationUtil.foldEphemeralPort(
-      record.protocolNumber,
-      record.sourcePort,
-      record.destinationPort,
-    );
+    const ports: NetworkFlowPorts =
+      NetworkFlowApplicationUtil.foldEphemeralPort(
+        record.protocolNumber,
+        record.sourcePort,
+        record.destinationPort,
+      );
 
     return {
       exporterIpAddress: exporterAddress,
@@ -344,7 +345,9 @@ export default class FlowDatagramDecoder {
       parts.length === 4 &&
       parts.every((part: string): boolean => {
         const octet: number = Number(part);
-        return part !== "" && Number.isInteger(octet) && octet >= 0 && octet <= 255;
+        return (
+          part !== "" && Number.isInteger(octet) && octet >= 0 && octet <= 255
+        );
       })
     );
   }

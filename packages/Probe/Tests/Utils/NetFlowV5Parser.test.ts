@@ -467,9 +467,7 @@ describe("NetFlowV5Parser", () => {
       // Interval 0 (sampling off) and interval 1 both mean every packet.
       datagram.writeUInt16BE(samplingField, 22);
 
-      expect(NetFlowV5Parser.parse(datagram)!.records[0]!.samplingRate).toBe(
-        1,
-      );
+      expect(NetFlowV5Parser.parse(datagram)!.records[0]!.samplingRate).toBe(1);
     }
   });
 

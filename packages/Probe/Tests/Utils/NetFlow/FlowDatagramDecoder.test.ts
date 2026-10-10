@@ -283,7 +283,10 @@ describe("FlowDatagramDecoder.normalize", () => {
 
     expect(
       FlowDatagramDecoder.normalize(
-        decoded({ sourceIpAddress: "0.0.0.0", destinationIpAddress: "0.0.0.0" }),
+        decoded({
+          sourceIpAddress: "0.0.0.0",
+          destinationIpAddress: "0.0.0.0",
+        }),
         NetworkFlowFormat.NetFlowV9,
         "10.0.0.1",
       ),

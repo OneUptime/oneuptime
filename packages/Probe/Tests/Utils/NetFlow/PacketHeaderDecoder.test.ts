@@ -130,7 +130,9 @@ describe("PacketHeaderDecoder", () => {
     // An Ethernet frame carrying ARP.
     const arp: Buffer = Buffer.alloc(14 + 28);
     arp.writeUInt16BE(0x0806, 12);
-    expect(PacketHeaderDecoder.decode(HEADER_PROTOCOL_ETHERNET, arp)).toBeNull();
+    expect(
+      PacketHeaderDecoder.decode(HEADER_PROTOCOL_ETHERNET, arp),
+    ).toBeNull();
 
     // An IPv4 header that says it is version 6.
     expect(
@@ -153,6 +155,8 @@ describe("PacketHeaderDecoder", () => {
     const frame: Buffer = Buffer.alloc(16);
     frame.writeUInt16BE(0x8100, 12);
 
-    expect(PacketHeaderDecoder.decode(HEADER_PROTOCOL_ETHERNET, frame)).toBeNull();
+    expect(
+      PacketHeaderDecoder.decode(HEADER_PROTOCOL_ETHERNET, frame),
+    ).toBeNull();
   });
 });

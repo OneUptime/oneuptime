@@ -349,7 +349,10 @@ export default class NetFlowReceiver {
   private static reportProblems(): void {
     const now: number = Date.now();
 
-    if (now - NetFlowReceiver.lastProblemReportAt < PROBLEM_REPORT_INTERVAL_MS) {
+    if (
+      now - NetFlowReceiver.lastProblemReportAt <
+      PROBLEM_REPORT_INTERVAL_MS
+    ) {
       return;
     }
 

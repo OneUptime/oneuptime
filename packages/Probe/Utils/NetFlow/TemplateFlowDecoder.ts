@@ -627,7 +627,14 @@ export default class TemplateFlowDecoder {
         break;
       }
 
-      if (this.learnTemplate(context.exporterKey, templateId, fields, isOptionsSet)) {
+      if (
+        this.learnTemplate(
+          context.exporterKey,
+          templateId,
+          fields,
+          isOptionsSet,
+        )
+      ) {
         result.templatesLearned++;
         learnedTemplateIds.push(templateId);
       }
@@ -708,7 +715,8 @@ export default class TemplateFlowDecoder {
     let minimumRecordLength: number = 0;
 
     for (const field of fields) {
-      minimumRecordLength += field.length === VARIABLE_LENGTH ? 1 : field.length;
+      minimumRecordLength +=
+        field.length === VARIABLE_LENGTH ? 1 : field.length;
     }
 
     /*
@@ -719,7 +727,10 @@ export default class TemplateFlowDecoder {
       return false;
     }
 
-    const key: string = TemplateFlowDecoder.templateKey(exporterKey, templateId);
+    const key: string = TemplateFlowDecoder.templateKey(
+      exporterKey,
+      templateId,
+    );
 
     /*
      * Delete-then-set moves a refreshed template to the back of the Map's
@@ -775,7 +786,10 @@ export default class TemplateFlowDecoder {
     const prefix: string = `${exporterKey}#`;
 
     for (const [key, cached] of Array.from(this.templates.entries())) {
-      if (key.startsWith(prefix) && cached.template.isOptions === isOptionsSet) {
+      if (
+        key.startsWith(prefix) &&
+        cached.template.isOptions === isOptionsSet
+      ) {
         this.templates.delete(key);
         withdrawn++;
       }
@@ -788,7 +802,10 @@ export default class TemplateFlowDecoder {
     exporterKey: string,
     templateId: number,
   ): FlowTemplate | null {
-    const key: string = TemplateFlowDecoder.templateKey(exporterKey, templateId);
+    const key: string = TemplateFlowDecoder.templateKey(
+      exporterKey,
+      templateId,
+    );
     const cached: CachedTemplate | undefined = this.templates.get(key);
 
     if (!cached) {
@@ -959,9 +976,7 @@ export default class TemplateFlowDecoder {
       if (template.isOptions) {
         this.applyOptionRecord(buffer, values, context);
       } else {
-        result.records.push(
-          this.toDecodedFlowRecord(buffer, values, context),
-        );
+        result.records.push(this.toDecodedFlowRecord(buffer, values, context));
       }
 
       offset += recordLength;
@@ -1389,7 +1404,9 @@ export default class TemplateFlowDecoder {
       fromUptime(read(IE_FLOW_END_SYS_UP_TIME)) ??
       read(IE_OBSERVATION_TIME_MILLISECONDS);
 
-    const clamp: (ms: number | null) => number = (ms: number | null): number => {
+    const clamp: (ms: number | null) => number = (
+      ms: number | null,
+    ): number => {
       if (ms === null || !Number.isFinite(ms) || ms < 0 || ms > exportTimeMs) {
         return exportTimeMs;
       }

@@ -995,7 +995,9 @@ describe("NetFlowV9Parser", () => {
 
     // One more template pushes the cache over the cap, evicting the oldest.
     parser.parse(
-      buildDatagram([buildTemplateFlowSet([minimalTemplate(lastTemplateId + 1)])]),
+      buildDatagram([
+        buildTemplateFlowSet([minimalTemplate(lastTemplateId + 1)]),
+      ]),
       EXPORTER_IP,
     );
 

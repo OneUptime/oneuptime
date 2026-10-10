@@ -1,6 +1,8 @@
 import DecodedFlowRecord from "./DecodedFlowRecord";
 import FlowBytes from "./FlowBytes";
-import PacketHeaderDecoder, { DecodedPacketHeader } from "./PacketHeaderDecoder";
+import PacketHeaderDecoder, {
+  DecodedPacketHeader,
+} from "./PacketHeaderDecoder";
 
 /*
  * sFlow version 5 (sflow.org/sflow_version_5.txt), what Arista, most
@@ -218,8 +220,10 @@ export default class SFlowParser {
     let offset: number;
 
     if (isExpanded) {
-      // sequence, source id type, source id index, rate, pool, drops,
-      // input format, input value, output format, output value, records.
+      /*
+       * sequence, source id type, source id index, rate, pool, drops,
+       * input format, input value, output format, output value, records.
+       */
       fields = {
         samplingRate: datagram.readUInt32BE(start + 12),
         inputInterfaceIndex: SFlowParser.readExpandedInterface(
@@ -276,9 +280,7 @@ export default class SFlowParser {
         if (format === FLOW_RECORD_RAW_HEADER && recordLength >= 16) {
           const headerProtocol: number = datagram.readUInt32BE(recordStart);
           const length: number = datagram.readUInt32BE(recordStart + 4);
-          const headerLength: number = datagram.readUInt32BE(
-            recordStart + 12,
-          );
+          const headerLength: number = datagram.readUInt32BE(recordStart + 12);
 
           if (recordStart + 16 + headerLength <= recordEnd) {
             const decoded: DecodedPacketHeader | null =

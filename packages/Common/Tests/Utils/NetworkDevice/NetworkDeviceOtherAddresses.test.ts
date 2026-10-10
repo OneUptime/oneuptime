@@ -119,7 +119,10 @@ describe("NetworkDeviceOtherAddressesUtil.includes and add", () => {
       NetworkDeviceOtherAddressesUtil.add("10.255.0.1", "192.168.1.1"),
     ).toBe("10.255.0.1, 192.168.1.1");
     expect(
-      NetworkDeviceOtherAddressesUtil.add("10.255.0.1, 192.168.1.1", "10.255.0.1"),
+      NetworkDeviceOtherAddressesUtil.add(
+        "10.255.0.1, 192.168.1.1",
+        "10.255.0.1",
+      ),
     ).toBe("10.255.0.1, 192.168.1.1");
   });
 });

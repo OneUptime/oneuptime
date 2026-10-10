@@ -33,11 +33,14 @@ describe("NetworkFlowApplicationUtil.getServiceName", () => {
     [UDP, 4739, "IPFIX"],
     // SCTP is a port protocol; a name that holds for TCP stands for it too.
     [SCTP, 443, "HTTPS"],
-  ])("protocol %i port %i is %s", (protocol: number, port: number, name: string) => {
-    expect(NetworkFlowApplicationUtil.getServiceName(protocol, port)).toBe(
-      name,
-    );
-  });
+  ])(
+    "protocol %i port %i is %s",
+    (protocol: number, port: number, name: string) => {
+      expect(NetworkFlowApplicationUtil.getServiceName(protocol, port)).toBe(
+        name,
+      );
+    },
+  );
 
   test("a port nobody named, port 0 and protocols without ports have no service name", () => {
     expect(NetworkFlowApplicationUtil.getServiceName(TCP, 4444)).toBeNull();
@@ -163,7 +166,11 @@ describe("NetworkFlowApplicationUtil.getServicePort", () => {
           folded.destinationPort,
         ),
       ).toBe(
-        NetworkFlowApplicationUtil.getServicePort(protocol, source, destination),
+        NetworkFlowApplicationUtil.getServicePort(
+          protocol,
+          source,
+          destination,
+        ),
       );
     }
   });

@@ -329,21 +329,19 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       },
     });
 
-    const samplingRateColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
-      {
-        key: "samplingRate",
-        title: "Sampling Rate",
-        description:
-          "The device counted one packet in this many (1: every packet). Octets and Packets are already multiplied by it.",
-        required: true,
-        type: TableColumnType.Number,
-        accessControl: {
-          read: readPermissions,
-          create: createPermissions,
-          update: [],
-        },
+    const samplingRateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "samplingRate",
+      title: "Sampling Rate",
+      description:
+        "The device counted one packet in this many (1: every packet). Octets and Packets are already multiplied by it.",
+      required: true,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
       },
-    );
+    });
 
     const flowCountColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "flowCount",

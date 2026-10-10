@@ -157,8 +157,7 @@ export default class PacketHeaderDecoder {
       return null;
     }
 
-    const fragmentOffset: number =
-      header.readUInt16BE(offset + 6) & 0x1fff;
+    const fragmentOffset: number = header.readUInt16BE(offset + 6) & 0x1fff;
 
     const decoded: DecodedPacketHeader = {
       sourceIpAddress: FlowBytes.readIpV4(header, offset + 12),
@@ -173,11 +172,7 @@ export default class PacketHeaderDecoder {
 
     // Only the first fragment carries the transport header.
     if (fragmentOffset === 0) {
-      PacketHeaderDecoder.readTransport(
-        header,
-        offset + headerLength,
-        decoded,
-      );
+      PacketHeaderDecoder.readTransport(header, offset + headerLength, decoded);
     }
 
     return decoded;
@@ -235,8 +230,7 @@ export default class PacketHeaderDecoder {
 
       if (nextHeader === IPV6_FRAGMENT) {
         // A fragment past the first carries no transport header.
-        const fragmentOffset: number =
-          header.readUInt16BE(nextOffset + 2) >> 3;
+        const fragmentOffset: number = header.readUInt16BE(nextOffset + 2) >> 3;
 
         if (fragmentOffset !== 0) {
           decoded.protocolNumber = followingHeader;

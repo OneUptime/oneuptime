@@ -40,7 +40,9 @@ const BLOCKED: ObjectID = ObjectID.generate();
 
 const HOSTILE: string = "10.0.0.1' OR 1=1 --";
 
-function query(filters: NetworkTrafficQuery["filters"] = {}): NetworkTrafficQuery {
+function query(
+  filters: NetworkTrafficQuery["filters"] = {},
+): NetworkTrafficQuery {
   return {
     projectId: PROJECT,
     startTime: new Date("2026-09-01T10:00:00.000Z"),
@@ -74,7 +76,10 @@ function allStatements(q: NetworkTrafficQuery): Array<[string, Statement]> {
       "top interfaces",
       NetworkTrafficAggregationService.buildTopInterfacesStatement(q),
     ],
-    ["top devices", NetworkTrafficAggregationService.buildTopDevicesStatement(q)],
+    [
+      "top devices",
+      NetworkTrafficAggregationService.buildTopDevicesStatement(q),
+    ],
   ];
 }
 
@@ -98,20 +103,23 @@ const ALIASED_TO_A_COLUMN: RegExp = new RegExp(
 );
 
 describe("every page read is held to the project, the window and the caller's devices", () => {
-  test.each(allStatements(query()))("%s", (_name: string, statement: Statement) => {
-    const sql: string = statement.query;
-    const values: Array<unknown> = Object.values(statement.query_params);
+  test.each(allStatements(query()))(
+    "%s",
+    (_name: string, statement: Statement) => {
+      const sql: string = statement.query;
+      const values: Array<unknown> = Object.values(statement.query_params);
 
-    expect(sql).toMatch(/WHERE projectId = \{p\d+:String\}/);
-    expect(values).toContain(PROJECT.toString());
-    expect(sql).toMatch(/flowStartAt >= \{p\d+:DateTime64\(9\)\}/);
-    expect(sql).toMatch(/flowStartAt < \{p\d+:DateTime64\(9\)\}/);
+      expect(sql).toMatch(/WHERE projectId = \{p\d+:String\}/);
+      expect(values).toContain(PROJECT.toString());
+      expect(sql).toMatch(/flowStartAt >= \{p\d+:DateTime64\(9\)\}/);
+      expect(sql).toMatch(/flowStartAt < \{p\d+:DateTime64\(9\)\}/);
 
-    expect(sql).toMatch(/networkDeviceId IN \(/);
-    expect(sql).toMatch(/networkDeviceId NOT IN \(/);
-    expect(values).toContainEqual([READABLE.toString()]);
-    expect(values).toContainEqual([BLOCKED.toString()]);
-  });
+      expect(sql).toMatch(/networkDeviceId IN \(/);
+      expect(sql).toMatch(/networkDeviceId NOT IN \(/);
+      expect(values).toContainEqual([READABLE.toString()]);
+      expect(values).toContainEqual([BLOCKED.toString()]);
+    },
+  );
 
   test("a caller who reads every device gets no device list at all", () => {
     const everything: NetworkTrafficQuery = { ...query(), devices: {} };
@@ -123,14 +131,17 @@ describe("every page read is held to the project, the window and the caller's de
 });
 
 describe("every page read is bounded in time and memory", () => {
-  test.each(allStatements(query()))("%s", (_name: string, statement: Statement) => {
-    expect(statement.query).toContain(
-      `max_execution_time = ${NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS}`,
-    );
-    expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
-    expect(statement.query).not.toContain("'break'");
-    expect(statement.query).toContain("max_memory_usage = ");
-  });
+  test.each(allStatements(query()))(
+    "%s",
+    (_name: string, statement: Statement) => {
+      expect(statement.query).toContain(
+        `max_execution_time = ${NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS}`,
+      );
+      expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
+      expect(statement.query).not.toContain("'break'");
+      expect(statement.query).toContain("max_memory_usage = ");
+    },
+  );
 
   test("the timeout is under the ClickHouse client's own (58 seconds)", () => {
     expect(NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS).toBeLessThan(58);
@@ -251,7 +262,9 @@ describe("filters reach SQL as bound parameters only", () => {
     const none: string =
       NetworkTrafficAggregationService.buildTotalsStatement(query()).query;
 
-    expect(none).not.toMatch(/srcIp =|dstIp =|protocol =|srcPort =|exporterIp =/);
+    expect(none).not.toMatch(
+      /srcIp =|dstIp =|protocol =|srcPort =|exporterIp =/,
+    );
   });
 
   test("with an interface filter, the series splits in and out through it", () => {
@@ -260,8 +273,12 @@ describe("filters reach SQL as bound parameters only", () => {
       60,
     ).query;
 
-    expect(sql).toMatch(/sumIf\(octets, inputInterfaceIndex = \{p\d+:Int64\}\) AS inOctets/);
-    expect(sql).toMatch(/sumIf\(octets, outputInterfaceIndex = \{p\d+:Int64\}\) AS outOctets/);
+    expect(sql).toMatch(
+      /sumIf\(octets, inputInterfaceIndex = \{p\d+:Int64\}\) AS inOctets/,
+    );
+    expect(sql).toMatch(
+      /sumIf\(octets, outputInterfaceIndex = \{p\d+:Int64\}\) AS outOctets/,
+    );
   });
 });
 

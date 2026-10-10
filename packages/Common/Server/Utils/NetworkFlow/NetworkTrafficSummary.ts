@@ -67,7 +67,10 @@ export interface ParsedNetworkTrafficRequest {
 const DEFAULT_WINDOW_MINUTES: number = 60;
 
 export default class NetworkTrafficSummaryUtil {
-  public static parseRequest(body: unknown, now: Date): ParsedNetworkTrafficRequest {
+  public static parseRequest(
+    body: unknown,
+    now: Date,
+  ): ParsedNetworkTrafficRequest {
     const value: JSONObject =
       body && typeof body === "object" && !Array.isArray(body)
         ? (body as JSONObject)
@@ -314,8 +317,8 @@ export default class NetworkTrafficSummaryUtil {
     if (pageDeviceIds !== null && pageDeviceIds.length === 0) {
       return {
         serviceIds: [new ObjectID(TelemetryReadScopeUtil.NO_RESOURCE_ID)],
-        excludedServiceIds: TelemetryReadScopeUtil.toServiceFilter(readScope)
-          .excludedServiceIds,
+        excludedServiceIds:
+          TelemetryReadScopeUtil.toServiceFilter(readScope).excludedServiceIds,
       };
     }
 
@@ -323,7 +326,10 @@ export default class NetworkTrafficSummaryUtil {
   }
 
   private static withDeviceName<
-    T extends { networkDeviceId?: string | undefined; name?: string | undefined },
+    T extends {
+      networkDeviceId?: string | undefined;
+      name?: string | undefined;
+    },
   >(row: T, projectId: ObjectID, names: Map<string, string>): T {
     const id: string = (row.networkDeviceId || "").toLowerCase();
 

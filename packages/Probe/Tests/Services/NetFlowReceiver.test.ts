@@ -392,9 +392,9 @@ describe("NetFlowReceiver rate limiting", () => {
     expect(receiver.aggregator.size).toBe(LIMIT);
     expect(receiver.droppedThisMinute).toBe(1);
     expect(receiver.acceptedThisMinute).toBe(LIMIT);
-    expect(
-      receiver.exporterStatistics.get(EXPORTER_IP)!.droppedDatagrams,
-    ).toBe(1);
+    expect(receiver.exporterStatistics.get(EXPORTER_IP)!.droppedDatagrams).toBe(
+      1,
+    );
   });
 
   test("the window rolls over after a minute and accepting resumes", () => {
