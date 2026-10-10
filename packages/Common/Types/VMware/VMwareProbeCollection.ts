@@ -10,7 +10,7 @@ import { JSONArray } from "../JSON";
  *   POST /probe/vmware/collection   VMwareCollectionReport
  *   POST /probe/vmware/test         VMwareConnectionTestReport
  *
- * A probe asks for work every fifteen seconds. The answer holds the
+ * A probe asks for work every ten seconds. The answer holds the
  * vCenters due for a collection (claimed for this probe, so no other probe
  * and no second tick collects them too) and the connection tests a person
  * started from the dashboard. Credentials travel only in that answer, only to
@@ -26,7 +26,7 @@ export const VMWARE_COLLECTION_PROBE_CAPABILITY: string = "vmwareCollection";
  * minute, so this bounds how late one starts, and how long a person waits
  * for a connection test to be picked up.
  */
-export const VMWARE_PROBE_WORK_POLL_INTERVAL_IN_SECONDS: number = 15;
+export const VMWARE_PROBE_WORK_POLL_INTERVAL_IN_SECONDS: number = 10;
 
 // The most vCenters one probe collects at the same time.
 export const VMWARE_PROBE_COLLECTION_CONCURRENCY: number = 4;

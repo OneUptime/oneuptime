@@ -24,7 +24,7 @@ export const SETTLED_VMWARE_CONNECTION_TEST_STATUSES: ReadonlyArray<VMwareConnec
 
 /*
  * How long a test may wait for its probe, and then run, before it is
- * answered as failed: the probe asks for work every fifteen seconds, and a
+ * answered as failed: the probe asks for work every ten seconds, and a
  * test is a login and a few small reads.
  */
 export const VMWARE_CONNECTION_TEST_PICKUP_TIMEOUT_IN_SECONDS: number = 90;

@@ -83,6 +83,35 @@ export function readRunningVMwareVCenterIds(value: unknown): Array<string> {
 }
 
 /*
+ * A probe sends a collection gzip-compressed: its metrics are several
+ * megabytes of JSON for a large vCenter, and compress tenfold. The server's
+ * gzip body reader (GzipRequestBody - bounded, 50 MiB inflated) leaves the
+ * inflated bytes in req.body; this reads them as the JSON they are, before
+ * the probe is authenticated from them. A plain JSON body passes untouched.
+ */
+export function parseInflatedJsonBody(
+  req: ProbeExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void {
+  const body: unknown = req.body;
+
+  if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
+    try {
+      req.body = JSON.parse(Buffer.from(body).toString("utf8"));
+    } catch {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("The collection report is not JSON."),
+      );
+    }
+  }
+
+  return next();
+}
+
+/*
  * How many new collections a probe may start: the free slots of the most a
  * probe collects at once.
  */
@@ -145,6 +174,7 @@ router.post(
 
 router.post(
   "/probe/vmware/collection",
+  parseInflatedJsonBody,
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ProbeExpressRequest,

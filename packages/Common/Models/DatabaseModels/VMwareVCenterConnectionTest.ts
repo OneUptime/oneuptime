@@ -44,7 +44,7 @@ const TESTERS: Array<Permission> = [
  * and certificate a person is about to save, tried by the probe they picked,
  * before anything is saved on a vCenter.
  *
- * A test is a short-lived request. The probe asks for work every fifteen
+ * A test is a short-lived request. The probe asks for work every ten
  * seconds and is handed the pending tests that name it; the password is
  * wiped from the row the moment the probe is handed it, and tests are
  * deleted a day after they were started. The dashboard polls the row until
