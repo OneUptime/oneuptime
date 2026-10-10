@@ -173,7 +173,7 @@ const LlmDocumentationPage: FunctionComponent<PageComponentProps> = (
         </ol>
       </div>
 
-      <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-5 shadow-sm">
+      <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-5 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900">
           {translator.translateText(
             "Control what prompt & completion content is stored",

@@ -90,6 +90,11 @@ export interface MonitorStepViewRow {
   value: MonitorStepViewValue;
   // Shown by the viewer when `value` is empty.
   placeholder: string;
+  /*
+   * The value is words of the interface - an AI answer problem's name - not
+   * data the customer typed: the viewer shows it in the reader's language.
+   */
+  translateValue?: boolean | undefined;
 }
 
 type OptionalRow = MonitorStepViewRow | null;
@@ -232,6 +237,32 @@ const safeMetricsViewConfig: (
 };
 
 export default class MonitorStepViewModel {
+  /*
+   * A row's value as the viewer shows it: the words of a translateValue row
+   * in the reader's language (through `translate`), anything else as it is.
+   */
+  public static translateRowValue(
+    row: MonitorStepViewRow,
+    value: MonitorStepViewValue,
+    translate: (text: string) => string | undefined,
+  ): MonitorStepViewValue {
+    if (!row.translateValue) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      return translate(value) || value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry: string): string => {
+        return translate(entry) || entry;
+      });
+    }
+
+    return value;
+  }
+
   /**
    * The metric view every metric-backed monitor type keeps under its own
    * step shape. Mirrors MonitorStep.getMetricsViewConfig but always returns
@@ -1271,6 +1302,7 @@ export default class MonitorStepViewModel {
           return LlmAnswerIssueUtil.getInfo(issue).title;
         }),
         placeholder: "Only slow answers count",
+        translateValue: true,
       },
       optional({
         key: "llmSlowAnswerSeconds",

@@ -120,7 +120,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
   return (
     <AppLink
       to={props.route}
-      className="group block px-4 py-3.5 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 sm:px-6"
+      className="group block px-4 py-3.5 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-6"
     >
       <div
         className="flex items-start gap-3"

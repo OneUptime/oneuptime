@@ -1,9 +1,10 @@
 {
   "baseline": {
     "keys": 27755,
-    "untranslated": 16439
+    "untranslated": 16435
   },
   "sameAsEnglish": [
+    "AI / LLM",
     "Runner",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",

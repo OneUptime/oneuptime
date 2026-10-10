@@ -13,19 +13,26 @@ export function formatLlmDuration(ms: number): string {
     return "0 ms";
   }
 
-  if (ms < 1000) {
+  /*
+   * Each unit is chosen from the value as it will be written, so a value
+   * that rounds up reads in the next unit: 999.6 ms is "1.0 s", 9.96 s is
+   * "10 s" and 59.6 s is "1m 00s" - never "1000 ms", "10.0 s" or "60 s".
+   */
+  if (Math.round(ms) < 1000) {
     return `${Math.round(ms)} ms`;
   }
 
-  if (ms < 10_000) {
-    return `${(Math.round(ms / 100) / 10).toFixed(1)} s`;
-  }
+  const tenths: number = Math.round(ms / 100);
 
-  if (ms < 60_000) {
-    return `${Math.round(ms / 1000)} s`;
+  if (tenths < 100) {
+    return `${(tenths / 10).toFixed(1)} s`;
   }
 
   const totalSeconds: number = Math.round(ms / 1000);
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds} s`;
+  }
 
   if (totalSeconds < 3600) {
     const minutes: number = Math.floor(totalSeconds / 60);
@@ -43,7 +50,8 @@ export function formatLlmDuration(ms: number): string {
 /*
  * "$0", "<$0.0001", "$0.0012", "$0.042", "$12.40", "$1,204.00". A single
  * call costs fractions of a cent, so small amounts keep their digits; a
- * total reads like money.
+ * total reads like money. As with durations, an amount that rounds up reads
+ * the next way: $0.99996 is "$1.00", not "$1.000".
  */
 export function formatLlmCost(usd: number): string {
   if (!Number.isFinite(usd) || usd <= 0) {
@@ -54,11 +62,11 @@ export function formatLlmCost(usd: number): string {
     return "<$0.0001";
   }
 
-  if (usd < 0.01) {
+  if (usd < 0.00995) {
     return `$${usd.toFixed(4)}`;
   }
 
-  if (usd < 1) {
+  if (usd < 0.9995) {
     return `$${usd.toFixed(3)}`;
   }
 
@@ -68,23 +76,30 @@ export function formatLlmCost(usd: number): string {
   })}`;
 }
 
-// "850", "12.3k", "4.5M".
+// "850", "12.3k", "124k", "4.5M", "150M".
 export function formatLlmTokens(count: number): string {
   if (!Number.isFinite(count) || count <= 0) {
     return "0";
   }
 
-  if (count < 1000) {
+  if (Math.round(count) < 1000) {
     return String(Math.round(count));
   }
 
-  if (count < 1_000_000) {
-    const thousands: number = Math.round(count / 100) / 10;
-    return `${thousands >= 100 ? Math.round(thousands) : thousands}k`;
+  // One decimal below 100k ("12.3k"), whole thousands above ("124k").
+  if (count < 99_950) {
+    return `${Math.round(count / 100) / 10}k`;
   }
 
-  const millions: number = Math.round(count / 100_000) / 10;
-  return `${millions >= 100 ? Math.round(millions) : millions}M`;
+  if (Math.round(count / 1000) < 1000) {
+    return `${Math.round(count / 1000)}k`;
+  }
+
+  if (count < 99_950_000) {
+    return `${Math.round(count / 100_000) / 10}M`;
+  }
+
+  return `${Math.round(count / 1_000_000)}M`;
 }
 
 // "1,204".
