@@ -56,7 +56,8 @@ RunCron(
           select: {
             _id: true,
             projectId: true,
-            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
+            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+              true,
           },
         });
 

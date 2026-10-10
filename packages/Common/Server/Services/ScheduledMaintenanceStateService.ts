@@ -115,7 +115,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     return scheduledMaintenanceStates;
   }
 
-
   /*
    * The ids of the project's states an event is in progress in: its ongoing
    * state, and every state of the project's own placed between Ongoing and

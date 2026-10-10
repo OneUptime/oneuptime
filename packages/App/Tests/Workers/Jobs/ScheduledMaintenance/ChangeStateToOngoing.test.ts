@@ -94,7 +94,14 @@ import {
   progressStateId,
 } from "Common/Tests/Server/TestingUtils/ScheduledMaintenanceProgressWorld";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ChangeStateToOngoing";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const JOB_NAME: string = "ScheduledMaintenance:ChangeStateToOngoing";
 
@@ -159,7 +166,10 @@ const ALL_STATES: Array<ScheduledMaintenanceState> = [
   ...NO_ONGOING_PROJECT_STATES,
 ];
 
-function stateNamed(projectId: ObjectID, name: string): ScheduledMaintenanceState {
+function stateNamed(
+  projectId: ObjectID,
+  name: string,
+): ScheduledMaintenanceState {
   const state: ScheduledMaintenanceState | undefined = ALL_STATES.find(
     (candidate: ScheduledMaintenanceState): boolean => {
       return (
@@ -282,7 +292,8 @@ const E_ONGOING: string = "55555555-5555-4555-8555-555555555553";
 const E_VERIFYING: string = "55555555-5555-4555-8555-555555555554";
 const E_ENDED: string = "55555555-5555-4555-8555-555555555555";
 const E_DRAFT: string = "55555555-5555-4555-8555-555555555556";
-const E_DRAFT_PROJECT_CONFIRMED: string = "55555555-5555-4555-8555-555555555557";
+const E_DRAFT_PROJECT_CONFIRMED: string =
+  "55555555-5555-4555-8555-555555555557";
 const E_CONFIRMED_LATER: string = "55555555-5555-4555-8555-555555555558";
 const E_NO_ONGOING_CONFIRMED: string = "55555555-5555-4555-8555-555555555559";
 
@@ -400,9 +411,7 @@ describe("ScheduledMaintenance:ChangeStateToOngoing", () => {
     await tick();
 
     expect(movedEventIds()).toEqual([E_DRAFT_PROJECT_CONFIRMED]);
-    expect(
-      moves()[0]!.scheduledMaintenanceStateId.toLowerCase(),
-    ).toBe(
+    expect(moves()[0]!.scheduledMaintenanceStateId.toLowerCase()).toBe(
       stateNamed(DRAFT_PROJECT_ID, "Ongoing")._id!.toString().toLowerCase(),
     );
   });

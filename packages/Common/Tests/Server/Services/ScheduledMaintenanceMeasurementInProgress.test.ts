@@ -159,9 +159,7 @@ function stubTheEventMeasuredTo(role: ScheduledMaintenanceStateRole): void {
   jest
     .spyOn(ScheduledMaintenanceMeasurementValueService, "updateOneById")
     .mockResolvedValue(1 as never);
-  jest
-    .spyOn(GlobalConfigService, "findOneBy")
-    .mockResolvedValue(null as never);
+  jest.spyOn(GlobalConfigService, "findOneBy").mockResolvedValue(null as never);
   jest
     .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
     .mockResolvedValue(undefined as never);

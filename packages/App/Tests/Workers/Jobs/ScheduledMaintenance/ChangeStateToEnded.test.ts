@@ -182,7 +182,6 @@ const ONGOING_QUERY: Record<string, unknown> = {
   currentScheduledMaintenanceState: { isOngoingState: true },
 };
 
-
 function statesOfTheirOwnQuery(ids: Array<string>): Record<string, unknown> {
   return {
     currentScheduledMaintenanceStateId: QueryHelper.any(

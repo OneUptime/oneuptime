@@ -300,14 +300,15 @@ describe("a status page shows every scheduled maintenance event in progress as o
       const waitingQuery: Record<string, unknown> | undefined =
         eventQueries.find((query: Record<string, unknown>): boolean => {
           return (
-            (idsOfCondition(query["currentScheduledMaintenanceStateId"]) || [])
-              .includes(progressStateId("confirmed").toString().toLowerCase())
-          );
+            idsOfCondition(query["currentScheduledMaintenanceStateId"]) || []
+          ).includes(progressStateId("confirmed").toString().toLowerCase());
         });
 
       expect(waitingQuery).toBeDefined();
       expect(
-        idsOfCondition(waitingQuery!["currentScheduledMaintenanceStateId"])!.sort(),
+        idsOfCondition(
+          waitingQuery!["currentScheduledMaintenanceStateId"],
+        )!.sort(),
       ).toEqual(
         [
           progressStateId("scheduled").toString().toLowerCase(),
@@ -402,10 +403,7 @@ describe("a status page shows every scheduled maintenance event in progress as o
       ]);
     });
 
-    it.each([
-      "scheduled",
-      "confirmed",
-    ] as Array<ProgressStateKey>)(
+    it.each(["scheduled", "confirmed"] as Array<ProgressStateKey>)(
       "lists an event waiting in %s, whenever it was due to start, as an event to come",
       async (key: ProgressStateKey) => {
         events = [

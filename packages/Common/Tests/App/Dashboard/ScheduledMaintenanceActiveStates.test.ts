@@ -52,7 +52,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 interface StateRecord {
   name: string;
-  flag?: "isScheduledState" | "isOngoingState" | "isEndedState" | "isResolvedState";
+  flag?:
+    | "isScheduledState"
+    | "isOngoingState"
+    | "isEndedState"
+    | "isResolvedState";
 }
 
 // A project's whole list, top first, with a state of its own in every gap.
@@ -68,7 +72,9 @@ const PROJECT_LIST: Array<StateRecord> = [
   { name: "Archived" },
 ];
 
-function statesOf(records: Array<StateRecord>): Array<ScheduledMaintenanceState> {
+function statesOf(
+  records: Array<StateRecord>,
+): Array<ScheduledMaintenanceState> {
   return records.map(
     (record: StateRecord, index: number): ScheduledMaintenanceState => {
       const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();

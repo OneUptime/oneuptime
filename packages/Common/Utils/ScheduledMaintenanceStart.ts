@@ -451,9 +451,7 @@ export default class ScheduledMaintenanceStartUtil {
       return false;
     }
 
-    const byListedFlags: boolean | null = this.isCompleteByRowFlags(
-      placed.row,
-    );
+    const byListedFlags: boolean | null = this.isCompleteByRowFlags(placed.row);
 
     if (byListedFlags !== null) {
       return byListedFlags;
@@ -544,10 +542,9 @@ export default class ScheduledMaintenanceStartUtil {
    * state of the project's own after it ("Archived"). Moving on from
    * Completed to "Archived" is no second completion.
    */
-  public static getCompleteRows<T extends ScheduledMaintenanceTimelineRow>(data: {
-    states: Array<unknown>;
-    timeline: Array<T>;
-  }): Array<T> {
+  public static getCompleteRows<
+    T extends ScheduledMaintenanceTimelineRow,
+  >(data: { states: Array<unknown>; timeline: Array<T> }): Array<T> {
     return this.getEdgeRows({
       timeline: data.timeline,
       isOn: (stateId: ObjectID | string | null | undefined): boolean => {

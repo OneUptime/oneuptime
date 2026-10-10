@@ -339,15 +339,19 @@ beforeEach(() => {
   // The event's last entry, once one is deleted.
   jest
     .spyOn(ScheduledMaintenanceStateTimelineService, "findOneBy")
-    .mockImplementation((async (): Promise<ScheduledMaintenanceStateTimeline> => {
-      const row: ScheduledMaintenanceStateTimeline =
-        new ScheduledMaintenanceStateTimeline();
-      row._id = "0193c0de-0b0b-4ccc-8ddd-0000000000c9";
-      row.scheduledMaintenanceStateId = new ObjectID(stateId(latestRowState));
-      return row;
-    }) as never);
+    .mockImplementation(
+      (async (): Promise<ScheduledMaintenanceStateTimeline> => {
+        const row: ScheduledMaintenanceStateTimeline =
+          new ScheduledMaintenanceStateTimeline();
+        row._id = "0193c0de-0b0b-4ccc-8ddd-0000000000c9";
+        row.scheduledMaintenanceStateId = new ObjectID(stateId(latestRowState));
+        return row;
+      }) as never,
+    );
 
-  jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(undefined as never);
+  jest
+    .spyOn(MonitorService, "updateOneById")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(MonitorService, "changeMonitorStatus")
     .mockResolvedValue(undefined as never);
@@ -509,8 +513,9 @@ describe("subscribers told before the event starts", () => {
   function droppedTheNotificationsBefore(): boolean {
     return eventUpdateOneById.mock.calls.some(
       (call: Array<unknown>): boolean => {
-        const data: Dictionary<unknown> = (call[0] as { data: Dictionary<unknown> })
-          .data;
+        const data: Dictionary<unknown> = (
+          call[0] as { data: Dictionary<unknown> }
+        ).data;
 
         return (
           Object.prototype.hasOwnProperty.call(
@@ -538,7 +543,12 @@ describe("subscribers told before the event starts", () => {
 
   test.each([
     ["Ongoing", ["scheduled"], "scheduled", "ongoing"],
-    ["Verifying, started straight into", ["confirmed"], "confirmed", "verifying"],
+    [
+      "Verifying, started straight into",
+      ["confirmed"],
+      "confirmed",
+      "verifying",
+    ],
     ["Ended, over without having run", ["scheduled"], "scheduled", "ended"],
     [
       "Archived, complete without having run",

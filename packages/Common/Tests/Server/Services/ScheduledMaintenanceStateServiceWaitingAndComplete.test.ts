@@ -223,7 +223,9 @@ describe("ScheduledMaintenanceStateService: the states an event waits for its st
 
   describe("getWaitingToStartEventQueriesOfEveryProject", () => {
     test("with no state of a project's own anywhere, the scheduled state by its flag is the only query", async () => {
-      mockProgressStateReads(statesOf(BUILT_INS_ONLY_PROJECT_ID, BUILT_IN_KEYS));
+      mockProgressStateReads(
+        statesOf(BUILT_INS_ONLY_PROJECT_ID, BUILT_IN_KEYS),
+      );
 
       const queries: Array<Query<ScheduledMaintenance>> =
         await ScheduledMaintenanceStateService.getWaitingToStartEventQueriesOfEveryProject();
