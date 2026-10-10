@@ -105,6 +105,13 @@ const METRIC_NAMES_THAT_ARE_LABELS: Array<string> = [
  * page.
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
+  /*
+   * A permission's name, as the team and API key permission pickers list it
+   * (Permission.ts's title, which has no locale key). The "Create
+   * {{itemName}}" template drawnDashboardLabel falls back to draws buttons,
+   * not permissions.
+   */
+  "telemetry/open-telemetry": ["Create Telemetry Ingestion Key"],
   [DATABASE_PAGE]: METRIC_NAMES_THAT_ARE_LABELS,
 };
 
