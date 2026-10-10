@@ -61,7 +61,7 @@ OneUptime 目前支援以下 LLM 供應商：
 | 供應商                | 描述                                                                | 需要 API 金鑰 | 需要 Base URL    |
 | --------------------- | ------------------------------------------------------------------- | ------------- | ---------------- |
 | **OpenAI**            | GPT-5.1 及其他 OpenAI 模型                                          | 是            | 否（使用預設值） |
-| **Azure OpenAI**      | 部署在您的 Azure 環境上的 OpenAI 模型                               | 是            | 是               |
+| **Azure OpenAI / Microsoft Foundry** | 您在 Microsoft Foundry 或 Azure OpenAI 中部署的模型：OpenAI 模型、Foundry Models 和 Claude | 是 | 是 |
 | **Anthropic**         | Claude Sonnet 5.5、Claude Opus 5.5、Claude Haiku 5.5 及其他 Claude 模型 | 是            | 否（使用預設值） |
 | **Groq**              | 針對 Llama、Mixtral 及其他開源模型提供快速推論                      | 是            | 否（使用預設值） |
 | **Mistral**           | Mistral 託管的模型                                                  | 是            | 否（使用預設值） |
@@ -82,7 +82,7 @@ OneUptime 目前支援以下 LLM 供應商：
 
 - **名稱**：此 LLM 設定的易記名稱（例如「Production OpenAI」、「Local Ollama」）
 - **描述**（選填）：協助識別此供應商用途的描述
-- **LLM 提供商**：選擇供應商類型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
+- **LLM 提供商**：選擇供應商類型（OpenAI、Azure OpenAI / Microsoft Foundry、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
 - **API 金鑰**：您的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 與 OpenAI 相容伺服器則為選填）
 - **模型名稱**：要使用的特定模型（例如 `gpt-5.1`、`claude-sonnet-5-5`、`llama3.1`）
 - **基底 URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
@@ -130,6 +130,10 @@ Model Name: claude-sonnet-5-5
 Claude Opus 4.7 及之後的所有 Claude 模型會自行決定取樣，並拒絕設定了 `temperature`、`top_p` 或 `top_k` 的請求。對這些模型，OneUptime 不會傳送這些設定。如果某個模型仍然拒絕其中之一，OneUptime 會移除該設定後重新傳送請求，並為該供應商記住這一點。
 
 Claude 5 模型會在回答前先思考，而思考會計入回覆的 token 上限，因此 OneUptime 會為思考預留空間。若要讓它們少思考、回答得更快更省錢，請在供應商的 **其他參數** 中設定 `{"output_config": {"effort": "low"}}`。您在那裡新增的設定，OneUptime 會隨每個請求傳送給 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，這些由 OneUptime 自行設定。
+
+### Azure OpenAI 與 Microsoft Foundry
+
+對於您在 Microsoft Foundry 或 Azure OpenAI 中部署的模型（OpenAI 模型、其他 Foundry Models 和 Claude），請使用 **Azure OpenAI / Microsoft Foundry**。把資源的一個金鑰填入 **API 金鑰**，把部署名稱填入 **模型名稱**，把資源的端點填入 **基底 URL**，例如 `https://contoso-ai.openai.azure.com/openai/v1`。[Microsoft Foundry 與 Azure OpenAI](/docs/ai/microsoft-foundry) 逐步介紹 Azure 這一側：資源、權限、模型部署、網路需求和疑難排解。
 
 ### Ollama（自行託管）
 
@@ -251,7 +255,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 對於企業部署或使用代理服務時，您可以指定自訂的 Base URL：
 
-- **Azure OpenAI**：使用您的 Azure 端點 URL
+- **Azure OpenAI / Microsoft Foundry**：使用您資源的端點，例如 `https://contoso-ai.openai.azure.com/openai/v1`
 - **OpenAI 相容 API**：任何遵循 OpenAI API 規範的 API
 - **私有 Ollama 執行個體**：您的內部 Ollama 伺服器 URL
 
@@ -267,6 +271,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 ### 連線問題
 
 - **OpenAI/Anthropic**：請確認您的 API 金鑰有效且有足夠的額度
+- **Azure OpenAI / Microsoft Foundry**：錯誤開頭會說明需要修改什麼。Azure 回傳的每種錯誤都在 [Microsoft Foundry 與 Azure OpenAI](/docs/ai/microsoft-foundry) 中有說明
 - **Ollama**：請確保 Ollama 伺服器正在執行、監聽 OneUptime 伺服器能連到的位址（原生安裝請使用 `OLLAMA_HOST=0.0.0.0:11434`），且 Base URL 指向該位址
 - **OpenAI Compatible**：請確認 Base URL 以 `/v1` 結尾（或符合您伺服器的設定）、Model Name 符合您伺服器所提供的模型，且僅在您的伺服器需要驗證時才設定 API Key
 - **"…points to an address OneUptime is not allowed to connect to"**：Base URL 解析到了被拒絕的位址——`localhost` 或其他回送位址，或在 OneUptime Cloud 上是私有網路位址。（OneUptime Cloud 會改以 "…could not be reached" 回報被拒絕的主機名稱。）請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)

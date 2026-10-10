@@ -15,6 +15,7 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -199,7 +200,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
+              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
           },
           {
             field: {
@@ -211,7 +212,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
           },
           {
             field: {
@@ -222,8 +223,16 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.URL,
             required: false,
             placeholder: "http://ollama:11434",
+            /*
+             * The column holds 100 characters. Said at the field, before the
+             * save: a deployment's whole Target URI with its api-version runs
+             * longer, and the resource's endpoint is short.
+             */
+            validation: {
+              maxLength: ColumnLength.ShortURL,
+            },
             description:
-              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI / Microsoft Foundry, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI / Microsoft Foundry use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Optional for others to override the default endpoint.",
           },
           {
             field: {
