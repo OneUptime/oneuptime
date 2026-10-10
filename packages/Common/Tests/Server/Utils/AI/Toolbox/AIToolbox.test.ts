@@ -626,8 +626,9 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
   });
 
   function mutationTool(): ObservabilityTool {
-    const tool: ObservabilityTool | undefined =
-      AIToolbox.getToolByName("acknowledge_incident");
+    const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
+      "acknowledge_incident",
+    );
     expect(tool?.isMutation).toBe(true);
     return tool!;
   }

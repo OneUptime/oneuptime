@@ -1085,6 +1085,23 @@ API, SSO, or the Slack and Microsoft Teams apps.
   incident with one already did. See
   [Slack](/docs/workspace-connections/slack#acting-on-incidents-alerts-and-events-from-slack)
   and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#acting-on-incidents-alerts-and-events-from-microsoft-teams).
+- **Ask AI's actions are made as the person who asked.** Acknowledging or
+  resolving an incident or an alert, paging an on-call policy, running a
+  runbook, changing an incident's severity, starting an AI investigation and
+  writing code to a repository from Ask AI now make the change the dashboard
+  makes for the same action, with the asking person's own permissions,
+  labels and owners, and credit it to them. Acknowledging and resolving used
+  to need permission to edit the incident or alert; like the dashboard's
+  state panel, they now need permission to change its state (**Create
+  Incident State Timeline**, **Create Alert State Timeline**). Paging used to
+  need permission to edit incidents and now needs permission to execute
+  on-call policies (**Create On-Call Duty Policy Execution Log**), and
+  running a runbook used to need permission to edit runbooks and now needs
+  permission to start runbook executions (**Create Runbook Execution**), so
+  look over custom roles that hold the old permission and not the new one.
+  A refused action changes nothing, and Ask AI says why. The AI's answers in
+  Slack and Microsoft Teams, and autonomous AI investigations, take none of
+  these actions. See [Ask AI](/docs/ai/ask-ai#actions-are-made-as-you).
 - **An SSH credential reaches a Runner that runs OneUptime AI's commands only
   through someone who may read runbook credentials.** Creating an SSH runbook
   credential with a Runner that has **Runs AI Remediation Commands** on, or

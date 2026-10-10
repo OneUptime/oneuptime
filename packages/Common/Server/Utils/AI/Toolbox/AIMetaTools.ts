@@ -768,7 +768,12 @@ export const StartInvestigationTool: ObservabilityTool = {
       );
     }
 
-    await assertMayChangeInvestigationSubject(incidentId, alertId, ctx, subject);
+    await assertMayChangeInvestigationSubject(
+      incidentId,
+      alertId,
+      ctx,
+      subject,
+    );
 
     const subjectRunQuery: Query<AIRun> = buildSubjectRunQuery(
       incidentId,

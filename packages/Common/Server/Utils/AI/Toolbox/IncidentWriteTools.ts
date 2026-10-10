@@ -270,7 +270,10 @@ async function changeIncidentStateTool(data: {
   };
 
   if (verb === "acknowledge") {
-    await WorkspaceMemberActions.acknowledge({ event: event, props: ctx.props });
+    await WorkspaceMemberActions.acknowledge({
+      event: event,
+      props: ctx.props,
+    });
   } else {
     await WorkspaceMemberActions.resolve({ event: event, props: ctx.props });
   }

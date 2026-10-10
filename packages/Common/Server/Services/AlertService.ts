@@ -324,12 +324,12 @@ export class Service extends ProjectReferencesService<Model> {
    * The state timeline row is created with `props`, crediting
    * `acknowledgedByUserId`.
    *
-   * A person's acknowledge - from the dashboard, Slack, Microsoft Teams or
-   * OneUptime AI - is the state timeline row created with their own props
-   * (WorkspaceMemberActions). What is left here is OneUptime's own
-   * acknowledge, made once a responder has answered an on-call page about
-   * the alert (UserOnCallLogTimelineService), which says so by passing root
-   * props.
+   * A person's acknowledge is the state timeline row created with their own
+   * props: the dashboard creates it through the API, and Slack, Microsoft
+   * Teams and OneUptime AI through WorkspaceMemberActions. What is left here
+   * is OneUptime's own acknowledge, made once a responder has answered an
+   * on-call page about the alert (UserOnCallLogTimelineService), which says
+   * so by passing root props.
    */
   @CaptureSpan()
   public async acknowledgeAlert(data: {

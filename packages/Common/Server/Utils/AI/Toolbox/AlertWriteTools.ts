@@ -20,15 +20,14 @@ import {
 } from "./ToolTypes";
 
 /*
- * Derived from the model ACL so the tool gate can never drift from RBAC.
- * Resolved lazily rather than at module load: this module is pulled in through
- * the service import graph before the Alert model class is fully wired up, so
- * calling a model method at import time throws a circular-dependency
- * TypeError. By the time a tool actually executes, every module is loaded.
- */
-/*
  * Acknowledging or resolving an alert changes its state: the permission to
  * create its state timeline row, as the dashboard's state panel asks.
+ *
+ * Derived from the model ACL so the tool gate can never drift from RBAC.
+ * Resolved lazily rather than at module load: this module is pulled in through
+ * the service import graph before the model classes are fully wired up, so
+ * calling a model method at import time throws a circular-dependency
+ * TypeError. By the time a tool actually executes, every module is loaded.
  */
 let cachedStateChangePermissions: Array<Permission> | null = null;
 const resolveStateChangePermissions: () => Array<Permission> =
@@ -90,7 +89,10 @@ async function changeAlertStateTool(data: {
   };
 
   if (verb === "acknowledge") {
-    await WorkspaceMemberActions.acknowledge({ event: event, props: ctx.props });
+    await WorkspaceMemberActions.acknowledge({
+      event: event,
+      props: ctx.props,
+    });
   } else {
     await WorkspaceMemberActions.resolve({ event: event, props: ctx.props });
   }

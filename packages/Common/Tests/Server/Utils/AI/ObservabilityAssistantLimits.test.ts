@@ -421,6 +421,51 @@ describe("ObservabilityAssistant — run-scoped tools", () => {
     );
     expect(offered).not.toContain("get_ai_investigation");
   });
+
+  /*
+   * Slack and Teams answers and autonomous investigations change nothing:
+   * an investigation runs as OneUptime, with nobody to make a change as,
+   * and an answer has nobody's approval. They offer no tool that changes
+   * the project, and refuse one the model names anyway, without running it.
+   */
+  test.each([
+    "acknowledge_incident",
+    "resolve_alert",
+    "page_on_call_policy",
+    "open_code_pull_request",
+  ])(
+    "a tool that changes the project (%s) is refused even when the model names it",
+    async (name: string) => {
+      expect(AIToolbox.isMutationTool(name)).toBe(true);
+
+      const spies: ReturnType<typeof installSpies> = installSpies();
+
+      spies.execute
+        .mockResolvedValueOnce(toolCallResponse("a", name) as never)
+        .mockResolvedValueOnce(response({ content: "Answer." }) as never);
+
+      await ask({ maxWallClockMs: null });
+
+      expect(spies.toolbox).not.toHaveBeenCalled();
+
+      const offered: Array<string> = (
+        request(spies.execute, 0).tools || []
+      ).map((tool: { name: string }) => {
+        return tool.name;
+      });
+      expect(offered).not.toContain(name);
+
+      const answered: LLMMessage | undefined = request(
+        spies.execute,
+        1,
+      ).messages.find((message: LLMMessage): boolean => {
+        return message.role === "tool";
+      });
+      expect(answered?.content).toBe(
+        `Error: ${name} is not available in this run. Answer with the data you already have.`,
+      );
+    },
+  );
 });
 
 describe("ObservabilityAssistant — context compaction", () => {
