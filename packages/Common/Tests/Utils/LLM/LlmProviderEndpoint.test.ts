@@ -295,6 +295,31 @@ describe("an Anthropic Base URL reaches the Messages API", () => {
   });
 });
 
+describe("a Base URL that names an Anthropic Messages API", () => {
+  test.each([
+    "https://contoso.services.ai.azure.com/anthropic",
+    "https://contoso.services.ai.azure.com/anthropic/",
+    "https://contoso.services.ai.azure.com/anthropic/v1",
+    "https://contoso.services.ai.azure.com/anthropic/v1/messages",
+    "https://contoso.services.ai.azure.com/Anthropic/V1/Messages",
+    "https://gateway.example.com/v1/acct/gw/anthropic",
+  ])("%s is one", (baseUrl: string) => {
+    expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(baseUrl)).toBe(true);
+  });
+
+  test.each([
+    "https://contoso.services.ai.azure.com",
+    "https://contoso.services.ai.azure.com/openai/v1",
+    "https://contoso.openai.azure.com/openai/deployments/claude-proxy",
+    "https://contoso.services.ai.azure.com/anthropic-proxy",
+    "https://contoso.services.ai.azure.com/anthropic/v2",
+    "https://api.anthropic.com/v1",
+    "https://gateway.example.com/v1/messages",
+  ])("%s is not", (baseUrl: string) => {
+    expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(baseUrl)).toBe(false);
+  });
+});
+
 describe("a Base URL in parts", () => {
   test("separates the origin, the host, the path and the query", () => {
     expect(

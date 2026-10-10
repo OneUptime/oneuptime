@@ -703,6 +703,82 @@ describe("Claude in Microsoft Foundry, on the Anthropic wire", () => {
     ]);
   });
 
+  test("an Azure OpenAI provider pointed at the resource's Claude API speaks the Anthropic wire there", async () => {
+    const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));
+
+    const response: LLMCompletionResponse = await complete(
+      {
+        llmType: LlmType.AzureOpenAI,
+        apiKey: AZURE_KEY,
+        baseUrl: "https://contoso.services.ai.azure.com/anthropic/v1/messages",
+        modelName: "claude-sonnet-5-5",
+      },
+      { temperature: 0.2, maxTokens: 500 },
+    );
+
+    const request: SentRequest = sent(spy);
+
+    expect(request.url).toBe(
+      "https://contoso.services.ai.azure.com/anthropic/v1/messages",
+    );
+    expect(request.headers).toEqual({
+      "x-api-key": AZURE_KEY,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    });
+    expect(request.data["model"]).toBe("claude-sonnet-5-5");
+    // A current Claude model chooses its own sampling, on Foundry too.
+    expect(request.data["temperature"]).toBeUndefined();
+    // And it thinks before it answers, so it gets room for that.
+    expect(request.data["max_tokens"]).toBe(
+      500 + LLMService.ANTHROPIC_THINKING_ROOM_TOKENS,
+    );
+    expect(response.content).toBe("Two incidents are active.");
+  });
+
+  test.each([
+    "https://contoso.services.ai.azure.com/anthropic",
+    "https://contoso.services.ai.azure.com/anthropic/v1",
+  ])(
+    "an Azure OpenAI provider with %s reaches the same Claude endpoint",
+    async (baseUrl: string) => {
+      const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));
+
+      await complete(azureConfig(baseUrl, "claude-opus-5-5"));
+
+      expect(sent(spy).url).toBe(
+        "https://contoso.services.ai.azure.com/anthropic/v1/messages",
+      );
+      expect(sent(spy).headers["x-api-key"]).toBe(AZURE_KEY);
+      expect(sent(spy).headers["api-key"]).toBeUndefined();
+    },
+  );
+
+  test("an Azure OpenAI provider on the Claude API still asks for its own key first", async () => {
+    const spy: PostSpy = jest.spyOn(API, "post") as PostSpy;
+
+    await expect(
+      complete({
+        llmType: LlmType.AzureOpenAI,
+        baseUrl: "https://contoso.services.ai.azure.com/anthropic",
+      }),
+    ).rejects.toThrow("Azure OpenAI API key is required");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("the same resource's endpoint alone is its OpenAI v1 API, not Claude's", async () => {
+    const spy: PostSpy = mockReplies(success(AZURE_SUCCESS_BODY));
+
+    await complete(
+      azureConfig("https://contoso.services.ai.azure.com", "DeepSeek-V3.1"),
+    );
+
+    expect(sent(spy).url).toBe(
+      "https://contoso.services.ai.azure.com/openai/v1/chat/completions",
+    );
+    expect(sent(spy).headers["api-key"]).toBe(AZURE_KEY);
+  });
+
   test("an Anthropic provider with no Base URL still goes to Anthropic's own API", async () => {
     const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));
 

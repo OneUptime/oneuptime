@@ -1746,7 +1746,8 @@ export default class LLMService {
    * Microsoft Foundry and Azure OpenAI: the OpenAI wire, sent to the
    * endpoint LlmProviderEndpoint.resolveAzureOpenAI works out from the Base
    * URL (the resource's v1 API, or a deployment URL with an api-version),
-   * with the resource's key in the `api-key` header.
+   * with the resource's key in the `api-key` header. A Base URL on the
+   * resource's Claude API (/anthropic) gets the Anthropic wire instead.
    */
   @CaptureSpan()
   private static async getAzureOpenAICompletion(
@@ -1762,6 +1763,19 @@ export default class LLMService {
     if (!config.baseUrl) {
       throw new BadDataException(
         "Azure OpenAI Base URL is required: your Microsoft Foundry or Azure OpenAI resource's endpoint (e.g. https://<resource>.openai.azure.com/openai/v1).",
+      );
+    }
+
+    /*
+     * Microsoft Foundry serves Claude only through the Anthropic Messages
+     * API, at the resource's /anthropic path, with the same key. A provider
+     * pointed there speaks that wire, so this one provider type covers every
+     * deployment on a Foundry resource.
+     */
+    if (LlmProviderEndpoint.isAnthropicApiBaseUrl(config.baseUrl)) {
+      return await this.getAnthropicCompletion(
+        { ...config, llmType: LlmType.Anthropic },
+        request,
       );
     }
 

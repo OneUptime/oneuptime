@@ -66,6 +66,12 @@ const MESSAGES_SUFFIX: RegExp = /\/messages$/i;
 // The Anthropic SDKs' base URL for Claude in Foundry and for gateways.
 const ANTHROPIC_ROOT_SUFFIX: RegExp = /\/anthropic$/i;
 
+/*
+ * Claude's Messages API on a Foundry resource (or a gateway's): its base
+ * URL, the same with the API version, or a deployment's Target URI.
+ */
+const ANTHROPIC_API_PATH: RegExp = /\/anthropic(?:\/v1)?(?:\/messages)?$/i;
+
 // A Microsoft Foundry resource's own host name.
 const FOUNDRY_HOST: RegExp = /\.services\.ai\.azure\.(com|us|cn)$/i;
 
@@ -227,5 +233,17 @@ export default class LlmProviderEndpoint {
   // Whether a host is a Microsoft Foundry resource's (*.services.ai.azure.com).
   public static isFoundryHost(host: string): boolean {
     return FOUNDRY_HOST.test(host);
+  }
+
+  /*
+   * Whether a Base URL names an Anthropic Messages API: Claude in Microsoft
+   * Foundry (https://contoso.services.ai.azure.com/anthropic, .../anthropic/v1
+   * or a deployment's Target URI .../anthropic/v1/messages), or a gateway's
+   * /anthropic route. Foundry serves Claude only through that API, so an
+   * Azure OpenAI provider pointed there speaks it (LLMService.getCompletion),
+   * and one provider type covers every deployment on a Foundry resource.
+   */
+  public static isAnthropicApiBaseUrl(baseUrl: string): boolean {
+    return ANTHROPIC_API_PATH.test(LlmProviderEndpoint.splitBaseUrl(baseUrl).path);
   }
 }
