@@ -364,11 +364,14 @@ export default class WorkspaceMemberActions {
       );
     }
 
-    const event: WorkspaceEventRecord = this.toEventRecord({
-      event: data.event,
-      projectId: data.props.tenantId!,
-      record: data.record,
-    });
+    // Frozen: what is taken as read stays what was read.
+    const event: WorkspaceEventRecord = Object.freeze(
+      this.toEventRecord({
+        event: data.event,
+        projectId: data.props.tenantId!,
+        record: data.record,
+      }),
+    );
 
     MEMBER_READS.set(event, reader);
 

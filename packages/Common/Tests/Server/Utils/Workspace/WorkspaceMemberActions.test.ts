@@ -1162,6 +1162,23 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
     expect(readSpy).toHaveBeenCalledTimes(1);
   });
 
+  test("a record read for the member cannot be changed afterwards", async (): Promise<void> => {
+    const record: WorkspaceEventRecord = await recordAsRead({
+      kind: RECORD_KINDS[0]!,
+      currentStateId: ObjectID.generate(),
+    });
+    const readState: ObjectID | undefined = record.currentStateId;
+
+    expect((): void => {
+      record.currentStateId = ObjectID.generate();
+    }).toThrow(TypeError);
+    expect((): void => {
+      record.projectId = ObjectID.generate();
+    }).toThrow(TypeError);
+    expect(record.currentStateId).toBe(readState);
+    expect(record.projectId).toBe(projectId);
+  });
+
   test("a record read for another member is read again, as this one", async (): Promise<void> => {
     const kind: RecordKind = RECORD_KINDS[0]!;
     const record: WorkspaceEventRecord = await recordAsRead({
