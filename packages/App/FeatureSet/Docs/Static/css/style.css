@@ -4227,6 +4227,11 @@ html.dark .docs-theme-toggle .docs-icon-light {
   letter-spacing: -0.025em;
   font-weight: 700;
   color: var(--docs-text);
+  /*
+   * A one-word title wider than a phone (Norwegian
+   * "Overvåkingshemmeligheter") breaks rather than widening the page.
+   */
+  overflow-wrap: break-word;
 }
 
 /* The page's Markdown: copy it, or open it. */

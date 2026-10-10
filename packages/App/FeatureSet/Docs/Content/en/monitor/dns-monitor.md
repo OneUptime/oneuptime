@@ -11,7 +11,7 @@ A DNS monitor queries a DNS record on a schedule and checks the answer: that the
 
 ## How it works
 
-On each check, a probe asks a DNS server for one record type of one name, such as the `A` records of `example.com`. The name is online when the server answers with at least one record of that type. A query that fails, times out or returns no record is tried again, up to the number of retries you set. The probe then asks a validating resolver whether the answer carries DNSSEC's authenticated-data (AD) flag, and OneUptime runs the result through the monitor's criteria.
+On each check, a probe asks a DNS server for one record type of one name, such as the `A` records of `example.com`. The name is online when the server answers with at least one record of that type. A query that fails, times out or returns no record is tried again a second later, up to the number of retries you set. The probe then asks a validating resolver whether the answer carries DNSSEC's authenticated-data (AD) flag, and OneUptime runs the result through the monitor's criteria.
 
 ```mermaid title="One DNS check"
 flowchart TB
@@ -65,8 +65,8 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 | --- | --- | --- |
 | **Domain Name** | None | The name to query, such as `example.com` or `_sip._tcp.example.com`. For a `PTR` record, the reverse name, such as `34.216.184.93.in-addr.arpa`. |
 | **Record Type** | `A` | The record type to query. See [Record types](#record-types). |
-| **DNS Server (Optional)** | The probe's resolver | A DNS server to query instead, such as `8.8.8.8` or `ns1.example.com`. |
-| **Port** (under **More fields**) | `53` | The port of the server in **DNS Server (Optional)**. |
+| **DNS Server (Optional)** | The probe's resolver | A DNS server to query instead, such as `8.8.8.8` or `ns1.example.com`. Every record type, `CAA` included, is asked of it. |
+| **Port** (under **More fields**) | `53` | The port of the server in **DNS Server (Optional)**. The DNSSEC check asks the same port. |
 | **Timeout (ms)** (under **More fields**) | `5000` | How long to wait for an answer, in milliseconds. |
 | **Retries** (under **More fields**) | `3` | Retries after the first attempt fails. `0` means a single attempt. |
 
@@ -103,7 +103,7 @@ Criteria decide when the name counts as online, degraded or offline, and whether
 
 **DNS Record Value** matches when _any_ of the records matches. With several `A` records, **Equal To** `93.184.216.34` matches when one of them is that address, and **Not Equal To** matches when one of them is not.
 
-**DNSSEC Is Valid** asks the server in **DNS Server (Optional)**, or Google Public DNS (`8.8.8.8`) when that is empty, so the server you set should be one that validates DNSSEC. The filter has no value, and matches neither way, when the probe cannot run that check. For a full check of a signed zone, use a [DNSSEC monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC Is Valid** asks the server in **DNS Server (Optional)**, on its **Port**, or Google Public DNS (`8.8.8.8`) when that is empty, so the server you set should be one that validates DNSSEC. The filter has no value, and matches neither way, when the probe cannot run that check. For a full check of a signed zone, use a [DNSSEC monitor](/docs/monitor/dnssec-monitor).
 
 With two or more filters, **Match Condition** decides whether **All** of them or **Any** one must match. A criteria's **Actions** decide what it does: change the monitor status, create an alert, declare an incident, or any of these.
 

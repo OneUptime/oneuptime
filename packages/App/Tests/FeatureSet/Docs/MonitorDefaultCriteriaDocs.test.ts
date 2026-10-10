@@ -1,4 +1,5 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -228,8 +229,13 @@ describe("SSL Certificate and Domain monitors warn before expiry", () => {
       );
 
       expect(section).toContain(`expires in ${days} days or less`);
-      // The "how to add it to an older monitor" recipe uses the same number.
-      expect(section).toContain(`**Less Than or Equal To** / \`${days}\``);
+      /*
+       * The "how to add it to an older monitor" recipe uses the same number,
+       * and names the condition as the criteria form's dropdown draws it.
+       */
+      expect(section).toContain(
+        `**${FilterType.LessThanOrEqualTo}** / \`${days}\``,
+      );
     },
   );
 
