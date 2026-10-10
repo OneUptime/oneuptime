@@ -61,7 +61,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 | 공급자                | 설명                                                                 | API 키 필요 여부   | 기본 URL 필요 여부   |
 | --------------------- | -------------------------------------------------------------------- | ------------------ | -------------------- |
 | **OpenAI**            | GPT-5.1 및 기타 OpenAI 모델                                          | 예                 | 아니요 (기본값 사용) |
-| **Azure OpenAI**      | Azure 배포에서 호스팅되는 OpenAI 모델                                | 예                 | 예                   |
+| **Azure OpenAI / Microsoft Foundry** | Microsoft Foundry나 Azure OpenAI에 배포하는 모델: OpenAI 모델, Foundry Models, Claude | 예 | 예 |
 | **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 및 기타 Claude 모델 | 예                 | 아니요 (기본값 사용) |
 | **Groq**              | Llama, Mixtral 및 기타 오픈 모델을 위한 빠른 추론                    | 예                 | 아니요 (기본값 사용) |
 | **Mistral**           | Mistral의 호스팅 모델                                                | 예                 | 아니요 (기본값 사용) |
@@ -82,7 +82,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 
 - **이름**: 이 LLM 구성의 친숙한 이름 (예: "프로덕션 OpenAI", "로컬 Ollama")
 - **설명** (선택 사항): 이 공급자의 목적을 식별하는 데 도움이 되는 설명
-- **LLM 제공자**: 공급자 유형 선택 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama 또는 OpenAI Compatible)
+- **LLM 제공자**: 공급자 유형 선택 (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama 또는 OpenAI Compatible)
 - **API 키**: API 키 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral의 경우 필수; Ollama 및 OpenAI 호환 서버의 경우 선택 사항)
 - **모델 이름**: 사용할 특정 모델 (예: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **기본 URL** (선택 사항): 커스텀 API 엔드포인트 URL (Azure OpenAI, Ollama, OpenAI Compatible의 경우 필수, 기타의 경우 선택 사항)
@@ -130,6 +130,10 @@ API 키: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Claude Opus 4.7 이후의 모든 Claude 모델은 샘플링을 스스로 정하며, `temperature`, `top_p` 또는 `top_k`를 지정한 요청을 거부합니다. OneUptime은 이러한 모델에는 이 설정들을 보내지 않습니다. 그래도 모델이 그중 하나를 거부하면, OneUptime은 해당 설정을 빼고 요청을 다시 보내며 그 공급자에 대해 이를 기억합니다.
 
 Claude 5 모델은 답하기 전에 사고하며, 이 사고는 응답의 토큰 한도에 포함되므로 OneUptime은 사고를 위한 여유를 남겨 둡니다. 사고를 줄여 더 빠르고 저렴하게 답하게 하려면 공급자의 **추가 매개변수**에 `{"output_config": {"effort": "low"}}`를 설정합니다. 여기에 추가한 설정은 OneUptime이 요청마다 Anthropic에 보내며, `model`, `messages`, `system`, `tools`, `tool_choice`, `stream`은 OneUptime이 직접 설정하므로 제외됩니다.
+
+### Azure OpenAI 및 Microsoft Foundry
+
+Microsoft Foundry나 Azure OpenAI에 배포하는 모델(OpenAI 모델, 다른 Foundry Models, Claude)에는 **Azure OpenAI / Microsoft Foundry**를 사용하세요. 리소스의 키 중 하나를 **API 키**에, 배포 이름을 **모델 이름**에, 리소스 엔드포인트를 **기본 URL**에 입력합니다(예: `https://contoso-ai.openai.azure.com/openai/v1`). Azure 쪽 설정은 [Microsoft Foundry 및 Azure OpenAI](/docs/ai/microsoft-foundry)에서 안내합니다. 리소스, 권한, 모델 배포, 네트워크 요구 사항, 문제 해결을 다룹니다.
 
 ### Ollama (자체 호스팅)
 
@@ -251,7 +255,7 @@ GPU 스케줄링, 게이트된 모델 및 튜닝 옵션에 대해서는 [Helm �
 
 엔터프라이즈 배포 또는 프록시 서비스를 사용할 때 커스텀 기본 URL을 지정할 수 있습니다:
 
-- **Azure OpenAI**: Azure 엔드포인트 URL 사용
+- **Azure OpenAI / Microsoft Foundry**: 리소스의 엔드포인트 사용(예: `https://contoso-ai.openai.azure.com/openai/v1`)
 - **OpenAI 호환 API**: OpenAI의 API 사양을 따르는 모든 API
 - **프라이빗 Ollama 인스턴스**: 내부 Ollama 서버 URL
 
@@ -267,6 +271,7 @@ GPU 스케줄링, 게이트된 모델 및 튜닝 옵션에 대해서는 [Helm �
 ### 연결 문제
 
 - **OpenAI/Anthropic**: API 키가 유효하고 충분한 크레딧이 있는지 확인합니다
+- **Azure OpenAI / Microsoft Foundry**: 오류의 맨 앞에 바꿔야 할 점이 나옵니다. Azure가 응답하는 각 오류는 [Microsoft Foundry 및 Azure OpenAI](/docs/ai/microsoft-foundry)에서 설명합니다
 - **Ollama**: Ollama 서버가 실행 중이고, OneUptime 서버가 연결할 수 있는 주소에서 수신하며(네이티브 설치는 `OLLAMA_HOST=0.0.0.0:11434`), 기본 URL이 그 주소를 가리키는지 확인합니다
 - **OpenAI Compatible**: 기본 URL이 `/v1`로 끝나는지(또는 서버와 일치하는지), 모델 이름이 서버가 제공하는 모델과 일치하는지 확인하고, 서버에 인증이 필요한 경우에만 API 키를 설정하세요
 - **"…points to an address OneUptime is not allowed to connect to"**: 기본 URL이 거부된 주소로 해석됩니다. `localhost`나 다른 루프백 주소, 또는 OneUptime Cloud에서는 사설 네트워크 주소입니다. (OneUptime Cloud는 거부된 호스트 이름을 대신 "…could not be reached"로 보고합니다.) [자체 호스팅 모델의 기본 URL 선택](#자체-호스팅-모델의-기본-url-선택)을 참조하세요

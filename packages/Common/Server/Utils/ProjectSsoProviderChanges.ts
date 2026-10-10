@@ -9,6 +9,7 @@ import {
   PostgresQueryTimeoutMs,
   PostgresStatementTimeoutMs,
 } from "../EnvironmentConfig";
+import { getLongestStatementWaitInMs } from "../Infrastructure/Postgres/CancelOnTimeoutClient";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
@@ -138,7 +139,11 @@ export type SignInChangeRecheck = () => Promise<Array<SemaphoreMutex>>;
 // What failed, for a failed write's locks to be given back by (giveBack).
 export interface SignInChangeFailure {
   error: unknown;
-  // What the caller knows of the write: a create runs in a transaction of its own.
+  /*
+   * What the caller knows of the write: which step of it failed
+   * (DatabaseService's `failedStatement`), and that a create runs in a
+   * transaction of its own.
+   */
   context?: StatementContext | undefined;
 }
 
@@ -212,9 +217,10 @@ export const WRITE_KEEP_INTERVAL_IN_MS: number = 2_500;
  * The longest the locks of a change are kept alive while it is written, from
  * its check on: as long as the client waits for any one statement
  * (PostgresQueryTimeoutMs - DATABASE_QUERY_TIMEOUT_MS, by default a little
- * after the database's DATABASE_STATEMENT_TIMEOUT_MS), with time to spare
- * for the steps between the check and the write - and a minute at the
- * least. So a write that is still going is held to the end, whatever the
+ * after the database's DATABASE_STATEMENT_TIMEOUT_MS - and then the
+ * database's answer to the cancel it sends: getLongestStatementWaitInMs),
+ * with time to spare for the steps between the check and the write - and a
+ * minute at the least. So a write that is still going is held to the end, whatever the
  * timeouts are set to; one stuck longer than that - a step after its
  * statements that never returns - is no longer kept, and its locks run out
  * LOCK_TIMEOUT_IN_MS later, rather than holding every other change to who
@@ -233,7 +239,7 @@ export const getWriteKeepLimitInMs: (queryTimeoutMs: number) => number = (
 };
 
 export const WRITE_KEEP_LIMIT_IN_MS: number = getWriteKeepLimitInMs(
-  PostgresQueryTimeoutMs,
+  getLongestStatementWaitInMs(PostgresQueryTimeoutMs),
 );
 
 /*
@@ -246,9 +252,10 @@ export const ABANDONED_WRITE_MARGIN_IN_MS: number = 10_000;
 /*
  * How long a change keeps its locks once its write failed without the
  * database answering - the client stopped waiting for the statement
- * (DATABASE_QUERY_TIMEOUT_MS) or lost the connection while it ran - from
- * that moment (keepUntilAbandonedWriteEnds): the database may still be
- * running the statement, and only its own statement timeout
+ * (DATABASE_QUERY_TIMEOUT_MS) and the cancel it sent got no answer either,
+ * or the connection was lost while it ran - from that moment
+ * (keepUntilAbandonedWriteEnds): the database may still be running the
+ * statement, and only its own statement timeout
  * (DATABASE_STATEMENT_TIMEOUT_MS) ends it. So the locks are kept that long,
  * and a margin, and then left to run out: no other change to who can sign in
  * is checked while the statement could still land. Behind a connection pooler
@@ -256,6 +263,9 @@ export const ABANDONED_WRITE_MARGIN_IN_MS: number = 10_000;
  * when the database role has a statement_timeout of its own (HelmChart/Docs/
  * Postgres.md). A statement timeout that is not set, or not a number, bounds
  * nothing: the locks are kept as long as a write is (getWriteKeepLimitInMs).
+ * When the cancel reaches the database - as it does but for a lost
+ * connection - the database answers that it cancelled the statement, which
+ * applied nothing, and the locks are given back at once (StatementOutcome).
  */
 export const getAbandonedWriteHoldInMs: (
   statementTimeoutMs: number,
@@ -507,20 +517,26 @@ export default class ProjectSsoProviderChanges {
 
   /*
    * After an update or delete that failed once its before-hook had run
-   * (onUpdateError, onDeleteError, with what failed): nothing was written,
-   * so nobody is told, and its locks are given back at once rather than left
-   * to run out - unless the database may still apply the write, when they
-   * are kept until it would have cancelled it (giveBackAfterFailedWrite).
+   * (onUpdateError, onDeleteError, with what failed, and which step of the
+   * write it was - DatabaseService's `failedStatement`): nothing was
+   * written, so nobody is told, and its locks are given back at once rather
+   * than left to run out - unless the database may still apply the write,
+   * when they are kept until it would have cancelled it
+   * (giveBackAfterFailedWrite).
    */
   public static async afterFailedWrite(
     write: ProjectSsoProviderWrite | null | undefined,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     if (!write) {
       return;
     }
 
-    await ProjectSsoProviderChanges.release(write, { error });
+    await ProjectSsoProviderChanges.release(write, {
+      error,
+      context: failedStatement,
+    });
   }
 
   /*

@@ -932,6 +932,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/ai/llm-provider",
       },
       {
+        title: "Microsoft Foundry",
+        url: "/docs/ai/microsoft-foundry",
+      },
+      {
         title: "MCP Server",
         url: "/docs/ai/mcp-server",
       },

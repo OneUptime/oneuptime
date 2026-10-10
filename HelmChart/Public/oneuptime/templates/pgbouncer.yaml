@@ -48,6 +48,12 @@ data:
     max_db_connections = {{ .Values.pgbouncer.maxDbConnections | int }}
     {{- end }}
     server_idle_timeout = {{ .Values.pgbouncer.serverIdleTimeoutSeconds | int }}
+    # A statement waits at most this long for a server connection, then is
+    # refused: below the app's own wait (DATABASE_QUERY_TIMEOUT_MS), so no
+    # statement starts after the app stopped waiting for it - pgbouncer does
+    # not cancel one still in its queue. See queryWaitTimeoutSeconds in
+    # values.yaml.
+    query_wait_timeout = {{ .Values.pgbouncer.queryWaitTimeoutSeconds | int }}
     # node-postgres sends statement_timeout / idle_in_transaction_session_timeout
     # (and idle_session_timeout via `options`) as startup parameters. pgbouncer
     # rejects any startup parameter it does not track with a FATAL error and

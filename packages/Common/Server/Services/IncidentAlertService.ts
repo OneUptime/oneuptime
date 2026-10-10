@@ -1352,9 +1352,14 @@ export class Service extends ProjectReferencesService<Model> {
    * validated - before the incident number is taken - so an impossible
    * request is refused instead of the incident being declared while its
    * alerts keep paging: the project has no Acknowledged alert state, or the
-   * caller may not change the state of every alert that would be
-   * acknowledged (see AlertStateChangeAuthorization; the acknowledgements
-   * themselves are written as root, for exactly these alerts).
+   * caller may not acknowledge every alert that would be acknowledged. What
+   * acknowledging one of them takes is what it takes on the alert's own page,
+   * and nothing more: creating its state timeline row, moving it into the
+   * Acknowledged state, as the caller - Create Alert State Timeline, narrowed
+   * by labels, owners and the alert's privacy through the alert, and no
+   * permission to edit the alert (see AlertStateChangeAuthorization; the
+   * acknowledgements themselves are written as root, for exactly these
+   * alerts).
    */
   @CaptureSpan()
   public async validateAcknowledgeAlertsForNewIncident(data: {
@@ -1464,6 +1469,7 @@ export class Service extends ProjectReferencesService<Model> {
         await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
           projectId: projectId,
           alertIds: alertIdsToAcknowledge,
+          alertStateId: new ObjectID(acknowledgedState._id.toString()),
           props: data.props,
         });
       } catch (error) {

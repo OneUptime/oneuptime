@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/GlobalSso";
 import ObjectID from "../../Types/ObjectID";
 import { fillSamlProviderDefaults } from "../../Types/SSO/SamlProviderDefaults";
@@ -170,9 +171,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterFailedWrite(onUpdate.updateBy, error);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;
@@ -225,9 +231,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterFailedWrite(onDelete.deleteBy, error);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onDelete.deleteBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;

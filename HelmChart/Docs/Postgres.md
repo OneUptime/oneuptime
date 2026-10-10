@@ -343,16 +343,25 @@ tolerate being run twice at once.
 
 #### Statement timeout behind the pooler
 
-The app's client-side `query_timeout` (`DATABASE_QUERY_TIMEOUT_MS`) does not
-cancel a statement: it stops waiting for it, and the backend runs it on - and
-may commit it after the app reported the write as failed. Only the backend's
-`statement_timeout` (`DATABASE_STATEMENT_TIMEOUT_MS`, 30 seconds by default)
-ends such a statement, and the app relies on it: a change to who can sign in
-with SSO whose write the app stopped waiting for holds back every other such
-change until the statement timeout would have cancelled it (and 10 seconds
-more), then lets them go on. Behind PgBouncer - the chart's, or a managed pooled
-endpoint that drops startup parameters too - set the timeout on the role the app
-connects as, to the value of `DATABASE_STATEMENT_TIMEOUT_MS`:
+When the app stops waiting for a statement (`DATABASE_QUERY_TIMEOUT_MS`, 35
+seconds by default) it cancels it on the database - the cancel request `psql`
+sends on Ctrl-C, which PgBouncer passes on to the server connection the
+statement runs on - and closes the connection the statement ran on instead of
+handing it to another request. A transaction the statement was part of is
+rolled back with that connection, so a write the app reported as failed is never
+committed later by the next request to borrow the connection. The app waits up
+to 5 more seconds for the database to answer the cancel; that answer (the
+statement was cancelled) tells it nothing was written.
+
+A cancel cannot reach the database once the connection to it is gone - a
+network partition, a pooler restarting. Only the backend's `statement_timeout`
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 30 seconds by default) ends such a statement,
+and the app relies on it then: a change to who can sign in with SSO whose write
+got no answer holds back every other such change until the statement timeout
+would have cancelled it (and 10 seconds more), then lets them go on. Behind
+PgBouncer - the chart's, or a managed pooled endpoint that drops startup
+parameters too - set the timeout on the role the app connects as, to the value
+of `DATABASE_STATEMENT_TIMEOUT_MS`:
 
 ```sql
 -- The role and database the app connects with: postgres and oneuptimedb for
@@ -365,6 +374,25 @@ restart PgBouncer to start over. A connection that sends its own
 `statement_timeout` keeps it: the migration Job connects directly and sends the
 app's, so the role's setting changes nothing for it. A `psql` session for long
 manual work under that role can lift it with `SET statement_timeout = 0`.
+
+#### Statements queued in the pooler
+
+PgBouncer cannot cancel a statement still waiting in its own queue for a free
+server connection: it drops a cancel for it, and the statement runs once a
+connection comes free - however long after the app stopped waiting for it. So
+the chart's PgBouncer gives up on a queued statement before the app does:
+`pgbouncer.queryWaitTimeoutSeconds` (PgBouncer's `query_wait_timeout`, 30
+seconds by default, below the app's 35) answers it with `query_wait_timeout`,
+and it never runs. PgBouncer's own default is 120 seconds. If you raise
+`DATABASE_QUERY_TIMEOUT_MS`, you may raise this with it - keep it a few seconds
+below; `0` lets a statement wait for ever. With your own PgBouncer, or a managed
+pooled endpoint, set its `query_wait_timeout` the same way.
+
+```yaml
+pgbouncer:
+  enabled: true
+  queryWaitTimeoutSeconds: 30 # below DATABASE_QUERY_TIMEOUT_MS (35 s by default)
+```
 
 ### Transaction mode (real connection reduction)
 
@@ -425,8 +453,10 @@ Notes on the migration Job:
   boots at the same time runs the migration loop at the same time. This is the
   same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
-  session mode); the app's client-side `query_timeout` still applies, but only
-  stops waiting. Set `statement_timeout` on the app's database role (see
+  session mode); the app's client-side `query_timeout` still applies, and the
+  app cancels a statement it stops waiting for - but a cancel cannot reach a
+  database it lost the connection to. Set `statement_timeout` on the app's
+  database role (see
   [Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)).
 
 ### New pods and pending schema migrations

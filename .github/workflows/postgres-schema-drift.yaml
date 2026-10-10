@@ -1006,6 +1006,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/SchemaMigrationWaitPostgres.test.ts
           --forceExit
 
+      # Runs app statements that wait on a lock past their client timeout,
+      # through the app's own pool options (CancelOnTimeoutClient): each is
+      # cancelled on the database, its connection closed rather than handed
+      # to the next borrower, and a save() it was part of never committed by
+      # the next request - the database answers the cancel, so nothing of it
+      # lands; where the cancel cannot reach, the save is still rolled back.
+      # With node-postgres' own query_timeout the next borrower committed it.
+      # Its table lives in a schema of its own; it needs no migrated table.
+      - name: Test statements the app stops waiting for on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ABANDONED_STATEMENT_TESTS: "true"
+          ABANDONED_STATEMENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ABANDONED_STATEMENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ABANDONED_STATEMENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AbandonedStatementsPostgres.test.ts
+          --forceExit
+
       - name: Test the configurable rule criteria migration on migrated Postgres
         working-directory: packages/Common
         env:

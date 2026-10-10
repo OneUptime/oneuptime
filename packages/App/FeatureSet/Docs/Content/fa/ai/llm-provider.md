@@ -61,7 +61,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 | ارائه‌دهنده | توضیح | کلید API لازم است | نشانی پایه لازم است |
 | --------------------- | ---------------------------------------------------------------------------- | ---------------- | ----------------- |
 | **OpenAI** | ‏GPT-5.1 و دیگر مدل‌های OpenAI | بله | خیر (پیش‌فرض را به کار می‌برد) |
-| **Azure OpenAI** | مدل‌های OpenAI میزبانی‌شده روی استقرار Azure شما | بله | بله |
+| **Azure OpenAI / Microsoft Foundry** | مدل‌هایی که در Microsoft Foundry یا Azure OpenAI مستقر می‌کنید: مدل‌های OpenAI، ‏Foundry Models و Claude | بله | بله |
 | **Anthropic** | ‏Claude Sonnet 5.5، ‏Claude Opus 5.5، ‏Claude Haiku 5.5 و دیگر مدل‌های Claude | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Groq** | استنتاج سریع برای Llama، ‏Mixtral و دیگر مدل‌های باز | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Mistral** | مدل‌های میزبانی‌شده Mistral | بله | خیر (پیش‌فرض را به کار می‌برد) |
@@ -82,7 +82,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 - **Name**: نامی دوستانه برای این پیکربندی LLM (برای نمونه «Production OpenAI»، «Local Ollama»)
 - **Description** (اختیاری): توضیحی که به شناسایی هدف این ارائه‌دهنده کمک کند
-- **LLM Provider**: نوع ارائه‌دهنده را برگزینید (OpenAI، ‏Azure OpenAI، ‏Anthropic، ‏Groq، ‏Mistral، ‏Ollama یا OpenAI Compatible)
+- **LLM Provider**: نوع ارائه‌دهنده را برگزینید (OpenAI، ‏Azure OpenAI / Microsoft Foundry، ‏Anthropic، ‏Groq، ‏Mistral، ‏Ollama یا OpenAI Compatible)
 - **API Key**: کلید API شما (برای OpenAI، ‏Azure OpenAI، ‏Anthropic، ‏Groq و Mistral الزامی؛ برای Ollama و کارسازهای سازگار با OpenAI اختیاری)
 - **Model Name**: مدل مشخصی که به کار می‌رود (برای نمونه `gpt-5.1`، `claude-sonnet-5-5`، `llama3.1`)
 - **Base URL** (اختیاری): نشانی سفارشی نقطه پایانی API (برای Azure OpenAI، ‏Ollama و OpenAI Compatible الزامی؛ برای بقیه اختیاری)
@@ -130,6 +130,10 @@ Model Name: claude-sonnet-5-5
 ‏Claude Opus 4.7 و همه مدل‌های Claude پس از آن، نمونه‌برداری (sampling) خود را خودشان برمی‌گزینند و درخواستی را که `temperature`، `top_p` یا `top_k` را تنظیم کند رد می‌کنند. OneUptime این تنظیم‌ها را برای این مدل‌ها نمی‌فرستد. اگر مدلی باز هم یکی از آن‌ها را رد کند، OneUptime درخواست را بدون آن دوباره می‌فرستد و این را برای آن ارائه‌دهنده به خاطر می‌سپارد.
 
 مدل‌های Claude 5 پیش از پاسخ دادن فکر می‌کنند و این فکر کردن جزو سقف توکن پاسخ شمرده می‌شود، بنابراین OneUptime برای آن جا می‌گذارد. برای این‌که کمتر فکر کنند و سریع‌تر و ارزان‌تر پاسخ دهند، `{"output_config": {"effort": "low"}}` را در **Additional Parameters** ارائه‌دهنده تنظیم کنید. OneUptime تنظیم‌هایی را که آنجا می‌افزایید با هر درخواست برای Anthropic می‌فرستد، به‌جز `model`، `messages`، `system`، `tools`، `tool_choice` و `stream` که خودش تنظیم می‌کند.
+
+### Azure OpenAI و Microsoft Foundry
+
+برای مدل‌هایی که در Microsoft Foundry یا Azure OpenAI مستقر می‌کنید، یعنی مدل‌های OpenAI، دیگر Foundry Models و Claude، از **Azure OpenAI / Microsoft Foundry** استفاده کنید. یکی از کلیدهای منبع را به‌عنوان **API Key**، نام استقرار را به‌عنوان **Model Name** و نقطه پایانی منبع را به‌عنوان **Base URL** وارد کنید، مانند `https://contoso-ai.openai.azure.com/openai/v1`. صفحه [Microsoft Foundry و Azure OpenAI](/docs/ai/microsoft-foundry) سمت Azure را گام‌به‌گام توضیح می‌دهد: منبع، مجوزها، استقرار مدل، نیازمندی‌های شبکه و عیب‌یابی.
 
 ### Ollama (خودمیزبان)
 
@@ -251,7 +255,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 برای استقرارهای سازمانی یا هنگام استفاده از سرویس‌های پراکسی، می‌توانید نشانی پایه سفارشی مشخص کنید:
 
-- **Azure OpenAI**: نشانی نقطه پایانی Azure خود را به کار ببرید
+- **Azure OpenAI / Microsoft Foundry**: نقطه پایانی منبع خود را به کار ببرید، مانند `https://contoso-ai.openai.azure.com/openai/v1`
 - **APIهای سازگار با OpenAI**: هر APIای که مشخصات API ‏OpenAI را دنبال می‌کند
 - **نمونه‌های خصوصی Ollama**: نشانی کارساز داخلی Ollama شما
 
@@ -267,6 +271,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 ### مشکل‌های اتصال
 
 - **OpenAI/Anthropic**: تأیید کنید کلید API شما معتبر است و اعتبار کافی دارد
+- **Azure OpenAI / Microsoft Foundry**: خطا با آنچه باید تغییر کند آغاز می‌شود. صفحه [Microsoft Foundry و Azure OpenAI](/docs/ai/microsoft-foundry) هر خطایی را که Azure با آن پاسخ می‌دهد توضیح می‌دهد
 - **Ollama**: مطمئن شوید کارساز Ollama در حال اجراست، روی نشانی‌ای گوش می‌دهد که کارساز OneUptime به آن دسترسی دارد (برای نصب بومی `OLLAMA_HOST=0.0.0.0:11434`)، و نشانی پایه به همان نشانی اشاره می‌کند
 - **OpenAI Compatible**: مطمئن شوید نشانی پایه به `/v1` ختم می‌شود (یا با کارسازتان می‌خواند)، نام مدل با مدلی که کارسازتان در معرض می‌گذارد می‌خواند، و فقط اگر کارسازتان لازم دارد کلید API بگذارید
 - **"…points to an address OneUptime is not allowed to connect to"**: نشانی پایه به نشانی ردشده‌ای تفکیک می‌شود — `localhost` یا نشانی بازگشتی دیگری، یا در OneUptime Cloud نشانی شبکه خصوصی. (OneUptime Cloud نام میزبان ردشده را به‌جای آن با "…could not be reached" گزارش می‌کند.) [انتخاب نشانی پایه برای مدل خودمیزبان](#انتخاب-نشانی-پایه-برای-مدل-خودمیزبان) را ببینید

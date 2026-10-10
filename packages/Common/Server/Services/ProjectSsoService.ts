@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/ProjectSso";
 import ObjectID from "../../Types/ObjectID";
 import { fillSamlProviderDefaults } from "../../Types/SSO/SamlProviderDefaults";
@@ -176,10 +177,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onUpdate?.carryForward as ProjectSsoProviderWrite | null | undefined,
       error,
+      failedStatement,
     );
 
     return error;
@@ -190,10 +193,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onDelete?.carryForward as ProjectSsoProviderWrite | null | undefined,
       error,
+      failedStatement,
     );
 
     return error;

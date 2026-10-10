@@ -1,3 +1,6 @@
+import CancelOnTimeoutClient, {
+  CancelRequestOutcome,
+} from "../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../Server/Services/AuditLogService";
@@ -57,11 +60,13 @@ import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
  *     one that comes to match the filter after the locked read, keeps its
  *     rule;
  *   - a Require SSO for Login save whose UPDATE does not finish in time:
- *     one the client stopped waiting for keeps its lock - and lands once the
- *     row is free, after the save was reported as failed - while one the
- *     database cancelled at its statement timeout writes nothing, and gives
- *     its lock back at once (StatementOutcome tells them apart from the
- *     errors node-postgres and TypeORM really throw).
+ *     one the client stopped waiting for is cancelled on the database
+ *     (CancelOnTimeoutClient), writes nothing and gives its lock back at
+ *     once, as one the database cancelled at its statement timeout does;
+ *     only one whose cancel could not reach the database keeps its lock -
+ *     and lands once the row is free, after the save was reported as failed
+ *     (StatementOutcome tells them apart from the errors node-postgres and
+ *     TypeORM really throw).
  *
  * The locks are held in memory (Semaphore stubbed, as in
  * ProjectCreateSsoWayInPostgres); SsoProviderChangesValkey keeps real ones.
@@ -861,20 +866,32 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
   });
 
   /*
-   * node-postgres' own query timeout (DATABASE_QUERY_TIMEOUT_MS) stops
-   * waiting for a statement without cancelling it: the database runs it on,
-   * and may commit it after the save was reported as failed. So the save's
-   * lock is kept - never given back - until the database would have
-   * cancelled it; a statement the database cancelled itself, and said so,
-   * wrote nothing, and its lock goes back at once. Each save runs on a pool
-   * of its own with the timeouts it needs (as the app's pool is given them,
-   * DataSourceOptions), its UPDATE held behind the project's row, which
-   * another connection holds meanwhile.
+   * The app's client (CancelOnTimeoutClient) cancels a statement it stopped
+   * waiting for (DATABASE_QUERY_TIMEOUT_MS): the database answers that it
+   * cancelled it, so it wrote nothing, and the save's lock goes back at
+   * once - as for a statement the database cancelled at its own statement
+   * timeout. Only when the cancel cannot reach the database is the save
+   * left unanswered: the database may still apply it, so its lock is kept -
+   * never given back - until the database would have cancelled it. Each
+   * save runs on a pool of its own with the timeouts it needs (as the app's
+   * pool is given them, DataSourceOptions), its UPDATE held behind the
+   * project's row, which another connection holds meanwhile.
    */
   describe("a Require SSO for Login save whose UPDATE does not finish in time", () => {
     const NAME: string = "Acme Slow";
 
     const pools: Array<DataSource> = [];
+
+    // The app's client, but no cancel reaches the database.
+    class UnreachableCancelClient extends CancelOnTimeoutClient {
+      protected override sendCancelRequest(): Promise<CancelRequestOutcome> {
+        return Promise.resolve(CancelRequestOutcome.Failed);
+      }
+
+      protected override getCancelAnswerWaitInMs(): number {
+        return 500;
+      }
+    }
 
     afterAll(async () => {
       for (const pool of pools) {
@@ -884,15 +901,19 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       }
     });
 
-    // The pool the services run on, with these timeouts.
+    // The pool the services run on: the app's client, with these timeouts.
     const runOnPoolWith: (timeouts: {
       statement_timeout: number;
       query_timeout: number;
+      Client?: typeof CancelOnTimeoutClient;
     }) => Promise<void> = async (timeouts: {
       statement_timeout: number;
       query_timeout: number;
+      Client?: typeof CancelOnTimeoutClient;
     }): Promise<void> => {
-      const pool: DataSource = new DataSource(optionsWith(timeouts));
+      const pool: DataSource = new DataSource(
+        optionsWith({ Client: CancelOnTimeoutClient, ...timeouts }),
+      );
       await pool.initialize();
       pools.push(pool);
 
@@ -949,11 +970,43 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       return (await rowsOf("Project")).get(projectId)?.["requireSsoForLogin"];
     };
 
-    test("the client stopped waiting for it: the project's lock is kept, not given back - and the write lands once the row is free", async () => {
+    test("the client stopped waiting for it: the app cancels it on the database, which writes nothing, and the lock goes back at once", async () => {
       const projectId: string = await addProject(NAME);
       await addProjectSaml({ projectId, name: "Okta", isEnabled: true });
 
       await runOnPoolWith({ statement_timeout: 20_000, query_timeout: 1_000 });
+      const holder: QueryRunner = await holdRow(projectId);
+
+      try {
+        const failure: unknown = await failureOfSave();
+
+        expect((failure as Error | null)?.message).toBe(
+          "canceling statement due to user request",
+        );
+        expect(StatementOutcome.mayStillApply(failure)).toBe(false);
+        expect(Array.from(heldLocks)).toEqual([]);
+
+        // The row is free: nothing the client gave up on runs on.
+        await letGo(holder);
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 1000);
+        });
+
+        expect(await ruleOf(projectId)).toBe(false);
+      } finally {
+        await letGo(holder);
+      }
+    });
+
+    test("the cancel could not reach the database: the project's lock is kept, not given back - and the write lands once the row is free", async () => {
+      const projectId: string = await addProject(NAME);
+      await addProjectSaml({ projectId, name: "Okta", isEnabled: true });
+
+      await runOnPoolWith({
+        statement_timeout: 20_000,
+        query_timeout: 1_000,
+        Client: UnreachableCancelClient,
+      });
       const holder: QueryRunner = await holdRow(projectId);
 
       try {

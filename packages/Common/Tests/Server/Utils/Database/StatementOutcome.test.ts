@@ -1,13 +1,20 @@
-import StatementOutcome from "../../../../Server/Utils/Database/StatementOutcome";
+import { QUERY_READ_TIMEOUT_MESSAGE } from "../../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
+import StatementOutcome, {
+  StatementContext,
+  WriteStep,
+} from "../../../../Server/Utils/Database/StatementOutcome";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   COMMIT_STATEMENT,
   INSERT_STATEMENT,
   SELECT_STATEMENT,
+  UPDATE_STATEMENT,
+  cancelledAtAppRequest,
   cancelledByDatabase,
   clientTimeout,
   connectionLost,
   databaseAnswer,
+  notSent,
 } from "../../TestingUtils/StatementFailures";
 import { describe, expect, test } from "@jest/globals";
 import { QueryFailedError } from "typeorm";
@@ -17,12 +24,16 @@ import { QueryFailedError } from "typeorm";
  * (Server/Utils/Database/StatementOutcome).
  *
  * A statement the database answered with an error of its own was not
- * applied. One that writes, whose answer never came - the client stopped
- * waiting for it, or the connection was lost while it ran - may still be:
- * the SSO sign-in changes keep their locks for such a write until the
- * database would have cancelled it (ProjectSsoProviderChanges.
- * giveBackAfterFailedWrite). A read leaves nothing to land, and in a
- * transaction of its own a write lands only with its COMMIT.
+ * applied - the cancel the client sends for a statement it stopped waiting
+ * for is answered so (CancelOnTimeoutClient). One that writes, whose answer
+ * never came - the cancel could not reach the database, or the connection
+ * was lost while it ran - may still be: the SSO sign-in changes keep their
+ * locks for such a write until the database would have cancelled it
+ * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). A read leaves
+ * nothing to land, in a transaction of its own a write lands only with its
+ * COMMIT, a statement the client never sent applied nothing - and when
+ * DatabaseService says which step of a write failed, one around the write
+ * applied nothing of it.
  */
 
 describe("a write the database never answered may still be applied", () => {
@@ -231,5 +242,205 @@ describe("a failure before any statement was sent applied nothing", () => {
     ["a string", "Query read timeout"],
   ])("%s", (_label: string, error: unknown) => {
     expect(StatementOutcome.mayStillApply(error)).toBe(false);
+  });
+});
+
+describe("a statement the app's client never sent applied nothing", () => {
+  test("refused on a connection being closed after an earlier statement ran past its timeout", () => {
+    expect(StatementOutcome.mayStillApply(notSent(UPDATE_STATEMENT))).toBe(
+      false,
+    );
+    expect(
+      StatementOutcome.mayStillApply(notSent(COMMIT_STATEMENT), {
+        inOwnTransaction: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("out of time while still queued behind another statement on its connection - told in node-postgres' words", () => {
+    const queued: QueryFailedError = notSent(
+      UPDATE_STATEMENT,
+      QUERY_READ_TIMEOUT_MESSAGE,
+    );
+
+    expect((queued.driverError as Error).message).toBe(
+      QUERY_READ_TIMEOUT_MESSAGE,
+    );
+    expect(StatementOutcome.mayStillApply(queued)).toBe(false);
+  });
+
+  test("the mark decides, not the message: a timeout without it may still have been sent", () => {
+    expect(
+      StatementOutcome.mayStillApply(clientTimeout(UPDATE_STATEMENT)),
+    ).toBe(true);
+  });
+});
+
+describe("the database cancelled it at the app's request: applied nothing", () => {
+  test.each([
+    ["an UPDATE", UPDATE_STATEMENT, undefined],
+    ["an INSERT in a transaction of its own", INSERT_STATEMENT, true],
+    ["a COMMIT", COMMIT_STATEMENT, true],
+  ])(
+    "%s the client cancelled once it stopped waiting for it (SQLSTATE 57014)",
+    (_label: string, statement: string, inOwnTransaction?: boolean) => {
+      expect(
+        StatementOutcome.mayStillApply(cancelledAtAppRequest(statement), {
+          inOwnTransaction,
+          failedStep: WriteStep.Write,
+        }),
+      ).toBe(false);
+    },
+  );
+});
+
+describe("which step of the write failed (DatabaseService's failedStatement)", () => {
+  const AROUND: StatementContext = { failedStep: WriteStep.AroundWrite };
+
+  describe("a statement around the write - a check, a hook, a helper - applied nothing of it", () => {
+    test.each([
+      ["an UPDATE a hook sent", clientTimeout(UPDATE_STATEMENT)],
+      ["an INSERT a hook sent", clientTimeout(INSERT_STATEMENT)],
+      ["a hook's own COMMIT", clientTimeout(COMMIT_STATEMENT)],
+      ["a statement whose connection was lost", connectionLost()],
+      [
+        "a statement whose text is not known",
+        {
+          name: "QueryFailedError",
+          driverError: new Error("Query read timeout"),
+        },
+      ],
+    ])("%s, unanswered", (_label: string, failure: unknown) => {
+      expect(StatementOutcome.mayStillApply(failure, AROUND)).toBe(false);
+      // A create's too: its INSERT had not started, or was committed.
+      expect(
+        StatementOutcome.mayStillApply(
+          failure,
+          StatementOutcome.ofCreate(AROUND),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("the write's own statement, unanswered", () => {
+    const UPDATE_WRITE: StatementContext = {
+      failedStep: WriteStep.Write,
+      inOwnTransaction: false,
+    };
+    const SAVE_WRITE: StatementContext = {
+      failedStep: WriteStep.Write,
+      inOwnTransaction: true,
+    };
+
+    test("an UPDATE or DELETE committed on its own may still land", () => {
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout(UPDATE_STATEMENT),
+          UPDATE_WRITE,
+        ),
+      ).toBe(true);
+      expect(
+        StatementOutcome.mayStillApply(
+          connectionLost('DELETE FROM "GlobalSsoProject" WHERE "_id" = $1'),
+          UPDATE_WRITE,
+        ),
+      ).toBe(true);
+    });
+
+    test("a read the write makes applies nothing", () => {
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout(SELECT_STATEMENT),
+          UPDATE_WRITE,
+        ),
+      ).toBe(false);
+      // save() reads the row before its transaction.
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout(SELECT_STATEMENT),
+          SAVE_WRITE,
+        ),
+      ).toBe(false);
+    });
+
+    test("in save()'s own transaction only its COMMIT may still land", () => {
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout(INSERT_STATEMENT),
+          SAVE_WRITE,
+        ),
+      ).toBe(false);
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout("START TRANSACTION"),
+          SAVE_WRITE,
+        ),
+      ).toBe(false);
+      expect(
+        StatementOutcome.mayStillApply(
+          clientTimeout(COMMIT_STATEMENT),
+          SAVE_WRITE,
+        ),
+      ).toBe(true);
+    });
+
+    test("a statement whose text is not known may have been the write", () => {
+      const unknown: unknown = {
+        name: "QueryFailedError",
+        driverError: new Error("Query read timeout"),
+      };
+
+      expect(StatementOutcome.mayStillApply(unknown, UPDATE_WRITE)).toBe(true);
+      expect(StatementOutcome.mayStillApply(unknown, SAVE_WRITE)).toBe(true);
+    });
+
+    test("an answer of the database's own still says it was not applied", () => {
+      expect(
+        StatementOutcome.mayStillApply(cancelledByDatabase(), UPDATE_WRITE),
+      ).toBe(false);
+    });
+  });
+
+  test("a failure before any statement was sent applied nothing, whichever step it was", () => {
+    expect(
+      StatementOutcome.mayStillApply(new BadDataException("Refused."), {
+        failedStep: WriteStep.Write,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("what is known of a create's failed statement (ofCreate)", () => {
+  test("a create is written in a transaction of its own", () => {
+    expect(StatementOutcome.ofCreate()).toEqual({ inOwnTransaction: true });
+    expect(StatementOutcome.ofCreate(undefined)).toEqual({
+      inOwnTransaction: true,
+    });
+  });
+
+  test("with the step DatabaseService said failed", () => {
+    expect(
+      StatementOutcome.ofCreate({ failedStep: WriteStep.AroundWrite }),
+    ).toEqual({ inOwnTransaction: true, failedStep: WriteStep.AroundWrite });
+    expect(
+      StatementOutcome.ofCreate({
+        failedStep: WriteStep.Write,
+        inOwnTransaction: true,
+      }),
+    ).toEqual({ inOwnTransaction: true, failedStep: WriteStep.Write });
+  });
+
+  test("an INSERT the client stopped waiting for is rolled back, its COMMIT may have landed", () => {
+    const insert: StatementContext = StatementOutcome.ofCreate({
+      failedStep: WriteStep.Write,
+      inOwnTransaction: true,
+    });
+
+    expect(
+      StatementOutcome.mayStillApply(clientTimeout(INSERT_STATEMENT), insert),
+    ).toBe(false);
+    expect(
+      StatementOutcome.mayStillApply(clientTimeout(COMMIT_STATEMENT), insert),
+    ).toBe(true);
   });
 });

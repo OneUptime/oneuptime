@@ -6,8 +6,11 @@ import ObjectID from "../../Types/ObjectID";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
-import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import StatementOutcome, {
+  StatementContext,
+} from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
   SignInChangeFailure,
@@ -183,19 +186,22 @@ interface ProjectRuleAsked {
 export default class SsoRequirementChanges {
   /*
    * The writes worked out before they run, for the success and error hooks
-   * to give the locks back: keyed by the UpdateBy the services hand back
-   * from onBeforeUpdate, which DatabaseService passes on to
+   * to give the locks back: an update's keyed by the UpdateBy the services
+   * hand back from onBeforeUpdate, which DatabaseService passes on to
    * onUpdatePermitted. ProjectService and GlobalConfigService hand back the
    * very object they were given, so it is also the one the success hook is
    * handed (the caller's); the suites that give the locks back after each
    * write (SsoRequirementChanges.test, GlobalSsoProviderChanges.test) fail
-   * if one ever does not.
+   * if one ever does not. A project's create is keyed by the create's one
+   * OnCreate, the very object DatabaseService hands onCreatePermitted,
+   * onCreateSuccess and onCreateError alike - never by the create it holds,
+   * which onBeforeCreate may hand back anew.
    */
   private static writes: WeakMap<
-    UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    UpdateBy<BaseModel> | OnCreate<BaseModel>,
     SsoRequirementWrite
   > = new WeakMap<
-    UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    UpdateBy<BaseModel> | OnCreate<BaseModel>,
     SsoRequirementWrite
   >();
 
@@ -327,11 +333,12 @@ export default class SsoRequirementChanges {
    * check is done is taken again, and the check run again under it.
    */
   public static async beforeProjectCreate(data: {
-    createBy: CreateBy<Project>;
+    // The create's one OnCreate (onCreatePermitted's): what the lock is kept by.
+    create: OnCreate<Project>;
     // The creator is a master admin: the server's Require SSO for Login does not hold them.
     isCreatorExemptFromServerRule: boolean;
   }): Promise<SsoRequirementWrite | null> {
-    const written: Record<string, unknown> = data.createBy
+    const written: Record<string, unknown> = data.create.createBy
       .data as unknown as Record<string, unknown>;
 
     const rule: ProjectSignInRule = {
@@ -357,7 +364,7 @@ export default class SsoRequirementChanges {
 
     try {
       return await SsoRequirementChanges.holdChecked({
-        key: data.createBy as unknown as CreateBy<BaseModel>,
+        key: data.create as unknown as OnCreate<BaseModel>,
         write: { locks: await recheck(), recheck },
       });
     } catch (err) {
@@ -417,58 +424,67 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Once the write has failed (the error hooks, with what failed): its locks
-   * are given back, once - unless the database may still apply the write,
-   * when they are kept until it would have cancelled it
+   * Once the write has failed (the error hooks, with what failed, and which
+   * step of the update it was - DatabaseService's `failedStatement`): its
+   * locks are given back, once - unless the database may still apply the
+   * write, when they are kept until it would have cancelled it
    * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). Never throws.
    */
   public static async afterFailedUpdate<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await SsoRequirementChanges.release(
       updateBy as unknown as UpdateBy<BaseModel>,
-      { error },
+      { error, context: failedStatement },
     );
   }
 
   /*
-   * Once a project is created (first in ProjectService.onCreateSuccess): the
-   * lock its check took is given back, once. Never throws. A create that
-   * took none, or a hook handed no create, gives nothing back.
+   * Once a project is created (first in ProjectService.onCreateSuccess, with
+   * the create's one OnCreate - the very object beforeProjectCreate was
+   * handed): the lock its check took is given back, once. Never throws. A
+   * create that took none, or a hook handed no create, gives nothing back.
    */
   public static async afterProjectCreate(
-    createBy: CreateBy<Project> | null | undefined,
+    create: OnCreate<Project> | null | undefined,
   ): Promise<void> {
-    if (!createBy) {
+    if (!create) {
       return;
     }
 
     await SsoRequirementChanges.release(
-      createBy as unknown as CreateBy<BaseModel>,
+      create as unknown as OnCreate<BaseModel>,
     );
   }
 
   /*
    * Once a project's create has failed after the check (ProjectService.
-   * onCreateError, with what failed): the lock its check took is given back,
-   * once - unless the database may still apply the create, when it is kept
-   * until the database would have cancelled it. A project is written by
-   * save(), in a transaction of its own, so only a COMMIT that went
-   * unanswered may still land: an INSERT the client stopped waiting for is
-   * rolled back. Never throws.
+   * onCreateError, with the create's one OnCreate - the very object
+   * beforeProjectCreate was handed - what failed, and which step of the
+   * create it was): the lock its check took is given back, once - unless
+   * the database may still apply the create, when it is kept until the
+   * database would have cancelled it. A project is written by save(), in a
+   * transaction of its own, so only a COMMIT that went unanswered may still
+   * land: an INSERT the client stopped waiting for is rolled back. Never
+   * throws.
    */
   public static async afterFailedProjectCreate(
-    createBy: CreateBy<Project> | null | undefined,
+    create: OnCreate<Project> | null | undefined,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
-    if (!createBy) {
+    if (!create) {
       return;
     }
 
     await SsoRequirementChanges.release(
-      createBy as unknown as CreateBy<BaseModel>,
-      { error, context: { inOwnTransaction: true } },
+      create as unknown as OnCreate<BaseModel>,
+      {
+        error,
+        context: StatementOutcome.ofCreate(failedStatement),
+      },
     );
   }
 
@@ -934,7 +950,7 @@ export default class SsoRequirementChanges {
    * give back. Refused, it has given back whatever it held.
    */
   private static async holdChecked(data: {
-    key: UpdateBy<BaseModel> | CreateBy<BaseModel>;
+    key: UpdateBy<BaseModel> | OnCreate<BaseModel>;
     write: SsoRequirementWrite;
   }): Promise<SsoRequirementWrite> {
     await ProjectSsoProviderChanges.holdCheckedForWrite(
@@ -953,7 +969,7 @@ export default class SsoRequirementChanges {
    * cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
    */
   private static async release(
-    key: UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    key: UpdateBy<BaseModel> | OnCreate<BaseModel>,
     failure?: SignInChangeFailure | undefined,
   ): Promise<void> {
     const write: SsoRequirementWrite | undefined =
