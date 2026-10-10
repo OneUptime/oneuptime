@@ -67,7 +67,7 @@ In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** f
 
 ### Page it for every incident
 
-Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule** and enter a **Name**. Leave every criteria empty, so the rule matches every incident, and pick your policy under **On-Call Duty Policies**. Click **Create Incident On-Call Rule**.
+Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. Leave **Match Criteria** empty, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
 
 ### Choose how you are reached
 

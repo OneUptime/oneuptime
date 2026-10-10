@@ -25,7 +25,7 @@ The checklist walks you through the four things a project needs before it is use
 | --- | --- | --- |
 | **Create your first monitor** | The project has a monitor. | The **Create Monitor** form, or the **Monitors** list for someone who may not create monitors. |
 | **Publish a status page** | The project has a status page. | **Status Pages** |
-| **Invite your team** | You invited someone to the project. | **Users** |
+| **Invite your team** | Someone besides you is in the project, or invited to it. | **Users** |
 | **Set up an on-call policy** | The project has an on-call policy. | **On-Call Duty** |
 
 Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call Duty** and **Status Pages**. Click one to open it.
@@ -39,7 +39,7 @@ flowchart TB
     done -->|No| shown["Checklist shows<br/>steps completed"]
 ```
 
-The checklist disappears for good once all four steps are done. To hide it sooner, click **Dismiss**. Dismissing is remembered in this browser, for this project; the steps still work from their own pages.
+The checklist goes away once all four steps are done. To hide it sooner, click **Dismiss**. Dismissing is remembered in this browser, for this project; everything the steps open is still in the **Products** menu.
 
 ### The tiles
 
@@ -87,7 +87,7 @@ Two bars run across the top of every page.
 | Top right | **Search** and **Ask AI**, the notification bell with what needs you now (active incidents and alerts, the on-call policies you are on duty for, pending invitations), **Help**, and your picture, which opens your [account](/docs/introduction/your-account) menu. |
 | Below them | **Home** and **Products** on the left, **User Settings** on the right: how OneUptime reaches you in this project. |
 
-**Help** opens these docs (**Documentation**) and the **Keyboard shortcuts** list, and offers support by email and on Slack. On a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.
+**Help** opens these docs (**Documentation**) and the **Keyboard shortcuts** list, and offers support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.
 
 ## Searching for a page, a setting or an action
 
@@ -135,7 +135,7 @@ Press `g`, then a letter, to go straight to a product. Press the letter within 1
 | `g` then `l` | Logs |
 | `g` then `t` | Traces |
 
-Shortcuts never interrupt you. They do nothing while you type in a field, and none of them navigates while a dialog is open, so a stray key cannot lose a half-filled form. Every other product is a search away with `Mod` + `K`.
+The shortcuts stay out of your way. `?`, `/` and `g` do nothing while you type in a field, and nothing navigates away while a dialog is open, so a stray key cannot lose a half-filled form. Every other product is a search away with `Mod` + `K`.
 
 ## Next steps
 

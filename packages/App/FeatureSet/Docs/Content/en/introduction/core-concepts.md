@@ -44,7 +44,7 @@ People are in a project through **teams**, and a team's permissions decide what 
 
 ## Monitors and probes
 
-A **monitor** checks one thing you run and decides whether it works. Most monitors are checked by **probes**: machines that, every few minutes, request a page, call an API, ping a host or query a database. OneUptime Cloud runs probes in several regions, a self-hosted installation runs its own, and you can add custom probes inside your network. Other monitors read what you send instead: the telemetry from your apps, or the data an agent on your servers, Kubernetes clusters and other infrastructure reports.
+A **monitor** checks one thing you run and decides whether it works. Most monitors are checked by **probes**: machines that run the check on a schedule, such as requesting a page, calling an API, pinging a host or querying a database. OneUptime Cloud runs probes in several regions, a self-hosted installation runs its own, and you can add custom probes inside your network. Other monitors read what you send instead: the telemetry from your apps, or the data an agent on your servers, Kubernetes clusters and other infrastructure reports.
 
 A monitor's **criteria** decide what each result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three. Every new project has three monitor statuses: **Operational**, **Degraded** and **Offline**.
 

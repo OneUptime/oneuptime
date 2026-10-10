@@ -38,8 +38,8 @@ flowchart TB
     status --> subscribers["Subscribers"]
 ```
 
-- An **incident** is a problem that affects your users. It pages on-call and can show on your status page.
-- An **alert** is a problem for your team to look into before users notice. It can page on-call too, but never shows on a status page.
+- An **incident** is a problem that affects your users. It can page whoever is on call, and show on your status page.
+- An **alert** is a problem for your team to look into before users notice. It can page whoever is on call too, but never shows on a status page.
 
 [Core Concepts](/docs/introduction/core-concepts) explains each piece in a few sentences.
 
@@ -124,7 +124,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 
 ### Bring your setup with you
 
-**Project Settings → Import from another tool** reads your account in another tool, shows you what it found, and creates what you tick. Nothing in the other tool changes, and running an import again never creates anything twice.
+**Project Settings → Import from another tool** reads your setup in another tool, with an API key or, for Uptime Kuma, a file. It shows you what it found, and creates what you tick. Nothing in the other tool changes, and running the import again never creates anything twice.
 
 | Coming from | What OneUptime reads |
 | --- | --- |
