@@ -1,4 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
+import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DocsHeading,
   ScannedPage,
@@ -224,6 +226,9 @@ const BEFORE_YOU_BEGIN_LEAD: RegExp = /^A (role|probe) /;
 // An inline code span, which may hold asterisks of its own.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 
+// Code in rendered HTML: a code block or an inline code span.
+const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
+
 function englishPage(page: string): string {
   return readPage("en", page);
 }
@@ -275,6 +280,28 @@ function unbalancedLines(markdown: string): Array<string> {
       const stars: number = outsideCode.split("**").length - 1;
 
       return ticks % 2 !== 0 || stars % 2 !== 0;
+    });
+}
+
+/*
+ * A page as the docs route draws it, without its title line, and the
+ * asterisks left in its text: a bold span CommonMark did not close. A span
+ * that ends in punctuation and runs straight into a letter, as in
+ * "**リクエストタイムアウト（秒）**を", is not closed, and its asterisks show.
+ */
+async function strayAsterisks(
+  markdown: string,
+  language: string,
+): Promise<Array<string>> {
+  const html: string = await DocsRender.render(
+    DocsPlaceholders.render(markdown.split("\n").slice(1).join("\n"), language),
+  );
+
+  return html
+    .replace(RENDERED_CODE, "")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.includes("**");
     });
 }
 
@@ -508,6 +535,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(unbalancedLines(readPage(language, entry.page))).toEqual([]);
     });
 
+    it("draws every bold span as bold, with no asterisks left on the page", async () => {
+      expect(
+        await strayAsterisks(readPage(language, entry.page), language),
+      ).toEqual([]);
+    });
+
     it("has the English page's headings, steps, tables and list items", () => {
       const translated: string = readPage(language, entry.page);
 
@@ -635,6 +668,21 @@ describe("the helpers, on these pages' shapes", () => {
     expect(unbalancedLines(whole)).toEqual([]);
     // Asterisks inside code are code, not bold.
     expect(unbalancedLines("Use `a ** b` here.")).toEqual([]);
+  });
+
+  it("find asterisks the renderer leaves when a bold span runs into a letter", async () => {
+    expect(
+      await strayAsterisks(
+        "# Title\n\n**リクエストタイムアウト（秒）**を設定します。",
+        "ja",
+      ),
+    ).toHaveLength(1);
+    expect(
+      await strayAsterisks(
+        "# Title\n\n**リクエストタイムアウト（秒）** を設定します。",
+        "ja",
+      ),
+    ).toEqual([]);
   });
 
   it("count the steps of every :::steps block, and only those", () => {
