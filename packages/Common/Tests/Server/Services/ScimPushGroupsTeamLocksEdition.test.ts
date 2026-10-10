@@ -29,6 +29,10 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  answerRowsCallerMayWriteLikeFindBy,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -78,6 +82,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
 const TEAM_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const MEMBER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const INVITEE_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
@@ -133,6 +140,7 @@ const buildMember: (data: {
   shouldHaveAtLeastOneMember: boolean;
 }): TeamMember => {
   const member: TeamMember = new TeamMember();
+  member._id = MEMBER_ID.toString();
   member.userId = INVITEE_ID;
   member.projectId = PROJECT_ID;
   member.teamId = TEAM_ID;
@@ -199,7 +207,12 @@ describe("SCIM Push Groups team locks by edition", () => {
     let memberDelete: SpyInstance;
 
     beforeEach(() => {
-      getJestSpyOn(TeamService, "findBy").mockResolvedValue([buildTeam()]);
+      const teamLookup: SpyInstance = getJestSpyOn(
+        TeamService,
+        "findBy",
+      ).mockResolvedValue([buildTeam()]);
+      // The teams the caller may delete: those the same read reaches.
+      answerRowsCallerMayWriteLikeFindBy(TeamService, teamLookup);
       getJestSpyOn(
         ModelPermission,
         "checkDeleteQueryPermission",
@@ -324,6 +337,8 @@ describe("SCIM Push Groups team locks by edition", () => {
         TeamMemberService,
         "findBy",
       ).mockResolvedValue([buildMember({ shouldHaveAtLeastOneMember: false })]);
+      // The caller may remove the members the same read reaches.
+      stubRowsCallerMayDeleteLikeFindBy(TeamMemberService, memberLookup);
       getJestSpyOn(
         OnCallDutyPolicyTimeLogService,
         "endTimeForUser",

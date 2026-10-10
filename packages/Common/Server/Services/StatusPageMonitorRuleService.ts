@@ -263,11 +263,10 @@ export class Service extends ProjectReferencesService<Model> {
    * StatusPageMonitorRule foreign key is ON DELETE CASCADE: by the time the
    * rule row is gone, so are the resources that named the monitors.
    *
-   * It is READ ONLY, and reads through the caller's own props rather than as
-   * root. onBeforeDelete runs before checkDeleteQueryPermission, so anything
-   * here sees the caller's raw query — a root-privileged write from this hook
-   * would let a caller destroy another project's status page resources by
-   * naming that project's rule id.
+   * It is READ ONLY: it reads the rules the delete removes - for a teammate,
+   * among the ones they may delete - and holds the delete to them, so the
+   * monitors noted down are those of the rules that go. Nothing here writes:
+   * a delete that is refused leaves every status page as it was.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(

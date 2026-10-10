@@ -131,6 +131,24 @@ export function stubRowsCallerMayDeleteLikeFindBy<
   return stubRowsCallerMayDelete(service, answerLikeFindBy(service, findBy));
 }
 
+/*
+ * Answers the read of the rows a caller may write or delete the way the
+ * suite's findBy stub answers the same read, and leaves the permission check
+ * that narrows that read to run for real: for a suite that keeps the actual
+ * permission checker in the path.
+ */
+export function answerRowsCallerMayWriteLikeFindBy<
+  TModel extends DatabaseBaseModel,
+>(
+  service: DatabaseService<TModel>,
+  findBy: AnswersLikeFindBy,
+): jest.SpyInstance {
+  return answerReadsOfRowsCallerMayWrite(
+    service,
+    answerLikeFindBy(service, findBy),
+  );
+}
+
 function answerLikeFindBy<TModel extends DatabaseBaseModel>(
   service: DatabaseService<TModel>,
   findBy: AnswersLikeFindBy,

@@ -32,6 +32,10 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  answerRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -287,6 +291,11 @@ describe.each(serviceCases)(
           return matchingRows.slice(skip, skip + asNumber(findBy.limit));
         },
       );
+      /*
+       * The rows the caller may delete: the permission checker narrows the
+       * read for real, and the same rows answer it.
+       */
+      answerRowsCallerMayWriteLikeFindBy(serviceCase.service, findPermissions);
       getJestSpyOn(serviceCase.service, "findOneBy").mockResolvedValue(null);
       getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
         _id: targetId.toString(),
@@ -521,11 +530,12 @@ describe.each(serviceCases)(
           props: props([userPermission(Permission.ProjectOwner)]),
         });
         expect(selectedIds(result.deleteBy.query._id)).toEqual([]);
-        expect(findPermissions).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: expect.objectContaining({ projectId }),
-          }),
-        );
+        // The rows the caller may delete are read in the caller's project.
+        expect(
+          readsOfRowsCallerMayWrite(serviceCase.service)[0]!.query[
+            "projectId"
+          ],
+        ).toEqual(projectId);
         expect(findMembers).not.toHaveBeenCalled();
       },
     );
@@ -563,8 +573,12 @@ describe.each(serviceCases)(
       await expect(
         deleteAs(editorProps(), { limit: LIMIT_MAX + 1 }),
       ).rejects.toBeInstanceOf(NotAuthorizedException);
+      // Every row of the delete's window is read, and checked, before any goes.
+      expect(readsOfRowsCallerMayWrite(serviceCase.service)[0]!.limit).toBe(
+        LIMIT_MAX + 1,
+      );
       expect(findPermissions).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: LIMIT_MAX }),
+        expect.objectContaining({ limit: LIMIT_MAX + 1 }),
       );
       expect(findMembers).not.toHaveBeenCalled();
     });
