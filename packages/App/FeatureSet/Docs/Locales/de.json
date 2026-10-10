@@ -279,6 +279,7 @@
     "Database Health Monitor": "Datenbank-Integritätsüberwachung",
     "Network Sites (Health Rollup & Uptime)": "Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Leitfäden für Netzwerkhersteller (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Netzwerkverkehr (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Host-Überwachung",
     "Podman Monitor": "Podman-Überwachung",
     "Proxmox Monitor": "Proxmox-Überwachung",

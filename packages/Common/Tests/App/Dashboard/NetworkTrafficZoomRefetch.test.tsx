@@ -21,26 +21,25 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Issue #4105 review on the network device Traffic card (FlowTopTalkers),
- * whose bandwidth chart zooms the card's range: a drag and a double-click are
- * now everyday gestures on it, and each one refetches the whole card.
+ * Issue #4105 review on the Traffic pages (NetworkTrafficView), whose chart
+ * zooms the page's range: a drag and a double-click are everyday gestures on
+ * it, and each one refetches the whole page.
  *
- *   - sdn-2: every refetch used to swap the card's body - three tiles, the
- *     chart and four top-N tables, about a page - for a small loader, so the
- *     page collapsed under the pointer that had just dragged or double-clicked
- *     and was thrown back when the data landed. The last data now stays on
- *     screen, dimmed and marked "Refreshing", as the Database overview and
- *     MetricView keep theirs; only the very first load shows the loader.
- *   - sdn-6: a zoom into a quiet stretch showed "No flow data yet" and the
- *     NetFlow setup steps, as if export were not configured on a device the
- *     reader had just seen exporting. It now says there were no flows in the
- *     selected time range and how to get back; the setup steps stay for an
- *     unzoomed preset window.
- *   - sdn-1, end to end: a two-week response through the whole card draws
- *     every bucket and peaks at the Max it prints (the real DataPointUtil over
- *     the chart's props).
+ *   - sdn-2: every refetch used to swap the body - the tiles, the chart and
+ *     the tables, about a page - for a small loader, so the page collapsed
+ *     under the pointer that had just dragged or double-clicked and was
+ *     thrown back when the data landed. The last data stays on screen,
+ *     dimmed and marked "Refreshing"; only the very first load shows the
+ *     loader.
+ *   - sdn-6: a zoom into a quiet stretch must not read as "flow export is
+ *     not set up" on a device the reader has just seen exporting. It says
+ *     there was no traffic in the selected time range and how to get back;
+ *     the set-up guide is for a device that has never sent a flow.
+ *   - sdn-1, end to end: a two-week response through the whole page draws
+ *     every bucket and peaks at the Peak it prints (the real DataPointUtil
+ *     over the chart's props).
  *
- * The network (the top-talkers POST) and the card's range picker (a stand-in
+ * The network (the traffic POST) and the page's range picker (a stand-in
  * that can pick a preset or a custom range) are replaced; the area chart is
  * ChartZoomStandIn, which resolves its zoom exactly as the real wrapper does.
  */
@@ -52,7 +51,7 @@ const ZOOM_START: Date = new Date("2026-09-28T11:20:00.000Z");
 const ZOOM_END: Date = new Date("2026-09-28T11:40:00.000Z");
 const CUSTOM_START: Date = new Date("2026-09-28T09:00:00.000Z");
 const CUSTOM_END: Date = new Date("2026-09-28T10:00:00.000Z");
-const BANDWIDTH_CHART: string = "Bandwidth [Mbps]";
+const TRAFFIC_CHART: string = "Traffic [Mbps]";
 // The Flows tile over two weeks: a flow a minute, as the tile formats it.
 const TWO_WEEKS_OF_FLOWS: string = (14 * 24 * 60).toLocaleString();
 
@@ -69,7 +68,7 @@ jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
   };
 });
 
-// The card's picker: shows its range, and picks a preset or a custom range.
+// The page's picker: shows its range, and picks a preset or a custom range.
 jest.mock("../../../UI/Components/Date/RangeStartAndEndDateView", () => {
   return {
     __esModule: true,
@@ -141,7 +140,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
-import FlowTopTalkers from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/FlowTopTalkers";
+import NetworkTrafficView from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
 import {
   getStandInChart,
   resetStandInCharts,
@@ -153,51 +152,64 @@ import SeriesPoints from "../../../UI/Components/Charts/Types/SeriesPoints";
 import { XAxis } from "../../../UI/Components/Charts/Types/XAxis/XAxis";
 import YAxis from "../../../UI/Components/Charts/Types/YAxis/YAxis";
 import DataPointUtil from "../../../UI/Components/Charts/Utils/DataPoint";
+import { getNetworkTrafficBucketSeconds } from "../../../Types/NetFlow/NetworkTraffic";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
 
-interface FlowRequest {
+interface TrafficRequest {
   startTime: string;
   endTime: string;
 }
 
-type FlowResponse = { data: Record<string, unknown> };
+type TrafficResponse = { data: Record<string, unknown> };
 
-function requestOf(call: Array<unknown>): FlowRequest {
-  return (call[0] as { data: FlowRequest }).data;
+function requestOf(call: Array<unknown>): TrafficRequest {
+  return (call[0] as { data: TrafficRequest }).data;
 }
 
-function lastFlowRequest(): FlowRequest {
+function lastTrafficRequest(): TrafficRequest {
   const calls: Array<Array<unknown>> = apiPostMock.mock.calls;
   const last: Array<unknown> | undefined = calls[calls.length - 1];
   if (!last) {
-    throw new Error("The top talkers were never fetched");
+    throw new Error("The traffic was never fetched");
   }
   return requestOf(last);
 }
 
-function requestMinutes(request: FlowRequest): number {
+function requestMinutes(request: TrafficRequest): number {
   return (Date.parse(request.endTime) - Date.parse(request.startTime)) / MINUTE;
 }
 
-// The API's bucket width for a window (pickBucketSeconds).
-function apiBucketSeconds(request: FlowRequest): number {
-  const windowSeconds: number = Math.floor(
-    (Date.parse(request.endTime) - Date.parse(request.startTime)) / 1000,
+function apiBucketSeconds(request: TrafficRequest): number {
+  return getNetworkTrafficBucketSeconds(
+    Math.floor(
+      (Date.parse(request.endTime) - Date.parse(request.startTime)) / 1000,
+    ),
   );
-  return Math.max(60, Math.ceil(Math.ceil(windowSeconds / 120) / 60) * 60);
+}
+
+function emptyLists(): Record<string, unknown> {
+  return {
+    topSources: [],
+    topDestinations: [],
+    topConversations: [],
+    topApplications: [],
+    topInterfaces: [],
+    topDevices: [],
+    sources: [],
+  };
 }
 
 /*
  * What the endpoint answers for a window: figures that depend on its length
- * (so a card that did not follow the range shows the wrong number), a bucket
+ * (so a page that did not follow the range shows the wrong number), a bucket
  * at 1 Mbps for every bucket of the window but one at `burstMbps`, and the
  * window echoed back.
  */
-function flowResponse(
-  request: FlowRequest,
+function trafficResponse(
+  request: TrafficRequest,
   burstMbps: number = 1,
-): FlowResponse {
+): TrafficResponse {
   const minutes: number = requestMinutes(request);
   const bucketSeconds: number = apiBucketSeconds(request);
   const bucketMs: number = bucketSeconds * 1000;
@@ -212,52 +224,65 @@ function flowResponse(
     series.push({
       time: new Date(firstMs + index * bucketMs).toISOString(),
       octets: (mbps * 1_000_000 * bucketSeconds) / 8,
-      packets: 1,
     });
   }
   return {
     data: {
-      totalOctets: minutes * 1000,
-      totalPackets: minutes * 10,
-      totalFlows: minutes,
-      topSources: [{ key: `10.0.0.${minutes}`, octets: 3000, packets: 20 }],
-      topDestinations: [{ key: "10.0.0.9", octets: 2000, packets: 10 }],
-      topProtocolPorts: [
-        { protocolNumber: 6, destinationPort: 443, octets: 5000, packets: 30 },
-      ],
-      topConversations: [],
-      series: series,
-      seriesBucketSeconds: bucketSeconds,
+      ...emptyLists(),
       windowStartAt: request.startTime,
       windowEndAt: request.endTime,
+      bucketSeconds: bucketSeconds,
+      totals: { octets: minutes * 1000, packets: minutes * 10, flows: minutes },
+      maxSamplingRate: 1,
+      series: series,
+      topSources: [{ ip: `10.0.0.${minutes}`, octets: 3000, packets: 20 }],
+      topDestinations: [{ ip: "10.0.0.9", octets: 2000, packets: 10 }],
+      topApplications: [
+        { protocolNumber: 6, port: 443, octets: 5000, packets: 30 },
+      ],
+      lastFlowAt: "2026-09-28 11:59:00",
     },
   };
 }
 
-function quietResponse(request: FlowRequest): FlowResponse {
+/*
+ * A window with no flows. `lastFlowAt` is when the device last sent one;
+ * null for a device that never has.
+ */
+function quietResponse(
+  request: TrafficRequest,
+  lastFlowAt: string | null = "2026-09-27 08:00:00",
+): TrafficResponse {
   return {
     data: {
-      totalOctets: 0,
-      totalPackets: 0,
-      totalFlows: 0,
-      series: [],
-      seriesBucketSeconds: apiBucketSeconds(request),
+      ...emptyLists(),
       windowStartAt: request.startTime,
       windowEndAt: request.endTime,
+      bucketSeconds: apiBucketSeconds(request),
+      totals: { octets: 0, packets: 0, flows: 0 },
+      maxSamplingRate: 1,
+      series: [],
+      lastFlowAt: lastFlowAt,
     },
   };
+}
+
+function neverSentResponse(request: TrafficRequest): TrafficResponse {
+  return quietResponse(request, null);
 }
 
 // Answers every window from now on with `answer`.
-function answerWith(answer: (request: FlowRequest) => FlowResponse): void {
+function answerWith(
+  answer: (request: TrafficRequest) => TrafficResponse,
+): void {
   apiPostMock.mockImplementation(async (args: unknown) => {
-    return answer((args as { data: FlowRequest }).data);
+    return answer((args as { data: TrafficRequest }).data);
   });
 }
 
 // Holds the NEXT fetch until the test lets it land.
 interface HeldFetch {
-  land: (response: FlowResponse) => Promise<void>;
+  land: (response: TrafficResponse) => Promise<void>;
   fail: (error: Error) => Promise<void>;
 }
 
@@ -273,7 +298,7 @@ function holdNextFetch(): HeldFetch {
     );
   });
   return {
-    land: async (response: FlowResponse): Promise<void> => {
+    land: async (response: TrafficResponse): Promise<void> => {
       await act(async () => {
         resolveFetch(response);
       });
@@ -297,37 +322,39 @@ async function flush(): Promise<void> {
 }
 
 function chart(): HTMLElement {
-  return screen.getByTestId(`chart ${BANDWIDTH_CHART}`);
+  return screen.getByTestId(`chart ${TRAFFIC_CHART}`);
 }
 
-async function renderCard(): Promise<void> {
-  render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+function renderView(): void {
+  render(
+    <NetworkTrafficView
+      scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+    />,
+  );
+}
+
+async function renderPage(): Promise<void> {
+  renderView();
   await flush();
   await waitFor(() => {
     expect(chart()).toBeInTheDocument();
   });
 }
 
-async function dragAcrossBandwidth(
+async function dragAcrossTraffic(
   start: Date = ZOOM_START,
   end: Date = ZOOM_END,
 ): Promise<void> {
   standInDrag.start = start;
   standInDrag.end = end;
   fireEvent.click(
-    screen.getByRole("button", { name: `Drag across ${BANDWIDTH_CHART}` }),
+    screen.getByRole("button", { name: `Drag across ${TRAFFIC_CHART}` }),
   );
   await flush();
 }
 
-function tileValue(title: string): string {
-  const tile: HTMLElement | null = screen
-    .getByRole("button", { name: `About ${title}` })
-    .closest("div.rounded-md");
-  return (
-    (tile?.querySelector("div.text-2xl") as HTMLElement | null)?.textContent ||
-    ""
-  );
+function tileValue(tile: "total" | "average" | "peak" | "flows"): string {
+  return screen.getByTestId(`traffic-tile-${tile}-value`).textContent || "";
 }
 
 function pickerLabel(): string {
@@ -335,20 +362,22 @@ function pickerLabel(): string {
 }
 
 function body(): HTMLElement {
-  return screen.getByTestId("flow-top-talkers-body");
+  return screen.getByTestId("traffic-body");
 }
 
-// Everything that says the card is refetching over the data it shows.
+// Everything that says the page is refetching over the data it shows.
 function expectRefreshingOverLastData(): void {
   expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
-  expect(screen.getByTestId("flow-refreshing")).toHaveTextContent("Refreshing");
+  expect(screen.getByTestId("traffic-refreshing")).toHaveTextContent(
+    "Refreshing",
+  );
   expect(body()).toHaveClass("opacity-75");
   expect(body().parentElement).toHaveAttribute("aria-busy", "true");
 }
 
 function expectSettled(): void {
   expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("flow-refreshing")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("traffic-refreshing")).not.toBeInTheDocument();
   expect(body()).not.toHaveClass("opacity-75");
   expect(body().parentElement).toHaveAttribute("aria-busy", "false");
 }
@@ -356,10 +385,11 @@ function expectSettled(): void {
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  window.history.replaceState(null, "", "/");
   apiPostMock.mockReset();
   resetStandInCharts();
-  answerWith((request: FlowRequest) => {
-    return flowResponse(request);
+  answerWith((request: TrafficRequest) => {
+    return trafficResponse(request);
   });
 });
 
@@ -368,48 +398,48 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("Traffic card: a zoom or a reset refetches over the data on screen (sdn-2)", () => {
+describe("Traffic page: a zoom or a reset refetches over the data on screen (sdn-2)", () => {
   test("the first load shows the loader, and nothing else", async () => {
     const first: HeldFetch = holdNextFetch();
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+    renderView();
     await flush();
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("flow-top-talkers-body"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("flow-refreshing")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("traffic-body")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("traffic-refreshing")).not.toBeInTheDocument();
 
-    await first.land(flowResponse(lastFlowRequest()));
+    await first.land(trafficResponse(lastTrafficRequest()));
 
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expectSettled();
   });
 
-  test("a drag keeps the tiles, the chart and the tables on screen while the zoom's fetch runs", async () => {
-    await renderCard();
+  test("a drag keeps the tiles, the chart and the lists on screen while the zoom's fetch runs", async () => {
+    await renderPage();
     const chartBeforeZoom: HTMLElement = chart();
     const zoomFetch: HeldFetch = holdNextFetch();
 
-    await dragAcrossBandwidth();
+    await dragAcrossTraffic();
 
     // The picker already reads the zoom; the body still shows the past hour.
     expect(pickerLabel()).toBe(TimeRange.CUSTOM);
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expect(screen.getByText("10.0.0.60")).toBeInTheDocument();
-    expect(screen.getByText("Top Protocols & Ports")).toBeInTheDocument();
+    expect(screen.getByTestId("traffic-top-applications")).toHaveTextContent(
+      "HTTPS",
+    );
     // The very chart that was dragged: still mounted, not re-created.
     expect(chart()).toBe(chartBeforeZoom);
     expectRefreshingOverLastData();
 
     await zoomFetch.land(
-      flowResponse({
+      trafficResponse({
         startTime: ZOOM_START.toISOString(),
         endTime: ZOOM_END.toISOString(),
       }),
     );
 
-    expect(tileValue("Flows")).toBe("20");
+    expect(tileValue("flows")).toBe("20");
     expect(screen.getByText("10.0.0.20")).toBeInTheDocument();
     expect(screen.queryByText("10.0.0.60")).not.toBeInTheDocument();
     expect(chart()).toBe(chartBeforeZoom);
@@ -417,10 +447,10 @@ describe("Traffic card: a zoom or a reset refetches over the data on screen (sdn
   });
 
   test("a double-click on the chart keeps the zoomed figures on screen while the reset's fetch runs", async () => {
-    await renderCard();
-    await dragAcrossBandwidth();
+    await renderPage();
+    await dragAcrossTraffic();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe("20");
+      expect(tileValue("flows")).toBe("20");
     });
     const chartBeforeReset: HTMLElement = chart();
     const resetFetch: HeldFetch = holdNextFetch();
@@ -429,66 +459,66 @@ describe("Traffic card: a zoom or a reset refetches over the data on screen (sdn
     await flush();
 
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
-    expect(tileValue("Flows")).toBe("20");
+    expect(tileValue("flows")).toBe("20");
     expect(chart()).toBe(chartBeforeReset);
     expectRefreshingOverLastData();
 
-    await resetFetch.land(flowResponse(lastFlowRequest()));
+    await resetFetch.land(trafficResponse(lastTrafficRequest()));
 
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
-    expect(tileValue("Flows")).toBe("60");
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
+    expect(tileValue("flows")).toBe("60");
     expect(chart()).toBe(chartBeforeReset);
     expectSettled();
   });
 
   test("Reset zoom beside the picker does the same", async () => {
-    await renderCard();
-    await dragAcrossBandwidth();
+    await renderPage();
+    await dragAcrossTraffic();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe("20");
+      expect(tileValue("flows")).toBe("20");
     });
     const resetFetch: HeldFetch = holdNextFetch();
 
     fireEvent.click(screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID));
     await flush();
 
-    expect(tileValue("Flows")).toBe("20");
+    expect(tileValue("flows")).toBe("20");
     expectRefreshingOverLastData();
 
-    await resetFetch.land(flowResponse(lastFlowRequest()));
+    await resetFetch.land(trafficResponse(lastTrafficRequest()));
 
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expectSettled();
   });
 
   test("a new pick on the picker refetches over the data on screen too", async () => {
-    await renderCard();
+    await renderPage();
     const pickFetch: HeldFetch = holdNextFetch();
 
     fireEvent.click(screen.getByRole("button", { name: "Pick Past 2 Weeks" }));
     await flush();
 
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expectRefreshingOverLastData();
 
-    await pickFetch.land(flowResponse(lastFlowRequest()));
+    await pickFetch.land(trafficResponse(lastTrafficRequest()));
 
-    expect(tileValue("Flows")).toBe(TWO_WEEKS_OF_FLOWS);
+    expect(tileValue("flows")).toBe(TWO_WEEKS_OF_FLOWS);
     expectSettled();
   });
 
   test("a failed refetch keeps the last data, under an inline note that it could not refresh", async () => {
-    await renderCard();
+    await renderPage();
     const zoomFetch: HeldFetch = holdNextFetch();
 
-    await dragAcrossBandwidth();
+    await dragAcrossTraffic();
     await zoomFetch.fail(new Error("The probe did not answer"));
 
     const note: HTMLElement = screen.getByRole("alert");
     expect(note).toHaveTextContent(
       "Couldn't refresh — showing previously loaded data. The probe did not answer",
     );
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expect(chart()).toBeInTheDocument();
     expectSettled();
 
@@ -496,7 +526,7 @@ describe("Traffic card: a zoom or a reset refetches over the data on screen (sdn
     fireEvent.click(screen.getByRole("button", { name: "Pick Past 2 Weeks" }));
     await flush();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe(TWO_WEEKS_OF_FLOWS);
+      expect(tileValue("flows")).toBe(TWO_WEEKS_OF_FLOWS);
     });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -505,59 +535,58 @@ describe("Traffic card: a zoom or a reset refetches over the data on screen (sdn
     apiPostMock.mockImplementation(async () => {
       throw new Error("The probe did not answer");
     });
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+    renderView();
     await flush();
 
     expect(screen.getByText("The probe did not answer")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("flow-top-talkers-body"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("traffic-body")).not.toBeInTheDocument();
     expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
   });
 
   test("a zoom, then a reset before the zoom's data lands: the slower, older answer never lands", async () => {
-    await renderCard();
+    await renderPage();
     const zoomFetch: HeldFetch = holdNextFetch();
 
-    await dragAcrossBandwidth();
+    await dragAcrossTraffic();
     fireEvent.click(screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID));
     await flush();
     await waitFor(() => {
-      expect(screen.queryByTestId("flow-refreshing")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("traffic-refreshing"),
+      ).not.toBeInTheDocument();
     });
 
     await zoomFetch.land(
-      flowResponse({
+      trafficResponse({
         startTime: ZOOM_START.toISOString(),
         endTime: ZOOM_END.toISOString(),
       }),
     );
 
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
     expectSettled();
   });
 });
 
-describe("Traffic card: an empty window after a zoom is not an onboarding screen (sdn-6)", () => {
-  test("a zoom into a quiet stretch says there were no flows there, and how to get back", async () => {
-    await renderCard();
-    answerWith((request: FlowRequest) => {
+describe("Traffic page: an empty window after a zoom is not an onboarding screen (sdn-6)", () => {
+  test("a zoom into a quiet stretch says there was no traffic there, and how to get back", async () => {
+    await renderPage();
+    answerWith((request: TrafficRequest) => {
       return requestMinutes(request) < 60
         ? quietResponse(request)
-        : flowResponse(request);
+        : trafficResponse(request);
     });
 
-    await dragAcrossBandwidth();
+    await dragAcrossTraffic();
 
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    expect(empty).toHaveTextContent("No flows in the selected time range.");
+    const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
+    expect(empty).toHaveTextContent("No traffic in the selected time range.");
     expect(empty).toHaveTextContent(
-      "This device sent no flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the past 1 hour.",
+      "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the past 1 hour.",
     );
-    expect(empty).not.toHaveTextContent("No flow data yet.");
-    expect(empty).not.toHaveTextContent("PROBE_NETFLOW_RECEIVER_ENABLED");
+    expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
     // It takes the double-click, so a double-click must not select a word.
     expect(empty).toHaveClass("select-none");
 
@@ -567,95 +596,116 @@ describe("Traffic card: an empty window after a zoom is not an onboarding screen
     await waitFor(() => {
       expect(chart()).toBeInTheDocument();
     });
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
   });
 
-  test("the unzoomed past hour with no flows keeps the NetFlow setup steps, and its text stays selectable", async () => {
-    answerWith(quietResponse);
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+  test("a device that never sent a flow gets the set-up guide, whose text stays selectable", async () => {
+    answerWith(neverSentResponse);
+    renderView();
     await flush();
 
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    expect(empty).toHaveTextContent("No flow data yet.");
-    expect(empty).toHaveTextContent(
-      "Flow export is not configured for this device, or nothing has arrived in the past 1 hour.",
+    const guide: HTMLElement = await screen.findByTestId("traffic-setup-guide");
+    expect(guide).toHaveTextContent("See where this device's traffic goes");
+    // The ports the probe listens on, and the vendor commands.
+    expect(guide).toHaveTextContent("UDP 2055");
+    expect(guide).toHaveTextContent("UDP 4739");
+    expect(guide).toHaveTextContent("UDP 6343");
+    expect(screen.getByTestId("traffic-setup-configuration")).toHaveTextContent(
+      "flow exporter ONEUPTIME",
     );
-    expect(empty).toHaveTextContent("PROBE_NETFLOW_RECEIVER_ENABLED=true");
-    expect(empty).not.toHaveTextContent("Double-click");
-    expect(empty).not.toHaveClass("select-none");
+    expect(guide).not.toHaveTextContent("Double-click");
+    expect(guide).not.toHaveClass("select-none");
+    // Nothing to read yet: no tiles, no chart.
+    expect(screen.queryByTestId("traffic-tiles")).not.toBeInTheDocument();
   });
 
-  test("another preset with no flows keeps the setup steps too, for that window", async () => {
-    await renderCard();
-    answerWith(quietResponse);
+  test("a device that sent before but not in this window: its last flow, and no set-up guide", async () => {
+    answerWith((request: TrafficRequest) => {
+      return quietResponse(request, "2026-09-27 08:00:00");
+    });
+    renderView();
+    await flush();
+
+    expect(screen.getByTestId("traffic-device-status")).toHaveTextContent(
+      "No flow records in the last hour.",
+    );
+    expect(screen.getByTestId("traffic-no-data")).toHaveTextContent(
+      "Pick a longer time range to see older traffic.",
+    );
+    expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
+  });
+
+  test("another preset with no flows ever keeps the set-up guide too", async () => {
+    await renderPage();
+    answerWith(neverSentResponse);
 
     fireEvent.click(screen.getByRole("button", { name: "Pick Past 2 Weeks" }));
     await flush();
 
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    expect(empty).toHaveTextContent("No flow data yet.");
-    expect(empty).toHaveTextContent("nothing has arrived in the past 2 weeks");
+    expect(
+      await screen.findByTestId("traffic-setup-guide"),
+    ).toBeInTheDocument();
   });
 
-  test("a custom range picked on the card, with no flows: no setup steps, and no zoom to undo", async () => {
-    await renderCard();
-    answerWith(quietResponse);
+  test("a custom range picked on the page, with no flows: no set-up guide, and no zoom to undo", async () => {
+    await renderPage();
+    answerWith(neverSentResponse);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Pick 09:00 to 10:00" }),
     );
     await flush();
 
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    expect([lastFlowRequest().startTime, lastFlowRequest().endTime]).toEqual([
-      CUSTOM_START.toISOString(),
-      CUSTOM_END.toISOString(),
-    ]);
-    expect(empty).toHaveTextContent("No flows in the selected time range.");
+    const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
+    expect([
+      lastTrafficRequest().startTime,
+      lastTrafficRequest().endTime,
+    ]).toEqual([CUSTOM_START.toISOString(), CUSTOM_END.toISOString()]);
+    expect(empty).toHaveTextContent("No traffic in the selected time range.");
     expect(empty).toHaveTextContent(
-      "This device sent no flow records in this window.",
+      "Pick a longer time range to see older traffic.",
     );
     expect(empty).not.toHaveTextContent("Double-click");
-    expect(empty).not.toHaveTextContent("No flow data yet.");
+    expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
     expect(empty).not.toHaveClass("select-none");
   });
 
   test("a quiet zoom inside a custom range points back to the time range before the zoom", async () => {
-    await renderCard();
+    await renderPage();
     fireEvent.click(
       screen.getByRole("button", { name: "Pick 09:00 to 10:00" }),
     );
     await flush();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe("60");
+      expect(tileValue("flows")).toBe("60");
     });
-    answerWith((request: FlowRequest) => {
+    answerWith((request: TrafficRequest) => {
       return requestMinutes(request) < 60
         ? quietResponse(request)
-        : flowResponse(request);
+        : trafficResponse(request);
     });
 
-    await dragAcrossBandwidth(
+    await dragAcrossTraffic(
       new Date("2026-09-28T09:10:00.000Z"),
       new Date("2026-09-28T09:20:00.000Z"),
     );
 
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
+    const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
     expect(empty).toHaveTextContent(
       "Double-click here, or use Reset zoom, to go back to the time range before the zoom.",
     );
   });
 
-  test("while a reset from a quiet zoom refetches, the empty state keeps its words: the setup steps never flash up", async () => {
-    await renderCard();
-    answerWith((request: FlowRequest) => {
+  test("while a reset from a quiet zoom refetches, the empty state keeps its words: the set-up guide never flashes up", async () => {
+    await renderPage();
+    answerWith((request: TrafficRequest) => {
       return requestMinutes(request) < 60
-        ? quietResponse(request)
-        : flowResponse(request);
+        ? neverSentResponse(request)
+        : trafficResponse(request);
     });
-    await dragAcrossBandwidth();
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
+    await dragAcrossTraffic();
+    const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
     const resetFetch: HeldFetch = holdNextFetch();
 
     fireEvent.doubleClick(empty);
@@ -663,37 +713,35 @@ describe("Traffic card: an empty window after a zoom is not an onboarding screen
 
     // The picker is back on the past hour, but the data is still the zoom's.
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
-    expect(screen.getByTestId("flow-no-data")).toHaveTextContent(
-      "No flows in the selected time range.",
+    expect(screen.getByTestId("traffic-no-data")).toHaveTextContent(
+      "No traffic in the selected time range.",
     );
-    expect(screen.getByTestId("flow-no-data")).not.toHaveTextContent(
-      "No flow data yet.",
-    );
+    expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
     expectRefreshingOverLastData();
 
-    await resetFetch.land(flowResponse(lastFlowRequest()));
+    await resetFetch.land(trafficResponse(lastTrafficRequest()));
 
     expect(chart()).toBeInTheDocument();
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expectSettled();
   });
 });
 
-describe("Traffic card: a two-week window draws every bucket, peaking at its Max (sdn-1, end to end)", () => {
-  test("the whole card over a two-week response: one row per bucket, and the burst is drawn at 900 Mbps", async () => {
-    await renderCard();
-    answerWith((request: FlowRequest) => {
-      return flowResponse(request, 900);
+describe("Traffic page: a two-week window draws every bucket, peaking at its Peak (sdn-1, end to end)", () => {
+  test("the whole page over a two-week response: one row per bucket, and the burst is drawn at 900 Mbps", async () => {
+    await renderPage();
+    answerWith((request: TrafficRequest) => {
+      return trafficResponse(request, 900);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Pick Past 2 Weeks" }));
     await flush();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe(TWO_WEEKS_OF_FLOWS);
+      expect(tileValue("flows")).toBe(TWO_WEEKS_OF_FLOWS);
     });
 
     const props: { data: Array<SeriesPoints>; xAxis: XAxis; yAxis: YAxis } =
-      getStandInChart(BANDWIDTH_CHART).props as unknown as {
+      getStandInChart(TRAFFIC_CHART).props as unknown as {
         data: Array<SeriesPoints>;
         xAxis: XAxis;
         yAxis: YAxis;
@@ -705,7 +753,7 @@ describe("Traffic card: a two-week window draws every bucket, peaking at its Max
     });
     const plotted: Array<number> = rows
       .map((row: ChartDataPoint): unknown => {
-        return row["Bandwidth"];
+        return row["Traffic"];
       })
       .filter((value: unknown): value is number => {
         return typeof value === "number";
@@ -715,8 +763,6 @@ describe("Traffic card: a two-week window draws every bucket, peaking at its Max
     expect(props.data[0]!.data).toHaveLength(121);
     expect(plotted).toHaveLength(121);
     expect(Math.max(...plotted)).toBe(900);
-    expect(screen.getByText("Max").parentElement).toHaveTextContent(
-      "Max 900 Mbps",
-    );
+    expect(tileValue("peak")).toBe("900 Mbps");
   });
 });

@@ -44,7 +44,7 @@ Under it, one line says whether anything raises an incident when a device goes d
 
 Before anything is added, the Overview shows the two ways in instead: **Discover devices** (scan an address range and pick what to add — best for a whole network or a new site) and **Add one device** (by its IP address or hostname).
 
-The Network menu keeps what you open every day in view — **Overview**, **Devices**, **Sites**, **Map** and **Discovery** — and folds the rest: **Topology** (Device Topology, Endpoints, Latency Matrix, Site Links, Device Links), **Rules** (auto import, site assignment, owner, label and link rules) and **Settings** (Alert Policies, SNMP Credentials, Device Roles, Site Types, OID Collection Templates). A folded section opens by itself when you are on one of its pages.
+The Network menu keeps what you open every day in view — **Overview**, **Devices**, **Sites**, **Map**, **Traffic** and **Discovery** — and folds the rest: **Topology** (Device Topology, Endpoints, Latency Matrix, Site Links, Device Links), **Rules** (auto import, site assignment, owner, label and link rules) and **Settings** (Alert Policies, SNMP Credentials, Device Roles, Site Types, OID Collection Templates). A folded section opens by itself when you are on one of its pages.
 
 ## Adding a Network Device
 
@@ -65,7 +65,7 @@ A device's details — its name, description, role, site, labels and address —
 | Hostname | The IP address or hostname the probe pings — and walks over SNMP once the device has credentials                                                                                                                                     | Yes      |
 | Name     | A friendly name (e.g., core-switch-01). Leave it empty and the device is named after its hostname. The API does the same: a device created with no name is named after its hostname.                                                 | No       |
 | Site     | The [Network Site](/docs/monitor/network-sites) the device sits in. The site's health rolls up from the devices in it, and a site with a default probe fills in the Probe below.                                                     | No       |
-| Probe    | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It must be able to reach the device directly — a probe on the public internet cannot reach a private address. | Yes      |
+| Probe    | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and [flow records](/docs/monitor/network-traffic). It must be able to reach the device directly — a probe on the public internet cannot reach a private address. | Yes      |
 
 The Probe field fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](#site-monitoring-defaults). It never overwrites a probe you chose yourself. Set a default probe on your sites and a device can be added by its address alone.
 
@@ -909,10 +909,10 @@ snmp-server host <probe-ip> traps version 2c <community>
 Traps are matched through the device inventory:
 
 1. A trap arrives at a probe's receiver and is forwarded to OneUptime
-2. OneUptime looks up registered Network Devices assigned to that probe whose **hostname equals the trap's source IP address**
+2. OneUptime looks up registered Network Devices assigned to that probe whose **hostname, or one of whose Other Addresses, is the trap's source IP address**
 3. The trap is logged to the device's trap history, and every Network Device monitor that references a matching device evaluates the trap against its criteria — typically an **SNMP Trap Received (Trap OID)** filter
 
-Trap matching is by address, not by credentials, so a **ping-only device can still receive traps** — a device you hold no read credentials for can still be configured to send them. Register the device with the IP address it sends traps from. SNMPv1 generic traps (coldStart, linkDown, linkUp, ...) are normalized to their standard SNMPv2 notification OIDs — for example, linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` regardless of SNMP version.
+Trap matching is by address, not by credentials, so a **ping-only device can still receive traps** — a device you hold no read credentials for can still be configured to send them. Register the device with the IP address it sends traps from, or add that address to the device's **Other Addresses** on its **Settings** page. SNMPv1 generic traps (coldStart, linkDown, linkUp, ...) are normalized to their standard SNMPv2 notification OIDs — for example, linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` regardless of SNMP version.
 
 #### Example: raise an incident on linkDown
 
@@ -1106,7 +1106,7 @@ Rules](#importing-automatically-with-auto-import-rules).
 ### Traps not arriving
 
 - Publish/allow UDP port 162 through to the probe (or the custom `PROBE_SNMP_TRAP_RECEIVER_PORT`)
-- Confirm the device's registered hostname is the IP address it sends traps from — that is how traps are matched to devices
+- Confirm the device's registered hostname, or one of its **Other Addresses**, is the IP address it sends traps from — that is how traps are matched to devices
 - Check the probe logs for bind errors (port in use, or missing privileges for ports below 1024)
 
 ### Testing SNMP Connectivity
@@ -1129,7 +1129,7 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 4. **Use SNMPv3 when possible** — it provides authentication and encryption for better security.
 5. **Discover, then import** — a discovery scan is faster and less error-prone than registering devices by hand, and everything it finds is polled from the moment it is imported.
 6. **Write the fleet's alerting intent down as a policy** — even while [provisioning is off](#alert-policies), a policy records what a set of devices should be alerted on, which is the part hand-built monitors never capture: they cover the devices you had, not the ones you are about to discover.
-7. **Register devices by the IP they send traps from** — trap-to-monitor matching is by source IP.
+7. **Register devices by the IP they send traps from** — trap-to-monitor matching is by source IP; a device that sends from another address lists it under **Other Addresses**.
 8. **Keep interface walking on for switches and routers** — it powers interface alerts, utilization data and the topology map.
 9. **Turn on Collect Connected Endpoints on each site's switches and its router** — the switches put every ping-only device on the port it is plugged into, and the router fills in the MAC addresses that make the match, so a site's registers and handsets are cabled on the map without a single link drawn by hand.
 10. **Use descriptive OID names** — makes alert messages and template variables easier to read.

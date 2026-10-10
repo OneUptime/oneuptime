@@ -39,11 +39,11 @@ A tunnel that Sophos reports as active only has its security associations up. To
 
 - **Port health.** The interface walk already measures every WAN port's status, bits in and out, utilization and errors. On the firewall's monitor, an **SNMP Interface Is Down** or **SNMP Interface Utilization** criteria with Interface set to the WAN port's name (or `*` for every port) alerts per link.
 - **Path quality.** Each link's latency, packet loss and jitter are measured from outside the firewall: a Ping monitor from the OneUptime cloud probes to each WAN link's public address, and a Ping monitor from a probe at the site to each ISP's gateway. Packet Loss and Jitter criteria on those monitors alert per link, and the **Latency Matrix** (**Network → Topology → Latency Matrix**) shows every probe against every device at a glance.
-- **Traffic.** SFOS exports NetFlow v5, which the probe receives when `PROBE_NETFLOW_RECEIVER_ENABLED=true` (UDP 2055 by default); top talkers appear on the device's **Traffic** tab.
+- **Traffic.** SFOS exports NetFlow v5. Send it to the probe on UDP 2055 - the probe's flow collector is on by default - and the device's **Traffic** tab shows who talks to whom over each WAN link. [Network Traffic](/docs/monitor/network-traffic) has the details.
 
 ### 4. Gateways and SD-WAN from syslog
 
-1. **Turn on the probe's syslog receiver.** Set `PROBE_SYSLOG_RECEIVER_ENABLED=true` on the probe (it listens on UDP 5140 by default; `PROBE_SYSLOG_RECEIVER_PORT` changes it) and publish the port if the probe runs in Docker. Messages are matched to the network device whose hostname equals the sender's IP address, and appear on the device's **Logs** tab.
+1. **Turn on the probe's syslog receiver.** Set `PROBE_SYSLOG_RECEIVER_ENABLED=true` on the probe (it listens on UDP 5140 by default; `PROBE_SYSLOG_RECEIVER_PORT` changes it) and publish the port if the probe runs in Docker. Messages are matched to the network device whose hostname, or one of whose **Other Addresses**, is the sender's IP address, and appear on the device's **Logs** tab.
 2. **Send the logs.** On the firewall, under **System services → Log settings**, add a syslog server pointing at the probe and that port, and tick the **Event** log types for IPsec and gateways and the **SD-WAN** log type (the SLA logs are off until it is ticked).
 3. **Parse them.** Under **Logs → Settings → Pipelines**, create a pipeline whose filter matches the firewall's logs — `attributes.networkDevice.name = 'hq-firewall'` — and add a **Key=Value Parser** processor with Target Prefix `sophos`. Paste a line from the firewall into the processor's tester to see the exact attribute names your SFOS version produces.
 4. **Alert per tunnel and per gateway.** Create [Logs monitors](/docs/monitor/logs-monitor) scoped to the firewall's logs, each with **Group by Attributes** so every tunnel or gateway alerts on its own:
@@ -77,7 +77,7 @@ Every Sophos notification is the same trap, `sfosNotification` (`1.3.6.1.4.1.260
 
 **Hardware alerts.** Power supplies, fans, temperature sensors and stack members are tables with their healthy values declared, so each gets a per-row alert in the recommended pack.
 
-EXOS and Fabric Engine export flows as sFlow and IPFIX, which the probe does not ingest; the device's **Traffic** tab stays empty for them.
+EXOS and Fabric Engine export flows as sFlow and IPFIX. Send sFlow to the probe on UDP 6343, or IPFIX on UDP 4739, and the device's **Traffic** tab shows its traffic - see [Network Traffic](/docs/monitor/network-traffic).
 
 **Extreme's Wi-Fi.** IQ Engine (HiveOS) access points and ExtremeCloud IQ Controller have vendor templates of their own, which fill the device's **Wi-Fi** tab — see [Supported Wi-Fi Vendors](/docs/monitor/network-device-monitor#supported-wi-fi-vendors), which also covers Ubiquiti UniFi, HPE Aruba, TP-Link Omada and Juniper Mist.
 

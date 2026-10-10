@@ -3,15 +3,20 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
+  AddDevicePrefill,
+  NETWORK_QUICK_ACTION_ADDRESS_PARAM,
+  NETWORK_QUICK_ACTION_PROBE_PARAM,
   NETWORK_QUICK_ACTION_QUERY_PARAM,
   NetworkQuickAction,
   isNetworkQuickActionInSearch,
+  readAddDevicePrefill,
 } from "./NetworkQuickActionQuery";
 
 export {
   NETWORK_QUICK_ACTION_QUERY_PARAM,
   NetworkQuickAction,
 } from "./NetworkQuickActionQuery";
+export type { AddDevicePrefill } from "./NetworkQuickActionQuery";
 
 /*
  * The two ways a device gets into Network - add one by its address, or scan
@@ -35,10 +40,33 @@ const ACTION_PAGES: Record<NetworkQuickAction, PageMap> = {
  * Where to send someone to do `action`: the page its form is on, with the
  * action in the query string.
  */
-export function getNetworkQuickActionRoute(action: NetworkQuickAction): Route {
+export function getNetworkQuickActionRoute(
+  action: NetworkQuickAction,
+  prefill?: AddDevicePrefill | undefined,
+): Route {
+  const params: { [key: string]: string } = {
+    [NETWORK_QUICK_ACTION_QUERY_PARAM]: action,
+  };
+
+  if (action === NetworkQuickAction.AddDevice && prefill?.address) {
+    params[NETWORK_QUICK_ACTION_ADDRESS_PARAM] = prefill.address;
+  }
+
+  if (action === NetworkQuickAction.AddDevice && prefill?.probeId) {
+    params[NETWORK_QUICK_ACTION_PROBE_PARAM] = prefill.probeId;
+  }
+
   return RouteUtil.populateRouteParams(
     RouteMap[ACTION_PAGES[action]] as Route,
-  ).addQueryParams({ [NETWORK_QUICK_ACTION_QUERY_PARAM]: action });
+  ).addQueryParams(params);
+}
+
+/**
+ * What the Add Device link this page was opened by fills in (the address
+ * and probe of an exporter that is not a device yet). Read once, at mount.
+ */
+export function getRequestedAddDevicePrefill(): AddDevicePrefill {
+  return readAddDevicePrefill(Navigation.getQueryString());
 }
 
 /**
@@ -56,5 +84,9 @@ export function isNetworkQuickActionRequested(
  * asked for is open - so a refresh does not open it a second time.
  */
 export function clearNetworkQuickAction(): void {
-  Navigation.setQueryString({ [NETWORK_QUICK_ACTION_QUERY_PARAM]: null });
+  Navigation.setQueryString({
+    [NETWORK_QUICK_ACTION_QUERY_PARAM]: null,
+    [NETWORK_QUICK_ACTION_ADDRESS_PARAM]: null,
+    [NETWORK_QUICK_ACTION_PROBE_PARAM]: null,
+  });
 }

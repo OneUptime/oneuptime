@@ -46,6 +46,13 @@ interface ParentCase {
   modelType: { new (): AnalyticsBaseModel };
   parentModel: { new (): unknown; name: string };
   fkColumn: string;
+  /*
+   * Rows that name no record of the parent's kind but the project itself:
+   * the project's bucket, which belongs to the project and so to an Owned
+   * grant's catch-all access - never to a grant limited to labels. Network
+   * flows keep there the flows of an exporter that is no device yet.
+   */
+  projectBucket?: boolean;
 }
 
 const PARENT_CASES: Array<ParentCase> = [
@@ -59,6 +66,7 @@ const PARENT_CASES: Array<ParentCase> = [
     modelType: NetworkFlow,
     parentModel: NetworkDevice,
     fkColumn: "networkDeviceId",
+    projectBucket: true,
   },
   {
     modelType: KubernetesCostAllocation,
@@ -187,8 +195,11 @@ afterEach(() => {
 
 describe.each(PARENT_CASES)(
   "$modelType.name is read through its $parentModel.name",
-  ({ modelType, parentModel, fkColumn }: ParentCase) => {
+  ({ modelType, parentModel, fkColumn, projectBucket }: ParentCase) => {
     const kind: string = parentModel.name;
+
+    // What an Owned grant reads besides the records it owns.
+    const bucket: Array<string> = projectBucket ? [PROJECT_ID.toString()] : [];
 
     const otherKinds: () => Array<Lookups> = (): Array<Lookups> => {
       return Array.from(lookupsByKind.entries())
@@ -208,6 +219,7 @@ describe.each(PARENT_CASES)(
       expect(ownedThrough.fkColumn).toBe(fkColumn);
       expect(ownedThrough.parentModels).toEqual([parentModel]);
       expect(ownedThrough.onlyParentModels).toBe(true);
+      expect(ownedThrough.includeProjectScope).toBe(Boolean(projectBucket));
       expect(OwnerTableRegistry.get(kind)?.modelService).toBeDefined();
     });
 
@@ -230,7 +242,7 @@ describe.each(PARENT_CASES)(
       );
 
       expect(new Set(scope.readableIds)).toEqual(
-        new Set([OWNED_ID.toString(), TEAM_OWNED_ID.toString()]),
+        new Set([OWNED_ID.toString(), TEAM_OWNED_ID.toString(), ...bucket]),
       );
 
       // Nothing the caller owns of another kind is read for these rows.
@@ -295,7 +307,7 @@ describe.each(PARENT_CASES)(
         DatabaseRequestType.Read,
       );
 
-      expect(scope.readableIds).toEqual([]);
+      expect(scope.readableIds).toEqual(bucket);
     });
 
     test("a grant over the project reads every row", async () => {
