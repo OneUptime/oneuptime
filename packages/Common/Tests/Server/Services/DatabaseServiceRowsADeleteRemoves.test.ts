@@ -841,3 +841,70 @@ describe("DatabaseService.findOneRowAndHoldDeleteToIt", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * A hard delete purges the rows deleted before as well (hardDeleteBy), so
+ * a hook's read of the rows it removes reads those too - and holds the
+ * purge to them. A soft delete removes only rows still there, and reads
+ * only those.
+ */
+describe("DatabaseService.findRowsAndHoldDeleteToThem - a hard delete", () => {
+  const STOP: string = "the hook read the rows it removes";
+
+  // A service whose delete hook reads the rows the delete removes, then stops.
+  class ReadsRowsItRemoves extends DatabaseService<StatusPageSubscriber> {
+    public heldTo: Array<string> = [];
+
+    public constructor() {
+      super(StatusPageSubscriber);
+    }
+
+    protected override async onBeforeDelete(
+      deleteBy: DeleteBy<StatusPageSubscriber>,
+    ): Promise<OnDelete<StatusPageSubscriber>> {
+      await this.findRowsAndHoldDeleteToThem(deleteBy, SELECT);
+      this.heldTo = idsNamedBy(
+        (deleteBy.query as unknown as JSONObject)["_id"],
+      );
+      throw new Error(STOP);
+    }
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reads the rows deleted before as well, and holds the purge to every row read", async () => {
+    const service: ReadsRowsItRemoves = new ReadsRowsItRemoves();
+    const rawRead: jest.SpyInstance = getJestSpyOn(
+      service as unknown as { _findBy: () => Promise<unknown> },
+      "_findBy",
+    ).mockResolvedValue([row(ROW_A), row(ROW_B)] as never);
+    const findBy: jest.SpyInstance = getJestSpyOn(service, "findBy");
+
+    await expect(
+      service.hardDeleteBy(deleteOf({ props: { isRoot: true } })),
+    ).rejects.toThrow(STOP);
+
+    // One read, with the rows deleted before.
+    expect(rawRead).toHaveBeenCalledTimes(1);
+    expect(rawRead.mock.calls[0]![1]).toBe(true);
+    expect(findBy).not.toHaveBeenCalled();
+    expect(service.heldTo).toEqual([ROW_A, ROW_B]);
+  });
+
+  it("reads only the rows still there for a soft delete", async () => {
+    const service: ReadsRowsItRemoves = new ReadsRowsItRemoves();
+    const findBy: jest.SpyInstance = getJestSpyOn(
+      service,
+      "findBy",
+    ).mockResolvedValue([row(ROW_A)] as never);
+
+    await expect(
+      service.deleteBy(deleteOf({ props: { isRoot: true } })),
+    ).rejects.toThrow(STOP);
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(service.heldTo).toEqual([ROW_A]);
+  });
+});
