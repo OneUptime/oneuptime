@@ -11,7 +11,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 
 ## How it works
 
-The agent ships the cluster's metrics to OneUptime over OTLP, each one stamped with the cluster's name (`k8s.cluster.name`, the chart's `clusterName`). The first data from a new name registers the cluster under **Kubernetes**, and from then on the cluster can be picked in a Kubernetes monitor. The monitor queries those metrics over its **Time Range**, aggregates them, and compares the result with its criteria.
+The agent ships the cluster's metrics to OneUptime over OTLP, each one stamped with the cluster's name (`k8s.cluster.name`, the chart's `clusterName`). The first data from a new name registers the cluster under **Kubernetes**, and from then on the cluster can be picked in a Kubernetes monitor. Every minute, the monitor queries those metrics over its **Time Range**, aggregates them, and compares the result with its criteria.
 
 ```mermaid title="From cluster metrics to an incident"
 flowchart LR
@@ -124,7 +124,7 @@ Baseline anomaly detection needs no threshold. Pick one of these conditions, and
 
 Each sample is compared with a same-hour-of-week baseline built from the **Baseline Window** (14 days by default; 28, 60 or 90 days). **Sensitivity** sets how wide the expected range is: **Low (4σ — egregious deviations only)**, **Medium (3σ — recommended)**, the default, or **High (2σ — noisier, very stable services)**. Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
 
-**If No Data**, under **More fields**, decides what happens when the query returns nothing in the window: **Ignore** (the default) does not match, **Trigger** treats the silence as the problem, and **Treat As Zero** compares a zero.
+**If No Data**, under **More fields**, decides what happens when the query returns nothing in the window: **Ignore** (the default) does not match, **Trigger** treats the silence as the problem, and **Treat As Zero** compares a zero. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Pre-built alert templates
 
@@ -166,6 +166,24 @@ Enable them together on any namespace that runs an autoscaled workload: the comb
 
 > [!NOTE]
 > The two pod-limit templates divide the pod's usage by the **sum** of its containers' limits, so pods with sidecars are measured correctly. The kubelet's pod memory figure includes reclaimable page cache, so a file-heavy workload can sit high on the memory template without ever being OOMKilled: read it as "approaching the limit", not "about to be killed".
+
+## Troubleshooting
+
+:::details The cluster is not in the Kubernetes Cluster list
+Clusters register themselves from the agent's data, under the `clusterName` the agent was installed with. Check that the agent's pods are running and that the cluster is listed under **Products → Infrastructure → Kubernetes → All Clusters**. [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) covers the install and what to check when no data arrives.
+:::
+
+:::details A control-plane template never fires
+**etcd No Leader**, **API Server Request Saturation** and **Scheduler Backlog** read metrics that only the agent's control-plane scrape collects. Turn on `controlPlane.enabled` in the agent's Helm values; it is off by default. Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so on them these monitors never receive data.
+:::
+
+:::details A CPU threshold never fires
+**Pod CPU Usage** and **Node CPU Usage** are in cores, not percent, so a threshold of `80` means 80 cores. Set the threshold in cores, or start from **High Node CPU Utilization** or **Pod CPU Saturating Container Limit**, which compare a percentage.
+:::
+
+:::details CrashLoopBackOff Detection stays open after the pod recovered
+The template reads the container's lifetime restart count for its current pod, so the count does not fall back once it has passed 5. The alert resolves when the pod is replaced, for example by a redeploy, an eviction or a node drain.
+:::
 
 ## Next steps
 
