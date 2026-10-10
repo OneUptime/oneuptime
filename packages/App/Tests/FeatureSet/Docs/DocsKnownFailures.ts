@@ -270,12 +270,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/api-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/create-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/custom-code-monitor": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
@@ -321,9 +315,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/iot-device-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "monitor/ip-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/javascript-expression": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
@@ -347,9 +338,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/monitor-secrets": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/monitor-templates": {
-    translated: EVERY_TRANSLATION,
-  },
   "monitor/network-device-monitor": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -362,15 +350,9 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/network-vendor-guides": {
     translated: EVERY_TRANSLATION,
   },
-  "monitor/ping-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/podman-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "monitor/port-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/profiles-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -400,9 +382,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "monitor/vmware-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/website-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
