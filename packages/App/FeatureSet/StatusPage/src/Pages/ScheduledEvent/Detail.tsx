@@ -72,6 +72,37 @@ export type GetScheduledEventEventItemFunction = (
   props: GetScheduledEventEventItemFunctionProps,
 ) => EventItemComponentProps;
 
+/*
+ * The icon of a state change on the event's timeline, by where the state it
+ * moved into sits (Common/Utils/ScheduledMaintenanceStart): a clock while
+ * the event has not started - Scheduled, or a state of the project's own
+ * before Ongoing, such as "Confirmed"; the work icon while it is in
+ * progress; a check once it is complete - Completed, or a state of the
+ * project's own after it; an arrow when it is over but not complete yet -
+ * Ended, or "Reviewing" between Ended and Completed.
+ */
+export const getStateChangeIcon: (data: {
+  states: Array<ScheduledMaintenanceState>;
+  state: ScheduledMaintenanceState;
+}) => IconProp = (data: {
+  states: Array<ScheduledMaintenanceState>;
+  state: ScheduledMaintenanceState;
+}): IconProp => {
+  if (ScheduledMaintenanceStartUtil.isInProgress(data)) {
+    return IconProp.Settings;
+  }
+
+  if (ScheduledMaintenanceStartUtil.isComplete(data)) {
+    return IconProp.CheckCircle;
+  }
+
+  if (!ScheduledMaintenanceStartUtil.hasStarted(data)) {
+    return IconProp.Clock;
+  }
+
+  return IconProp.ArrowCircleRight;
+};
+
 export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
   props: GetScheduledEventEventItemFunctionProps,
 ): EventItemComponentProps => {
@@ -209,19 +240,11 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
           scheduledMaintenanceEventstateTimeline?.startsAt ||
           (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
-        icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-          .isScheduledState
-          ? IconProp.Clock
-          : ScheduledMaintenanceStartUtil.isInProgress({
-                states: scheduledMaintenanceStates,
-                state:
-                  scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
-              })
-            ? IconProp.Settings
-            : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-                  .isResolvedState
-              ? IconProp.CheckCircle
-              : IconProp.ArrowCircleRight,
+        icon: getStateChangeIcon({
+          states: scheduledMaintenanceStates,
+          state:
+            scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
+        }),
         iconColor:
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
             .color || Gray500,

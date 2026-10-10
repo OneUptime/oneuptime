@@ -39,6 +39,26 @@ export const hasScheduledMaintenanceEventStarted: (data: {
 };
 
 /*
+ * Whether the event a page shows is over, by the same rule
+ * (ScheduledMaintenanceStartUtil.hasEnded): in its ended or completed
+ * state, or in a state of the project's own placed after Ended, such as
+ * "Reviewing". An event in a state it has not started in, or in progress
+ * ("Verifying"), is not.
+ */
+export const hasScheduledMaintenanceEventEnded: (data: {
+  states: Array<unknown>;
+  currentState: unknown;
+}) => boolean = (data: {
+  states: Array<unknown>;
+  currentState: unknown;
+}): boolean => {
+  return ScheduledMaintenanceStartUtil.hasEnded({
+    states: data.states,
+    state: data.currentState,
+  });
+};
+
+/*
  * The id a form value holds for the status, in any shape the form holds it:
  * an id (as the form loads a relation), an ObjectID, or a relation object
  * carrying `_id` or `id`. Null for none.

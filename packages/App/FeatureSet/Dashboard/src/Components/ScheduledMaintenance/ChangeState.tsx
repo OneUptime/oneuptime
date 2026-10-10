@@ -412,13 +412,19 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       states: scheduledMaintenanceStates,
     }) || undefined;
 
+  /*
+   * Where Mark as Ended moves the event: the project's ended state, or its
+   * completed state in a project without one (ScheduledMaintenanceStartUtil
+   * .getEndedState / getCompletedState).
+   */
   const endState: ScheduledMaintenanceState | undefined =
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isEndedState);
+    ScheduledMaintenanceStartUtil.getEndedState({
+      states: scheduledMaintenanceStates,
     }) ||
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isResolvedState);
-    });
+    ScheduledMaintenanceStartUtil.getCompletedState({
+      states: scheduledMaintenanceStates,
+    }) ||
+    undefined;
 
   const stateKind: ScheduledMaintenanceStateKind =
     getScheduledMaintenanceStateKind({

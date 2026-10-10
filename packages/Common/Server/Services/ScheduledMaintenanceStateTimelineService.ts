@@ -1082,11 +1082,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
   /*
    * The mark a state change's feed entry starts with, by where the state it
-   * moves into sits (ScheduledMaintenanceStartUtil): ✅ complete -
-   * Completed, or a state of the project's own after it; ⏳ in progress;
-   * 🕒 not started yet - Scheduled, or a state of the project's own before
-   * Ongoing, such as "Confirmed"; ➡️ over but not complete yet - Ended, or
-   * "Reviewing" between Ended and Completed.
+   * moves into sits (ScheduledMaintenanceStartUtil) - the marks a status
+   * page's timeline shows for the same states: ⏳ in progress; ✅ complete -
+   * Completed, or a state of the project's own after it; 🕒 not started yet
+   * - Scheduled, or a state of the project's own before Ongoing, such as
+   * "Confirmed"; ➡️ over but not complete yet - Ended, or "Reviewing"
+   * between Ended and Completed.
    */
   private async getStateEmoji(data: {
     state: ScheduledMaintenanceState | null | undefined;
@@ -1095,6 +1096,10 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
   }): Promise<string> {
     if (!data.state) {
       return "➡️";
+    }
+
+    if (data.isInProgress) {
+      return "⏳";
     }
 
     const states: Array<ScheduledMaintenanceState> =
@@ -1109,10 +1114,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       })
     ) {
       return "✅";
-    }
-
-    if (data.isInProgress) {
-      return "⏳";
     }
 
     if (
