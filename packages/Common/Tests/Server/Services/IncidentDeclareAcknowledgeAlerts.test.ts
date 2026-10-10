@@ -2,6 +2,7 @@ import AlertService from "../../../Server/Services/AlertService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentAlertService, {
   AcknowledgeDeclaredAlertsResult,
   LinkAlertsToIncidentResult,
@@ -26,6 +27,7 @@ import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -137,6 +139,7 @@ const NOTHING_CARRIED: CarriedForward = {
 type AuthorizeArgs = {
   projectId: ObjectID;
   alertIds: Array<ObjectID>;
+  alertStateId: ObjectID;
   props: DatabaseCommonInteractionProps;
 };
 
@@ -446,6 +449,139 @@ function alertStateReads(): Array<FindAlertsArgs> {
     .filter((args: FindAlertsArgs): boolean => {
       return Boolean(args.select["currentAlertState"]);
     });
+}
+
+// A read the alert state timeline's create check makes, and who it was made as.
+type CreateCheckRead = {
+  table: string;
+  ids: Array<string>;
+  props: DatabaseCommonInteractionProps | null;
+};
+
+/*
+ * The reads the real permission check's create check makes of the database
+ * (AlertStateChangeAuthorization -> AlertStateTimelineService
+ * .checkCallerMayCreate), answered from the stored alerts and recorded:
+ * each alert read as the caller - the responders below read every alert,
+ * and none is private - and the labels each alert carries, read by
+ * OneUptime, with the labels' names for a refusal.
+ */
+function stubCreateCheckReads(): {
+  parentReads: Array<CreateCheckRead>;
+  labelReads: Array<CreateCheckRead>;
+} {
+  const parentReads: Array<CreateCheckRead> = [];
+  const labelReads: Array<CreateCheckRead> = [];
+
+  jest
+    .spyOn(
+      DatabaseService as unknown as {
+        findReadableParentIds: (data: {
+          parentModelType: { new (): DatabaseBaseModel };
+          ids: Array<string>;
+          props: DatabaseCommonInteractionProps;
+        }) => Promise<Array<string>>;
+      },
+      "findReadableParentIds",
+    )
+    .mockImplementation((async (data: {
+      parentModelType: { new (): DatabaseBaseModel };
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<string>> => {
+      parentReads.push({
+        table: new data.parentModelType().tableName || "",
+        ids: data.ids.map((id: string): string => {
+          return id.toLowerCase();
+        }),
+        props: data.props,
+      });
+
+      return [...data.ids];
+    }) as never);
+
+  jest
+    .spyOn(
+      DatabaseService as unknown as {
+        findIdsInProject: (data: {
+          ids: Array<string>;
+        }) => Promise<Array<string>>;
+      },
+      "findIdsInProject",
+    )
+    .mockImplementation((async (data: {
+      ids: Array<string>;
+    }): Promise<Array<string>> => {
+      return [...data.ids];
+    }) as never);
+
+  jest
+    .spyOn(
+      DatabaseService as unknown as {
+        findRecordLabels: (data: {
+          modelType: { new (): DatabaseBaseModel };
+          ids: Array<string>;
+        }) => Promise<Record<string, Array<string>>>;
+      },
+      "findRecordLabels",
+    )
+    .mockImplementation((async (data: {
+      modelType: { new (): DatabaseBaseModel };
+      ids: Array<string>;
+    }): Promise<Record<string, Array<string>>> => {
+      labelReads.push({
+        table: new data.modelType().tableName || "",
+        ids: data.ids.map((id: string): string => {
+          return id.toLowerCase();
+        }),
+        props: null,
+      });
+
+      const labels: Record<string, Array<string>> = {};
+
+      for (const id of data.ids) {
+        labels[id.toLowerCase()] = (
+          storedAlerts.get(id.toLowerCase())?.labels || []
+        ).map((label: Label): string => {
+          return label.id!.toString().toLowerCase();
+        });
+      }
+
+      return labels;
+    }) as never);
+
+  jest
+    .spyOn(
+      DatabaseService as unknown as {
+        findLabelNames: (data: {
+          labelIds: Array<string>;
+        }) => Promise<Array<string>>;
+      },
+      "findLabelNames",
+    )
+    .mockImplementation((async (data: {
+      labelIds: Array<string>;
+    }): Promise<Array<string>> => {
+      const stored: Array<Label> = Array.from(storedAlerts.values()).flatMap(
+        (alert: StoredAlert): Array<Label> => {
+          return alert.labels;
+        },
+      );
+
+      return data.labelIds.map((labelId: string): string => {
+        const label: Label | undefined = stored.find(
+          (candidate: Label): boolean => {
+            return (
+              candidate.id!.toString().toLowerCase() === labelId.toLowerCase()
+            );
+          },
+        );
+
+        return label?.name || labelId;
+      });
+    }) as never);
+
+  return { parentReads, labelReads };
 }
 
 // What onBeforeCreate reads besides the alerts, up to the incident number.
@@ -1934,13 +2070,55 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       .mockResolvedValue(emptyAcknowledgeResult() as never);
   });
 
-  // The real AlertStateChangeAuthorization, watched.
+  // What the real check's create check read, once it is in use.
+  let reads: {
+    parentReads: Array<CreateCheckRead>;
+    labelReads: Array<CreateCheckRead>;
+  };
+
+  /*
+   * The real AlertStateChangeAuthorization, watched, with the reads its
+   * create check makes answered from the stored alerts.
+   */
   function useRealPermissionCheck(): void {
     authorize.mockRestore();
     authorize = jest.spyOn(
       AlertStateChangeAuthorization,
       "assertCanChangeStateOfAlerts",
     );
+    reads = stubCreateCheckReads();
+  }
+
+  // A responder who reads every alert, with these permissions besides.
+  function viewerWith(
+    permissions: Array<{
+      permission: Permission;
+      isBlockPermission?: boolean;
+      labelIds?: Array<ObjectID>;
+    }>,
+  ): DatabaseCommonInteractionProps {
+    const props: DatabaseCommonInteractionProps = userProps(Permission.Viewer);
+
+    props.userTenantAccessPermission![
+      PROJECT_ID.toString()
+    ]!.permissions.push(
+      ...permissions.map(
+        (entry: {
+          permission: Permission;
+          isBlockPermission?: boolean;
+          labelIds?: Array<ObjectID>;
+        }) => {
+          return {
+            _type: "UserPermission" as const,
+            permission: entry.permission,
+            labelIds: entry.labelIds || [],
+            isBlockPermission: entry.isBlockPermission || false,
+          };
+        },
+      ),
+    );
+
+    return props;
   }
 
   type Declared = {
@@ -2057,21 +2235,28 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
 
       const props: DatabaseCommonInteractionProps = labelScopedProps(teamA);
 
-      // The responder really may not change the resolved team-b alert.
+      /*
+       * The responder really may not change the resolved team-b alert: their
+       * permission to create its state timeline row reaches team-a alerts
+       * only.
+       */
       const both: Promise<void> =
         AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
           projectId: PROJECT_ID,
           alertIds: [new ObjectID(ALERT_ID), new ObjectID(ALERT_ID_2)],
+          alertStateId: new ObjectID(ACKNOWLEDGED_ALERT_STATE_ID),
           props: props,
         });
 
       await expect(both).rejects.toBeInstanceOf(NotAuthorizedException);
       await expect(both).rejects.toThrow(
-        "You do not have permission to update this Alert. You need to have one of the following labels: team-b.",
+        "Your access lets you create Alert State Timelines only for records with one of these labels: team-a.",
       );
 
       authorize.mockClear();
       findAlerts.mockClear();
+      reads.parentReads.length = 0;
+      reads.labelReads.length = 0;
 
       const declared: Declared = await declare(
         {
@@ -2088,22 +2273,37 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       expect(
         ids((authorize.mock.calls[0]![0] as AuthorizeArgs).alertIds),
       ).toEqual([ALERT_ID]);
+      expect(
+        String((authorize.mock.calls[0]![0] as AuthorizeArgs).alertStateId),
+      ).toBe(ACKNOWLEDGED_ALERT_STATE_ID);
       await expect(authorize.mock.results[0]!.value).resolves.toBeUndefined();
 
-      // ...through the responder's team-a scope, for that alert alone.
-      const scopedReads: Array<FindAlertsArgs> = findAlerts.mock.calls
-        .map((call: Array<unknown>): FindAlertsArgs => {
-          return call[0] as FindAlertsArgs;
-        })
-        .filter((args: FindAlertsArgs): boolean => {
-          return args.query["labels"] !== undefined;
-        });
+      /*
+       * ...as acknowledging it on its own page would be: the alert read as the
+       * responder, and its labels held to their team-a permission to create
+       * its state timeline row - for that alert alone.
+       */
+      const alertReads: Array<CreateCheckRead> = reads.parentReads.filter(
+        (read: CreateCheckRead): boolean => {
+          return read.table === "Alert";
+        },
+      );
 
-      expect(scopedReads).toHaveLength(1);
       expect(
-        rawValues((scopedReads[0]!.query["labels"] as { _id: unknown })._id),
-      ).toEqual([teamA.id!.toString()]);
-      expect(rawValues(scopedReads[0]!.query["_id"])).toEqual([ALERT_ID]);
+        alertReads.map((read: CreateCheckRead): Array<string> => {
+          return read.ids;
+        }),
+      ).toEqual([[ALERT_ID]]);
+      expect(alertReads[0]!.props!.userId).toBe(USER_ID);
+      expect(reads.labelReads).toEqual([
+        { table: "Alert", ids: [ALERT_ID], props: null },
+      ]);
+      // No scoped read of its own: the alert is no longer held to Edit Alert.
+      expect(
+        findAlerts.mock.calls.filter((call: Array<unknown>): boolean => {
+          return (call[0] as FindAlertsArgs).query["labels"] !== undefined;
+        }),
+      ).toEqual([]);
 
       expect(ids(declared.carriedForward!.alertIdsToLink)).toEqual([
         ALERT_ID,
@@ -2161,6 +2361,135 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       ).toEqual([ALERT_ID, ALERT_ID_2]);
       expect(counter).not.toHaveBeenCalled();
       expect(link).not.toHaveBeenCalled();
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Acknowledging the alerts as an incident is declared takes what
+   * acknowledging each of them on its own page takes - Create Alert State
+   * Timeline - and no Edit Alert.
+   */
+  describe("with the real permission check, the declare form asks what an alert's own page asks", () => {
+    beforeEach(() => {
+      useRealPermissionCheck();
+      storeAlert(ALERT_ID, { stateOrder: CREATED_ALERT_STATE_ORDER });
+      storeAlert(ALERT_ID_2, { stateOrder: CREATED_ALERT_STATE_ORDER });
+    });
+
+    test("a custom role with Create Alert State Timeline but not Edit Alert declares and has the alerts acknowledged as them", async () => {
+      const declared: Declared = await declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID, ALERT_ID_2],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        viewerWith([
+          { permission: Permission.CreateIncident },
+          { permission: Permission.CreateIncidentAlert },
+          { permission: Permission.CreateAlertStateTimeline },
+        ]),
+      );
+
+      expect(counter).toHaveBeenCalledTimes(1);
+      expect(authorize).toHaveBeenCalledTimes(1);
+      await expect(authorize.mock.results[0]!.value).resolves.toBeUndefined();
+      expect(ids(declared.carriedForward!.alertIdsToAcknowledge)).toEqual([
+        ALERT_ID,
+        ALERT_ID_2,
+      ]);
+
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+
+      const args: AcknowledgeArgs = acknowledge.mock
+        .calls[0]![0] as AcknowledgeArgs;
+
+      expect(ids(args.alertIds)).toEqual([ALERT_ID, ALERT_ID_2]);
+      expect(args.acknowledgedByUserId).toBe(USER_ID);
+    });
+
+    test("a Project Member whose team is blocked from editing alerts still has them acknowledged", async () => {
+      const props: DatabaseCommonInteractionProps = userProps(
+        Permission.ProjectMember,
+      );
+      props.userTenantAccessPermission![
+        PROJECT_ID.toString()
+      ]!.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.EditAlert,
+        labelIds: [],
+        isBlockPermission: true,
+      });
+
+      await declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        props,
+      );
+
+      expect(counter).toHaveBeenCalledTimes(1);
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+      expect(
+        ids((acknowledge.mock.calls[0]![0] as AcknowledgeArgs).alertIds),
+      ).toEqual([ALERT_ID]);
+    });
+
+    test("a Project Member whose team is blocked from creating alert state timelines may declare, but not acknowledge", async () => {
+      const blocked: () => DatabaseCommonInteractionProps =
+        (): DatabaseCommonInteractionProps => {
+          const props: DatabaseCommonInteractionProps = userProps(
+            Permission.ProjectMember,
+          );
+          props.userTenantAccessPermission![
+            PROJECT_ID.toString()
+          ]!.permissions.push({
+            _type: "UserPermission",
+            permission: Permission.CreateAlertStateTimeline,
+            labelIds: [],
+            isBlockPermission: true,
+          });
+          return props;
+        };
+
+      const refused: Promise<Declared> = declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        blocked(),
+      );
+
+      await expect(refused).rejects.toBeInstanceOf(BadDataException);
+      await expect(refused).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+      expect(counter).not.toHaveBeenCalled();
+      expect(link).not.toHaveBeenCalled();
+      // Refused before any alert is read.
+      expect(reads.parentReads).toEqual([]);
+
+      // Declaring without acknowledging goes through.
+      await declare({ [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID] }, blocked());
+
+      expect(counter).toHaveBeenCalledTimes(1);
+      expect(link).toHaveBeenCalledTimes(1);
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test("Edit Alert without Create Alert State Timeline may declare, but not acknowledge", async () => {
+      const refused: Promise<Declared> = declare(
+        {
+          [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+          [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+        },
+        viewerWith([
+          { permission: Permission.CreateIncident },
+          { permission: Permission.CreateIncidentAlert },
+          { permission: Permission.EditAlert },
+        ]),
+      );
+
+      await expect(refused).rejects.toThrow(MAY_NOT_ACKNOWLEDGE_MESSAGE);
+      expect(counter).not.toHaveBeenCalled();
       expect(acknowledge).not.toHaveBeenCalled();
     });
   });
