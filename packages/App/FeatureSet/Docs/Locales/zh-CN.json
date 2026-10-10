@@ -108,7 +108,11 @@
     "Real User Monitoring": "真实用户监控"
   },
   "navLinks": {
-    "Getting Started": "快速开始",
+    "Getting Started": "入门指南",
+    "Quickstart": "快速开始",
+    "Core Concepts": "核心概念",
+    "Home Page & Shortcuts": "首页与快捷键",
+    "Your Account": "您的账户",
     "Moving from Opsgenie": "从 Opsgenie 迁移",
     "Moving from PagerDuty": "从 PagerDuty 迁移",
     "Moving from incident.io": "从 incident.io 迁移",

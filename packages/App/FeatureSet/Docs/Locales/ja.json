@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "はじめに",
+    "Quickstart": "クイックスタート",
+    "Core Concepts": "基本概念",
+    "Home Page & Shortcuts": "ホーム画面とショートカット",
+    "Your Account": "アカウント",
     "Moving from Opsgenie": "Opsgenie からの移行",
     "Moving from PagerDuty": "PagerDuty からの移行",
     "Moving from incident.io": "incident.io からの移行",

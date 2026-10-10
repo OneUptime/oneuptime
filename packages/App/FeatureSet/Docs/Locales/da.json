@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Kom godt i gang",
+    "Quickstart": "Hurtigstart",
+    "Core Concepts": "Grundbegreber",
+    "Home Page & Shortcuts": "Startside og genveje",
+    "Your Account": "Din konto",
     "Moving from Opsgenie": "Skift fra Opsgenie",
     "Moving from PagerDuty": "Skift fra PagerDuty",
     "Moving from incident.io": "Skift fra incident.io",
