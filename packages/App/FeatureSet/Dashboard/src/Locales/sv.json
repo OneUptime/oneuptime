@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up om OneUptime tog emot mätvärden från den här värden i det intervallet, Down om inget kom fram; en missad minut mellan Up-intervall räknas som Up. Drifttidsmärket utelämnar tid då OneUptime inte tog emot något, och det senaste intervallet bedöms först när data har kommit.",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up för varje intervall där klustrets agent skickade mätvärden, Down om den inte skickade några; en enstaka missad minut mellan Up-intervall räknas som Up. Märket är Up-andelen utan de senaste intervallen som fortfarande väntar på data och utan tid då OneUptime inte tog emot något.",
   "Has Additional Parameters": "Har ytterligare parametrar",
-  "Only project owners and admins can read them, like the API key.": "Precis som API-nyckeln kan bara projektägare och projektadministratörer läsa dem."
+  "Only project owners and admins can read them, like the API key.": "Precis som API-nyckeln kan bara projektägare och projektadministratörer läsa dem.",
+  "Download the whole map as a PDF, with every device and connection listed.": "Ladda ner hela kartan som PDF, med alla enheter och anslutningar listade.",
+  "Export PDF": "Exportera PDF",
+  "There is nothing on the map to export.": "Det finns inget på kartan att exportera.",
+  "We couldn't create the PDF. Try again.": "PDF:en kunde inte skapas. Försök igen."
 }

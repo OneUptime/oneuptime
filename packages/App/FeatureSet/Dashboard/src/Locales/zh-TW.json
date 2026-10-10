@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "如果 OneUptime 在該區間收到了此主機的指標則為 Up，若沒有任何資料抵達則為 Down；Up 區間之間缺漏的一分鐘計為 Up。正常運作時間徽章不包括 OneUptime 未在接收資料的時間，最新的區間在資料抵達之前不作判斷。",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "叢集的代理程式傳送了指標的每個區間為 Up，未傳送任何指標則為 Down；Up 區間之間單獨缺漏的一分鐘計為 Up。徽章是 Up 所占的比例，不包括仍在等待資料的最新區間以及 OneUptime 未在接收資料的時間。",
   "Has Additional Parameters": "有其他參數",
-  "Only project owners and admins can read them, like the API key.": "與 API 金鑰一樣，只有專案擁有者和管理員可以讀取。"
+  "Only project owners and admins can read them, like the API key.": "與 API 金鑰一樣，只有專案擁有者和管理員可以讀取。",
+  "Download the whole map as a PDF, with every device and connection listed.": "將整張地圖下載為 PDF，並列出所有裝置與連線。",
+  "Export PDF": "匯出 PDF",
+  "There is nothing on the map to export.": "地圖上沒有可匯出的內容。",
+  "We couldn't create the PDF. Try again.": "無法建立 PDF。請再試一次。"
 }

@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up यदि OneUptime को उस अंतराल में इस होस्ट से मेट्रिक्स मिले, Down यदि कुछ नहीं आया; Up अंतरालों के बीच छूटा एक मिनट Up गिना जाता है। अपटाइम बैज में वह समय शामिल नहीं होता जब OneUptime डेटा प्राप्त नहीं कर रहा था, और सबसे नया अंतराल डेटा आने तक नहीं आंका जाता।",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "हर उस अंतराल के लिए Up जिसमें क्लस्टर के एजेंट ने मेट्रिक्स भेजे, Down यदि कोई नहीं भेजा; Up अंतरालों के बीच छूटा एक अकेला मिनट Up गिना जाता है। बैज Up का हिस्सा है, जिसमें डेटा की प्रतीक्षा कर रहे सबसे नए अंतराल और वह समय शामिल नहीं जब OneUptime डेटा प्राप्त नहीं कर रहा था।",
   "Has Additional Parameters": "अतिरिक्त पैरामीटर हैं",
-  "Only project owners and admins can read them, like the API key.": "API कुंजी की तरह, इन्हें केवल प्रोजेक्ट के स्वामी और एडमिन पढ़ सकते हैं।"
+  "Only project owners and admins can read them, like the API key.": "API कुंजी की तरह, इन्हें केवल प्रोजेक्ट के स्वामी और एडमिन पढ़ सकते हैं।",
+  "Download the whole map as a PDF, with every device and connection listed.": "पूरा मैप PDF के रूप में डाउनलोड करें, जिसमें हर डिवाइस और कनेक्शन की सूची हो।",
+  "Export PDF": "PDF निर्यात करें",
+  "There is nothing on the map to export.": "मैप पर निर्यात करने के लिए कुछ भी नहीं है।",
+  "We couldn't create the PDF. Try again.": "PDF नहीं बनाई जा सकी। फिर से कोशिश करें।"
 }
