@@ -1257,6 +1257,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Probe, VMwareVCenter and
+      # VMwareVCenterConnectionTest tables into an isolated schema and runs
+      # VMware probe collection's hand-written SQL: a probe claims only its
+      # own due vCenters of live projects (FOR UPDATE SKIP LOCKED, the tenancy
+      # backstop, the subscription rule) and two claims never share one; a
+      # report writes only the current settings' status; a settings change
+      # bumps the settings version in one statement; and a connection test is
+      # claimed once - its password wiped as it is handed out - answered only
+      # by its probe, and expired with the reason.
+      - name: Test VMware probe collection's SQL on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_VMWARE_PROBE_COLLECTION_TESTS: "true"
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/VMwareProbeCollectionSqlPostgres.test.ts --forceExit
+
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats
       # extend a stretch on the database's clock, one after more than the gap

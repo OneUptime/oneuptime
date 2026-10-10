@@ -312,6 +312,7 @@
     "Storage Array Agent": "स्टोरेज ऐरे एजेंट",
     "Docker Swarm Agent": "Docker Swarm एजेंट",
     "VMware Agent": "VMware एजेंट",
+    "VMware Without an Agent": "एजेंट के बिना VMware",
     "Databases": "डेटाबेस",
     "Queues": "कतारें",
     "Serverless Functions": "Serverless फ़ंक्शन",

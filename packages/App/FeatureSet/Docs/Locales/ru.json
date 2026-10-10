@@ -312,6 +312,7 @@
     "Storage Array Agent": "Агент для систем хранения данных",
     "Docker Swarm Agent": "Агент Docker Swarm",
     "VMware Agent": "Агент VMware",
+    "VMware Without an Agent": "VMware без агента",
     "Databases": "Базы данных",
     "Queues": "Очереди",
     "Serverless Functions": "Serverless-функции",

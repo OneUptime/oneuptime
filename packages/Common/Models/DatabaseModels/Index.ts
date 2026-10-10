@@ -62,6 +62,7 @@ import StorageArrayResource from "./StorageArrayResource";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
+import VMwareVCenterConnectionTest from "./VMwareVCenterConnectionTest";
 import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
@@ -1016,6 +1017,7 @@ const AllModelTypes: Array<{
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
+  VMwareVCenterConnectionTest,
   VMwareResource,
   Host,
   HostOwnerTeam,

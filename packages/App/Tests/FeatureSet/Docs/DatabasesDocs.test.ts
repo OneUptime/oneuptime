@@ -563,15 +563,17 @@ describe("Databases docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the hub in the Infrastructure Agents group, right after the VMware agent", (): void => {
+    it("lists the hub in the Infrastructure Agents group, right after the VMware pages", (): void => {
       const links: Array<NavLink> = navGroup("Infrastructure Agents").links;
       const index: number = links.findIndex((link: NavLink): boolean => {
         return link.url === PAGE_URL;
       });
 
-      expect(index).toBeGreaterThan(0);
+      expect(index).toBeGreaterThan(1);
       expect(links[index]?.title).toBe("Databases");
-      expect(links[index - 1]?.url).toBe("/docs/telemetry/vmware");
+      // The VMware agent, then VMware collected by a probe, with no agent.
+      expect(links[index - 2]?.url).toBe("/docs/telemetry/vmware");
+      expect(links[index - 1]?.url).toBe("/docs/telemetry/vmware-agentless");
     });
 
     /*

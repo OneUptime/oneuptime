@@ -607,6 +607,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/vmware",
       },
       {
+        title: "VMware Without an Agent",
+        url: "/docs/telemetry/vmware-agentless",
+      },
+      {
         title: "Databases",
         url: "/docs/telemetry/databases",
       },

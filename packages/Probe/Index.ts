@@ -21,6 +21,7 @@ import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
@@ -182,6 +183,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        */
       ReportPacketCaptureCapability();
       FetchPacketCaptures();
+
+      /*
+       * vCenters this probe collects with the read-only account saved in
+       * OneUptime - VMware monitoring without an agent - and the connection
+       * tests people start from the dashboard.
+       */
+      FetchVMwareWork();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

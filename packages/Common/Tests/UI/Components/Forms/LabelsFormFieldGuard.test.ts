@@ -866,7 +866,6 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ["DockerSwarm/Clusters.tsx", "ModelTable: Docker Swarm Clusters"],
     ["IoT/Fleets.tsx", "ModelTable: IoT Fleets"],
     ["Proxmox/Clusters.tsx", "ModelTable: Proxmox Clusters"],
-    ["VMware/VCenters.tsx", "ModelTable: vCenters"],
     ["Service/Services.tsx", "ModelTable: Services"],
   ].map(([file, label]: Array<string>): FormShape => {
     return onePage(
@@ -956,6 +955,22 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     label: "ModelTable: Queues",
     steps: ["messaging-system", "queue-info"],
     rows: { "queue-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
+  },
+  /*
+   * Connect vCenter: where vCenter is and how to log in, then its
+   * certificate (with Test connection under it) and its name - the
+   * description, collection interval and labels folded after them.
+   */
+  {
+    file: `${DASHBOARD}/Pages/VMware/VCenters.tsx`,
+    label: "ModelTable: vCenters",
+    steps: ["connection", "certificate-and-name"],
+    rows: {
+      "certificate-and-name": {
+        open: ["trustedCertificateFingerprint", "name"],
+        folded: ["description", "collectionIntervalInMinutes", LABELS_KEY],
+      },
+    },
   },
   /*
    * A repository's details, one page: where its code lives is the GitHub
