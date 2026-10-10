@@ -189,17 +189,32 @@ interface StubSeverity {
 function buildMemberProps(data: {
   projectId: ObjectID;
   userId: ObjectID;
+  // What the caller's teams grant. A plain project member by default.
+  permissions?: Array<Permission> | undefined;
+  // Unlabelled BLOCK rows on the caller's teams.
+  blocks?: Array<Permission> | undefined;
 }): DatabaseCommonInteractionProps {
-  const memberPermission: UserPermission = {
-    _type: "UserPermission",
-    permission: Permission.ProjectMember,
-    labelIds: [],
-  };
+  const allowRows: Array<UserPermission> = (
+    data.permissions || [Permission.ProjectMember]
+  ).map((permission: Permission): UserPermission => {
+    return { _type: "UserPermission", permission: permission, labelIds: [] };
+  });
+
+  const blockRows: Array<UserPermission> = (data.blocks || []).map(
+    (permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: true,
+      };
+    },
+  );
 
   const tenantPermission: UserTenantAccessPermission = {
     _type: "UserTenantAccessPermission",
     projectId: data.projectId,
-    permissions: [memberPermission],
+    permissions: [...allowRows, ...blockRows],
   };
 
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -2079,6 +2094,80 @@ describe("GET /team/compliance-status/:teamId - authorisation", () => {
     });
 
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect(complianceSpy).not.toHaveBeenCalled();
+  });
+
+  test("refuses a member who could not read the team's compliance rules - membership is not read authorisation", async () => {
+    /*
+     * What the permission resolver hands a member whose one team carries
+     * MonitorViewer: that role, plus ProjectUser, which every member holds.
+     * ProjectUser reads the team and its roster but not its compliance rules -
+     * TeamComplianceSetting's read list leaves it out - and the status is those
+     * rules, evaluated. So the member is refused before anything is read as
+     * root, as the rules' own CRUD endpoint refuses them.
+     */
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId: projectId,
+        userId: callerUserId,
+        permissions: [Permission.ProjectUser, Permission.MonitorViewer],
+      }),
+    );
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: COMPLIANCE_ROUTE,
+      params: { teamId: teamId.toString() },
+    });
+
+    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect(teamFindOneById).not.toHaveBeenCalled();
+    expect(complianceSpy).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    Permission.ReadProjectTeam,
+    Permission.Viewer,
+    Permission.ProjectAdmin,
+  ])(
+    "a member who reads the rules on their CRUD endpoint through %s reads the status",
+    async (permission: Permission) => {
+      propsSpy.mockResolvedValue(
+        buildMemberProps({
+          projectId: projectId,
+          userId: callerUserId,
+          permissions: [Permission.ProjectUser, permission],
+        }),
+      );
+
+      const result: RouteCallResult = await callGetRoute({
+        uri: COMPLIANCE_ROUTE,
+        params: { teamId: teamId.toString() },
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(complianceSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("an unlabelled team block on reading the rules refuses, whatever else the member holds", async () => {
+    // The CRUD read honours the block over every allow; so must this route.
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId: projectId,
+        userId: callerUserId,
+        permissions: [Permission.ProjectMember],
+        blocks: [Permission.ReadProjectTeam],
+      }),
+    );
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: COMPLIANCE_ROUTE,
+      params: { teamId: teamId.toString() },
+    });
+
+    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect(teamFindOneById).not.toHaveBeenCalled();
     expect(complianceSpy).not.toHaveBeenCalled();
   });
 

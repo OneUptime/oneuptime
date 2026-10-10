@@ -11,6 +11,7 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TeamService from "Common/Server/Services/TeamService";
 import { JSONObject } from "Common/Types/JSON";
 import { TeamComplianceStatusJSON } from "Common/Types/Team/TeamComplianceStatus";
@@ -36,13 +37,27 @@ import { TeamComplianceStatusJSON } from "Common/Types/Team/TeamComplianceStatus
  * predates Phase 2 - it is not a regression introduced by the readiness work,
  * but the readiness work rebuilt this service, so it is closed here.
  *
- * Two assertions now, in this order:
+ * Three assertions now, in this order:
  *
  *   1. the caller is a logged-in member of the project they named
- *      (CommonAPI.assertAuthenticatedProjectMember), and
- *   2. the team in the path belongs to that same project - otherwise a member of
+ *      (CommonAPI.assertAuthenticatedProjectMember),
+ *   2. the caller could read the team's compliance rules through their own
+ *      CRUD endpoint (CommonAPI.assertCanReadTable on TeamComplianceSetting) -
+ *      membership is not read authorisation, and the status is those rules
+ *      evaluated against the team's members, and
+ *   3. the team in the path belongs to that same project - otherwise a member of
  *      project A reads project B's roster simply by sending their own header
  *      alongside a borrowed team id.
+ *
+ * Why the rules' read list is the bar, and not Team's or TeamMember's: those
+ * two are shared with every member through ProjectUser, which every member
+ * holds, so a check on them would refuse nobody. TeamComplianceSetting's list
+ * is narrower - owners, admins, members, viewers and ReadProjectTeam - and a
+ * member whose teams grant only, say, MonitorViewer cannot read the rules on
+ * their CRUD endpoint. Without the check this route handed that member the
+ * rules anyway, together with every member's reachability under them. The
+ * roster stays where it was: anyone in the project can still list a team's
+ * members.
  *
  * TeamComplianceService scopes its own team read to the project as well, and the
  * duplication is deliberate for the same reason OnCallReadinessAPI duplicates
@@ -87,6 +102,16 @@ router.get(
 
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+      /*
+       * Before anything is read as root: the same bar the compliance rules'
+       * own CRUD read sets, team BLOCK rows included (see the header).
+       */
+      CommonAPI.assertCanReadTable({
+        modelType: TeamComplianceSetting,
+        props: databaseProps,
+        errorMessage: "You do not have permission to read team compliance.",
+      });
 
       /*
        * ObjectID's constructor accepts any string, so an unparseable path
