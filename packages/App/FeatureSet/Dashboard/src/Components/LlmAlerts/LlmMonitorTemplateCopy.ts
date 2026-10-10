@@ -16,6 +16,8 @@ export interface LlmMonitorTemplateCopy {
   description: string;
   // The monitor's name, and the title of the alert it raises.
   monitorName: string;
+  // The monitor's description: what it watches, as one sentence.
+  monitorDescription: string;
   // What the alert says.
   alertDescription: string;
   icon: IconProp;
@@ -31,9 +33,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.BadAnswers]: {
     title: translationKey("Answers go wrong"),
     description: translationKey(
-      "Tells you when more than 5% of answers in 15 minutes fail, are refused, cut off, empty or flagged.",
+      "When more than 5% of answers in 15 minutes fail, are refused, cut off, empty or flagged.",
     ),
     monitorName: translationKey("AI answers are going wrong"),
+    monitorDescription: translationKey(
+      "Alerts you when more than 5% of the AI's answers in 15 minutes fail, are refused, cut off, empty or flagged.",
+    ),
     alertDescription: translationKey(
       "More than 5% of the AI's answers in the last 15 minutes had a problem.",
     ),
@@ -44,9 +49,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.FailedCalls]: {
     title: translationKey("AI calls fail"),
     description: translationKey(
-      "Tells you when more than 10% of calls to the model in 5 minutes end in an error, such as a provider outage or a rate limit.",
+      "When more than 10% of calls to the model in 5 minutes end in an error, like an outage or a rate limit.",
     ),
     monitorName: translationKey("AI calls are failing"),
+    monitorDescription: translationKey(
+      "Alerts you when more than 10% of the calls to the model in 5 minutes end in an error.",
+    ),
     alertDescription: translationKey(
       "More than 10% of the calls to the model in the last 5 minutes ended in an error.",
     ),
@@ -57,9 +65,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.Refusals]: {
     title: translationKey("The AI refuses to answer"),
     description: translationKey(
-      "Tells you when more than 5% of answers in 30 minutes are refusals or blocked by a safety filter.",
+      "When more than 5% of answers in 30 minutes are refusals or blocked by a safety filter.",
     ),
     monitorName: translationKey("The AI is refusing to answer"),
+    monitorDescription: translationKey(
+      "Alerts you when more than 5% of the AI's answers in 30 minutes are refusals.",
+    ),
     alertDescription: translationKey(
       "More than 5% of the AI's answers in the last 30 minutes were refusals.",
     ),
@@ -70,9 +81,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.CutOffAnswers]: {
     title: translationKey("Answers are cut off"),
     description: translationKey(
-      "Tells you when 3 or more answers in 30 minutes stop at the token limit, usually a max tokens setting that is too low.",
+      "When 3 or more answers in 30 minutes stop at the token limit, usually because max tokens is too low.",
     ),
     monitorName: translationKey("AI answers are cut off"),
+    monitorDescription: translationKey(
+      "Alerts you when 3 or more of the AI's answers in 30 minutes stop at the token limit.",
+    ),
     alertDescription: translationKey(
       "3 or more of the AI's answers in the last 30 minutes stopped at the token limit.",
     ),
@@ -83,9 +97,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.FlaggedAnswers]: {
     title: translationKey("Answers are flagged"),
     description: translationKey(
-      "Tells you as soon as an evaluation your app sends (a guardrail, an eval or a thumbs-down) marks an answer as bad.",
+      "As soon as an evaluation your app sends, like a guardrail or a thumbs-down, marks an answer as bad.",
     ),
     monitorName: translationKey("AI answers are flagged"),
+    monitorDescription: translationKey(
+      "Alerts you when an evaluation your app sends marks one of the AI's answers as bad.",
+    ),
     alertDescription: translationKey(
       "An evaluation marked one of the AI's answers in the last 15 minutes as bad.",
     ),
@@ -96,9 +113,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.SlowAnswers]: {
     title: translationKey("Answers are slow"),
     description: translationKey(
-      "Tells you when more than 10% of answers in 15 minutes take longer than 30 seconds.",
+      "When more than 10% of answers in 15 minutes take longer than 30 seconds.",
     ),
     monitorName: translationKey("AI answers are slow"),
+    monitorDescription: translationKey(
+      "Alerts you when more than 10% of the AI's answers in 15 minutes take longer than 30 seconds.",
+    ),
     alertDescription: translationKey(
       "More than 10% of the AI's answers in the last 15 minutes took longer than 30 seconds.",
     ),
@@ -109,9 +129,12 @@ export const LLM_MONITOR_TEMPLATE_COPY: Record<
   [LlmMonitorTemplateId.NoAnswers]: {
     title: translationKey("The AI stops answering"),
     description: translationKey(
-      "Tells you when your AI gives no answers for 30 minutes. For apps that are always busy.",
+      "When your AI gives no answers for 30 minutes. For apps that are always busy.",
     ),
     monitorName: translationKey("The AI stopped answering"),
+    monitorDescription: translationKey(
+      "Alerts you when the AI gives no answers for 30 minutes.",
+    ),
     alertDescription: translationKey(
       "The AI gave no answers in the last 30 minutes.",
     ),

@@ -57,14 +57,14 @@ const DEFAULT_WINDOW_DAYS: number = 7;
 const TOP_K_GROUPS: number = 25;
 
 /*
- * Row cap for the aggregate reads themselves, matching LlmOverview. This is
+ * Row cap for the aggregate reads themselves. This is
  * deliberately far larger than TOP_K_GROUPS: the ranking and the
  * share-of-total denominator are computed over EVERY group, so trimming at
  * the query would make the percentages lie.
  */
 const AGGREGATE_ROW_LIMIT: number = 10000;
 
-// Same wording LlmOverview uses, so one label means one thing product-wide.
+// One label for a metric-sourced figure, wherever the product shows one.
 const METRIC_SOURCE_HINT: string = translationKey("from GenAI metrics");
 
 const UNATTRIBUTED_LABEL: string = translationKey("Unattributed");
@@ -542,8 +542,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * The `startTime` predicate has to live in the QUERY.
        * startTimestamp/endTimestamp only choose the bucket grid — without this
-       * the aggregate scans the span table's whole retention. Same trap
-       * LlmOverview documents.
+       * the aggregate scans the span table's whole retention.
        */
       const spanQuery: Query<Span> = {
         projectId: projectId,
@@ -742,7 +741,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * so a span-only leaderboard shows an empty table for an entire fleet
        * of coding agents that is very much spending money.
        *
-       * The rule is LlmOverview's, exactly: spans are authoritative, metrics
+       * The rule, exactly: spans are authoritative, metrics
        * are consulted ONLY when the span stream reported nothing, and the two
        * are NEVER summed — an emitter producing both signals would otherwise
        * have every dollar counted twice. A failed span aggregate never

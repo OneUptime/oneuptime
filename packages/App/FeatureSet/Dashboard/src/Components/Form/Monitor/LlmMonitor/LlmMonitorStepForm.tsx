@@ -1,5 +1,4 @@
 import MonitorStepLlmMonitor, {
-  LLM_MONITOR_WINDOW_OPTIONS,
   MonitorStepLlmMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -21,9 +20,9 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { LLM_ISSUE_STYLES } from "../../../LlmConversations/LlmConversationCopy";
 import LlmMonitorPreview from "../../../LlmAlerts/LlmMonitorPreview";
+import { getLlmMonitorWindowOptions } from "../../../LlmAlerts/LlmMonitorWindow";
 
 /*
  * The settings of an AI / LLM monitor, in the words of the question it
@@ -54,36 +53,6 @@ export interface LlmMonitorFormValues {
 
 const MORE_LLM_MONITOR_FIELDS: FormFieldCollapsibleSection<LlmMonitorFormValues> =
   getAdvancedFormSection<LlmMonitorFormValues>();
-
-export const LLM_MONITOR_WINDOW_LABELS: Record<number, string> = {
-  300: translationKey("Last 5 minutes"),
-  900: translationKey("Last 15 minutes"),
-  1800: translationKey("Last 30 minutes"),
-  3600: translationKey("Last 1 hour"),
-  21600: translationKey("Last 6 hours"),
-  86400: translationKey("Last 24 hours"),
-};
-
-export function getLlmMonitorWindowOptions(
-  current: number,
-): Array<DropdownOption> {
-  const seconds: Array<number> = [...LLM_MONITOR_WINDOW_OPTIONS];
-
-  // A window set through the API keeps its place in the list.
-  if (!seconds.includes(current)) {
-    seconds.push(current);
-    seconds.sort((left: number, right: number): number => {
-      return left - right;
-    });
-  }
-
-  return seconds.map((value: number): DropdownOption => {
-    return {
-      label: LLM_MONITOR_WINDOW_LABELS[value] || `${value}s`,
-      value: value,
-    };
-  });
-}
 
 export function getLlmIssueOptions(): Array<DropdownOption> {
   return LlmAnswerIssueUtil.getAllIssues().map(
@@ -181,7 +150,7 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Or takes longer than (seconds)",
             description:
               "Leave empty to ignore how long answers take. With no problem picked above, only slow answers count.",
-            placeholder: "30",
+            placeholder: "e.g. 30",
             hideOptionalLabel: true,
           },
           {
@@ -192,7 +161,7 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
             dropdownOptions: getLlmMonitorWindowOptions(
               formValues.lastXSecondsOfCalls,
             ),
-            title: "Look at answers from the",
+            title: "Time window",
             description: "Each check counts the answers in this window.",
             hideOptionalLabel: true,
           },

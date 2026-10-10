@@ -217,7 +217,8 @@ export function buildLlmMonitorPrefill(data: {
 
   return {
     name: translateText(copy.monitorName) || copy.monitorName,
-    description: translateText(copy.description) || copy.description,
+    description:
+      translateText(copy.monitorDescription) || copy.monitorDescription,
     monitorType: MonitorType.Llm,
     monitorSteps: monitorSteps.toJSON(),
   };

@@ -771,3 +771,235 @@ describe("end to end from real span attributes (OpenLLMetry)", () => {
     ]);
   });
 });
+
+/*
+ * A request (trace) is one turn: the person's question arrived when it
+ * started, so a RAG app's embedding or search ahead of the model call never
+ * reads as happening before the question it was for.
+ */
+describe("a question is placed where its request started", () => {
+  test("a RAG turn reads question, search, answer", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "embed",
+        traceId: "turn-1",
+        kind: LlmCallKind.Embedding,
+        model: "text-embedding-3-small",
+        startMs: T0,
+        endMs: T0 + 300,
+      }),
+      call({
+        spanId: "search",
+        traceId: "turn-1",
+        kind: LlmCallKind.Retrieval,
+        model: "",
+        startMs: T0 + 300,
+        endMs: T0 + 500,
+      }),
+      call({
+        spanId: "chat",
+        traceId: "turn-1",
+        startMs: T0 + 600,
+        endMs: T0 + 2600,
+        content: content({
+          input: [msg("user", text("What is our refund policy?"))],
+          output: [msg("assistant", text("30 days, no questions asked."))],
+        }),
+      }),
+    ]);
+
+    expect(
+      transcript.steps.map((step: LlmTranscriptStep): string => {
+        return step.type;
+      }),
+    ).toEqual([
+      LlmTranscriptStepType.UserMessage,
+      LlmTranscriptStepType.Activity,
+      LlmTranscriptStepType.Activity,
+      LlmTranscriptStepType.AssistantMessage,
+    ]);
+    // The question's time is the request's start.
+    expect(transcript.steps[0]!.atMs).toBe(T0);
+    expect(transcript.title).toBe("What is our refund policy?");
+  });
+
+  test("each turn's first question moves to its own request's start", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "embed-1",
+        traceId: "turn-1",
+        kind: LlmCallKind.Embedding,
+        startMs: T0,
+        endMs: T0 + 200,
+      }),
+      call({
+        spanId: "chat-1",
+        traceId: "turn-1",
+        startMs: T0 + 400,
+        endMs: T0 + 1400,
+        content: content({
+          input: [msg("user", text("First"))],
+          output: [msg("assistant", text("One"))],
+        }),
+      }),
+      call({
+        spanId: "embed-2",
+        traceId: "turn-2",
+        kind: LlmCallKind.Embedding,
+        startMs: T0 + 60_000,
+        endMs: T0 + 60_200,
+      }),
+      call({
+        spanId: "chat-2",
+        traceId: "turn-2",
+        startMs: T0 + 60_500,
+        endMs: T0 + 61_500,
+        content: content({
+          input: [
+            msg("user", text("First")),
+            msg("assistant", text("One")),
+            msg("user", text("Second")),
+          ],
+          output: [msg("assistant", text("Two"))],
+        }),
+      }),
+    ]);
+
+    expect(summary(transcript)).toEqual([
+      "user:First",
+      "activity:",
+      "assistant:One",
+      "user:Second",
+      "activity:",
+      "assistant:Two",
+    ]);
+    expect(transcript.steps[3]!.atMs).toBe(T0 + 60_000);
+  });
+
+  test("only the first question of a request moves; a later one keeps its call's start", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "embed",
+        traceId: "one-request",
+        kind: LlmCallKind.Embedding,
+        startMs: T0,
+        endMs: T0 + 100,
+      }),
+      call({
+        spanId: "chat-1",
+        traceId: "one-request",
+        startMs: T0 + 200,
+        endMs: T0 + 1200,
+        content: content({
+          input: [msg("user", text("Plan my week"))],
+          output: [msg("assistant", text("Sure, which city?"))],
+        }),
+      }),
+      call({
+        spanId: "chat-2",
+        traceId: "one-request",
+        startMs: T0 + 5_000,
+        endMs: T0 + 6_000,
+        content: content({
+          input: [
+            msg("user", text("Plan my week")),
+            msg("assistant", text("Sure, which city?")),
+            msg("user", text("Lisbon")),
+          ],
+          output: [msg("assistant", text("Here is a plan."))],
+        }),
+      }),
+    ]);
+
+    const lisbon: LlmTranscriptStep | undefined = transcript.steps.find(
+      (step: LlmTranscriptStep): boolean => {
+        return step.text === "Lisbon";
+      },
+    );
+
+    expect(transcript.steps[0]!.text).toBe("Plan my week");
+    expect(lisbon?.atMs).toBe(T0 + 5_000);
+  });
+
+  test("a tool's result sent back as a user message is not a question and does not move", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "embed",
+        traceId: "turn",
+        kind: LlmCallKind.Embedding,
+        startMs: T0,
+        endMs: T0 + 100,
+      }),
+      call({
+        spanId: "chat",
+        traceId: "turn",
+        startMs: T0 + 1000,
+        endMs: T0 + 2000,
+        content: content({
+          input: [msg("user", toolResult("call_9", "72F and sunny"))],
+          output: [msg("assistant", text("It is sunny."))],
+        }),
+      }),
+    ]);
+
+    expect(summary(transcript)[0]).toBe("activity:");
+    const result: LlmTranscriptStep | undefined = transcript.steps.find(
+      (step: LlmTranscriptStep): boolean => {
+        return step.type === LlmTranscriptStepType.ToolResult;
+      },
+    );
+    expect(result?.atMs).toBe(T0 + 1000);
+  });
+
+  test("at the same moment: a changed system prompt, then the question, then the rest", () => {
+    const transcript: LlmTranscript = LlmConversationTranscriptUtil.build([
+      call({
+        spanId: "first",
+        traceId: "a",
+        startMs: T0,
+        endMs: T0 + 500,
+        content: content({
+          systemInstructions: "Be brief.",
+          input: [msg("user", text("Hi"))],
+          output: [msg("assistant", text("Hello"))],
+        }),
+      }),
+      call({
+        spanId: "tool",
+        traceId: "b",
+        kind: LlmCallKind.Tool,
+        toolName: "lookup",
+        startMs: T0 + 10_000,
+        endMs: T0 + 10_400,
+        content: content({
+          tool: { id: "t1", name: "lookup", arguments: "{}", result: "ok" },
+        }),
+      }),
+      call({
+        spanId: "second",
+        traceId: "b",
+        startMs: T0 + 10_000,
+        endMs: T0 + 11_000,
+        content: content({
+          systemInstructions: "Be detailed.",
+          input: [
+            msg("user", text("Hi")),
+            msg("assistant", text("Hello")),
+            msg("user", text("Tell me more")),
+          ],
+          output: [msg("assistant", text("Here is more."))],
+        }),
+      }),
+    ]);
+
+    expect(summary(transcript)).toEqual([
+      "user:Hi",
+      "assistant:Hello",
+      "instructions:Be detailed.",
+      "user:Tell me more",
+      "tool_call:lookup",
+      "tool_result:lookup:ok",
+      "assistant:Here is more.",
+    ]);
+  });
+});

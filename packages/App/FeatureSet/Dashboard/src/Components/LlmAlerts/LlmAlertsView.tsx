@@ -95,6 +95,55 @@ export const LlmAlertTemplateCard: FunctionComponent<TemplateCardProps> = (
   );
 };
 
+/*
+ * Spend is not an answer problem: it is watched by budgets. The card sits
+ * with the alerts because "tell me when the AI costs too much" is the same
+ * question in the reader's mind.
+ */
+export const LlmSpendCard: FunctionComponent<{ budgetsRoute: Route }> = (props: {
+  budgetsRoute: Route;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div
+      className="flex flex-col rounded-lg bg-white p-4 shadow ring-1 ring-gray-200/80"
+      data-testid="llm-alerts-spend"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50"
+          aria-hidden="true"
+        >
+          <Icon
+            icon={IconProp.CurrencyDollar}
+            className="h-5 w-5 text-emerald-600"
+          />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Spend goes over budget")}
+          </div>
+          <div className="mt-1 text-sm text-gray-600">
+            {translator.translateText(
+              "When your AI's spend for the day passes a limit you set. Set it on the Budgets tab.",
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-1 items-end">
+        <AppLink
+          to={props.budgetsRoute}
+          className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          <span>{translator.translateText("Open Budgets") || ""}</span>
+          <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+        </AppLink>
+      </div>
+    </div>
+  );
+};
+
 const LlmAlertsView: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -128,7 +177,7 @@ const LlmAlertsView: FunctionComponent = (): ReactElement => {
           </p>
         </div>
         <div
-          className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
           data-testid="llm-alert-templates"
         >
           {LlmMonitorTemplates.getAll().map(
@@ -142,6 +191,7 @@ const LlmAlertsView: FunctionComponent = (): ReactElement => {
               );
             },
           )}
+          <LlmSpendCard budgetsRoute={budgetsRoute} />
         </div>
       </div>
 
@@ -164,40 +214,6 @@ const LlmAlertsView: FunctionComponent = (): ReactElement => {
           tableId: "llm-alerts-monitors-table",
         }}
       />
-
-      <div
-        className="flex flex-col gap-3 rounded-lg bg-white p-4 shadow sm:flex-row sm:items-center sm:justify-between"
-        data-testid="llm-alerts-spend"
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50"
-            aria-hidden="true"
-          >
-            <Icon
-              icon={IconProp.CurrencyDollar}
-              className="h-5 w-5 text-emerald-600"
-            />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Spending too much?")}
-            </div>
-            <div className="mt-1 text-sm text-gray-600">
-              {translator.translateText(
-                "Set a daily spend limit for your AI on the Budgets tab.",
-              )}
-            </div>
-          </div>
-        </div>
-        <AppLink
-          to={budgetsRoute}
-          className="inline-flex flex-shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-        >
-          <span>{translator.translateText("Open Budgets") || ""}</span>
-          <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
-        </AppLink>
-      </div>
     </div>
   );
 };

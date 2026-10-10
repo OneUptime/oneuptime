@@ -18,10 +18,8 @@ import { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import { fetchLlmAnswerStats } from "../LlmConversations/LlmConversationsApi";
-import {
-  formatLlmCount,
-  formatLlmDuration,
-} from "../LlmConversations/LlmConversationFormat";
+import { formatLlmCount } from "../LlmConversations/LlmConversationFormat";
+import { getLlmMonitorWindowLabel } from "./LlmMonitorWindow";
 
 /*
  * What an AI / LLM monitor with these settings would count right now: the
@@ -138,10 +136,11 @@ const LlmMonitorPreview: FunctionComponent<ComponentProps> = (
     };
   }, [stepKey]);
 
-  const windowText: string = formatLlmDuration(
+  const windowText: string = getLlmMonitorWindowLabel(
     MonitorStepLlmMonitorUtil.fromJSON(
       MonitorStepLlmMonitorUtil.toJSON(props.step),
-    ).lastXSecondsOfCalls * 1000,
+    ).lastXSecondsOfCalls,
+    translator,
   );
 
   return (
@@ -149,10 +148,11 @@ const LlmMonitorPreview: FunctionComponent<ComponentProps> = (
       className="rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-inset ring-gray-200"
       data-testid="llm-monitor-preview"
     >
-      <div className="text-sm font-medium text-gray-900">
-        {translator.translateTemplate("Right now, over the last {{window}}", {
-          window: windowText,
-        })}
+      <div
+        className="text-sm font-medium text-gray-900"
+        data-testid="llm-monitor-preview-window"
+      >
+        {windowText}
       </div>
 
       {state.kind === "loading" ? (

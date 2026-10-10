@@ -329,16 +329,20 @@ const AnswerMeta: FunctionComponent<{
             ) : (
               <></>
             )}
-            <div className="flex gap-1.5">
-              <dt className="text-gray-500">
-                {translator.translateText("Tokens in / out")}
-              </dt>
-              <dd className="font-medium text-gray-800">
-                {`${(Number(step.call.inputTokens) || 0).toLocaleString()} / ${(
-                  Number(step.call.outputTokens) || 0
-                ).toLocaleString()}`}
-              </dd>
-            </div>
+            {tokens > 0 ? (
+              <div className="flex gap-1.5">
+                <dt className="text-gray-500">
+                  {translator.translateText("Tokens in / out")}
+                </dt>
+                <dd className="font-medium text-gray-800">
+                  {`${(Number(step.call.inputTokens) || 0).toLocaleString()} / ${(
+                    Number(step.call.outputTokens) || 0
+                  ).toLocaleString()}`}
+                </dd>
+              </div>
+            ) : (
+              <></>
+            )}
             {step.call.finishReasons.length > 0 ? (
               <div className="flex gap-1.5">
                 <dt className="text-gray-500">
@@ -496,7 +500,7 @@ const ToolCard: FunctionComponent<{
       data-step-id={step.id}
     >
       <div
-        className={`min-w-0 max-w-full flex-1 rounded-lg bg-white px-3 py-2 ring-1 ring-inset ring-gray-200 sm:max-w-[85%] ${
+        className={`min-w-0 max-w-full flex-1 rounded-lg bg-white px-3 py-2 ring-1 ring-inset ring-gray-200 sm:max-w-[85%] lg:max-w-3xl ${
           props.isCurrent ? CURRENT_RING : ""
         }`}
       >
@@ -589,7 +593,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           data-step-type={step.type}
           data-step-id={step.id}
         >
-          <div className="flex min-w-0 max-w-[92%] flex-col items-end sm:max-w-[80%]">
+          <div className="flex min-w-0 max-w-[92%] flex-col items-end sm:max-w-[80%] lg:max-w-3xl">
             <div className="mb-1 flex items-center gap-2 text-xs text-gray-500">
               <span className="font-medium text-gray-700">
                 {props.personLabel || translator.translateText("User")}
@@ -630,7 +634,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
             tileClassName="bg-violet-100"
             iconClassName="text-violet-600"
           />
-          <div className="min-w-0 max-w-[92%] flex-1 sm:max-w-[85%]">
+          <div className="min-w-0 max-w-[92%] flex-1 sm:max-w-[85%] lg:max-w-4xl">
             <div className="mb-1 flex items-center gap-2 text-xs text-gray-500">
               <span className="font-medium text-gray-700">
                 {translator.translateText("AI")}
@@ -721,7 +725,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
             iconClassName="text-red-600"
           />
           <div
-            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm bg-red-50 px-4 py-3 ring-1 ring-inset ring-red-200 sm:max-w-[85%] ${currentRing}`}
+            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm bg-red-50 px-4 py-3 ring-1 ring-inset ring-red-200 sm:max-w-[85%] lg:max-w-4xl ${currentRing}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-medium text-red-700">
@@ -767,7 +771,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
             iconClassName="text-gray-500"
           />
           <div
-            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm border border-dashed border-gray-300 bg-gray-50 px-4 py-3 sm:max-w-[85%] ${currentRing}`}
+            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm border border-dashed border-gray-300 bg-gray-50 px-4 py-3 sm:max-w-[85%] lg:max-w-4xl ${currentRing}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm text-gray-600">

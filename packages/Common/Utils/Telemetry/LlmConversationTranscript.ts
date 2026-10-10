@@ -300,6 +300,35 @@ function collapseWhitespace(text: string, limit: number): string {
   return collapsed.trimEnd();
 }
 
+// A message the person wrote: text or an attachment, not a tool's result.
+function isQuestion(message: LlmMessage): boolean {
+  return (
+    message.role === "user" &&
+    message.parts.some((part: LlmMessagePart): boolean => {
+      return (
+        (part.type === LlmMessagePartType.Text && part.text.trim().length > 0) ||
+        part.type === LlmMessagePartType.Media
+      );
+    })
+  );
+}
+
+/*
+ * Among steps of the same moment: a changed system prompt first, then what
+ * the person said, then everything the AI did about it.
+ */
+function sameMomentRank(type: LlmTranscriptStepType): number {
+  if (type === LlmTranscriptStepType.Instructions) {
+    return 0;
+  }
+
+  if (type === LlmTranscriptStepType.UserMessage) {
+    return 1;
+  }
+
+  return 2;
+}
+
 function firstLine(text: string, length: number): string {
   const collapsed: string = collapseWhitespace(text, length + 1);
 
@@ -660,6 +689,25 @@ export default class LlmConversationTranscriptUtil {
       },
     );
 
+    /*
+     * When each request (trace) started. A request is one turn of the
+     * conversation: the person's question arrived when it started, before
+     * the search or the embedding a RAG app runs ahead of the model call
+     * that carries the question. So the first question a request carries is
+     * placed at the request's start.
+     */
+    const requestStartMs: Map<string, number> = new Map<string, number>();
+
+    for (const call of calls) {
+      const known: number | undefined = requestStartMs.get(call.traceId);
+
+      if (known === undefined || call.startMs < known) {
+        requestStartMs.set(call.traceId, call.startMs);
+      }
+    }
+
+    const requestsWithQuestion: Set<string> = new Set<string>();
+
     const childrenOf: Map<string, Array<LlmConversationCall>> = new Map<
       string,
       Array<LlmConversationCall>
@@ -779,9 +827,23 @@ export default class LlmConversationTranscriptUtil {
 
       for (const message of call.content.input) {
         if (builder.takeIfNew(message, occurrences)) {
+          let atMs: number = meta.startMs;
+
+          if (
+            call.traceId &&
+            isQuestion(message) &&
+            !requestsWithQuestion.has(call.traceId)
+          ) {
+            requestsWithQuestion.add(call.traceId);
+            atMs = Math.min(
+              atMs,
+              requestStartMs.get(call.traceId) ?? meta.startMs,
+            );
+          }
+
           builder.emitMessage({
             message: message,
-            atMs: meta.startMs,
+            atMs: atMs,
             call: meta,
             isAnswer: false,
           });
@@ -852,6 +914,13 @@ export default class LlmConversationTranscriptUtil {
         ): number => {
           if (left.step.atMs !== right.step.atMs) {
             return left.step.atMs - right.step.atMs;
+          }
+
+          const rank: number =
+            sameMomentRank(left.step.type) - sameMomentRank(right.step.type);
+
+          if (rank !== 0) {
+            return rank;
           }
 
           return left.index - right.index;

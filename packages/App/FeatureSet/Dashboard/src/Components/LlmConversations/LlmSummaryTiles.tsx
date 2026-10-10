@@ -44,7 +44,8 @@ const Tile: FunctionComponent<TileProps> = (props: TileProps): ReactElement => {
   const content: ReactElement = (
     <div className="flex items-start gap-3">
       <div
-        className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${props.iconTileClassName}`}
+        className={`hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg sm:flex ${props.iconTileClassName}`}
+        aria-hidden="true"
       >
         <Icon icon={props.icon} className={`h-5 w-5 ${props.iconClassName}`} />
       </div>

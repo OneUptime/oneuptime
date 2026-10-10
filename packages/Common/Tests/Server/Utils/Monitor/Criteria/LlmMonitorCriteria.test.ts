@@ -289,9 +289,11 @@ describe("a new AI / LLM monitor's default criteria", () => {
     expect(unhealthy.data!.createIncidents).toBe(false);
     expect(unhealthy.data!.alerts[0]?.autoResolveAlert).toBe(true);
     // The incident is filled in, ready to switch on.
-    expect(unhealthy.data!.incidents[0]?.title).toContain(
-      "the AI is answering badly",
+    expect(unhealthy.data!.incidents[0]?.title).toBe(
+      "Support bot: too many bad AI answers",
     );
+    expect(unhealthy.data!.name).toBe("Too many bad AI answers");
+    expect(healthy.data!.name).toBe("AI answers are fine");
   });
 
   test.each([

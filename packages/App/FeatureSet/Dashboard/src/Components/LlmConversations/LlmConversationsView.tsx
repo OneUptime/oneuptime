@@ -245,6 +245,18 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
 
   const isFiltered: boolean = isLlmConversationListFiltered(view);
 
+  /*
+   * Nothing at all in the time range, and nothing narrowing it: a row of
+   * zeros and a row of empty chips say nothing a first-time reader needs.
+   * The empty state, with how to send conversations, is the whole page.
+   */
+  const isFirstRun: boolean =
+    !isFiltered &&
+    summary !== null &&
+    summary.conversationCount === 0 &&
+    state.kind === "loaded" &&
+    state.response.conversations.length === 0;
+
   const totalForFilter: number | null = useMemo(() => {
     if (!summary) {
       return null;
@@ -358,7 +370,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           icon={IconProp.ChatBubbleLeftRight}
           dataTestId="llm-conversations-empty"
           title="No AI conversations here yet."
-          description="Conversations appear as your app's AI calls arrive: what people asked, what the AI answered, the tools it used, and what went wrong. Send them with any OpenTelemetry GenAI instrumentation - OpenLLMetry, OpenInference, the Vercel AI SDK or the OpenTelemetry instrumentations for OpenAI, Anthropic and Gemini."
+          description="Conversations appear as your app's AI calls arrive: what people asked, what the AI answered, the tools it used and what went wrong. Send them with any OpenTelemetry GenAI instrumentation, such as OpenLLMetry, OpenInference, the Vercel AI SDK, or the OpenTelemetry instrumentations for OpenAI, Anthropic and Gemini."
           actions={[
             {
               title: "Set up AI observability",
@@ -491,16 +503,24 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         </div>
       </div>
 
-      <LlmSummaryTiles
-        summary={summary}
-        isLoading={state.kind === "loading"}
-        onShowProblems={() => {
-          selectIssue("any");
-        }}
-      />
+      {isFirstRun ? (
+        <></>
+      ) : (
+        <LlmSummaryTiles
+          summary={summary}
+          isLoading={state.kind === "loading"}
+          onShowProblems={() => {
+            selectIssue("any");
+          }}
+        />
+      )}
 
       <div className="rounded-lg bg-white shadow" data-testid="llm-conversations-card">
-        <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div
+          className={`flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
+            isFirstRun ? "hidden" : "flex"
+          }`}
+        >
           <div className="flex flex-wrap gap-2" data-testid="llm-conversations-chips">
             <Chip
               label={translator.translateText("All") || ""}

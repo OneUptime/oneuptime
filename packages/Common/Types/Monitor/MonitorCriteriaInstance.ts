@@ -278,8 +278,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         createAlerts: false,
-        name: `Check if ${arg.monitorName} is answering well`,
-        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad`,
+        name: "AI answers are fine",
+        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts were bad`,
       };
 
       return monitorCriteriaInstance;
@@ -1488,7 +1488,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName}: the AI is answering badly`,
+            title: `${arg.monitorName}: too many bad AI answers`,
             description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
@@ -1498,7 +1498,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         alerts: [
           {
-            title: `${arg.monitorName}: the AI is answering badly`,
+            title: `${arg.monitorName}: too many bad AI answers`,
             description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
@@ -1509,8 +1509,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: true,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is answering badly`,
-        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
+        name: "Too many bad AI answers",
+        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
       };
     }
 

@@ -134,7 +134,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <div
-              className={`truncate text-sm font-medium ${
+              className={`line-clamp-2 break-words text-sm font-medium ${
                 conversation.title ? "text-gray-900" : "text-gray-500"
               }`}
               data-testid="llm-conversation-row-title"

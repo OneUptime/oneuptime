@@ -173,28 +173,28 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
           dataTestId="llm-replay-clock"
         />
 
-        <span className="hidden sm:inline-flex">
+        <div className="hidden items-center gap-2 sm:flex">
           <ReplayToolbarDivider />
-        </span>
 
-        <ReplayToolButton
-          label={`${controller.speed}x`}
-          title="Playback speed"
-          dataTestId="llm-replay-speed"
-          onClick={controller.cycleSpeed}
-        />
+          <ReplayToolButton
+            label={`${controller.speed}x`}
+            title="Playback speed"
+            dataTestId="llm-replay-speed"
+            onClick={controller.cycleSpeed}
+          />
 
-        <ReplaySwitch
-          isChecked={controller.skipWaiting}
-          label={translator.translateText("Skip waiting") || ""}
-          title={
-            translator.translateText(
-              "Shorten long pauses between messages while replaying",
-            ) || ""
-          }
-          dataTestId="llm-replay-skip-waiting"
-          onChange={controller.setSkipWaiting}
-        />
+          <ReplaySwitch
+            isChecked={controller.skipWaiting}
+            label={translator.translateText("Skip waiting") || ""}
+            title={
+              translator.translateText(
+                "Shorten long pauses between messages while replaying",
+              ) || ""
+            }
+            dataTestId="llm-replay-skip-waiting"
+            onChange={controller.setSkipWaiting}
+          />
+        </div>
 
         <div
           className="ml-auto text-xs text-gray-500"

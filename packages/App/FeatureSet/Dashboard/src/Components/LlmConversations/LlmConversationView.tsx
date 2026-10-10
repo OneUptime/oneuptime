@@ -485,7 +485,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
   );
 
   return (
-    <div className="mx-auto max-w-5xl" data-testid="llm-conversation-view">
+    <div data-testid="llm-conversation-view">
       <div className="mb-3">
         <AppLink
           to={listRoute}
@@ -709,15 +709,19 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
               </span>
               <span>
-                {pending.isTool
-                  ? translator.translateTemplate(
-                      "Running the tool… {{duration}}",
-                      { duration: formatLlmDuration(pending.elapsedMs) },
-                    )
-                  : translator.translateTemplate(
-                      "AI is answering… {{duration}}",
-                      { duration: formatLlmDuration(pending.elapsedMs) },
-                    )}
+                {pending.elapsedMs < 100
+                  ? pending.isTool
+                    ? translator.translateText("Running the tool…")
+                    : translator.translateText("AI is answering…")
+                  : pending.isTool
+                    ? translator.translateTemplate(
+                        "Running the tool… {{duration}}",
+                        { duration: formatLlmDuration(pending.elapsedMs) },
+                      )
+                    : translator.translateTemplate(
+                        "AI is answering… {{duration}}",
+                        { duration: formatLlmDuration(pending.elapsedMs) },
+                      )}
               </span>
             </div>
           </div>
