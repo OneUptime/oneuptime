@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "Скачать всю карту в PDF со списком всех устройств и подключений.",
   "Export PDF": "Экспорт в PDF",
   "There is nothing on the map to export.": "На карте нет ничего для экспорта.",
-  "We couldn't create the PDF. Try again.": "Не удалось создать PDF. Попробуйте снова."
+  "We couldn't create the PDF. Try again.": "Не удалось создать PDF. Попробуйте снова.",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "Создавайте отдельную встречу Google Meet для каждого инцидента и оповещения, владельцем которой будет подключённый вами аккаунт Google.",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "Создавайте отдельную встречу Microsoft Teams для каждого инцидента и оповещения, организатором которой будет подключённая вами учётная запись Microsoft 365.",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "Запускайте отдельную встречу Zoom для каждого инцидента и оповещения, организатором которой будет подключённая вами учётная запись Zoom."
 }

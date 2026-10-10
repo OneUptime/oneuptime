@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "Download hele kortet som PDF med en liste over alle enheder og forbindelser.",
   "Export PDF": "Eksportér PDF",
   "There is nothing on the map to export.": "Der er intet på kortet at eksportere.",
-  "We couldn't create the PDF. Try again.": "PDF'en kunne ikke oprettes. Prøv igen."
+  "We couldn't create the PDF. Try again.": "PDF'en kunne ikke oprettes. Prøv igen.",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "Opret et dedikeret Google Meet-møde for hver hændelse og advarsel, ejet af den Google-konto, du forbinder.",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "Opret et dedikeret Microsoft Teams-møde for hver hændelse og advarsel, organiseret af den Microsoft 365-konto, du forbinder.",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "Start et dedikeret Zoom-møde for hver hændelse og advarsel med den Zoom-konto, du forbinder, som vært."
 }

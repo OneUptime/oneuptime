@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "マップ全体を PDF としてダウンロードします。すべてのデバイスと接続の一覧も含まれます。",
   "Export PDF": "PDF をエクスポート",
   "There is nothing on the map to export.": "マップにエクスポートできるものがありません。",
-  "We couldn't create the PDF. Try again.": "PDF を作成できませんでした。もう一度お試しください。"
+  "We couldn't create the PDF. Try again.": "PDF を作成できませんでした。もう一度お試しください。",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "接続する Google アカウントをオーナーとして、インシデントとアラートごとに専用の Google Meet 会議を作成します。",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "接続する Microsoft 365 アカウントを開催者として、インシデントとアラートごとに専用の Microsoft Teams 会議を作成します。",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "接続する Zoom アカウントをホストとして、インシデントとアラートごとに専用の Zoom 会議を開始します。"
 }

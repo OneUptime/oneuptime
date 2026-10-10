@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "모든 장치와 연결 목록을 포함해 전체 맵을 PDF로 다운로드합니다.",
   "Export PDF": "PDF 내보내기",
   "There is nothing on the map to export.": "맵에 내보낼 항목이 없습니다.",
-  "We couldn't create the PDF. Try again.": "PDF를 만들지 못했습니다. 다시 시도하세요."
+  "We couldn't create the PDF. Try again.": "PDF를 만들지 못했습니다. 다시 시도하세요.",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "인시던트와 경고마다 전용 Google Meet 회의를 만들며, 연결하는 Google 계정이 소유자가 됩니다.",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "인시던트와 경고마다 전용 Microsoft Teams 회의를 만들며, 연결하는 Microsoft 365 계정이 주최자가 됩니다.",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "인시던트와 경고마다 전용 Zoom 회의를 시작하며, 연결하는 Zoom 계정이 호스트가 됩니다."
 }

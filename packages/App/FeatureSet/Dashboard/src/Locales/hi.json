@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "पूरा मैप PDF के रूप में डाउनलोड करें, जिसमें हर डिवाइस और कनेक्शन की सूची हो।",
   "Export PDF": "PDF निर्यात करें",
   "There is nothing on the map to export.": "मैप पर निर्यात करने के लिए कुछ भी नहीं है।",
-  "We couldn't create the PDF. Try again.": "PDF नहीं बनाई जा सकी। फिर से कोशिश करें।"
+  "We couldn't create the PDF. Try again.": "PDF नहीं बनाई जा सकी। फिर से कोशिश करें।",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "हर घटना और अलर्ट के लिए एक अलग Google Meet मीटिंग बनाएँ, जिसका स्वामी आपके द्वारा कनेक्ट किया गया Google खाता होगा।",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "हर घटना और अलर्ट के लिए एक अलग Microsoft Teams मीटिंग बनाएँ, जिसका आयोजक आपके द्वारा कनेक्ट किया गया Microsoft 365 खाता होगा।",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "हर घटना और अलर्ट के लिए एक अलग Zoom मीटिंग शुरू करें, जिसका होस्ट आपके द्वारा कनेक्ट किया गया Zoom खाता होगा।"
 }

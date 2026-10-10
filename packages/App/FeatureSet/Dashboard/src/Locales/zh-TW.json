@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "將整張地圖下載為 PDF，並列出所有裝置與連線。",
   "Export PDF": "匯出 PDF",
   "There is nothing on the map to export.": "地圖上沒有可匯出的內容。",
-  "We couldn't create the PDF. Try again.": "無法建立 PDF。請再試一次。"
+  "We couldn't create the PDF. Try again.": "無法建立 PDF。請再試一次。",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "為每個事件和警示建立專屬的 Google Meet 會議，以您連接的 Google 帳戶作為擁有者。",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "為每個事件和警示建立專屬的 Microsoft Teams 會議，以您連接的 Microsoft 365 帳戶作為召集人。",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "為每個事件和警示發起專屬的 Zoom 會議，以您連接的 Zoom 帳戶作為主持人。"
 }

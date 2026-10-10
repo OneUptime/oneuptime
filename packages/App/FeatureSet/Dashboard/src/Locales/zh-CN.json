@@ -27595,5 +27595,8 @@
   "Download the whole map as a PDF, with every device and connection listed.": "将整张地图下载为 PDF，并列出所有设备和连接。",
   "Export PDF": "导出 PDF",
   "There is nothing on the map to export.": "地图上没有可导出的内容。",
-  "We couldn't create the PDF. Try again.": "无法创建 PDF。请重试。"
+  "We couldn't create the PDF. Try again.": "无法创建 PDF。请重试。",
+  "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.": "为每个事件和警报创建专属的 Google Meet 会议，以您连接的 Google 账户作为所有者。",
+  "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.": "为每个事件和警报创建专属的 Microsoft Teams 会议，以您连接的 Microsoft 365 账户作为组织者。",
+  "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.": "为每个事件和警报发起专属的 Zoom 会议，以您连接的 Zoom 账户作为主持人。"
 }
