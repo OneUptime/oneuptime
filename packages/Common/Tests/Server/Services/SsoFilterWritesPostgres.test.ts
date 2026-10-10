@@ -9,10 +9,7 @@ import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import StatementOutcome from "../../../Server/Utils/Database/StatementOutcome";
 import logger from "../../../Server/Utils/Logger";
-import ProjectSsoProviderChanges, {
-  PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
-  SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
-} from "../../../Server/Utils/ProjectSsoProviderChanges";
+import ProjectSsoProviderChanges from "../../../Server/Utils/ProjectSsoProviderChanges";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Entities from "../../../Models/DatabaseModels/Index";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -34,29 +31,31 @@ import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 
 /*
  * A SIGN-IN CHANGE THAT NAMES ITS ROWS BY A FILTER WRITES EXACTLY THE ROWS
- * IT CHECKED, AGAINST POSTGRES (ProjectSsoProviderChanges.
- * writeOnlyTheRowsRead).
+ * IT CHECKED, AGAINST POSTGRES (DatabaseService.findRowsAndHoldUpdateToThem
+ * and findRowsAndHoldDeleteToThem, which the SSO hooks read with).
  *
  * The services' real update, delete and hard delete paths - DatabaseService
  * and the hooks - on real rows in the migrated tables. What their hooks
- * read under the lock, and what the database then writes, are the SQL the
- * narrowed write turns into: the ids read (IN), and, for a delete that read
- * none, rows deleted before (deletedAt IS NOT NULL, together with whatever
- * the delete asks of deletedAt itself - the retention job's purge asks for
- * rows deleted more than a month ago). A row lands at the moment another
- * server's write would - while the write waits for its lock, once it has
- * read under it, or once it read nothing - and is left alone:
+ * read, and what the database then writes, are the SQL the held write turns
+ * into: the ids read (IN) - a hard delete reads the rows deleted before as
+ * well, as it purges them, together with whatever it asks of deletedAt
+ * itself (the retention job's purge asks for rows deleted more than a month
+ * ago). A row lands at the moment another server's write would - while the
+ * write waits for its lock, once it has read under it, or once it read
+ * nothing - and is left alone:
  *
  *   - a project's SAML providers turned off by a filter: one created after
- *     the check read stays on; a hard delete that read none purges only rows
- *     deleted before, and the retention job's purge still removes them;
+ *     the check read stays on, and so does one created in another project
+ *     while the write waits for its lock; a hard delete purges the rows it
+ *     read, deleted before, and not one created a moment later; the
+ *     retention job's purge still removes them;
  *   - global SAML providers turned off by a filter, and attachments removed
  *     by one: one created or attached afterwards is left as it is; hard
  *     deletes and the purge reach only rows deleted before;
- *   - Require SSO for Login turned on for projects named by a filter: a
- *     project created between the two reads refuses the write, and nothing
- *     is written; one that comes to match the filter after the locked read
- *     keeps its rule;
+ *   - Require SSO for Login turned on for projects named by a filter: the
+ *     projects read are written, and one created between the two reads, or
+ *     one that comes to match the filter after the locked read, keeps its
+ *     rule;
  *   - a Require SSO for Login save whose UPDATE does not finish in time:
  *     one the client stopped waiting for keeps its lock - and lands once the
  *     row is free, after the save was reported as failed - while one the
@@ -233,9 +232,10 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
   };
 
   /*
-   * Runs `landing` once, right after the first read `service` answers with
-   * findAllBy - the hooks' own read of the rows a write names - as another
-   * server's write landing then would.
+   * Runs `landing` once, right after the hooks' first read of the rows a
+   * write names (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem),
+   * before any lock is taken - as another server's write landing then
+   * would.
    */
   const afterFirstRead: (
     service: DatabaseService<any>,
@@ -244,24 +244,31 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
     service: DatabaseService<any>,
     landing: () => Promise<void>,
   ): void => {
-    const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
-      service.findAllBy.bind(service) as unknown as (
-        ...args: Array<unknown>
-      ) => Promise<unknown>;
     let hasLanded: boolean = false;
 
-    getJestSpyOn(service, "findAllBy").mockImplementation((async (
-      ...args: Array<unknown>
-    ): Promise<unknown> => {
-      const answer: unknown = await findAllBy(...args);
+    for (const method of [
+      "findRowsAndHoldUpdateToThem",
+      "findRowsAndHoldDeleteToThem",
+    ] as const) {
+      const readAndHold: (...args: Array<unknown>) => Promise<unknown> = (
+        service[method] as unknown as (
+          ...args: Array<unknown>
+        ) => Promise<unknown>
+      ).bind(service);
 
-      if (!hasLanded) {
-        hasLanded = true;
-        await landing();
-      }
+      getJestSpyOn(service, method).mockImplementation((async (
+        ...args: Array<unknown>
+      ): Promise<unknown> => {
+        const answer: unknown = await readAndHold(...args);
 
-      return answer;
-    }) as never);
+        if (!hasLanded) {
+          hasLanded = true;
+          await landing();
+        }
+
+        return answer;
+      }) as never);
+    }
   };
 
   const refusalOf: (write: Promise<unknown>) => Promise<unknown> = async (
@@ -450,7 +457,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       expect(rows.get(createdLater)?.["signInsEndedAt"]).toBeNull();
     });
 
-    test("a filter that comes to reach another project between the reads is refused, and nothing is written", async () => {
+    test("a provider that comes to match the filter in another project while the write waits for its lock is left alone: the one read is turned off", async () => {
       const acme: string = await addProject("Acme");
       const beta: string = await addProject("Beta");
       await addProjectSaml({
@@ -475,26 +482,33 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       };
 
       await expect(
-        refusalOf(
-          ProjectSsoService.updateBy({
-            query: { name: "Okta" },
-            data: { isEnabled: false },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: { isRoot: true },
-          }),
-        ),
-      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+        ProjectSsoService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: false },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
 
       const rows: Map<string, Record<string, unknown>> = await rowsOf(
         "ProjectSSO",
       );
 
-      expect(rows.get(read)?.["isEnabled"]).toBe(true);
+      expect(createdLater).not.toBe("");
+      expect(rows.get(read)?.["isEnabled"]).toBe(false);
       expect(rows.get(createdLater)?.["isEnabled"]).toBe(true);
+      expect(rows.get(createdLater)?.["signInsEndedAt"]).toBeNull();
+
+      // Only Acme's lock was taken: the write never reached Beta.
+      expect(
+        handedOut.some((lock: { key: string }): boolean => {
+          return lock.key.includes(beta);
+        }),
+      ).toBe(false);
     });
 
-    test("a hard delete by a filter that read no provider purges only rows deleted before: not one created a moment later", async () => {
+    test("a hard delete by a filter purges the rows it read, deleted before: not one created a moment later", async () => {
       const projectId: string = await addProject("Acme");
       const deletedBefore: string = await addProjectSaml({
         projectId,
@@ -801,7 +815,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       expect(rows.get(other)?.["requireSsoForLogin"]).toBe(false);
     });
 
-    test("a project created between the two reads refuses the write, and no project is written", async () => {
+    test("a project created between the two reads is left alone: the projects read are written", async () => {
       const eu: string = await addGroupProject();
       const us: string = await addGroupProject();
 
@@ -810,17 +824,15 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
         createdLater = await addProject(GROUP);
       };
 
-      await expect(requireSsoForGroup()).resolves.toBe(
-        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
-      );
+      await expect(requireSsoForGroup()).resolves.toBe(2);
 
       const rows: Map<string, Record<string, unknown>> = await rowsOf(
         "Project",
       );
 
       expect(createdLater).not.toBe("");
-      expect(rows.get(eu)?.["requireSsoForLogin"]).toBe(false);
-      expect(rows.get(us)?.["requireSsoForLogin"]).toBe(false);
+      expect(rows.get(eu)?.["requireSsoForLogin"]).toBe(true);
+      expect(rows.get(us)?.["requireSsoForLogin"]).toBe(true);
       expect(rows.get(createdLater)?.["requireSsoForLogin"]).toBe(false);
     });
 

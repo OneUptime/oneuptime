@@ -150,7 +150,9 @@ function makePermission(data?: {
  * them (findRowsAndHoldUpdateToThem), answered as the suite's findBy stub
  * answers the hook's own read. Returns that stub.
  */
-function answerRowsLikeFindBy(findBy: jest.SpyInstance): jest.SpyInstance {
+function answerRowsLikeFindBy<
+  TFindBy extends { getMockImplementation(): unknown },
+>(findBy: TFindBy): TFindBy {
   stubRowsCallerMayWriteLikeFindBy(TeamPermissionService, findBy);
   return findBy;
 }
