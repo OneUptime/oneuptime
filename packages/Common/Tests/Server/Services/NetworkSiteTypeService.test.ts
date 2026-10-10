@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
   stubRowsCallerMayWriteLikeFindBy,
 } from "../TestingUtils/RowsCallerMayWrite";
 
@@ -993,14 +994,21 @@ describe("NetworkSiteTypeService deletion guards", () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteTypeService, "findBy")
       .mockResolvedValue([]);
+    // The caller may delete no type the query names, in their project.
+    stubRowsCallerMayDelete(NetworkSiteTypeService, () => {
+      return [];
+    });
 
     await (NetworkSiteTypeService as any).onBeforeDelete(
       deleteBy({ tenantId: PROJECT_ID, isRoot: false }),
     );
 
-    expect(findBySpy.mock.calls[0]![0].query).toEqual(
+    // The types the caller may delete are read in the caller's project.
+    expect(readsOfRowsCallerMayWrite(NetworkSiteTypeService)[0]!.query).toEqual(
       expect.objectContaining({ projectId: PROJECT_ID }),
     );
+    // None: nothing is read again.
+    expect(findBySpy).not.toHaveBeenCalled();
   });
 
   it("matches root delete preflight scoping when a tenant is supplied", async () => {
