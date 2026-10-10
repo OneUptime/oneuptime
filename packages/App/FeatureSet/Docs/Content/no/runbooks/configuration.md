@@ -1,59 +1,129 @@
 # Runbook-konfigurasjon & sikkerhet
 
-## Hvordan Bash og JavaScript faktisk kjører
+Dette er referansen for driftsfolk og sikkerhetsgjennomgang: hvor hver type trinn kjører, hvilke grenser og tidsavbrudd et trinn holdes til, hvem som kan gjøre hva, og hvordan runbooks er herdet.
 
-Bash- og JavaScript-trinn **kjøres aldri på OneUptime-Worker'en**. De sendes som jobber til en spesifikk [Runbook-agent](/docs/runbooks/agents) — en liten prosess du installerer på en vert i din egen infrastruktur.
+:::cards
+- [Hvor hver trinntype kjører](#hvor-hver-trinntype-kjører): Workeren, en Runner eller en person.
+- [Grenser for output og tidsavbrudd](#grenser-for-output-og-tidsavbrudd): Hver grense et trinn holdes til.
+- [Tillatelser](#tillatelser): Detaljerte tillatelser, de tre runbook-rollene og hvilke runbooks en rolle når.
+- [Herdingsmerknader](#herdingsmerknader): Sandkasse, nettverkstilgang og autentisering av Runnere.
+:::
 
-Sendemodellen:
+## Hvor hver trinntype kjører
 
-1. Runbook-trinnforfatteren velger en Runbook-agent fra nedtrekksmenyen når trinnet skrives.
-2. Når trinnet kjører, setter Worker'en inn en rad i `RunnerJob` med `targetAgentId` satt til den agentens ID og status `Pending`.
-3. Den spesifikke agenten (og bare den agenten) claimer atomisk jobben, kjører skriptet lokalt — Bash via `bash -c <skript>`, JavaScript inne i en `isolated-vm`-sandkasse — og sender resultatet tilbake.
-4. Worker'en gjenopptar runbook'et med resultatet.
+```mermaid title="Hvilke trinn som kjører hvor"
+flowchart TB
+    subgraph ou["OneUptime"]
+        direction LR
+        worker["Worker"]
+        http["HTTP request-trinn"]
+        ai["AI-trinn"]
+    end
+    subgraph yours["Din infrastruktur"]
+        direction LR
+        runner["Runner"]
+        scripts["JavaScript- og Bash-trinn"]
+        remote["SSH- og Kubernetes-trinn"]
+    end
+    person["En person"]
+    worker --> http
+    worker --> ai
+    worker -->|"Manual-trinn og godkjenninger"| person
+    worker -->|"setter en jobb i kø til trinnets Runner"| runner
+    runner --> scripts
+    runner --> remote
+```
 
-Det finnes ikke lenger noe `RUNBOOK_BASH_ENABLED`-environment-flagg. Hvorvidt Bash- eller JavaScript-trinn fungerer i en distribusjon avhenger fullstendig av om det finnes minst én tilkoblet Runbook-agent i prosjektet.
+| Trinntype | Kjører på | Hvordan |
+| --- | --- | --- |
+| Manual | En person | Kjøringen venter til noen fullfører trinnet eller hopper over det. |
+| JavaScript | En Runner | I en `isolated-vm`-sandkasse. |
+| HTTP request | OneUptime Worker | Et utgående HTTP-kall. |
+| Bash | En Runner | `bash -c <script>`. |
+| SSH | En Runner | En SSH-forbindelse med [påloggingsinformasjon](/docs/runbooks/credentials). |
+| Kubernetes | En Runner | Et kall til klyngens API-server med påloggingsinformasjon. |
+| AI | OneUptime Worker | Et kall til prosjektets LLM-leverandør. |
 
-## Output-grenser og timeouts
+## Slik sendes Runner-trinn ut
 
-- Output per trinn: **50&nbsp;KB**. Større output kortes ned med en markør.
-- Standard execution timeout per trinn: **30 sekunder** for JavaScript, Bash og HTTP. Sett den per trinn på runbook'ets **Trinn**-side — la feltet stå tomt for å beholde standardverdien.
-- Per-trinn **claim timeout** for Bash- og JavaScript-trinn: **2 minutter** — hvor lenge Worker'en venter på at den valgte agenten plukker opp jobben før den feiler. Settes også per trinn.
-- Begge timeoutene godtar fra **1 sekund til 1 time**. En verdi utenfor dette området begrenses til intervallet når trinnet kjøres, slik at en feiltastet konfigurasjon verken kan skru av timeouten eller holde en plass på Worker'en åpen i det uendelige.
+JavaScript-, Bash-, SSH- og Kubernetes-trinn **kjører aldri på OneUptime Worker**. De sendes som jobber til en bestemt [runbook-agent](/docs/runbooks/agents): en liten prosess du installerer på en vert i din egen infrastruktur.
 
-## Rettigheter
+Utsendingsmodellen:
 
-Runbook-rettigheter ligger i rettighetsgruppen `Runbook`:
+1. Den som skriver runbook-trinnet, velger en Runner fra nedtrekkslisten.
+2. Når trinnet kjører, setter Workeren inn en rad i `RunnerJob` med `targetAgentId` satt til ID-en til den Runneren og statusen `Pending`.
+3. Nettopp den Runneren (og bare den) tar jobben atomisk, kjører den lokalt — Bash via `bash -c <script>`, JavaScript i en `isolated-vm`-sandkasse, SSH og Kubernetes med påloggingsinformasjonen til trinnet — og sender resultatet tilbake.
+4. Workeren fortsetter runbooket med resultatet.
 
-- `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — styre runbook-maler.
-- `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — starte, krysse av og lese kjøringer.
-- `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — styre automatiske utløsningsregler.
-- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — styre Runbook-agenter som kjører Bash- og JavaScript-trinn i din egen infrastruktur.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, reglene deres og Runnerne de kjører på, og kjører dem. `RunbookMember` åpner runbooks og kjøringene deres og kjører dem — starter en kjøring, fullfører eller hopper over trinnene og avbryter den —, men oppretter, endrer og sletter ingen runbook eller Runner. `RunbookViewer` leser runbooks og kjøringene deres og kjører ingenting. `RunbookAdmin` samler alle de detaljerte tillatelsene ovenfor.
+Det finnes ikke lenger noe miljøflagg `RUNBOOK_BASH_ENABLED`. Om disse trinnene virker i en installasjon, avhenger bare av om prosjektet har en tilkoblet Runner med **Kjører runbooks** slått på.
 
-En rolle kjører runbookene omfanget dens når. En tildeling av `RunbookMember`, `RunbookAdmin` eller `ProjectMember` som er begrenset til noen etiketter, starter og fører videre kjøringer av runbookene som har disse etikettene, en tildeling begrenset til egne ressurser kjøringer av runbookene teamet eier, og et teams blokkering av en etikett tar bort disse runbookene. `CreateRunbookExecution` og `EditRunbookExecution` gjelder kjøringer, som ikke har etiketter, så de når alle runbooks i prosjektet. Å godkjenne et utbedringsforslag som starter en runbook, kontrolleres på samme måte.
+## Grenser for output og tidsavbrudd
 
-## Kø & worker
+| Grense | Verdi | Gjelder for |
+| --- | --- | --- |
+| Output per trinn | **50 KB**. Lengre output kuttes med en markør. | Hvert automatiserte trinn |
+| Kjøringstidsavbrudd | **30 sekunder** som standard | JavaScript-, Bash-, SSH- og Kubernetes-trinn |
+| Forespørselstidsavbrudd | **30 sekunder** som standard | HTTP request-trinn |
+| Overtakelsestidsavbrudd | **2 minutter** som standard: hvor lenge Workeren venter på at den valgte Runneren tar jobben før den feiles | JavaScript-, Bash-, SSH- og Kubernetes-trinn |
+| Intervall for tidsavbrudd | **1 sekund til 1 time** | Hvert tidsavbrudd |
+| Venter på en person | Ingen grense | Manual-trinn og godkjenninger |
 
-Runbook-kjøringer går på BullMQ-køen `Runbook`. Worker-samtidighet er 25 — juster i distribusjonen din om du har mange samtidige kjøringer.
+Angi tidsavbruddene per trinn på runbookets side **Trinn**; la et felt stå tomt for å beholde standarden. En verdi utenfor intervallet begrenses når trinnet kjører, slik at en feilskrevet konfigurasjon verken kan slå av tidsavbruddet eller holde en Worker-plass opptatt i det uendelige.
 
-Når et manuelt trinn hukes av via API-et, settes kjøringen tilbake i køen for å fortsette til neste trinn. Det holder workeren varm til resten av runbook'et.
+## Tillatelser
 
-## Herding-merknader
+Runbook-tillatelser ligger i tillatelsesgruppen `Runbook`:
 
-- **JavaScript og Bash** kjøres på en Runbook-agent-vert du kontrollerer, ikke på OneUptime-Worker'en. JavaScript pakkes inn i en `isolated-vm`-sandkasse med den vanlige preambelen (kapper prototype-kjeder, fjerner `Function`/`eval`, fryser innebygde prototyper). Bash kjøres via `bash -c` med timeout-håndhevelse på agenten.
-- **HTTP-trinn** bruker en ettergivende statusvalidator, slik at et 4xx- eller 5xx-svar registreres som feilet trinn i stedet for å kastes. Dermed gjenspeiler det fangede outputet hva motparten faktisk returnerte.
-- **Agent-auth** skjer via ID + hemmelig nøkkel, satt på agent-containeren som env vars. På serversiden kommer agentens autoritative identitet fra DB-raden som er identifisert av den fremlagte ID-en/nøkkelen — klienter kan ikke utgi seg for å være en annen agent, selv med en kompromittert nøkkel.
+- `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — administrer runbook-maler.
+- `CreateRunbookExecution`, `EditRunbookExecution`, `DeleteRunbookExecution`, `ReadRunbookExecution` — start, kryss av, slett og les kjøringer.
+- `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — administrer regler for automatisk start.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — administrer Runnere som kjører trinn i din egen infrastruktur. (De het `*RunbookAgent` før omdøpingen til Runner; eksisterende tildelinger er migrert, så ingenting må tildeles på nytt.)
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, reglene deres og Runnerne de kjører på, og kjører dem. `RunbookMember` åpner runbooks og kjøringene deres og kjører dem — starter en kjøring, fullfører eller hopper over trinnene og avbryter den — men oppretter, endrer og sletter ingen runbooks eller Runnere. `RunbookViewer` leser runbooks og kjøringene deres og kjører ingenting. `RunbookAdmin` samler alle de detaljerte tillatelsene ovenfor.
+
+En rolle kjører runbookene omfanget dens når. En tildeling av `RunbookMember`, `RunbookAdmin` eller `ProjectMember` som er begrenset til bestemte etiketter, starter og fører videre kjøringer av runbookene som har de etikettene, en tildeling begrenset til **Owned** kjøringer av runbookene teamet eier, og et teams blokkering av en etikett tar de runbookene fra det. `CreateRunbookExecution` og `EditRunbookExecution` handler om kjøringer, som ikke har etiketter, så de når alle runbooks i prosjektet. Å godkjenne et utbedringsforslag som starter et runbook, kontrolleres på samme måte.
+
+Påloggingsinformasjon og hemmeligheter ligger utenfor `RunbookAdmin`. Å administrere dem krever `ProjectOwner` eller `ProjectAdmin` eller tillatelsene `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` og `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Se [Runbook-påloggingsinformasjon](/docs/runbooks/credentials).
+
+Eierreglene og etikettreglene under **Runbooks → Innstillinger** ligger også utenfor `RunbookAdmin`. Å administrere dem krever `ProjectOwner` eller `ProjectAdmin` eller tillatelsene `CreateRunbookOwnerRule` og `CreateRunbookLabelRule` og motstykkene deres for redigering, sletting og lesing.
+
+Hvordan roller og detaljerte tillatelser virker sammen, kan du lese under [Brukere, team og tillatelser](/docs/permissions/index).
+
+## Kø og worker
+
+Runbook-kjøringer kjører i BullMQ-køen `Runbook`. Hver Worker-prosess kjører opptil 25 kjøringer samtidig; tallet er fastsatt i koden og settes ikke med en miljøvariabel.
+
+Når et manuelt trinn krysses av via API-et, settes kjøringen i kø igjen for å fortsette fra neste trinn. Den venter som `Scheduled` til en Worker tar den igjen, og en kjøring i kø feiles aldri fordi den venter.
+
+## Herdingsmerknader
+
+- **JavaScript, Bash, SSH og Kubernetes** kjører på en Runner-vert du kontrollerer, ikke på OneUptime Worker. JavaScript kjører i sitt eget `isolated-vm`-isolat med 128 MB minne og uten tilgang til Runnerens filsystem eller prosesser; det kan sende HTTP-forespørsler med `axios`, men forespørsler til private nettverk, loopback- og link-local-adresser avvises. Bash kjører via `bash -c`, med et tidsavbrudd som håndheves på Runneren.
+- **HTTP-trinn** bruker en tillatende statusvalidering, slik at et 4xx- eller 5xx-svar registreres som et mislykket trinn i stedet for å bli kastet som et unntak, og den registrerte outputen viser hva motparten faktisk returnerte. Omdirigeringer følges ikke. Workeren kaller aldri loopback- eller link-local-adresser, for eksempel et metadataendepunkt i skyen; på OneUptime Cloud avviser den også private nettverksadresser, og en selvhostet OneUptime avviser dem med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
+- **AI-trinn** ser aldri private hendelsesnotater eller meldinger fra Slack og Microsoft Teams, og outputen fra tidligere trinn skannes etter hemmeligheter, som sladdes før den når modellen. Innebygde bilder og lange kodede data utelates fra prompten. Se [AI](/docs/runbooks/authoring#ai).
+- **Autentisering av Runnere** skjer med ID og hemmelig nøkkel, satt som miljøvariabler på Runner-containeren. På serveren kommer Runnerens gjeldende identitet fra databaseraden som hører til den framviste ID-en og nøkkelen: en klient kan ikke utgi seg for å være en annen Runner, heller ikke med en kompromittert nøkkel.
+- **Påloggingsinformasjon og hemmeligheter** er kryptert i hvile, returneres aldri av API-et og leveres bare ut til Runnerne de er tildelt, når disse tar et trinn.
 
 ## Databasetabeller
 
-- `Runbook` — mal (navn, slug, beskrivelse, isEnabled, JSON for trinn).
-- `RunbookExecution` — én rad per kjøring, med nullbare fremmednøkler `incidentId`, `alertId` og `scheduledMaintenanceId` og et JSON-array `stepExecutions` som tar snapshot av trinn og status per trinn.
-- `RunbookRule` — automatiske utløsningsregler med diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance) og mange-til-mange-relasjon til runbookene som skal starte.
-- `Runner` — én rad per installert agent: navn, hemmelig nøkkel, `lastAlive`, `connectionStatus`, vertsinfo.
-- `RunnerJob` — én rad per sendt Bash- eller JavaScript-trinn: `targetAgentId` (agenten trinnforfatteren valgte), trinntype, skript, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, output, exit-kode.
+| Tabell | Hva den inneholder |
+| --- | --- |
+| `Runbook` | Malen: navn, slug, beskrivelse, `isEnabled`, etiketter og trinnene som JSON. |
+| `RunbookExecution` | Én rad per kjøring, med de valgfrie fremmednøklene `incidentId`, `alertId` og `scheduledMaintenanceId` og en JSON-matrise `stepExecutions` som fryser trinnene og tilstanden til hvert trinn. |
+| `RunbookRule` | Regler for automatisk start, med en diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance), en mange-til-mange-relasjon til runbookene som skal startes, og det de treffer på: en JSON-kolonne `criteria` (betingelsene) pluss mange-til-mange-koblinger til monitorer, alvorlighetsgrader for hendelser, alvorlighetsgrader for varsler, etiketter og monitoretiketter samt mønstre for tittel, beskrivelse, monitornavn og monitorbeskrivelse. |
+| `Runner` | Én rad per installert Runner: navn, hemmelig nøkkel, `lastAlive`, `connectionStatus`, vertsinformasjon og funksjoner. |
+| `RunnerJob` | Én rad per trinn sendt til en Runner: `targetAgentId` (Runneren forfatteren av trinnet valgte), trinntype, skript eller nyttelast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), frist for overtakelse, lease, output og exitkode. |
+| `RunbookCredential` | SSH- og Kubernetes-påloggingsinformasjon med krypterte hemmelige felt og Runnerne den er tildelt. |
+| `RunbookSecret` | Runbook-hemmeligheter, kryptert, og Runnerne som får motta dem. |
 
-## Driftsråd
+## Driftstips
 
-- **Pass på at agenten du velger på et trinn er sunn.** Trenger du redundans, kjør en andre agent og fordel trinn mellom dem, eller ha et backup-runbook som peker på den andre agenten.
-- **Fang URL-er, ikke blobs.** Genererer et trinn mer enn et par KB, skriv til S3 eller logstacken din og returner URL-en.
-- **Idempotens betyr noe.** Automatiserte trinn (HTTP, JavaScript, Bash) kan kjøre mer enn én gang om workeren restarter midt i et trinn eller om en agents lease utløper mens et skript fortsatt kjører; design dem slik at retry er trygt.
+- **Sørg for at Runneren du velger på et trinn, er frisk.** Trenger du redundans, kjører du en Runner til og fordeler trinnene mellom dem, eller har et reserve-runbook som peker mot den andre Runneren.
+- **Lagre URL-er, ikke blobs.** Gir et trinn mer enn noen få KB output, skriver du den til objektlagring eller loggstakken din og returnerer URL-en.
+- **Idempotens betyr noe.** Et HTTP request- eller AI-trinn kjører på nytt hvis Workeren starter på nytt midt i trinnet og kjøringen gjenopptas. Et trinn på en Runner sendes høyst én gang per kjøring, men et skript kan ha kjørt delvis før en feil, og du kjører kanskje runbooket på nytt. Utform trinn slik at de tåler å bli gjentatt.
+
+## Neste steg
+
+:::cards
+- [Runbook-agenter](/docs/runbooks/agents): Installer, drift og feilsøk Runnere.
+- [Runbook-påloggingsinformasjon](/docs/runbooks/credentials): Administrert SSH- og Kubernetes-tilgang og hemmeligheter for skript.
+- [Brukere, team og tillatelser](/docs/permissions/index): Hvordan roller, etiketter og team avgjør hvem som kjører hva.
+:::

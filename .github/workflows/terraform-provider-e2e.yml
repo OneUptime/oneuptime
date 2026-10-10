@@ -58,6 +58,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Before the OneUptime stack pulls its images: through mirror.gcr.io,
+      # not anonymously from Docker Hub (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
+
       # Hermetic checks of the harness itself (engine dispatch, fixture and
       # workflow contracts) against fake terraform/tofu binaries. Placed
       # immediately after checkout and before every expensive step — npm

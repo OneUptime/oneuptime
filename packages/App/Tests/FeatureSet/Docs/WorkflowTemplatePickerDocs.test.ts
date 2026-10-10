@@ -77,8 +77,10 @@ const DIALOG_LABELS: Array<string> = [
   "Monitors",
 ];
 
-// The keys each language's docs name, as its own docs spell them.
-const ENTER_KEY: RegExp = /\*\*(Enter|Entrée|Invio)\*\*/;
+// The Enter key, as each language's Dashboard names it (Intro, Entrée...).
+const enterKey: (language: string) => string = (language: string): string => {
+  return `**${dashboardLabel(language, "Enter")}**`;
+};
 
 describe("docs for the Create a workflow dialog", () => {
   test("every docs language is checked", () => {
@@ -173,7 +175,7 @@ describe("docs for the Create a workflow dialog", () => {
       expect(bullets[1]).toContain(
         `**${dashboardLabel(language, "Or start from a template")}**`,
       );
-      expect(opening).toMatch(ENTER_KEY);
+      expect(opening).toContain(enterKey(language));
       expect(opening).toContain("`/`");
     },
   );

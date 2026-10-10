@@ -132,6 +132,78 @@ export const drawnDashboardLabel: DashboardLabelFunction = (
   return english;
 };
 
+/*
+ * The other buttons a page draws from a template with a model's name:
+ * "Duplicate Workflow", "Export Workflow", "Edit Workflow" and "Delete
+ * Workflow Variable" (translateNamedAction, Common/UI/Utils/TranslateTemplate).
+ * As there, the whole phrase is looked up first, then the template is filled
+ * with the model's translated name.
+ */
+const NAMED_ACTION_TEMPLATES: ReadonlyArray<{
+  prefix: string;
+  template: string;
+}> = [
+  { prefix: "Duplicate ", template: "Duplicate {{itemName}}" },
+  { prefix: "Export ", template: "Export {{itemName}}" },
+  { prefix: "Edit ", template: "Edit {{itemName}}" },
+  { prefix: "Delete ", template: "Delete {{itemName}}" },
+];
+
+/*
+ * Whether the Dashboard has this English text as a label, a Create or Add
+ * button included (isDashboardLabel), or draws it as a named action on a
+ * model: "Duplicate Workflow" on a workflow's Settings page.
+ */
+export const isActionLabel: IsDashboardLabelFunction = (
+  english: string,
+): boolean => {
+  if (isDashboardLabel(english)) {
+    return true;
+  }
+
+  return NAMED_ACTION_TEMPLATES.some(
+    (action: { prefix: string; template: string }): boolean => {
+      return (
+        english.startsWith(action.prefix) &&
+        translated("en", english.slice(action.prefix.length)) !== null
+      );
+    },
+  );
+};
+
+/*
+ * What the Dashboard draws for a label or a named action written in English,
+ * in this language: drawnDashboardLabel, then the named-action templates.
+ */
+export const drawnActionLabel: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  const drawn: string = drawnDashboardLabel(language, english);
+
+  if (language === "en" || drawn !== english) {
+    return drawn;
+  }
+
+  for (const action of NAMED_ACTION_TEMPLATES) {
+    if (!english.startsWith(action.prefix)) {
+      continue;
+    }
+
+    const itemName: string | null = translated(
+      language,
+      english.slice(action.prefix.length),
+    );
+    const template: string | null = translated(language, action.template);
+
+    if (itemName !== null && template !== null) {
+      return template.replace(ITEM_NAME_PLACEHOLDER, itemName);
+    }
+  }
+
+  return english;
+};
+
 // What a page in this language calls the Dashboard label written in English.
 export const dashboardLabel: DashboardLabelFunction = (
   language: string,

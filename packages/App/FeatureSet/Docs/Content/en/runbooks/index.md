@@ -47,6 +47,7 @@ HTTP and AI steps run on the OneUptime Worker. JavaScript, Bash, SSH and Kuberne
 | **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. You can edit the runbook later without rewriting the history of past runs. |
 | **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and Kubernetes steps that name it. Also called a Runbook Agent. |
 | **Credential** | Managed SSH or Kubernetes access that SSH and Kubernetes steps use. Encrypted at rest and handed only to the Runners you assign it to. |
+| **Secret** | A single value, such as an API token, that a Bash or JavaScript script uses as `{{runbookSecrets.NAME}}`. Encrypted at rest and handed only to the Runners you assign it to. |
 
 ## Step types
 
@@ -85,9 +86,11 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | A runbook's **Steps** | Write and reorder its steps, then **Save Steps**. |
 | A runbook's **Overview** | See its last run and outcomes, and click **Run Now**. |
 | A runbook's **Executions** | Every run of this runbook, filtered by status or start date. |
+| A runbook's **Owners** | Add the people and teams responsible for it. |
 | A runbook's **Settings** | Turn **Run this runbook** off without deleting the runbook. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
 | **Runbooks → Runners** and **Runbooks → Runners → Credentials** | Install [Runners](/docs/runbooks/agents) and manage [credentials](/docs/runbooks/credentials). |
+| **Runbooks → Settings** | Manage [secrets](/docs/runbooks/credentials#secrets-for-scripts) for scripts, and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. |
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
 

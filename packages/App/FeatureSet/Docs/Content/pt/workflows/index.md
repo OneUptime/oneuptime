@@ -1,84 +1,187 @@
 # Visão geral dos workflows
 
-Workflows permitem automatizar tarefas no OneUptime sem escrever código. Você põe alguns blocos em um canvas, liga um no outro, e tem uma automação que roda sempre que algo acontece — um incidente é aberto, um agendamento dispara, ou outra ferramenta envia dados para o OneUptime.
+Os workflows automatizam o trabalho no OneUptime sem código. Você coloca blocos em um canvas, liga um ao outro, e o workflow roda sozinho sempre que o seu gatilho dispara: um incidente é criado, um agendamento chega ao horário, outra ferramenta chama uma URL ou chega um e-mail. Use-os para conectar o OneUptime ao resto do seu stack e para cuidar do acompanhamento de rotina enquanto você trabalha no problema em si.
 
-Pense nos workflows como ajudantes de bastidores do seu projeto: eles reagem a eventos, conversam com outras ferramentas e mantêm tudo em sincronia sem barulho, enquanto você foca no seu trabalho.
-
-## O que dá para fazer com workflows
-
-- **Conectar o OneUptime às suas outras ferramentas** — mandar incidentes para o Slack, criar tickets no Jira, publicar em um webhook da sua stack.
-- **Reagir ao que acontece no OneUptime** — quando um incidente crítico é criado, avisar quem está de plantão e abrir um ticket automaticamente.
-- **Rodar tarefas em um agendamento** — a cada cinco minutos, toda noite, toda segunda de manhã.
-- **Receber dados de fora** — deixar outros sistemas empurrarem dados para dentro do OneUptime por uma URL exclusiva.
-- **Reaproveitar automações comuns** — construir uma vez e chamar de qualquer outro workflow.
+:::cards
+- [Criar um workflow](/docs/workflows/authoring): Crie um workflow e depois adicione, ligue e configure os blocos no canvas.
+- [Gatilhos](/docs/workflows/triggers): Inicie um workflow manualmente, por agendamento, por webhook, por e-mail ou por um evento do OneUptime.
+- [Componentes](/docs/workflows/components): Todos os blocos que você pode adicionar, de chamadas de API a registros do OneUptime.
+- [Execuções](/docs/workflows/runs-and-logs): Veja o que cada execução fez, passo a passo.
+:::
 
 ## Como um workflow funciona
 
 Todo workflow tem três partes:
 
-1. **Um trigger** — o que dá a partida. Pode ser um botão manual, um agendamento, um webhook de entrada ou um evento do OneUptime (como um novo incidente).
-2. **Um ou mais componentes** — o que o workflow faz. Enviar uma mensagem, fazer uma chamada HTTP, rodar uma verificação rápida, ramificar conforme uma condição.
-3. **Ligações entre eles** — você traça linhas de um bloco ao próximo para definir a ordem.
+1. **Um gatilho** — o que inicia o workflow: uma execução manual, um agendamento, uma chamada de webhook, um e-mail recebido ou um evento no OneUptime, como um novo incidente. Todo workflow tem exatamente um.
+2. **Componentes** — o que o workflow faz: enviar uma mensagem, chamar uma API, verificar uma condição, criar ou atualizar um registro do OneUptime.
+3. **Ligações** — as linhas que você desenha de um bloco para o próximo. Elas decidem o que roda depois do quê.
 
-Tudo isso é montado visualmente, em um canvas. A maioria dos workflows não exige código, embora você possa incluir um trecho de JavaScript quando precisar.
+Quando o gatilho dispara, o OneUptime inicia uma **execução**. Cada bloco termina tomando uma das suas saídas, como **Success** ou **Error**, **Yes** ou **No**, e só os blocos ligados a essa saída rodam em seguida. Quando nenhum bloco está ligado à saída que um bloco tomou, esse caminho termina. A execução é salva com o seu status, o caminho percorrido e o que cada bloco recebeu e devolveu.
 
-## Termos-chave
+```mermaid title="O que acontece quando um workflow roda"
+flowchart TB
+    subgraph starts["O que inicia uma execução"]
+        direction LR
+        manual["Executar fluxo de trabalho"]
+        schedule["Agendamento"]
+        webhook["Chamada de webhook"]
+        email["E-mail recebido"]
+        event["Evento do OneUptime"]
+    end
+    starts --> trigger["Bloco de gatilho"]
+    trigger --> wired{"Saída ligada a um bloco?"}
+    wired -->|"Sim"| block["Esse bloco roda"]
+    block -->|"toma uma das suas saídas"| wired
+    wired -->|"Não"| saved["Execução salva com os passos e o log"]
+```
 
-| Termo               | O que significa                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------- |
-| **Workflow**        | A automação inteira — um nome, um canvas e uma chave para ligar ou desligar.                |
-| **Trigger**         | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um.       |
-| **Componente**      | Um bloco de ação — envia uma mensagem, faz uma requisição, verifica uma condição.           |
-| **Execução**        | Uma rodada do workflow. Guardada com horários e a saída de cada bloco.                      |
-| **Variável global** | Um valor (como uma chave de API) que você salva uma vez e reutiliza em qualquer workflow.   |
+Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não precisa de código nenhum; quando algum precisa, um bloco **Run Custom JavaScript** roda algumas linhas de JavaScript.
+
+## O que dá para fazer com workflows
+
+- **Conectar o OneUptime às suas outras ferramentas** — publicar no Slack, Microsoft Teams, Discord, Telegram ou IRC, criar tickets no Jira ou enviar uma requisição para qualquer API do seu stack.
+- **Reagir ao que acontece no OneUptime** — quando um incidente é criado, avisar o canal certo e abrir um ticket automaticamente.
+- **Rodar tarefas agendadas** — a cada cinco minutos, toda noite, toda segunda de manhã.
+- **Receber dados de fora** — deixar outros sistemas iniciarem um workflow chamando a URL dele ou mandando e-mail para o endereço dele.
+- **Reutilizar automações comuns** — monte uma vez e inicie a partir de qualquer outro workflow com um bloco **Execute Workflow**.
+
+## Termos principais
+
+| Termo                  | O que significa                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Workflow**           | A automação inteira: um nome, um canvas de blocos e uma chave para ligá-la ou desligá-la.                          |
+| **Gatilho**            | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um.                              |
+| **Componente**         | Qualquer outro bloco: envia uma mensagem, faz uma requisição, verifica uma condição ou altera um registro.         |
+| **Saída**              | Um ponto na parte de baixo de um bloco, como **Success** ou **Error**. As linhas que saem dele levam aos próximos blocos. |
+| **Execução**           | Uma execução do workflow, salva com o status, os horários e o que cada bloco fez.                                  |
+| **Variável global**    | Um valor, como uma chave de API, que você salva uma vez e usa em qualquer workflow do projeto.                     |
+
+## Antes de começar
+
+- **Um plano que inclua workflows.** No OneUptime Cloud, os workflows exigem o plano **Growth** ou superior, e cada plano permite um número de execuções a cada 30 dias — veja [Limites do plano](/docs/workflows/configuration#limites-do-plano). Instalações self-hosted sem cobrança não têm nenhum desses limites.
+- **Permissão para montar.** Criar e alterar workflows exige **Workflow Admin**, **Project Admin** ou **Project Owner**, ou um papel personalizado com as permissões correspondentes. Um **Workflow Member** pode abrir workflows e executá-los manualmente, mas não alterá-los. Veja [Permissões](/docs/workflows/configuration#permissões).
 
 ## Onde encontrar os workflows no OneUptime
 
-Abra **Fluxos de trabalho** na navegação à esquerda. Essa seção guarda:
+Abra **Produtos** na barra superior e escolha **Fluxos de trabalho**, em **Painéis e automação**. O menu dele tem:
 
-- **Fluxos de trabalho** — sua lista de workflows. Crie um novo ou abra um existente.
-- **Variáveis globais** — valores compartilhados entre todos os seus workflows.
+- **Fluxos de trabalho** — a sua lista de workflows. Crie um novo ou abra um existente.
+- **Variáveis globais** — valores compartilhados por todos os seus workflows.
 - **Registros → Execuções** — o histórico de execuções de todos os workflows do projeto.
+- **Configurações → Regras de Rótulos** e **Regras de proprietário** — rotule os novos workflows e atribua os proprietários deles automaticamente.
+- **Avançado → Arquivado** — os workflows que você arquivou. Eles nunca rodam e ficam fora da lista; desarquive-os por aqui. Veja [Arquivar um workflow](/docs/workflows/configuration#arquivar-um-workflow).
+- **Desenvolvedores** — como gerenciar os workflows com Terraform, a API ou um assistente de IA.
 
-Abra um workflow específico e o menu à esquerda dele traz:
+Abra um workflow específico e o menu dele tem:
 
 - **Visão geral** — nome, descrição, rótulos e a chave **Habilitado**.
-- **Construtor** — o canvas onde você desenha o workflow, com a chave **Habilitado** no topo.
-- **Variáveis do fluxo** — valores restritos a este workflow.
-- **Registros → Execuções** — cada execução deste workflow, com detalhes.
-- **Configurações** — duplicação e exportação.
+- **Construtor** — o canvas onde você projeta o workflow, com a chave **Habilitado** no topo.
+- **Variáveis do fluxo** — valores que valem só para esse workflow.
+- **Registros → Execuções** — cada execução desse workflow, com detalhes.
+- **Proprietários** — as pessoas e equipes responsáveis pelo workflow.
+- **Desenvolvedores** — como gerenciar esse workflow com Terraform, a API ou um assistente de IA.
+- **Configurações** — duplicar, exportar e arquivar.
 
-## Construindo seu primeiro workflow
+**Configurações** fica na seção **Avançado** do menu, junto com **Registros de auditoria** e **Excluir fluxo de trabalho**. **Avançado** e **Desenvolvedores** começam recolhidas, neste menu e em todos os outros, para que as páginas que você usa todo dia venham primeiro. Clique no nome de uma seção para mostrar as páginas dela. Ela se abre sozinha sempre que você está em uma delas.
 
-1. **Crie** — escolha um ponto de partida e dê um nome ao workflow.
-2. **Escolha um trigger** — manual, agendado, webhook ou um evento do OneUptime.
-3. **Adicione componentes** — coloque as ações no canvas e ligue-as.
-4. **Ligue** — ative **Habilitado** no topo do **Construtor**. Um workflow desabilitado não roda de jeito nenhum, nem à mão.
-5. **Teste** — clique em **Executar fluxo de trabalho** no Construtor e acompanhe o registro da execução.
+## Monte o seu primeiro workflow
 
-## Um exemplo rápido
+Todo workflow é montado do mesmo jeito:
 
-Digamos que você queira publicar no Slack sempre que um incidente crítico for criado:
+:::steps
+1. **Criar** — escolha um ponto de partida e depois dê um nome ao workflow. Veja [Criar um workflow](/docs/workflows/authoring).
+2. **Escolher um gatilho** — manual, agendado, webhook, e-mail recebido ou um evento do OneUptime. Veja [Gatilhos](/docs/workflows/triggers).
+3. **Adicionar componentes** — adicione ações ao canvas e ligue-as. Veja [Componentes](/docs/workflows/components).
+4. **Ligar** — ative **Habilitado** no topo do **Construtor**. Um workflow desabilitado não roda de jeito nenhum, nem manualmente.
+5. **Testar** — clique em **Executar fluxo de trabalho** no **Construtor** e acompanhe a execução enquanto ela acontece.
+:::
 
-1. Crie um workflow chamado "Incidentes críticos para o Slack".
-2. Escolha o trigger **On Create Incident**.
-3. Adicione um bloco **If / Else**. Configure-o para verificar se o título do incidente contém "Sev 1".
-4. A partir da saída **Sim**, adicione um bloco **Slack**. Escolha o canal e escreva a mensagem.
-5. Ligue o workflow.
+O exemplo abaixo segue esses passos para um workflow de verdade.
 
-Na próxima vez que alguém abrir um incidente com "Sev 1" no título, o Slack acende.
+## Exemplo: enviar novos incidentes para um webhook
+
+Este workflow envia um resumo em JSON de cada novo incidente para uma URL sua — um sistema de tickets, um data warehouse, qualquer coisa que aceite um webhook — e escreve o motivo no log da execução quando a requisição falha.
+
+```mermaid title="O exemplo pronto"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
+    post -->|"Error"| log["Log"]
+    post -->|"Success"| done["A execução termina"]
+```
+
+> [!TIP]
+> O modelo **Forward new incidents to another system** monta este mesmo workflow para você. Ele fica em **Incidentes** quando você cria um workflow.
+
+:::steps
+### Criar o workflow
+
+Abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Clique em **Começar do zero**, dê ao workflow o nome `Send new incidents to a webhook` e clique em **Criar fluxo de trabalho**.
+
+O novo workflow abre no **Construtor**, desligado.
+
+### Adicionar o gatilho
+
+Clique no bloco tracejado **Choose what starts this workflow** e depois em **On Create Incident**, em **Popular**, no painel **Add Trigger**.
+
+O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-create-1`, é como os blocos seguintes se referem a ele.
+
+### Escolher os campos do incidente
+
+Clique no gatilho. Em **Select Fields**, marque os campos que a requisição deve levar, como o título e a descrição, e clique em **Salvar**.
+
+O gatilho repassa o novo incidente com esses campos. Um campo que você não seleciona chega vazio.
+
+### Adicionar o bloco de API
+
+Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Popular**. Arraste do ponto **Success** do gatilho até o ponto superior do novo bloco.
+
+### Preencher a requisição
+
+Clique no bloco de API, que mostra **Click to set up**. Coloque o seu endpoint em **URL**. Em **Request Body**, escreva o JSON a enviar, usando **{ }** para inserir os campos do incidente onde precisar, e clique em **Salvar**.
+
+```json title="Request Body"
+{
+  "id": "{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+}
+```
+
+Cada referência `{{…}}` é substituída pelo valor do incidente quando o workflow roda. Veja [Variáveis](/docs/workflows/variables) para a sintaxe.
+
+### Capturar as falhas
+
+Clique em **Adicionar componente** e depois em **Registro**. Ligue a ele o ponto **Error** do bloco de API e defina o **Value** do bloco Log como `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+
+Uma requisição que falha — uma URL inacessível ou uma resposta que não é 2xx — agora segue esse caminho, e o log da execução diz por quê.
+
+### Ligar
+
+Ative **Habilitado** no topo do **Construtor**.
+
+### Testar
+
+Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente deste projeto, clique em **Run Workflow Manually** e confirme com **Run**.
+
+Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **API Post (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
+:::
+
+A partir de agora, cada novo incidente do projeto inicia uma execução. Você encontra todas nas [Execuções](/docs/workflows/runs-and-logs) do workflow.
+
+> [!NOTE]
+> A requisição sai do OneUptime. No OneUptime Cloud, a URL precisa ser acessível pela internet. Uma instalação self-hosted recusa endereços de rede privada, a menos que um administrador os permita — veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
 
 ## Como os workflows se encaixam no resto do OneUptime
 
-- **Monitores** detectam o problema. **Incidentes** registram. **Fluxos de trabalho** reagem.
-- **Runbooks** são guias passo a passo para pessoas. Workflows são automação sem supervisão. Use um runbook quando alguém precisa tomar decisões; use um workflow quando os passos são automáticos.
-- **Conexões do espaço de trabalho** (Slack, Teams) são para onde os workflows mandam suas mensagens.
+- Os **monitores** detectam o problema. Os **incidentes** e os **alertas** o registram. Os **workflows** reagem a ele.
+- Os **runbooks** são procedimentos de resposta que a sua equipe segue em um incidente, um alerta ou uma manutenção: passos manuais, aprovações e scripts, com pessoas envolvidas. Os workflows rodam sem supervisão. Use um [runbook](/docs/runbooks/index) quando uma pessoa precisa tomar decisões pelo caminho, e um workflow quando todos os passos são automáticos.
+- As **conexões de workspace** ligam um projeto ao Slack e ao Microsoft Teams para canais de incidente e notificações. Os blocos de Slack e Microsoft Teams dos workflows não as usam: cada bloco publica por uma URL de webhook de entrada própria.
 
-## Onde ler em seguida
+## Próximos passos
 
-- [Criar um workflow](/docs/workflows/authoring) — construindo no canvas.
-- [Gatilhos de workflow](/docs/workflows/triggers) — as diferentes formas de um workflow começar.
-- [Componentes de workflow](/docs/workflows/components) — os blocos de construção que você pode adicionar.
-- [Variáveis de workflow](/docs/workflows/variables) — usando valores entre blocos e workflows.
-- [Execuções de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
-- [Configuração e segurança de workflow](/docs/workflows/configuration) — configurações que vale a pena conhecer.
+:::cards
+- [Criar um workflow](/docs/workflows/authoring): Trabalhe com o canvas, os blocos e as configurações deles.
+- [Variáveis](/docs/workflows/variables): Passe dados entre blocos e mantenha os segredos fora dos seus workflows.
+- [Configuração e segurança](/docs/workflows/configuration): Permissões, limites e segurança antes de ir para produção.
+:::

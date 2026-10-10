@@ -169,12 +169,30 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     });
     expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
+    // Slack's mrkdwn, as SlackUtil.slackify writes it (bold between zero-width spaces).
     expect(threadReplySpy).toHaveBeenCalledWith({
       authToken: "xoxb-" + projectId.toString(),
       channelId: CHANNEL_ID,
       threadTs: MESSAGE_TS,
-      text: "✅ Message saved as *private note* to <https://oneuptime.test/incidents/42|Incident #42>.",
+      text: "✅ Message saved as \u200B*private note*\u200B to <https://oneuptime.test/incidents/42|Incident #42>.",
     });
+  });
+
+  test("a label with Markdown or a mention in it is text in the confirmation's one link", async () => {
+    jest.spyOn(WorkspaceReactionNote, "getResourceDisplay").mockResolvedValue({
+      label: "Incident INC*<!channel>*-42 [docs](https://example.com)",
+      link: URL.fromString("https://oneuptime.test/incidents/42"),
+    });
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    const text: string = threadReplySpy.mock.calls[0]![0].text;
+    // One link, to the record: the label's own brackets make none.
+    expect(text.split("<https://").length - 1).toBe(1);
+    expect(text).toContain("<https://oneuptime.test/incidents/42|");
+    expect(text).not.toContain("<https://example.com");
+    // No mention of everyone in the channel.
+    expect(text).not.toContain("<!channel>");
   });
 
   test("a megaphone saves a public note", async () => {

@@ -84,32 +84,53 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     return { updateBy, carryForward: null };
   }
 
-  @CaptureSpan()
-  public async getCompletedScheduledMaintenanceState(data: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<ScheduledMaintenanceState> {
-    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-      await this.getAllScheduledMaintenanceStates({
-        projectId: data.projectId,
-        props: data.props,
-      });
-
-    const resolvedScheduledMaintenanceState:
-      | ScheduledMaintenanceState
-      | undefined = scheduledMaintenanceStates.find(
-      (scheduledMaintenanceState: ScheduledMaintenanceState) => {
-        return scheduledMaintenanceState?.isResolvedState;
-      },
+  /*
+   * Where Mark as Complete moves an event, among its project's states as
+   * getAllScheduledMaintenanceStates reads them (top first): the first
+   * state flagged completed. Null when the list has none.
+   */
+  public getCompletedStateAmong(
+    states: Array<ScheduledMaintenanceState>,
+  ): ScheduledMaintenanceState | null {
+    return (
+      states.find((state: ScheduledMaintenanceState): boolean => {
+        return Boolean(state?.isResolvedState);
+      }) || null
     );
+  }
 
-    if (!resolvedScheduledMaintenanceState) {
-      throw new BadDataException(
-        "Completed ScheduledMaintenance State not found for this project",
-      );
+  /*
+   * Whether an event in `stateId` is complete, among its project's states:
+   * in the completed state or one placed after it. The one rule, read by
+   * ScheduledMaintenanceService.isScheduledMaintenanceCompleted off an event
+   * it reads itself, and by the chats' Mark as Complete and Mark as Ongoing
+   * off the event they read already (WorkspaceMemberActions.getStanding).
+   * False for a state that is none of the project's, and in a project with
+   * no completed state.
+   */
+  public isCompleteAmong(data: {
+    states: Array<ScheduledMaintenanceState>;
+    stateId: ObjectID | undefined;
+  }): boolean {
+    const completedState: ScheduledMaintenanceState | null =
+      this.getCompletedStateAmong(data.states);
+
+    const currentState: ScheduledMaintenanceState | undefined = data.stateId
+      ? data.states.find((state: ScheduledMaintenanceState): boolean => {
+          return state.id?.toString() === data.stateId!.toString();
+        })
+      : undefined;
+
+    if (
+      completedState?.order === undefined ||
+      completedState.order === null ||
+      currentState?.order === undefined ||
+      currentState.order === null
+    ) {
+      return false;
     }
 
-    return resolvedScheduledMaintenanceState;
+    return currentState.order >= completedState.order;
   }
 
   @CaptureSpan()
@@ -141,34 +162,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
       });
 
     return scheduledMaintenanceStates;
-  }
-
-  /*
-   * The project's ongoing state: the one the start at an event's time and
-   * Mark as Ongoing move it into (ScheduledMaintenanceStartUtil
-   * .getOngoingState). Not what tells whether an event is in progress -
-   * getInProgressScheduledMaintenanceStateIds does.
-   */
-  @CaptureSpan()
-  public async getOngoingScheduledMaintenanceState(data: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<ScheduledMaintenanceState> {
-    const ongoingScheduledMaintenanceState: ScheduledMaintenanceState | null =
-      ScheduledMaintenanceStartUtil.getOngoingState({
-        states: await this.getAllScheduledMaintenanceStates({
-          projectId: data.projectId,
-          props: data.props,
-        }),
-      });
-
-    if (!ongoingScheduledMaintenanceState) {
-      throw new BadDataException(
-        "Ongoing ScheduledMaintenance State not found for this project",
-      );
-    }
-
-    return ongoingScheduledMaintenanceState;
   }
 
   /*

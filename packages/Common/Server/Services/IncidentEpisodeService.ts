@@ -1493,25 +1493,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether the episode is resolved: its state is at or below its project's
-   * resolved incident state, or flagged resolved - the one rule
-   * (Common/Utils/ResolvedState).
-   */
-  @CaptureSpan()
-  public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
-    const episode: Model = await this.getEpisodeWithState(episodeId);
-
-    if (!episode.currentIncidentStateId) {
-      return false;
-    }
-
-    return await IncidentStateService.isResolvedIncidentState({
-      projectId: episode.projectId!,
-      incidentStateId: episode.currentIncidentStateId,
-    });
-  }
-
-  /*
    * Whether the episode is acknowledged or further along - resolved
    * included: what stops its on-call escalation and takes Acknowledge away
    * (Common/Utils/AcknowledgedState).

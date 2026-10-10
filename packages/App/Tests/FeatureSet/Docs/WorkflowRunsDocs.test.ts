@@ -51,10 +51,11 @@ const PAGES_THAT_NAME_THE_RUNS: Array<string> = [
 ];
 
 /*
- * The Persian pages name the Dashboard's labels in English (**Overview →
- * Edit Workflow → Enabled**), so their menu path is the English one.
+ * Only the English pages name the Dashboard's labels in English. The Persian
+ * workflow pages name them as the Persian Dashboard draws them
+ * (**لاگ‌ها → اجراها**), like every other language.
  */
-const ENGLISH_UI_LABELS: Set<string> = new Set(["en", "fa"]);
+const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
 
 /*
  * What each language called the old menu entry: the Dashboard's
@@ -288,15 +289,21 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   const words: MenuWords = menuWords(language);
   const path_: string = `→ ${words.logs} → ${words.runs}**`;
 
-  test("the runs page keeps its URL and is titled with the menu entry's name", () => {
+  /*
+   * Titled as its nav link, Workflow Runs, as every docs page is: a bare
+   * "Runs" said nothing about whose runs among the docs' other runs (a
+   * runbook's, a probe's). The link's title never says logs (below).
+   */
+  test("the runs page keeps its URL and is titled as its nav link", () => {
     expect(pageExists(language, RUNS_PAGE)).toBe(true);
 
     const title: string = readPage(language, RUNS_PAGE).split("\n")[0] || "";
-    const dashboardRuns: string = String(
-      readJson(path.join(DASHBOARD_LOCALES_DIR, `${language}.json`))["Runs"],
-    );
+    const navLinks: Record<string, string> = readJson(
+      path.join(DOCS_LOCALES_DIR, `${language}.json`),
+    )["navLinks"] as Record<string, string>;
 
-    expect(title).toBe(`# ${dashboardRuns}`);
+    expect(title).toBe(`# ${navLinks["Workflow Runs"]}`);
+    expect(LOGS_WORD[language]!.test(title)).toBe(false);
   });
 
   test("the runs page sends readers to Logs → Runs in both menus", () => {

@@ -102,8 +102,8 @@ describe("one rule decides whether an incident, alert or episode is resolved", (
     /*
      * Ask Common/Utils/ResolvedState (in the dashboard and on status pages),
      * the state services (isResolvedIncidentState, getUnresolvedIncidentStateIds
-     * and the alert twins) or the record services (isIncidentResolved,
-     * isAlertResolved, isEpisodeResolved) instead.
+     * and the alert twins), the record services (isIncidentResolved,
+     * isAlertResolved) or WorkspaceMemberActions.getStanding instead.
      */
     expect(unexpected).toEqual([]);
   });

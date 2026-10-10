@@ -183,7 +183,10 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import WorkspaceMemberActions from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventRecord,
+} from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
@@ -759,6 +762,24 @@ function stubSenderCheck(forProjectId: ObjectID): void {
   jest
     .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
     .mockResolvedValue(undefined);
+
+  // A button's check, which hands on the record as the member read it.
+  jest
+    .spyOn(WorkspaceMemberActions, "authorize")
+    .mockImplementation(
+      async (data: {
+        event: WorkspaceEvent;
+      }): Promise<WorkspaceEventRecord> => {
+        return {
+          type: data.event.type,
+          id: data.event.id,
+          projectId: forProjectId,
+          currentStateId: undefined,
+          number: null,
+          numberWithPrefix: null,
+        };
+      },
+    );
 }
 
 /*
@@ -774,6 +795,7 @@ function useRealMembershipCheck(permissions: Array<Permission> | null): void {
     .mockRestore();
   jest.spyOn(WorkspaceActionAuthorization, "assertCanCreate").mockRestore();
   jest.spyOn(WorkspaceActionAuthorization, "assertCanCreate");
+  jest.spyOn(WorkspaceMemberActions, "authorize").mockRestore();
 
   const memberships: Array<TeamMember> = [];
   if (permissions) {

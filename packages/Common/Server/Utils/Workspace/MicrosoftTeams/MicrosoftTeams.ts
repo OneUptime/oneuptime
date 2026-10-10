@@ -3573,11 +3573,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static getUnexpectedErrorMessage(activity: JSONObject): string {
     const reference: string = (activity["id"] as string | undefined) || "";
 
-    return `Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.${
+    return mdText`Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.${
       reference
-        ? ` If it keeps happening, ask your OneUptime administrator to look for reference ${reference} in the server logs.`
+        ? mdText` If it keeps happening, ask your OneUptime administrator to look for reference ${reference} in the server logs.`
         : ""
-    }`;
+    }`.toString();
   }
 
   /*
@@ -3962,7 +3962,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     } catch (error) {
       // A linked Teams account whose user has since left the project.
       if (error instanceof NotAuthorizedException) {
-        await turnContext.sendActivity(error.message);
+        await turnContext.sendActivity(mdText`${error.message}`.toString());
         return;
       }
 
@@ -4859,9 +4859,10 @@ All monitoring checks are passing normally.`;
         logger.debug("Bot invoke activity refused: " + error.message, {
           actionType: actionType,
         });
+        // Placed as text: a refusal can name a label, a record or a person.
         await MicrosoftTeamsReplies.sendBestEffort(
           data.turnContext,
-          error.message,
+          mdText`${error.message}`.toString(),
         );
         return;
       }
@@ -4881,7 +4882,7 @@ All monitoring checks are passing normally.`;
       await MicrosoftTeamsReplies.sendBestEffort(
         data.turnContext,
         reason
-          ? `Sorry, that action failed: ${reason}`
+          ? mdText`Sorry, that action failed: ${reason}`.toString()
           : "Sorry, that action failed. Please try again later.",
       );
     }

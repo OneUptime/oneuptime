@@ -1,98 +1,166 @@
-# Configurazione e sicurezza
+# Configurazione e sicurezza del workflow
 
-Questa pagina raccoglie le impostazioni e i limiti di sicurezza che vale la pena conoscere prima di puntare un workflow su traffico reale.
+Cosa sapere prima di mettere un workflow davanti al traffico reale: come attivarlo in sicurezza, chi può fare cosa, come segreti e URL restano privati, cosa possono modificare i passaggi di un workflow e i limiti entro cui lavora ogni esecuzione.
+
+:::cards
+- [Andare in produzione](#accendere-o-spegnere-un-workflow): Prova con Esegui flusso di lavoro, poi lascia il workflow attivo.
+- [Autorizzazioni](#autorizzazioni): I ruoli dei workflow e i singoli permessi che li compongono.
+- [Cosa possono fare i passaggi](#cosa-possono-fare-i-passaggi-di-un-workflow): I passaggi agiscono come Project Admin del progetto del workflow.
+- [Limiti](#limiti-di-piano): Esecuzioni per piano, durata di un'esecuzione e chiamate tra workflow.
+:::
 
 ## Accendere o spegnere un workflow
 
-Ogni workflow ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il workflow non viene eseguito — chiamate al webhook, orari pianificati ed eventi di OneUptime vengono tutti ignorati, e così **Esegui flusso di lavoro** e **Run just this step**. I workflow nuovi partono disabilitati.
+Ogni workflow ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il workflow non viene eseguito: chiamate webhook, email in arrivo, orari pianificati ed eventi di OneUptime vengono tutti ignorati, così come **Esegui flusso di lavoro** e **Run just this step**. I nuovi workflow partono disabilitati.
 
-Usa quell'interruttore come tuo cancello del "pronto a partire":
+Usa questo interruttore come via libera per la produzione:
 
+:::steps
 1. Costruisci il workflow.
-2. Clicca **Esegui flusso di lavoro** nel **Costruttore** con valori realistici. Un workflow disabilitato non si esegue nemmeno a mano, quindi il Costruttore chiede prima di attivarlo: clicca **Attiva ed esegui**.
-3. Controlla i **Registri** — assicurati che ogni blocco sia andato dove ti aspettavi.
-4. Lascia **Abilitato** acceso se è pronto. Se non lo è, spegnilo finché non lo sarà: mentre è acceso, il suo trigger scatta con eventi reali.
+2. Fai clic su **Esegui flusso di lavoro** nel **Costruttore** con valori realistici. Un workflow disabilitato non può essere eseguito nemmeno a mano, quindi il Costruttore chiede prima di attivarlo: fai clic su **Attiva ed esegui**.
+3. Apri l'esecuzione e verifica che ogni blocco sia andato dove ti aspettavi. Vedi [Esecuzioni](/docs/workflows/runs-and-logs).
+4. Lascia **Abilitato** acceso se è pronto. Se non lo è, spegnilo finché non lo sarà: mentre è acceso, il suo trigger scatta sugli eventi reali.
+:::
 
-Spegnere un workflow non ferma le esecuzioni già in corso; impedisce soltanto che ne partano di nuove.
+Spegnere un workflow impedisce che partano nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione in attesa su un blocco **Sleep** viene annullata al risveglio.
+
+## Archiviare un workflow
+
+Archivia un workflow che non ti serve più ma che vuoi conservare. Un workflow archiviato:
+
+- **Non viene mai eseguito**, da nessun trigger. Le esecuzioni manuali e **Run just this step**, le chiamate webhook, le pianificazioni, gli eventi di OneUptime, le email in arrivo e i passaggi **Execute Workflow** di altri workflow vengono tutti rifiutati. Una chiamata webhook a un workflow archiviato riceve un errore che dice che il workflow è archiviato.
+- **Ferma le esecuzioni in attesa.** Un'esecuzione in pausa in un passaggio **Sleep** viene annullata al risveglio, e un'esecuzione in coda non ancora avviata termina con "Workflow was archived before this run started, so it did not run."
+- **Esce dall'elenco dei workflow.** Lo trovi in **Flussi di lavoro → Avanzato → Archiviato**.
+- **Conserva tutto.** I suoi passaggi, variabili, proprietari, etichette e la cronologia delle esecuzioni restano com'erano.
+
+Per archiviare un workflow, aprilo, vai in **Impostazioni** e fai clic su **Archivia**. Per archiviarne diversi, selezionali nell'elenco **Flussi di lavoro** e scegli **Archivia**.
+
+Per recuperare un workflow, apri **Flussi di lavoro → Avanzato → Archiviato**, selezionalo e scegli **Annulla archiviazione**, oppure aprilo e fai clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
+
+L'archiviazione e l'interruttore **Abilitato** sono indipendenti. Archiviare non tocca l'interruttore, quindi un workflow che era acceso torna a essere eseguito appena viene ripristinato, e uno che era spento resta spento. La pagina **Archiviato** mostra qual è quale nella colonna **When Unarchived**.
+
+Un workflow esportato non porta mai con sé lo stato di archiviazione, quindi una copia importata non è mai archiviata.
 
 ## Proprietari ed etichette
 
-- **Proprietari** — gli utenti e i team elencati come proprietari ottengono l'accesso al workflow e possono scegliere di ricevere una notifica quando fallisce. Li imposti in **Impostazioni → Proprietari**.
-- **Etichette** — tag per raggruppare i workflow. L'elenco dei workflow si può filtrare per etichetta, il che rende molto più navigabile un progetto affollato. Utili quando organizzi i workflow per team, integrazione o ambiente.
-- **Regole etichette** — sotto **Flussi di lavoro → Impostazioni → Regole etichette**, applicano automaticamente le etichette ai nuovi workflow in base a schemi nel nome o nella descrizione.
-- **Regole del proprietario** — sotto **Flussi di lavoro → Impostazioni → Regole del proprietario**, assegnano automaticamente i proprietari ai nuovi workflow.
+| Cosa                          | Dove                                                          | Cosa fa                                                                                                                                              |
+| ----------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Proprietari**               | La pagina **Proprietari** del workflow                        | Gli utenti e i team responsabili del workflow. Un ruolo limitato a ciò che possiede il proprio team raggiunge i workflow di quel team.               |
+| **Etichette**                 | La pagina **Panoramica** del workflow                         | Etichette per raggruppare i workflow, per team, integrazione o ambiente. Filtra l'elenco **Flussi di lavoro** per etichetta, e limita un ruolo ad alcune etichette. |
+| **Regole etichette**          | **Flussi di lavoro → Impostazioni → Regole etichette**        | Etichetta automaticamente i nuovi workflow in base a schemi nel nome o nella descrizione.                                                           |
+| **Regole del proprietario**   | **Flussi di lavoro → Impostazioni → Regole del proprietario** | Assegna automaticamente i proprietari ai nuovi workflow.                                                                                             |
+
+Vedi [Regole di etichette e proprietari](/docs/configuration/label-and-owner-rules) per come corrispondono le regole.
 
 ## Segreti
 
-Contrassegna una variabile globale come **secret** se contiene qualcosa di sensibile. Dopo il salvataggio il valore è nascosto alle normali letture dall'API e dall'interfaccia, e il logging del workflow lo rimuove prima che il registro dell'esecuzione venga salvato.
+Contrassegna una variabile come **segreta** se contiene qualcosa di sensibile: il suo valore viene allora eliminato dai registri delle esecuzioni e dalle tracce dei passaggi. Il valore di nessuna variabile può essere riletto una volta salvato, segreta o no, né nella dashboard né tramite l'API, e una variabile diventata segreta resta segreta.
 
-Usa variabili segrete per:
+Usa le variabili segrete per:
 
-- Le chiavi API dei servizi esterni.
-- I token di autenticazione.
-- Le chiavi di firma dei webhook.
-- Qualsiasi cosa non vorresti far vedere a chi ha solo accesso in lettura.
+- Chiavi API di servizi esterni.
+- Token di autenticazione.
+- Chiavi di firma dei webhook.
+- Qualsiasi cosa che non vorresti far vedere a chi ha solo accesso in lettura.
 
-Non incollare un segreto direttamente dentro un blocco — valori come `Authorization: Bearer eyJh...` finiscono in chiaro nel workflow e nei registri. Usa invece `{{global.variables.MY_SECRET}}`.
+Non incollare un segreto direttamente in un blocco: valori come `Authorization: Bearer eyJh...` finiscono visibili nel workflow e nei registri. Usa invece `{{global.variables.MY_SECRET}}`.
+
+Se il segreto è un token di accesso OAuth che scade, trasforma la variabile in una [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli). OneUptime recupera allora il token dal tuo provider di identità e lo rinnova ogni volta che un workflow sta per usarne uno scaduto. Le variabili OAuth 2.0 sono sempre segrete, e le loro credenziali sono cifrate nel database.
 
 ## Esportare e importare i workflow
 
-Puoi spostare un workflow da un progetto a un altro, o tra un'installazione self-hosted e OneUptime Cloud, sotto forma di file JSON.
+Puoi spostare un workflow tra progetti, o tra un'installazione self-hosted e OneUptime Cloud, come file JSON.
 
-- **Esportazione** — apri il workflow e usa **Export Workflow** in **Impostazioni**. Dall'elenco dei workflow puoi anche selezionarne diversi ed esportarli in un unico file.
-- **Importazione** — nell'elenco **Flussi di lavoro**, clicca **Import JSON** e scegli un file esportato da un qualsiasi progetto OneUptime.
+:::tabs
+@tab Esportare
+Apri il workflow, vai in **Impostazioni** e fai clic su **Esporta: Flusso di lavoro**. Per mettere più workflow in un unico file, selezionali nell'elenco **Flussi di lavoro** e scegli **Esporta: JSON**.
+@tab Importare
+Nell'elenco **Flussi di lavoro**, fai clic su **Import JSON** e scegli un file esportato da qualsiasi progetto OneUptime. Un workflow il cui nome è già presente nel progetto viene importato con "(Imported)" dopo il nome.
+:::
 
-Il file contiene nome, descrizione, stato di abilitazione e grafo del workflow. Volutamente non contiene:
+Il file contiene il nome del workflow, la descrizione, lo stato di attivazione e il grafo. Volutamente non contiene:
 
-- **La chiave segreta del webhook.** Alla creazione del workflow ne viene generata una nuova, quindi un workflow importato ha un URL webhook diverso. Tutto ciò che chiamava l'originale va ripuntato.
-- **Le variabili globali.** Un blocco che legge `{{global.variables.MY_SECRET}}` conserva quel riferimento, ma il valore non è nel file. Crea le variabili nel progetto di destinazione prima di eseguire il workflow importato.
-- **Proprietari ed etichette.** Le regole di etichetta e di proprietario del progetto di destinazione vengono applicate al workflow importato, esattamente come se lo avessi creato a mano.
+- **La chiave segreta del webhook.** Quando il workflow viene creato se ne genera una nuova, quindi un workflow importato ha un URL di webhook diverso: copialo dal trigger Webhook del nuovo workflow. Tutto ciò che chiamava l'originale va reindirizzato.
+- **L'indirizzo email in arrivo.** Un workflow importato con un trigger Incoming Email riceve un indirizzo tutto suo: copialo dal trigger del nuovo workflow. A tutto ciò che scriveva all'originale va dato il nuovo indirizzo.
+- **Le variabili globali.** Un blocco che legge `{{global.variables.MY_SECRET}}` mantiene quel riferimento, ma il valore non è nel file. Crea le variabili nel progetto di destinazione prima di eseguire il workflow importato.
+- **I proprietari e le etichette.** Le regole di etichette e proprietari del tuo progetto si applicano al workflow importato, come se lo avessi creato a mano.
 
-Un workflow importato viene sempre creato **disabilitato**, anche se era abilitato là da dove è stato esportato — il suo grafo può puntare a monitor, criteri di reperibilità o altri workflow che nel progetto di destinazione non esistono. Rivedilo, abilitalo, provalo con **Esegui flusso di lavoro** e solo allora lascialo acceso. Duplicare un workflow si comporta allo stesso modo, così una copia non inizia a scattare accanto all'originale prima che tu l'abbia modificata.
+Un workflow importato viene sempre creato **disabilitato**, anche se era abilitato dove è stato esportato: il suo grafo può puntare a monitor, policy di reperibilità o altri workflow che non esistono nel progetto di destinazione. Rivedilo, attivalo, provalo con **Esegui flusso di lavoro** e poi lascialo acceso. Duplicare un workflow funziona allo stesso modo, così una copia non inizia mai a scattare accanto all'originale prima che tu l'abbia modificata.
 
-Siccome il grafo viaggia tale e quale, viaggia con lui anche tutto ciò che è stato digitato direttamente dentro un blocco. È questa la ragione pratica per tenere le credenziali in variabili segrete: esportare un workflow con un token scritto a mano significa consegnare quel token a chiunque riceva il file.
-
-## Quanto può durare un'esecuzione
-
-Ogni tentativo di esecuzione ha una scadenza in tempo reale. Il runner la controlla prima e dopo ogni componente e, appena riprende il controllo, marca come **Timeout** l'esecuzione fuori tempo massimo. Anche i componenti che fanno lavoro di rete o eseguono script devono avere i propri timeout, perché il runner non può interrompere forzatamente il codice arbitrario di un componente.
-
-Il componente AI ricava il timeout della richiesta al provider dal tempo rimasto al workflow e lo limita comunque a 60 secondi, lasciando un piccolo margine per il logging e la pulizia.
-
-## Limite alle chiamate tra workflow
-
-Il componente **Execute Workflow** permette a un workflow di chiamarne un altro. Per evitare cicli accidentali in cui il workflow A chiama B che richiama A, c'è un tetto alla profondità della catena. Un'esecuzione che supera il limite termina con un errore esplicito.
-
-Se hai davvero bisogno di una catena lunga (come un lavoro che elabora un elemento per esecuzione), di solito è più semplice ciclare dentro un singolo workflow usando **Custom Code**.
+Poiché il grafo viaggia così com'è, tutto ciò che è scritto direttamente in un blocco viaggia con esso. È il motivo pratico per tenere le credenziali in variabili segrete: esportare un workflow con un token scritto a mano consegna quel token a chiunque riceva il file.
 
 ## Sicurezza dei webhook
 
-I trigger webhook ti danno un URL univoco. Chiunque conosca quell'URL può chiamarlo. Per proteggerti da chiamanti accidentali o indesiderati:
+I trigger webhook ti danno un URL univoco. Chiunque conosca l'URL può chiamarlo. Per proteggerti da chiamate accidentali o indesiderate:
 
-- Tratta l'URL come una password. Non condividerlo pubblicamente e non committarlo in un repository pubblico.
-- Per i workflow sensibili, chiedi al sistema chiamante di inviare un token condiviso come header (per esempio `X-Webhook-Token`) e verificalo con un blocco **Conditions** prima di fare qualsiasi cosa importante. Salva il token atteso come variabile segreta.
-- Per i workflow molto sensibili, preferisci un trigger su evento di OneUptime e un passaggio di importazione manuale, invece di un webhook pubblico.
+- Tratta l'URL come una password. Non condividerlo pubblicamente e non inserirlo in un repository pubblico. Il trigger Webhook nasconde la chiave segreta dell'URL finché non fai clic su **Mostra**, e **Copia URL** copia l'URL senza mostrarlo.
+- Se l'URL trapela, fai clic sul trigger Webhook nel **Costruttore** e poi su **Reimposta URL**. Il workflow riceve un nuovo URL e quello vecchio smette subito di funzionare.
+- Se il trigger dice che il suo URL termina con l'ID del workflow, reimpostalo. I workflow creati prima che gli URL di webhook avessero una propria chiave segreta usano invece l'ID del workflow, che chiunque possa aprire il workflow può vedere.
+- Per i workflow sensibili, chiedi al sistema chiamante di inviare un token condiviso in un header (come `X-Webhook-Token`) e verificalo con un blocco **If / Else** prima di fare qualcosa di importante. Salva il token atteso come variabile segreta.
+- Per i workflow molto sensibili, preferisci un trigger di evento OneUptime e un passaggio di importazione manuale a un webhook pubblico.
+
+Solo le persone che possono modificare il workflow — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — possono vedere o reimpostare il suo URL di webhook. Chiunque abbia l'URL può avviare il workflow da qualsiasi luogo, senza accedere, quindi tutti gli altri vedono una nota che dice a chi chiederlo. Questo include un **Workflow Member**, che esegue il workflow a mano dal **Costruttore**.
+
+## Sicurezza delle email in arrivo
+
+Il trigger Incoming Email dà al workflow un indirizzo tutto suo, e chiunque conosca l'indirizzo può scrivergli. La parte prima della `@` è la chiave segreta del workflow, quindi tratta l'indirizzo come una password:
+
+- Non pubblicarlo e non inserirlo in un repository pubblico. Il trigger nasconde la chiave finché non fai clic su **Mostra**, e **Copia indirizzo** copia l'indirizzo senza mostrarlo.
+- Se l'indirizzo trapela, fai clic sul trigger Incoming Email nel **Costruttore** e poi su **Reimposta indirizzo**. Il workflow riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
+- Chiunque può mettere qualsiasi mittente su un'email, quindi **From** non prova chi l'ha inviata. Prima che un workflow faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **If / Else**. Salva il token atteso come variabile segreta.
+- La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **To**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del workflow.
+
+Solo le persone che possono modificare il workflow — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
 
 ## Accesso alla rete in uscita
 
-I blocchi API e gli altri blocchi HTTP effettuano le loro richieste da OneUptime. Se sei in self-hosted, assicurati che la tua installazione riesca a raggiungere i servizi che stai chiamando. Se usi OneUptime Cloud, i nostri intervalli di IP in uscita sono elencati in [Indirizzi IP](/docs/configuration/ip-addresses), così puoi autorizzarli dall'altra parte.
+I blocchi API e gli altri blocchi HTTP fanno le loro richieste da OneUptime, e il blocco IRC si collega da OneUptime alla porta del server IRC. Se usi il self-hosting, assicurati che la tua installazione possa raggiungere i servizi che chiami. Se usi OneUptime Cloud, i nostri intervalli di IP in uscita sono elencati in [Indirizzi IP](/docs/configuration/ip-addresses), così puoi consentirli dall'altra parte.
+
+Gli indirizzi che un blocco può raggiungere dipendono dal blocco:
+
+| Blocchi                                                    | Loopback, link-local, metadati cloud                                          | Indirizzi di rete privata                                                                                                                 |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| I blocchi **API** e le richieste di **Run Custom JavaScript** | Rifiutati, a meno che l'host esatto non sia indicato in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rifiutati, a meno che un amministratore self-hosted non li consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Send Email**, **IRC** e gli URL dei token OAuth 2.0      | Rifiutati                                                                     | Rifiutati su OneUptime Cloud. Consentiti su un'installazione self-hosted, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia `true` |
+| Slack, Microsoft Teams, Discord e Telegram                 | Rifiutati                                                                     | Rifiutati: ognuno invia solo agli indirizzi del proprio servizio                                                                          |
+
+Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access) per come un amministratore self-hosted li apre.
 
 ## Componenti AI
 
-**Generate Text with AI** invia una sola richiesta attraverso il gateway LLM configurato in OneUptime. Usa il provider LLM predefinito del progetto, oppure il provider globale dell'installazione quando il progetto non ne ha uno. Configura i provider in **Impostazioni del progetto → IA → Provider LLM**; non mettere mai una chiave API di un provider o l'endpoint arbitrario di un modello dentro il workflow stesso.
+**Generate Text with AI** invia una richiesta a un LLM: il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. Configura i provider in **Impostazioni del progetto → IA → Provider LLM**, e non mettere mai la chiave API di un provider o un tuo endpoint in un workflow.
 
-Il componente AI ha un confine di uscita dei dati esplicito:
+Cosa riceve il provider, e cosa può farne il modello:
 
-- OneUptime invia al provider configurato un'istruzione fissa di sicurezza del componente, più i valori risolti di **System Instructions**, **Prompt** e **Context** serializzato. Il contesto viene accodato dopo un marcatore esplicito alla fine del messaggio utente; l'istruzione fissa dice che tutto ciò che segue quel marcatore resta dato non attendibile, anche quando contiene tag o istruzioni.
-- Non allega automaticamente il payload del trigger, la cronologia del workflow, gli output di altri componenti, i record del progetto, la telemetria o i segreti. I dati escono solo quando li richiami tu in uno di quei tre input.
-- Non invia definizioni di strumenti né campi di capacità nativi del provider. Attraverso questo componente il modello non può interrogare OneUptime, fare richieste HTTP o modificare i dati del progetto. Il provider e il modello configurati restano un confine di fiducia gestito dall'amministratore, quindi le installazioni che richiedono una generazione rigorosamente offline dovrebbero scegliere un modello privo di recupero dati intrinseco gestito dal provider.
-- I parametri aggiuntivi a livello di provider sono limitati a un elenco di campi consentiti che regolano solo la generazione. Non possono sostituire i messaggi del workflow, aggiungere strumenti o ricerche web e sorgenti dati native del provider, abilitare modalità diverse dal testo, richiedere più risposte alternative, abilitare lo streaming, far conservare la richiesta tramite flag di archiviazione del provider, né alzare il tetto di token in uscita di questo componente. I campi di capacità futuri e sconosciuti vengono scartati per impostazione predefinita.
-- System Instructions, Prompt, Context e i valori della Response generata vengono oscurati nelle voci di argomenti e valori di ritorno di questo componente AI nel registro automatico di esecuzione del workflow. Restano invece disponibili ai componenti successivi mentre l'esecuzione è in corso. Se ne inserisci uno in un altro componente, vale la politica di logging di quel componente, che potrebbe registrare il valore risolto: considera il riutilizzo una divulgazione esplicita. Nomi di provider e modello, conteggi dei token, LLM Log ID e messaggi di errore sicuri restano visibili per esigenze operative e di fatturazione. I corpi grezzi degli errori del provider sono esclusi dai registri dei workflow, dai registri LLM, dai registri applicativi e dalle tracce, perché un provider può restituire il contenuto della richiesta.
+- **Solo ciò che metti nel blocco.** OneUptime invia un'istruzione di sicurezza fissa, poi le **System Instructions**, il **Prompt** e il **Context** del blocco, con i riferimenti compilati. **Context** viene per ultimo, dopo un marcatore, e l'istruzione di sicurezza dice al modello che tutto ciò che segue il marcatore sono dati non attendibili, anche un testo che sembra un'istruzione.
+- **Nient'altro.** I dati del trigger, la cronologia del workflow, gli output degli altri blocchi, i record del progetto, la telemetria e i segreti non vengono mai allegati. Lasciano OneUptime solo quando vi fai riferimento in una di quelle tre impostazioni.
+- **Testo, e nessuno strumento.** Il modello non può interrogare OneUptime, fare richieste HTTP o modificare dati. I parametri aggiuntivi di un provider lasciano passare solo un elenco consentito di campi di regolazione della generazione: non possono sostituire i messaggi, aggiungere strumenti, ricerca web o altre fonti di dati, chiedere altro che testo o più risposte, attivare lo streaming, far conservare la richiesta al provider o alzare il limite di output del blocco. I campi che OneUptime non conosce vengono scartati.
+- **Il modello lo sceglie il tuo amministratore.** Se la generazione deve restare offline, scegli un modello che non recuperi nulla da solo dal lato del provider.
 
-Tratta ogni variabile richiamata come un dato che stai deliberatamente inviando al provider. In particolare, non inserire una variabile globale segreta nel prompt o nel contesto a meno che quella divulgazione sia necessaria e il provider sia autorizzato a riceverla. Un provider locale self-hosted come Ollama può tenere la richiesta dentro la tua infrastruttura; un provider ospitato riceve la richiesta secondo i termini di trattamento dei dati di quel provider.
+Cosa viene registrato:
 
-Ogni chiamata viene registrata in **Impostazioni del progetto → IA → Registri IA**, con provider, modello, stato, token, costo e informazioni di fatturazione. Le anteprime di prompt e risposta e i dettagli grezzi degli errori del provider non vengono conservati nel registro IA. Le chiamate che passano da un provider globale a pagamento consumano il credito IA del progetto. L'IA nei workflow rientra anche nel budget giornaliero di token per l'IA autonoma del progetto; quando il budget si esaurisce, il componente prende il percorso **Error** senza contattare il modello. L'IA del progetto deve essere abilitata. Su OneUptime Cloud l'abbonamento deve essere in regola ed è richiesto il piano Growth (o un piano che ne includa le funzionalità); le installazioni self-hosted con la fatturazione disattivata non hanno questo vincolo di piano.
+- Il registro dell'esecuzione nasconde le **System Instructions**, il **Prompt**, il **Context** e la **Response** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
+- Il provider, il modello, il numero di token, il **LLM Log ID** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
+- Ogni chiamata compare in **Impostazioni del progetto → IA → Registri IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
 
-Alcuni limiti integrati mantengono finite le chiamate non presidiate: System Instructions, Prompt e Context serializzato hanno un tetto complessivo di 50.000 caratteri; Temperature deve stare tra `0` e `1`; Maximum Output Tokens deve stare tra `1` e `4096` (predefinito `1024`); e la richiesta al provider viene tentata una sola volta e scade dopo al massimo 60 secondi. Per ogni progetto non vengono eseguite più di tre chiamate IA di workflow in parallelo; le chiamate in eccesso prendono il percorso **Error** e possono essere ritentate da un'esecuzione successiva. Errori di convalida, configurazione, accesso, budget, credito, concorrenza, provider e timeout prendono tutti il percorso **Error** e popolano l'output **Error**. Collega quel percorso prima di abilitare un workflow in produzione.
+Di cosa ha bisogno il blocco, e quanto costa:
+
+- **Abilita IA** deve essere acceso, in **Impostazioni del progetto → IA → AI Features**. Su OneUptime Cloud il progetto ha bisogno anche del piano Growth o superiore e di un abbonamento pagato. Le installazioni self-hosted senza fatturazione non hanno vincoli di piano.
+- Le chiamate tramite un provider globale a pagamento usano i crediti IA del progetto.
+- Ogni chiamata conta nei [limiti giornalieri di IA del progetto](/docs/ai/ai-sre#the-projects-own-daily-limits), quando un proprietario del progetto li imposta. Una volta raggiunto un limite, il blocco prende **Error** senza contattare il modello, fino alla mezzanotte UTC.
+
+| Limite                                                       | Valore                                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** e **Context** insieme    | 50.000 caratteri                                                          |
+| **Temperature**                                              | Da `0` a `1`                                                              |
+| **Maximum Output Tokens**                                    | Da `1` a `4096`, `1024` per impostazione predefinita                      |
+| Una richiesta                                                | Un solo tentativo, al massimo 60 secondi                                  |
+| Chiamate contemporanee                                       | 3 per progetto. Le altre prendono **Error**, e un'esecuzione successiva può riprovare. |
+
+Gli errori di convalida, configurazione, accesso, limite, crediti, concorrenza, provider e timeout prendono tutti il percorso **Error**, con il motivo in **Error**. Collega quel percorso prima che il workflow vada in produzione.
+
+> [!WARNING]
+> Ogni valore a cui fai riferimento è un dato che invii al provider. Non mettere una variabile segreta nel prompt o nel contesto, a meno che il provider non sia approvato per riceverla. Un provider locale self-hosted come Ollama tiene le richieste all'interno della tua infrastruttura; un provider ospitato le riceve secondo le proprie condizioni di trattamento dei dati.
 
 ## Autorizzazioni
 
@@ -102,45 +170,79 @@ I workflow rispettano il controllo degli accessi basato sui ruoli del tuo proget
 - **Workflow Member** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
 - **Workflow Viewer** — legge i workflow e le loro esecuzioni.
 
-**Project Owner** e **Project Admin** possono fare tutto ciò che fa un Workflow Admin. **Project Member** può creare ed eliminare workflow, ma non modificarli né eseguirli.
+**Project Owner** e **Project Admin** possono fare tutto ciò che può fare un Workflow Admin. **Project Member** può creare ed eliminare workflow, ma non modificarli né eseguirli.
 
-Le singole autorizzazioni, per un team o una chiave API che ha bisogno esattamente di una cosa:
+I singoli permessi, per un team o una chiave API che ha bisogno di una sola cosa:
 
-- **Create / Read / Edit / Delete Workflow** — le autorizzazioni di base sul workflow stesso. Modificare un workflow, anche attivarlo, disattivarlo o archiviarlo, richiede **Edit Workflow**; **Delete Workflow** serve solo a eliminare.
-- **Edit Workflow** — è anche ciò che serve per eseguire da solo un passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in entrata di un workflow. Eseguire a mano un intero workflow richiede **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
-- **Read Workflow Log** — serve per vedere le esecuzioni.
-- **Read / Create / Edit / Delete Workflow Variable** — il controllo sull'elenco delle variabili globali.
+- **Create / Read / Edit / Delete Workflow** — i permessi di base sul workflow stesso. Modificare un workflow, compreso accenderlo, spegnerlo o archiviarlo, richiede **Edit Workflow**; **Delete Workflow** serve solo a eliminare.
+- **Edit Workflow** — è anche ciò che serve per eseguire un singolo passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in arrivo di un workflow. Eseguire un intero workflow a mano richiede **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
+- **Read Workflow Log** — necessario per vedere le esecuzioni.
+- **Create / Read / Edit / Delete Workflow Variables** — gestire le variabili globali e del workflow.
 
-Un'esecuzione a mano raggiunge solo i workflow che puoi aprire: un ruolo limitato ad alcune etichette, o ai workflow di cui il tuo team è proprietario, esegue solo quelli. Chi non può eseguire un workflow vede **Esegui flusso di lavoro** disattivato, con il motivo nel suggerimento.
+Un'esecuzione a mano raggiunge solo i workflow che puoi aprire: un ruolo limitato ad alcune etichette, o ai workflow posseduti dal tuo team, esegue solo quelli. Chi non può eseguire un workflow vede **Esegui flusso di lavoro** disattivato, con il motivo nel tooltip.
 
-Dai **Workflow Admin** a chi costruisce l'automazione e **Workflow Member** a chi si limita ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
+Assegna **Workflow Admin** alle persone che costruiscono l'automazione, e **Workflow Member** a quelle che si limitano ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index) per come vengono assegnati i ruoli.
 
 ## Cosa possono fare i passaggi di un workflow
 
-I passaggi che leggono e modificano record di OneUptime (i componenti Find, Create, Update e Delete e i trigger On Create, On Update e On Delete) agiscono come **Project Admin** del progetto del workflow. Superano gli stessi controlli di un Project Admin nella dashboard e nell'API:
+I passaggi che leggono e modificano i record di OneUptime — i componenti Find, Create, Update e Delete, e i trigger On Create, On Update e On Delete — agiscono come **Project Admin** del progetto del workflow. Chiunque abbia costruito il workflow, un passaggio supera gli stessi controlli che supera un Project Admin nella dashboard e nell'API:
 
-- **Solo il progetto del workflow.** Un passaggio non legge né modifica mai i record di un altro progetto, e un Update non sposta mai un record in un altro progetto.
-- **Solo ciò che può fare un Project Admin.** Un passaggio non può concedere autorizzazioni che un Project Admin non ha (come **Project Owner** o la fatturazione), né aggiungere qualcuno a un team con più autorizzazioni, come il team dei proprietari.
-- **Solo ciò che il vostro piano include.** Su OneUptime Cloud, ciò che il vostro piano non include viene rifiutato indicando il piano necessario.
-- **Niente di ciò che OneUptime gestisce da sé.** Le voci del feed non si possono modificare né eliminare, i registri delle notifiche non si possono scrivere, e i valori che OneUptime imposta da sé (come un CNAME verificato, gli interruttori di protezione di un team o chi è di turno adesso) non si possono cambiare. Anche un passaggio **Create One Incident** non può dichiarare un incidente da un modello (`createdIncidentTemplateId`): leggi il modello con **Find One Incident Template** e passane i valori.
-- **Come nessuna persona.** Un record creato da un workflow non ha autore, e il registro di audit indica il workflow come autore della modifica.
+- **Solo il progetto del workflow.** Un passaggio legge e scrive i record del progetto a cui appartiene il workflow e di nessun altro, e un Update non sposta mai un record in un altro progetto.
+- **Solo ciò che può fare un Project Admin.** Un passaggio può concedere solo i permessi di team e di chiave API che un Project Admin possiede, quindi non può assegnare **Project Owner**, permessi di fatturazione o di eliminazione del progetto, e non può aggiungere qualcuno a un team i cui permessi vanno oltre quelli di un Project Admin, come il team dei proprietari. Un passaggio non può leggere chi ha creato una sonda o un agente IA, cosa che vedono solo i proprietari del progetto.
+- **Non la lettura delle credenziali dei runbook.** Un Project Admin può leggere le credenziali dei runbook, ma questo non viene prestato a un passaggio. Quando una modifica richiede quella lettura — lasciare che OneUptime AI esegua i suoi comandi senza chiedere, attivare **Esegue i comandi di rimedio AI** per un Runner, assegnare una credenziale SSH a un Runner che esegue i comandi di OneUptime AI o indicare una credenziale di runbook, ad esempio nei passaggi di un runbook —, si verifica invece la persona che ha salvato per ultima i passaggi del workflow, e il passaggio viene rifiutato a meno che quella persona non possa leggere le credenziali dei runbook (**Read Runbook Credential**, oppure un Project Owner o un Project Admin). OneUptime registra quella persona quando qualcuno crea il workflow e ogni volta che qualcuno ne salva i passaggi; rinominare il workflow, cambiarne le etichette o accenderlo e spegnerlo mantiene chi ne ha salvato i passaggi per ultimo. Un salvataggio dei passaggi con una chiave API non registra nessuno, quindi i passaggi del workflow non possono fare queste modifiche finché una persona non li salva.
+- **Solo ciò che il tuo piano include.** Su OneUptime Cloud, un passaggio che crea o modifica qualcosa che il tuo piano non include viene rifiutato indicando il piano necessario, proprio come nella dashboard. Le installazioni self-hosted senza fatturazione non hanno limiti di piano.
+- **Niente di ciò che OneUptime tiene per sé.** Questo viene rifiutato a tutti, workflow compresi:
+  - modificare o eliminare una voce del feed (i feed di incidenti, avvisi, episodi, monitor, policy di reperibilità e manutenzioni pianificate);
+  - scrivere un registro delle notifiche (i registri di SMS, chiamate, email, WhatsApp, Telegram, notifiche push, webhook e messaggi dell'area di lavoro);
+  - i valori che OneUptime imposta man mano che le cose accadono: se il CNAME di un dominio personalizzato è verificato, gli interruttori di protezione di un team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quale ruolo di incidente è quello principale e se può essere eliminato, se un proprietario o un membro è stato avvisato, gli orari e il numero dei promemoria, chi è reperibile ora e dopo in un calendario, l'avanzamento di un'esecuzione di reperibilità, il tasso di consumo e l'error budget attuali di uno SLO, un monitor messo in pausa da un incidente o da una manutenzione, il token di reimpostazione della password e l'ultimo accesso di un utente privato di una pagina di stato, i dati che un servizio riporta su sé stesso (versione, runtime, cloud) e l'ultima esecuzione di una regola di rilevamento o di un feed di minacce;
+  - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Create One Incident** — scegli invece il modello nell'impostazione **Incident Template** del passaggio: il passaggio dichiara allora l'incidente da esso, come Project Admin, e registra il modello;
+  - cambiare il record a cui appartiene un record dopo la sua creazione, come il monitor a cui si riferisce una riga di proprietario o l'incidente su cui si trova una nota.
+- **Come nessuno.** Un record creato da un workflow non indica alcun creatore, e il registro di audit nomina il workflow, con il nome che aveva in quel momento, come autore della modifica.
 
-Un passaggio rifiutato prende la sua uscita **Error** senza apportare la modifica rifiutata, e il registro dell'esecuzione dice quale passaggio è stato rifiutato e perché. Un passaggio Create Many crea i suoi record uno alla volta e si ferma a quello rifiutato; quelli creati prima restano. I passaggi che comunicano con altri sistemi (API, e-mail, chat, Custom Code, IA) non sono interessati.
+Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Error** senza fare la modifica rifiutata, e il registro dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del workflow. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
+
+I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code e Generate Text with AI — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
 
 ## Limiti di piano
 
-OneUptime Cloud limita il numero di esecuzioni al mese sui piani più piccoli. Il tuo limite attuale è indicato in **Impostazioni del progetto → Fatturazione**. Quando lo raggiungi, i nuovi trigger vengono rifiutati fino al ciclo di fatturazione successivo. Le installazioni self-hosted non hanno questo limite.
+Su OneUptime Cloud i workflow richiedono il piano Growth o superiore, e ogni piano consente un certo numero di esecuzioni in qualsiasi periodo di 30 giorni:
+
+| Piano      | Esecuzioni negli ultimi 30 giorni |
+| ---------- | --------------------------------- |
+| Growth     | 500                               |
+| Scale      | 2.000                             |
+| Enterprise | Nessun limite pratico             |
+
+La finestra scorre: ogni esecuzione registrata dal progetto, a mano o da un trigger, conta per 30 giorni. Sui piani Growth e Scale, la pagina **Flussi di lavoro** mostra una scheda **Esecuzioni del flusso di lavoro** con quante ne ha usate il progetto. Una volta raggiunto il limite, le nuove esecuzioni vengono registrate con lo stato **Execution Exceeded Current Plan** e non vengono eseguite, e lo stesso accade finché l'abbonamento non è pagato. Le installazioni self-hosted senza fatturazione non hanno limiti.
+
+## Quanto può durare un'esecuzione
+
+| Limite                                                       | Predefinito        | Impostazione self-hosted        |
+| ------------------------------------------------------------ | ------------------ | ------------------------------- |
+| Un'esecuzione, dal suo avvio o dal risveglio dopo uno **Sleep** | 2 minuti        | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Un blocco **Run Custom JavaScript**                          | 5 secondi          | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Un blocco **Sleep**                                          | Al massimo 30 giorni | —                             |
+
+L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzione in ritardo come **Timeout** non appena riprende il controllo. Non può interrompere un blocco a metà, quindi i blocchi che attendono la rete hanno limiti di tempo propri: una richiesta di Generate Text with AI si arrende dopo al massimo 60 secondi, e una richiesta di token OAuth 2.0 dopo 20. Un'attesa su un blocco **Sleep** non conta nel tempo di un'esecuzione: l'esecuzione viene messa da parte e riceve 2 nuovi minuti al risveglio.
+
+## Limite alle chiamate tra workflow
+
+Il componente **Execute Workflow** permette a un workflow di avviarne un altro. Per evitare cicli in cui il workflow A avvia B, che avvia di nuovo A, una catena di workflow che si avviano a vicenda viene rifiutata quando tornerebbe a un workflow che ne fa già parte, o supererebbe i 10 workflow di profondità. Il blocco **Execute Workflow** prende allora la sua uscita **Error**, e l'errore mostra la catena.
+
+Se ti serve davvero una catena lunga (come un job che elabora un elemento per esecuzione), di solito è più semplice ciclare all'interno di un solo workflow con **Run Custom JavaScript**.
 
 ## Quando i workflow non sono lo strumento giusto
 
-Qualche caso in cui conviene ricorrere ad altro:
+Alcuni casi in cui conviene usare altro:
 
-- **Calcoli pesanti o grandi volumi di dati** — i workflow sono pensati per lavoro di collegamento leggero, non per macinare numeri. Esegui il lavoro pesante nella tua infrastruttura e lascia che sia un workflow ad avviarlo.
-- **Elaborazioni attive di lunga durata** — un singolo tentativo di esecuzione dovrebbe concludersi in fretta. Per un'attesa passiva del tipo "fai A, aspetta due ore, fai B", usa il componente **Sleep**: mette da parte l'esecuzione e la riprende più tardi senza occupare un worker.
-- **Risposta agli incidenti passo passo con le persone coinvolte** — è esattamente a questo che servono i [Runbook](/docs/runbooks/index). I workflow servono per l'automazione non presidiata.
+- **Calcoli pesanti o grandi volumi di dati** — i workflow sono pensati per un lavoro di collegamento leggero, non per macinare numeri. Esegui il lavoro pesante nella tua infrastruttura e lascia che un workflow lo avvii.
+- **Calcoli attivi di lunga durata** — un'esecuzione ha 2 minuti per impostazione predefinita. Per un'attesa passiva come «fai A, aspetta due ore, fai B», usa il componente **Sleep**; mette da parte l'esecuzione e la riprende più tardi senza occupare un worker.
+- **Risposta agli incidenti passo per passo con persone coinvolte** — a questo servono i [Runbook](/docs/runbooks/index). I workflow servono all'automazione senza supervisione.
 
-## Cosa leggere dopo
+## Prossimi passi
 
-- [Panoramica dei workflow](/docs/workflows/index) — il quadro d'insieme.
-- [Componenti del workflow](/docs/workflows/components) — il riferimento blocco per blocco.
-- [Panoramica dei Runbook](/docs/runbooks/index) — quando usare un runbook al posto di un workflow.
+:::cards
+- [Panoramica dei workflow](/docs/workflows/index): Il quadro d'insieme e un primo workflow dall'inizio alla fine.
+- [Componenti](/docs/workflows/components): Di cosa ha bisogno ogni blocco, cosa restituisce e cosa può raggiungere.
+- [Runbook](/docs/runbooks/index): Quando le persone devono prendere le decisioni lungo il percorso.
+:::

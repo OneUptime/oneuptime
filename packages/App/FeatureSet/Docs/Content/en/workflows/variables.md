@@ -1,30 +1,59 @@
-# Variables
+# Workflow Variables
 
-Workflows are about moving data — from the trigger to the first block, from one block to the next, and from shared values into anywhere you need them. Variables are how that data moves.
+Variables are how data moves through a workflow: from the trigger to the first block, from one block to the next, and from values you save once into every block that needs them. A block's setting reads a value with a reference in double braces, and the runner fills it in just before the block runs.
 
-There are two variable scopes, plus component outputs produced during a run.
+| Value                    | Where it comes from                                   | How a block reads it                                  |
+| ------------------------ | ----------------------------------------------------- | ----------------------------------------------------- |
+| **Global variable**      | Saved under **Workflows → Global Variables**          | `{{global.variables.NAME}}`                          |
+| **Workflow variable**    | Saved on one workflow's **Workflow Variables** page   | `{{local.variables.NAME}}`                           |
+| **An earlier block's value** | What the trigger or an earlier block returned in this run | `{{local.components.BLOCK_ID.returnValues.VALUE_ID}}` |
+
+```mermaid title="Where a block's values come from"
+flowchart TB
+    subgraph saved["Saved once"]
+        direction LR
+        global["Global variables"]
+        local["Workflow variables"]
+    end
+    trigger["Trigger"] -->|"returns"| earlier["Earlier blocks"]
+    saved --> settings["The block's settings"]
+    earlier -->|"returns"| settings
+    settings --> block["The block runs with the values filled in"]
+```
+
+You rarely type a reference. Click **{ }** at the end of a setting, or type `{{` in it, and pick the value from a list. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
 
 ## Global variables
 
-Project-wide values you save once and reuse anywhere. Think API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
+Project-wide values you save once and reuse in every workflow: API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
 
-Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable in two steps. The **Variable** step asks:
+:::steps
+### Open Global Variables
+
+Go to **Workflows → Global Variables** and click **Create Workflow Variable**.
+
+### Name the variable
+
+On the **Variable** step, fill in:
 
 - **Name** — how you'll reference it. At least two characters, no spaces, and only letters, numbers, hyphens and underscores. `UPPER_SNAKE_CASE` is a good habit because it stands out in your blocks.
 - **Description** — optional, free text to remind you what it's for.
 
-Click **Next** for the **Value** step:
+Click **Next**.
 
-- **Content** — the actual value. It's a long-text field, so multi-line values work.
+### Give it a value
+
+On the **Value** step, fill in:
+
+- **Content** — the value itself. It's a long-text field, so multi-line values work.
 - **Secret** — when on, the value is scrubbed out of run logs and step traces.
 
-To change the name or description before you save, click **Variable** in the list of steps beside the form (shown on wider screens). What you typed in either step is kept.
-
-To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
+Click **Create Workflow Variable**. To change the name or description before you do, click **Variable** in the list of steps beside the form (shown on wider screens); what you typed in either step is kept.
+:::
 
 Use a global variable in any workflow with:
 
-```
+```text
 {{global.variables.NAME}}
 ```
 
@@ -32,20 +61,26 @@ For example, if you saved your PagerDuty key as `PAGERDUTY_KEY`, any block can u
 
 The list shows each variable's name and description. Click **View** on a row to open the variable's page. It shows whether the variable is static or OAuth 2.0, and it's where you do everything else:
 
-- **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
-- **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
-- **Use in Workflows** shows the exact reference to paste into your blocks, with a copy button.
-- **Delete Workflow Variable** deletes it, after asking you to confirm. The confirmation names the variable, so you can check it is the one you mean.
+| Button                       | What it does                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Edit Variable**            | Changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret. |
+| **Update Content**           | Replaces a static value. The saved content can't be read back, so you type the new value in full.                                               |
+| **Use in Workflows**         | Shows the exact reference to paste into your blocks, with a copy button.                                                                         |
+| **Delete Workflow Variable** | Deletes it, after asking you to confirm. The confirmation names the variable, so you can check it is the one you mean.                          |
 
-You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
+To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
+
+You can also update a variable over the API, which is covered [at the end of this page](#updating-a-variable-from-a-workflow). Global and workflow variables are a Growth plan feature.
 
 ## Local workflow variables
 
-Variables scoped to one workflow, managed under **Workflow Variables** in that workflow's left menu. They work the same way as global variables: **Create Workflow Variable** creates a static variable, the **More** menu (**⋯**) creates an OAuth 2.0 variable, and **View** opens a variable's own page. Reference them with:
+Variables scoped to one workflow, managed under **Workflow Variables** in that workflow's menu. They work the same way as global variables: **Create Workflow Variable** creates a static variable, the **More** menu (**⋯**) creates an OAuth 2.0 variable, and **View** opens a variable's own page. Reference them with:
 
-```
+```text
 {{local.variables.NAME}}
 ```
+
+Use one for a value only that workflow needs, such as a template's Slack webhook URL. Templates that ask for settings save them as workflow variables, so you can change them later without editing the blocks.
 
 ## OAuth 2.0 variables (tokens that refresh themselves)
 
@@ -53,11 +88,25 @@ A bearer token pasted into a static variable works until it expires, usually wit
 
 You use it exactly like any other variable:
 
-```
+```http
 Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 ```
 
 ### How the token stays fresh
+
+```mermaid title="Before a step that uses the variable"
+sequenceDiagram
+    participant Runner as Workflow runner
+    participant Variable as OAuth 2.0 variable
+    participant IdP as Identity provider
+    Runner->>Variable: Read the cached token
+    alt Expired, or expires within a minute
+        Runner->>IdP: Token request
+        IdP-->>Runner: New access token
+        Runner->>Variable: Keep the new token
+    end
+    Runner->>Runner: Run the step with a token that has not expired
+```
 
 - The first time a workflow uses the variable, OneUptime asks your identity provider's token endpoint for an access token and keeps it.
 - Before every step that refers to the variable, the runner checks the token. If it has expired, or expires within the next minute, a new one is fetched before the step runs. The component always receives a token that hasn't expired, however long the variable sat unused and however long the run has been going.
@@ -67,8 +116,10 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ### Grant types
 
-- **Client Credentials**: OneUptime signs in as your application. This is the usual choice for server-to-server APIs such as Microsoft Graph, Auth0 or Okta APIs, or an internal service behind Keycloak.
-- **Refresh Token**: for delegated access on behalf of a user. Authorise the application once (for example in your provider's OAuth playground or with Postman) and paste the refresh token you get. OneUptime exchanges it for access tokens. If your provider rotates refresh tokens, OneUptime saves each new one. A public client with no client secret works too.
+| Grant type             | Use it for                                                                                                                                                                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Client Credentials** | OneUptime signs in as your application. The usual choice for server-to-server APIs such as Microsoft Graph, Auth0 or Okta APIs, or an internal service behind Keycloak.                                                                            |
+| **Refresh Token**      | Delegated access on behalf of a user. Authorise the application once (for example in your provider's OAuth playground or with Postman) and paste the refresh token you get. OneUptime exchanges it for access tokens, and saves each new refresh token if your provider rotates them. A public client with no client secret works too. |
 
 ### Creating one
 
@@ -93,7 +144,7 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 Under some fields the form adds a line of help for the provider you picked, for example where Microsoft Entra ID shows your tenant ID, and that its client secret is the secret's **Value**, not its **Secret ID**.
 
-When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
+When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. Fetching a token writes to the variable, so this needs permission to edit workflow variables; if you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.
 
 The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced** (scope, additional parameters, client authentication) steps. **Next** walks on and **Save Changes** is on the last step. Every step is filled in already, so the step list beside the form opens any of them: change one setting on its step, then open the last step and save. The grant type is fixed once saved.
 
@@ -101,11 +152,13 @@ The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** ca
 
 The **Access Token** card on an OAuth 2.0 variable's page shows one of:
 
-- **Valid**: the cached token hasn't expired yet.
-- **Expired**: normal for a variable no workflow has used lately. The next run that uses it fetches a new token.
-- **Not fetched yet**: no token has been fetched since the variable was created or its settings changed.
-- **No expiry reported**: the provider didn't say when the token expires, so each run fetches a new one.
-- **Refresh failed**: the last attempt to get a token failed. The provider's reason is shown in full, with when it happened. The next successful refresh clears it.
+| Status                 | What it means                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Valid**              | The cached token hasn't expired yet.                                                                                                 |
+| **Expired**            | Normal for a variable no workflow has used lately. The next run that uses it fetches a new token.                                    |
+| **Not fetched yet**    | No token has been fetched since the variable was created or its settings changed.                                                    |
+| **No expiry reported** | The provider didn't say when the token expires, so each run fetches a new one.                                                       |
+| **Refresh failed**     | The last attempt to get a token failed. The provider's reason is shown in full, with when it happened. The next successful refresh clears it. |
 
 **Refresh now**, under the status, fetches a new token straight away. Use it to check new settings without running a workflow. **Update Credentials**, on the **OAuth 2.0 Settings** card, replaces the client secret or the refresh token, then fetches a token with them. Changing any setting (token URL, client ID, scope and so on) discards the cached token, so the next run fetches one with the new settings.
 
@@ -127,25 +180,25 @@ A variable's type is fixed once it's saved. Delete the static variable and creat
 
 ## Component outputs (data from earlier blocks)
 
-Every trigger and component can produce output during an execution. Insert a reference with the **{ }** button in any setting, or by typing `{{` there, rather than typing it out — it inserts the exact ids the runner expects, and shows the value as a chip naming the block and the value. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
+Every trigger and component can produce output during a run. Insert a reference with the **{ }** button in any setting, or by typing `{{` there, rather than typing it out — it inserts the exact IDs the runner expects, and shows the value as a chip naming the block and the value.
 
 You can also start from the block that produces the value: its settings list each output under **Returns**, with the exact reference and a button to copy it.
 
 Reference an earlier block's output like this:
 
-```
+```text
 {{local.components.COMPONENT_ID.returnValues.FIELD_ID}}
 ```
 
-`COMPONENT_ID` is the block's **Identifier** — the short id shown on the block, not the name displayed on it. New blocks get one like `api-get-1`, and you can rename it in the block's **ID** section. Renaming it breaks every reference already pointing at it, the same way renaming a variable does. `FIELD_ID` is the selected return-value id.
+`COMPONENT_ID` is the block's **Identifier** — the short ID shown on the block, not the name displayed on it. New blocks get one like `api-get-1`, and you can rename it in the block's **ID** section. Renaming it breaks every reference already pointing at it, the same way renaming a variable does. `FIELD_ID` is the ID of the value, and a path after it reads one field of a JSON value.
 
-Examples:
+| After a block like…                                 | Read                                                                                   |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| An **API** block whose ID is `lookup-user`          | Its status code: `{{local.components.lookup-user.returnValues.response-status}}`. Its body: `{{local.components.lookup-user.returnValues.response-body}}`. |
+| A **Run Custom JavaScript** block whose ID is `transform` | What it returned: `{{local.components.transform.returnValues.returnValue}}`.       |
+| An **On Create Incident** trigger whose ID is `incident-on-create-1` | The incident's title: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Record triggers return one value, `model`, and you drill into it. |
 
-- After an **API** component whose ID is `lookup-user` runs, its status code is `{{local.components.lookup-user.returnValues.response-status}}` and its body is `{{local.components.lookup-user.returnValues.response-body}}`.
-- After a **Run Custom JavaScript** component whose ID is `transform`, its returned value is `{{local.components.transform.returnValues.returnValue}}`.
-- Triggers for a record type — **On Create Incident** and friends — return exactly one value, `model`, and you drill into it. For a trigger whose ID is `incident-on-create-1`, the incident's title is `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-
-Local variables only exist during the current run. Each new run starts fresh.
+Block values only exist during the current run. Each new run starts fresh.
 
 ## Where variables work
 
@@ -168,7 +221,15 @@ The **Run Custom JavaScript** block doesn't get variables automatically — noth
 
 ## Looping over arrays
 
-Inside a text field you can iterate an array with `{{#each path}}…{{/each}}`. Within the block, `{{property}}` reads from the current element, `{{@index}}` is the 0-based position, and `{{this}}` is the element itself for arrays of plain values. Names inside an `{{#each}}` block are trimmed, so stray spaces are harmless there — unlike everywhere else.
+Inside a text field you can repeat a piece of text for every item of a list with `{{#each path}}…{{/each}}`. Within the block, `{{property}}` reads from the current item, `{{@index}}` is its 0-based position, and `{{this}}` is the item itself for lists of plain values. Names inside an `{{#each}}` block are trimmed, so stray spaces are harmless there — unlike everywhere else.
+
+For example, this **Message Text** lists every alert a webhook sent:
+
+```text title="Message Text"
+{{#each local.components.ci-webhook.returnValues.request-body.alerts}}
+- {{@index}}: {{name}} is {{status}}
+{{/each}}
+```
 
 ## Examples
 
@@ -176,7 +237,7 @@ Inside a text field you can iterate an array with `{{#each path}}…{{/each}}`. 
 
 A webhook arrives with a body like `{ "service": "checkout", "status": "failed" }`. To turn that into a OneUptime incident:
 
-1. **Webhook** trigger with the id `ci-webhook`.
+1. **Webhook** trigger with the ID `ci-webhook`.
 2. **If / Else** block: **Value to check** is the `status` field of the webhook's Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** is **is equal to**, and **Compare with** is `failed`.
 3. From the **Yes** branch, a **Create One Incident** block with:
    - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
@@ -206,9 +267,9 @@ A common pattern is rotating a credential on a schedule: fetch a fresh token fro
 
 If the credential is an OAuth 2.0 access token, you don't need to build this yourself. An [OAuth 2.0 variable](#oauth-20-variables-tokens-that-refresh-themselves) fetches and refreshes the token on its own.
 
-`PUT /api/workflow-variable/<variable-id>` with an `ApiKey` header, and — this is the part that trips people up — the fields you want to change **wrapped in a `data` object**:
+Send `PUT /api/workflow-variable/<variable-id>` with an `ApiKey` header, and — this is the part that trips people up — the fields you want to change **wrapped in a `data` object**:
 
-```json
+```json title="Request Body"
 {
   "data": {
     "content": "{{local.components.get-token.returnValues.response-body.access_token}}"
@@ -222,19 +283,21 @@ The API key needs **Edit Workflow Variables**. No read permission is required �
 
 Two things to watch:
 
-- **Don't rename a variable you reference.** `name` is part of `{{local.variables.NAME}}`. Changing it leaves every existing reference unresolved, and an unresolved reference is passed through as literal text — see the gotcha below.
+- **Don't rename a variable you reference.** `name` is part of `{{local.variables.NAME}}`. Changing it leaves every existing reference unresolved, and an unresolved reference is passed through as literal text — see [Gotchas](#gotchas).
 - **A variable can be written this way but never read back.** `content` is write-only over the API for every variable, secret or not. That's what makes a variable a safe place to park a rotating token. Marking it secret additionally keeps the value out of run logs and step traces.
 
 ## Gotchas
 
-- **Use { } (or type `{{`).** It inserts the exact component, return-value and variable ids the runner expects, and only offers values that exist when the block runs.
+- **Use { } (or type `{{`).** It inserts the exact component, return-value and variable IDs the runner expects, and only offers values that exist when the block runs.
 - **Variable names are case-sensitive.** `{{global.variables.MyKey}}` and `{{global.variables.mykey}}` are different.
-- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run's **Steps** tab shows a warning on the step naming any reference that slipped through, and marks the setting it was in **Did not resolve**; the run log carries the same warning line.
-- **The issues panel can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists. A block's settings can: a reference to a missing variable shows there as an amber chip. Otherwise a renamed variable is caught only by the run log.
+- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step ID ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run's **Steps** tab shows a warning on the step naming any reference that slipped through, and marks the setting it was in **Did not resolve**; the run log carries the same warning line.
+- **The issues panel can't check variable names.** It flags component references it can't match — an unknown step ID, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists. A block's settings can: a reference to a missing variable shows there as an amber chip. Otherwise a renamed variable is caught only by the run log.
 - **Spaces inside the braces are not trimmed.** `{{ local.variables.NAME }}` is a different lookup from `{{local.variables.NAME}}` and never resolves. The one exception is inside an `{{#each}}` block, where names are trimmed.
 
-## Where to read next
+## Next steps
 
-- [Components](/docs/workflows/components) — the full list of outputs each block produces.
-- [Runs](/docs/workflows/runs-and-logs) — see the actual value of every variable after a run.
-- [Configuration & Safety](/docs/workflows/configuration) — what's safe to put in a global variable.
+:::cards
+- [Components](/docs/workflows/components): What every block needs and returns.
+- [Runs](/docs/workflows/runs-and-logs): See the value every reference became on a run.
+- [Configuration & Safety](/docs/workflows/configuration#secrets): Keep secrets out of blocks, exports and logs.
+:::

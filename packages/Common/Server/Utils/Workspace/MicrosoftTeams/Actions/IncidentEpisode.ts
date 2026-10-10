@@ -1,8 +1,4 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsIncidentEpisodeActionType } from "./ActionTypes";
-import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService";
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
@@ -11,6 +7,7 @@ import { TurnContext } from "botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEventRecord,
   WorkspaceEventStateOption,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
@@ -61,38 +58,6 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
   }
 
   @CaptureSpan()
-  public static async handleIncidentEpisodeAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { action } = data;
-
-    logger.debug("Handling Microsoft Teams incident episode action:");
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsIncidentEpisodeActionType.ViewIncidentEpisode:
-          // This is handled by opening the URL directly
-          break;
-
-        default:
-          logger.debug(
-            "Unhandled incident episode action: " + action.actionType,
-          );
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams incident episode action:");
-      logger.error(error);
-    }
-
-    Response.sendTextResponse(data.req, data.res, "");
-  }
-
-  @CaptureSpan()
   public static async handleBotIncidentEpisodeAction(data: {
     actionType: string;
     actionValue: string;
@@ -123,12 +88,13 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
 
       const episodeId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: IncidentEpisodeStateTimeline,
-        action: "acknowledge this incident episode",
-        resources: [{ service: IncidentEpisodeService, id: episodeId }],
-      });
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "acknowledge this incident episode",
+          event: { type: WorkspaceEventType.IncidentEpisode, id: episodeId },
+        });
 
       /*
        * Acknowledged by the member, as the dashboard acknowledges it for
@@ -136,10 +102,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
        * handleBotInvokeActivity tells them.
        */
       await WorkspaceMemberActions.acknowledge({
-        event: {
-          type: WorkspaceEventType.IncidentEpisode,
-          id: episodeId,
-        },
+        event: episode,
         props: databaseProps,
       });
 
@@ -160,19 +123,17 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
 
       const episodeId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: IncidentEpisodeStateTimeline,
-        action: "resolve this incident episode",
-        resources: [{ service: IncidentEpisodeService, id: episodeId }],
-      });
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "resolve this incident episode",
+          event: { type: WorkspaceEventType.IncidentEpisode, id: episodeId },
+        });
 
       // Resolved by the member, as the dashboard resolves it for them.
       await WorkspaceMemberActions.resolve({
-        event: {
-          type: WorkspaceEventType.IncidentEpisode,
-          id: episodeId,
-        },
+        event: episode,
         props: databaseProps,
       });
 
@@ -371,25 +332,21 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         const episodeId: ObjectID = new ObjectID(actionValue);
         const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await WorkspaceActionAuthorization.assertCanCreate({
-          props: databaseProps,
-          modelType: OnCallDutyPolicyExecutionLog,
-          action: "execute an on-call policy for this incident episode",
-          resources: [
-            { service: IncidentEpisodeService, id: episodeId },
-            { service: OnCallDutyPolicyService, id: policyId },
-          ],
-        });
+        const episode: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: OnCallDutyPolicyExecutionLog,
+            action: "execute an on-call policy for this incident episode",
+            event: { type: WorkspaceEventType.IncidentEpisode, id: episodeId },
+            resources: [{ service: OnCallDutyPolicyService, id: policyId }],
+          });
 
         /*
          * Executed by the member, as the dashboard's Execute On-Call Policy
          * executes it for them: an execution log triggered by the episode.
          */
         await WorkspaceMemberActions.executeOnCallPolicy({
-          event: {
-            type: WorkspaceEventType.IncidentEpisode,
-            id: episodeId,
-          },
+          event: episode,
           onCallDutyPolicyId: policyId,
           props: databaseProps,
         });
@@ -483,22 +440,20 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         // Update the state
         const episodeId: ObjectID = new ObjectID(actionValue);
 
-        await WorkspaceActionAuthorization.assertCanCreate({
-          props: databaseProps,
-          modelType: IncidentEpisodeStateTimeline,
-          action: "change the state of this incident episode",
-          resources: [{ service: IncidentEpisodeService, id: episodeId }],
-        });
+        const episode: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: IncidentEpisodeStateTimeline,
+            action: "change the state of this incident episode",
+            event: { type: WorkspaceEventType.IncidentEpisode, id: episodeId },
+          });
 
         /*
          * The state change the dashboard makes: a row in the episode's
          * state timeline, created by the member (WorkspaceMemberActions).
          */
         await WorkspaceMemberActions.changeState({
-          event: {
-            type: WorkspaceEventType.IncidentEpisode,
-            id: episodeId,
-          },
+          event: episode,
           stateId: new ObjectID(incidentStateId.toString()),
           props: databaseProps,
         });
@@ -525,11 +480,12 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       return;
     }
 
-    // Default fallback for unimplemented actions
+    /*
+     * Default fallback for unimplemented actions
+     * The action's name is placed as text: it comes from the card.
+     */
     await turnContext.sendActivity(
-      "Sorry, but the action " +
-        actionType +
-        " you requested is not implemented yet.",
+      mdText`Sorry, but the action ${actionType} you requested is not implemented yet.`.toString(),
     );
   }
 
