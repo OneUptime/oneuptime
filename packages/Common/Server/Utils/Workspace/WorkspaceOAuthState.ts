@@ -13,10 +13,11 @@ import ConnectCallbackUtil, {
 
 /*
  * Every redirect-based flow that ends with OneUptime writing a Slack,
- * Microsoft Teams or GitHub binding. A state minted for one flow is never
- * accepted by another, so a nonce issued for "sign in with Teams" cannot be
- * spent on the admin-consent callback, nor one issued for Slack on the
- * GitHub App installation callback.
+ * Microsoft Teams, GitHub or video call binding. A state minted for one flow
+ * is never accepted by another, so a nonce issued for "sign in with Teams"
+ * cannot be spent on the admin-consent callback, nor one issued for Slack on
+ * the GitHub App installation callback, nor one issued for Zoom on the
+ * Google Meet callback.
  */
 export enum WorkspaceOAuthFlow {
   SlackInstall = "SlackInstall",
@@ -27,6 +28,10 @@ export enum WorkspaceOAuthFlow {
   MicrosoftTeamsAdminConsentSignIn = "MicrosoftTeamsAdminConsentSignIn",
   // Installing the GitHub App, which connects its repositories to a project.
   GitHubAppInstall = "GitHubAppInstall",
+  // The one-click Connect of a video call provider (VideoCallOAuthAPI).
+  VideoCallZoomConnect = "VideoCallZoomConnect",
+  VideoCallGoogleMeetConnect = "VideoCallGoogleMeetConnect",
+  VideoCallMicrosoftTeamsConnect = "VideoCallMicrosoftTeamsConnect",
 }
 
 export interface WorkspaceOAuthStateRecord {
@@ -43,6 +48,12 @@ export interface WorkspaceOAuthStateRecord {
   tenantId?: string | undefined;
   // OpenID Connect nonce the ID token returned by this flow must carry.
   oidcNonce?: string | undefined;
+  /*
+   * Whatever else the start decided for its callback: the video call
+   * connection a sign-in reconnects. Recorded on the server like the rest,
+   * so nothing in the redirect can change it.
+   */
+  payload?: JSONObject | undefined;
 }
 
 export interface CreatedWorkspaceOAuthState {
@@ -120,6 +131,7 @@ export default class WorkspaceOAuthState {
     startPage?: ConnectStartPage | undefined;
     tenantId?: string | undefined;
     includeOidcNonce?: boolean | undefined;
+    payload?: JSONObject | undefined;
   }): Promise<CreatedWorkspaceOAuthState> {
     /*
      * One binding value per browser, reused while it lasts, so two flows
@@ -169,6 +181,10 @@ export default class WorkspaceOAuthState {
 
     if (oidcNonce) {
       record["oidcNonce"] = oidcNonce;
+    }
+
+    if (data.payload) {
+      record["payload"] = data.payload;
     }
 
     await GlobalCache.setString(
@@ -273,6 +289,12 @@ export default class WorkspaceOAuthState {
       startPage: ConnectCallbackUtil.readStartPage(record["startPage"]),
       tenantId: (record["tenantId"] as string | undefined) || undefined,
       oidcNonce: (record["oidcNonce"] as string | undefined) || undefined,
+      payload:
+        record["payload"] &&
+        typeof record["payload"] === "object" &&
+        !Array.isArray(record["payload"])
+          ? (record["payload"] as JSONObject)
+          : undefined,
     };
   }
 

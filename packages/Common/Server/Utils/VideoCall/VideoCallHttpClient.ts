@@ -50,15 +50,15 @@ export const VIDEO_CALL_REQUEST_TIMEOUT_IN_MS: number = 15000;
 const MAX_ERROR_SUMMARY_LENGTH: number = 300;
 
 export default class VideoCallHttpClient {
-  private fetchImplementation: VideoCallFetch;
+  // The runtime's fetch unless a test hands one in, read when a request is sent.
+  private fetchImplementation: VideoCallFetch | undefined;
   private timeoutInMs: number;
 
   public constructor(data?: {
     fetchImplementation?: VideoCallFetch | undefined;
     timeoutInMs?: number | undefined;
   }) {
-    this.fetchImplementation =
-      data?.fetchImplementation || (fetch as unknown as VideoCallFetch);
+    this.fetchImplementation = data?.fetchImplementation;
     this.timeoutInMs =
       typeof data?.timeoutInMs === "number" &&
       Number.isFinite(data.timeoutInMs) &&
@@ -108,13 +108,19 @@ export default class VideoCallHttpClient {
     try {
       return await Promise.race([
         (async (): Promise<VideoCallHttpResponse> => {
-          const response: VideoCallFetchResponse =
-            await this.fetchImplementation(data.url, {
+          const fetchImplementation: VideoCallFetch =
+            this.fetchImplementation ||
+            (globalThis.fetch as unknown as VideoCallFetch);
+
+          const response: VideoCallFetchResponse = await fetchImplementation(
+            data.url,
+            {
               method: data.method,
               headers: data.headers,
               body: data.body,
               signal: controller.signal,
-            });
+            },
+          );
 
           // The deadline covers the body as well as the response headers.
           const bodyText: string = await response.text();

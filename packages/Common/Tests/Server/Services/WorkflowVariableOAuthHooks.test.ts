@@ -534,7 +534,10 @@ describe("WorkflowVariableService and OAuth 2.0 variables", () => {
           oauthScope: true,
         }),
       );
-      expect(findByCalls[0]!["props"]).toEqual({ isRoot: true });
+      expect(findByCalls[0]!["props"]).toEqual({
+        isRoot: true,
+        ignoreHooks: true,
+      });
     });
 
     test("validates and trims a new token URL", async () => {

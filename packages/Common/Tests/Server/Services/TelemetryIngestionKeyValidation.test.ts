@@ -16,6 +16,11 @@ import ObjectID from "../../../Types/ObjectID";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 // Payment eligibility is covered by the billing admission suites.
 jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
@@ -78,9 +83,6 @@ const SECOND_KEY_ID: ObjectID = new ObjectID(
 const PROJECT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-  "44444444-4444-4444-8444-444444444444",
-);
 
 const HOUR_MS: number = 60 * 60 * 1000;
 
@@ -120,6 +122,12 @@ function buildService(): Harness {
 
   const findBy: FindSpy = jest.spyOn(service, "findBy") as unknown as FindSpy;
   findBy.mockResolvedValue([] as never);
+
+  /*
+   * The read of the rows a caller's update may write, which the update path
+   * makes before the hooks: what the read above answers.
+   */
+  stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
   const findOneBy: FindSpy = jest.spyOn(
     service,
@@ -816,12 +824,12 @@ describe("TelemetryIngestionKeyService.onBeforeUpdate - the allowlist cannot be 
   });
 
   /*
-   * The pre-read is a policy check, so it runs as root - it has to see every
-   * row the update will touch, including ones the caller could not read. That
-   * makes tenant scoping load-bearing: without it a broad query would be
-   * checked against another project's Browser keys.
+   * The pre-read is a policy check, so it reads as root - but only the keys
+   * the update writes: those the caller may write, found in the caller's
+   * project (DatabaseService.findRowsAndHoldUpdateToThem). A broad query is
+   * never checked against another project's Browser keys.
    */
-  test("the pre-read is scoped to the caller's tenant when the query does not name a project", async () => {
+  test("the pre-read is of the keys the caller may write, in their project", async () => {
     const { internals, findBy }: Harness = buildService();
 
     await internals.onBeforeUpdate(
@@ -830,34 +838,17 @@ describe("TelemetryIngestionKeyService.onBeforeUpdate - the allowlist cannot be 
       } as DatabaseCommonInteractionProps),
     );
 
-    expect(findBy.mock.calls).toHaveLength(1);
-    const call: {
-      query: Record<string, unknown>;
-      props: { isRoot?: boolean };
-    } = findBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      props: { isRoot?: boolean };
-    };
-    expect((call.query["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
+    const reads: Array<RowsCallerMayWriteRead> = readsOfRowsCallerMayWrite(
+      internals as never,
     );
-    expect(call.props.isRoot).toBe(true);
-  });
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.query["_id"]).toBe(KEY_ID.toString());
+    expect(
+      (reads[0]!.query["projectId"] as unknown as ObjectID).toString(),
+    ).toBe(PROJECT_ID.toString());
 
-  test("a project named by the query itself is not overwritten by the caller's tenant", async () => {
-    const { internals, findBy }: Harness = buildService();
-
-    await internals.onBeforeUpdate(
-      updateByBag({ allowedOrigins: [] }, { projectId: OTHER_PROJECT_ID }, {
-        tenantId: PROJECT_ID,
-      } as DatabaseCommonInteractionProps),
-    );
-
-    const call: { query: Record<string, unknown> } = findBy.mock
-      .calls[0]![0] as { query: Record<string, unknown> };
-    expect((call.query["projectId"] as ObjectID).toString()).toBe(
-      OTHER_PROJECT_ID.toString(),
-    );
+    // None of them here: nothing more is read.
+    expect(findBy.mock.calls).toHaveLength(0);
   });
 });
 

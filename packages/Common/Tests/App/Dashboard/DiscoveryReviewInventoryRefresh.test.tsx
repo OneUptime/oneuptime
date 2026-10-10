@@ -534,8 +534,12 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     expect(hint.tagName).toBe("SPAN");
     // Beside the address, on the address line — not a badge elsewhere.
     expect(hint.parentElement).toHaveTextContent("10.0.0.1 · NetBIOS name");
+    // Says what the name is, and why it beat any reverse-DNS name (#4518).
     expect(hint.getAttribute("title") || "").toContain(
-      "reported this name itself",
+      "Windows computer name this host reported for itself",
+    );
+    expect(hint.getAttribute("title") || "").toContain(
+      "ahead of its reverse-DNS name",
     );
   });
 
@@ -575,11 +579,11 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     expect(device.dnsName).toBeUndefined();
   });
 
-  test("a host DNS names carries no NetBIOS hint, and imports under its DNS name", async () => {
+  test("a host DNS names as well is named by its NetBIOS name, and keeps the DNS name as its DNS Name (issue #4518)", async () => {
     getItemSpy.mockResolvedValue(
       scan([
         {
-          ...netbiosHost("10.0.0.1", "accounts-pc01"),
+          ...netbiosHost("10.0.0.1", "ACCOUNTS-PC01"),
           dnsHostname: "core-gw.corp.example.com",
         },
       ]),
@@ -587,15 +591,23 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     await renderPage();
     await openReview(scan([]));
 
-    expect(screen.getByText("core-gw.corp.example.com")).toBeInTheDocument();
-    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+    expect(screen.getByText("ACCOUNTS-PC01")).toHaveAttribute(
+      "title",
+      "ACCOUNTS-PC01",
+    );
+    // The hint, then the PTR name, after the address on the one line.
+    expect(screen.getByText(/NetBIOS name/).parentElement).toHaveTextContent(
+      "10.0.0.1 · NetBIOS name · core-gw.corp.example.com",
+    );
 
     await importSelected();
 
     const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
 
-    expect(device.name).toBe("core-gw.corp.example.com");
+    expect(device.name).toBe("ACCOUNTS-PC01");
     expect(device.dnsName).toBe("core-gw.corp.example.com");
+    expect(device.discoveredNameSource).toBe("netbios-name");
+    expect(device.discoveredName).toBe("ACCOUNTS-PC01");
   });
 
   test("a NetBIOS answer the rules reject leaves the host on its address, with no hint", async () => {
@@ -615,6 +627,166 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     await importSelected();
 
     expect(createSpy.mock.calls[0]![0].model.name).toBe("10.0.0.1");
+  });
+});
+
+/*
+ * OneUptime issue #4518, rendered: the reporter's kitchen displays in the real
+ * Review dialog. Each is named by its own hostname — WB0024KDS03 by SNMP,
+ * WB0024KDS04 and WB0024KDS05 by the Windows name they report over NetBIOS —
+ * with its DNS name beside the address, and the unnamed one says why. The
+ * import creates exactly those names, keeps the address and the DNS name, and
+ * records where each name came from.
+ */
+describe("Discovery review names the reported displays by their hostnames (issue #4518)", () => {
+  const REPORTED: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.16.42.52", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: true,
+      sysName: "WB0024KDS03",
+      dnsHostname: "wb-0024-kds03.wbhq.com",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds05.wbhq.com",
+      netbiosName: "WB0024KDS05",
+    },
+  ];
+
+  function reportedScan(): NetworkDeviceDiscoveryScan {
+    const value: NetworkDeviceDiscoveryScan = scan(REPORTED);
+    value.useShortDeviceNames = true;
+    value.isNetbiosLookupEnabled = true;
+    return value;
+  }
+
+  test("each row reads as its hostname, with the DNS name beside the address", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+
+    for (const [address, name] of [
+      ["10.16.42.53", "WB0024KDS03"],
+      ["10.16.42.54", "WB0024KDS04"],
+      ["10.16.42.55", "WB0024KDS05"],
+    ] as Array<[string, string]>) {
+      expect(screen.getByText(name)).toHaveAttribute("title", name);
+      expect(checkbox(address)).toHaveAttribute(
+        "aria-label",
+        `Import ${name} (${address})`,
+      );
+    }
+
+    expect(screen.getByText(/^10\.16\.42\.53/)).toHaveTextContent(
+      "10.16.42.53 · wb-0024-kds03.wbhq.com",
+    );
+    expect(screen.getByText(/^10\.16\.42\.54/)).toHaveTextContent(
+      "10.16.42.54 · NetBIOS name · wb-0024-kds04.wbhq.com",
+    );
+    expect(screen.getByText(/^10\.16\.42\.55/)).toHaveTextContent(
+      "10.16.42.55 · NetBIOS name · wb-0024-kds05.wbhq.com",
+    );
+    // The SNMP-named display carries no NetBIOS hint.
+    expect(screen.getAllByText(/NetBIOS name/)).toHaveLength(2);
+    // The unnamed one is still listed by its address, and says so.
+    expect(checkbox("10.16.42.52")).toHaveAttribute(
+      "aria-label",
+      "Import 10.16.42.52 (10.16.42.52)",
+    );
+    expect(screen.getByText("No name found")).toBeInTheDocument();
+  });
+
+  test("the import creates the names the rows show, and records where each came from", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(4);
+
+    const devices: Array<Record<string, unknown>> = createSpy.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        const model: NetworkDevice = (call[0] as { model: NetworkDevice })
+          .model;
+
+        return {
+          name: model.name,
+          hostname: model.hostname,
+          dnsName: model.dnsName,
+          discoveredName: model.discoveredName,
+          discoveredNameSource: model.discoveredNameSource,
+        };
+      },
+    );
+
+    expect(devices).toEqual([
+      {
+        name: "10.16.42.52",
+        hostname: "10.16.42.52",
+        dnsName: undefined,
+        discoveredName: "10.16.42.52",
+        discoveredNameSource: "address",
+      },
+      {
+        name: "WB0024KDS03",
+        hostname: "10.16.42.53",
+        dnsName: "wb-0024-kds03.wbhq.com",
+        discoveredName: "WB0024KDS03",
+        discoveredNameSource: "system-name",
+      },
+      {
+        name: "WB0024KDS04",
+        hostname: "10.16.42.54",
+        dnsName: "wb-0024-kds04.wbhq.com",
+        discoveredName: "WB0024KDS04",
+        discoveredNameSource: "netbios-name",
+      },
+      {
+        name: "WB0024KDS05",
+        hostname: "10.16.42.55",
+        dnsName: "wb-0024-kds05.wbhq.com",
+        discoveredName: "WB0024KDS05",
+        discoveredNameSource: "netbios-name",
+      },
+    ]);
+  });
+
+  test("a hostname another device holds is retried with the address, and the retried name is what is created", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    createSpy.mockImplementation((args: unknown): Promise<undefined> => {
+      const model: NetworkDevice = (args as { model: NetworkDevice }).model;
+
+      if (model.name === "WB0024KDS04") {
+        return Promise.reject(
+          new Error("Network Device with the same name already exists"),
+        );
+      }
+
+      return Promise.resolve(undefined);
+    });
+    await renderPage();
+    await openReview(reportedScan());
+    await importSelected();
+
+    const retried: NetworkDevice | undefined = createSpy.mock.calls
+      .map((call: Array<unknown>): NetworkDevice => {
+        return (call[0] as { model: NetworkDevice }).model;
+      })
+      .find((model: NetworkDevice): boolean => {
+        return model.hostname === "10.16.42.54";
+      });
+
+    expect(retried?.name).toBe("WB0024KDS04 (10.16.42.54)");
+    // The source travels with the retry; the server records the final name.
+    expect(retried?.discoveredNameSource).toBe("netbios-name");
   });
 });
 

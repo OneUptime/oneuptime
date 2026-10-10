@@ -5,11 +5,14 @@ import {
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
+  chooseDiscoveredHostName,
   getDiscoveredHostDisplayName,
   getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
   DiscoveredDeviceScanSource,
   DiscoveredHostNaming,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
@@ -2584,7 +2587,7 @@ describe("the NetBIOS name (issue #3677)", () => {
     netbiosName: "reg01",
   };
 
-  describe("precedence: sysName, then PTR name, then NetBIOS name, then address", () => {
+  describe("precedence: sysName, then NetBIOS name, then PTR name, then address (issue #4518)", () => {
     test("a host with only a NetBIOS name is named by it, not by its address", () => {
       // The reported case, in one line.
       expect(buildDeviceName(netbiosHost, FULL_NAMES)).toBe("reg01");
@@ -2615,18 +2618,42 @@ describe("the NetBIOS name (issue #3677)", () => {
     });
 
     /*
-     * The PTR name is published by whoever runs DNS for the subnet; the
-     * NetBIOS name is whatever the host says about itself. Where both exist,
-     * the published one wins.
+     * The NetBIOS name is the host's own computer name; the PTR name is what
+     * DNS publishes for its address. Where both exist, the host's own name
+     * wins (issue #4518): the reporter's displays are WB0024KDS03 to the
+     * people who run them, whatever the reverse zone says. Until #4518 the
+     * PTR name won here.
      */
-    test("the PTR name beats the NetBIOS name", () => {
+    test("the NetBIOS name beats the PTR name, with short names on or off", () => {
       const host: DiscoveredNetworkDevice = {
         ...netbiosHost,
         dnsHostname: "wb-0660-kds01.wbhq.com",
       };
 
-      expect(buildDeviceName(host, FULL_NAMES)).toBe("wb-0660-kds01.wbhq.com");
-      expect(buildDeviceName(host, SHORT_NAMES)).toBe("wb-0660-kds01");
+      expect(buildDeviceName(host, FULL_NAMES)).toBe("reg01");
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe("reg01");
+      // The PTR name is not lost: it is the device's DNS Name.
+      expect(build({ host: host }).dnsName).toBe("wb-0660-kds01.wbhq.com");
+    });
+
+    test("a NetBIOS name cut to fifteen characters loses to the PTR name it was cut from", () => {
+      /*
+       * Windows truncates a long computer name to fifteen characters for
+       * NetBIOS. "WB-0660-KITCHEN" is "wb-0660-kitchen-display-01" with its
+       * end missing, so the PTR name is the better spelling of the same name.
+       */
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: REPORTER_ADDRESS,
+        netbiosName: "WB-0660-KITCHEN",
+        dnsHostname: "wb-0660-kitchen-display-01.wbhq.com",
+      };
+
+      expect(buildDeviceName(host, FULL_NAMES)).toBe(
+        "wb-0660-kitchen-display-01.wbhq.com",
+      );
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe(
+        "wb-0660-kitchen-display-01",
+      );
     });
 
     test("a whitespace sysName does not block the NetBIOS name", () => {
@@ -2680,16 +2707,29 @@ describe("the NetBIOS name (issue #3677)", () => {
       { reason: "leading and trailing spaces", netbiosName: "  Reg01  " },
     ];
 
+    /*
+     * The case the host reported is kept (issue #4518), so each raw form
+     * names the device by its own trimmed spelling.
+     */
+    const EXPECTED_NAMES: Record<string, string> = {
+      "upper case": "REG01",
+      "space-padded to fifteen bytes": "REG01",
+      "NUL-padded": "REG01",
+      "leading and trailing spaces": "Reg01",
+    };
+
     for (const raw of RAW_FORMS) {
-      test(`${raw.reason} names the device "reg01"`, () => {
+      const expected: string = EXPECTED_NAMES[raw.reason]!;
+
+      test(`${raw.reason} names the device "${expected}"`, () => {
         const host: DiscoveredNetworkDevice = {
           ipAddress: REPORTER_ADDRESS,
           netbiosName: raw.netbiosName,
         };
 
-        expect(getDiscoveredHostFullName(host)).toBe("reg01");
-        expect(buildDeviceName(host, FULL_NAMES)).toBe("reg01");
-        expect(build({ host: host }).name).toBe("reg01");
+        expect(getDiscoveredHostFullName(host)).toBe(expected);
+        expect(buildDeviceName(host, FULL_NAMES)).toBe(expected);
+        expect(build({ host: host }).name).toBe(expected);
       });
     }
   });
@@ -2771,13 +2811,13 @@ describe("the NetBIOS name (issue #3677)", () => {
       }
     });
 
-    test("a raw upper-case name is lower-cased, not shortened, with short names on", () => {
+    test("a raw upper-case name keeps its case, and is not shortened, with short names on", () => {
       expect(
         getDiscoveredHostDisplayName(
           { ipAddress: REPORTER_ADDRESS, netbiosName: "REG01   " },
           SHORT_NAMES,
         ),
-      ).toBe("reg01");
+      ).toBe("REG01");
     });
   });
 
@@ -2887,5 +2927,139 @@ describe("the NetBIOS name (issue #3677)", () => {
         getDiscoveredHostDisplayName(host, FULL_NAMES),
       );
     }
+  });
+});
+
+/*
+ * Where the device's name came from (OneUptime issue #4518). The builder
+ * records it beside the name, so a later scan that finds a better name can
+ * rename a device still called what discovery named it — and never one a
+ * person renamed.
+ */
+describe("buildNetworkDeviceFromDiscoveredHost - the name's source (issue #4518)", () => {
+  test.each([
+    [
+      "an SNMP name",
+      { ipAddress: "10.0.0.1", sysName: "core-sw-01" },
+      "core-sw-01",
+      DeviceNameSource.SystemName,
+    ],
+    [
+      "a NetBIOS name, ahead of the PTR name",
+      {
+        ipAddress: "10.0.0.2",
+        snmpReachable: false,
+        netbiosName: "WB0024KDS04",
+        dnsHostname: "wb-0024-kds04.wbhq.com",
+      },
+      "WB0024KDS04",
+      DeviceNameSource.NetbiosName,
+    ],
+    [
+      "a PTR name",
+      {
+        ipAddress: "10.0.0.3",
+        snmpReachable: false,
+        dnsHostname: "kds05.wbhq.com",
+      },
+      "kds05.wbhq.com",
+      DeviceNameSource.DnsName,
+    ],
+    [
+      "nothing but its address",
+      { ipAddress: "10.0.0.4", snmpReachable: false },
+      "10.0.0.4",
+      DeviceNameSource.Address,
+    ],
+  ])(
+    "a host named by %s records the name and its source",
+    (
+      _label: string,
+      host: DiscoveredNetworkDevice,
+      name: string,
+      source: DeviceNameSource,
+    ) => {
+      const device: NetworkDevice = build({ host: host });
+
+      expect(device.name).toBe(name);
+      expect(device.discoveredName).toBe(name);
+      expect(device.discoveredNameSource).toBe(source);
+      expect(getDiscoveredHostNameSource(host)).toBe(source);
+    },
+  );
+
+  test("the collision fallback the caller passes keeps the same source, and is the name recorded", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.0.0.5",
+      snmpReachable: false,
+      netbiosName: "REG01",
+    };
+    const fallback: string = buildFallbackDeviceName(host, FULL_NAMES);
+    const device: NetworkDevice = build({ host: host, name: fallback });
+
+    expect(fallback).toBe("REG01 (10.0.0.5)");
+    expect(device.name).toBe(fallback);
+    expect(device.discoveredName).toBe(fallback);
+    expect(device.discoveredNameSource).toBe(DeviceNameSource.NetbiosName);
+  });
+
+  test("the short-name choice changes the name recorded, never the source", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.0.0.6",
+      snmpReachable: false,
+      dnsHostname: "kds06.wbhq.com",
+    };
+    const device: NetworkDevice = build({
+      host: host,
+      scan: shortNamesScan(),
+    });
+
+    expect(device.name).toBe("kds06");
+    expect(device.discoveredName).toBe("kds06");
+    expect(device.discoveredNameSource).toBe(DeviceNameSource.DnsName);
+    // The FQDN is still kept, as the DNS Name.
+    expect(device.dnsName).toBe("kds06.wbhq.com");
+  });
+
+  test("a row with no name and no address records nothing", () => {
+    const device: NetworkDevice = build({
+      host: { ipAddress: "" } as DiscoveredNetworkDevice,
+    });
+
+    expect(device.discoveredName).toBeUndefined();
+    expect(device.discoveredNameSource).toBeUndefined();
+  });
+
+  test("a placeholder sysName does not name the device, and the PTR name does", () => {
+    const device: NetworkDevice = build({
+      host: {
+        ipAddress: "10.0.0.7",
+        sysName: "localhost.localdomain",
+        dnsHostname: "lab-07.corp.example.com",
+      },
+    });
+
+    expect(device.name).toBe("lab-07.corp.example.com");
+    expect(device.discoveredNameSource).toBe(DeviceNameSource.DnsName);
+  });
+
+  test("the source takes no naming choice: shortening never changes it", () => {
+    expect(getDiscoveredHostNameSource.length).toBe(1);
+  });
+
+  test("the full name, the display name and the source come from one choice", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.0.0.8",
+      sysName: "core-sw-08.corp.example.com",
+      dnsHostname: "sw08.corp.example.com",
+    };
+
+    expect(chooseDiscoveredHostName(host, SHORT_NAMES)).toEqual({
+      name: "core-sw-08",
+      fullName: "core-sw-08.corp.example.com",
+      source: DeviceNameSource.SystemName,
+    });
+    expect(getDiscoveredHostFullName(host)).toBe("core-sw-08.corp.example.com");
+    expect(getDiscoveredHostDisplayName(host, SHORT_NAMES)).toBe("core-sw-08");
   });
 });

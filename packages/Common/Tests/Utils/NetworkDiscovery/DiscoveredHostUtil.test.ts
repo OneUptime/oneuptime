@@ -498,12 +498,12 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
     expect(normalized?.netbiosName).toBe("reg01");
   });
 
-  test("the raw wire form (upper case, space-padded) is stored back lower-cased and trimmed", () => {
+  test("the raw wire form (upper case, space-padded) is stored back trimmed, its case kept (issue #4518)", () => {
     const [normalized] = normalizeDiscoveredHosts([
       host({ netbiosName: "WORKSTATION01  " }),
     ]);
 
-    expect(normalized?.netbiosName).toBe("workstation01");
+    expect(normalized?.netbiosName).toBe("WORKSTATION01");
   });
 
   test("NUL padding left by an embedded stack is stripped too", () => {
@@ -511,7 +511,7 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
       host({ netbiosName: `PRINTER7${String.fromCharCode(0).repeat(3)}` }),
     ]);
 
-    expect(normalized?.netbiosName).toBe("printer7");
+    expect(normalized?.netbiosName).toBe("PRINTER7");
   });
 
   /*
@@ -589,7 +589,7 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
     ]);
 
     expect(normalizeDiscoveredHosts(once)).toEqual(once);
-    expect(once[0]?.netbiosName).toBe("workstation01");
+    expect(once[0]?.netbiosName).toBe("WORKSTATION01");
     expect(once[1]).not.toHaveProperty("netbiosName");
     expect(once[2]?.netbiosName).toBe("reg01");
   });
@@ -610,7 +610,7 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
     ]);
 
     expect(badPtrGoodNetbios).not.toHaveProperty("dnsHostname");
-    expect(badPtrGoodNetbios?.netbiosName).toBe("reg01");
+    expect(badPtrGoodNetbios?.netbiosName).toBe("REG01");
 
     expect(goodPtrBadNetbios?.dnsHostname).toBe("gw.corp.example.com");
     expect(goodPtrBadNetbios).not.toHaveProperty("netbiosName");
@@ -630,7 +630,7 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
       ipAddress: "10.18.167.31",
       snmpReachable: false,
       isAlreadyRegistered: false,
-      netbiosName: "reg01",
+      netbiosName: "REG01",
     });
   });
 
@@ -643,7 +643,28 @@ describe("normalizeDiscoveredHosts — the NetBIOS name (issue #3677)", () => {
       host({ ipAddress: "10.18.167.31", netbiosName: "REG01   " }),
     ]);
 
-    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe("reg01");
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe("REG01");
+  });
+
+  test("a normalised NetBIOS name names a host ahead of its PTR name (issue #4518)", () => {
+    /*
+     * The reporter's row: a Windows display whose reverse zone spells it
+     * differently. The host's own name wins, and the PTR name stays on the
+     * row for the device's DNS Name.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        ipAddress: "10.16.42.54",
+        dnsHostname: "wb-0024-kds04.wbhq.com.",
+        netbiosName: "WB0024KDS04    ",
+      }),
+    ]);
+
+    expect(normalized?.netbiosName).toBe("WB0024KDS04");
+    expect(normalized?.dnsHostname).toBe("wb-0024-kds04.wbhq.com");
+    expect(getDiscoveredHostDisplayName(normalized!, FULL_NAMES)).toBe(
+      "WB0024KDS04",
+    );
   });
 });
 
@@ -820,7 +841,7 @@ describe("normalizeDiscoveredHosts — the naming status codes (issue #3916)", (
       DiscoveredHostReverseDnsStatus.UnusableName,
     );
 
-    expect(rejectedCode?.netbiosName).toBe("reg01");
+    expect(rejectedCode?.netbiosName).toBe("REG01");
     expect(rejectedCode).not.toHaveProperty("netbiosNameStatus");
   });
 

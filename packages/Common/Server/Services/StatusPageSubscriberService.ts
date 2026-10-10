@@ -752,19 +752,13 @@ export class Service extends ProjectReferencesService<Model> {
     };
 
     if (carryForward.isUnsubscribed === true) {
-      const matched: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const matched: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           isUnsubscribed: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      );
 
       carryForward.subscriberIdsBeingUnsubscribed = matched
         .filter((subscriber: Model): boolean => {

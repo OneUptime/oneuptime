@@ -23,6 +23,19 @@ import {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ProjectService,
+    jest.spyOn(ProjectService, "findBy"),
+  );
+});
 
 /*
  * Audit logging is an Enterprise feature (EnterpriseFeature.AuditLogs), but its
@@ -124,15 +137,18 @@ const givenStoredProjects: (projects: Array<Project>) => void = (
   findBySpy.mockResolvedValue(projects as never);
 };
 
+// An update of the project PROJECT_ID, or of `projectId`.
 const update: (
   data: Record<string, unknown>,
   props?: DatabaseCommonInteractionProps,
+  projectId?: ObjectID,
 ) => Promise<unknown> = (
   data: Record<string, unknown>,
   props?: DatabaseCommonInteractionProps,
+  projectId?: ObjectID,
 ): Promise<unknown> => {
   return hooks.onBeforeUpdate({
-    query: { _id: PROJECT_ID.toString() },
+    query: { _id: (projectId || PROJECT_ID).toString() },
     data: data,
     props: props || OWNER_PROPS,
   } as unknown as UpdateBy<Project>);
@@ -463,7 +479,7 @@ describe("updating a project's audit log settings, billing off", () => {
       };
 
       expect(findBy.query).toEqual({ _id: PROJECT_ID.toString() });
-      expect(findBy.props).toEqual({ isRoot: true });
+      expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(findBy.select).toMatchObject({
         enableAuditLogs: true,
         storeSystemEventsInAuditLogs: true,
@@ -524,6 +540,7 @@ describe("updating a project's audit log settings, billing off", () => {
               projectIds: [OTHER_PROJECT_ID],
             } as never,
           },
+          OTHER_PROJECT_ID,
         ),
       ).rejects.toThrow(COMMUNITY_REFUSAL);
     });

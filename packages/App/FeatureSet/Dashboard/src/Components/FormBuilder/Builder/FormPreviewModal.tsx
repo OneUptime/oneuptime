@@ -7,7 +7,9 @@ import {
   findPublicFormTemplate,
   FormCustomFieldDefinition,
   FormRecordOption,
+  getPublicFormForTemplate,
   getPublicFormStartTemplate,
+  PublicForm,
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
 import { FormTargetOptionsSource } from "Common/Types/Form/FormTargetCatalog";
@@ -42,8 +44,9 @@ import React, {
  * ever sent: submitting says so, and offers to fill the form in again. Its
  * logo is the form's own, or the OneUptime logo, drawn by the component the
  * page draws it with. A form with templates opens with its default, and
- * lists them over its questions as the page does; hidden questions are not
- * shown, as the page does not show them.
+ * lists them over its questions as the page does; the questions are the
+ * ones the chosen template asks, each required as it says - a question the
+ * form hides shows only under a template that asks it, as on the page.
  */
 
 export interface ComponentProps {
@@ -116,6 +119,12 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
     built.form,
     templateId,
   );
+
+  // The form as the chosen template asks it, as the page asks it.
+  const askedForm: PublicForm = getPublicFormForTemplate({
+    form: built.form,
+    template: template,
+  });
 
   return (
     <Modal
@@ -210,7 +219,7 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
                 <BasicForm
                   key={instance}
                   id="form-preview-form"
-                  fields={buildPublicFormFields(built.form, {
+                  fields={buildPublicFormFields(askedForm, {
                     dataTestIdPrefix: "form-preview-field",
                   })}
                   initialValues={getPublicFormInitialValues(

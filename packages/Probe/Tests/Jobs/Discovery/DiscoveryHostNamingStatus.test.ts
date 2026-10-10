@@ -678,12 +678,46 @@ describe("the reported scan on the bundled global probe, with NetBIOS ticked", (
     }
   });
 
-  it("stamps nothing and says nothing when SNMP and reverse DNS named every host", async () => {
-    // NetBIOS would not have been sent to anyone: there is no gap to explain.
+  it("stamps nothing and says nothing when reverse DNS named every host, although NetBIOS would have asked them (issue #4518)", async () => {
+    /*
+     * The lookup would have asked these hosts for the Windows name that
+     * outranks their PTR name, but every one of them has a name, so there is
+     * no row listed by its address to explain. The Scan form turns NetBIOS
+     * on by default and the bundled probes are global, so a sentence here
+     * would ride on every such scan with nothing an operator could do.
+     */
     mockPingAlive(Object.keys(CUSTOMER_NAMES));
     mockReverseDns({ names: CUSTOMER_NAMES });
 
     const result: SubnetScanResult = await sweep(customerSweep(true));
+
+    expect(result.discoveredHosts).toHaveLength(4);
+    expect(
+      result.discoveredHosts.some((host: DiscoveredHost) => {
+        return "netbiosNameStatus" in host;
+      }),
+    ).toBe(false);
+    expect(result.isNetbiosLookupSkippedOnGlobalProbe).toBeUndefined();
+    expect(buildScanStatusMessage(result, 0)).not.toContain(
+      NETBIOS_GLOBAL_PROBE_SENTENCE,
+    );
+  });
+
+  it("stamps nothing and says nothing when SNMP named every host", async () => {
+    // NetBIOS would not have been sent to anyone: there is no gap to explain.
+    mockPingAlive(Object.keys(CUSTOMER_NAMES));
+    mockSnmp({
+      "10.16.42.52": "WB0024KDS02",
+      "10.16.42.54": "WB0024KDS04",
+      "10.16.42.59": "WB0024KDS09",
+      "10.16.42.60": "WB0024KDS10",
+    });
+
+    const result: SubnetScanResult = await sweep({
+      cidr: CUSTOMER_TARGET,
+      snmpConfigs: [snmpConfig()],
+      isNetbiosLookupEnabled: true,
+    });
 
     expect(result.discoveredHosts).toHaveLength(4);
     expect(
@@ -730,19 +764,29 @@ describe("the reported scan on a custom probe, with NetBIOS ticked", () => {
     mockReverseDns({ names: CUSTOMER_NAMES, timedOut: TIMED_OUT_HOSTS });
   });
 
-  it("asks exactly the eight, and stamps the resolver's code on the seven it could not name", async () => {
+  it("asks the eight unnamed first, then the four DNS named, and stamps the resolver's code on the seven it could not name", async () => {
     const asked: Array<Array<string>> = mockNetbios({
       "10.16.42.51": "WB0024KDS01",
     });
 
     const result: SubnetScanResult = await sweep(customerSweep(true));
 
-    expect(asked).toEqual([[...NO_RECORD_HOSTS, ...TIMED_OUT_HOSTS].sort()]);
+    /*
+     * All twelve: none has an SNMP name. The eight with no name at all go
+     * first, so the host cap can only ever cut the ones DNS named (#4518).
+     */
+    expect(asked).toEqual([
+      [
+        ...[...NO_RECORD_HOSTS, ...TIMED_OUT_HOSTS].sort(),
+        ...Object.keys(CUSTOMER_NAMES).sort(),
+      ],
+    ]);
     expect(hostAt(result, "10.16.42.51")).toStrictEqual({
       ipAddress: "10.16.42.51",
       snmpReachable: false,
       dnsHostnameStatus: "no-record",
-      netbiosName: "wb0024kds01",
+      // As the host reported it (#4518).
+      netbiosName: "WB0024KDS01",
     });
 
     for (const ipAddress of [...NO_RECORD_HOSTS.slice(1), ...TIMED_OUT_HOSTS]) {

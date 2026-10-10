@@ -21,20 +21,26 @@ export class GoModuleGenerator {
      * Minimum versions only — GenerateProvider.ts runs `go get -u ./...`
      * followed by `go mod tidy`, so every generation resolves the newest
      * releases and the compile/vet/test gates catch breakage immediately.
-     * The floors below are recent enough that even a network-restricted
-     * build without the upgrade step gets CVE-patched dependencies.
+     *
+     * The floors are also what the provider is built from when that upgrade
+     * fails, which it does without failing generation (an offline build, or
+     * a module the checksum database does not know yet). So they are the
+     * versions CI last built and tested the provider with, not merely ones
+     * it compiles against: the generated schemas rely on
+     * terraform-plugin-framework v1.15.1+ keeping a null prior value in
+     * UseStateForUnknown, and below that every update of a resource with an
+     * unset create-only field plans a replacement
+     * (StaticFiles/provider_update_plan_test.go).
      */
     const goModContent: string = `module ${this.config.goModuleName}
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.25.0
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.13.0
-	github.com/hashicorp/terraform-plugin-framework-validators v0.16.0
-	github.com/hashicorp/terraform-plugin-go v0.25.0
-	github.com/hashicorp/terraform-plugin-log v0.9.0
+	github.com/hashicorp/terraform-plugin-framework v1.19.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
+	github.com/hashicorp/terraform-plugin-go v0.31.0
+	github.com/hashicorp/terraform-plugin-log v0.11.0
 )
 `;
 

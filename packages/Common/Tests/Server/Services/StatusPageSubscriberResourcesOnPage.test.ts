@@ -19,7 +19,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
-import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -421,7 +424,7 @@ describe("StatusPageSubscriberService - a change to a subscription", () => {
     expect(pageLookups).toEqual([PAGE_ID.toString()]);
   });
 
-  test("the subscribers are read through the update's own query, pinned to the caller's project", async () => {
+  test("the subscribers are read through the update's own query, among those the caller may write in their project", async () => {
     subscriberHolding([]);
 
     await hooks.onBeforeUpdate(
@@ -434,10 +437,17 @@ describe("StatusPageSubscriberService - a change to a subscription", () => {
     const read: { query: JSONObject; props: JSONObject } = subscriberRead.mock
       .calls[0]![0] as { query: JSONObject; props: JSONObject };
 
+    // The subscribers the caller may write: found in their project...
+    expect(
+      (
+        readsOfRowsCallerMayWrite(StatusPageSubscriberService)[0]!.query[
+          "projectId"
+        ] as unknown as ObjectID
+      ).toString(),
+    ).toBe(PROJECT_ID.toString());
+
+    // ... then read through the update's own query.
     expect(read.query["_id"]).toBe(SUBSCRIBER_ID.toString());
-    expect((read.query["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
     expect(read.props["isRoot"]).toBe(true);
   });
 

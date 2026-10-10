@@ -1,4 +1,9 @@
 import { JSONObject } from "../JSON";
+import {
+  CustomFieldOptionRenameMap,
+  renameCustomFieldOptionValue,
+  RenamedCustomFieldOptionValue,
+} from "./CustomFieldOptionEdit";
 
 /*
  * How a saved table view (TableView) refers to a custom field, and what
@@ -36,6 +41,57 @@ export const CUSTOM_FIELD_FACET_KEY_PREFIX: string = "customField:";
 export const INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS: Array<string> = [
   "all-incidents-table",
 ];
+
+/*
+ * The saved views whose table lists the records of each resource's custom
+ * fields, by the definition table's name: the views a change to one of its
+ * fields - a renamed option (CustomFieldOptionRename) - rewrites. Only
+ * tables that offer saved views (a saveFilterProps.tableId) and draw the
+ * custom field chips can have any. App/Tests/Dashboard/CustomFieldSavedViewTables
+ * fails if a table of one of these resources gains saved views without
+ * being listed.
+ */
+export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<
+  string,
+  Array<string>
+> = {
+  IncidentCustomField: INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS,
+  AlertCustomField: ["all-alerts-table"],
+  MonitorCustomField: [
+    "all-monitors-table",
+    "archived-monitors-table",
+    "security-events-monitors-table",
+  ],
+  ScheduledMaintenanceCustomField: ["all-scheduled-maintenance-events-table"],
+  StatusPageCustomField: ["all-status-pages-table"],
+  OnCallDutyPolicyCustomField: ["on-call-policies-table"],
+  TeamCustomField: ["settings-teams-table"],
+  InventoryItemCustomField: [
+    "inventory-items-table",
+    "inventory-archived-table",
+  ],
+  // The team members list draws no custom field chips.
+  TeamMemberCustomField: [],
+};
+
+export type GetCustomFieldSavedViewTableIdsFunction = (
+  definitionTableName: string | undefined,
+) => Array<string>;
+
+export const getCustomFieldSavedViewTableIds: GetCustomFieldSavedViewTableIdsFunction =
+  (definitionTableName: string | undefined): Array<string> => {
+    if (
+      !definitionTableName ||
+      !Object.prototype.hasOwnProperty.call(
+        CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS,
+        definitionTableName,
+      )
+    ) {
+      return [];
+    }
+
+    return CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS[definitionTableName] || [];
+  };
 
 export interface CustomFieldSavedViewState {
   query?: JSONObject | null | undefined;
@@ -215,6 +271,88 @@ export const renameCustomFieldInSavedView: RenameCustomFieldInSavedViewFunction 
 
       if (renamed) {
         changes.query = { ...data.view.query, customFields: renamed };
+      }
+    }
+
+    return {
+      changes: changes,
+      hasChanged: Object.keys(changes).length > 0,
+    };
+  };
+
+export type RenameCustomFieldOptionsInSavedViewFunction = (data: {
+  view: CustomFieldSavedViewState;
+  // The field whose options were renamed.
+  fieldName: string;
+  renames: CustomFieldOptionRenameMap;
+}) => RenamedCustomFieldSavedViewState;
+
+/**
+ * What a saved view has to become when options of a field it filters by are
+ * renamed: the field chip's selected values, and the field's value in the
+ * table's own filters should one ever name it, with the renames applied
+ * (renameCustomFieldOptionValue - a merged selection is listed once).
+ * Everything else in the view is kept exactly as it was, the chip's
+ * operator included.
+ */
+export const renameCustomFieldOptionsInSavedView: RenameCustomFieldOptionsInSavedViewFunction =
+  (data: {
+    view: CustomFieldSavedViewState;
+    fieldName: string;
+    renames: CustomFieldOptionRenameMap;
+  }): RenamedCustomFieldSavedViewState => {
+    const changes: CustomFieldSavedViewState = {};
+
+    if (!data.fieldName || data.renames.size === 0) {
+      return { changes, hasChanged: false };
+    }
+
+    if (
+      isObject(data.view.facets) &&
+      isObject(data.view.facets["facetSelections"])
+    ) {
+      const key: string = `${CUSTOM_FIELD_FACET_KEY_PREFIX}${data.fieldName}`;
+      const selections: JSONObject = data.view.facets["facetSelections"];
+
+      if (Object.prototype.hasOwnProperty.call(selections, key)) {
+        const renamed: RenamedCustomFieldOptionValue =
+          renameCustomFieldOptionValue(selections[key], data.renames);
+
+        if (renamed.changed) {
+          changes.facets = {
+            ...data.view.facets,
+            facetSelections: {
+              ...selections,
+              [key]: renamed.value as JSONObject[string],
+            },
+          };
+        }
+      }
+    }
+
+    if (
+      isObject(data.view.query) &&
+      isObject(data.view.query["customFields"]) &&
+      Object.prototype.hasOwnProperty.call(
+        data.view.query["customFields"],
+        data.fieldName,
+      )
+    ) {
+      const customFields: JSONObject = data.view.query["customFields"];
+      const renamed: RenamedCustomFieldOptionValue =
+        renameCustomFieldOptionValue(
+          customFields[data.fieldName],
+          data.renames,
+        );
+
+      if (renamed.changed) {
+        changes.query = {
+          ...data.view.query,
+          customFields: {
+            ...customFields,
+            [data.fieldName]: renamed.value as JSONObject[string],
+          },
+        };
       }
     }
 

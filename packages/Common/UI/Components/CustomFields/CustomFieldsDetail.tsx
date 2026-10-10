@@ -455,9 +455,16 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                   (schemaItem as any).customFieldType,
                 ),
                 placeholder: "No data entered",
+                /*
+                 * The record's own value too, should the field no longer
+                 * offer it: shown as itself, marked, not as empty.
+                 */
                 dropdownOptions: isDropdown
                   ? getCustomFieldDropdownOptions(
                       (schemaItem as any).dropdownOptions,
+                      (((model as any)?.["customFields"] || {}) as JSONObject)[
+                        (schemaItem as any).name
+                      ],
                     )
                   : undefined,
               };
@@ -512,6 +519,11 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                     },
                   ),
                 enforceRequiredOnCreate: false,
+                /*
+                 * A value the field no longer offers stays chosen, and is
+                 * saved back as it is unless someone picks another.
+                 */
+                values: getDisplayValues(),
               }),
             }}
           />

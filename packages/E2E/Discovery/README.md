@@ -21,6 +21,13 @@ server refuses, writes going one device at a time, a 390px screen, and the Revie
 dialog's "Apply each SNMP host's vendor template" switch. The fixture records every
 device write and every device an import creates on `window.__discoveryFixture`.
 
+`HostnameNaming.spec.ts` covers issue #4518 on the reporter's kitchen-display scan: Review
+Results names each display by its own hostname (an SNMP name, or the Windows name a host
+reports over NetBIOS) with its DNS name beside the address, Import Selected creates those
+names and records where each came from (`discoveredName`, `discoveredNameSource` on the
+fixture's recorded creates), the Start New Scan form's "Look up Windows names (NetBIOS)"
+switch and naming order, and the dialog on a 390px screen.
+
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `packages/E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
 same visibly labelled synthetic data.

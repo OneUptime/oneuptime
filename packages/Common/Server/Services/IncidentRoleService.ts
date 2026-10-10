@@ -6,7 +6,6 @@ import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/IncidentRole";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
-import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -29,25 +28,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    // If trying to set canAssignMultipleUsers to true, check if any of the roles are primary
-    if (updateBy.data.canAssignMultipleUsers === true && updateBy.query._id) {
-      // Convert _id to ObjectID if it's a string
-      const id: ObjectID =
-        updateBy.query._id instanceof ObjectID
-          ? updateBy.query._id
-          : new ObjectID(updateBy.query._id as string);
-
-      const role: Model | null = await this.findOneById({
-        id: id,
-        select: {
+    /*
+     * A primary role cannot allow multiple users: every role the update
+     * writes is read, and the update held to them.
+     */
+    if (updateBy.data.canAssignMultipleUsers === true) {
+      const roles: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           isPrimaryRole: true,
         },
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
-      if (role?.isPrimaryRole) {
+      if (
+        roles.some((role: Model): boolean => {
+          return Boolean(role.isPrimaryRole);
+        })
+      ) {
         throw new BadDataException(
           "Primary roles cannot allow multiple users to be assigned.",
         );

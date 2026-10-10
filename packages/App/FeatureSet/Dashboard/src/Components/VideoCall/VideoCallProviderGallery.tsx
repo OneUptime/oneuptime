@@ -18,14 +18,19 @@ import {
   WorkspaceConnections,
   useWorkspaceConnections,
 } from "../../Utils/Workspace/ConnectedWorkspaces";
-import { videoCallDocsUrl } from "./VideoCallApi";
+import {
+  VIDEO_CALL_ONE_CLICK_DOCS_PATH,
+  isVideoCallOAuthAvailable,
+  videoCallDocsUrl,
+} from "./VideoCallApi";
 import VideoCallProviderLogo from "./VideoCallProviderLogo";
 
 /*
  * Every way a project can hold an incident call, side by side: the Slack
  * huddle that needs no setup, and the providers it connects once. A tile
  * says what the provider does and how many connections it already has, and
- * starts a connection in one click.
+ * starts a connection in one click - a sign-in to the provider, where this
+ * server has the provider's own app (isVideoCallOAuthAvailable).
  *
  * Colour classes are literal and limited to ones Theme.css re-colours for
  * the dark theme.
@@ -106,11 +111,17 @@ const ProviderTile: FunctionComponent<{
 
       <div className="mt-4 flex items-center justify-between gap-2">
         <Link
-          to={videoCallDocsUrl(definition.docsPath)}
+          to={videoCallDocsUrl(
+            isVideoCallOAuthAvailable(definition.provider)
+              ? VIDEO_CALL_ONE_CLICK_DOCS_PATH
+              : definition.docsPath,
+          )}
           openInNewTab={true}
           className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600"
         >
-          {translator.translateText("Setup guide")}
+          {isVideoCallOAuthAvailable(definition.provider)
+            ? translator.translateText("How it works")
+            : translator.translateText("Setup guide")}
           <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
         </Link>
         {props.canConnect || !props.connectDisabledReason ? (

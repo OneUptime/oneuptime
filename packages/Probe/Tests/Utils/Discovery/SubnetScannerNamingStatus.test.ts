@@ -729,11 +729,14 @@ describe("attachReverseDnsHostnames — when the pass throws", () => {
 });
 
 describe("attachNetbiosNames — a code on every host it was asked about and left unnamed", () => {
-  it("stamps the reported code only on the hosts it was handed", async () => {
+  it("stamps the reported code only on the hosts it was handed and left with no name", async () => {
     /*
-     * The lookup is handed only hosts SNMP and reverse DNS left unnamed. The
-     * double reports codes for the others too — as a careless one would — and
-     * those must not land: NetBIOS was never those hosts' business.
+     * The lookup is handed every host SNMP did not name — the PTR-named
+     * printer too, since its NetBIOS name would name it ahead of its PTR
+     * record (issue #4518) — still-unnamed hosts first. The double reports
+     * codes for the others too, as a careless one would, and those must not
+     * land: a host with a sysName was never this lookup's business, and a
+     * host reverse DNS named is listed by that name, with no tooltip.
      */
     const hosts: Array<DiscoveredHost> = [
       snmpHost("10.0.0.1", "core-switch-01"),
@@ -756,7 +759,7 @@ describe("attachNetbiosNames — a code on every host it was asked about and lef
 
     await SubnetScanner.attachNetbiosNames(hosts);
 
-    expect(asked).toEqual([["10.0.0.3", "10.0.0.4"]]);
+    expect(asked).toEqual([["10.0.0.3", "10.0.0.4", "10.0.0.2"]]);
     expect(hosts[0]).not.toHaveProperty("netbiosNameStatus");
     expect(hosts[1]).not.toHaveProperty("netbiosNameStatus");
     expect(hosts[2]).toStrictEqual({

@@ -269,6 +269,95 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
   expect(response.ok()).toBe(true);
 };
 
+/*
+ * One LLM call, as an app instrumented with the OpenTelemetry GenAI
+ * conventions sends it: a span carrying gen_ai.* attributes. Ingest marks it
+ * an LLM span (isLlmSpan), so it is listed on AI / LLM > Overview under
+ * Recent LLM Calls, with `model` in its Model column.
+ */
+type PostOtlpLlmCallFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+}) => Promise<void>;
+
+export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+}): Promise<void> => {
+  const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+    .addRoute("/otlp/v1/traces")
+    .toString();
+
+  const startNano: string = nowUnixNano();
+  // 5ms after start so the call has a non-zero duration.
+  const endNano: string = `${Date.now() + 5}000000`;
+
+  const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+    headers: {
+      "content-type": "application/json",
+      "x-oneuptime-token": data.ingestionKey,
+    },
+    data: {
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              {
+                key: "service.name",
+                value: { stringValue: data.serviceName },
+              },
+            ],
+          },
+          scopeSpans: [
+            {
+              scope: { name: "e2e-llm-fixture" },
+              spans: [
+                {
+                  traceId: randomHex(16),
+                  spanId: randomHex(8),
+                  name: `chat ${data.model}`,
+                  kind: 3,
+                  startTimeUnixNano: startNano,
+                  endTimeUnixNano: endNano,
+                  attributes: [
+                    {
+                      key: "gen_ai.system",
+                      value: { stringValue: "openai" },
+                    },
+                    {
+                      key: "gen_ai.operation.name",
+                      value: { stringValue: "chat" },
+                    },
+                    {
+                      key: "gen_ai.request.model",
+                      value: { stringValue: data.model },
+                    },
+                    {
+                      key: "gen_ai.usage.input_tokens",
+                      value: { intValue: "12" },
+                    },
+                    {
+                      key: "gen_ai.usage.output_tokens",
+                      value: { intValue: "3" },
+                    },
+                  ],
+                  status: { code: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  expect(response.ok()).toBe(true);
+};
+
 type PostOtlpMetricsFunction = (data: {
   page: Page;
   ingestionKey: string;

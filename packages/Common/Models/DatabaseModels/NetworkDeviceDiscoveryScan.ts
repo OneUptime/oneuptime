@@ -61,13 +61,18 @@ export interface DiscoveredNetworkDevice {
    */
   dnsHostname?: string | undefined;
   /*
-   * The host's NetBIOS name, lower-cased, from a node status (NBSTAT) query
-   * the probe sent to UDP 137 (OneUptime issue #3677).
+   * The host's NetBIOS name, from a node status (NBSTAT) query the probe sent
+   * to UDP 137 (OneUptime issue #3677), in the case the host reported it —
+   * upper case, for Windows (since issue #4518; older probes lower-cased it).
    *
-   * Present only on scans with `isNetbiosLookupEnabled`, only for hosts that
-   * had neither a sysName nor a dnsHostname, only for private addresses and
-   * never from a global probe. Absent otherwise, and on every row stored
-   * before this field existed.
+   * Present only on scans with `isNetbiosLookupEnabled`, only for hosts with
+   * no usable sysName, only for private addresses and never from a global
+   * probe. Since #4518 the probe also asks the hosts reverse DNS named — a
+   * NetBIOS name is the host's own and names the device ahead of its PTR
+   * name (Utils/NetworkDevice/DeviceNameRule.ts) — so a row can carry both.
+   * Probes before #4518 asked only hosts with neither a sysName nor a
+   * dnsHostname. Absent otherwise, and on every row stored before this field
+   * existed.
    *
    * SELF-REPORTED AND UNTRUSTED — more so than dnsHostname: it is whatever the
    * machine at that address chose to answer, not even a record someone
@@ -1171,10 +1176,13 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
   })
   /*
-   * Whether the probe asks hosts that are still unnamed after the sweep — no
-   * SNMP sysName, no reverse-DNS record — for their NetBIOS name (OneUptime
-   * issue #3677). This is what names the Windows machines that otherwise sit
-   * in the Review dialog as bare addresses.
+   * Whether the probe asks the hosts SNMP did not name for their NetBIOS
+   * name (OneUptime issue #3677). This is what names the Windows machines
+   * that otherwise sit in the Review dialog as bare addresses — and, since
+   * issue #4518, what names a Windows machine by its own computer name
+   * rather than by its reverse-DNS record: the hosts reverse DNS named are
+   * asked too (after the unnamed ones, so the host cap only ever cuts those),
+   * and the name a host reports for itself ranks above its PTR name.
    *
    * OPT-IN, NOT NULL DEFAULT false, because turning it on SENDS TRAFFIC: one
    * UDP datagram to port 137 of each such host, plus one retry. NBSTAT sweeps
@@ -1202,7 +1210,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Look Up NetBIOS Names",
     description:
-      "Whether hosts with no SNMP name and no reverse DNS record are asked for their NetBIOS name over UDP 137. Best-effort: Windows/Samba hosts that allow UDP 137 from the probe. Private addresses only; never done by global probes.",
+      "Whether hosts with no SNMP name are asked for their NetBIOS name over UDP 137, including hosts reverse DNS already named. A NetBIOS name is the name the host reports for itself, so it names the device ahead of its reverse DNS name. Best-effort: Windows/Samba hosts that allow UDP 137 from the probe. Private addresses only; never done by global probes.",
     defaultValue: false,
   })
   @Column({

@@ -24,6 +24,23 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentCustomFieldService,
+    jest.spyOn(IncidentCustomFieldService, "findBy"),
+  );
+});
 
 /*
  * IncidentCustomFieldService looks after the two things an incident custom
@@ -308,16 +325,27 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
     const onUpdate: OnUpdate<IncidentCustomField> =
       await service.onBeforeUpdate(update({ name: "Business Impact" }));
 
+    /*
+     * The renamed fields, beside the option edit the write makes - none:
+     * it sends no options and renames none.
+     */
     expect(onUpdate.carryForward).toEqual({
-      [fieldId.toString()]: { oldName: "Impact", projectId: projectId },
+      renamedFields: {
+        [fieldId.toString()]: { oldName: "Impact", projectId: projectId },
+      },
+      optionEdit: null,
     });
 
+    // Read among the fields the caller may write: those of their project.
+    const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      IncidentCustomFieldService,
+    )[0]!;
+    expect(writable.query["_id"]).toBe(fieldId.toString());
+    expect(String(writable.query["projectId"])).toBe(projectId.toString());
+
+    // Then those, by id, as root.
     const read: JSONObject = findBy.mock.calls[0]![0] as JSONObject;
-    // Read as root, but only within the caller's project.
-    expect(read["query"]).toEqual({
-      _id: fieldId.toString(),
-      projectId: projectId,
-    });
+    expect(read["query"]).toEqual({ _id: fieldId.toString() });
     expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
   });
 
@@ -362,7 +390,10 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
       await service.onBeforeUpdate(update({ name: "Impact" }));
 
     expect(onUpdate.carryForward).toEqual({
-      [fieldId.toString()]: { oldName: "impact", projectId: projectId },
+      renamedFields: {
+        [fieldId.toString()]: { oldName: "impact", projectId: projectId },
+      },
+      optionEdit: null,
     });
   });
 
@@ -478,8 +509,9 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
     }
   });
 
+  // What onBeforeUpdate hands over for a write that renames, and nothing else.
   function onUpdate(
-    carryForward: unknown,
+    renamedFields: unknown,
     props: DatabaseCommonInteractionProps = ADMIN_PROPS,
   ): OnUpdate<IncidentCustomField> {
     return {
@@ -490,7 +522,10 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
         limit: 1,
         skip: 0,
       },
-      carryForward: carryForward,
+      carryForward:
+        renamedFields === null
+          ? null
+          : { renamedFields: renamedFields, optionEdit: null },
     };
   }
 

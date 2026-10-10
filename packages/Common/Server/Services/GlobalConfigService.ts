@@ -449,17 +449,14 @@ export class Service extends DatabaseService<Model> {
      * cross-field validation still compares the effective pruning threshold
      * and target when the request changes only one of them.
      */
-    const currentConfig: Model | null = await this.findOneBy({
-      query: updateBy.query,
-      select: {
-        clickhouseCapacityNotificationThresholdPercent: true,
-        clickhouseDataPruningThresholdPercent: true,
-        clickhouseDataPruningTargetPercent: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const currentConfig: Model | null =
+      (
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          clickhouseCapacityNotificationThresholdPercent: true,
+          clickhouseDataPruningThresholdPercent: true,
+          clickhouseDataPruningTargetPercent: true,
+        })
+      )[0] || null;
 
     const normalizePercent: (value: unknown, fieldName: string) => number = (
       value: unknown,

@@ -161,7 +161,7 @@ Each definition has:
 - **Field Name** — required, at least two characters. The placeholder suggests a slug-like name such as `internal-service`.
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
-- **Dropdown Options** — the values that appear in the dropdown, each with an optional color: the small button beside an option shows its color and opens the same named colors as every other color field, with **No color** first and **Custom color** for an exact code.
+- **Dropdown Options** — the values that appear in the dropdown, each with an optional color: the small button beside an option shows its color and opens the same named colors as every other color field, with **No color** first and **Custom color** for an exact code. Drag an option by the handle at the start of its row to change where it is listed. Options can be added, renamed and taken out after incidents have values; see [Changing a dropdown's options](#changing-a-dropdowns-options).
 - **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
 - **Show on Create** — under **More fields**. Asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
 - **Required on Create** — under **More fields**, offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
@@ -255,6 +255,38 @@ Two renames are refused: one onto a name another incident custom field already h
 After a rename the field holds only its own values. Deleting a field leaves its values on the incidents that had them, so incidents can still hold values under the new name from a field that was deleted; the rename clears those, rather than show them as this field's answers or send them to subscribers. Every incident and template moves together: if the move fails, none of them changes, the field keeps its old name and the save reports an error, so you can simply try again. A field **created** with a deleted field's name is different: it shows the values that field left behind, and sends them to subscribers once **Include in Subscriber Notifications** is on.
 
 Deleting a field leaves the questions that ask for it on every [form](/docs/forms/building#custom-fields) in the project, but they are no longer asked: the form builder marks each one for you to delete. A field created again with the same name is a new field, and is not asked on a form until someone adds it there. Incident templates keep their **Custom Fields on Create** setting for it.
+
+### Changing a dropdown's options
+
+A **Dropdown (single select)** or **Dropdown (multi-select)** field's options can be changed at any time: open **Edit** on the field's row. An incident stores the text of the option it was given, so what a change does to the incidents that have an option depends on the change:
+
+| What you do to an option            | What happens to the incidents that have it                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Add** one                         | Nothing. It is offered from now on.                                                                                |
+| **Rename** it (change its text)     | They show the new name. Under the option, the form says how many incidents will.                                   |
+| **Take it out** (the bin beside it) | They keep it, shown as _no longer an option_, unless you pick another option for them under **No longer options**. |
+| **Drag** it by its handle           | Nothing. Only the order the options are listed in changes.                                                         |
+
+When the form opens it counts how many incidents have each value. **No longer options** lists every option you take out that an incident still has, and every value incidents have that was never an option (one written through the API, say), each with how many incidents have it. For each one, keep it as it is or pick the option those incidents should have instead. **Undo** puts back an option you took out by mistake.
+
+When you save, a renamed option and a value you pick an option for are moved: on every incident and incident template in the project, in the saved views of the incidents list that filter by it, and in the answers [form templates](/docs/forms/building) give for the field. Like a renamed field, the move starts no **On Update Incident** workflow and changes no incident's last-updated time; if it fails, nothing moves and the field keeps its old options. Workflows, API clients and Terraform configurations that write an option by its old text need the new text.
+
+An incident whose value its field no longer offers shows the value, marked _no longer an option_, on its **Custom Fields** page and in the incidents list. Editing its other fields keeps it; pick another option to change it.
+
+The custom fields of every other resource work the same way: monitors, alerts, scheduled maintenance events, status pages, on-call policies, teams, team members and inventory items. Renaming an option of a monitor field, or adding one, does the same to the incident, alert and scheduled maintenance fields that copy it (see [Fields copied from a monitor](#fields-copied-from-a-monitor)), so they keep offering every value they copy.
+
+Through the API, send the new list as `dropdownOptions`, and the renames in `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Each `to` must be one of the field's options once it is saved, and each `from` can be renamed only once. Without `renamedDropdownOptions` the list changes and every stored value stays as it is, which is also what changing `dropdown_options` in Terraform does.
 
 ### Terraform
 

@@ -1843,6 +1843,12 @@ const ENTERPRISE_VENDOR_NAMES: Record<number, string> = {
   26543: "Yamaha",
   // Aerohive's arc, which Extreme's IQ Engine (HiveOS) access points report.
   26928: "Extreme Networks",
+  /*
+   * Meraki's arc: MX appliances, MS switches and MR access points polled
+   * locally answer with it, and implement no ENTITY-MIB that could name their
+   * maker instead (issue #4569).
+   */
+  29671: "Cisco Meraki",
   30065: "Arista",
   35098: "PICA8",
   41112: "Ubiquiti",

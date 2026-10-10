@@ -8,7 +8,6 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -69,8 +68,6 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -978,20 +975,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data.changeMonitorStatusTo ||
       updateBy.data.changeMonitorStatusToId
     ) {
-      const incidentsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const incidentsToUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           monitors: {
             _id: true,
           },
           projectId: true,
           changeMonitorStatusToId: true,
           holdsMonitors: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: updateBy.props,
-      });
+        });
 
       /*
        * The monitor status the update writes, in any shape the API accepts
@@ -1339,43 +1331,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The incidents an update will write to, as they are stored, for the hooks
-   * below that decide what else joins the update.
+   * The incidents an update writes, as they are stored, for the hooks below
+   * that decide what else joins the update - the ones its caller may write,
+   * with the update held to them (findRowsAndHoldUpdateToThem), so no
+   * incident is written that those hooks did not see.
    *
    * Read as root: the answer only decides which columns join this update, and
    * the update itself is still checked against the caller's permissions
    * afterwards. Reading with the caller's props would fail the whole edit for
    * a role that may edit incidents but not read these columns. The query
-   * already carries the caller's privacy filter (applyIncidentSelfPrivacyFilter),
-   * but not their tenant: the update's permission check adds it only after
-   * this hook runs. So a non-root caller's read is limited to their own
-   * project here, or a request for another project's incident id would be
-   * answered with that incident's state (a refusal that depends on it)
-   * instead of the usual "nothing updated".
+   * carries the caller's privacy filter (applyIncidentSelfPrivacyFilter), and
+   * a request for another project's incident id reads nothing, so it is
+   * answered with the usual "nothing updated" rather than that incident's
+   * state.
    */
   private async findIncidentsForUpdateHook(data: {
     updateBy: UpdateBy<Model>;
     select: Select<Model>;
   }): Promise<Array<Model>> {
-    const updateBy: UpdateBy<Model> = data.updateBy;
-
-    const query: Query<Model> =
-      !updateBy.props.isRoot && updateBy.props.tenantId
-        ? {
-            ...updateBy.query,
-            projectId: updateBy.props.tenantId,
-          }
-        : updateBy.query;
-
-    return await this.findBy({
-      query: query,
-      select: data.select,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(data.updateBy, data.select);
   }
 
   /*
@@ -1623,16 +1597,13 @@ export class Service extends ProjectReferencesService<Model> {
       refusal: IncidentCreatedResend.noPermissionMessage,
     });
 
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const incidents: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         subscriberNotificationStatusOnIncidentCreated: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    );
 
     for (const incident of incidents) {
       const refusal: string | null = IncidentCreatedResend.getRefusalReason(
@@ -2568,13 +2539,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -2649,32 +2620,6 @@ export class Service extends ProjectReferencesService<Model> {
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const incident of incidents) {
-      if (incident.projectId) {
-        projectIds[incident.projectId.toString()] = incident.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

@@ -11,6 +11,11 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -79,6 +84,13 @@ function buildDeviceService(): {
   internals: DeviceServiceInternals;
 } {
   const service: NetworkDeviceServiceType = new NetworkDeviceServiceType();
+
+  /*
+   * The read of the rows a caller's update may write, which the update path
+   * makes before the hooks: what the suite's read of the devices answers.
+   */
+  stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
+
   return {
     service,
     internals: service as unknown as DeviceServiceInternals,
@@ -371,11 +383,11 @@ describe("binding a device to a monitor is tenant-checked on update", () => {
   });
 
   /*
-   * The service's own snapshot is read as root, so it has to be re-scoped to
-   * the caller's tenant — otherwise the projects it acts on could be rows the
-   * caller cannot see.
+   * The service's own snapshot is read as root, among the devices the caller
+   * may write - found in the caller's project - so the projects it acts on
+   * are never rows the caller cannot see.
    */
-  test("scopes the snapshot read to the caller's tenant", async () => {
+  test("reads the snapshot among the devices the caller may write, in their project", async () => {
     const { service, internals } = buildDeviceService();
 
     const findBySpy: jest.SpyInstance = jest
@@ -388,11 +400,15 @@ describe("binding a device to a monitor is tenant-checked on update", () => {
       props: { tenantId: PROJECT_ID },
     } as unknown as UpdateBy<NetworkDevice>);
 
-    const snapshotQuery: Record<string, unknown> = findBySpy.mock.calls[0]![0]
-      .query as unknown as Record<string, unknown>;
-    expect((snapshotQuery["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
+    const writable: RowsCallerMayWriteRead =
+      readsOfRowsCallerMayWrite(service)[0]!;
+    expect(
+      (writable.query["projectId"] as unknown as ObjectID).toString(),
+    ).toBe(PROJECT_ID.toString());
+    // Then those, by id, as root.
+    expect(findBySpy.mock.calls[0]![0].query).toEqual({
+      _id: DEVICE_ID.toString(),
+    });
     expect(findBySpy.mock.calls[0]![0].props.isRoot).toBe(true);
     // The monitor was checked against the caller's project, not read again.
     expect(monitorLookups()[0]!.projectId).toBe(PROJECT_ID.toString());

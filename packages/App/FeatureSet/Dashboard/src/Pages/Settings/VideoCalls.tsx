@@ -2,7 +2,9 @@ import PageComponentProps from "../PageComponentProps";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
+import VideoCallProvider, {
+  getVideoCallProviderDisplayName,
+} from "Common/Types/VideoCall/VideoCallProvider";
 import {
   VideoCallProviderCatalog,
   VideoCallProviderDefinition,
@@ -24,10 +26,18 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import {
+  VideoCallTestResult,
+  isVideoCallOAuthAvailable,
+  runVideoCallConnectionTest,
+} from "../../Components/VideoCall/VideoCallApi";
+import VideoCallConnectNotice from "../../Components/VideoCall/VideoCallConnectNotice";
 import VideoCallConnectionFormModal from "../../Components/VideoCall/VideoCallConnectionFormModal";
 import VideoCallConnectionsTable from "../../Components/VideoCall/VideoCallConnectionsTable";
+import VideoCallOAuthConnectModal from "../../Components/VideoCall/VideoCallOAuthConnectModal";
 import VideoCallProviderGallery from "../../Components/VideoCall/VideoCallProviderGallery";
 import VideoCallProviderLogo from "../../Components/VideoCall/VideoCallProviderLogo";
+import VideoCallTestPanel from "../../Components/VideoCall/VideoCallTestPanel";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
@@ -38,9 +48,21 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * across the top)? Which providers can hold a call (the gallery, where one
  * click starts a connection)? Which connections does this project have, and
  * do they work (the table, with a test that starts a real meeting)?
+ *
+ * Where this server has a provider's own app (OneUptime Cloud has all
+ * three), Connect signs in to the provider (VideoCallOAuthConnectModal) and
+ * comes back here with the connection made (VideoCallConnectNotice).
+ * Otherwise, and for anyone who asks to use their own app, it opens the
+ * connection form.
  */
 
 interface FormState {
+  provider: VideoCallProvider;
+  connection?: VideoCallConnection | undefined;
+}
+
+// The one-click Connect, or a reconnect of a connection made by signing in.
+interface SignInState {
   provider: VideoCallProvider;
   connection?: VideoCallConnection | undefined;
 }
@@ -110,6 +132,9 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [formState, setFormState] = useState<FormState | null>(null);
+  const [signInState, setSignInState] = useState<SignInState | null>(null);
+  const [testConnection, setTestConnection] =
+    useState<VideoCallConnection | null>(null);
   const [isChoosingProvider, setIsChoosingProvider] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
   const [connectionCounts, setConnectionCounts] = useState<
@@ -138,11 +163,23 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
     }
 
     setIsChoosingProvider(false);
+
+    if (isVideoCallOAuthAvailable(provider)) {
+      setSignInState({ provider });
+      return;
+    }
+
     setFormState({ provider });
   };
 
   return (
     <Fragment>
+      <VideoCallConnectNotice
+        onStartTest={(connection: VideoCallConnection): void => {
+          setTestConnection(connection);
+        }}
+      />
+
       <Card
         title="Video Calls"
         description="Give every incident and alert its own call. OneUptime starts a dedicated meeting when a notification rule fires and posts a Join button wherever the event's updates go."
@@ -163,7 +200,7 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
 
       <Card
         title="Providers"
-        description="Where a call can be held. Connect each provider once, with a service account, and pick it in as many rules as you like."
+        description="Where a call can be held. Connect each provider once and pick it in as many rules as you like."
       >
         <VideoCallProviderGallery
           connectionCounts={connectionCounts}
@@ -183,6 +220,11 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
         onEdit={(connection: VideoCallConnection) => {
           if (connection.provider) {
             setFormState({ provider: connection.provider, connection });
+          }
+        }}
+        onReconnect={(connection: VideoCallConnection) => {
+          if (connection.provider) {
+            setSignInState({ provider: connection.provider, connection });
           }
         }}
         onConnectionsLoaded={(connections: Array<VideoCallConnection>) => {
@@ -242,6 +284,53 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
               },
             )}
           </ul>
+        </Modal>
+      )}
+
+      {signInState && (
+        <VideoCallOAuthConnectModal
+          key={`${signInState.provider}-${signInState.connection?.id?.toString() || "new"}`}
+          provider={signInState.provider}
+          connection={signInState.connection}
+          onClose={() => {
+            setSignInState(null);
+          }}
+          onUseOwnApp={() => {
+            const provider: VideoCallProvider = signInState.provider;
+            setSignInState(null);
+            setFormState({ provider });
+          }}
+        />
+      )}
+
+      {testConnection && testConnection.id && (
+        <Modal
+          title={translator.translateTemplate("Test {{name}}", {
+            name:
+              testConnection.name ||
+              getVideoCallProviderDisplayName(testConnection.provider),
+          })}
+          description="OneUptime starts a real test meeting with this connection. If it works, the connection is ready to use."
+          modalWidth={ModalWidth.Medium}
+          closeButtonText="Close"
+          onClose={(): void => {
+            setTestConnection(null);
+            setRefreshCounter((value: number): number => {
+              return value + 1;
+            });
+          }}
+        >
+          <VideoCallTestPanel
+            providerTitle={getVideoCallProviderDisplayName(
+              testConnection.provider,
+            )}
+            startImmediately={true}
+            runTest={(): Promise<VideoCallTestResult> => {
+              return runVideoCallConnectionTest({
+                connectionId: testConnection.id!.toString(),
+              });
+            }}
+          />
         </Modal>
       )}
 

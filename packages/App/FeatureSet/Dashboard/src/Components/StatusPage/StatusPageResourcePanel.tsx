@@ -26,6 +26,9 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -1686,16 +1689,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       )}
 
       {resourceToShowIdFor ? (
-        <ConfirmModal
-          title={`${StatusPageResourceExplorerUtil.getResourceName(
+        // The same Show ID dialog every table opens: the ID, a copy button.
+        <RecordIdModal
+          recordId={resourceToShowIdFor._id}
+          recordName={StatusPageResourceExplorerUtil.getResourceName(
             resourceToShowIdFor,
-          )} ID`}
-          description={`Status Page Resource ID: ${
-            resourceToShowIdFor._id?.toString() || ""
-          }`}
-          submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={() => {
+          )}
+          itemName="Status Page Resource"
+          apiReferencePagePath={getApiReferencePagePath(
+            new StatusPageResource(),
+            { isBillingEnabled: BILLING_ENABLED },
+          )}
+          onClose={() => {
             setResourceToShowIdFor(null);
           }}
         />

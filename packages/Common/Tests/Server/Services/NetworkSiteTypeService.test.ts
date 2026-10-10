@@ -14,6 +14,22 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkSiteTypeService,
+    jest.spyOn(NetworkSiteTypeService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -718,7 +734,7 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
     expect(findBySpy).not.toHaveBeenCalled();
   });
 
-  it("reapplies the caller tenant before resolving rows matched by an update", async () => {
+  it("resolves the rows an update matches among those the caller may write, in their project", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteTypeService, "findBy")
       .mockResolvedValue([]);
@@ -730,9 +746,11 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
       ),
     );
 
-    expect(findBySpy.mock.calls[0]![0].query).toEqual(
+    expect(readsOfRowsCallerMayWrite(NetworkSiteTypeService)[0]!.query).toEqual(
       expect.objectContaining({ projectId: PROJECT_ID }),
     );
+    // None of them here: nothing more is read.
+    expect(findBySpy).not.toHaveBeenCalled();
   });
 
   it("honors the update limit and skip when selecting rows to validate", async () => {

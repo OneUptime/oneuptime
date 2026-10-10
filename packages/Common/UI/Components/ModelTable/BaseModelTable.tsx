@@ -1,5 +1,5 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
+import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
@@ -42,7 +42,6 @@ import {
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import CardMoreMenu from "../Card/CardMoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
@@ -54,12 +53,19 @@ import Field from "../Detail/Field";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
-import { ModelField, ModelFormOnBeforeCreate } from "../Forms/ModelForm";
+import {
+  ModelField,
+  ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
+} from "../Forms/ModelForm";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
 import List from "../List/List";
 import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
+import RecordIdModal from "../ObjectID/RecordIdModal";
+import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
+import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
@@ -219,6 +225,7 @@ export interface BaseTableCallbacks<
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
     onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+    onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
     onSuccess?: ((item: TBaseModel) => void) | undefined;
     onClose?: (() => void) | undefined;
     /*
@@ -330,6 +337,13 @@ export interface BaseTableProps<
   onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
   createInitialValues?: FormValues<TBaseModel> | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  /*
+   * Runs on the Edit form just before it saves, with the model, the misc
+   * data the request carries (what it adds there is sent) and every value
+   * the form holds - ModelForm's onBeforeUpdate. A custom field's option
+   * renames ride along this way (#4564).
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   // Runs after both create and edit; modalType identifies which form was saved.
   onCreateSuccess?:
     | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
@@ -750,8 +764,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.query || {},
   );
 
-  const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  /*
+   * The ID Show ID is showing, as text - null while its dialog is closed. A
+   * row's `_id` is a string on a database model but an ObjectID on an
+   * analytics row (a span, an LLM call), so it is read with getRecordIdText
+   * and never cast: the cast handed React an object (issue #4615).
+   */
   const [viewId, setViewId] = useState<string | null>(null);
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
@@ -2910,14 +2929,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         hideOnMobile: true,
         // A utility every row carries - it belongs in the ⋯ menu, not on the row.
         placement: ActionButtonPlacement.MoreMenu,
+        // Never offered on a row with no ID to show.
+        isVisible: (item: TBaseModel): boolean => {
+          return hasRecordId(item["_id"]);
+        },
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,
           onError: ErrorFunction,
         ) => {
           try {
-            setViewId(item["_id"] as string);
-            setShowViewIdModal(true);
+            setViewId(getRecordIdText(item["_id"]));
             onCompleteAction();
           } catch (err) {
             onError(err as Error);
@@ -5136,6 +5158,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
             return item;
           },
+          onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
             setCurrentPageNumber(1);
@@ -5161,7 +5184,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            */
           modelIdToEdit:
             modalType === ModalType.Edit && currentEditableItem
-              ? new ObjectID(currentEditableItem["_id"] as string)
+              ? new ObjectID(getRecordIdText(currentEditableItem["_id"]))
               : undefined,
           existingItems: modalType === ModalType.Create ? data : undefined,
         })
@@ -5216,65 +5239,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         />
       )}
 
-      {showViewIdModal && (
-        <ConfirmModal
-          title={translator.translateTemplate("{{itemName}} ID", {
-            itemName: translatableTerm(
-              props.singularName || model.singularName || "",
-            ),
+      {viewId !== null && (
+        /*
+         * The shared Show ID dialog: the ID on a row of its own with a copy
+         * button, and "Go to API Docs" only where the API Reference has a
+         * page for this model.
+         */
+        <RecordIdModal
+          recordId={viewId}
+          itemName={props.singularName || model.singularName || ""}
+          apiReferencePagePath={getApiReferencePagePath(model, {
+            isBillingEnabled: BILLING_ENABLED,
           })}
-          description={
-            <div>
-              <span>
-                {translator.translateTemplate("ID of this {{itemName}}:", {
-                  itemName: translatableTerm(
-                    props.singularName || model.singularName || "",
-                  ),
-                })}
-              </span>
-              {/*
-               * Handing over the id is the entire point of this dialog, and it
-               * used to be inline prose the user had to select by hand - an
-               * awkward drag over a 36-character UUID, and easy to clip a
-               * character. It gets its own row and a copy button now.
-               */}
-              <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                <code className="flex-1 break-all font-mono text-xs text-gray-800">
-                  {viewId}
-                </code>
-                <CopyTextButton
-                  textToBeCopied={viewId || ""}
-                  size="sm"
-                  title={tx("Copy ID to clipboard")}
-                />
-              </div>
-              <br />
-
-              <span>
-                {translator.translateTemplate(
-                  "You can use this ID to interact with {{itemName}} via the OneUptime API. Click the button below to go to API Reference.",
-                  {
-                    itemName: translatableTerm(
-                      props.singularName || model.singularName || "",
-                    ),
-                  },
-                )}
-              </span>
-            </div>
-          }
           onClose={() => {
-            setShowViewIdModal(false);
-          }}
-          closeButtonText="Close"
-          submitButtonText={"Go to API Docs"}
-          onSubmit={() => {
-            setShowViewIdModal(false);
-            Navigation.navigate(
-              URL.fromString(API_DOCS_URL.toString()).addRoute(
-                "/" + model.getAPIDocumentationPath(),
-              ),
-              { openInNewTab: true },
-            );
+            setViewId(null);
           }}
         />
       )}

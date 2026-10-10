@@ -3,6 +3,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { isVideoCallOAuth } from "../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallMeeting from "../../Types/VideoCall/VideoCallMeeting";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import VideoCallConnectionService, {
@@ -59,6 +60,10 @@ export default class VideoCallConnectionAPI extends BaseAPI<
      * Only a saved connection tested exactly as stored records the outcome
      * on the connection: a test of settings that were never saved says
      * nothing about the connection's health.
+     *
+     * A connection made by signing in is always tested with its own
+     * sign-in; the edit form's unsaved settings (who joins without waiting)
+     * may go over it, and secrets may not.
      */
     this.router.post(
       `${basePath}/test`,
@@ -111,11 +116,47 @@ export default class VideoCallConnectionAPI extends BaseAPI<
                 })
               ).meeting;
             } else {
-              const stored: { settings: VideoCallConnectionSettings } =
-                await this.service.getSettings({
-                  connectionId: new ObjectID(connectionId),
-                  projectId,
+              const stored: {
+                connection: VideoCallConnection;
+                settings: VideoCallConnectionSettings;
+              } = await this.service.getSettings({
+                connectionId: new ObjectID(connectionId),
+                projectId,
+              });
+
+              if (isVideoCallOAuth(stored.settings.authMethod)) {
+                /*
+                 * A connection made by signing in: the edit form's settings
+                 * over its sign-in, which no form sends.
+                 */
+                if (body["secrets"] !== undefined) {
+                  throw new BadDataException(
+                    "A connection made by signing in is tested with its own sign-in. Send only its configuration.",
+                  );
+                }
+
+                meeting = await VideoCallMeetingFactory.createMeeting({
+                  settings: VideoCallConnectionSettingsUtil.validateOAuth({
+                    provider: stored.settings.provider,
+                    config:
+                      body["config"] !== undefined
+                        ? VideoCallConnectionSettingsUtil.parseJsonObject(
+                            body["config"],
+                            "Configuration",
+                          )
+                        : stored.settings.config,
+                  }),
+                  request: TEST_MEETING_REQUEST,
+                  oauth: this.service.getOAuthAccess({
+                    connection: stored.connection,
+                  }),
                 });
+
+                return Response.sendJsonObjectResponse(req, res, {
+                  provider: meeting.provider,
+                  joinUrl: meeting.joinUrl,
+                });
+              }
 
               const settings: VideoCallConnectionSettings =
                 VideoCallConnectionSettingsUtil.validate({

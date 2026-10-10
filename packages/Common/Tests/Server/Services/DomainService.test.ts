@@ -8,6 +8,11 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -96,6 +101,12 @@ function buildService(rows: Array<Model> = []): Harness {
 
   const findBy: Spy = jest.spyOn(service, "findBy") as unknown as Spy;
   findBy.mockResolvedValue(rows);
+
+  /*
+   * The read of the rows a caller's update may write, which the update path
+   * makes before the hooks: what the read above answers.
+   */
+  stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
   return {
     internals: service as unknown as ServiceInternals,
@@ -446,8 +457,9 @@ describe("marking a domain verified requires the TXT record to be there", () => 
 describe("the verification read is scoped and only paid for when needed", () => {
   test("it is scoped to the caller's project", async () => {
     /*
-     * Tenant isolation on the read that feeds the check: without projectId the
-     * query could match another project's row and verify it.
+     * Tenant isolation on the read that feeds the check: the domains read are
+     * the ones the caller may write, found in their project, so no other
+     * project's row is ever verified.
      */
     const harness: Harness = buildService([
       existingRow("status.acme.com", VERIFICATION_TEXT),
@@ -455,18 +467,19 @@ describe("the verification read is scoped and only paid for when needed", () => 
 
     await harness.internals.onBeforeUpdate(updateBy({ isVerified: true }));
 
+    const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      harness.internals as never,
+    )[0]!;
+    expect(String(writable.query["projectId"])).toBe(PROJECT_ID.toString());
+
+    // Then those, by id, as root.
     const call: Record<string, unknown> = harness.findBy.mock
       .calls[0]![0] as Record<string, unknown>;
-    const query: Record<string, unknown> = call["query"] as Record<
-      string,
-      unknown
-    >;
-
-    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
-    expect(call["props"]).toEqual({ isRoot: true });
+    expect(call["query"]).toEqual({ _id: DOMAIN_ID.toString() });
+    expect(call["props"]).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
-  test("the project comes from the query when it carries one", async () => {
+  test("a query that names the project reads within it", async () => {
     const harness: Harness = buildService([
       existingRow("status.acme.com", VERIFICATION_TEXT),
     ]);
@@ -481,11 +494,10 @@ describe("the verification read is scoped and only paid for when needed", () => 
       ),
     );
 
-    const query: Record<string, unknown> = (
-      harness.findBy.mock.calls[0]![0] as Record<string, unknown>
-    )["query"] as Record<string, unknown>;
-
-    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      harness.internals as never,
+    )[0]!;
+    expect(String(writable.query["projectId"])).toBe(PROJECT_ID.toString());
   });
 
   test("with no project anywhere the update is refused, not run unscoped", async () => {

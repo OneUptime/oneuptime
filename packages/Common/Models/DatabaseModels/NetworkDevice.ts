@@ -507,6 +507,119 @@ export default class NetworkDevice extends BaseModel {
   public dnsName?: string = undefined;
 
   /*
+   * The name discovery gave this device, and where it came from (OneUptime
+   * issue #4518).
+   *
+   * Discovery names a device by the best name it can find: the device's own
+   * name (its SNMP system name, or the NetBIOS name a Windows host reports),
+   * then its DNS name, then its address (Utils/NetworkDevice/DeviceNameRule.ts).
+   * A scan does not always find the best one the first time — a NetBIOS reply
+   * is lost, a partial snapshot of a running sweep carries no names at all —
+   * so a later scan that finds a BETTER name renames the device to it, the
+   * same name a fresh import would have given it.
+   *
+   * Only while the device is still called exactly `discoveredName`. That is
+   * the whole of "never overwrite a name a person typed", and it needs no
+   * record of who wrote what: any rename — Settings, the API, Terraform, the
+   * Shorten Names to Hostname action, even one that only changes the case —
+   * leaves `name` different from `discoveredName`, and from then on the name
+   * is the person's. A re-save of the same name changes nothing.
+   *
+   * Set at import (the builder fills both, and NetworkDeviceService records
+   * the name the device is finally created under) and by the rename itself;
+   * empty on devices made by hand, and on devices imported before #4518,
+   * whose names are left exactly as they are. `discoveredName` is kept after a
+   * person renames the device: it stays the record of what discovery found.
+   *
+   * Created with the same access as `name`, because the Review dialog
+   * imports with the operator's own permissions and the create hook writes
+   * `discoveredName` beside the name before the column permissions are
+   * checked. Never UPDATED by anyone but the server: the rename pass writes
+   * both as root, and nothing else needs to. Were they editable, a user could
+   * mark a name they typed as discovered — and a later scan would rename it —
+   * or leave a stale `discoveredName` that the Overview's Name Source row and
+   * the rename pass would read differently. Left out of the Terraform
+   * configuration the dashboard writes (TerraformSchema
+   * SERVER_MANAGED_COLUMNS_BY_TABLE): it is the server's record, not a
+   * setting.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    // Server-managed after create: see above.
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Discovered Name",
+    description:
+      "The name a discovery scan gave this device. While the device is still called exactly this, a later scan that finds a better name for it (its own name instead of its DNS name or IP address) renames it. Rename the device yourself and discovery never changes its name again.",
+    example: "WB0024KDS03",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public discoveredName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    // Server-managed after create: see above.
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Discovered Name Source",
+    description:
+      "Where the discovered name came from: system-name (the name the device reports over SNMP), netbios-name (the computer name a Windows or Samba host reports over NetBIOS), dns-name (its reverse-DNS record) or address (its IP address). Empty for devices discovery did not name.",
+    example: "netbios-name",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public discoveredNameSource?: string = undefined;
+
+  /*
    * --- Which switch port is this device on? ---
    *
    * LLDP and CDP answer that for a device that speaks them. A device that

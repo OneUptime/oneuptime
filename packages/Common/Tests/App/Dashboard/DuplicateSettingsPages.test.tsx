@@ -96,6 +96,9 @@ jest.mock(
 
 const mockGetItem: MockFunction = getJestMockFunction();
 
+// A test that needs the project's records answers getList itself.
+const mockGetList: MockFunction = getJestMockFunction();
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -103,8 +106,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<unknown>): unknown => {
         return mockGetItem(...args);
       },
-      getList: async (): Promise<unknown> => {
-        return { data: [], count: 0, skip: 0, limit: 10 };
+      getList: async (...args: Array<unknown>): Promise<unknown> => {
+        return (
+          (await mockGetList(...args)) || {
+            data: [],
+            count: 0,
+            skip: 0,
+            limit: 10,
+          }
+        );
       },
     },
   };
@@ -128,6 +138,8 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Form from "../../../Models/DatabaseModels/Form";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import { JSONArray } from "../../../Types/JSON";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -244,6 +256,7 @@ async function renderPage(
 beforeEach(() => {
   mockDuplicateProps = null;
   mockGetItem.mockReset();
+  mockGetList.mockReset();
   mockGetItem.mockImplementation(async (): Promise<Monitor> => {
     const monitor: Monitor = new Monitor();
     monitor.monitorType = MonitorType.Manual;
@@ -379,12 +392,12 @@ describe("the form's Duplicate", () => {
     expect(props["prepareCopy"]).toBe(prepareFormCopy);
   });
 
-  test("the copy is saved turned off, whatever the original was", () => {
+  test("the copy is saved turned off, whatever the original was", async () => {
     const copy: Form = new Form();
     copy.isEnabled = true;
     copy.ipWhitelist = "10.0.0.0/8";
 
-    prepareFormCopy(copy);
+    await prepareFormCopy(copy);
 
     expect(copy.isEnabled).toBe(false);
     // An allowlist the original has is kept: never dropped silently.
@@ -393,16 +406,202 @@ describe("the form's Duplicate", () => {
 
   test.each([null, undefined, "", "  \n "])(
     "an allowlist the original does not have (%j) is not sent, so the copy needs no Scale plan",
-    (ipWhitelist: string | null | undefined) => {
+    async (ipWhitelist: string | null | undefined) => {
       const copy: Form = new Form();
       copy.ipWhitelist = ipWhitelist as string;
 
-      prepareFormCopy(copy);
+      await prepareFormCopy(copy);
 
       expect(copy.ipWhitelist).toBeUndefined();
       expect(copy.isEnabled).toBe(false);
     },
   );
+
+  /*
+   * The server judges a new form's templates whole, so the copy must not
+   * carry an answer to, or a setting for, a question removed since the
+   * template was saved: the original never used it, and it would get the
+   * copy refused.
+   */
+  test("the copy's templates keep their answers and settings for the form's questions, and only those", async () => {
+    const copy: Form = new Form();
+    copy.fields = [
+      {
+        id: "title",
+        source: "TargetField",
+        targetField: "title",
+        label: "Title",
+        isRequired: true,
+      },
+      {
+        id: "office",
+        source: "Question",
+        type: "Text",
+        label: "Office",
+        isRequired: false,
+      },
+    ] as unknown as JSONArray;
+    copy.templates = [
+      {
+        id: "outage",
+        name: "Outage",
+        isDefault: true,
+        answers: { title: "Down", removed: "x" },
+        fieldSettings: { office: "Required", removed: "Hidden" },
+      },
+      {
+        id: "plain",
+        name: "Plain",
+        answers: { title: "Up" },
+        fieldSettings: { removed: "Hidden" },
+      },
+    ] as unknown as JSONArray;
+
+    await prepareFormCopy(copy);
+
+    expect(copy.templates).toEqual([
+      {
+        id: "outage",
+        name: "Outage",
+        isDefault: true,
+        answers: { title: "Down" },
+        fieldSettings: { office: "Required" },
+      },
+      { id: "plain", name: "Plain", answers: { title: "Up" } },
+    ]);
+  });
+
+  test("a form without templates is copied without any", async () => {
+    const copy: Form = new Form();
+
+    await prepareFormCopy(copy);
+
+    expect(copy.templates).toBeUndefined();
+  });
+
+  const OFFICE_FORM_FIELDS: JSONArray = [
+    {
+      id: "title",
+      source: "TargetField",
+      targetField: "title",
+      label: "Title",
+      isRequired: true,
+    },
+    {
+      id: "office",
+      source: "Question",
+      type: "Dropdown",
+      dropdownOptions: "Berlin\nLondon",
+      label: "Office",
+      isRequired: false,
+    },
+  ] as unknown as JSONArray;
+
+  test("an answer its question would now refuse - an option removed since - is left behind too", async () => {
+    const copy: Form = new Form();
+    copy.fields = OFFICE_FORM_FIELDS;
+    copy.templates = [
+      {
+        id: "outage",
+        name: "Outage",
+        answers: { title: "Down", office: "Paris" },
+        fieldSettings: { office: "Required" },
+      },
+      {
+        id: "berlin",
+        name: "Berlin",
+        answers: { office: "Berlin" },
+      },
+    ] as unknown as JSONArray;
+
+    await prepareFormCopy(copy);
+
+    expect(copy.templates).toEqual([
+      {
+        id: "outage",
+        name: "Outage",
+        answers: { title: "Down" },
+        fieldSettings: { office: "Required" },
+      },
+      { id: "berlin", name: "Berlin", answers: { office: "Berlin" } },
+    ]);
+  });
+
+  test("a record a question no longer offers is left behind, read from the project's own records", async () => {
+    const SEVERITY_KEPT: string = "c1c1c1c1-0000-4000-8000-000000000001";
+    const SEVERITY_DELETED: string = "c1c1c1c1-0000-4000-8000-000000000002";
+
+    mockGetList.mockImplementation(async (): Promise<unknown> => {
+      return {
+        data: [{ _id: SEVERITY_KEPT, name: "Critical" }],
+        count: 1,
+        skip: 0,
+        limit: 10,
+      };
+    });
+
+    const copy: Form = new Form();
+    copy.fields = [
+      {
+        id: "severity",
+        source: "TargetField",
+        targetField: "incidentSeverityId",
+        label: "Severity",
+        isRequired: false,
+      },
+    ] as unknown as JSONArray;
+    copy.templates = [
+      { id: "kept", name: "Kept", answers: { severity: SEVERITY_KEPT } },
+      { id: "gone", name: "Gone", answers: { severity: SEVERITY_DELETED } },
+    ] as unknown as JSONArray;
+
+    await prepareFormCopy(copy);
+
+    // The current project's severities, read once.
+    expect(mockGetList).toHaveBeenCalledTimes(1);
+    expect(mockGetList.mock.calls[0]?.[0]).toMatchObject({
+      modelType: IncidentSeverity,
+      query: { projectId: PROJECT_ID },
+    });
+    expect(copy.templates).toEqual([
+      { id: "kept", name: "Kept", answers: { severity: SEVERITY_KEPT } },
+      { id: "gone", name: "Gone", answers: {} },
+    ]);
+  });
+
+  test("when the project's records cannot be read, the copy keeps what the questions' ids allow", async () => {
+    mockGetList.mockImplementation(async (): Promise<never> => {
+      throw new Error("The network is down.");
+    });
+
+    const copy: Form = new Form();
+    copy.fields = [
+      ...OFFICE_FORM_FIELDS,
+      {
+        id: "severity",
+        source: "TargetField",
+        targetField: "incidentSeverityId",
+        label: "Severity",
+        isRequired: false,
+      },
+    ] as unknown as JSONArray;
+    copy.templates = [
+      {
+        id: "outage",
+        name: "Outage",
+        answers: { office: "Paris", removed: "x" },
+        fieldSettings: { removed: "Hidden" },
+      },
+    ] as unknown as JSONArray;
+
+    await prepareFormCopy(copy);
+
+    // Still turned off, and the removed question's answer and setting gone.
+    expect(copy.isEnabled).toBe(false);
+    expect(copy.templates).toEqual([
+      { id: "outage", name: "Outage", answers: { office: "Paris" } },
+    ]);
+  });
 });
 
 /*

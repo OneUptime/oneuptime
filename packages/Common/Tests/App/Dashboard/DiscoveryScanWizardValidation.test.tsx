@@ -2815,11 +2815,16 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
     }
   });
 
-  test("the title says which hosts it is for", async () => {
+  test("the title says what it looks up: the Windows name, over NetBIOS (issue #4518)", async () => {
     await renderPage();
 
     expect(fieldNamed(KEY).title).toContain("NetBIOS");
-    expect(fieldNamed(KEY).title).toContain("DNS");
+    expect(fieldNamed(KEY).title).toContain("Windows");
+    /*
+     * It no longer says "for hosts DNS doesn't name": since #4518 the probe
+     * asks hosts DNS named too, so the old title would be false.
+     */
+    expect(fieldNamed(KEY).title).not.toContain("DNS");
   });
 
   /*
@@ -2827,16 +2832,20 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
    * on their network, and each clause answers a question that would otherwise
    * be asked after an alert fired or a name failed to appear.
    */
-  test("the description says it is best-effort, which hosts answer, and that only unnamed hosts are asked", async () => {
+  test("the description says it is best-effort, which hosts answer, that every host SNMP did not name is asked, and that the name beats DNS (issue #4518)", async () => {
     await renderPage();
 
     const description: string = fieldNamed(KEY).description || "";
 
     expect(description).toContain("Best-effort");
     expect(description).toContain("Windows and Samba");
-    expect(description).toContain("no SNMP name and no reverse-DNS name");
-    // The name is the host's own claim; the Review dialog flags it per row.
+    expect(description).toContain("each host that has no SNMP name");
+    // Hosts reverse DNS named are asked too now: the old wording would lie.
+    expect(description).not.toContain("no SNMP name and no reverse-DNS name");
+    // The name is the host's own, its Windows computer name, and it wins.
     expect(description).toContain("reports for itself");
+    expect(description).toContain("its Windows computer name");
+    expect(description).toContain("ahead of the host's reverse-DNS name");
   });
 
   test("the description names the port, and the firewall rule it needs", async () => {
@@ -2872,22 +2881,26 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
   });
 
   /*
-   * The "Device names" heading explains how a host is named, in order. With
-   * NetBIOS in that order it has to be in the sentence too, between the
-   * reverse-DNS name and the address — where the builder puts it.
+   * The "Device names" heading explains how a host is named, in order — the
+   * one naming rule's order (DeviceNameRule): the device's own names first,
+   * SNMP then NetBIOS, then the reverse-DNS name, then the address (#4518).
    */
-  test("the Device names section describes NetBIOS in the naming order", async () => {
+  test("the Device names section describes the naming order: own names, then DNS, then the address", async () => {
     await renderPage();
 
     const sectionDescription: string = fieldNamed(KEY).sectionDescription || "";
 
-    const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
+    const ownName: number = sectionDescription.indexOf("its own name first");
+    const snmp: number = sectionDescription.indexOf("SNMP");
     const netbios: number = sectionDescription.indexOf("NetBIOS name");
+    const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
     const address: number = sectionDescription.indexOf("its address");
 
-    expect(reverseDns).toBeGreaterThan(-1);
-    expect(netbios).toBeGreaterThan(reverseDns);
-    expect(address).toBeGreaterThan(netbios);
+    expect(ownName).toBeGreaterThan(-1);
+    expect(snmp).toBeGreaterThan(ownName);
+    expect(netbios).toBeGreaterThan(snmp);
+    expect(reverseDns).toBeGreaterThan(netbios);
+    expect(address).toBeGreaterThan(reverseDns);
   });
 });
 

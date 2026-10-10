@@ -9,6 +9,11 @@ import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitors
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
+import {
+  DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
+  DEVICE_NAME_SOURCE_FIELD_TITLE,
+  getDeviceNameSourceLabel,
+} from "../../../Components/NetworkDevice/DeviceNameSourceDisplay";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -114,6 +119,13 @@ const NetworkDeviceView: FunctionComponent<
           modelType: NetworkDevice,
           id: "network-device-details",
           modelId: modelId,
+          /*
+           * The name discovery gave the device: the Name Source row below is
+           * shown only while the device is still called exactly that.
+           */
+          selectMoreFields: {
+            discoveredName: true,
+          },
           fields: [
             {
               field: {
@@ -121,6 +133,34 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "Name",
               fieldType: FieldType.Text,
+            },
+            /*
+             * Where the name came from, while a discovery scan's name is
+             * still the device's name (OneUptime issue #4518). A later scan
+             * that finds a better name renames such a device, and a device
+             * that can rename itself has to say so before it does. Hidden for
+             * a device a person named, one made by hand, and one imported
+             * before #4518 - which is most of them.
+             */
+            {
+              field: {
+                discoveredNameSource: true,
+              },
+              title: DEVICE_NAME_SOURCE_FIELD_TITLE,
+              description: DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
+              fieldType: FieldType.Element,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(getDeviceNameSourceLabel(item));
+              },
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <span>
+                    {translator.translateText(
+                      getDeviceNameSourceLabel(item) || "",
+                    )}
+                  </span>
+                );
+              },
             },
             {
               field: {

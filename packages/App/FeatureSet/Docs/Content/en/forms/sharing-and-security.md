@@ -133,7 +133,7 @@ The message says what is wrong: a required answer is missing or only spaces, an 
 
 ### A question is not on the form
 
-The builder flags questions it leaves off the public form — a custom field that was deleted, for example — and **Preview** says when it leaves one out. See [When the builder flags a question](/docs/forms/building#when-the-builder-flags-a-question). A question with a **Hidden** badge is left off on purpose: only templates answer it. See [Hidden questions](/docs/forms/building#hidden-questions).
+The builder flags questions it leaves off the public form — a custom field that was deleted, for example — and **Preview** says when it leaves one out. See [When the builder flags a question](/docs/forms/building#when-the-builder-flags-a-question). A question with a **Hidden** badge is left off on purpose: only templates answer it. See [Hidden questions](/docs/forms/building#hidden-questions). A question can also be on the form for one template and off it for another: each template can make a question hidden, or ask one the form hides. Open the template's **Edit** and check its **Questions**. See [How a template asks each question](/docs/forms/building#how-a-template-asks-each-question).
 
 ### A template does not fill in a question
 

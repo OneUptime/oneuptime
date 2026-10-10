@@ -72,6 +72,9 @@ import { AddWorkflowLastSavedBy1800600000000 } from "./1800600000000-AddWorkflow
 import { AddWorkflowLastSavedByForeignKey1800650000000 } from "./1800650000000-AddWorkflowLastSavedByForeignKey";
 import { AddHuntressConnections1800700000000 } from "./1800700000000-AddHuntressConnections";
 import { AddPacketCapture1800800000000 } from "./1800800000000-AddPacketCapture";
+import { AddNetworkDeviceDiscoveredName1800900000000 } from "./1800900000000-AddNetworkDeviceDiscoveredName";
+import { AddVideoCallConnectionSignIn1801000000000 } from "./1801000000000-AddVideoCallConnectionSignIn";
+import { AddVideoCallConnectionSignInIndex1801050000000 } from "./1801050000000-AddVideoCallConnectionSignInIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1344,4 +1347,7 @@ export default [
   AddWorkflowLastSavedByForeignKey1800650000000,
   AddHuntressConnections1800700000000,
   AddPacketCapture1800800000000,
+  AddNetworkDeviceDiscoveredName1800900000000,
+  AddVideoCallConnectionSignIn1801000000000,
+  AddVideoCallConnectionSignInIndex1801050000000,
 ];

@@ -16,6 +16,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import VideoCallAuthMethod from "../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "../../Types/VideoCall/VideoCallProvider";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -67,9 +68,11 @@ const settingsReadPermissions: Array<Permission> = [
 ];
 
 /*
- * One provider a project starts incident and alert video calls with: a Zoom
- * Server-to-Server OAuth app, a Google service account, a Microsoft Entra
- * app registration, or a standing meeting link. The provider decides which
+ * One provider a project starts incident and alert video calls with: a Zoom,
+ * Google or Microsoft account someone signed in with (the one-click Connect,
+ * authMethod OAuth), the project's own Zoom Server-to-Server OAuth app,
+ * Google service account or Microsoft Entra app registration (authMethod
+ * AppCredentials), or a standing meeting link. The provider decides which
  * keys `config` and `secrets` carry - see VideoCallProviderCatalog - and
  * which meeting client creates the calls.
  *
@@ -208,6 +211,67 @@ export default class VideoCallConnection extends BaseModel {
 
   @ColumnAccessControl({
     create: [...adminPermissions, Permission.CreateVideoCallConnection],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Auth Method",
+    description:
+      "How this connection signs in to its provider: OAuth when someone connected it by signing in to Zoom, Google or Microsoft (Connect in Project Settings > Video Calls), AppCredentials when it uses the project's own app - a Zoom Server-to-Server OAuth app, a Google service account or a Microsoft Entra app registration. Empty for a meeting link. Fixed once created. A connection made by signing in is created by signing in, never through the API.",
+    example: "OAuth",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public authMethod?: VideoCallAuthMethod = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: settingsReadPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Connected Account",
+    description:
+      "For a connection made by signing in: the Zoom, Google or Microsoft account that signed in, which every meeting is created as. Set by OneUptime when someone connects or reconnects, and cleared when the account removes OneUptime.",
+    example: "incidents@example.com",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public connectedAccount?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: settingsReadPermissions,
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Connected Account ID",
+    description:
+      "For a connection made by signing in: the provider's id of the account that signed in (a Zoom user ID, a Google account ID, a Microsoft Entra object ID). Connections signed in as the same account share one sign-in, because Zoom keeps only one per account.",
+    example: "KdYKjnimT4KPd8FFgQt9FQ",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public connectedAccountId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [...adminPermissions, Permission.CreateVideoCallConnection],
     read: settingsReadPermissions,
     update: [...adminPermissions, Permission.EditVideoCallConnection],
   })
@@ -240,7 +304,7 @@ export default class VideoCallConnection extends BaseModel {
     encrypted: true,
     title: "Credentials",
     description:
-      "Provider-specific secrets (a client secret or a service account key) as a JSON object. Encrypted at rest and never returned by the API.",
+      "Provider-specific secrets (a client secret or a service account key) as a JSON object. Encrypted at rest and never returned by the API. A connection made by signing in keeps its sign-in's tokens here, which only OneUptime writes.",
   })
   @Column({
     nullable: true,
