@@ -30,6 +30,18 @@ const CARDS_OPEN: RegExp = /^:::\s*cards\s*$/;
 const CONTAINER_CLOSE: RegExp = /^:::\s*$/;
 // A diagram's title, which a translation translates.
 const DIAGRAM_TITLE: RegExp = /\btitle="[^"]+"/;
+const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+
+/*
+ * The text with Persian digits written as Latin ones. A number the code
+ * defines is then found on a page that writes numbers as its language does:
+ * the Persian Dashboard draws "30 minutes" as "۳۰ دقیقه".
+ */
+export function toLatinDigits(text: string): string {
+  return text.replace(/[۰-۹]/g, (digit: string): string => {
+    return String(PERSIAN_DIGITS.indexOf(digit));
+  });
+}
 
 // A card's line: its link, then an ASCII ": " and the description.
 export const CARD_LINE: RegExp = /^- \[[^\]]+\]\([^)\s]+\): \S/;
