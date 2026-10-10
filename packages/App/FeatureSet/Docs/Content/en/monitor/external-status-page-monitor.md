@@ -126,7 +126,7 @@ You can configure criteria to decide when the external service is considered onl
 
 The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **Active Incidents** and **Component Status** are usually more reliable.
 
-On an RSS or Atom feed, items published in the last 24 hours count as active incidents.
+On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date.
 
 ### Default Criteria
 
