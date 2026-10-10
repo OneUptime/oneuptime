@@ -1,6 +1,6 @@
-import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import RunbookCredentialReaders from "../../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
+import RelationListPermission from "../../../../Server/Types/Database/Permissions/RelationListPermission";
 import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -16,7 +16,9 @@ import Permission, {
   UserPermission,
 } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * WHO MAY LET A COMMAND RUN WITH A RUNBOOK CREDENTIAL (RunbookCredentialReaders).
@@ -30,11 +32,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   - a person, an API key: whoever holds a read of runbook credentials
  *     that no block takes away;
  *   - OneUptime itself and a master admin: always;
- *   - a workflow's step: never by its own Project Admin permissions - the
- *     person who last saved the workflow's steps, as they are in the step's
- *     project when the step asks. A workflow whose steps were saved by
- *     nobody (an API key, or before OneUptime recorded who saved them) may
- *     not.
+ *   - a workflow's step: never. It acts as a Project Admin, who may read
+ *     runbook credentials, but that read is not lent to it, whoever saved
+ *     the workflow and whatever its variables, webhooks and runs hand it -
+ *     no one is looked up.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -43,16 +44,17 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "c1000000-0000-4000-8000-000000000002",
 );
-const SAVER_ID: ObjectID = new ObjectID("c1000000-0000-4000-8000-000000000003");
 
 function person(data: {
   permissions: Array<Permission>;
   blocked?: Array<Permission> | undefined;
+  userType?: UserType | undefined;
 }): DatabaseCommonInteractionProps {
   return {
     tenantId: PROJECT_ID,
-    userId: ObjectID.generate(),
-    userType: UserType.User,
+    userId:
+      data.userType === UserType.API ? undefined : ObjectID.generate(),
+    userType: data.userType || UserType.User,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
@@ -81,35 +83,30 @@ function person(data: {
   } as unknown as DatabaseCommonInteractionProps;
 }
 
-function step(
-  savedBy: ObjectID | null = SAVER_ID,
-): DatabaseCommonInteractionProps {
+function step(): DatabaseCommonInteractionProps {
   return WorkflowPrincipal.getPropsWithoutPlan({
     projectId: PROJECT_ID,
     workflowId: WORKFLOW_ID,
     workflowName: "Turn on AI commands",
-    savedByUserId: savedBy,
   });
 }
 
 describe("RunbookCredentialReaders", () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   describe("for a person or an API key", () => {
     it.each([
       ["Read Runbook Credential", [Permission.ReadRunbookCredential]],
       ["Project Owner", [Permission.ProjectOwner]],
       ["Project Admin", [Permission.ProjectAdmin]],
-    ])(
-      "lets whoever holds %s",
-      async (_label: string, permissions: Array<Permission>) => {
-        await expect(
-          RunbookCredentialReaders.mayRead(person({ permissions })),
-        ).resolves.toBe(true);
-      },
-    );
+    ])("lets whoever holds %s", (_label: string, permissions: Array<Permission>) => {
+      expect(RunbookCredentialReaders.mayRead(person({ permissions }))).toBe(
+        true,
+      );
+      expect(
+        RunbookCredentialReaders.mayRead(
+          person({ permissions, userType: UserType.API }),
+        ),
+      ).toBe(true);
+    });
 
     it.each([
       ["Project Member", [Permission.ProjectMember]],
@@ -122,50 +119,37 @@ describe("RunbookCredentialReaders", () => {
       ["Workflow Admin", [Permission.WorkflowAdmin]],
     ])(
       "does not let whoever holds only %s",
-      async (_label: string, permissions: Array<Permission>) => {
-        await expect(
-          RunbookCredentialReaders.mayRead(person({ permissions })),
-        ).resolves.toBe(false);
+      (_label: string, permissions: Array<Permission>) => {
+        expect(RunbookCredentialReaders.mayRead(person({ permissions }))).toBe(
+          false,
+        );
       },
     );
 
-    it("a block on Read Runbook Credential takes it away, even from an admin", async () => {
-      await expect(
+    it("a block on Read Runbook Credential takes it away, even from an admin", () => {
+      expect(
         RunbookCredentialReaders.mayRead(
           person({
             permissions: [Permission.ProjectAdmin],
             blocked: [Permission.ReadRunbookCredential],
           }),
         ),
-      ).resolves.toBe(false);
+      ).toBe(false);
     });
 
-    it("lets OneUptime itself and a master admin", async () => {
-      await expect(
+    it("lets OneUptime itself and a master admin", () => {
+      expect(
         RunbookCredentialReaders.mayRead({
           isRoot: true,
         } as DatabaseCommonInteractionProps),
-      ).resolves.toBe(true);
+      ).toBe(true);
 
-      await expect(
+      expect(
         RunbookCredentialReaders.mayRead({
           isMasterAdmin: true,
           tenantId: PROJECT_ID,
         } as DatabaseCommonInteractionProps),
-      ).resolves.toBe(true);
-    });
-
-    it("never looks anyone else up", async () => {
-      const lookUp: jest.SpyInstance = jest.spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      );
-
-      await RunbookCredentialReaders.mayRead(
-        person({ permissions: [Permission.ProjectMember] }),
-      );
-
-      expect(lookUp).not.toHaveBeenCalled();
+      ).toBe(true);
     });
 
     it("adds nothing to a refusal", () => {
@@ -178,159 +162,126 @@ describe("RunbookCredentialReaders", () => {
   });
 
   describe("for a workflow's step", () => {
-    let saver: DatabaseCommonInteractionProps | null;
-    let lookUp: jest.SpyInstance;
-
-    beforeEach(() => {
-      saver = person({ permissions: [Permission.WorkflowAdmin] });
-
-      lookUp = jest
-        .spyOn(
-          AccessTokenService,
-          "getDatabaseCommonInteractionPropsByUserAndProject",
-        )
-        .mockImplementation(
-          async (data: {
-            userId: ObjectID;
-            projectId: ObjectID;
-          }): Promise<DatabaseCommonInteractionProps> => {
-            if (!saver) {
-              return {
-                userId: data.userId,
-                tenantId: data.projectId,
-                userTenantAccessPermission: {
-                  [data.projectId.toString()]: null,
-                },
-              } as unknown as DatabaseCommonInteractionProps;
-            }
-
-            return { ...saver, userId: data.userId };
-          },
-        );
-    });
-
-    it("acts as a Project Admin, which reads runbook credentials - and that is not what is asked", async () => {
+    it("acts as a Project Admin, which reads runbook credentials - and is never lent that read", () => {
       expect(
         new RunbookCredential()
           .getReadPermissions()
           .includes(WorkflowPrincipal.PERMISSION),
       ).toBe(true);
 
-      await expect(RunbookCredentialReaders.mayRead(step())).resolves.toBe(
-        false,
-      );
+      expect(RunbookCredentialReaders.mayRead(step())).toBe(false);
     });
 
-    it("asks about the person who last saved the workflow, in the step's project", async () => {
-      await RunbookCredentialReaders.mayRead(step());
+    it("is not lent it by any permission it might carry, not even Read Runbook Credential itself", () => {
+      const props: DatabaseCommonInteractionProps = step();
 
-      expect(lookUp).toHaveBeenCalledTimes(1);
-
-      const asked: { userId: ObjectID; projectId: ObjectID } = lookUp.mock
-        .calls[0]![0] as { userId: ObjectID; projectId: ObjectID };
-
-      expect(asked.userId.toString()).toBe(SAVER_ID.toString());
-      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
-    });
-
-    it.each([
-      ["Read Runbook Credential", [Permission.ReadRunbookCredential]],
-      ["Project Owner", [Permission.ProjectOwner]],
-      ["Project Admin", [Permission.ProjectAdmin]],
-    ])(
-      "lets it when the person who last saved it holds %s",
-      async (_label: string, permissions: Array<Permission>) => {
-        saver = person({ permissions });
-
-        await expect(RunbookCredentialReaders.mayRead(step())).resolves.toBe(
-          true,
-        );
-      },
-    );
-
-    it("does not let it when the person who last saved it may not read credentials", async () => {
-      await expect(RunbookCredentialReaders.mayRead(step())).resolves.toBe(
-        false,
-      );
-    });
-
-    it("does not let it when a block takes the read away from the person who last saved it", async () => {
-      saver = person({
-        permissions: [Permission.ProjectAdmin],
-        blocked: [Permission.ReadRunbookCredential],
-      });
-
-      await expect(RunbookCredentialReaders.mayRead(step())).resolves.toBe(
-        false,
-      );
-    });
-
-    it("does not let it when the person who last saved it is no longer a member", async () => {
-      saver = null;
-
-      await expect(RunbookCredentialReaders.mayRead(step())).resolves.toBe(
-        false,
-      );
-    });
-
-    it("does not let it, and looks nobody up, when the workflow names nobody as its last saver", async () => {
-      await expect(RunbookCredentialReaders.mayRead(step(null))).resolves.toBe(
-        false,
+      props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push(
+        {
+          _type: "UserPermission",
+          permission: Permission.ReadRunbookCredential,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectOwner,
+          labelIds: [],
+          isBlockPermission: false,
+        },
       );
 
-      expect(lookUp).not.toHaveBeenCalled();
+      expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
     });
 
-    it("does not let it, and looks nobody up, for a step with no project", async () => {
+    it("is not lent it whatever the step's props name besides: a user, a person's type, the step's run", () => {
+      const props: DatabaseCommonInteractionProps = {
+        ...step(),
+        userId: ObjectID.generate(),
+      };
+
+      expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
+    });
+
+    it("is answered without a project, too", () => {
       const props: DatabaseCommonInteractionProps = step();
       delete props.tenantId;
 
-      await expect(RunbookCredentialReaders.mayRead(props)).resolves.toBe(
-        false,
-      );
-
-      expect(lookUp).not.toHaveBeenCalled();
+      expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
     });
 
-    it("says in a refusal whose permission was asked about, and how to let the workflow do it", () => {
+    it("says in a refusal that no step has the permission, so a person has to make the change", () => {
       const note: string = RunbookCredentialReaders.getWorkflowNote(step());
 
-      expect(note).toContain(
-        "the person who last saved the workflow's steps has it, and they do not",
+      expect(note).toBe(
+        " Workflow steps never have this permission, so a person who has it has to make this change.",
       );
-      expect(note).toContain(
-        "Ask someone who has it to save the workflow's steps.",
+      expect(note).not.toContain("saved");
+    });
+
+    it("is the same answer the check of the records a write names gives (RelationListPermission)", () => {
+      expect(RelationListPermission.mayReadTable(RunbookCredential, step())).toBe(
+        false,
       );
     });
   });
 
   it("names who may by the read list of runbook credentials", () => {
+    expect(RunbookCredentialReaders.getReadPermissions()).toEqual(
+      new RunbookCredential().getReadPermissions(),
+    );
+
     expect(RunbookCredentialReaders.getTitles()).toBe(
       PermissionHelper.getPermissionTitles(
         new RunbookCredential().getReadPermissions(),
       ).join(", "),
     );
   });
+
+  it("is synchronous: nothing is looked up to answer it", () => {
+    const answer: unknown = RunbookCredentialReaders.mayRead(
+      person({ permissions: [Permission.ProjectAdmin] }),
+    );
+
+    expect(typeof answer).toBe("boolean");
+  });
+
+  /*
+   * The workflow's last saver is gone: nothing reads who saved a workflow's
+   * steps to answer a step (RunbookCredentialReaders imports no service,
+   * and no props carry a saver).
+   */
+  it("asks no one who saved a workflow", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../Server/Utils/AutoRemediation/RunbookCredentialReaders.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/AccessTokenService|SavedBy|lastSaved/);
+    expect(source).not.toMatch(/from "\.\.\/\.\.\/Services\//);
+  });
 });
 
 /*
- * EVERY RECORD THAT NAMES A RUNBOOK CREDENTIAL IS ONE WHOSE SERVICE ASKS
- * THIS RULE.
+ * EVERY RECORD THAT NAMES A RUNBOOK CREDENTIAL IS ONE WHOSE WRITE IS HELD TO
+ * THE RULE.
  *
- * The check of the records a write names (RelationListPermission) answers a
- * workflow's step by its own Project Admin read, which may read runbook
- * credentials. So each record that may name one has a service that asks
- * RunbookCredentialReaders before it is named, which asks a step's saver -
- * pinned here with where. A new one fails this test until its service asks
- * too and it is added.
+ * A record that names a runbook credential in a field of its own is held to
+ * the caller's read of runbook credentials by the check of the records a
+ * write names (RelationListPermission: the settings that hold credentials),
+ * which refuses a workflow's step outright - and, where naming it lets
+ * OneUptime AI use it, by its service too. Pinned here with where; a new one
+ * fails this test until it is looked at and added.
  */
 const NAMES_A_RUNBOOK_CREDENTIAL: Record<string, string> = {
   "KubernetesCluster.aiAccessCredential":
-    "KubernetesClusterService.assertMayChangeAiAccess, which asks it before a credential is bound",
+    "KubernetesClusterService.assertMayChangeAiAccess asks RunbookCredentialReaders before a credential is bound",
 };
 
 describe("the records that name a runbook credential", () => {
-  it("are each held to the rule by their service", () => {
+  it("are each held to the rule", () => {
     const runbookCredentialTable: string = new RunbookCredential().tableName!;
     const found: Array<string> = [];
 
@@ -355,6 +306,10 @@ describe("the records that name a runbook credential", () => {
 
     expect(found.sort()).toEqual(
       Object.keys(NAMES_A_RUNBOOK_CREDENTIAL).sort(),
+    );
+
+    expect(RelationListPermission.isHeldToTableRead(RunbookCredential)).toBe(
+      true,
     );
   });
 });

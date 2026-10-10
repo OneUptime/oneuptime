@@ -10,6 +10,9 @@ import AiCommandCredentialReach, {
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
 import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -40,17 +43,21 @@ import InMemoryLocks from "../TestingUtils/InMemoryLocks";
  * (RunnerService); this is the other side of the same rule
  * (RunbookCredentialService):
  *
- *   - creating an SSH credential with a Runner that runs AI commands, or
- *     adding one to an SSH credential's Runners, is refused to someone who
- *     may not read credentials, with the Runner and who may named;
- *   - Runners that do not run AI commands, a Kubernetes credential, Runners
- *     the credential has already and clearing its Runners ask nothing more;
+ *   - creating an SSH credential with a Runner that runs AI commands is
+ *     refused to someone who may not read credentials, with the Runner and
+ *     who may named;
+ *   - Runners that do not run AI commands, a Kubernetes credential and no
+ *     Runners at all ask nothing more;
  *   - whoever may read credentials, and OneUptime itself, are let through
  *     without a look-up of the Runners, and without the lock;
- *   - every such write by anyone else holds its project's lock from before
+ *   - every such create by anyone else holds its project's lock from before
  *     the Runners are read until it is written or has failed, keeps it
  *     right before the write, and is refused, to be saved again, when the
- *     lock cannot be had or was lost.
+ *     lock cannot be had or was lost;
+ *   - giving a credential Runners afterwards is an update, which only
+ *     someone who may read credentials can make (changing a record takes
+ *     the read of it): it takes no lock, and anyone else who reaches the
+ *     hook - a workflow's step - is refused before anything is read.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -619,244 +626,186 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
     });
   });
 
-  describe("giving an SSH credential more Runners", () => {
-    it("refuses adding a Runner that runs AI commands for someone who may not read credentials", async () => {
+  describe("giving a credential Runners afterwards (an update)", () => {
+    it("refuses someone who may not read credentials before anything is read, and takes no lock", async () => {
       const message: string = await refusal(
         hooks.onBeforeUpdate(update([PLAIN_RUNNER, AI_RUNNER])),
       );
 
-      expect(message).toContain('Runner "office-runner"');
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
-    });
-
-    it("asks only about the Runners it adds: one the credential has already is not asked about again", async () => {
-      credentials[0]!.runners = [AI_RUNNER];
-
-      const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
-        update([AI_RUNNER, PLAIN_RUNNER]),
+      expect(message).toBe(
+        RunbookCredentialServiceClass.getRunnersWriteRefusal(CREDENTIAL_WRITER),
       );
-
-      const lookUps: Array<FindBy<Runner>> = aiRunnerLookUps();
-      expect(lookUps).toHaveLength(1);
-      expect(
-        idsNamedBy((lookUps[0]!.query as unknown as JSONObject)["_id"]),
-      ).toEqual([PLAIN_RUNNER]);
-
-      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
-    });
-
-    it("re-posting the Runners the credential has asks nothing, and still holds the lock until written", async () => {
-      credentials[0]!.runners = [AI_RUNNER, PLAIN_RUNNER];
-
-      const updateBy: UpdateBy<RunbookCredential> = update([
-        PLAIN_RUNNER,
-        AI_RUNNER,
-      ]);
-      const onUpdate: OnUpdate<RunbookCredential> =
-        await hooks.onBeforeUpdate(updateBy);
-
-      expect(aiRunnerLookUps()).toHaveLength(0);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(true);
-
-      await hooks.onUpdatePermitted(onUpdate.updateBy);
-      expect(locks.eventsOf("keep")).toHaveLength(1);
-
-      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
-    });
-
-    it("reads the Runners the credential holds again under the lock: one taken off it since the update first read it counts as added", async () => {
-      // As the update first reads the credential: it holds both Runners.
-      credentialFindBy.mockImplementationOnce(
-        async (): Promise<Array<RunbookCredential>> => {
-          return [
-            {
-              _id: CREDENTIAL_ID,
-              id: new ObjectID(CREDENTIAL_ID),
-              projectId: PROJECT_ID,
-              credentialType: RunbookCredentialType.SSH,
-              runners: [AI_RUNNER, PLAIN_RUNNER].map((id: string): Runner => {
-                return { _id: id } as unknown as Runner;
-              }),
-            } as unknown as RunbookCredential,
-          ];
-        },
+      expect(message).toBe(
+        `Assigning a runbook credential to Runners takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.`,
       );
-
-      // As it is once the lock is held: the Runner that runs AI commands was taken off it.
-      credentials[0]!.runners = [PLAIN_RUNNER];
-
-      // A form posting the Runners it held when it was opened.
-      const message: string = await refusal(
-        hooks.onBeforeUpdate(update([AI_RUNNER, PLAIN_RUNNER])),
-      );
-
-      expect(message).toContain('Runner "office-runner"');
-      expect(credentialFindBy).toHaveBeenCalledTimes(2);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
-    });
-
-    it("clearing a credential's Runners assigns nothing: no lock, no read", async () => {
-      await expect(hooks.onBeforeUpdate(update([]))).resolves.toBeDefined();
-
-      expect(credentialFindBy).not.toHaveBeenCalled();
-      expect(locks.eventsOf("lock")).toEqual([]);
-    });
-
-    it("an update that does not write the Runners asks nothing", async () => {
-      await expect(
-        hooks.onBeforeUpdate(update(undefined)),
-      ).resolves.toBeDefined();
-
-      expect(credentialFindBy).not.toHaveBeenCalled();
-      expect(locks.eventsOf("lock")).toEqual([]);
-    });
-
-    it("asks nothing for a Kubernetes credential's Runners, and takes no lock", async () => {
-      credentials[0]!.credentialType = RunbookCredentialType.Kubernetes;
-
-      await expect(
-        hooks.onBeforeUpdate(update([AI_RUNNER])),
-      ).resolves.toBeDefined();
-
-      expect(aiRunnerLookUps()).toHaveLength(0);
-      expect(locks.eventsOf("lock")).toEqual([]);
-    });
-
-    it("lets someone who may read credentials add one, with no look-up and no lock", async () => {
-      const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
-        update(
-          [PLAIN_RUNNER, AI_RUNNER],
-          caller({ permissions: [Permission.ProjectAdmin] }),
-        ),
-      );
-
       expect(aiRunnerLookUps()).toHaveLength(0);
       expect(credentialFindBy).not.toHaveBeenCalled();
-      expect(
-        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
-      ).toBeNull();
-
-      await hooks.onUpdatePermitted(onUpdate.updateBy);
-      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
       expect(locks.events).toEqual([]);
     });
 
-    it("reads only the credentials' type and project before the lock, and their Runners under it", async () => {
-      const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
-        update([PLAIN_RUNNER]),
-      );
+    it("refuses it whichever Runners are posted: one that runs no AI commands, or the ones the credential has", async () => {
+      for (const posted of [[PLAIN_RUNNER], [AI_RUNNER, PLAIN_RUNNER]]) {
+        await refusal(hooks.onBeforeUpdate(update(posted)));
+      }
 
-      const selects: Array<JSONObject> = credentialFindBy.mock.calls.map(
-        (call: Array<unknown>): JSONObject => {
-          return (call[0] as { select: JSONObject }).select;
-        },
-      );
-
-      expect(selects).toHaveLength(2);
-      expect(selects[0]!["runners"]).toBeUndefined();
-      expect(selects[0]!["credentialType"]).toBe(true);
-      expect(selects[1]!["runners"]).toBeDefined();
-
-      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
+      expect(locks.events).toEqual([]);
     });
 
-    it("reads the credentials the update writes and holds the update to them", async () => {
-      credentials.push({
-        _id: OTHER_CREDENTIAL_ID,
-        projectId: PROJECT_ID,
-        credentialType: RunbookCredentialType.SSH,
-        runners: [],
-      });
+    it("refuses a workflow's step, though it acts as a Project Admin, and says a person has to assign them", async () => {
+      const step: DatabaseCommonInteractionProps =
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: new ObjectID("ce000000-0000-4000-8000-000000000031"),
+          workflowName: "Hand the web hosts key to the new Runner",
+        });
 
-      const updateBy: UpdateBy<RunbookCredential> = update(
-        [PLAIN_RUNNER],
-        CREDENTIAL_WRITER,
-        { name: "web-hosts" },
+      const message: string = await refusal(
+        hooks.onBeforeUpdate(update([PLAIN_RUNNER], step)),
       );
 
-      const onUpdate: OnUpdate<RunbookCredential> =
-        await hooks.onBeforeUpdate(updateBy);
-
-      expect(
-        idsNamedBy((updateBy.query as unknown as JSONObject)["_id"]).sort(),
-      ).toEqual([CREDENTIAL_ID, OTHER_CREDENTIAL_ID].sort());
-      expect(updateBy.limit).toBe(2);
-
-      await hooks.onUpdateSuccess(onUpdate, []);
+      expect(message).toContain(
+        "Assigning a runbook credential to Runners takes permission to read runbook credentials",
+      );
+      expect(message).toContain(
+        "Workflow steps never have this permission, so a person who has it has to make this change.",
+      );
+      expect(aiRunnerLookUps()).toHaveLength(0);
+      expect(locks.events).toEqual([]);
     });
 
-    it("refuses an update over several credentials when it adds a Runner that runs AI commands to one", async () => {
-      credentials.push({
-        _id: OTHER_CREDENTIAL_ID,
-        projectId: PROJECT_ID,
-        credentialType: RunbookCredentialType.SSH,
-        runners: [AI_RUNNER],
+    it.each([
+      ["Read Runbook Credential", [Permission.ReadRunbookCredential]],
+      ["Project Owner", [Permission.ProjectOwner]],
+      ["Project Admin", [Permission.ProjectAdmin]],
+    ])(
+      "lets someone with %s give one any Runners, with no look-up and no lock",
+      async (_label: string, permissions: Array<Permission>) => {
+        const props: DatabaseCommonInteractionProps = caller({
+          permissions: [Permission.EditRunbookCredential, ...permissions],
+        });
+
+        const onUpdate: OnUpdate<RunbookCredential> =
+          await hooks.onBeforeUpdate(update([PLAIN_RUNNER, AI_RUNNER], props));
+
+        expect(onUpdate.carryForward).toBeNull();
+        expect(aiRunnerLookUps()).toHaveLength(0);
+        expect(credentialFindBy).not.toHaveBeenCalled();
+        expect(locks.events).toEqual([]);
+      },
+    );
+
+    it("lets someone who may read credentials save while Valkey cannot be reached, or another change holds the lock", async () => {
+      const props: DatabaseCommonInteractionProps = caller({
+        permissions: [Permission.ProjectAdmin],
       });
 
-      await refusal(
+      locks.unreachable = true;
+
+      await expect(
+        hooks.onBeforeUpdate(update([AI_RUNNER], props)),
+      ).resolves.toBeDefined();
+
+      locks.unreachable = false;
+      locks.busy.add(lockKey);
+
+      await expect(
+        hooks.onBeforeUpdate(update([AI_RUNNER], props)),
+      ).resolves.toBeDefined();
+    });
+
+    it("clearing a credential's Runners, or not writing them, asks nothing of anyone", async () => {
+      for (const posted of [[], undefined]) {
+        await expect(
+          hooks.onBeforeUpdate(update(posted)),
+        ).resolves.toBeDefined();
+      }
+
+      expect(aiRunnerLookUps()).toHaveLength(0);
+      expect(locks.events).toEqual([]);
+    });
+
+    it("lets OneUptime itself through", async () => {
+      await expect(
         hooks.onBeforeUpdate(
-          update([AI_RUNNER], CREDENTIAL_WRITER, { name: "web-hosts" }),
+          update([AI_RUNNER], { isRoot: true } as DatabaseCommonInteractionProps),
         ),
-      );
-
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
+      ).resolves.toBeDefined();
     });
 
-    it("keeps the lock right before the write, and refuses the write when it was lost", async () => {
+    it("keeps nothing right before the write and gives nothing back after it", async () => {
       const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
-        update([PLAIN_RUNNER]),
+        update([AI_RUNNER], caller({ permissions: [Permission.ProjectAdmin] })),
       );
 
-      locks.lose(lockKey, LOCK_NAMESPACE);
-
-      await expect(hooks.onUpdatePermitted(onUpdate.updateBy)).rejects.toThrow(
-        CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
-      );
-    });
-
-    it("gives the lock back when the update fails after its check", async () => {
-      const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
-        update([PLAIN_RUNNER]),
-      );
-
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(true);
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
 
       const error: Exception = new BadDataException("The UPDATE failed.");
       await expect(hooks.onUpdateError(error, onUpdate)).resolves.toBe(error);
 
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
-    });
-
-    it("refuses, to be saved again, when the lock cannot be had", async () => {
-      locks.busy.add(lockKey);
-
-      await expect(
-        hooks.onBeforeUpdate(update([PLAIN_RUNNER])),
-      ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
+      expect(locks.events).toEqual([]);
     });
   });
 
-  describe("the Runners added", () => {
-    it("are the ones written that the credential does not have, whatever their case", () => {
-      expect(
-        RunbookCredentialServiceClass.getRunnersAdded({
-          held: [{ _id: AI_RUNNER.toUpperCase() }],
-          written: [new ObjectID(AI_RUNNER), new ObjectID(PLAIN_RUNNER)],
-        }).map((id: ObjectID): string => {
-          return id.toString();
-        }),
-      ).toEqual([PLAIN_RUNNER]);
+  /*
+   * A WRITE NEEDS A READ. Changing a runbook credential reaches its update
+   * hook only for a caller who may read runbook credentials
+   * (TablePermission.checkTableLevelReadForWrite refuses everyone else
+   * first), by the same read RunbookCredentialReaders asks. So the hook's
+   * refusal is only ever met by a workflow's step - which acts as a Project
+   * Admin, is never lent the read, and has no workflow component that
+   * writes a runbook credential.
+   */
+  describe("who reaches the update hook", () => {
+    function canUpdate(props: DatabaseCommonInteractionProps): boolean {
+      try {
+        TablePermission.checkTableLevelReadForWrite(
+          RunbookCredential,
+          props,
+          DatabaseRequestType.Update,
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    it("is, for every permission a person or an API key holds, someone who may read runbook credentials", () => {
+      const wrong: Array<string> = [];
+
+      for (const permission of Object.values(Permission) as Array<Permission>) {
+        for (const props of [
+          caller({ permissions: [permission] }),
+          caller({ permissions: [Permission.EditRunbookCredential, permission] }),
+          caller({
+            permissions: [Permission.ProjectAdmin, permission],
+            blocked: [Permission.ReadRunbookCredential],
+          }),
+        ]) {
+          if (canUpdate(props) && !RunbookCredentialReaders.mayRead(props)) {
+            wrong.push(permission);
+          }
+        }
+      }
+
+      expect(wrong).toEqual([]);
     });
 
-    it("are all of them for a credential with none", () => {
-      expect(
-        RunbookCredentialServiceClass.getRunnersAdded({
-          held: undefined,
-          written: [new ObjectID(AI_RUNNER)],
-        }),
-      ).toHaveLength(1);
+    it("refuses an editor who may not read credentials before the hook, as a write needs a read", () => {
+      expect(canUpdate(CREDENTIAL_WRITER)).toBe(false);
+      expect(RunbookCredentialReaders.mayRead(CREDENTIAL_WRITER)).toBe(false);
+    });
+
+    it("lets a workflow's step past the read, which is why the hook refuses it itself - and no workflow step writes a runbook credential", () => {
+      const step: DatabaseCommonInteractionProps =
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: new ObjectID("ce000000-0000-4000-8000-000000000032"),
+        });
+
+      expect(canUpdate(step)).toBe(true);
+      expect(RunbookCredentialReaders.mayRead(step)).toBe(false);
+      expect(new RunbookCredential().enableWorkflowOn).toBeUndefined();
     });
   });
 });
