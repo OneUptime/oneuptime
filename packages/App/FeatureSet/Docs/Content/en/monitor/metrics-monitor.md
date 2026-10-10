@@ -163,7 +163,7 @@ A criteria of **Metric** `a`, **Condition** **Greater Than**, **Threshold** `100
 
 ## Per-Series Alerting (Group By)
 
-**Group By** on a metric query splits that query into one series per unique attribute value — one per host, one per container, one per mountpoint — and a monitor with Group By set evaluates every series independently. That single setting is the difference between "the fleet is unhealthy" and "`prod-db-01` is unhealthy".
+**Group by** on a metric query splits that query into one series per unique attribute value — one per host, one per container, one per mountpoint — and a monitor with Group By set evaluates every series independently. That single setting is the difference between "the fleet is unhealthy" and "`prod-db-01` is unhealthy".
 
 ### One alert per group
 
