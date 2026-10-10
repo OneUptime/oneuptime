@@ -229,6 +229,9 @@ const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // Code in rendered HTML: a code block or an inline code span.
 const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
 
+// A rendered HTML tag, whose attributes may hold underscores of their own.
+const HTML_TAG: RegExp = /<[^>]*>/g;
+
 function englishPage(page: string): string {
   return readPage("en", page);
 }
@@ -285,11 +288,13 @@ function unbalancedLines(markdown: string): Array<string> {
 
 /*
  * A page as the docs route draws it, without its title line, and the
- * asterisks left in its text: a bold span CommonMark did not close. A span
- * that ends in punctuation and runs straight into a letter, as in
- * "**リクエストタイムアウト（秒）**を", is not closed, and its asterisks show.
+ * emphasis markers left in its text: a bold or italic span CommonMark did
+ * not close. A bold span that ends in punctuation and runs straight into a
+ * letter, as in "**リクエストタイムアウト（秒）**を", is not closed, and its
+ * asterisks show. An underscore never closes inside a word, so "_之后_的"
+ * shows both underscores.
  */
-async function strayAsterisks(
+async function strayMarkers(
   markdown: string,
   language: string,
 ): Promise<Array<string>> {
@@ -300,8 +305,11 @@ async function strayAsterisks(
   return html
     .replace(RENDERED_CODE, "")
     .split("\n")
+    .map((line: string): string => {
+      return line.replace(HTML_TAG, "");
+    })
     .filter((line: string): boolean => {
-      return line.includes("**");
+      return line.includes("**") || line.includes("_");
     });
 }
 
@@ -535,9 +543,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(unbalancedLines(readPage(language, entry.page))).toEqual([]);
     });
 
-    it("draws every bold span as bold, with no asterisks left on the page", async () => {
+    it("draws every bold and italic span, with no asterisks or underscores left on the page", async () => {
       expect(
-        await strayAsterisks(readPage(language, entry.page), language),
+        await strayMarkers(readPage(language, entry.page), language),
       ).toEqual([]);
     });
 
@@ -672,15 +680,35 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("find asterisks the renderer leaves when a bold span runs into a letter", async () => {
     expect(
-      await strayAsterisks(
+      await strayMarkers(
         "# Title\n\n**リクエストタイムアウト（秒）**を設定します。",
         "ja",
       ),
     ).toHaveLength(1);
     expect(
-      await strayAsterisks(
+      await strayMarkers(
         "# Title\n\n**リクエストタイムアウト（秒）** を設定します。",
         "ja",
+      ),
+    ).toEqual([]);
+  });
+
+  it("find underscores the renderer leaves when an italic span sits inside a word", async () => {
+    expect(
+      await strayMarkers("# Title\n\n在第一次尝试_之后_的重试。", "zh-CN"),
+    ).toHaveLength(1);
+    // An asterisk italic may sit inside a word; an underscore one may not.
+    expect(
+      await strayMarkers("# Title\n\n在第一次尝试*之后*的重试。", "zh-CN"),
+    ).toEqual([]);
+    expect(
+      await strayMarkers("# Title\n\nRetries _after_ the first one.", "en"),
+    ).toEqual([]);
+    // Underscores in code and in link targets are not emphasis.
+    expect(
+      await strayMarkers(
+        "# Title\n\nSet `PROBE_MONITOR_RETRY_LIMIT` [here](/docs/a_b).",
+        "en",
       ),
     ).toEqual([]);
   });
