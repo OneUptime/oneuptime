@@ -252,24 +252,47 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
     jest.restoreAllMocks();
   });
 
-  test("Bash without an agent fails with a pointer to the Agents page", async () => {
+  /*
+   * The step names the page the Runner picker sends people to, Runbooks →
+   * Runners, as the SSH and Kubernetes steps do and the running page's
+   * troubleshooting quotes. It used to send them to "Runbooks → Agents",
+   * which no menu has had since Runners moved under Runbooks.
+   */
+  test("Bash without a Runner fails with a pointer to the Runners page", async () => {
     const result: StepRunResult = await runBashStep(
       makeBashStep({ agentId: "  " }),
       makeCtx(),
     );
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("missing a Runbook Agent");
+    expect(result.errorMessage).toBe(
+      "Bash step is missing a Runner. Pick one under Runbooks → Runners.",
+    );
   });
 
-  test("JavaScript without an agent fails with a pointer to the Agents page", async () => {
+  test("JavaScript without a Runner fails with a pointer to the Runners page", async () => {
     const result: StepRunResult = await runJavaScriptStep(
       makeJsStep({ agentId: "" }),
       makeCtx(),
     );
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("missing a Runbook Agent");
+    expect(result.errorMessage).toBe(
+      "JavaScript step is missing a Runner. Pick one under Runbooks → Runners. JavaScript never runs on the OneUptime Worker.",
+    );
+  });
+
+  test("no step without a Runner sends people to a Runbooks → Agents page that does not exist", async () => {
+    const results: Array<StepRunResult> = [
+      await runBashStep(makeBashStep({ agentId: "" }), makeCtx()),
+      await runJavaScriptStep(makeJsStep({ agentId: "" }), makeCtx()),
+    ];
+
+    for (const result of results) {
+      expect(result.errorMessage).not.toContain("Agents");
+      expect(result.errorMessage).not.toContain("Runbook Agent");
+      expect(result.errorMessage).toContain("Runbooks → Runners");
+    }
   });
 
   test("agent IDs are passed through verbatim to the job targeting", async () => {
