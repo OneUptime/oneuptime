@@ -191,7 +191,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主機** | 探測器可以連到的資料庫主機（例如 `db.internal`）。 |
 | **連接埠** | 資料庫連接埠。 |
 | **資料庫名稱** | 要連線的資料庫。資料庫範圍的指標（大小、快取命中率、溢出到暫存檔）會針對這個資料庫回報；伺服器範圍的指標（連線、運作時間、複寫）會針對整個伺服器回報——Azure SQL Database 除外，在那裡只計算受監控資料庫的連線。 |
-| **Use Windows Integrated Authentication** | 僅限 Microsoft SQL Server。使用探測器處理程序的身分進行驗證，而不是使用者名稱和密碼。請參閱 SQL Query 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor)——設定方式完全相同。 |
+| **Use Windows Integrated Authentication** | 僅限 Microsoft SQL Server。使用探測器處理程序的身分進行驗證，而不是使用者名稱和密碼。請參閱 SQL Query 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor#windows-整合式驗證)——設定方式完全相同。 |
 | **使用者名稱** | 監控使用者。除非使用 Windows 整合式驗證，否則為必填。 |
 | **密碼** | 密碼。請用 `{{monitorSecrets.name}}` 參照[監測器密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入（請參閱[使用監測器密鑰](#用監測器密鑰保存密碼)）。 |
 | **Use SSL/TLS** | 透過 TLS 連線。啟用後，對於自我簽署憑證，可以關閉 **Verify server certificate**。 |
