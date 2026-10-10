@@ -22,6 +22,16 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * The Overview page was folded into Conversations, which carries its
+       * numbers above the list. Old links and bookmarks land there. Mounted
+       * outside the layout, as the other route groups mount their forwards.
+       */}
+      <PageRoute
+        path={LlmRoutePath[PageMap.LLM_OVERVIEW] || ""}
+        element={<MovedPageRedirect pageMap={PageMap.LLM_CONVERSATIONS} />}
+      />
+
       <PageRoute path="/" element={<LlmLayout {...props} />}>
         <PageRoute
           index
@@ -31,15 +41,6 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={RouteMap[PageMap.LLM] as Route}
             />
           }
-        />
-
-        {/*
-         * The Overview page was folded into Conversations, which carries its
-         * numbers above the list. Old links and bookmarks land there.
-         */}
-        <PageRoute
-          path={LlmRoutePath[PageMap.LLM_OVERVIEW] || ""}
-          element={<MovedPageRedirect pageMap={PageMap.LLM_CONVERSATIONS} />}
         />
 
         <PageRoute

@@ -160,7 +160,13 @@ const LlmAlertsView: FunctionComponent = (): ReactElement => {
     ModelAction.Create,
   );
 
-  const canCreate: boolean = Boolean(createButton);
+  /*
+   * The gate can hand back a locked button (disabled, with a tooltip naming
+   * the missing permission) instead of none. A locked button is not
+   * permission to create, so the template cards then say so instead of
+   * linking to a form that cannot be saved.
+   */
+  const canCreate: boolean = Boolean(createButton && !createButton.disabled);
   const budgetsRoute: Route = RouteUtil.getPageRoute(PageMap.LLM_BUDGETS);
 
   return (

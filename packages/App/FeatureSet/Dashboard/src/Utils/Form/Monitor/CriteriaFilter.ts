@@ -687,23 +687,33 @@ export default class CriteriaFilterUtil {
     /*
      * The AI / LLM numbers are compared by LlmMonitorCriteria with
      * CompareCriteria.compareCriteriaNumbers: these six conditions, and no
-     * anomaly baseline behind any of them.
+     * anomaly baseline behind any of them. Greater Than leads, so a new
+     * filter reads "more than 5% of answers were bad" rather than "exactly
+     * 5%".
      */
     if (
       checkOn === CheckOn.LlmBadAnswerPercent ||
       checkOn === CheckOn.LlmBadAnswerCount ||
       checkOn === CheckOn.LlmAnswerCount
     ) {
-      options = options.filter((i: DropdownOption) => {
-        return (
-          i.value === FilterType.GreaterThan ||
-          i.value === FilterType.GreaterThanOrEqualTo ||
-          i.value === FilterType.LessThan ||
-          i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.EqualTo ||
-          i.value === FilterType.NotEqualTo
-        );
-      });
+      const llmComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ];
+
+      options = llmComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter((option: DropdownOption | undefined): option is DropdownOption => {
+          return Boolean(option);
+        });
     }
 
     if (
