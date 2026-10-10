@@ -16,6 +16,9 @@ import MonitorStepLogMonitor, {
 import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "./MonitorStepSecurityEventsMonitor";
+import MonitorStepLlmMonitor, {
+  MonitorStepLlmMonitorUtil,
+} from "./MonitorStepLlmMonitor";
 import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
@@ -185,6 +188,9 @@ export interface MonitorStepType {
   // Security events monitor type.
   securityEventsMonitor?: MonitorStepSecurityEventsMonitor | undefined;
 
+  // AI / LLM monitor type: what makes an answer bad, and where to look.
+  llmMonitor?: MonitorStepLlmMonitor | undefined;
+
   // trace monitor type.
   traceMonitor?: MonitorStepTraceMonitor | undefined;
 
@@ -283,6 +289,7 @@ export default class MonitorStep extends DatabaseProperty {
       retryCount: undefined,
       logMonitor: undefined,
       securityEventsMonitor: undefined,
+      llmMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
       exceptionMonitor: undefined,
@@ -354,6 +361,10 @@ export default class MonitorStep extends DatabaseProperty {
       securityEventsMonitor:
         arg.monitorType === MonitorType.SecurityEvents
           ? MonitorStepSecurityEventsMonitorUtil.getDefault()
+          : undefined,
+      llmMonitor:
+        arg.monitorType === MonitorType.Llm
+          ? MonitorStepLlmMonitorUtil.getDefault()
           : undefined,
       traceMonitor:
         arg.monitorType === MonitorType.Traces
@@ -611,6 +622,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setLlmMonitor(llmMonitor: MonitorStepLlmMonitor): MonitorStep {
+    this.data!.llmMonitor = llmMonitor;
+    return this;
+  }
+
   public setMetricMonitor(
     metricMonitor: MonitorStepMetricMonitor,
   ): MonitorStep {
@@ -785,6 +801,7 @@ export default class MonitorStep extends DatabaseProperty {
         retryCount: undefined,
         logMonitor: undefined,
         securityEventsMonitor: undefined,
+        llmMonitor: undefined,
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
@@ -1174,6 +1191,9 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.securityEventsMonitor,
               )
             : undefined,
+          llmMonitor: this.data.llmMonitor
+            ? MonitorStepLlmMonitorUtil.toJSON(this.data.llmMonitor)
+            : undefined,
           metricMonitor: this.data.metricMonitor
             ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor)
             : undefined,
@@ -1371,6 +1391,18 @@ export default class MonitorStep extends DatabaseProperty {
         ? (json["securityEventsMonitor"] as JSONObject)
         : undefined,
       /*
+       * Normalized on the way in, like domainMonitor below: a step written
+       * by the API, a template or by hand need not carry every field, and
+       * the check reads each one.
+       */
+      llmMonitor: json["llmMonitor"]
+        ? MonitorStepLlmMonitorUtil.toJSON(
+            MonitorStepLlmMonitorUtil.fromJSON(
+              json["llmMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
+      /*
        * Normalize rather than pass the raw JSON straight through. Steps saved
        * by older builds can carry a metricMonitor with no metricViewConfig,
        * and every consumer downstream assumes the type's contract holds.
@@ -1514,6 +1546,7 @@ export default class MonitorStep extends DatabaseProperty {
         retryCount: Zod.number().optional(),
         logMonitor: Zod.any().optional(),
         securityEventsMonitor: Zod.any().optional(),
+        llmMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
         profileMonitor: Zod.any().optional(),

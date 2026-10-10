@@ -275,18 +275,78 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
  * an LLM span (isLlmSpan), so it is listed on AI / LLM > Overview under
  * Recent LLM Calls, with `model` in its Model column.
  */
+/*
+ * What a person said and what the AI answered, sent the way the current
+ * OpenTelemetry GenAI conventions record them, with the conversation the
+ * call belongs to - enough for the call to show as a conversation.
+ */
+export interface LlmCallConversation {
+  conversationId: string;
+  question: string;
+  answer: string;
+  userEmail?: string | undefined;
+}
+
 type PostOtlpLlmCallFunction = (data: {
   page: Page;
   ingestionKey: string;
   serviceName: string;
   model: string;
+  conversation?: LlmCallConversation | undefined;
 }) => Promise<void>;
+
+function conversationAttributes(
+  conversation: LlmCallConversation | undefined,
+): Array<{ key: string; value: { stringValue: string } }> {
+  if (!conversation) {
+    return [];
+  }
+
+  return [
+    {
+      key: "gen_ai.conversation.id",
+      value: { stringValue: conversation.conversationId },
+    },
+    {
+      key: "gen_ai.input.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "user",
+            parts: [{ type: "text", content: conversation.question }],
+          },
+        ]),
+      },
+    },
+    {
+      key: "gen_ai.output.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "assistant",
+            parts: [{ type: "text", content: conversation.answer }],
+            finish_reason: "stop",
+          },
+        ]),
+      },
+    },
+    ...(conversation.userEmail
+      ? [
+          {
+            key: "user.email",
+            value: { stringValue: conversation.userEmail },
+          },
+        ]
+      : []),
+  ];
+}
 
 export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
   page: Page;
   ingestionKey: string;
   serviceName: string;
   model: string;
+  conversation?: LlmCallConversation | undefined;
 }): Promise<void> => {
   const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
     .addRoute("/otlp/v1/traces")
@@ -344,6 +404,7 @@ export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
                       key: "gen_ai.usage.output_tokens",
                       value: { intValue: "3" },
                     },
+                    ...conversationAttributes(data.conversation),
                   ],
                   status: { code: 1 },
                 },

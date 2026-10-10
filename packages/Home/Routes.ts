@@ -50,7 +50,7 @@ import {
 import { generateNostrWellKnown } from "./Utils/Nostr";
 import {
   generateMicrosoftIdentityAssociation,
-  MicrosoftIdentityAssociationPath,
+  MicrosoftIdentityAssociationPaths,
 } from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
@@ -253,7 +253,7 @@ const HomeFeatureSet: FeatureSet = {
      * lists no apps - see Home/Utils/MicrosoftIdentityAssociation.ts.
      */
     app.get(
-      MicrosoftIdentityAssociationPath,
+      MicrosoftIdentityAssociationPaths,
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader("Cache-Control", "public, max-age=600");
         res.json(generateMicrosoftIdentityAssociation({ host: Host }));

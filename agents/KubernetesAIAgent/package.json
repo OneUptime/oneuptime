@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/kubernetes-ai-agent",
-  "version": "14.0.30",
+  "version": "14.0.31",
   "description": "OneUptime Kubernetes AI agent — runs the kubectl commands OneUptime AI asks for inside your cluster, with its own ServiceAccount (read-only unless you allow fixes).",
   "repository": {
     "type": "git",

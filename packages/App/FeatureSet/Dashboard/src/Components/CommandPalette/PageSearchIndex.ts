@@ -1485,9 +1485,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         pages: [
           {
-            page: PageMap.LLM_OVERVIEW,
-            title: "Overview",
-            icon: IconProp.ChartBar,
+            page: PageMap.LLM_CONVERSATIONS,
+            title: "Conversations",
+            icon: IconProp.ChatBubbleLeftRight,
+            keywords: [
+              "chats",
+              "sessions",
+              "replay",
+              "prompts",
+              "answers",
+              "transcript",
+            ],
+          },
+          {
+            page: PageMap.LLM_CALLS,
+            title: "Calls",
+            icon: IconProp.List,
+            keywords: ["llm calls", "prompts", "completions"],
           },
           {
             page: PageMap.LLM_USAGE,
@@ -1496,10 +1510,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["tokens", "llm cost"],
           },
           {
-            page: PageMap.LLM_CALLS,
-            title: "LLM Calls",
-            icon: IconProp.List,
-            keywords: ["prompts", "completions"],
+            page: PageMap.LLM_ALERTS,
+            title: "Alerts",
+            icon: IconProp.Bell,
+            keywords: [
+              "ai alerts",
+              "bad answers",
+              "refusals",
+              "hallucination",
+              "ai monitor",
+            ],
           },
           {
             page: PageMap.LLM_BUDGETS,

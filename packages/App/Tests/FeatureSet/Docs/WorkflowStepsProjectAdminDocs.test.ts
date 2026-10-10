@@ -210,17 +210,23 @@ describe("every language's Configuration page has the section", () => {
   )(
     "%s: a section on Project Admin steps, just before the plan limits",
     (locale: string) => {
-      const page: string = read(locale, CONFIGURATION);
-      const headings: Array<string> = page
-        .split("\n")
-        .filter((line: string): boolean => {
+      const headingsOf: (markdown: string) => Array<string> = (
+        markdown: string,
+      ): Array<string> => {
+        return markdown.split("\n").filter((line: string): boolean => {
           return line.startsWith("## ");
         });
+      };
+      const english: Array<string> = headingsOf(read("en", CONFIGURATION));
+      const page: string = read(locale, CONFIGURATION);
+      const headings: Array<string> = headingsOf(page);
+      const at: number = english.indexOf(HEADING);
 
-      // The section is the eleventh heading, and the plan limits the twelfth.
-      expect(headings).toHaveLength(14);
+      // The translation has the English page's sections, in its order.
+      expect(headings).toHaveLength(english.length);
+      expect(english[at + 1]).toBe("## Plan limits");
 
-      const text: string = section(page, headings[10]!);
+      const text: string = section(page, headings[at]!);
 
       expect(text).toContain("**Project Admin**");
       expect(text).toContain("**Project Owner**");

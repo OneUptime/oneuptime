@@ -51,6 +51,14 @@ enum MonitorType {
   SecurityEvents = "Security Events",
 
   /*
+   * AI / LLM answers: counts the answers the project's AI gave in a window
+   * and how many were bad - failed, refused, cut off, empty, flagged by an
+   * evaluation, or slower than a limit (MonitorStepLlmMonitor). The value
+   * is stored on monitors; never rename it.
+   */
+  Llm = "AI / LLM",
+
+  /*
    * Network device monitoring (SNMP-based). Replaced the retired SNMP
    * monitor type. The referenced NetworkDevice resource owns everything
    * about data collection — credentials, polling schedule, interface
@@ -193,6 +201,7 @@ export class MonitorTypeHelper {
           MonitorType.Traces,
           MonitorType.Exceptions,
           MonitorType.SecurityEvents,
+          MonitorType.Llm,
           /*
            * MonitorType.Profiles is intentionally not offered here: the
            * dashboard has no configuration form for the profile monitor
@@ -218,6 +227,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Exceptions ||
       monitorType === MonitorType.Profiles ||
       monitorType === MonitorType.SecurityEvents ||
+      monitorType === MonitorType.Llm ||
       monitorType === MonitorType.Kubernetes ||
       monitorType === MonitorType.Docker ||
       monitorType === MonitorType.Host ||
@@ -687,6 +697,29 @@ export class MonitorTypeHelper {
         ],
       },
       {
+        monitorType: MonitorType.Llm,
+        title: "AI / LLM",
+        description:
+          "Alert when your AI answers badly: failed, refused, cut-off, empty, flagged or slow answers.",
+        icon: IconProp.Sparkles,
+        keywords: [
+          "ai",
+          "llm",
+          "genai",
+          "gen ai",
+          "chatbot",
+          "agent",
+          "openai",
+          "anthropic",
+          "claude",
+          "gpt",
+          "gemini",
+          "hallucination",
+          "refusal",
+          "answer quality",
+        ],
+      },
+      {
         monitorType: MonitorType.Exceptions,
         title: "Exceptions",
         description: "Alert on exceptions and error groups from any source.",
@@ -951,6 +984,7 @@ export class MonitorTypeHelper {
       MonitorType.Exceptions,
       MonitorType.Profiles,
       MonitorType.SecurityEvents,
+      MonitorType.Llm,
       MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,
