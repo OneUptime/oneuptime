@@ -14,6 +14,8 @@ import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import VMwareCollectionStatusCard from "../../../Components/VMware/VMwareCollectionStatusCard";
+import { isProbeCollected } from "../../../Components/VMware/VMwareProbeCollectionView";
 import { getVMwareVCenterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
@@ -1090,6 +1092,7 @@ const VMwareVCenterOverview: FunctionComponent<
           otelCollectorStatus: true,
           lastSeenAt: true,
           agentVersion: true,
+          collectionMethod: true,
           datacenterCount: true,
           clusterCount: true,
           hostCount: true,
@@ -2388,18 +2391,28 @@ const VMwareVCenterOverview: FunctionComponent<
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
 
-      {/* How to connect it, while it is not connected */}
-      <ResourceConnectionGuideCard
-        status={vcenter.otelCollectorStatus as string | undefined}
-        lastSeenAt={vcenter.lastSeenAt}
-        guide={getVMwareVCenterConnectionGuide(
-          (vcenter.name as string | undefined) || "",
-        )}
-        documentationRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION] as Route,
-          { modelId: modelId },
-        )}
-      />
+      {/*
+       * A vCenter a probe collects: how the collection is going, and what
+       * fixes it when it is not. One the VMware agent sends: how to connect
+       * the agent, while it is not connected.
+       */}
+      {isProbeCollected(vcenter) ? (
+        <div className="mb-5">
+          <VMwareCollectionStatusCard modelId={modelId} />
+        </div>
+      ) : (
+        <ResourceConnectionGuideCard
+          status={vcenter.otelCollectorStatus as string | undefined}
+          lastSeenAt={vcenter.lastSeenAt}
+          guide={getVMwareVCenterConnectionGuide(
+            (vcenter.name as string | undefined) || "",
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      )}
 
       {/* Golden metrics — at-a-glance vCenter health */}
       {renderGoldenMetrics()}
@@ -2519,7 +2532,7 @@ const VMwareVCenterOverview: FunctionComponent<
           )}
         />
         <InfoCard
-          title="Agent Status"
+          title="Data Status"
           tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus}
           value={
             <StatusBadge

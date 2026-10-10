@@ -107,6 +107,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
+  // What a failed vCenter collection means and what fixes it (VMwareCollectionError).
+  { directory: "packages/Common/Types/VMware", kind: "ui" },
 ];
 
 /*
@@ -171,6 +173,7 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "meaning",
   "message",
   "moreText",
+  "nextStep",
   "noItemsMessage",
   "noLogsMessage",
   "noValueMessage",

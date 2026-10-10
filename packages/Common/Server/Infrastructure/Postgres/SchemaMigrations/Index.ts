@@ -78,6 +78,8 @@ import { AddVideoCallConnectionSignInIndex1801050000000 } from "./1801050000000-
 import { AddInstanceReceivingPeriod1801150000000 } from "./1801150000000-AddInstanceReceivingPeriod";
 import { DropWorkflowLastSavedBy1801200000000 } from "./1801200000000-DropWorkflowLastSavedBy";
 import { AddNetworkDeviceOtherAddresses1801250000000 } from "./1801250000000-AddNetworkDeviceOtherAddresses";
+import { AddVMwareProbeCollection1801300000000 } from "./1801300000000-AddVMwareProbeCollection";
+import { AddVMwareProbeCollectionIndexes1801350000000 } from "./1801350000000-AddVMwareProbeCollectionIndexes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1356,4 +1358,6 @@ export default [
   AddInstanceReceivingPeriod1801150000000,
   DropWorkflowLastSavedBy1801200000000,
   AddNetworkDeviceOtherAddresses1801250000000,
+  AddVMwareProbeCollection1801300000000,
+  AddVMwareProbeCollectionIndexes1801350000000,
 ];
