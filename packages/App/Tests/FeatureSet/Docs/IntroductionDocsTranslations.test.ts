@@ -18,6 +18,10 @@ import {
   isActionLabel,
 } from "./DocsDashboardLabels";
 import {
+  DashboardGoToShortcut,
+  getDashboardGoToShortcuts,
+} from "../../../FeatureSet/Dashboard/src/Utils/KeyboardShortcuts";
+import {
   CARD_LINE,
   anchorProblems,
   boldSpans,
@@ -155,7 +159,10 @@ const DOCS_LOCALES_DIR: string = path.resolve(
 
 function accountsLabel(language: string, keys: Array<string>): string {
   let value: unknown = JSON.parse(
-    fs.readFileSync(path.join(ACCOUNTS_LOCALES_DIR, `${language}.json`), "utf8"),
+    fs.readFileSync(
+      path.join(ACCOUNTS_LOCALES_DIR, `${language}.json`),
+      "utf8",
+    ),
   ) as unknown;
 
   for (const key of keys) {
@@ -275,6 +282,107 @@ function groupsLinkedFrom(markdown: string): Set<string> {
       return group.title;
     }),
   );
+}
+
+/*
+ * Home Page & Shortcuts names the dashboard's own ways around: the products
+ * menu (Utils/NavigationItems.tsx reads navbar.categories.* and
+ * navbar.items.*), the go-to shortcuts (Utils/KeyboardShortcuts.ts reads each
+ * one's titleKey) and Search (pages and actions by their flat keys). Each is
+ * read the way that screen reads it: the language's value, else the English.
+ */
+function navbarText(language: string, keys: Array<string>): string | null {
+  let value: unknown = dashboardLocale(language);
+
+  for (const key of keys) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    value = (value as Record<string, unknown>)[key];
+  }
+
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function drawnNavbarText(
+  language: string,
+  keys: Array<string>,
+  englishDefault: string,
+): string {
+  return navbarText(language, keys) || navbarText("en", keys) || englishDefault;
+}
+
+// The essentials the menu opens with, by their keys and English titles.
+const ESSENTIALS: ReadonlyArray<{ key: string; english: string }> = [
+  { key: "monitorsTitle", english: "Monitors" },
+  { key: "incidentsTitle", english: "Incidents" },
+  { key: "alertsTitle", english: "Alerts" },
+  { key: "onCallDutyTitle", english: "On-Call Duty" },
+  { key: "statusPagesTitle", english: "Status Pages" },
+  { key: "scheduledMaintenanceTitle", english: "Scheduled Maintenance" },
+  { key: "slosTitle", english: "SLOs" },
+];
+
+// The pages and the actions Home's Search section names, by their English titles.
+const SEARCH_PAGES: ReadonlyArray<string> = [
+  "API Keys",
+  "Danger Zone",
+  "On-Call Schedules",
+  "Incident Severity",
+  "Notification Methods",
+];
+
+const SEARCH_ACTIONS: ReadonlyArray<string> = [
+  "Declare Incident",
+  "Create Monitor",
+  "Delete Project",
+];
+
+/*
+ * The words Search knows besides the page names: aliases and keywords, all
+ * English (Components/CommandPalette/PageSearchIndex.ts), so a translation
+ * keeps them as they are typed.
+ */
+const SEARCH_WORDS: ReadonlyArray<string> = [
+  "on-call",
+  "on call",
+  "oncall",
+  "pager",
+  "escalation",
+  "rota",
+  "2fa",
+  "delete project",
+  "incident custom fields",
+  "incidnet",
+];
+
+/*
+ * How Search draws a page's or an action's title: the palette translates it
+ * with translateText (Common/UI/Utils/TranslateTemplate), a flat-key lookup
+ * with the English kept when the locale has none - no Create or Delete
+ * template, unlike a button.
+ */
+function searchTitle(language: string, english: string): string {
+  const value: unknown = dashboardLocale(language)[english];
+
+  return typeof value === "string" && value.trim() ? value : english;
+}
+
+// The text under the "## " heading at an index, up to the next one.
+function sectionAt(markdown: string, sectionIndex: number): string {
+  const lines: Array<string> = markdown.split("\n");
+  const starts: Array<number> = lines
+    .map((line: string, index: number): number => {
+      return line.startsWith("## ") ? index : -1;
+    })
+    .filter((index: number): boolean => {
+      return index >= 0;
+    });
+  const start: number = starts[sectionIndex] as number;
+  const end: number | undefined = starts[sectionIndex + 1];
+
+  return lines.slice(start, end).join("\n");
 }
 
 describe("the lists this test keeps", () => {
@@ -599,6 +707,103 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           english: english,
           drawn: drawn,
           ok: translated.includes(`**${drawn}**`),
+        });
+      }
+    });
+  });
+
+  describe("Home Page & Shortcuts", () => {
+    const translated: string = readPage(language, HOME);
+
+    it("names the products menu's essentials and its folded groups as this language's menu draws them", () => {
+      const finding: string = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Finding your way around"),
+      );
+      const categories: Record<string, string> = (
+        dashboardLocale("en")["navbar"] as {
+          categories: Record<string, string>;
+        }
+      ).categories;
+      const names: Array<string> = [
+        ...ESSENTIALS.map((item: { key: string; english: string }): string => {
+          return drawnNavbarText(
+            language,
+            ["navbar", "items", item.key],
+            item.english,
+          );
+        }),
+        ...Object.entries(categories)
+          .filter(([key]: [string, string]): boolean => {
+            return key !== "essentials";
+          })
+          .map(([key, english]: [string, string]): string => {
+            return drawnNavbarText(
+              language,
+              ["navbar", "categories", key],
+              english,
+            );
+          }),
+      ];
+
+      expect(names.length).toBeGreaterThanOrEqual(14);
+
+      for (const name of names) {
+        expect({ name: name, named: finding.includes(name) }).toEqual({
+          name: name,
+          named: true,
+        });
+      }
+    });
+
+    it("names each go-to destination as this language's shortcuts dialog draws it", () => {
+      const goTo: Array<string> = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Keyboard shortcuts"),
+      )
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("| `g`");
+        })
+        .map((line: string): string => {
+          return (line.split("|")[2] as string).trim();
+        });
+
+      expect(goTo).toEqual(
+        getDashboardGoToShortcuts().map(
+          (shortcut: DashboardGoToShortcut): string => {
+            return drawnNavbarText(
+              language,
+              shortcut.titleKey.split("."),
+              shortcut.defaultTitle,
+            );
+          },
+        ),
+      );
+    });
+
+    it("names its Search examples as this language's dashboard draws them, and keeps the English words Search knows", () => {
+      const search: string = sectionAt(
+        translated,
+        englishSectionIndex(
+          HOME,
+          "Searching for a page, a setting or an action",
+        ),
+      );
+      const expected: Array<string> = [
+        ...[...SEARCH_PAGES, ...SEARCH_ACTIONS].map((title: string): string => {
+          return searchTitle(language, title);
+        }),
+        `*${searchTitle(language, "Project Settings")} › ${searchTitle(language, "Advanced")}*`,
+        ...SEARCH_WORDS.map((word: string): string => {
+          return `*${word}*`;
+        }),
+      ];
+
+      for (const text of expected) {
+        expect({ text: text, found: search.includes(text) }).toEqual({
+          text: text,
+          found: true,
         });
       }
     });
