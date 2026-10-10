@@ -19,6 +19,9 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../Types/UserType";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -547,5 +550,68 @@ describe("creating a runbook hands on", () => {
         props: member([row(Permission.ProjectOwner)]),
       }),
     ).toBe(handedOn);
+  });
+});
+
+/*
+ * A WORKFLOW'S STEP NAMES NO CREDENTIAL IN A RUNBOOK'S STEPS. It acts as a
+ * Project Admin, who may read credentials, but that read is never lent to
+ * it (RunbookCredentialReaders): naming one is refused, plainly, as a
+ * change a person who may read credentials has to make. No workflow step
+ * writes a runbook today; the rule holds for any that ever does.
+ */
+describe("a workflow's step", () => {
+  const step: () => DatabaseCommonInteractionProps =
+    (): DatabaseCommonInteractionProps => {
+      return {
+        ...WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: new ObjectID("0193c0de-dddd-4aaa-8bbb-0000000000ff"),
+          workflowName: "Write the restart runbook",
+        }),
+        ...ON_HIGHEST_PLAN,
+      };
+    };
+
+  test("may not name credentials, though it acts as a Project Admin", () => {
+    expect(RunbookServiceType.mayNameCredentials(step())).toBe(false);
+    expect(
+      RunbookServiceType.mayNameCredentials(member([row(Permission.ProjectAdmin)])),
+    ).toBe(true);
+  });
+
+  test("creating a runbook whose steps name a credential is refused, saying a person has to name it", async () => {
+    const refusal: unknown = await createRunbook([sshStep(CREDENTIAL_A)], step());
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(
+      `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}. Workflow steps never have this permission, so a person who has it has to make this change.`,
+    );
+  });
+
+  test("changing a runbook's steps to a credential it does not name is refused", async () => {
+    storedSteps = [sshStep(CREDENTIAL_A)];
+
+    expect(
+      await updateRunbook(
+        [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
+        step(),
+      ),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("keeping the credentials a runbook names, or naming none, asks nothing", async () => {
+    storedSteps = [sshStep(CREDENTIAL_A)];
+
+    expect(
+      await updateRunbook([sshStep(CREDENTIAL_A), bashStep()], step()),
+    ).toBeUndefined();
+    expect(await createRunbook([bashStep()], step())).toBeUndefined();
+  });
+
+  test("a person who may not read credentials is still answered as if the credential were not there", async () => {
+    expect(
+      await createRunbook([sshStep(CREDENTIAL_A)], RUNBOOK_ADMIN),
+    ).toBeInstanceOf(UnreadableReferenceException);
   });
 });

@@ -667,9 +667,8 @@ export default class RelationListPermission {
   public static getWorkflowCredentialSettingRefusal(
     relation: CheckedRelationList,
   ): string {
-    const settings: string = (
-      new relation.listedModelType().pluralName || relation.title
-    ).toLowerCase();
+    const settings: string =
+      new relation.listedModelType().pluralName || relation.title;
 
     return `Workflow steps cannot set ${relation.title}: a setting that holds credentials is chosen only by a person who may read ${settings}. Ask someone who may read them to make this change.`;
   }
