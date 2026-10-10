@@ -28,6 +28,8 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * Docs overhaul task 7: the DNS, DNSSEC, SSL Certificate, Domain and Manual
@@ -267,6 +269,16 @@ const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
 
 // A rendered HTML tag, whose attributes may hold underscores of their own.
 const HTML_TAG: RegExp = /<[^>]*>/g;
+
+// The docs' hand-maintained stylesheet, and its page title rule's body.
+const STYLESHEET_PATH: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Docs/Static/css/style.css",
+);
+const DOCS_TITLE_RULE: RegExp = /\n\.docs-title \{([^}]*)\}/;
+
+// A title that is one word: no space, hyphen or other break opportunity.
+const ONE_WORD: RegExp = /^[\p{L}\p{M}]+$/u;
 
 const MONITOR_NAME: string = "Acme";
 
@@ -839,5 +851,40 @@ describe("the helpers, on these pages' shapes", () => {
 
     expect(diagramSkeleton(translated)).toBe(diagramSkeleton(english));
     expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(english));
+  });
+});
+
+/*
+ * A page's H1 is its nav link's title, and some of these are one long word:
+ * Norwegian "Overvåkingshemmeligheter" is wider than a 390px phone's column
+ * at the title's size, and made the Norwegian Monitor Secrets page scroll
+ * sideways until the title rule let it break.
+ */
+describe("a page title on a phone", () => {
+  it("breaks a one-word title wider than the column instead of widening the page", () => {
+    const rule: RegExpExecArray | null = DOCS_TITLE_RULE.exec(
+      fs.readFileSync(STYLESHEET_PATH, "utf8"),
+    );
+
+    expect(rule).not.toBeNull();
+    expect((rule as RegExpExecArray)[1]).toContain(
+      "overflow-wrap: break-word;",
+    );
+  });
+
+  it("is needed by these pages: a translated title here is one word of 20 letters or more", () => {
+    const longOneWordTitles: Array<string> = [];
+
+    for (const language of LANGUAGES) {
+      for (const entry of PAGES) {
+        const title: string = navTitle(language, entry.navTitle);
+
+        if (ONE_WORD.test(title) && Array.from(title).length >= 20) {
+          longOneWordTitles.push(`${language}: ${title}`);
+        }
+      }
+    }
+
+    expect(longOneWordTitles).toContain("no: Overvåkingshemmeligheter");
   });
 });

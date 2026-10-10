@@ -86,7 +86,7 @@ Quand vous testez un moniteur avant de l'enregistrer, seuls les secrets disponib
 
 ## Dépannage
 
-:::details Le moniteur envoie `{{monitorSecrets.NAME}}` littéralement
+:::details `{{monitorSecrets.NAME}}` est envoyé littéralement
 Le moniteur ne peut pas utiliser le secret, ou le nom ne correspond pas. Vérifiez l'option d'accès du secret avec **Modifier** sur sa ligne, et que le nom dans la référence est exactement le nom du secret.
 :::
 

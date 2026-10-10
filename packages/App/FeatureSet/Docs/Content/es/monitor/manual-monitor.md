@@ -26,11 +26,11 @@ Un monitor manual no tiene intervalo de monitoreo, sondas ni criterios. Su estad
 
 ```mermaid title="Quién cambia el estado de un monitor manual"
 flowchart TB
-    you["Usted, en el panel"] --> status["Estado del monitor"]
-    tool["Una herramienta, mediante la API"] --> status
-    incident["Un incidente que usted declara"] --> status
+    you["Usted,<br/>en el panel"] --> status["Estado del monitor"]
+    tool["Una<br/>herramienta,<br/>vía API"] --> status
+    incident["Un incidente<br/>que declara"] --> status
     status --> pages["Páginas de estado"]
-    status --> history["Historial de estados y disponibilidad"]
+    status --> history["Historial de estados<br/>y disponibilidad"]
 ```
 
 Cada cambio es una entrada de la **Cronología de estados** del monitor, así que su disponibilidad y su historial de estados se conservan como los de cualquier otro monitor. Un monitor manual no es un monitor activo, así que en OneUptime Cloud no añade nada a su factura.

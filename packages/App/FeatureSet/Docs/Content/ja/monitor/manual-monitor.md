@@ -26,11 +26,11 @@
 
 ```mermaid title="手動モニターのステータスを変えるもの"
 flowchart TB
-    you["あなた（ダッシュボードで）"] --> status["モニターステータス"]
-    tool["ツール（API で）"] --> status
-    incident["宣言したインシデント"] --> status
+    you["あなたが<br/>ダッシュ<br/>ボードで"] --> status["モニターステータス"]
+    tool["ツール<br/>（API で）"] --> status
+    incident["宣言した<br/>インシデント"] --> status
     status --> pages["ステータスページ"]
-    status --> history["ステータス履歴と稼働率"]
+    status --> history["ステータス履歴<br/>と稼働率"]
 ```
 
 変更はそれぞれモニターの **ステータスタイムライン** のエントリになるので、稼働率とステータス履歴は他のモニターと同じように保存されます。手動モニターはアクティブなモニターではないため、OneUptime Cloud では請求額に何も加算されません。

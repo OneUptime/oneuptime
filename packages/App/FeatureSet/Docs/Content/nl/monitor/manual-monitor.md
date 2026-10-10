@@ -26,11 +26,11 @@ Een handmatige monitor heeft geen bewakingsinterval, sondes of criteria. Zijn st
 
 ```mermaid title="Wie de status van een handmatige monitor wijzigt"
 flowchart TB
-    you["U, in het dashboard"] --> status["Monitorstatus"]
-    tool["Een tool, via de API"] --> status
-    incident["Een incident dat u meldt"] --> status
+    you["U, in het<br/>dashboard"] --> status["Monitorstatus"]
+    tool["Een tool,<br/>via de API"] --> status
+    incident["Een incident<br/>dat u meldt"] --> status
     status --> pages["Statuspagina's"]
-    status --> history["Statusgeschiedenis en uptime"]
+    status --> history["Statusgeschiedenis<br/>en uptime"]
 ```
 
 Elke wijziging is een item op de **Statustijdlijn** van de monitor, zodat zijn uptime en statusgeschiedenis worden bewaard zoals bij elke andere monitor. Een handmatige monitor is geen actieve monitor, dus op OneUptime Cloud voegt hij niets toe aan uw factuur.

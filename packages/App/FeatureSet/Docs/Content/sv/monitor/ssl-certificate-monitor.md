@@ -16,9 +16,9 @@ Vid varje kontroll öppnar en sond en TLS-anslutning till värden och porten i U
 ```mermaid title="Så bedömer standardkriterierna ett certifikat"
 flowchart TB
     connect["TLS-handskakning,<br/>verifierad som i en webbläsare"] --> valid{"Giltigt certifikat?"}
-    valid -->|"Nej, eller inget svar"| offline["Offline, incident deklarerad"]
+    valid -->|"Nej, eller inget svar"| offline["Offline,<br/>incident deklarerad"]
     valid -->|"Ja"| soon{"Går ut om<br/>14 dagar eller mindre?"}
-    soon -->|"Ja"| alert["Larm, status oförändrad"]
+    soon -->|"Ja"| alert["Larm,<br/>status oförändrad"]
     soon -->|"Nej"| ok["Fungerar"]
 ```
 

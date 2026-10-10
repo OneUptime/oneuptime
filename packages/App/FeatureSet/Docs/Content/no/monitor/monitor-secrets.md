@@ -86,7 +86,7 @@ Når du tester en monitor før du lagrer den, fylles bare hemmeligheter som er t
 
 ## Feilsøking
 
-:::details Monitoren sender `{{monitorSecrets.NAME}}` bokstavelig
+:::details `{{monitorSecrets.NAME}}` sendes bokstavelig
 Monitoren kan ikke bruke hemmeligheten, eller navnet stemmer ikke. Sjekk hemmelighetens tilgangsalternativ med **Rediger** på raden dens, og at navnet i henvisningen er nøyaktig navnet på hemmeligheten.
 :::
 

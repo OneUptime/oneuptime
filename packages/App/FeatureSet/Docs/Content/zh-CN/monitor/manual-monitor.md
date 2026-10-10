@@ -26,11 +26,11 @@
 
 ```mermaid title="谁会更改手动监视器的状态"
 flowchart TB
-    you["您，在控制台中"] --> status["监视器状态"]
-    tool["工具，通过 API"] --> status
-    incident["您声明的事件"] --> status
+    you["您，<br/>在控制台中"] --> status["监视器状态"]
+    tool["工具，<br/>通过 API"] --> status
+    incident["您声明的<br/>事件"] --> status
     status --> pages["状态页"]
-    status --> history["状态历史和正常运行时间"]
+    status --> history["状态历史和<br/>正常运行时间"]
 ```
 
 每次更改都是监视器 **状态时间线** 上的一个条目，因此它的正常运行时间和状态历史会像其他监视器一样被保留。手动监视器不是活动监视器，因此在 OneUptime Cloud 上它不会给您的账单增加任何费用。

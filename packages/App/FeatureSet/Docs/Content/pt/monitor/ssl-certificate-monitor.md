@@ -16,9 +16,9 @@ A cada verificação, uma sonda abre uma conexão TLS com o host e a porta da UR
 ```mermaid title="Como os critérios padrão julgam um certificado"
 flowchart TB
     connect["Handshake TLS,<br/>verificado como um navegador"] --> valid{"Certificado válido?"}
-    valid -->|"Não, ou sem resposta"| offline["Offline, incidente declarado"]
+    valid -->|"Não, ou sem resposta"| offline["Offline,<br/>incidente declarado"]
     valid -->|"Sim"| soon{"Vence em<br/>14 dias ou menos?"}
-    soon -->|"Sim"| alert["Alerta, status inalterado"]
+    soon -->|"Sim"| alert["Alerta,<br/>status inalterado"]
     soon -->|"Não"| ok["Operacional"]
 ```
 

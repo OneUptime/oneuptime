@@ -16,9 +16,9 @@ Bij elke controle opent een sonde een TLS-verbinding met de host en poort in de 
 ```mermaid title="Hoe de standaardcriteria een certificaat beoordelen"
 flowchart TB
     connect["TLS-handshake,<br/>gecontroleerd als een browser"] --> valid{"Geldig certificaat?"}
-    valid -->|"Nee, of geen antwoord"| offline["Offline, incident gemeld"]
+    valid -->|"Nee, of geen antwoord"| offline["Offline,<br/>incident gemeld"]
     valid -->|"Ja"| soon{"Verloopt binnen<br/>14 dagen?"}
-    soon -->|"Ja"| alert["Waarschuwing, status ongewijzigd"]
+    soon -->|"Ja"| alert["Waarschuwing,<br/>status ongewijzigd"]
     soon -->|"Nee"| ok["Operationeel"]
 ```
 

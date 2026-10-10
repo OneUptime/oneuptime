@@ -17,11 +17,11 @@ Bij elke controle zoekt een sonde de registratie van het domein op via RDAP of W
 flowchart TB
     method{"Lookup Method"} -->|"Auto of RDAP"| rdap["De RDAP-server<br/>van het TLD vragen"]
     method -->|"WHOIS"| whois["De WHOIS-server<br/>van het TLD vragen"]
-    rdap -->|"Registratie gevonden"| record["Registratie van het domein"]
+    rdap -->|"Registratie<br/>gevonden"| record["Registratie<br/>van het domein"]
     rdap -->|"Geen RDAP of een fout,<br/>met Auto"| whois
-    rdap -->|"Niet geregistreerd"| failed["Opzoeking mislukt"]
-    whois -->|"Registratie gevonden"| record
-    whois -->|"Geen registratie"| failed
+    rdap -->|"Niet<br/>geregistreerd"| failed["Opzoeking mislukt"]
+    whois -->|"Registratie<br/>gevonden"| record
+    whois -->|"Geen<br/>registratie"| failed
     record --> criteria["De criteria controleren"]
     failed --> criteria
 ```

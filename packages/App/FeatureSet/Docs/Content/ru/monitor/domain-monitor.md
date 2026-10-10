@@ -15,12 +15,12 @@
 
 ```mermaid title="Как запрос читает регистрацию"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto или RDAP"| rdap["Запросить RDAP-сервер<br/>домена верхнего уровня"]
-    method -->|"WHOIS"| whois["Запросить WHOIS-сервер<br/>домена верхнего уровня"]
-    rdap -->|"Запись найдена"| record["Регистрационная запись"]
+    method{"Lookup Method"} -->|"Auto или RDAP"| rdap["Запросить<br/>RDAP-сервер домена<br/>верхнего уровня"]
+    method -->|"WHOIS"| whois["Запросить<br/>WHOIS-сервер домена<br/>верхнего уровня"]
+    rdap -->|"Запись<br/>найдена"| record["Регистрационная<br/>запись"]
     rdap -->|"Нет RDAP или ошибка,<br/>при Auto"| whois
-    rdap -->|"Не зарегистрирован"| failed["Запрос не удался"]
-    whois -->|"Запись найдена"| record
+    rdap -->|"Не<br/>зарегистрирован"| failed["Запрос<br/>не удался"]
+    whois -->|"Запись<br/>найдена"| record
     whois -->|"Записи нет"| failed
     record --> criteria["Проверить критерии"]
     failed --> criteria

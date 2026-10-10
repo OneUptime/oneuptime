@@ -26,11 +26,11 @@ En manuell monitor har inget övervakningsintervall, inga sonder och inga kriter
 
 ```mermaid title="Vem som ändrar en manuell monitors status"
 flowchart TB
-    you["Du, i instrumentpanelen"] --> status["Monitorstatus"]
-    tool["Ett verktyg, via API:et"] --> status
-    incident["En incident du deklarerar"] --> status
+    you["Du, i<br/>OneUptime"] --> status["Monitorstatus"]
+    tool["Ett verktyg,<br/>via API:et"] --> status
+    incident["En incident<br/>du deklarerar"] --> status
     status --> pages["Statussidor"]
-    status --> history["Statushistorik och drifttid"]
+    status --> history["Statushistorik<br/>och drifttid"]
 ```
 
 Varje ändring är en post på monitorns **Statustidslinje**, så dess drifttid och statushistorik sparas som för vilken annan monitor som helst. En manuell monitor är inte en aktiv monitor, så på OneUptime Cloud lägger den inte till något på din faktura.

@@ -26,11 +26,11 @@ Un moniteur manuel n'a ni intervalle de surveillance, ni sondes, ni critères. S
 
 ```mermaid title="Qui change l'état d'un moniteur manuel"
 flowchart TB
-    you["Vous, dans le tableau de bord"] --> status["État du moniteur"]
-    tool["Un outil, par l'API"] --> status
-    incident["Un incident que vous déclarez"] --> status
+    you["Vous, dans le<br/>tableau de bord"] --> status["État du moniteur"]
+    tool["Un outil,<br/>par l'API"] --> status
+    incident["Un incident que<br/>vous déclarez"] --> status
     status --> pages["Pages de statut"]
-    status --> history["Historique d'état et disponibilité"]
+    status --> history["Historique d'état<br/>et disponibilité"]
 ```
 
 Chaque changement est une entrée de la **Chronologie de statut** du moniteur, donc sa disponibilité et son historique d'état sont conservés comme pour tout autre moniteur. Un moniteur manuel n'est pas un moniteur actif : sur OneUptime Cloud, il n'ajoute rien à votre facture.

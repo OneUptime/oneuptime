@@ -17,11 +17,11 @@ A ogni controllo, una sonda cerca la registrazione del dominio tramite RDAP o WH
 flowchart TB
     method{"Lookup Method"} -->|"Auto o RDAP"| rdap["Chiedere al server<br/>RDAP del TLD"]
     method -->|"WHOIS"| whois["Chiedere al server<br/>WHOIS del TLD"]
-    rdap -->|"Registrazione trovata"| record["Registrazione del dominio"]
+    rdap -->|"Registrazione<br/>trovata"| record["Registrazione<br/>del dominio"]
     rdap -->|"Nessun RDAP o un errore,<br/>con Auto"| whois
-    rdap -->|"Non registrato"| failed["Ricerca fallita"]
-    whois -->|"Registrazione trovata"| record
-    whois -->|"Nessuna registrazione"| failed
+    rdap -->|"Non registrato"| failed["Ricerca<br/>fallita"]
+    whois -->|"Registrazione<br/>trovata"| record
+    whois -->|"Nessuna<br/>registrazione"| failed
     record --> criteria["Controllare i criteri"]
     failed --> criteria
 ```

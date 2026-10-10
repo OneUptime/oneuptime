@@ -16,9 +16,9 @@ Bei jeder Prüfung öffnet eine Sonde eine TLS-Verbindung zum Host und Port in d
 ```mermaid title="Wie die Standardkriterien ein Zertifikat beurteilen"
 flowchart TB
     connect["TLS-Handshake,<br/>geprüft wie im Browser"] --> valid{"Gültiges Zertifikat?"}
-    valid -->|"Nein, oder keine Antwort"| offline["Offline, Vorfall gemeldet"]
+    valid -->|"Nein, oder keine Antwort"| offline["Offline,<br/>Vorfall gemeldet"]
     valid -->|"Ja"| soon{"Läuft in 14 Tagen<br/>oder früher ab?"}
-    soon -->|"Ja"| alert["Warnung, Status unverändert"]
+    soon -->|"Ja"| alert["Warnung,<br/>Status unverändert"]
     soon -->|"Nein"| ok["Betriebsbereit"]
 ```
 

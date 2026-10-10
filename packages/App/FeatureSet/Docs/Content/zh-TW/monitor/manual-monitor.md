@@ -26,11 +26,11 @@
 
 ```mermaid title="誰會變更手動監測器的狀態"
 flowchart TB
-    you["您，在主控台中"] --> status["監測器狀態"]
-    tool["工具，透過 API"] --> status
-    incident["您宣告的事件"] --> status
+    you["您，<br/>在主控台中"] --> status["監測器狀態"]
+    tool["工具，<br/>透過 API"] --> status
+    incident["您宣告的<br/>事件"] --> status
     status --> pages["狀態頁"]
-    status --> history["狀態歷程和正常運作時間"]
+    status --> history["狀態歷程和<br/>正常運作時間"]
 ```
 
 每次變更都是監測器 **狀態時間軸** 上的一個項目，因此它的正常運作時間和狀態歷程會像其他監測器一樣保留下來。手動監測器不是主動式監測器，因此在 OneUptime Cloud 上它不會讓您的帳單增加任何費用。

@@ -26,11 +26,11 @@ A manual monitor has no monitoring interval, probes or criteria. Its status stay
 
 ```mermaid title="Who changes a manual monitor's status"
 flowchart TB
-    you["You, in the dashboard"] --> status["Monitor status"]
-    tool["A tool, through the API"] --> status
-    incident["An incident you declare"] --> status
+    you["You, in<br/>the dashboard"] --> status["Monitor status"]
+    tool["A tool,<br/>via the API"] --> status
+    incident["An incident<br/>you declare"] --> status
     status --> pages["Status pages"]
-    status --> history["Status history and uptime"]
+    status --> history["Status history<br/>and uptime"]
 ```
 
 Each change is an entry on the monitor's **Status Timeline**, so its uptime and status history are kept like any other monitor's. A Manual monitor is not an active monitor, so on OneUptime Cloud it adds nothing to your bill.

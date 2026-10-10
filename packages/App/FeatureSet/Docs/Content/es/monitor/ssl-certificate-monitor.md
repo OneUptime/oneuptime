@@ -16,9 +16,9 @@ En cada comprobación, una sonda abre una conexión TLS con el host y el puerto 
 ```mermaid title="Cómo juzgan un certificado los criterios predeterminados"
 flowchart TB
     connect["Negociación TLS,<br/>verificada como un navegador"] --> valid{"¿Certificado válido?"}
-    valid -->|"No, o sin respuesta"| offline["Sin conexión, incidente declarado"]
+    valid -->|"No, o sin respuesta"| offline["Sin conexión,<br/>incidente declarado"]
     valid -->|"Sí"| soon{"¿Caduca en<br/>14 días o menos?"}
-    soon -->|"Sí"| alert["Alerta, estado sin cambios"]
+    soon -->|"Sí"| alert["Alerta,<br/>estado sin cambios"]
     soon -->|"No"| ok["Operativo"]
 ```
 

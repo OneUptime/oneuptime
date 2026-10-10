@@ -86,7 +86,7 @@ Quando você testa um monitor antes de salvá-lo, só os segredos disponíveis p
 
 ## Solução de problemas
 
-:::details O monitor envia `{{monitorSecrets.NAME}}` literalmente
+:::details `{{monitorSecrets.NAME}}` é enviado literalmente
 O monitor não pode usar o segredo, ou o nome não confere. Confira a opção de acesso do segredo com **Editar** na linha dele, e se o nome na referência é exatamente o nome do segredo.
 :::
 

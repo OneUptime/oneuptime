@@ -17,11 +17,11 @@ Un moniteur de domaine lit à intervalle régulier l'enregistrement de votre dom
 flowchart TB
     method{"Méthode de recherche"} -->|"Auto ou RDAP"| rdap["Interroger le serveur<br/>RDAP du TLD"]
     method -->|"WHOIS"| whois["Interroger le serveur<br/>WHOIS du TLD"]
-    rdap -->|"Enregistrement trouvé"| record["Enregistrement du domaine"]
+    rdap -->|"Enregistrement<br/>trouvé"| record["Enregistrement<br/>du domaine"]
     rdap -->|"Pas de RDAP ou une erreur,<br/>avec Auto"| whois
-    rdap -->|"Non enregistré"| failed["Recherche échouée"]
-    whois -->|"Enregistrement trouvé"| record
-    whois -->|"Aucun enregistrement"| failed
+    rdap -->|"Non<br/>enregistré"| failed["Recherche<br/>échouée"]
+    whois -->|"Enregistrement<br/>trouvé"| record
+    whois -->|"Aucun<br/>enregistrement"| failed
     record --> criteria["Vérifier les critères"]
     failed --> criteria
 ```

@@ -86,7 +86,7 @@ När du testar en monitor innan du sparar den fylls bara hemligheter i som är t
 
 ## Felsökning
 
-:::details Monitorn skickar `{{monitorSecrets.NAME}}` ordagrant
+:::details `{{monitorSecrets.NAME}}` skickas ordagrant
 Monitorn får inte använda hemligheten, eller så stämmer inte namnet. Kontrollera hemlighetens åtkomstalternativ med **Redigera** på dess rad, och att namnet i hänvisningen är exakt hemlighetens namn.
 :::
 

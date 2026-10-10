@@ -86,7 +86,7 @@ Når du tester en monitor, før du gemmer den, udfyldes kun hemmeligheder, der e
 
 ## Fejlfinding
 
-:::details Monitoren sender `{{monitorSecrets.NAME}}` bogstaveligt
+:::details `{{monitorSecrets.NAME}}` sendes bogstaveligt
 Monitoren må ikke bruge hemmeligheden, eller navnet passer ikke. Kontrollér hemmelighedens adgangsmulighed med **Rediger** i dens række, og at navnet i henvisningen er præcis hemmelighedens navn.
 :::
 

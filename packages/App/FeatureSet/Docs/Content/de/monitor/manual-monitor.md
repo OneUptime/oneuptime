@@ -26,11 +26,11 @@ Ein manueller Monitor hat kein Überwachungsintervall, keine Sonden und keine Kr
 
 ```mermaid title="Wer den Status eines manuellen Monitors ändert"
 flowchart TB
-    you["Sie, im Dashboard"] --> status["Monitorstatus"]
-    tool["Ein Werkzeug, über die API"] --> status
-    incident["Ein Vorfall, den Sie melden"] --> status
+    you["Sie, im<br/>Dashboard"] --> status["Monitorstatus"]
+    tool["Ein Werkzeug,<br/>per API"] --> status
+    incident["Ein Vorfall,<br/>den Sie melden"] --> status
     status --> pages["Statusseiten"]
-    status --> history["Statusverlauf und Verfügbarkeit"]
+    status --> history["Statusverlauf und<br/>Verfügbarkeit"]
 ```
 
 Jede Änderung ist ein Eintrag auf der **Status-Zeitachse** des Monitors, sodass seine Verfügbarkeit und sein Statusverlauf wie bei jedem anderen Monitor erhalten bleiben. Ein manueller Monitor ist kein aktiver Monitor und kostet Sie auf OneUptime Cloud daher nichts zusätzlich.

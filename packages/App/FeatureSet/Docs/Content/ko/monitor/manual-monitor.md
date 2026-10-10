@@ -26,11 +26,11 @@
 
 ```mermaid title="수동 모니터의 상태를 바꾸는 주체"
 flowchart TB
-    you["사용자, 대시보드에서"] --> status["모니터 상태"]
-    tool["도구, API를 통해"] --> status
-    incident["선언한 인시던트"] --> status
+    you["사용자,<br/>대시보드에서"] --> status["모니터 상태"]
+    tool["도구,<br/>API를 통해"] --> status
+    incident["선언한<br/>인시던트"] --> status
     status --> pages["상태 페이지"]
-    status --> history["상태 기록과 가동 시간"]
+    status --> history["상태 기록과<br/>가동 시간"]
 ```
 
 변경마다 모니터의 **상태 타임라인**에 항목이 남으므로, 가동 시간과 상태 기록이 다른 모니터와 똑같이 보관됩니다. 수동 모니터는 활성 모니터가 아니므로, OneUptime Cloud에서 요금에 아무것도 더하지 않습니다.

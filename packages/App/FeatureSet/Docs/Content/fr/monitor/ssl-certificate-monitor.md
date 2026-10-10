@@ -16,9 +16,9 @@ Un moniteur de certificat SSL vérifie les certificats TLS que présentent vos s
 ```mermaid title="Comment les critères par défaut jugent un certificat"
 flowchart TB
     connect["Négociation TLS,<br/>vérifiée comme un navigateur"] --> valid{"Certificat valide ?"}
-    valid -->|"Non, ou pas de réponse"| offline["Hors ligne, incident déclaré"]
+    valid -->|"Non, ou pas de réponse"| offline["Hors ligne,<br/>incident déclaré"]
     valid -->|"Oui"| soon{"Expire dans<br/>14 jours ou moins ?"}
-    soon -->|"Oui"| alert["Alerte, état inchangé"]
+    soon -->|"Oui"| alert["Alerte,<br/>état inchangé"]
     soon -->|"Non"| ok["Opérationnel"]
 ```
 

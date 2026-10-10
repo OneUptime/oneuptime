@@ -86,7 +86,7 @@ Cuando prueba un monitor antes de guardarlo, solo se rellenan los secretos dispo
 
 ## Solución de problemas
 
-:::details El monitor envía `{{monitorSecrets.NAME}}` literalmente
+:::details `{{monitorSecrets.NAME}}` se envía literalmente
 El monitor no puede usar el secreto, o el nombre no coincide. Revise la opción de acceso del secreto con **Editar** en su fila, y que el nombre de la referencia es exactamente el nombre del secreto.
 :::
 
