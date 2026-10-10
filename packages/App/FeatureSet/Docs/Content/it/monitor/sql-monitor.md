@@ -122,7 +122,7 @@ Scrivete una singola istruzione in sola lettura in **SQL Query** (consultate [Sc
 
 Fate clic su **Testa il monitor** per eseguire la query una volta da una sonda prima di salvare.
 
-### Impostare i criteri
+### Definire i criteri
 
 Rivedete i criteri con cui parte il monitor e aggiungete i vostri: consultate [Impostare i criteri](#impostare-i-criteri). Poi fate clic su **Avanti**.
 
