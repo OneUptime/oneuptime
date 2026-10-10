@@ -45,6 +45,12 @@ import { RouteUtil } from "./RouteMap";
 
 export const LLM_MONITOR_TEMPLATE_QUERY_PARAM: string = "llmMonitorTemplate";
 
+// The healthy criteria every template ships, in the reader's language.
+export const LLM_MONITOR_HEALTHY_NAME: string = translationKey("Healthy");
+export const LLM_MONITOR_HEALTHY_DESCRIPTION: string = translationKey(
+  "The AI is answering well.",
+);
+
 export const LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR: string = translationKey(
   "This link does not point to an AI alert. Open the Alerts tab of AI / LLM and pick one again.",
 );
@@ -155,10 +161,10 @@ export function buildLlmMonitorCriteria(data: {
     createIncidents: false,
     createAlerts: false,
     isEnabled: true,
-    name: translateText("Healthy") || "Healthy",
+    name: translateText(LLM_MONITOR_HEALTHY_NAME) || LLM_MONITOR_HEALTHY_NAME,
     description:
-      translateText("The AI is answering well.") ||
-      "The AI is answering well.",
+      translateText(LLM_MONITOR_HEALTHY_DESCRIPTION) ||
+      LLM_MONITOR_HEALTHY_DESCRIPTION,
   };
 
   const criteria: MonitorCriteria = new MonitorCriteria();

@@ -307,7 +307,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
       return (
         <TableEmptyState
           kind={TableEmptyStateKind.Error}
-          title="Couldn't load conversations."
+          title="Couldn't load conversations"
           description={state.message}
           actions={[
             {
@@ -346,7 +346,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         return (
           <TableEmptyState
             kind={TableEmptyStateKind.Filtered}
-            title="No conversations match."
+            title="No conversations match"
             description="Try another search, or show every conversation in this time range."
             actions={[
               {
@@ -369,7 +369,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           kind={TableEmptyStateKind.Empty}
           icon={IconProp.ChatBubbleLeftRight}
           dataTestId="llm-conversations-empty"
-          title="No AI conversations here yet."
+          title="No AI conversations here yet"
           description="Conversations appear as your app's AI calls arrive: what people asked, what the AI answered, the tools it used and what went wrong. Send them with any OpenTelemetry GenAI instrumentation, such as OpenLLMetry, OpenInference, the Vercel AI SDK, or the OpenTelemetry instrumentations for OpenAI, Anthropic and Gemini."
           actions={[
             {
