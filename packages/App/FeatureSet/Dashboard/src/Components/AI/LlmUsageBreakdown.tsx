@@ -39,6 +39,7 @@ import LlmMetricQuery, {
   LlmMetricScope,
 } from "Common/Utils/Telemetry/LlmMetricQuery";
 import ServiceElement from "../Service/ServiceElement";
+import LlmUsageTotalsTiles from "./LlmUsageTotals";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
@@ -1034,6 +1035,12 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
           }}
         />
       </div>
+
+      {/*
+       * The range's totals: what a coding-assistant fleet, which has no
+       * conversations, reads its token and cost totals from.
+       */}
+      <LlmUsageTotalsTiles range={range} />
 
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-col gap-1 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">

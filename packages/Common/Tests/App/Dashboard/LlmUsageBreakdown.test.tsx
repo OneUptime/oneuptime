@@ -82,6 +82,23 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+/*
+ * The totals above the table read the same streams through their own
+ * aggregates (LlmUsageTotals.test.tsx pins them). Stubbed here so every
+ * aggregate this suite counts is the breakdown's own.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageTotals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 import LlmUsageBreakdown from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageBreakdown";
 import Service from "../../../Models/DatabaseModels/Service";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";

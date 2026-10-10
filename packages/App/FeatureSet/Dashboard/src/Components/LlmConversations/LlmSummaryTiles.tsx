@@ -26,7 +26,7 @@ export interface ComponentProps {
   onShowProblems?: (() => void) | undefined;
 }
 
-interface TileProps {
+export interface LlmTileProps {
   label: string;
   value: string;
   hint?: string | undefined;
@@ -38,7 +38,13 @@ interface TileProps {
   isLoading: boolean;
 }
 
-const Tile: FunctionComponent<TileProps> = (props: TileProps): ReactElement => {
+/*
+ * One number with its label, an icon and an optional hint - the tile every
+ * AI / LLM summary row is made of (here, and the Usage tab's totals).
+ */
+export const LlmTile: FunctionComponent<LlmTileProps> = (
+  props: LlmTileProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
 
   const content: ReactElement = (
@@ -115,7 +121,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
       className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
       data-testid="llm-summary-tiles"
     >
-      <Tile
+      <LlmTile
         label="Conversations"
         value={formatLlmCount(conversations)}
         icon={IconProp.ChatBubbleLeftRight}
@@ -124,7 +130,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         dataTestId="llm-summary-conversations"
         isLoading={isLoading}
       />
-      <Tile
+      <LlmTile
         label="AI answers"
         value={formatLlmCount(summary?.answerCount || 0)}
         hint={
@@ -144,7 +150,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         dataTestId="llm-summary-answers"
         isLoading={isLoading}
       />
-      <Tile
+      <LlmTile
         label="Need attention"
         value={formatLlmCount(problems)}
         hint={
@@ -161,7 +167,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         onClick={problems > 0 ? props.onShowProblems : undefined}
         isLoading={isLoading}
       />
-      <Tile
+      <LlmTile
         label="Cost"
         value={formatLlmCost(summary?.costUsd || 0)}
         hint={
@@ -179,7 +185,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         dataTestId="llm-summary-cost"
         isLoading={isLoading}
       />
-      <Tile
+      <LlmTile
         label="Typical answer time"
         value={
           summary && summary.medianAnswerMs !== null
