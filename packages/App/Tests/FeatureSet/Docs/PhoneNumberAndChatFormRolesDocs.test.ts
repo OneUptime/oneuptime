@@ -135,7 +135,7 @@ function boldRoleTitles(line: string): Array<string> {
 describe("Docs: who can add and release an incoming call policy's phone numbers", () => {
   const text: string = section(
     read("on-call/incoming-call-policy.md"),
-    "Who Can Add and Release Phone Numbers",
+    "Who can add and release phone numbers",
   );
 
   test("looking numbers up names exactly the roles that may read both the policies and the call and SMS configs", () => {
@@ -153,7 +153,7 @@ describe("Docs: who can add and release an incoming call policy's phone numbers"
   test("buying, attaching and releasing names exactly the roles that may edit incoming call policies", () => {
     const line: string = bullet(
       text,
-      "**Buying a number, using an existing one, and releasing one**",
+      "**Reserving a number, using an existing one, and releasing one**",
     );
 
     expect(boldRoleTitles(line).sort()).toEqual(

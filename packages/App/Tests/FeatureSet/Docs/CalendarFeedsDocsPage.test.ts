@@ -871,11 +871,48 @@ describe("Calendar Feeds docs page", () => {
     });
 
     it("tells a self-hosted reader why Google stays empty, and how to check", () => {
+      // Two troubleshooting entries of their own, as collapsible answers.
       expect(english).toContain(
-        "**Google Calendar shows the calendar but no shifts.**",
+        ':::details Google Calendar says "Unable to add calendar. Check the URL."\n',
+      );
+      expect(english).toContain(
+        ":::details Google Calendar shows the calendar but no shifts\n",
       );
       expect(english).toContain("`curl -sI <link>` must answer `200`");
       expect(english).toContain("**Last fetched … by Google Calendar**");
+    });
+
+    it("sends readers to the Calendar section of User Settings, which starts folded", () => {
+      const userSettingsMenu: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu.tsx",
+      );
+
+      expect(userSettingsMenu).toMatch(
+        /title: "Calendar",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Calendar Feed"/,
+      );
+      expect(english).toContain(
+        "**User Settings** > **Calendar** > **Calendar Feed**",
+      );
+      expect(english).not.toContain("**User Settings** > **Calendar Feed**");
+    });
+
+    it("says where both time zones are set: your Profile, and the schedule's Layers page", () => {
+      const profile: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
+      );
+      const layers: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      );
+
+      expect(profile).toContain('title: "Timezone"');
+      expect(layers).toContain('title="Schedule timezone"');
+      expect(english).toContain("**Timezone** on your **Profile**");
+      expect(english).toContain(
+        "**Schedule timezone** card on its **Layers** page",
+      );
+      // The old pages sent readers to places that do not set a time zone.
+      expect(english).not.toContain("**User Settings** > **Profile**");
+      expect(english).not.toContain("under its **Settings** tab");
     });
 
     it("keeps the personal, schedule and project feed routes in step with the API", () => {

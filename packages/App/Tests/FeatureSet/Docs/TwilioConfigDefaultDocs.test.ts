@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import TwilioConfigDefaultCopy from "../../../FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -22,8 +23,9 @@ import path from "path";
  *
  * Markdown is not compiled, so these read the pages, the Dashboard's locale
  * files and the table's source. Each page names the switch and the button
- * in the words its language's dashboard shows them; the Persian pages keep
- * the dashboard's English names, as the rest of the Persian docs do.
+ * in the words its language's dashboard shows them. The Persian Twilio guide
+ * keeps the dashboard's English names; the Persian on-call pages name the
+ * dashboard as the Persian dashboard draws it, as every on-call page does.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -107,7 +109,18 @@ function savingSteps(lang: string): Array<string> {
     });
 }
 
-// The step of the incoming call page that fills in the Twilio config.
+// A label as the language's dashboard draws it, on the on-call pages.
+function onCallWords(lang: string): (english: string) => string {
+  return (english: string): string => {
+    return drawnDashboardLabel(lang, english);
+  };
+}
+
+/*
+ * The step of the incoming call page's setup that adds the Twilio account:
+ * from the step's heading to the next one. Its text names the card and the
+ * button, then lists the form's fields.
+ */
 function configStep(lang: string): Array<string> {
   const lines: Array<string> = readPage(
     lang,
@@ -120,12 +133,21 @@ function configStep(lang: string): Array<string> {
 
   expect(sid).toBeGreaterThan(5);
 
-  // From "3. ... Create Twilio Config" to "5. ... Save".
-  const end: number = lines.findIndex((line: string, index: number) => {
-    return index > sid && line.startsWith("5. ");
-  });
+  let start: number = sid;
 
-  return lines.slice(sid - 4, end + 1);
+  while (start > 0 && !lines[start]!.startsWith("### ")) {
+    start--;
+  }
+
+  let end: number = sid;
+
+  while (end < lines.length - 1 && !lines[end + 1]!.startsWith("### ")) {
+    end++;
+  }
+
+  return lines.slice(start, end + 1).filter((line: string): boolean => {
+    return line.trim().length > 0;
+  });
 }
 
 describe("the docs on a project's first Twilio config", () => {
@@ -184,23 +206,27 @@ describe("the docs on a project's first Twilio config", () => {
   it.each(LANGUAGES)(
     "%s: the incoming call page names the real button, and says the config takes the project's SMS and calls",
     (lang: string) => {
-      const words: (english: string) => string = dashboardWords(lang);
+      const words: (english: string) => string = onCallWords(lang);
       const step: Array<string> = configStep(lang);
 
-      expect(step[0]!.startsWith("3. ")).toBe(true);
-      expect(step[0]).toContain(`**${words(CREATE_BUTTON)}**`);
-      expect(step[0]).toContain(`**${words(CARD_TITLE)}**`);
+      // The step's heading, then where to go: the card and its button.
+      expect(step[0]!.startsWith("### ")).toBe(true);
+      expect(step[1]).toContain(`**${words(CREATE_BUTTON)}**`);
+      expect(step[1]).toContain(`**${words(CARD_TITLE)}**`);
 
-      const switchLine: Array<string> = step.filter((line: string) => {
-        return line.startsWith(`   - **${words(SWITCH)}**`);
+      const fields: Array<string> = step.filter((line: string): boolean => {
+        return line.startsWith("- **");
+      });
+      const switchLine: Array<string> = fields.filter((line: string) => {
+        return line.startsWith(`- **${words(SWITCH)}**`);
       });
 
       expect(switchLine).toHaveLength(1);
       expect(switchLine[0]).toContain("Twilio");
 
-      // The bullet sits with the other fields, before Save.
-      expect(step[step.length - 1]!.startsWith("5. ")).toBe(true);
-      expect(step[step.length - 2]).toBe(switchLine[0]);
+      // The switch is the form's last field, and the step's last line.
+      expect(fields[fields.length - 1]).toBe(switchLine[0]);
+      expect(step[step.length - 1]).toBe(switchLine[0]);
 
       for (const old of OLD_BUTTONS) {
         expect({ lang, old, named: step.join("\n").includes(old) }).toEqual({

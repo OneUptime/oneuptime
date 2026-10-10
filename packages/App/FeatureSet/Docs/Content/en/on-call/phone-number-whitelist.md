@@ -1,4 +1,4 @@
-# Phone Number Whitelist for On-Call Notifications
+# Phone Number Whitelist
 
 On OneUptime Cloud, on-call SMS messages and phone calls come from the numbers below. Add them to your phone's allow list so that a page is never blocked, silenced or filed as spam.
 

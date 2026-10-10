@@ -12,6 +12,7 @@ import {
   getDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { toLatinDigits } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -305,7 +306,12 @@ describe("the Escalation Rules docs page", () => {
           "`/api/on-call-duty-policy-escalation-rule`",
           "`escalateAfterInMinutes`",
         ]) {
-          expect({ lang, fact, found: page.includes(fact) }).toEqual({
+          // The wait in the language's digits: Persian writes 30 as ۳۰.
+          expect({
+            lang,
+            fact,
+            found: toLatinDigits(page).includes(fact),
+          }).toEqual({
             lang,
             fact,
             found: true,
