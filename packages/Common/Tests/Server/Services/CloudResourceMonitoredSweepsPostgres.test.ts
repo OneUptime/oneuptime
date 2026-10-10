@@ -21,7 +21,9 @@ import { DataSource } from "typeorm";
  *     restored while it was silent;
  *   - restore: a resource the sweep archived comes back as soon as it
  *     reports again; one a person archived stays archived;
- *   - the budget's count is live resources only.
+ *   - the budget's count is live resources only;
+ *   - silence is counted in time OneUptime was receiving: an outage in the
+ *     receiving ledger is not held against a resource.
  *
  * Opt in with RUN_POSTGRES_CLOUD_RESOURCE_SWEEP_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
@@ -154,6 +156,7 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
     // Every test reads the (empty) ledger itself, not an answer cached by the last.
     ReceivingCoverage.clearCache();
     await database.query(`DELETE FROM "${schema}"."CloudResource"`);
+    await database.query(`DELETE FROM "${schema}"."InstanceReceivingPeriod"`);
   });
 
   afterEach(() => {
@@ -258,6 +261,35 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
       await expect(
         CloudResourceService.markUnreportedMonitoredResources(),
       ).resolves.toBe(0);
+    });
+
+    test("does not hold an hour and a half OneUptime was not receiving against a resource", async () => {
+      // Receiving until 100 minutes ago, down, then back for the last 10.
+      await database.query(
+        `INSERT INTO "${schema}"."InstanceReceivingPeriod" ("startedAt", "lastReceivingAt", "version")
+         VALUES (now() - interval '3 hours', now() - interval '100 minutes', 1),
+                (now() - interval '10 minutes', now(), 1)`,
+      );
+      await insert([
+        resource("silent-through-the-outage", {
+          lastSeenMinutesAgo: 2 * HOUR,
+        }),
+        resource("silent-since-long-before", {
+          lastSeenMinutesAgo: 3 * HOUR,
+        }),
+      ]);
+
+      await expect(
+        CloudResourceService.markUnreportedMonitoredResources(),
+      ).resolves.toBe(1);
+
+      const rows: Record<string, StateRow> = await state();
+      expect(rows["silent-through-the-outage"]!.otelCollectorStatus).toBe(
+        "connected",
+      );
+      expect(rows["silent-since-long-before"]!.otelCollectorStatus).toBe(
+        "disconnected",
+      );
     });
   });
 
