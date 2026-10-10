@@ -1271,9 +1271,7 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     ).toBe(true);
 
     // Each alert once...
-    const loopAt: number = check.indexOf(
-      "for(constalertIdofdata.alertIds){",
-    );
+    const loopAt: number = check.indexOf("for(constalertIdofdata.alertIds){");
     // ...as the row its change would be: the project, the alert, the state it moves to...
     const rowAt: number = check.indexOf(
       "conststateChange:AlertStateTimeline=newAlertStateTimeline();stateChange.projectId=data.projectId;stateChange.alertId=alertId;stateChange.alertStateId=data.alertStateId;",

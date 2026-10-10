@@ -1063,7 +1063,10 @@ describe("acknowledging the alerts an incident is declared from", () => {
      * and no permission to edit the alert. The declare form asks the same.
      */
     test("offers a working, ticked box to somebody who may add state timeline rows but not edit alerts", async () => {
-      permissionsForTest = [Permission.Viewer, Permission.CreateAlertStateTimeline];
+      permissionsForTest = [
+        Permission.Viewer,
+        Permission.CreateAlertStateTimeline,
+      ];
       declareFrom([ALERT_ONE_ID, ALERT_TWO_ID]);
 
       await openPage();

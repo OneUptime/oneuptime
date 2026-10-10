@@ -117,6 +117,9 @@ const HOOKS_HANDED_THE_ONE_ONCREATE: Array<string> = [
 const KEYED_BY_THE_CREATE_IT_HOLDS: RegExp =
   /\bonCreate\s*\??\.\s*createBy\b(?!\s*\??\.)/;
 
+// A call argument that is the OnCreate itself, as a whole argument or a property's value.
+const NAMES_THE_ONCREATE: RegExp = /(^|[\s,(:])onCreate\s*(,|$|\))/;
+
 // The arguments of every call in `text` that takes or gives back a lock.
 function lockCallArguments(text: string): Array<string> {
   return [
@@ -239,9 +242,11 @@ describe.each(Object.keys(LOCKING_CREATES))(
 
         for (const call of calls) {
           // ...but the OnCreate, as a whole argument.
-          expect([hook, call, /(^|[\s,(:])onCreate\s*(,|$|\))/.test(call)]).toEqual(
-            [hook, call, true],
-          );
+          expect([hook, call, NAMES_THE_ONCREATE.test(call)]).toEqual([
+            hook,
+            call,
+            true,
+          ]);
         }
       }
     });

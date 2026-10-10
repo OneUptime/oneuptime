@@ -2099,9 +2099,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
   ): DatabaseCommonInteractionProps {
     const props: DatabaseCommonInteractionProps = userProps(Permission.Viewer);
 
-    props.userTenantAccessPermission![
-      PROJECT_ID.toString()
-    ]!.permissions.push(
+    props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push(
       ...permissions.map(
         (entry: {
           permission: Permission;
@@ -2384,7 +2382,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
           [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
         },
         viewerWith([
-          { permission: Permission.CreateIncident },
+          { permission: Permission.CreateProjectIncident },
           { permission: Permission.CreateIncidentAlert },
           { permission: Permission.CreateAlertStateTimeline },
         ]),
@@ -2468,7 +2466,10 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
       expect(reads.parentReads).toEqual([]);
 
       // Declaring without acknowledging goes through.
-      await declare({ [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID] }, blocked());
+      await declare(
+        { [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID] },
+        blocked(),
+      );
 
       expect(counter).toHaveBeenCalledTimes(1);
       expect(link).toHaveBeenCalledTimes(1);
@@ -2482,7 +2483,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
           [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
         },
         viewerWith([
-          { permission: Permission.CreateIncident },
+          { permission: Permission.CreateProjectIncident },
           { permission: Permission.CreateIncidentAlert },
           { permission: Permission.EditAlert },
         ]),

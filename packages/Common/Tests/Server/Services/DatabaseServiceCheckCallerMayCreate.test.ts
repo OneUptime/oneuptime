@@ -92,7 +92,7 @@ class PlainTimelineService extends DatabaseService<AlertStateTimeline> {
 
 function propsWith(
   permissions: Array<PermissionInput>,
-  options?: { asApiKey?: boolean },
+  options?: { asApiKey?: boolean | undefined },
 ): DatabaseCommonInteractionProps {
   const rows: Array<UserPermission> = permissions.map(
     (input: PermissionInput): UserPermission => {
@@ -185,7 +185,10 @@ describe("DatabaseService.checkCallerMayCreate", () => {
       [key(ALERT_A), { labels: [TEAM_A], ownedByTeam: false, readable: true }],
       [key(ALERT_B), { labels: [TEAM_B], ownedByTeam: false, readable: true }],
       [key(ALERT_OWNED), { labels: [], ownedByTeam: true, readable: true }],
-      [key(ALERT_UNLABELLED), { labels: [], ownedByTeam: false, readable: true }],
+      [
+        key(ALERT_UNLABELLED),
+        { labels: [], ownedByTeam: false, readable: true },
+      ],
     ]);
     parentReads = [];
     saves = [];
@@ -559,7 +562,9 @@ describe("DatabaseService.checkCallerMayCreate", () => {
       }),
     );
 
-    expect(viaCheck).toMatchObject({ refusedWith: "NotAuthenticatedException" });
+    expect(viaCheck).toMatchObject({
+      refusedWith: "NotAuthenticatedException",
+    });
     expect(viaCheck).toEqual(viaCreate);
     expect(parentReads).toEqual([]);
   });
@@ -631,10 +636,7 @@ describe("DatabaseService.checkCallerMayCreate", () => {
      * work: no lock, no read of the timeline.
      */
     test("the alert is looked up, as the caller, even for a project member", async () => {
-      const lock: ReturnType<typeof jest.spyOn> = jest.spyOn(
-        Semaphore,
-        "lock",
-      );
+      const lock: ReturnType<typeof jest.spyOn> = jest.spyOn(Semaphore, "lock");
       const timelineReads: ReturnType<typeof jest.spyOn> = jest.spyOn(
         AlertStateTimelineService,
         "findOneBy",

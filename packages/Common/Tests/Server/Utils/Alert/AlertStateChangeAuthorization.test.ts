@@ -92,7 +92,8 @@ type WriteSpies = {
   timelineCreate: SpyInstance<typeof AlertStateTimelineService.create>;
 };
 
-type CheckCallerMayCreate = typeof AlertStateTimelineService.checkCallerMayCreate;
+type CheckCallerMayCreate =
+  typeof AlertStateTimelineService.checkCallerMayCreate;
 
 const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
@@ -539,15 +540,19 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
           check({
             alertIds: [ObjectID.generate()],
             props: createDatabaseProps(
-              data.permissions.map((permission: Permission): PermissionInput => {
-                return { permission };
-              }),
+              data.permissions.map(
+                (permission: Permission): PermissionInput => {
+                  return { permission };
+                },
+              ),
             ),
           }),
         );
 
         expect(error).toBeInstanceOf(NotAuthorizedException);
-        expect((error as Error).message).toContain("Create Alert State Timeline");
+        expect((error as Error).message).toContain(
+          "Create Alert State Timeline",
+        );
         expect(parentLookups).toEqual([]);
         expect(labelLookups).toEqual([]);
         expectNoWrites(writeSpies);

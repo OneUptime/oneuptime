@@ -2395,9 +2395,7 @@ describe("Incident Linked Alerts docs", () => {
         // The English refusal names what is needed, and no Edit Alert.
         if (language === "en") {
           expect(cases[3]).not.toContain(EDIT_ALERT);
-          expect(cases[3]).toContain(
-            "as acknowledging each of them does",
-          );
+          expect(cases[3]).toContain("as acknowledging each of them does");
         }
       }
     });
@@ -2655,11 +2653,11 @@ describe("Incident Linked Alerts docs", () => {
        * In English, the one line that names Edit Alert says it is not needed:
        * acknowledging as you declare takes what an alert's own page takes.
        */
-      const editAlertLines: Array<string> = splitMarkdown(
-        english,
-      ).prose.filter((line: string): boolean => {
-        return line.includes(EDIT_ALERT);
-      });
+      const editAlertLines: Array<string> = splitMarkdown(english).prose.filter(
+        (line: string): boolean => {
+          return line.includes(EDIT_ALERT);
+        },
+      );
 
       expect(editAlertLines).toHaveLength(1);
       expect(editAlertLines[0]).toContain(

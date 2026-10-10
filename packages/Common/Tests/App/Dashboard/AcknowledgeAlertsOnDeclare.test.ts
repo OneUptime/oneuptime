@@ -148,7 +148,10 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         `${SINGULAR_DESCRIPTION} 2 alerts are already acknowledged or resolved and are left as they are. ${TIMELINE_CREATE_REASON}`,
       );
       expect(
-        getAcknowledgeAlertsDescription(toAcknowledge(1), TIMELINE_CREATE_REASON),
+        getAcknowledgeAlertsDescription(
+          toAcknowledge(1),
+          TIMELINE_CREATE_REASON,
+        ),
       ).toBe(`${SINGULAR_DESCRIPTION} ${TIMELINE_CREATE_REASON}`);
     });
 

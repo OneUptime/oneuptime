@@ -854,7 +854,10 @@ describe("project SSO provider changes reach every server through Valkey", () =>
       props: {},
     };
     // The create's one OnCreate, which DatabaseService hands every hook after onBeforeCreate.
-    const create: OnCreate<Project> = { createBy: createBy, carryForward: null };
+    const create: OnCreate<Project> = {
+      createBy: createBy,
+      carryForward: null,
+    };
 
     const write: unknown = await serverA.requirementChanges.beforeProjectCreate(
       {
