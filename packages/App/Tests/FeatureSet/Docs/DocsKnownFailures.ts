@@ -428,21 +428,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/website-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "on-call/calendar-feeds": {
-    codeLanguage: EN,
-  },
-  "on-call/escalation-rules": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "on-call/incoming-call-policy": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "on-call/phone-number-whitelist": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "on-call/schedules": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
   },

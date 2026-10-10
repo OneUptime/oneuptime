@@ -12,7 +12,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * "Step 6: Configure Escalation Rules" of the Incoming Call Policy docs page,
+ * The "Escalation rules" section of the Incoming Call Policy docs page,
  * against the form and the API it describes, in every docs language.
  *
  * Adding an incoming call escalation rule is one step: Who to call (an
@@ -62,8 +62,11 @@ const PREVIOUS_DEFAULT_RING_SECONDS: number = 30;
 
 const UPGRADE_PAGE_RELATIVE_PATH: string = "installation/upgrading.md";
 
-// A line of Step 6's example: it names one of the three levels.
+// A line of the section's example: it names one of the three levels.
 const EXAMPLE_LEVEL: RegExp = /Level [123]/;
+
+// The section on escalation rules, by its heading on the English page.
+const RULES_SECTION_HEADING: string = "Escalation rules";
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -102,11 +105,11 @@ function numbersIn(line: string): Array<number> {
   return (toLatinDigits(line).match(/\d+/g) || []).map(Number);
 }
 
-// The line of Step 6 that describes the Ring for field.
+// The line of the rules section that describes the Ring for field.
 function findRingBullet(lang: string): string {
   const locale: Record<string, string> = readDashboardLocale(lang);
 
-  const lines: Array<string> = findStepSix(lang)
+  const lines: Array<string> = findRulesSection(lang)
     .split("\n")
     .filter((line: string): boolean => {
       return line.trim().startsWith(`- **${locale[RING_FOR]}**`);
@@ -117,9 +120,9 @@ function findRingBullet(lang: string): string {
   return lines[0]!;
 }
 
-// Step 6's voicemail note: its first "> **" line.
+// The rules section's voicemail note: its first "> **" line.
 function findVoicemailNote(lang: string): string {
-  const note: string | undefined = findStepSix(lang)
+  const note: string | undefined = findRulesSection(lang)
     .split("\n")
     .find((line: string): boolean => {
       return line.startsWith("> **");
@@ -159,20 +162,29 @@ function sections(markdown: string): Array<{ heading: string; body: string }> {
   return found;
 }
 
-// The step that adds an escalation rule: the section that says to click Add.
-function findStepSix(lang: string): string {
+/*
+ * The section on escalation rules: the one at the place the English page
+ * has it, since every translation keeps the English outline. It is where
+ * the page says to click Add Escalation Rule.
+ */
+function findRulesSection(lang: string): string {
   const locale: Record<string, string> = readDashboardLocale(lang);
-  const addRule: string = `**${locale[ADD_RULE]}**`;
+  const index: number = sections(readPage("en"))
+    .map((section: { heading: string }): string => {
+      return section.heading;
+    })
+    .indexOf(RULES_SECTION_HEADING);
 
-  const matching: Array<{ heading: string; body: string }> = sections(
+  expect(index).toBeGreaterThan(0);
+
+  const section: { heading: string; body: string } | undefined = sections(
     readPage(lang),
-  ).filter((section: { body: string }): boolean => {
-    return section.body.includes(addRule);
-  });
+  )[index];
 
-  expect(matching).toHaveLength(1);
+  expect(section).toBeDefined();
+  expect(section!.body).toContain(`**${locale[ADD_RULE]}**`);
 
-  return matching[0]!.body;
+  return section!.body;
 }
 
 // Whether a line of a table is the row a setting is described in.
@@ -242,11 +254,11 @@ describe("the docs describe the form the dashboard draws", () => {
   });
 });
 
-describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
+describe.each(LANGUAGES)("the %s page's escalation rules", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
 
   it("walks the one-step form, with that language's labels", () => {
-    const step: string = findStepSix(lang);
+    const step: string = findRulesSection(lang);
 
     for (const label of [
       locale[RULES_TAB],
@@ -262,7 +274,7 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
   });
 
   it("asks for nothing the form does not: no teams, users or order fields", () => {
-    const step: string = findStepSix(lang);
+    const step: string = findRulesSection(lang);
 
     for (const label of [
       "Teams",
@@ -277,7 +289,7 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
   });
 
   it("gives the ring time's default and Twilio's limits", () => {
-    const step: string = toLatinDigits(findStepSix(lang));
+    const step: string = toLatinDigits(findRulesSection(lang));
 
     for (const value of [
       DEFAULT_INCOMING_CALL_RING_SECONDS,
@@ -303,7 +315,7 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
   });
 
   it("rings each level of its example for the default", () => {
-    const ringTimes: Array<number> = findStepSix(lang)
+    const ringTimes: Array<number> = findRulesSection(lang)
       .split("\n")
       .filter((line: string): boolean => {
         return EXAMPLE_LEVEL.test(line);
@@ -315,12 +327,7 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
         });
       });
 
-    // The German and Swedish pages have no example.
-    if (lang === "de" || lang === "sv") {
-      expect(ringTimes).toEqual([]);
-      return;
-    }
-
+    // Every page has the example now, the German and Swedish ones included.
     expect(ringTimes.length).toBeGreaterThanOrEqual(3);
 
     for (const ringTime of ringTimes) {
@@ -344,14 +351,14 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
   });
 
   it("names an unnamed rule after its level, as the list does", () => {
-    const step: string = findStepSix(lang);
+    const step: string = findRulesSection(lang);
 
     expect(step).toContain(`**${getDefaultEscalationRuleName(1)}**`);
     expect(step).toContain(`**${getDefaultEscalationRuleName(2)}**`);
   });
 
   it("warns about voicemail beside the ring time", () => {
-    const step: string = findStepSix(lang);
+    const step: string = findRulesSection(lang);
 
     const note: string | undefined = step
       .split("\n")
@@ -380,12 +387,8 @@ describe.each(LANGUAGES)("the whole %s page", (lang: string) => {
   it("tells API users a rule left without a ring time rings for 20", () => {
     const sentence: string | null = findApiSentence(lang);
 
-    // The German page is the short one: it has no API sentence.
-    if (lang === "de") {
-      expect(sentence).toBeNull();
-      return;
-    }
-
+    // Every page has it now, the German one included.
+    expect(sentence).not.toBeNull();
     expect(numbersIn(sentence!)).toEqual([DEFAULT_INCOMING_CALL_RING_SECONDS]);
   });
 });
@@ -394,16 +397,9 @@ describe.each(LANGUAGES)("the %s page's settings table", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
   const table: string | null = findSettingsTable(lang);
 
-  // The German page is the short one: it has no settings tables.
-  const hasTable: boolean = lang !== "de";
-
-  it(hasTable ? "is there" : "is left out, as the page always did", () => {
-    expect(Boolean(table)).toBe(hasTable);
+  it("is there, the German page's included", () => {
+    expect(Boolean(table)).toBe(true);
   });
-
-  if (!hasTable) {
-    return;
-  }
 
   it("lists who to call and the ring time, and no team or user rows", () => {
     const rows: Array<string> = table!.split("\n").filter((line: string) => {
@@ -521,11 +517,12 @@ describe("the upgrade notes", () => {
 describe("the English page", () => {
   const english: string = readPage("en");
 
-  it("says a rule calls on-call schedules or people, not teams", () => {
-    expect(english).toContain(
-      "3. Routing the call through escalation rules (on-call schedules or people)",
+  it("says a rule calls an on-call schedule or one person, never a team", () => {
+    expect(findRulesSection("en")).toContain(
+      "**Who to call**: an on-call schedule or one person.",
     );
     expect(english).not.toContain("Try Backup Team");
+    expect(english).not.toContain("Backup Team");
     expect(english).not.toContain("(teams, schedules, or users)");
   });
 
