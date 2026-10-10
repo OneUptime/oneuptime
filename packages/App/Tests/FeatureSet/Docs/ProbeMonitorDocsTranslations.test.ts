@@ -221,6 +221,9 @@ const PATH_SEPARATOR: string = " → ";
 // The prose leads of "Before you begin": "A role that can create monitors".
 const BEFORE_YOU_BEGIN_LEAD: RegExp = /^A (role|probe) /;
 
+// An inline code span, which may hold asterisks of its own.
+const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
+
 function englishPage(page: string): string {
   return readPage("en", page);
 }
@@ -256,6 +259,23 @@ function filled(language: string, template: string, itemName: string): string {
     "{{itemName}}",
     itemName,
   );
+}
+
+/*
+ * The prose lines that open a bold span or an inline code span and never
+ * close it: "**Not Equal To** / `200** in the offline one" leaves the code
+ * open and swallows the rest of the line into it.
+ */
+function unbalancedLines(markdown: string): Array<string> {
+  return prose(markdown)
+    .split("\n")
+    .filter((line: string): boolean => {
+      const ticks: number = line.split("`").length - 1;
+      const outsideCode: string = line.replace(INLINE_CODE_SPAN, "");
+      const stars: number = outsideCode.split("**").length - 1;
+
+      return ticks % 2 !== 0 || stars % 2 !== 0;
+    });
 }
 
 // The number of :::steps steps on a page: the H3s inside its steps blocks.
@@ -433,6 +453,13 @@ describe("the English pages", () => {
     expect(cardLines(englishPage(entry.page)).length).toBeGreaterThan(0);
   });
 
+  it.each(PAGES)(
+    "$page closes every bold and code span it opens",
+    (entry: TranslatedPage) => {
+      expect(unbalancedLines(englishPage(entry.page))).toEqual([]);
+    },
+  );
+
   it.each(PROBE_CHECK_PAGES)(
     "%s says how many steps creating it takes, and has that many",
     (page: string) => {
@@ -475,6 +502,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(inlineCode(readPage(language, entry.page))).toEqual(
         inlineCode(english),
       );
+    });
+
+    it("closes every bold and code span it opens", () => {
+      expect(unbalancedLines(readPage(language, entry.page))).toEqual([]);
     });
 
     it("has the English page's headings, steps, tables and list items", () => {
@@ -592,6 +623,18 @@ describe("the helpers, on these pages' shapes", () => {
 
     expect(menuPaths(markdown)).toEqual([["Monitors", "Settings", "Templates"]]);
     expect(boldLabels(markdown)).toEqual(["Create Monitor Template"]);
+  });
+
+  it("find a line whose code span is closed by asterisks", () => {
+    const broken: string =
+      "**Response Status Code** / **Not Equal To** / `200** in the offline one";
+    const whole: string =
+      "**Response Status Code** / **Not Equal To** / `200` in the offline one";
+
+    expect(unbalancedLines(broken)).toEqual([broken]);
+    expect(unbalancedLines(whole)).toEqual([]);
+    // Asterisks inside code are code, not bold.
+    expect(unbalancedLines("Use `a ** b` here.")).toEqual([]);
   });
 
   it("count the steps of every :::steps block, and only those", () => {
