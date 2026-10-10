@@ -1,204 +1,241 @@
-# Server / VM Monitor
+# सर्वर / VM मॉनिटर
 
-Server और VM monitoring आपको एक lightweight agent install करके अपने servers, virtual machines और अन्य infrastructure की health और performance monitor करने की अनुमति देता है जो system metrics को OneUptime को report करता है।
+Server / VM मॉनिटर OneUptime इन्फ्रास्ट्रक्चर एजेंट (`oneuptime-infrastructure-agent`) के ज़रिए एक मशीन की निगरानी करता है। यह एजेंट एक छोटी सेवा है जो हर 30 सेकंड में CPU, मेमोरी, डिस्क, लोड, नेटवर्क और चल रही प्रक्रियाओं की जानकारी OneUptime को भेजती है। यह पेज बताता है कि एजेंट को Server / VM मॉनिटर से कैसे जोड़ें, एजेंट क्या रिपोर्ट करता है, और वे मानदंड कैसे लिखें जो तय करते हैं कि सर्वर कब ऑनलाइन है और कब ऑफ़लाइन।
 
-## Overview
+> [!IMPORTANT]
+> **मॉनिटर बनाएं** अब **Server / VM** का विकल्प नहीं देता। आपके पहले से बने Server / VM मॉनिटर काम करते रहेंगे, और इस पेज की हर बात उन पर लागू होती है। किसी नए सर्वर की निगरानी के लिए इसके बजाय [होस्ट मॉनिटर](/docs/monitor/host-monitor) बनाएं: यह उन होस्ट मेट्रिक्स पर अलर्ट देता है जिन्हें [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector) भेजता है।
 
-Server monitors आपके servers पर install एक infrastructure agent का उपयोग करके system metrics एकत्र और report करते हैं। यह आपको सक्षम बनाता है:
+:::cards
+- [एजेंट को कनेक्ट करें](#एजेंट-को-कनेक्ट-करें): इसे इंस्टॉल करें, इसे मॉनिटर की सीक्रेट कुंजी दें और इसे शुरू करें।
+- [एजेंट क्या रिपोर्ट करता है](#एजेंट-क्या-रिपोर्ट-करता-है): CPU, मेमोरी, डिस्क, लोड, नेटवर्क और प्रक्रियाएँ।
+- [मॉनिटरिंग मानदंड](#मॉनिटरिंग-मानदंड): तय करें कि सर्वर कब ऑनलाइन या ऑफ़लाइन माना जाए।
+- [समस्या निवारण](#समस्या-निवारण): एजेंट रिपोर्ट नहीं करता, या मॉनिटर कभी ऑफ़लाइन नहीं होता।
+:::
 
-- server uptime और availability monitor करें
-- CPU, memory और disk usage track करें
-- running processes monitor करें
-- resource utilization thresholds के आधार पर alerts सेट करें
-- infrastructure issues को आपकी services को प्रभावित करने से पहले detect करें
+## यह कैसे काम करता है
 
-## Server Monitor बनाना
+एजेंट एक सिस्टम सेवा के रूप में चलता है। हर 30 सेकंड में यह एक रिपोर्ट इकट्ठा करता है और उसे मॉनिटर की सीक्रेट कुंजी से हस्ताक्षरित करके आपके OneUptime URL पर भेजता है। OneUptime इन आँकड़ों को मॉनिटर के मेट्रिक्स के रूप में सहेजता है और रिपोर्ट को मॉनिटर के मानदंडों से जाँचता है।
 
-1. OneUptime Dashboard में **मॉनिटर** पर जाएं
-2. **मॉनिटर बनाएं** पर क्लिक करें
-3. monitor type के रूप में **Server / VM** चुनें
-4. इस monitor के लिए एक **सीक्रेट कुंजी** generate होगी — आपको agent configure करने के लिए इसकी आवश्यकता होगी
-5. अपने server पर agent सेट अप करने के लिए installation निर्देशों का पालन करें
+चुप्पी की जाँच अलग से होती है। हर मिनट OneUptime उन सभी Server / VM मॉनिटरों के **Is Online** मानदंड का फिर से मूल्यांकन करता है जिन्होंने 3 मिनट या उससे अधिक समय से रिपोर्ट नहीं भेजी है, और जो सर्वर अपने मानदंड की अनुमति (डिफ़ॉल्ट रूप से 3 मिनट) से अधिक समय तक चुप रहता है, उसे ऑफ़लाइन माना जाता है। जिस मॉनिटर में **Is Online** मानदंड नहीं है, उसे सिर्फ़ इसलिए ऑफ़लाइन चिह्नित नहीं किया जाता कि एजेंट चुप हो गया। इस चुप्पी में सिर्फ़ वही समय गिना जाता है जब OneUptime डेटा प्राप्त कर रहा था: जिस समय OneUptime खुद रीस्टार्ट, अपग्रेड हो रहा था या बकाया निपटा रहा था, वह नहीं गिना जाता, जैसा कि [जब OneUptime डेटा प्राप्त नहीं कर रहा हो](/docs/monitor/when-oneuptime-is-not-receiving) में बताया गया है।
 
-## Infrastructure Agent Install करना
+```mermaid title="Server / VM मॉनिटर को डेटा कैसे मिलता है"
+flowchart TB
+    agent["इन्फ्रास्ट्रक्चर एजेंट"] -->|"हर 30 सेकंड में रिपोर्ट"| oneuptime["OneUptime"]
+    oneuptime --> criteria{"मानदंड पूरा हुआ?"}
+    sweep["हर मिनट जाँच"] -->|"3 मिनट से कोई रिपोर्ट नहीं"| criteria
+    criteria -->|"हाँ"| outcome["स्थिति में बदलाव,<br/>अलर्ट या घटना"]
+```
 
-OneUptime Infrastructure Agent एक lightweight Go-based daemon है जो system metrics एकत्र करता है और हर 30 seconds में OneUptime को भेजता है। यह Linux, macOS और Windows का समर्थन करता है।
+## शुरू करने से पहले
 
-### Linux / macOS
+- आपके प्रोजेक्ट में एक Server / VM मॉनिटर।
+- मॉनिटर संपादित करने की अनुमति। सीक्रेट कुंजी और उसे शामिल करने वाले सेटअप कमांड सिर्फ़ उन्हीं लोगों को दिखते हैं जो मॉनिटर संपादित कर सकते हैं।
+- सर्वर पर root (Linux, macOS) या Administrator (Windows) अधिकार। एजेंट खुद को सिस्टम सेवा के रूप में इंस्टॉल करता है।
+- सर्वर से आपके OneUptime URL तक बाहर जाने वाला HTTPS, सीधे या किसी HTTP प्रॉक्सी के ज़रिए।
+
+## एजेंट को कनेक्ट करें
+
+नीचे दिए कमांड `https://oneuptime.com` और `YOUR_SECRET_KEY` का उपयोग करते हैं। मॉनिटर के अपने सेटअप कमांड में आपका OneUptime URL और मॉनिटर की सीक्रेट कुंजी पहले से भरी होती है, इसलिए जहाँ तक हो सके उन्हें मॉनिटर से ही कॉपी करें।
+
+:::steps
+### मॉनिटर के सेटअप कमांड खोलें
+
+**मॉनिटर** पर जाएं, Server / VM मॉनिटर खोलें और **दस्तावेज़ीकरण** चुनें। **Set up your Server Monitor (Linux/Mac)** और **Set up your Server Monitor (Windows)** कार्ड में इस मॉनिटर के कमांड हैं। जब तक एजेंट पहली बार रिपोर्ट नहीं करता, मॉनिटर का **अवलोकन** भी इन्हें दिखाता है।
+
+### एजेंट इंस्टॉल करें
+
+:::tabs
+@tab Linux
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+```
+@tab macOS
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+```
+@tab Windows
+1. [नवीनतम GitHub रिलीज़](https://github.com/OneUptime/oneuptime/releases/latest) से एजेंट डाउनलोड करें: x64 के लिए `oneuptime-infrastructure-agent_windows_amd64.zip`, या ARM64 के लिए `oneuptime-infrastructure-agent_windows_arm64.zip`।
+2. zip को निकालें। इसमें `oneuptime-infrastructure-agent.exe` है।
+3. जिस फ़ोल्डर में आपने इसे निकाला है, वहाँ Administrator के रूप में **कमांड प्रॉम्प्ट** खोलें।
+:::
+
+इंस्टॉल स्क्रिप्ट आपके ऑपरेटिंग सिस्टम और प्रोसेसर (x86-64 या ARM64) के लिए नवीनतम रिलीज़ डाउनलोड करती है और `oneuptime-infrastructure-agent` बाइनरी को `$HOME/bin` में रखती है। सेल्फ़-होस्टेड इंस्टॉल पर स्क्रिप्ट आपके अपने OneUptime URL से मिलती है।
+
+### इसे मॉनिटर से जोड़ें
+
+:::tabs
+@tab Linux
+```bash
+sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+@tab macOS
+```bash
+sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+@tab Windows
+```shell
+oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+:::
+
+`configure` सीक्रेट कुंजी और URL को एजेंट की कॉन्फ़िगरेशन फ़ाइल में सहेजता है और एजेंट को सिस्टम सेवा के रूप में इंस्टॉल करता है। दोनों फ़्लैग आवश्यक हैं। सेल्फ़-होस्टेड इंस्टॉल पर `https://oneuptime.com` की जगह अपना URL डालें।
+
+अगर सर्वर किसी प्रॉक्सी के ज़रिए इंटरनेट तक पहुँचता है, तो `--proxy-url` जोड़ें:
 
 ```bash
-# agent install करें
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+sudo oneuptime-infrastructure-agent configure --proxy-url=http://proxy.example.com:8080 --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
 
-# agent configure करें
-sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+### एजेंट शुरू करें
 
-# agent start करें
+:::tabs
+@tab Linux
+```bash
 sudo oneuptime-infrastructure-agent start
 ```
-
-`YOUR_SECRET_KEY` को अपने monitor की settings में दिखाई दी secret key से बदलें, और यदि self-hosted हैं तो `https://oneuptime.com` को अपने OneUptime instance URL से बदलें।
-
-### Windows
-
-1. [GitHub Releases](https://github.com/OneUptime/oneuptime/releases/latest) से latest agent download करें
-   - x64 systems के लिए `oneuptime-infrastructure-agent_windows_amd64.zip`
-   - ARM64 systems के लिए `oneuptime-infrastructure-agent_windows_arm64.zip`
-2. zip file extract करें
-3. Command Prompt को Administrator के रूप में खोलें और चलाएं:
-
+@tab macOS
 ```bash
-# agent configure करें
-oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
-
-# agent start करें
+sudo oneuptime-infrastructure-agent start
+```
+@tab Windows
+```shell
 oneuptime-infrastructure-agent start
 ```
+:::
 
-### Proxy Support
+शुरू होने पर एजेंट OneUptime से सीक्रेट कुंजी की जाँच करता है और तुरंत अपनी पहली रिपोर्ट भेजता है।
 
-यदि आपका server proxy के माध्यम से internet से connect होता है, तो आप agent को इसका उपयोग करने के लिए configure कर सकते हैं:
+### जाँचें कि यह रिपोर्ट कर रहा है
 
-```bash
-sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com --proxy-url=http://proxy.example.com:8080
-```
+`sudo oneuptime-infrastructure-agent status` चलाएं (Windows पर `sudo` के बिना): यह `Service is running` दिखाता है। OneUptime में, पहली रिपोर्ट आते ही मॉनिटर का **अवलोकन** सेटअप कमांड दिखाना बंद कर देता है, और उसका **मेट्रिक्स** टैब सर्वर के चार्ट बनाने लगता है।
+:::
 
-## Agent Commands
+## एजेंट संदर्भ
 
-Infrastructure agent निम्नलिखित commands का समर्थन करता है:
+### कमांड
 
-| Command     | विवरण                                                                    |
-| ----------- | ------------------------------------------------------------------------ |
-| `configure` | agent को आपकी secret key और OneUptime URL के साथ configure करें          |
-| `start`     | agent service start करें                                                 |
-| `stop`      | agent service stop करें                                                  |
-| `restart`   | agent service restart करें                                               |
-| `status`    | वर्तमान service status दिखाएं                                            |
-| `logs`      | agent logs देखें (line count के लिए `-n` उपयोग करें, follow के लिए `-f`) |
-| `uninstall` | agent service uninstall करें                                             |
+| कमांड | यह क्या करता है |
+| --- | --- |
+| `configure --secret-key=<key> --oneuptime-url=<url>` | सेटिंग्स सहेजता है और एजेंट को सिस्टम सेवा के रूप में इंस्टॉल करता है। रिपोर्ट को प्रॉक्सी के ज़रिए भेजने के लिए `--proxy-url=<url>` जोड़ें। |
+| `start` | सेवा शुरू करता है। जब तक `configure` नहीं चलाया जाता, यह शुरू होने से मना करता है। |
+| `stop` | सेवा रोकता है। |
+| `restart` | सेवा फिर से शुरू करता है। |
+| `status` | दिखाता है कि सेवा चल रही है या रुकी हुई है। |
+| `logs` | एजेंट के लॉग की आख़िरी 100 पंक्तियाँ दिखाता है। `-n <lines>` अलग संख्या में पंक्तियाँ दिखाता है, और `-f` नई पंक्तियों का पीछा करता है। |
+| `uninstall` | सेवा हटाता है और एजेंट की कॉन्फ़िगरेशन फ़ाइल मिटाता है। |
+| `help` | कमांड की सूची दिखाता है। |
 
-## Collected Metrics
+इन्हें Linux और macOS पर `sudo` के साथ चलाएं, और Windows पर Administrator **कमांड प्रॉम्प्ट** से चलाएं। कॉन्फ़िगर किए गए एजेंट की सीक्रेट कुंजी, URL या प्रॉक्सी बदलने के लिए `stop` और `uninstall` चलाएं, फिर दोबारा `configure` और `start` चलाएं।
 
-Agent आपके server से निम्नलिखित metrics एकत्र करता है:
+### फ़ाइलें
 
-### CPU
+| फ़ाइल | Linux और macOS | Windows |
+| --- | --- | --- |
+| कॉन्फ़िगरेशन | `/etc/oneuptime-infrastructure-agent/config.json` | `%PROGRAMDATA%\oneuptime-infrastructure-agent\config.json` |
+| लॉग | `/var/log/oneuptime-infrastructure-agent/oneuptime-infrastructure-agent.log` | `%PROGRAMDATA%\oneuptime-infrastructure-agent\oneuptime-infrastructure-agent.log` |
 
-- **CPU Usage Percent** — percentage के रूप में overall CPU utilization
-- **CPU कोर** — CPU cores की संख्या
+जब एजेंट इन डायरेक्टरी में नहीं लिख पाता, तो वह इसके बजाय `~/.oneuptime-infrastructure-agent/` का उपयोग करता है। `ONEUPTIME_AGENT_CONFIG_PATH` और `ONEUPTIME_AGENT_LOG_PATH` एनवायरनमेंट वेरिएबल इनमें से किसी भी पथ को स्पष्ट रूप से सेट करते हैं।
 
-### Memory
+## एजेंट क्या रिपोर्ट करता है
 
-- **कुल मेमोरी** — कुल available memory
-- **Used Memory** — वर्तमान में उपयोग में memory
-- **Free Memory** — available free memory
-- **Memory Usage Percent** — percentage के रूप में Memory utilization
+हर रिपोर्ट में सर्वर का होस्टनेम और ये होते हैं:
 
-### Disk
+| क्षेत्र | क्या रिपोर्ट होता है |
+| --- | --- |
+| CPU | उपयोग %, कोर की संख्या, प्रति कोर उपयोग, और user, system, idle, I/O wait, steal, nice, IRQ और soft IRQ में बिताया गया समय |
+| मेमोरी | कुल, प्रयुक्त, खाली और उपलब्ध मेमोरी, बफ़र और कैश, उपयोग %, और स्वैप का कुल, प्रयुक्त, खाली और उपयोग % |
+| डिस्क | हर माउंट की गई डिस्क के लिए: माउंट पथ, डिवाइस, फ़ाइल सिस्टम, कुल, प्रयुक्त और खाली जगह, उपयोग %, पढ़े और लिखे गए बाइट और ऑपरेशन, और I/O समय |
+| लोड | 1, 5 और 15 मिनट का लोड औसत |
+| नेटवर्क | हर इंटरफ़ेस के लिए: भेजे और प्राप्त बाइट और पैकेट, अंदर और बाहर की त्रुटियाँ और ड्रॉप; साथ में स्थापित और सुन रहे कनेक्शन |
+| होस्ट | ऑपरेटिंग सिस्टम, प्लेटफ़ॉर्म और संस्करण, कर्नेल संस्करण और आर्किटेक्चर, अपटाइम, बूट समय, वर्चुअलाइज़ेशन और प्रक्रियाओं की संख्या |
+| प्रक्रियाएँ | हर चल रही प्रक्रिया: नाम, PID, कमांड, CPU %, मेमोरी, स्थिति, थ्रेड, उपयोगकर्ता और शुरू होने का समय |
 
-प्रत्येक mounted disk/volume के लिए:
+जो मान ऑपरेटिंग सिस्टम नहीं देता, वे छोड़ दिए जाते हैं। मॉनिटर का **मेट्रिक्स** टैब उपलब्धता, CPU, मेमोरी, डिस्क उपयोग और I/O, लोड औसत, स्वैप, नेटवर्क ट्रैफ़िक और त्रुटियाँ, कनेक्शन, अपटाइम और प्रक्रियाओं की संख्या के चार्ट दिखाता है।
 
-- **Total Disk Space** — disk की कुल capacity
-- **Used Disk Space** — वर्तमान में उपयोग में space
-- **Free Disk Space** — available free space
-- **Disk Usage Percent** — percentage के रूप में disk utilization
-- **डिस्क पथ** — disk का mount path
+## मॉनिटरिंग मानदंड
 
-### Processes
+मानदंड तय करते हैं कि मॉनिटर कब ऑनलाइन, धीमा या ऑफ़लाइन है, और कब वह अलर्ट या घटना खोलता है। मानदंड के हर फ़िल्टर में एक **फ़िल्टर प्रकार**, एक **फ़िल्टर शर्त** और ज़्यादातर प्रकारों के लिए एक मान होता है।
 
-- **Process Name** — running process का नाम
-- **Process ID (PID)** — Process identifier
-- **Process Command** — process start करने के लिए उपयोग की गई full command
+| फ़िल्टर प्रकार | यह क्या जाँचता है | फ़िल्टर शर्तें |
+| --- | --- | --- |
+| Is Online | क्या एजेंट ने हाल ही में रिपोर्ट किया है (डिफ़ॉल्ट रूप से पिछले 3 मिनट में) | सही, गलत |
+| CPU Usage (in %) | कुल CPU उपयोग | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| Memory Usage (in %) | उपयोग में मेमोरी | CPU के समान |
+| Disk Usage (in %) | **डिस्क पथ** में दी गई डिस्क का उपयोग | CPU के समान |
+| Swap Usage (in %) | उपयोग में स्वैप | CPU के समान |
+| CPU IO Wait (in %) | CPU समय का वह हिस्सा जो I/O की प्रतीक्षा में बीता | CPU के समान |
+| Load Average (1 minute) | पिछले एक मिनट का लोड औसत | CPU के समान |
+| Load Average (5 minute) | पिछले 5 मिनट का लोड औसत | CPU के समान |
+| Load Average (15 minute) | पिछले 15 मिनट का लोड औसत | CPU के समान |
+| Server Process Name | क्या इस नाम की प्रक्रिया चल रही है (केस-असंवेदी) | Is Executing, Is Not Executing |
+| Server Process Command | क्या ठीक इसी कमांड लाइन वाली प्रक्रिया चल रही है (केस-असंवेदी) | Is Executing, Is Not Executing |
+| Server Process PID | क्या इस PID वाली प्रक्रिया चल रही है | Is Executing, Is Not Executing |
 
-## Monitoring Criteria
+**डिस्क पथ** एक माउंट पॉइंट या डिवाइस लेता है, जैसे `/`, `/mnt/data`, `C:\` या `/dev/sda1`; खाली छोड़ने पर यह `/` होता है। एजेंट द्वारा रिपोर्ट की गई हर डिस्क जाँचने के लिए `*` डालें: थ्रेशोल्ड पार करने वाली हर डिस्क को अपना अलग अलर्ट मिलता है, इसलिए भरती हुई दूसरी डिस्क पहली डिस्क के खुले अलर्ट के पीछे छिपती नहीं।
 
-आप criteria configure कर सकते हैं जो यह निर्धारित करे कि आपका server online, degraded, या offline माना जाए।
+### समयावधि में मूल्यांकन
 
-### उपलब्ध Check Types
+**इस मानदंड का एक समयावधि के दौरान मूल्यांकन करें** मानदंड फ़ॉर्म पर एक अलग चेकबॉक्स है, कोई फ़िल्टर शर्त नहीं। यह **Is Online** और हर संख्यात्मक फ़िल्टर प्रकार के लिए उपलब्ध है। इसे चालू करने पर नवीनतम जाँच के मान के बजाय एक समग्र मान की तुलना होती है – जिसे **मूल्यांकन करें** में चुना जाता है (औसत, योग, Maximum Value, Minimum Value, All Values, Any Value) और जो **पिछले (मिनटों में) के लिए** से तय विंडो पर लागू होता है। **Is Online** फ़िल्टर पर विंडो वह समय है जितनी देर एजेंट चुप रह सकता है, उसके बाद सर्वर ऑफ़लाइन माना जाता है।
 
-| Check Type               | विवरण                                                              |
-| ------------------------ | ------------------------------------------------------------------ |
-| Is Online                | server agent report कर रहा है (heartbeat के आधार पर)               |
-| CPU Usage Percent        | वर्तमान CPU utilization percentage                                 |
-| Memory Usage Percent     | वर्तमान memory utilization percentage                              |
-| Disk Usage Percent       | वर्तमान disk utilization percentage (एक specific disk path के लिए) |
-| Swap Usage Percent       | वर्तमान swap utilization percentage                                |
-| CPU IO Wait Percent      | I/O के इंतज़ार में बिताए गए CPU समय का प्रतिशत                     |
-| Load Average (1 minute)  | पिछले 1 मिनट का system load average                                |
-| Load Average (5 minute)  | पिछले 5 मिनट का system load average                                |
-| Load Average (15 minute) | पिछले 15 मिनट का system load average                               |
-| Server Process Name      | एक specific नाम वाला process चल रहा है या नहीं                     |
-| Server Process Command   | एक specific command वाला process चल रहा है या नहीं                 |
-| Server Process PID       | एक specific PID वाला process चल रहा है या नहीं                     |
+**All Values** तभी मेल खाता है जब विंडो वास्तव में डेटा से ढकी हो। अभी-अभी बना मॉनिटर, या ऐसा मॉनिटर जिसकी जाँचें दर्ज होनी बंद हो गई हैं, पिछले N मिनटों के बारे में कुछ कहने लायक इतिहास नहीं रखता, इसलिए मानदंड अपने पास मौजूद एक रीडिंग पर मेल खाने के बजाय प्रतीक्षा करता है। **Any Value** "जैसे ही एक भी जाँच सीमा पार करे, मुझे बताओ" के लिए सेटिंग है और अब भी तुरंत ट्रिगर होती है।
 
-### Filter Types
+**यदि कोई डेटा नहीं** यह नियंत्रित करता है कि जब विंडो मानदंड का समर्थन नहीं कर सकती तब क्या हो:
 
-Numeric metrics के लिए (CPU, memory, disk, swap, IO wait, load average):
+| यदि कोई डेटा नहीं | व्यवहार | इसका उपयोग कब करें |
+| --- | --- | --- |
+| **Ignore** (डिफ़ॉल्ट) | मानदंड मेल नहीं खाता। | सामान्य थ्रेशोल्ड अलर्ट। |
+| **ट्रिगर** | डेटा का न होना ही समस्या माना जाता है। | हार्टबीट जैसी जाँचें, जहाँ चुप्पी अपने आप में विफलता है। |
+| **Treat As Zero** | विंडो की तुलना एक अकेले शून्य के रूप में होती है। | काउंटर, जहाँ "कोई घटना नहीं" का मतलब सचमुच शून्य है। |
 
-- **Greater Than** — Value एक threshold से अधिक है
-- **Less Than** — Value एक threshold से कम है
-- **Greater Than or Equal To** — Value एक threshold पर या उससे ऊपर है
-- **Less Than or Equal To** — Value एक threshold पर या उससे नीचे है
+> [!TIP]
+> CPU और लोड में हर समय छोटे उछाल आते रहते हैं। एक अकेली रिपोर्ट पर अलर्ट देने के बजाय उन्हें कुछ मिनटों में **औसत** या **All Values** से आँकें।
 
-**Evaluate this criteria over a period of time** criteria form पर एक checkbox है, filter condition नहीं। इसे चालू करने पर नवीनतम check के value के बजाय **Evaluate** (Average, Sum, Maximum, Minimum, All Values, Any Value) में चुना गया aggregate उस window पर तुलना किया जाता है जो **For the last (in minutes)** में सेट है।
+### उदाहरण मानदंड
 
-Process checks के लिए:
-
-- **Is Executing** — process वर्तमान में चल रहा है
-- **Is Not Executing** — process नहीं चल रहा
-
-### उदाहरण Criteria
-
-#### Agent reporting बंद होने पर server offline mark करें
-
-- **Check On**: Is Online
-- **फ़िल्टर प्रकार**: False
-
-#### CPU usage 90% से अधिक होने पर Alert करें
-
-- **Check On**: CPU Usage Percent
-- **फ़िल्टर प्रकार**: Greater Than
-- **मान**: 90
-
-#### Disk usage 85% से अधिक होने पर Alert करें
-
-- **Check On**: Disk Usage Percent
-- **डिस्क पथ**: `/`
-- **फ़िल्टर प्रकार**: Greater Than
-- **मान**: 85
-
-#### Memory usage 80% से अधिक होने पर Alert करें
-
-- **Check On**: Memory Usage Percent
-- **फ़िल्टर प्रकार**: Greater Than
-- **मान**: 80
-
-#### Critical process बंद होने पर Alert करें
-
-- **Check On**: Server Process Name
-- **फ़िल्टर प्रकार**: Is Not Executing
-- **मान**: `nginx`
+| लक्ष्य | फ़िल्टर प्रकार | फ़िल्टर शर्त | मान |
+| --- | --- | --- | --- |
+| एजेंट के रिपोर्ट करना बंद करने पर सर्वर को ऑफ़लाइन चिह्नित करें | Is Online | गलत | — |
+| CPU उपयोग 90% से ऊपर होने पर अलर्ट दें | CPU Usage (in %) | Greater Than | `90` |
+| रूट डिस्क 85% से अधिक भरने पर अलर्ट दें | Disk Usage (in %), **डिस्क पथ** `/` | Greater Than | `85` |
+| 85% से अधिक भरी किसी भी डिस्क पर अलर्ट दें, हर डिस्क के लिए एक अलर्ट | Disk Usage (in %), **डिस्क पथ** `*` | Greater Than | `85` |
+| मेमोरी उपयोग 80% से ऊपर होने पर अलर्ट दें | Memory Usage (in %) | Greater Than | `80` |
+| nginx के बंद होने पर अलर्ट दें | Server Process Name | Is Not Executing | `nginx` |
 
 ## समस्या निवारण
 
-### Agent report नहीं कर रहा
+:::details एजेंट रिपोर्ट नहीं कर रहा
+- जाँचें कि सेवा चल रही है: `sudo oneuptime-infrastructure-agent status`।
+- इसका लॉग पढ़ें: `sudo oneuptime-infrastructure-agent logs -n 50`। `Metrics successfully pushed to OneUptime server` वाली पंक्ति का मतलब है कि रिपोर्ट पहुँच रही हैं।
+- एजेंट शुरू होते समय सीक्रेट कुंजी की जाँच करता है और अगर OneUptime उसे अस्वीकार करता है तो `Secret key is invalid` लॉग करके बंद हो जाता है। कुंजी की तुलना मॉनिटर के **सेटिंग्स** पेज पर **सर्वर मॉनिटर सीक्रेट कुंजी रीसेट करें** के नीचे दी गई कुंजी से करें।
+- सुनिश्चित करें कि सर्वर HTTPS पर आपके OneUptime URL तक पहुँच सकता है, और कोई फ़ायरवॉल बाहर जाने वाले कनेक्शन को रोक नहीं रहा।
+:::
 
-- सत्यापित करें कि agent चल रहा है: `sudo oneuptime-infrastructure-agent status`
-- agent logs जांचें: `sudo oneuptime-infrastructure-agent logs -n 50`
-- confirm करें कि secret key सही है
-- सुनिश्चित करें कि server आपके OneUptime instance URL तक पहुंच सकता है
-- जांचें कि firewall rules outbound HTTPS connections की अनुमति देते हैं
+:::details `sudo` कहता है कि कमांड नहीं मिला
+इंस्टॉल स्क्रिप्ट बाइनरी को उस उपयोगकर्ता के `$HOME/bin` में रखती है जिसके रूप में वह चली थी, और उपयोग की गई डायरेक्टरी दिखाती है। एजेंट को उसके पूरे पथ से चलाएं, उदाहरण के लिए `sudo /root/bin/oneuptime-infrastructure-agent configure ...`। इसके बजाय सिस्टम पथ की किसी डायरेक्टरी में इंस्टॉल करने के लिए स्क्रिप्ट को `-b` दें:
 
-### Agent द्वारा High resource usage
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+```
+:::
 
-Agent lightweight होने के लिए designed है। यदि आप high resource usage देखते हैं:
+:::details `start` कहता है कि सेवा कॉन्फ़िगरेशन नहीं मिला
+`configure` नहीं चलाया गया है, या `uninstall` ने उसका कॉन्फ़िगरेशन हटा दिया है। सीक्रेट कुंजी और URL के साथ `configure` चलाएं, फिर `start` चलाएं।
+:::
 
-- agent restart करें: `sudo oneuptime-infrastructure-agent restart`
-- errors के लिए agent logs जांचें
+:::details सर्वर बंद होने पर भी मॉनिटर कभी ऑफ़लाइन नहीं होता
+सिर्फ़ **Is Online** मानदंड ही चुप सर्वर को ऑफ़लाइन चिह्नित करता है। **फ़िल्टर शर्त** को **गलत** पर सेट करके एक मानदंड जोड़ें, और वह मॉनिटर स्थिति सेट करें जिस पर वह बदलता है।
+:::
 
-## सर्वोत्तम प्रथाएं
+:::details रिपोर्ट प्रॉक्सी से नहीं गुज़रतीं
+- `--proxy-url` में दिए प्रॉक्सी URL और पोर्ट की जाँच करें।
+- सुनिश्चित करें कि प्रॉक्सी आपके OneUptime URL तक कनेक्शन की अनुमति देता है।
+- प्रॉक्सी बदलने के लिए `stop` और `uninstall` चलाएं, फिर नए `--proxy-url` के साथ `configure` चलाएं, और `start` चलाएं।
+:::
 
-1. **meaningful thresholds सेट करें** — degraded और offline criteria configure करें जो आपके server की सामान्य operating ranges से match करें
-2. **critical processes monitor करें** — process monitoring का उपयोग करें ताकि web servers और databases जैसी essential services हमेशा चलती रहें
-3. **disk usage proactively monitor करें** — disk space issues application failures में cascade हो सकती हैं; disks full होने से पहले alerts सेट करें
-4. **"Evaluate Over Time" उपयोग करें** — CPU जैसे metrics के लिए जो briefly spike कर सकते हैं, false alerts से बचने के लिए time-based aggregation उपयोग करें
-5. **agent को updated रखें** — latest improvements और fixes पाने के लिए infrastructure agent को periodically update करें
+## अगले चरण
+
+:::cards
+- [होस्ट मॉनिटर](/docs/monitor/host-monitor): नए सर्वरों के लिए मॉनिटर, OpenTelemetry होस्ट मेट्रिक्स पर बना।
+- [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector): Linux, macOS और Windows से होस्ट मेट्रिक्स और लॉग भेजें।
+- [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating): घटना के शीर्षकों में CPU, मेमोरी, डिस्क और प्रक्रिया का विवरण डालें।
+:::
