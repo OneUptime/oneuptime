@@ -2376,7 +2376,12 @@ test.describe("Forms", () => {
       "content-type": "application/json",
       tenantid: "",
     };
-    const aroundThePage: string = `Sent around the page ${ctx.unique}`;
+    /*
+     * A title no other test in this file uses: C2's smuggledTitle is "Sent
+     * around the page ..." and C2's submission creates that incident, so
+     * reusing it here found C2's incident and blamed these refused ones.
+     */
+    const aroundThePage: string = `Refused by its template ${ctx.unique}`;
 
     const noApp: APIResponse = await ctx.submitter.request.post(submitUrl, {
       headers,

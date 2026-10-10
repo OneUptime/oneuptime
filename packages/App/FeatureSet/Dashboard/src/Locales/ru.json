@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Введите порт от 1 до 65535 или оставьте поле пустым, чтобы использовать 123.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Как долго ждать ответа сервера при каждой попытке, включая DNS-запрос. Для каждой повторной попытки отсчёт тайм-аута начинается заново. По умолчанию — 5 секунд. Максимум — 60 секунд.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Сколько раз повторять после неудачной попытки: 0 — одна попытка, 2 — до 3 попыток. Оставьте поле пустым, чтобы использовать значение по умолчанию зонда (обычно 3). Максимум — 3. Отсутствие ответа, отклонённый порт и неудачный DNS-запрос повторяются, каждый раз с новым запросом. Ответивший сервер никогда не опрашивается повторно, даже если он отвечает, что не синхронизирован.",
-  "The time server this monitor checks.": "Сервер времени, который проверяет этот монитор."
+  "The time server this monitor checks.": "Сервер времени, который проверяет этот монитор.",
+  "Has Additional Parameters": "Есть дополнительные параметры",
+  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта."
 }

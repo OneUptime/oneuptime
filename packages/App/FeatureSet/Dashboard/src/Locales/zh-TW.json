@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "請輸入 1 到 65535 之間的連接埠，或留空以使用 123。",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "每次嘗試等待伺服器回應的時間，包括 DNS 查詢。每次重試都會重新開始逾時計時。預設為 5 秒。最大為 60 秒。",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "失敗後重試的次數：0 表示只嘗試一次，2 表示最多 3 次。留空則使用探測器的預設值（通常為 3）。最大為 3。沒有回應、連接埠被拒絕和 DNS 查詢失敗都會重試，每次都送出新的請求。已回應的伺服器不會再被詢問，即使它回應自己未同步。",
-  "The time server this monitor checks.": "此監測器檢查的時間伺服器。"
+  "The time server this monitor checks.": "此監測器檢查的時間伺服器。",
+  "Has Additional Parameters": "有其他參數",
+  "Only project owners and admins can read them, like the API key.": "與 API 金鑰一樣，只有專案擁有者和管理員可以讀取。"
 }

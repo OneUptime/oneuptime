@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Skriv inn en port fra 1 til 65535, eller la feltet stå tomt for 123.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Hvor lenge det ventes på serverens svar ved hvert forsøk, inkludert DNS-oppslaget. Hvert nytt forsøk får et nytt tidsavbrudd. Standard er 5 sekunder. Maksimum er 60 sekunder.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Hvor mange ganger det skal prøves på nytt etter et mislykket forsøk: 0 betyr ett forsøk, 2 betyr opptil 3. La feltet stå tomt for å bruke probens standard (vanligvis 3). Maksimum er 3. Manglende svar, en avvist port og et mislykket DNS-oppslag prøves på nytt, hver gang med en ny forespørsel. En server som svarer blir aldri spurt igjen, selv når den svarer at den ikke er synkronisert.",
-  "The time server this monitor checks.": "Tidsserveren denne monitoren sjekker."
+  "The time server this monitor checks.": "Tidsserveren denne monitoren sjekker.",
+  "Has Additional Parameters": "Har ekstra parametere",
+  "Only project owners and admins can read them, like the API key.": "Som API-nøkkelen kan bare prosjekteiere og -administratorer lese dem."
 }

@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Geben Sie einen Port von 1 bis 65535 ein oder lassen Sie das Feld für 123 leer.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Wie lange bei jedem Versuch auf die Antwort des Servers gewartet wird, einschließlich der DNS-Abfrage. Jeder Wiederholungsversuch erhält ein neues Zeitlimit. Der Standardwert beträgt 5 Sekunden. Das Maximum beträgt 60 Sekunden.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Wie oft nach einem fehlgeschlagenen Versuch wiederholt wird: 0 bedeutet einen Versuch, 2 bedeutet bis zu 3. Leer lassen, um den Standardwert der Sonde zu verwenden (in der Regel 3). Maximum ist 3. Keine Antwort, ein abgelehnter Port und eine fehlgeschlagene DNS-Abfrage werden wiederholt, jeweils mit einer neuen Anfrage. Ein Server, der antwortet, wird nie erneut gefragt, auch wenn er antwortet, dass er nicht synchronisiert ist.",
-  "The time server this monitor checks.": "Der Zeitserver, den dieser Monitor prüft."
+  "The time server this monitor checks.": "Der Zeitserver, den dieser Monitor prüft.",
+  "Has Additional Parameters": "Hat zusätzliche Parameter",
+  "Only project owners and admins can read them, like the API key.": "Wie den API-Schlüssel können nur Projekteigentümer und Administratoren sie lesen."
 }

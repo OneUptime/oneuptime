@@ -11,11 +11,13 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
+import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
@@ -30,6 +32,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import GlobalProbesOnNewMonitorsCard from "../../../Components/Probe/GlobalProbesOnNewMonitorsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -48,6 +51,18 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const advancedSection: FormFieldCollapsibleSection<Probe> =
     getAdvancedFormSection<Probe>();
+
+  /*
+   * A probe's key is read by project owners and admins alone (Probe.key).
+   * The table asks for it only for them (BaseModelTable leaves out what the
+   * viewer may not read); everyone who sees the table gets the probe's ID,
+   * which installing a probe needs too, and the key only those who may read
+   * it.
+   */
+  const canReadProbeKey: boolean = PermissionGate.canReadColumn(
+    new Probe(),
+    "key",
+  );
 
   return (
     <Fragment>
@@ -130,6 +145,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         <ModelTable<Probe>
+          /*
+           * Listed again when whether keys may be read changes: the
+           * permission snapshot can land after the first paint.
+           */
+          key={canReadProbeKey ? "probes-with-keys" : "probes"}
           modelType={Probe}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -213,10 +233,10 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           searchableFields={["name", "description"]}
           actionButtons={[
             {
-              title: "Show ID and Key",
-              icon: IconProp.Key,
+              title: canReadProbeKey ? "Show ID and Key" : "Show ID",
+              icon: canReadProbeKey ? IconProp.Key : IconProp.Identification,
               buttonStyleType: ButtonStyleType.NORMAL,
-              // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
+              // Reveals the probe's ID (and its key, to who may read it) for copying - a utility, not the row's button.
               placement: ActionButtonPlacement.MoreMenu,
               onClick: async (
                 item: Probe,
@@ -332,9 +352,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         {labelBulkActionModals}
 
-        {showKeyModal && currentProbe ? (
+        {showKeyModal && currentProbe && canReadProbeKey ? (
           <ConfirmModal
-            title={`Probe Key`}
+            title="Probe Key"
             description={
               <div>
                 <span>
@@ -359,6 +379,25 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             submitButtonText={"Close"}
             submitButtonType={ButtonStyleType.NORMAL}
             onSubmit={async () => {
+              setShowKeyModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Everyone else who sees the table gets the probe's ID - installing a
+         * probe needs it as well as the key - in the shared Show ID dialog.
+         */}
+        {showKeyModal && currentProbe && !canReadProbeKey ? (
+          <RecordIdModal
+            recordId={currentProbe["_id"]}
+            itemName="Probe"
+            apiReferencePagePath={getApiReferencePagePath(new Probe(), {
+              isBillingEnabled: BILLING_ENABLED,
+            })}
+            onClose={() => {
               setShowKeyModal(false);
             }}
           />

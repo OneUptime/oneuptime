@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "1 から 65535 のポートを入力するか、123 を使う場合は空欄のままにしてください。",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "各試行でサーバーの応答を待つ時間で、DNS ルックアップも含みます。再試行のたびにタイムアウトが新たに開始されます。デフォルト値は 5 秒です。最大は 60 秒です。",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "失敗した試行の後に再試行する回数です。0 は 1 回のみ、2 は最大 3 回を意味します。空欄にするとプローブのデフォルト値 (通常は 3) が使われます。最大は 3 です。応答なし、ポートの拒否、DNS ルックアップの失敗は、毎回新しいリクエストで再試行されます。応答したサーバーには、未同期だと応答した場合でも、再度問い合わせることはありません。",
-  "The time server this monitor checks.": "このモニターがチェックするタイムサーバー。"
+  "The time server this monitor checks.": "このモニターがチェックするタイムサーバー。",
+  "Has Additional Parameters": "追加パラメーターあり",
+  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。"
 }

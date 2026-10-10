@@ -3,6 +3,10 @@ import path from "path";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import SelectPermission from "../../../../../Server/Types/Database/Permissions/SelectPermission";
 import Log from "../../../../../Models/AnalyticsModels/Log";
+import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
+import Probe from "../../../../../Models/DatabaseModels/Probe";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -421,5 +425,51 @@ describe("select-rejection messages the Terraform provider parses", () => {
         ),
       ).toBeNull();
     });
+  });
+
+  /*
+   * A Terraform API key holding Viewer reads an LLM provider, a probe or an
+   * AI agent with a select of every attribute. The secrets on them are read
+   * by the project's owners and admins alone: the provider drops each one
+   * the API refuses and reads the rest, so the plan reads the resource
+   * rather than failing on it.
+   */
+  describe("secrets a project Viewer may not read", () => {
+    it.each([
+      ["an LLM provider", "apiKey", LlmProvider],
+      ["an LLM provider", "additionalParams", LlmProvider],
+      ["a probe", "key", Probe],
+      ["an AI agent", "key", AIAgent],
+    ])(
+      "%s: %s is dropped, and the rest is read",
+      (_label: string, column: string, modelType: { new (): BaseModel }) => {
+        const viewer: DatabaseCommonInteractionProps = makeProps([
+          Permission.Viewer,
+        ]);
+
+        const error: Exception = caught(() => {
+          return SelectPermission.checkSelectPermission(
+            modelType as never,
+            { name: true, [column]: true } as never,
+            viewer,
+          );
+        });
+
+        expect(error.code).toBe(ExceptionCode.NotAuthorizedException);
+        for (const envelope of ["error", "message"] as const) {
+          expect(
+            columnTheProviderWouldDrop(wireBody(envelope, error.message)),
+          ).toBe(column);
+        }
+
+        expect(() => {
+          return SelectPermission.checkSelectPermission(
+            modelType as never,
+            { name: true } as never,
+            viewer,
+          );
+        }).not.toThrow();
+      },
+    );
   });
 });

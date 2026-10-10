@@ -1,7 +1,13 @@
 import {
+  PROBE_PICKER_SELECT,
+  PROBE_READER_SELECT,
   QueryProbesTool,
   QueryWorkflowsTool,
 } from "../../../../Server/Utils/AI/Toolbox/WorkflowProbeTools";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Permission, { UserPermission } from "../../../../Types/Permission";
+import UserType from "../../../../Types/UserType";
+import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -80,7 +86,8 @@ function buildProbe(data: {
   id?: ObjectID;
   name: string;
   lastAlive?: Date;
-  version?: string;
+  // null: the read did not ask for the version (global probes).
+  version?: string | null;
 }): Probe {
   const probe: Probe = new Probe();
   probe._id = (data.id ?? ObjectID.generate()).toString();
@@ -89,8 +96,42 @@ function buildProbe(data: {
   if (data.lastAlive) {
     probe.lastAlive = data.lastAlive;
   }
-  probe.probeVersion = new Version(data.version ?? "1.0.2");
+  if (data.version !== null) {
+    probe.probeVersion = new Version(data.version ?? "1.0.2");
+  }
   return probe;
+}
+
+/*
+ * A member of the project holding `permissions`, on a plan that allows every
+ * read: what the tool's table and column checks decide from.
+ */
+function memberContext(permissions: Array<Permission>): ToolContext {
+  return {
+    projectId: ctx.projectId,
+    props: {
+      ...ON_HIGHEST_PLAN,
+      tenantId: ctx.projectId,
+      userId: ObjectID.generate(),
+      userType: UserType.User,
+      userTenantAccessPermission: {
+        [ctx.projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: ctx.projectId,
+          permissions: permissions.map(
+            (permission: Permission): UserPermission => {
+              return {
+                _type: "UserPermission",
+                permission: permission,
+                labelIds: [],
+                isBlockPermission: false,
+              } as UserPermission;
+            },
+          ),
+        },
+      },
+    } as unknown as DatabaseCommonInteractionProps,
+  };
 }
 
 afterEach(() => {
@@ -314,11 +355,25 @@ describe("query_probes", () => {
           id: GLOBAL_PROBE_ID,
           name: "Global US",
           lastAlive: OneUptimeDate.getSomeMinutesAgo(10),
+          version: null,
         }),
       ] as never);
     const countBySpy: jest.SpyInstance = mockMonitorCounts();
 
     const result: ToolExecutionResult = await QueryProbesTool.execute({}, ctx);
+
+    // The table shows a project probe's version, and none for a global one.
+    const widgetRows: Array<JSONObject> = (
+      result.widget?.data as unknown as { rows: Array<JSONObject> }
+    ).rows;
+    expect(
+      widgetRows.map((row: JSONObject) => {
+        return [row["name"], row["probeVersion"]];
+      }),
+    ).toEqual([
+      ["EU probe", "3.0.1"],
+      ["Global US", undefined],
+    ]);
 
     expect(result.rowCount).toBe(2);
     expect(result.dataForLlm).toContain("EU probe");
@@ -341,6 +396,23 @@ describe("query_probes", () => {
     const secondCall: JSONObject = probesSpy.mock.calls[1]?.[0] as JSONObject;
     expect(secondCall["query"]).toEqual({ isGlobalProbe: true });
     expect((secondCall["props"] as JSONObject)["isRoot"]).toBe(true);
+
+    /*
+     * A project's own probes, read as the caller, carry their version. The
+     * global ones, read as OneUptime, carry what the global-probes route
+     * serves every signed-in user: never a key or a version.
+     */
+    expect(firstCall["select"]).toEqual(
+      expect.objectContaining({ probeVersion: true }),
+    );
+    expect(secondCall["select"]).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      lastAlive: true,
+      connectionStatus: true,
+    });
+    expect(Object.keys(firstCall["select"] as JSONObject)).not.toContain("key");
 
     /*
      * Monitor counts are tenant-scoped: the user's props AND an explicit
@@ -406,6 +478,260 @@ describe("query_probes", () => {
     expect(firstCall["limit"]).toBe(25);
     const secondCall: JSONObject = probesSpy.mock.calls[1]?.[0] as JSONObject;
     expect(secondCall["limit"]).toBe(25);
+  });
+
+  /*
+   * Whoever may only pick a probe - who may create monitors, say - reads a
+   * project probe's name, description and status but not its version
+   * (Probe's picker readers). The tool asks for what they may read, once,
+   * decided by the column read lists, and never by catching a refusal.
+   */
+  test("a caller who may pick probes but not read their versions gets the project's probes without one", async () => {
+    const pickerContext: ToolContext = memberContext([
+      Permission.CreateProjectMonitor,
+    ]);
+
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: GLOBAL_PROBE_ID,
+          name: "Global US",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      pickerContext,
+    );
+
+    expect(result.rowCount).toBe(2);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).toContain("Global US");
+    expect(result.dataForLlm).not.toContain("probeVersion=");
+
+    // One read of the project's probes, with what a picker shows.
+    const calls: Array<JSONObject> = probesSpy.mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      },
+    );
+    expect(calls).toHaveLength(2);
+    expect(calls[0]!["select"]).toEqual(PROBE_PICKER_SELECT);
+    expect(calls[0]!["props"]).toBe(pickerContext.props);
+    expect(calls[1]!["query"]).toEqual({ isGlobalProbe: true });
+
+    // Creating monitors does not read a monitor's probes: no counts asked.
+    expect(countBySpy).not.toHaveBeenCalled();
+    expect(result.dataForLlm).not.toContain("monitorsServed=");
+  });
+
+  test("a probe reader gets the project's probes with their version, and the monitor counts", async () => {
+    const readerContext: ToolContext = memberContext([
+      Permission.ProjectMember,
+    ]);
+
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: "3.0.1",
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      readerContext,
+    );
+
+    expect(result.dataForLlm).toContain("probeVersion=3.0.1");
+    expect(result.dataForLlm).toContain("monitorsServed=3");
+    expect((probesSpy.mock.calls[0]?.[0] as JSONObject)["select"]).toEqual(
+      PROBE_READER_SELECT,
+    );
+    expect((countBySpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      readerContext.props,
+    );
+  });
+
+  test("a caller who may not read the project's probes is not asked about them, and still gets the global probes", async () => {
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: GLOBAL_PROBE_ID,
+          name: "Global US",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      memberContext([Permission.BillingAdmin]),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("Global US");
+    expect(result.dataForLlm).toContain("isGlobalProbe=true");
+    expect(result.citationLabel).toBe("Probes (1 found, 0 disconnected)");
+
+    // The only read is the global probes', as OneUptime.
+    expect(probesSpy).toHaveBeenCalledTimes(1);
+    expect((probesSpy.mock.calls[0]?.[0] as JSONObject)["query"]).toEqual({
+      isGlobalProbe: true,
+    });
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a caller who may read no probe and leaves the global probes out gets an honest empty answer, without a query", async () => {
+    const probesSpy: jest.SpyInstance = jest.spyOn(ProbeService, "findBy");
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      { includeGlobalProbes: false },
+      memberContext([Permission.BillingAdmin]),
+    );
+
+    expect(result.rowCount).toBe(0);
+    expect(result.widget).toBeUndefined();
+    expect(probesSpy).not.toHaveBeenCalled();
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a project read that fails for any other reason still fails the tool", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockRejectedValueOnce(new Error("The database did not answer."));
+    mockMonitorCounts();
+
+    await expect(QueryProbesTool.execute({}, ctx)).rejects.toThrow(
+      "The database did not answer.",
+    );
+  });
+
+  test("a caller who may read probes but not a monitor's probes gets the probes without monitor counts", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      memberContext([Permission.ReadProjectProbe]),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).not.toContain("monitorsServed=");
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A monitor's probes are read through their monitor (MonitorProbe's
+   * CanAccessIfCanReadOn): whoever may read the probe rows but not the
+   * monitors is refused every count. The tool asks that rule once, and
+   * answers with the probes and no counts rather than failing.
+   */
+  test("a caller who may read a monitor's probes but not its monitors gets the probes without monitor counts", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      memberContext([Permission.ReadProjectProbe, Permission.ReadMonitorProbe]),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).not.toContain("monitorsServed=");
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor viewer gets the project's probes with the monitor counts", async () => {
+    const viewerContext: ToolContext = memberContext([
+      Permission.MonitorViewer,
+    ]);
+
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      viewerContext,
+    );
+
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).toContain("monitorsServed=3");
+    expect((probesSpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      viewerContext.props,
+    );
+    expect((countBySpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      viewerContext.props,
+    );
+  });
+
+  test("a monitor count that fails for any other reason still fails the tool", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockRejectedValue(new Error("The database did not answer."));
+
+    await expect(QueryProbesTool.execute({}, ctx)).rejects.toThrow(
+      "The database did not answer.",
+    );
   });
 
   test("no probes at all is honest: zero rows, no widget, no monitor counts", async () => {
