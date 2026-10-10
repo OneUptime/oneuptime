@@ -423,12 +423,19 @@ describe("the Creating a Monitor docs page", () => {
       expect(page).toContain("](/docs/monitor/monitor-templates)");
     });
 
-    it("lists the types that end on Probes & Interval", () => {
+    /*
+     * As that language's type picker draws them: the picker translates each
+     * type's title (CardSelect), English where the locale has no key.
+     */
+    it("lists the types that end on Probes & Interval, as that language's picker names them", () => {
       const probes: string = pageSections[2]!.body;
 
       for (const title of PROBE_CHECKED_TITLES) {
-        expect({ title, found: probes.includes(title) }).toEqual({
+        const drawn: string = dashboard[title]!;
+
+        expect({ title, drawn, found: probes.includes(drawn) }).toEqual({
           title,
+          drawn,
           found: true,
         });
       }
