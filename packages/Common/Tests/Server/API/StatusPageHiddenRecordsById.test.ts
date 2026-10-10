@@ -22,6 +22,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { mockRouter } from "./Helpers";
+import { makeProgressStates } from "../TestingUtils/ScheduledMaintenanceProgressWorld";
 import {
   afterEach,
   beforeAll,
@@ -264,9 +265,13 @@ function mockServices(): Fixtures {
   jest
     .spyOn(ScheduledMaintenanceStateTimelineService, "findBy")
     .mockResolvedValue([] as never);
+  /*
+   * The project's states, as every project has them: the list reads the
+   * events to come and the events in progress by the states they are in.
+   */
   jest
     .spyOn(ScheduledMaintenanceStateService, "findBy")
-    .mockResolvedValue([] as never);
+    .mockResolvedValue(makeProgressStates() as never);
 
   jest
     .spyOn(StatusPageAnnouncementService, "findBy")

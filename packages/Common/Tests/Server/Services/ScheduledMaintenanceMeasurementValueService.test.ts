@@ -403,7 +403,7 @@ describe("ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaint
   });
 
   test("gives a state that is both Ended and Resolved both roles, as projects commonly configure", async () => {
-    mockTimeline([
+    const entries: Array<ScheduledMaintenanceStateTimeline> = [
       buildTimelineEntry({
         stateId: SCHEDULED_STATE_ID,
         stateName: "Scheduled",
@@ -419,7 +419,25 @@ describe("ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaint
         isEndedState: true,
         isResolvedState: true,
       }),
-    ]);
+    ];
+
+    mockTimeline(entries);
+
+    // The project's list holds the same state, flagged both.
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getAllScheduledMaintenanceStates",
+      )
+      .mockResolvedValue(
+        entries.map(
+          (
+            entry: ScheduledMaintenanceStateTimeline,
+          ): ScheduledMaintenanceState => {
+            return entry.scheduledMaintenanceState!;
+          },
+        ) as never,
+      );
 
     const toEnded: ScheduledMaintenanceMeasurement = fromCreationTo(
       "to-ended",

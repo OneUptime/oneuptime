@@ -4,13 +4,26 @@ import ObjectID from "Common/Types/ObjectID";
 
 /*
  * The job that starts scheduled maintenance events once their start time
- * has passed. An event's Change Monitor Status to can now be changed until
- * the event starts, so the job no longer reads it: it used to select the
- * status with the event, up to a minute before the start, and change the
- * monitors to that copy after the move - undoing a change made in that
- * minute. Now it only moves the event into its project's ongoing state;
- * the move changes the monitors to the status stored at that moment, as
- * every start does, by hand or by this job
+ * has passed: it moves each one into its project's ongoing state.
+ *
+ * Which events wait for their time is the one rule
+ * (Common/Utils/ScheduledMaintenanceStart.isWaitingToStart): the project's
+ * scheduled state, and a state of the project's own placed after Scheduled
+ * and before Ongoing, such as "Confirmed". The job used to ask for the
+ * scheduled flag alone, so an event moved on to "Confirmed" was never
+ * started - its monitors were never held, its subscribers never told. A
+ * state placed before Scheduled - "Draft", an approval step - waits for a
+ * person, not the clock: nothing starts an event there.
+ *
+ * The job reads the queries from the real state service, its reads of the
+ * states answered from the scheduled maintenance test world
+ * (Common/Tests/Server/TestingUtils/ScheduledMaintenanceProgressWorld), and
+ * the events from an in-memory table that keeps what each query lets
+ * through, as the database would.
+ *
+ * It does not read the event's Change Monitor Status to: that can be
+ * changed until the event starts, and the move changes the monitors to the
+ * status stored at that moment, as every start does
  * (ScheduledMaintenanceStateTimelineService, tested in Common).
  *
  * The job registers itself via RunCron at import time and exports nothing,
@@ -36,12 +49,25 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
+    EXTERNAL_FAULT: {},
     default: {
       debug: jest.fn(),
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
     },
+  };
+});
+
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it, and the real state service below
+ * may reach it, so it is replaced with a factory.
+ */
+jest.mock("Common/Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: { hash: jest.fn(), verify: jest.fn() },
   };
 });
 
@@ -56,90 +82,149 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
   };
 });
 
-/*
- * The project's states, in their order: the job moves an event into the
- * first from the top flagged ongoing (ScheduledMaintenanceStartUtil
- * .getOngoingState).
- */
-jest.mock("Common/Server/Services/ScheduledMaintenanceStateService", () => {
-  return {
-    __esModule: true,
-    default: { getAllScheduledMaintenanceStates: jest.fn() },
-  };
-});
-
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
+import {
+  PROGRESS_PROJECT_ID,
+  ProgressStateKey,
+  eventMatchesStateQuery,
+  makeProgressState,
+  makeProgressStates,
+  mockProgressStateReads,
+  progressStateId,
+} from "Common/Tests/Server/TestingUtils/ScheduledMaintenanceProgressWorld";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ChangeStateToOngoing";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const JOB_NAME: string = "ScheduledMaintenance:ChangeStateToOngoing";
 
-const PROJECT_A: string = "11111111-1111-4111-8111-111111111111";
-const PROJECT_B: string = "22222222-2222-4222-8222-222222222222";
-const ONGOING_STATE_A: string = "33333333-3333-4333-8333-333333333331";
-const STATUS_ID: string = "44444444-4444-4444-8444-444444444444";
+// A project that put "Draft" before Scheduled, and one without an ongoing state.
+const DRAFT_PROJECT_ID: ObjectID = new ObjectID(
+  "5a000000-0000-4000-8000-000000000004",
+);
+const NO_ONGOING_PROJECT_ID: ObjectID = new ObjectID(
+  "5a000000-0000-4000-8000-000000000005",
+);
 
-// A due event, as the job's read answers it.
-function dueEvent(data: {
+const PAST: Date = new Date(Date.now() - 60 * 60 * 1000);
+const FUTURE: Date = new Date(Date.now() + 60 * 60 * 1000);
+
+// The world's list for another project, its ids its own.
+function statesOf(
+  projectId: ObjectID,
+  keys: Array<ProgressStateKey>,
+): Array<ScheduledMaintenanceState> {
+  return keys.map((key: ProgressStateKey): ScheduledMaintenanceState => {
+    const state: ScheduledMaintenanceState = makeProgressState(key, projectId);
+    state._id = progressStateId(key)
+      .toString()
+      .replace("-8000-", `-8${projectId.toString().slice(-3)}-`);
+    return state;
+  });
+}
+
+function draftState(projectId: ObjectID): ScheduledMaintenanceState {
+  const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+  state._id = `5a000000-0000-4000-8${projectId.toString().slice(-3)}-0000000000a0`;
+  state.projectId = projectId;
+  state.name = "Draft";
+  state.order = 0;
+  state.isScheduledState = false;
+  state.isOngoingState = false;
+  state.isEndedState = false;
+  state.isResolvedState = false;
+  return state;
+}
+
+const DRAFT_PROJECT_STATES: Array<ScheduledMaintenanceState> = [
+  draftState(DRAFT_PROJECT_ID),
+  ...statesOf(DRAFT_PROJECT_ID, [
+    "scheduled",
+    "confirmed",
+    "ongoing",
+    "verifying",
+    "ended",
+    "completed",
+  ]),
+];
+
+const NO_ONGOING_PROJECT_STATES: Array<ScheduledMaintenanceState> = statesOf(
+  NO_ONGOING_PROJECT_ID,
+  ["scheduled", "confirmed", "ended", "completed"],
+);
+
+const ALL_STATES: Array<ScheduledMaintenanceState> = [
+  ...makeProgressStates(),
+  ...DRAFT_PROJECT_STATES,
+  ...NO_ONGOING_PROJECT_STATES,
+];
+
+function stateNamed(projectId: ObjectID, name: string): ScheduledMaintenanceState {
+  const state: ScheduledMaintenanceState | undefined = ALL_STATES.find(
+    (candidate: ScheduledMaintenanceState): boolean => {
+      return (
+        candidate.projectId?.toString() === projectId.toString() &&
+        candidate.name === name
+      );
+    },
+  );
+
+  if (!state) {
+    throw new Error(`No state ${name} in ${projectId.toString()}`);
+  }
+
+  return state;
+}
+
+// The events the job's reads answer from.
+let events: Array<ScheduledMaintenance> = [];
+
+function eventIn(data: {
   id: string;
-  projectId: string;
+  projectId: ObjectID;
+  stateName: string;
+  startsAt?: Date;
   notifySubscribers?: boolean;
 }): ScheduledMaintenance {
+  const state: ScheduledMaintenanceState = stateNamed(
+    data.projectId,
+    data.stateName,
+  );
   const event: ScheduledMaintenance = new ScheduledMaintenance();
   event._id = data.id;
-  event.projectId = new ObjectID(data.projectId);
+  event.projectId = data.projectId;
+  event.title = `Event in ${data.stateName}`;
+  event.startsAt = data.startsAt || PAST;
+  event.currentScheduledMaintenanceStateId = new ObjectID(
+    state._id!.toString(),
+  );
+  event.currentScheduledMaintenanceState = state;
   event.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
     Boolean(data.notifySubscribers);
   return event;
 }
 
-function projectState(data: {
-  id: string;
-  order: number;
-  flag?:
-    | "isScheduledState"
-    | "isOngoingState"
-    | "isEndedState"
-    | "isResolvedState"
-    | undefined;
-}): ScheduledMaintenanceState {
-  const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-  state._id = data.id;
-  state.order = data.order;
-  state.isScheduledState = data.flag === "isScheduledState";
-  state.isOngoingState = data.flag === "isOngoingState";
-  state.isEndedState = data.flag === "isEndedState";
-  state.isResolvedState = data.flag === "isResolvedState";
-  return state;
-}
-
 /*
- * Project A's list: Scheduled, Ongoing, "Verifying" (a state of its own
- * after Ongoing), Ended, Completed.
+ * The moment a QueryHelper.lessThan condition names: the one value its Raw
+ * operator binds. Read by shape - Common's copy of typeorm builds it, not
+ * this package's.
  */
-const VERIFYING_STATE_A: string = "33333333-3333-4333-8333-333333333334";
+function boundOf(condition: unknown): Date | null {
+  const parameters: unknown =
+    condition && typeof condition === "object"
+      ? (condition as { objectLiteralParameters?: unknown })
+          .objectLiteralParameters
+      : undefined;
 
-function projectAStates(): Array<ScheduledMaintenanceState> {
-  return [
-    projectState({
-      id: "33333333-3333-4333-8333-333333333330",
-      order: 1,
-      flag: "isScheduledState",
-    }),
-    projectState({ id: ONGOING_STATE_A, order: 2, flag: "isOngoingState" }),
-    projectState({ id: VERIFYING_STATE_A, order: 3 }),
-    projectState({
-      id: "33333333-3333-4333-8333-333333333335",
-      order: 4,
-      flag: "isEndedState",
-    }),
-    projectState({
-      id: "33333333-3333-4333-8333-333333333336",
-      order: 5,
-      flag: "isResolvedState",
-    }),
-  ];
+  if (!parameters || typeof parameters !== "object") {
+    return null;
+  }
+
+  const values: Array<unknown> = Object.values(
+    parameters as Record<string, unknown>,
+  );
+
+  return values[0] instanceof Date ? values[0] : null;
 }
 
 async function tick(): Promise<void> {
@@ -155,114 +240,139 @@ const changeState: jest.Mock =
   ScheduledMaintenanceService.changeScheduledMaintenanceState as jest.Mock;
 const changeMonitors: jest.Mock =
   ScheduledMaintenanceService.changeAttachedMonitorStates as jest.Mock;
-const readProjectStates: jest.Mock =
-  ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates as jest.Mock;
+
+interface Move {
+  projectId: string;
+  scheduledMaintenanceId: string;
+  scheduledMaintenanceStateId: string;
+  shouldNotifyStatusPageSubscribers: unknown;
+  isSubscribersNotified: unknown;
+  notifyOwners: unknown;
+  props: unknown;
+}
+
+function moves(): Array<Move> {
+  return changeState.mock.calls.map((call: Array<unknown>): Move => {
+    const move: Record<string, unknown> = call[0] as Record<string, unknown>;
+
+    return {
+      projectId: String(move["projectId"]),
+      scheduledMaintenanceId: String(move["scheduledMaintenanceId"]),
+      scheduledMaintenanceStateId: String(move["scheduledMaintenanceStateId"]),
+      shouldNotifyStatusPageSubscribers:
+        move["shouldNotifyStatusPageSubscribers"],
+      isSubscribersNotified: move["isSubscribersNotified"],
+      notifyOwners: move["notifyOwners"],
+      props: move["props"],
+    };
+  });
+}
+
+function movedEventIds(): Array<string> {
+  return moves()
+    .map((move: Move): string => {
+      return move.scheduledMaintenanceId;
+    })
+    .sort();
+}
+
+const E_SCHEDULED: string = "55555555-5555-4555-8555-555555555551";
+const E_CONFIRMED: string = "55555555-5555-4555-8555-555555555552";
+const E_ONGOING: string = "55555555-5555-4555-8555-555555555553";
+const E_VERIFYING: string = "55555555-5555-4555-8555-555555555554";
+const E_ENDED: string = "55555555-5555-4555-8555-555555555555";
+const E_DRAFT: string = "55555555-5555-4555-8555-555555555556";
+const E_DRAFT_PROJECT_CONFIRMED: string = "55555555-5555-4555-8555-555555555557";
+const E_CONFIRMED_LATER: string = "55555555-5555-4555-8555-555555555558";
+const E_NO_ONGOING_CONFIRMED: string = "55555555-5555-4555-8555-555555555559";
 
 describe("ScheduledMaintenance:ChangeStateToOngoing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    findAllBy.mockResolvedValue([] as never);
+    mockProgressStateReads(ALL_STATES);
+
+    events = [];
+
+    findAllBy.mockImplementation((async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+      const bound: Date | null = boundOf(query["startsAt"]);
+
+      return events.filter((event: ScheduledMaintenance): boolean => {
+        return (
+          eventMatchesStateQuery(event, query) &&
+          (!bound || event.startsAt!.getTime() < bound.getTime())
+        );
+      });
+    }) as never);
     changeState.mockResolvedValue(undefined as never);
     changeMonitors.mockResolvedValue(undefined as never);
-    // Project B's list has no ongoing state.
-    readProjectStates.mockImplementation((async (args: unknown) => {
-      const projectId: string = String(
-        (args as { projectId: unknown }).projectId,
-      );
-
-      return projectId === PROJECT_A ? projectAStates() : [];
-    }) as never);
   });
 
-  test("reads the due events without their Change Monitor Status to", async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("starts an event in a state of the project's own between Scheduled and Ongoing, as one left scheduled", async () => {
+    events = [
+      eventIn({
+        id: E_SCHEDULED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Scheduled",
+      }),
+      eventIn({
+        id: E_CONFIRMED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
+      }),
+    ];
+
     await tick();
 
-    expect(findAllBy).toHaveBeenCalledTimes(1);
-
-    const read: {
-      select: Record<string, unknown>;
-      query: Record<string, unknown>;
-      props: Record<string, unknown>;
-    } = findAllBy.mock.calls[0]![0] as {
-      select: Record<string, unknown>;
-      query: Record<string, unknown>;
-      props: Record<string, unknown>;
-    };
-
-    // Only what the move needs: the status is read when the event starts.
-    expect(read.select).toEqual({
-      _id: true,
-      projectId: true,
-      shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
-    });
-    expect(read.select).not.toHaveProperty("changeMonitorStatusTo");
-    expect(read.select).not.toHaveProperty("changeMonitorStatusToId");
-    expect(read.select).not.toHaveProperty("monitors");
-
-    // Scheduled events whose start time has passed, across projects.
-    expect(read.query["currentScheduledMaintenanceState"]).toEqual({
-      isScheduledState: true,
-    });
-    expect(read.query).toHaveProperty("startsAt");
-    expect(read.props).toEqual({ isRoot: true });
+    expect(movedEventIds()).toEqual([E_SCHEDULED, E_CONFIRMED].sort());
   });
 
-  test("moves each due event into its project's ongoing state, and changes no monitor itself", async () => {
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555551",
-        projectId: PROJECT_A,
-        notifySubscribers: true,
-      }),
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555552",
-        projectId: PROJECT_A,
+  test("both are moved into the project's ongoing state, owners and subscribers told as for any start", async () => {
+    events = [
+      eventIn({
+        id: E_SCHEDULED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Scheduled",
         notifySubscribers: false,
       }),
-    ] as never);
+      eventIn({
+        id: E_CONFIRMED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
+        notifySubscribers: true,
+      }),
+    ];
 
     await tick();
 
-    expect(changeState).toHaveBeenCalledTimes(2);
+    const ongoingStateId: string = progressStateId("ongoing").toString();
 
-    const moves: Array<Record<string, unknown>> = changeState.mock.calls.map(
-      (call: Array<unknown>): Record<string, unknown> => {
-        const move: Record<string, unknown> = call[0] as Record<
-          string,
-          unknown
-        >;
-
-        return {
-          projectId: String(move["projectId"]),
-          scheduledMaintenanceId: String(move["scheduledMaintenanceId"]),
-          scheduledMaintenanceStateId: String(
-            move["scheduledMaintenanceStateId"],
-          ),
-          shouldNotifyStatusPageSubscribers:
-            move["shouldNotifyStatusPageSubscribers"],
-          isSubscribersNotified: move["isSubscribersNotified"],
-          notifyOwners: move["notifyOwners"],
-          props: move["props"],
-        };
-      },
-    );
-
-    expect(moves).toEqual([
+    expect(
+      moves().sort((a: Move, b: Move): number => {
+        return a.scheduledMaintenanceId.localeCompare(b.scheduledMaintenanceId);
+      }),
+    ).toEqual([
       {
-        projectId: PROJECT_A,
-        scheduledMaintenanceId: "55555555-5555-4555-8555-555555555551",
-        scheduledMaintenanceStateId: ONGOING_STATE_A,
-        shouldNotifyStatusPageSubscribers: true,
+        projectId: PROGRESS_PROJECT_ID.toString(),
+        scheduledMaintenanceId: E_SCHEDULED,
+        scheduledMaintenanceStateId: ongoingStateId,
+        shouldNotifyStatusPageSubscribers: false,
         isSubscribersNotified: false,
         notifyOwners: true,
         props: { isRoot: true },
       },
       {
-        projectId: PROJECT_A,
-        scheduledMaintenanceId: "55555555-5555-4555-8555-555555555552",
-        scheduledMaintenanceStateId: ONGOING_STATE_A,
-        shouldNotifyStatusPageSubscribers: false,
+        projectId: PROGRESS_PROJECT_ID.toString(),
+        scheduledMaintenanceId: E_CONFIRMED,
+        scheduledMaintenanceStateId: ongoingStateId,
+        shouldNotifyStatusPageSubscribers: true,
         isSubscribersNotified: false,
         notifyOwners: true,
         props: { isRoot: true },
@@ -273,140 +383,219 @@ describe("ScheduledMaintenance:ChangeStateToOngoing", () => {
     expect(changeMonitors).not.toHaveBeenCalled();
   });
 
-  test("an event read with a status still has its monitors left to the move", async () => {
-    const event: ScheduledMaintenance = dueEvent({
-      id: "55555555-5555-4555-8555-555555555553",
-      projectId: PROJECT_A,
+  test("leaves an event in a state placed before Scheduled alone: a draft waits for a person", async () => {
+    events = [
+      eventIn({
+        id: E_DRAFT,
+        projectId: DRAFT_PROJECT_ID,
+        stateName: "Draft",
+      }),
+      eventIn({
+        id: E_DRAFT_PROJECT_CONFIRMED,
+        projectId: DRAFT_PROJECT_ID,
+        stateName: "Confirmed",
+      }),
+    ];
+
+    await tick();
+
+    expect(movedEventIds()).toEqual([E_DRAFT_PROJECT_CONFIRMED]);
+    expect(
+      moves()[0]!.scheduledMaintenanceStateId.toLowerCase(),
+    ).toBe(
+      stateNamed(DRAFT_PROJECT_ID, "Ongoing")._id!.toString().toLowerCase(),
+    );
+  });
+
+  test("leaves the events that have started alone: in progress or over", async () => {
+    events = [
+      eventIn({
+        id: E_ONGOING,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Ongoing",
+      }),
+      eventIn({
+        id: E_VERIFYING,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Verifying",
+      }),
+      eventIn({
+        id: E_ENDED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Ended",
+      }),
+    ];
+
+    await tick();
+
+    expect(changeState).not.toHaveBeenCalled();
+  });
+
+  test("an event whose start time has not passed waits, in Confirmed as in Scheduled", async () => {
+    events = [
+      eventIn({
+        id: E_CONFIRMED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
+      }),
+      eventIn({
+        id: E_CONFIRMED_LATER,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
+        startsAt: FUTURE,
+      }),
+    ];
+
+    await tick();
+
+    expect(movedEventIds()).toEqual([E_CONFIRMED]);
+  });
+
+  test("reads the due events by every query the rule names, each past its start, with only what the move needs", async () => {
+    await tick();
+
+    expect(findAllBy).toHaveBeenCalledTimes(2);
+
+    const reads: Array<{
+      select: Record<string, unknown>;
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    }> = findAllBy.mock.calls.map(
+      (
+        call: Array<unknown>,
+      ): {
+        select: Record<string, unknown>;
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } => {
+        return call[0] as {
+          select: Record<string, unknown>;
+          query: Record<string, unknown>;
+          props: Record<string, unknown>;
+        };
+      },
+    );
+
+    // The scheduled state by its flag; the project's own states by their ids.
+    expect(reads[0]!.query["currentScheduledMaintenanceState"]).toEqual({
+      isScheduledState: true,
     });
-    event.changeMonitorStatusToId = new ObjectID(STATUS_ID);
+    expect(reads[1]!.query["currentScheduledMaintenanceStateId"]).toBeDefined();
+    expect(reads[1]!.query["currentScheduledMaintenanceState"]).toBeUndefined();
+
+    const bounds: Array<number> = reads.map(
+      (read: { query: Record<string, unknown> }): number => {
+        return boundOf(read.query["startsAt"])!.getTime();
+      },
+    );
+
+    // Both only past their start, measured against the same moment.
+    expect(bounds[0]).toBe(bounds[1]);
+
+    for (const read of reads) {
+      expect(read.select).toEqual({
+        _id: true,
+        projectId: true,
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
+      });
+      expect(read.select).not.toHaveProperty("changeMonitorStatusToId");
+      expect(read.select).not.toHaveProperty("monitors");
+      expect(read.props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("an event two reads find is started once", async () => {
+    const event: ScheduledMaintenance = eventIn({
+      id: E_CONFIRMED,
+      projectId: PROGRESS_PROJECT_ID,
+      stateName: "Confirmed",
+    });
+
     findAllBy.mockResolvedValue([event] as never);
 
     await tick();
 
-    expect(changeState).toHaveBeenCalledTimes(1);
-    expect(changeMonitors).not.toHaveBeenCalled();
-  });
-
-  test("an event whose project has no ongoing state is left where it is", async () => {
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555554",
-        projectId: PROJECT_B,
-      }),
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555555",
-        projectId: PROJECT_A,
-      }),
-    ] as never);
-
-    await tick();
-
-    expect(readProjectStates).toHaveBeenCalledTimes(2);
-    expect(changeState).toHaveBeenCalledTimes(1);
-    expect(
-      String(
-        (changeState.mock.calls[0]![0] as Record<string, unknown>)[
-          "scheduledMaintenanceId"
-        ],
-      ),
-    ).toBe("55555555-5555-4555-8555-555555555555");
-    expect(changeMonitors).not.toHaveBeenCalled();
-  });
-
-  test("looks the ongoing state up in the event's own project, as root", async () => {
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555556",
-        projectId: PROJECT_A,
-      }),
-    ] as never);
-
-    await tick();
-
-    const lookup: {
-      projectId: unknown;
-      props: Record<string, unknown>;
-    } = readProjectStates.mock.calls[0]![0] as {
-      projectId: unknown;
-      props: Record<string, unknown>;
-    };
-
-    expect(String(lookup.projectId)).toBe(PROJECT_A);
-    expect(lookup.props).toEqual({ isRoot: true });
+    expect(movedEventIds()).toEqual([E_CONFIRMED]);
   });
 
   test("moves an event into the ongoing state itself, not a state of the project's own after it", async () => {
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555557",
-        projectId: PROJECT_A,
+    events = [
+      eventIn({
+        id: E_CONFIRMED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
       }),
-    ] as never);
+    ];
 
     await tick();
 
-    expect(changeState).toHaveBeenCalledTimes(1);
-
-    const stateId: string = String(
-      (changeState.mock.calls[0]![0] as Record<string, unknown>)[
-        "scheduledMaintenanceStateId"
-      ],
+    expect(moves()[0]!.scheduledMaintenanceStateId).toBe(
+      progressStateId("ongoing").toString(),
     );
-
-    expect(stateId).toBe(ONGOING_STATE_A);
-    expect(stateId).not.toBe(VERIFYING_STATE_A);
+    expect(moves()[0]!.scheduledMaintenanceStateId).not.toBe(
+      progressStateId("verifying").toString(),
+    );
   });
 
-  test("the first state from the top flagged ongoing is the one: a list read out of order is placed by its order", async () => {
-    const SECOND_ONGOING: string = "33333333-3333-4333-8333-333333333337";
-
-    readProjectStates.mockResolvedValue([
-      projectState({ id: SECOND_ONGOING, order: 4, flag: "isOngoingState" }),
-      ...projectAStates(),
-    ] as never);
-
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555558",
-        projectId: PROJECT_A,
+  test("an event whose project has no ongoing state is left where it is", async () => {
+    events = [
+      eventIn({
+        id: E_NO_ONGOING_CONFIRMED,
+        projectId: NO_ONGOING_PROJECT_ID,
+        stateName: "Scheduled",
       }),
-    ] as never);
+      eventIn({
+        id: E_SCHEDULED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Scheduled",
+      }),
+    ];
 
     await tick();
 
-    expect(
-      String(
-        (changeState.mock.calls[0]![0] as Record<string, unknown>)[
-          "scheduledMaintenanceStateId"
-        ],
-      ),
-    ).toBe(ONGOING_STATE_A);
+    expect(movedEventIds()).toEqual([E_SCHEDULED]);
   });
 
   test("reads each project's states once a run, however many of its events are due", async () => {
-    findAllBy.mockResolvedValue([
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555561",
-        projectId: PROJECT_A,
+    const readStates: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ScheduledMaintenanceStateService,
+      "getAllScheduledMaintenanceStates",
+    );
+
+    events = [
+      eventIn({
+        id: E_SCHEDULED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Scheduled",
       }),
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555562",
-        projectId: PROJECT_A,
+      eventIn({
+        id: E_CONFIRMED,
+        projectId: PROGRESS_PROJECT_ID,
+        stateName: "Confirmed",
       }),
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555563",
-        projectId: PROJECT_B,
+      eventIn({
+        id: E_DRAFT_PROJECT_CONFIRMED,
+        projectId: DRAFT_PROJECT_ID,
+        stateName: "Confirmed",
       }),
-      dueEvent({
-        id: "55555555-5555-4555-8555-555555555564",
-        projectId: PROJECT_A,
-      }),
-    ] as never);
+    ];
 
     await tick();
 
-    expect(readProjectStates).toHaveBeenCalledTimes(2);
-    // Project B has no ongoing state: its event is left where it is.
     expect(changeState).toHaveBeenCalledTimes(3);
+
+    const projectsRead: Array<string> = readStates.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String((call[0] as { projectId: unknown }).projectId);
+      })
+      .sort();
+
+    expect(projectsRead).toEqual(
+      [PROGRESS_PROJECT_ID.toString(), DRAFT_PROJECT_ID.toString()].sort(),
+    );
+
+    for (const call of readStates.mock.calls) {
+      expect((call[0] as { props: unknown }).props).toEqual({ isRoot: true });
+    }
   });
 });
