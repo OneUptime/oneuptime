@@ -22,6 +22,19 @@ export const MicrosoftIdentityAssociationPath: string =
   "/.well-known/microsoft-identity-association.json";
 
 /*
+ * Microsoft documents the path above, but Entra's check also asks for it
+ * without ".json", and fails the domain as "too large" when that answer is
+ * over 4 KB - which Home's 404 page is. So Home serves the document at both.
+ */
+export const MicrosoftIdentityAssociationPaths: Array<string> = [
+  MicrosoftIdentityAssociationPath,
+  "/.well-known/microsoft-identity-association",
+];
+
+// Entra refuses a document larger than this.
+export const MicrosoftIdentityAssociationMaxBytes: number = 4096;
+
+/*
  * Only this host vouches for the apps. Every self-hosted OneUptime install
  * runs the same Home service, and a self-hosted domain answering with
  * OneUptime's apps would claim to publish apps it does not.

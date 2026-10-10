@@ -2,7 +2,9 @@ import {
   MicrosoftAppPublishedByOneUptime,
   MicrosoftAppsPublishedByOneUptime,
   MicrosoftIdentityAssociationHost,
+  MicrosoftIdentityAssociationMaxBytes,
   MicrosoftIdentityAssociationPath,
+  MicrosoftIdentityAssociationPaths,
   generateMicrosoftIdentityAssociation,
 } from "../Utils/MicrosoftIdentityAssociation";
 import { JSONObject } from "Common/Types/JSON";
@@ -76,19 +78,40 @@ describe("Microsoft identity association", () => {
     }
   });
 
-  test("Home serves it at the path Microsoft fetches", () => {
+  test("Home serves it at the paths Microsoft fetches, with and without .json", () => {
     expect(MicrosoftIdentityAssociationPath).toBe(
       "/.well-known/microsoft-identity-association.json",
     );
+
+    /*
+     * Entra also asks for the path without ".json". Answered there by Home's
+     * 404 page, it failed oneuptime.com as "too large".
+     */
+    expect(MicrosoftIdentityAssociationPaths).toEqual([
+      "/.well-known/microsoft-identity-association.json",
+      "/.well-known/microsoft-identity-association",
+    ]);
 
     const routes: string = fs.readFileSync(
       path.join(__dirname, "..", "Routes.ts"),
       "utf-8",
     );
 
-    expect(routes).toContain("MicrosoftIdentityAssociationPath,");
+    expect(routes).toContain("MicrosoftIdentityAssociationPaths,");
     expect(routes).toContain(
       "generateMicrosoftIdentityAssociation({ host: Host })",
+    );
+  });
+
+  test("the document stays within the size Entra accepts", () => {
+    const body: string = JSON.stringify(
+      generateMicrosoftIdentityAssociation({
+        host: MicrosoftIdentityAssociationHost,
+      }),
+    );
+
+    expect(Buffer.byteLength(body, "utf-8")).toBeLessThanOrEqual(
+      MicrosoftIdentityAssociationMaxBytes,
     );
   });
 });
