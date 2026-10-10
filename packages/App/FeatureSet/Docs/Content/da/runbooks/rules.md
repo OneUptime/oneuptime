@@ -101,7 +101,7 @@ Med to eller flere betingelser vælger du **Alle skal matche** (hver betingelse 
 - Flere regler kan matche samme begivenhed. Hvert match udløses, og foreningsmængden af deres runbooks kører: hvert runbook får sin egen udførelse, og et runbook, som to matchende regler nævner, kører én gang.
 - Monitorbetingelser kontrolleres én monitor ad gangen. Med **Alle skal matche** kræver "**Overvågningsnavn** indeholder `api`" og "**Overvågningsetiketter** har en af _Production_" én monitor, der opfylder begge, ikke én monitor for hver.
 - Runbook-regler kører efter etiketregler, så en etiket, som en etiketregel sætter på en ny hændelse, advarsel eller begivenhed, kan starte et runbook.
-- En hændelse eller advarsel, der oprettes allerede løst, starter intet runbook: den var forbi, før den blev registreret. Se [Oprettet allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
+- En hændelse eller advarsel, der oprettes allerede løst, starter intet runbook: den var forbi, før den blev registreret. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 - En betingelse på et andet produkts alvorlighed — f.eks. **Advarsel Alvorligheder** i en hændelsesregel — kan aldrig blive sand, så API'et nægter at gemme den.
 - Regler evalueres én gang, når begivenheden oprettes. At redigere en hændelses titel, alvorlighed eller etiketter senere udløser ikke reglerne igen.
 

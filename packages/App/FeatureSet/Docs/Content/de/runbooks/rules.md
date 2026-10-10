@@ -101,7 +101,7 @@ Bei zwei oder mehr Bedingungen wählen Sie **Alle müssen zutreffen** (jede Bedi
 - Mehrere Regeln können zum selben Ereignis passen. Jeder Treffer greift, und die Vereinigung ihrer Runbooks läuft: Jedes Runbook bekommt seine eigene Ausführung, und ein Runbook, das zwei passende Regeln nennen, läuft einmal.
 - Monitor-Bedingungen werden Monitor für Monitor geprüft. Mit **Alle müssen zutreffen** brauchen „**Überwachungsname** enthält `api`“ und „**Überwachungs-Beschriftungen** hat eines von _Production_“ einen Monitor, der beides ist, nicht je einen Monitor pro Bedingung.
 - Runbook-Regeln laufen nach den Beschriftungsregeln, sodass eine Beschriftung, die eine Beschriftungsregel an einen neuen Vorfall, eine neue Warnung oder ein neues Ereignis hängt, ein Runbook starten kann.
-- Ein Vorfall oder eine Warnung, die bereits gelöst erstellt wird, startet kein Runbook: Sie war vorbei, bevor sie aufgezeichnet wurde. Siehe [Bereits bestätigt oder gelöst gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
+- Ein Vorfall oder eine Warnung, die bereits gelöst erstellt wird, startet kein Runbook: Sie war vorbei, bevor sie aufgezeichnet wurde. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 - Eine Bedingung auf den Schweregrad eines anderen Produkts — etwa **Warnungsschweregrade** in einer Vorfallregel — kann nie wahr sein, deshalb lehnt die API das Speichern ab.
 - Regeln werden einmal ausgewertet, wenn das Ereignis entsteht. Wenn Titel, Schweregrad oder Beschriftungen eines Vorfalls später geändert werden, lösen die Regeln nicht erneut aus.
 

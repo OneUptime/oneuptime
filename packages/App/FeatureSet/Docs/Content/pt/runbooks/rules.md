@@ -101,7 +101,7 @@ Com duas ou mais condições, escolha **Corresponder a todas** (todas as condiç
 - Várias regras podem corresponder ao mesmo evento. Cada correspondência dispara, e a união dos runbooks delas é executada: cada runbook ganha sua própria execução, e um runbook indicado por duas regras correspondentes roda uma vez.
 - As condições de monitor são verificadas um monitor de cada vez. Com **Corresponder a todas**, "**Nome do Monitor** contém `api`" e "**Rótulos do Monitor** tem algum de _Production_" precisam de um monitor que atenda às duas, não de um monitor para cada uma.
 - As regras de runbook rodam depois das regras de rótulos, então um rótulo que uma regra de rótulos adiciona a um novo incidente, alerta ou evento pode iniciar um runbook.
-- Um incidente ou alerta criado já resolvido não inicia nenhum runbook: ele terminou antes de ser registrado. Consulte [Declarado já reconhecido ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
+- Um incidente ou alerta criado já resolvido não inicia nenhum runbook: ele terminou antes de ser registrado. Consulte [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 - Uma condição sobre a severidade de outro produto — **Alerta Severidades** em uma regra de incidentes, por exemplo — nunca pode ser verdadeira, então a API se recusa a salvá-la.
 - As regras são avaliadas uma vez, quando o evento é criado. Editar depois o título, a severidade ou os rótulos de um incidente não dispara as regras de novo.
 

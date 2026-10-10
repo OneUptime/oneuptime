@@ -101,7 +101,7 @@ Avec deux conditions ou plus, choisissez **Toutes requises** (chaque condition d
 - Plusieurs règles peuvent correspondre au même événement. Chaque correspondance se déclenche, et l'union de leurs runbooks s'exécute : chaque runbook a sa propre exécution, et un runbook désigné par deux règles correspondantes s'exécute une seule fois.
 - Les conditions sur les moniteurs sont vérifiées moniteur par moniteur. Avec **Toutes requises**, « **Nom du moniteur** contient `api` » et « **Étiquettes du moniteur** contient l'un de _Production_ » demandent un moniteur qui réponde aux deux, pas un moniteur pour chacune.
 - Les règles de runbook s'exécutent après les règles d'étiquettes, si bien qu'une étiquette qu'une règle d'étiquettes attache à un nouvel incident, une nouvelle alerte ou un nouvel événement peut lancer un runbook.
-- Un incident ou une alerte créé déjà résolu ne lance aucun runbook : il était terminé avant d'être enregistré. Voir [Déclaré déjà acquitté ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
+- Un incident ou une alerte créé déjà résolu ne lance aucun runbook : il était terminé avant d'être enregistré. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 - Une condition sur la gravité d'un autre produit — **Gravités d'alerte** dans une règle d'incident, par exemple — ne peut jamais être vraie, donc l'API refuse de l'enregistrer.
 - Les règles sont évaluées une seule fois, à la création de l'événement. Modifier plus tard le titre, la gravité ou les étiquettes d'un incident ne redéclenche pas les règles.
 
