@@ -6,7 +6,6 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import GlobalSsoService from "./GlobalSsoService";
-import Query from "../Types/Database/Query";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -121,9 +120,8 @@ export class Service extends DatabaseService<Model> {
      * attachments decide - so nothing after the lock here can fail and keep
      * it.
      */
-    const providerIds: Array<ObjectID | null> = await this.readProviderIds(
-      deleteBy.query,
-    );
+    const providerIds: Array<ObjectID | null> =
+      await this.readProviderIds(deleteBy);
 
     /*
      * Right before the delete, the lock is kept once more and kept alive
@@ -337,18 +335,19 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  // The providers of the attachments `query` names; a failed read cannot tell.
+  /*
+   * The providers of the attachments a delete removes - the ones
+   * GlobalSsoProviderChanges held it to, read again with the delete held to
+   * them (findRowsAndHoldDeleteToThem); a failed read cannot tell.
+   */
   private async readProviderIds(
-    query: Query<Model>,
+    deleteBy: DeleteBy<Model>,
   ): Promise<Array<ObjectID | null>> {
     try {
-      const rows: Array<Model> = await this.findBy({
-        query: query,
-        select: { _id: true, globalSsoId: true },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: { isRoot: true },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        { _id: true, globalSsoId: true },
+      );
 
       return rows.map((row: Model): ObjectID | null => {
         return row.globalSsoId || null;

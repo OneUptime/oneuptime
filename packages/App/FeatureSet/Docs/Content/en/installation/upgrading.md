@@ -1159,6 +1159,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   monitors start with it - but not a probe's key, version, labels or packet
   capture report. A probe's key stays with project owners and admins. The
   lists of global probes and global AI agents answer signed-in users only.
+- **An update or a delete names its project.** A signed-in user's update
+  or delete of a project's records that names no project (no `tenantid`
+  header), or that asks across all of their projects (the
+  `is-multi-tenant-query` header), is refused with a `400` that says to pass
+  the project ID. Such a request used to fail with a `500`. API keys act in
+  their own project, and the Dashboard and the mobile app always send the
+  project with a change, so neither is affected. See
+  [Changes are made in one project at a time](/docs/api-reference/api-reference#changes-are-made-in-one-project-at-a-time).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

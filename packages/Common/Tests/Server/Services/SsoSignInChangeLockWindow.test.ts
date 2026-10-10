@@ -757,16 +757,20 @@ describe("a lock found gone right before the write is taken again, and the chang
       locks.lose(ACME);
 
       // Lost once more, the moment it has been taken again and the project read under it.
-      const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
-        ProjectService.findAllBy.bind(ProjectService) as unknown as (
-          ...args: Array<unknown>
-        ) => Promise<unknown>;
+      const findRowsAndHoldUpdateToThem: (
+        ...args: Array<unknown>
+      ) => Promise<unknown> = ProjectService.findRowsAndHoldUpdateToThem.bind(
+        ProjectService,
+      ) as unknown as (...args: Array<unknown>) => Promise<unknown>;
       let reads: number = 0;
 
-      getJestSpyOn(ProjectService, "findAllBy").mockImplementation((async (
+      getJestSpyOn(
+        ProjectService,
+        "findRowsAndHoldUpdateToThem",
+      ).mockImplementation((async (
         ...args: Array<unknown>
       ): Promise<unknown> => {
-        const answer: unknown = await findAllBy(...args);
+        const answer: unknown = await findRowsAndHoldUpdateToThem(...args);
         reads++;
 
         // The read that picks the projects to lock, then the read under the lock.

@@ -1625,22 +1625,10 @@ export class Service extends ProjectReferencesService<Model> {
      * The request's project for a teammate, whose update is kept to it; the
      * project of each rule written for OneUptime and a master admin.
      */
-    const projectIds: Dictionary<ObjectID> = {};
-    const requestProjectId: ObjectID | null = Service.getProjectWriteIsHeldTo(
+    for (const projectId of this.getProjectsToCheckRowsIn(
       updateBy.props,
-    );
-
-    if (requestProjectId) {
-      projectIds[requestProjectId.toString()] = requestProjectId;
-    } else {
-      for (const rule of rules) {
-        if (rule.projectId) {
-          projectIds[rule.projectId.toString()] = rule.projectId;
-        }
-      }
-    }
-
-    for (const projectId of Object.values(projectIds)) {
+      rules,
+    )) {
       const storedIds: Dictionary<Set<string>> = {};
 
       for (const column of columnsInPayload) {
