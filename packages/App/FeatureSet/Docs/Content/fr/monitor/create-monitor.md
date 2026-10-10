@@ -65,8 +65,8 @@ flowchart TB
     subgraph actions["Ce que fait ce critère"]
         direction LR
         status["Changer l'état"]
-        incident["Déclarer un incident"]
-        alert["Créer une alerte"]
+        incident["Déclarer<br/>un incident"]
+        alert["Créer<br/>une alerte"]
     end
 ```
 

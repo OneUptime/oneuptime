@@ -16,8 +16,8 @@ Um modelo não vigia nada sozinho. Monitores são criados a partir dele, ou vinc
 ```mermaid title="Um modelo e seus monitores vinculados"
 flowchart TB
     template["Modelo de monitor"] -->|"Criar monitor"| created["Monitor criado<br/>a partir do modelo"]
-    existing["Monitor que você<br/>já tinha"] -->|"Vincular Monitores Existentes"| template
-    template -.->|"Botões de sincronização"| linked
+    existing["Monitor que você<br/>já tinha"] -->|"Vincular Monitores<br/>Existentes"| template
+    template -.->|"Botões de<br/>sincronização"| linked
     subgraph linked["Monitores Vinculados"]
         direction LR
         created

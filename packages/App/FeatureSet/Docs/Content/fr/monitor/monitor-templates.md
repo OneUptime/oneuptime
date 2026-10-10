@@ -15,9 +15,9 @@ Un modèle ne surveille rien lui-même. Des moniteurs sont créés à partir de 
 
 ```mermaid title="Un modèle et ses moniteurs liés"
 flowchart TB
-    template["Modèle de moniteur"] -->|"Créer un moniteur"| created["Moniteur créé<br/>à partir du modèle"]
-    existing["Moniteur que vous<br/>aviez déjà"] -->|"Lier des moniteurs existants"| template
-    template -.->|"Boutons de synchronisation"| linked
+    template["Modèle de<br/>moniteur"] -->|"Créer un moniteur"| created["Moniteur créé<br/>à partir du modèle"]
+    existing["Moniteur que vous<br/>aviez déjà"] -->|"Lier des moniteurs<br/>existants"| template
+    template -.->|"Boutons de<br/>synchronisation"| linked
     subgraph linked["Moniteurs liés"]
         direction LR
         created

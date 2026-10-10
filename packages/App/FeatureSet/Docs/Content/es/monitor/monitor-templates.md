@@ -16,8 +16,8 @@ Una plantilla no vigila nada por sí misma. Los monitores se crean a partir de e
 ```mermaid title="Una plantilla y sus monitores vinculados"
 flowchart TB
     template["Plantilla de monitor"] -->|"Crear monitor"| created["Monitor creado<br/>a partir de la plantilla"]
-    existing["Monitor que<br/>ya tenía"] -->|"Vincular monitores existentes"| template
-    template -.->|"Botones de sincronización"| linked
+    existing["Monitor que<br/>ya tenía"] -->|"Vincular monitores<br/>existentes"| template
+    template -.->|"Botones de<br/>sincronización"| linked
     subgraph linked["Monitores vinculados"]
         direction LR
         created

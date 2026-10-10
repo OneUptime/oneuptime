@@ -64,9 +64,9 @@ flowchart TB
     criteria -->|"Uno coincide"| actions
     subgraph actions["Lo que hace ese criterio"]
         direction LR
-        status["Cambiar el estado"]
-        incident["Declarar un incidente"]
-        alert["Crear una alerta"]
+        status["Cambiar<br/>el estado"]
+        incident["Declarar<br/>un incidente"]
+        alert["Crear<br/>una alerta"]
     end
 ```
 

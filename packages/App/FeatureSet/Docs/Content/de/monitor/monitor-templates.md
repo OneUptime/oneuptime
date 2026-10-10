@@ -16,8 +16,8 @@ Eine Vorlage überwacht selbst nichts. Monitore werden aus ihr erstellt oder mit
 ```mermaid title="Eine Vorlage und ihre verknüpften Monitore"
 flowchart TB
     template["Monitorvorlage"] -->|"Monitor erstellen"| created["Aus der Vorlage<br/>erstellter Monitor"]
-    existing["Monitor, den Sie<br/>schon hatten"] -->|"Bestehende Monitore verknüpfen"| template
-    template -.->|"Synchronisierungsschaltflächen"| linked
+    existing["Monitor, den Sie<br/>schon hatten"] -->|"Bestehende Monitore<br/>verknüpfen"| template
+    template -.->|"Schaltflächen zum<br/>Synchronisieren"| linked
     subgraph linked["Verknüpfte Monitore"]
         direction LR
         created

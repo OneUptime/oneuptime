@@ -16,8 +16,8 @@ Een sjabloon bewaakt zelf niets. Monitoren worden eruit gemaakt, of eraan gekopp
 ```mermaid title="Een sjabloon en zijn gekoppelde monitoren"
 flowchart TB
     template["Monitorsjabloon"] -->|"Monitor maken"| created["Monitor gemaakt<br/>vanuit het sjabloon"]
-    existing["Monitor die u<br/>al had"] -->|"Bestaande monitoren koppelen"| template
-    template -.->|"Synchronisatieknoppen"| linked
+    existing["Monitor die u<br/>al had"] -->|"Bestaande monitoren<br/>koppelen"| template
+    template -.->|"Knoppen voor<br/>synchronisatie"| linked
     subgraph linked["Gekoppelde monitoren"]
         direction LR
         created

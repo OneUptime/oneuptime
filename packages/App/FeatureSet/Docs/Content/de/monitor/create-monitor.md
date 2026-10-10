@@ -64,9 +64,9 @@ flowchart TB
     criteria -->|"Eines trifft zu"| actions
     subgraph actions["Was dieses Kriterium tut"]
         direction LR
-        status["Den Status ändern"]
-        incident["Einen Vorfall melden"]
-        alert["Eine Warnung erstellen"]
+        status["Den Status<br/>ändern"]
+        incident["Einen Vorfall<br/>melden"]
+        alert["Eine Warnung<br/>erstellen"]
     end
 ```
 

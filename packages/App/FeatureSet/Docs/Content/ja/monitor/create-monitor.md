@@ -64,9 +64,9 @@ flowchart TB
     criteria -->|"1 つが一致"| actions
     subgraph actions["その条件が行うこと"]
         direction LR
-        status["ステータスを変える"]
-        incident["インシデントを宣言する"]
-        alert["アラートを作成する"]
+        status["ステータスを<br/>変える"]
+        incident["インシデントを<br/>宣言する"]
+        alert["アラートを<br/>作成する"]
     end
 ```
 

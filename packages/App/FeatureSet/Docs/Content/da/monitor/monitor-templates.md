@@ -16,8 +16,8 @@ En skabelon overvåger ikke selv noget. Monitorer oprettes ud fra den eller knyt
 ```mermaid title="En skabelon og dens tilknyttede monitorer"
 flowchart TB
     template["Monitorskabelon"] -->|"Opret monitor"| created["Monitor oprettet<br/>ud fra skabelonen"]
-    existing["Monitor, du<br/>allerede havde"] -->|"Tilknyt eksisterende overvågninger"| template
-    template -.->|"Synkroniseringsknapper"| linked
+    existing["Monitor, du<br/>allerede havde"] -->|"Tilknyt eksisterende<br/>overvågninger"| template
+    template -.->|"Knapper til<br/>synkronisering"| linked
     subgraph linked["Tilknyttede overvågninger"]
         direction LR
         created
