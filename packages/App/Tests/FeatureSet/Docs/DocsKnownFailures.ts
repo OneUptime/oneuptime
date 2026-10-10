@@ -285,11 +285,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/database-health-monitor": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "monitor/dns-monitor": {
     sameShape: EVERY_TRANSLATION,
   },

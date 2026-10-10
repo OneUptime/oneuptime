@@ -4,7 +4,8 @@ import SqlServerPlatformUtil, {
   SQL_SERVER_MONITORING_GRANT,
   SqlServerEngineEdition,
 } from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -34,10 +35,14 @@ const EN_PAGE: string = path.join(
   "App/FeatureSet/Docs/Content/en",
   PAGE,
 );
-const FA_PAGE: string = path.join(
-  REPO_ROOT,
-  "App/FeatureSet/Docs/Content/fa",
-  PAGE,
+const pagePath: (language: string) => string = (language: string): string => {
+  return path.join(REPO_ROOT, "App/FeatureSet/Docs/Content", language, PAGE);
+};
+// Every docs language but English: each carries the page.
+const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
+  (language: string): boolean => {
+    return language !== "en";
+  },
 );
 const DASHBOARD_SRC: string = path.join(
   REPO_ROOT,
@@ -59,21 +64,30 @@ const asDocumented: (grant: string) => string = (grant: string): string => {
 };
 
 const FENCE: RegExp = /^\s*```/;
+const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 
+/*
+ * The page's code blocks, in order. A Mermaid diagram's labels are translated,
+ * so "the SQL a reader copies" leaves diagrams out.
+ */
 const codeBlocks: (markdown: string) => Array<string> = (
   markdown: string,
 ): Array<string> => {
   const blocks: Array<string> = [];
   let current: Array<string> | null = null;
+  let isDiagram: boolean = false;
 
   for (const line of markdown.split("\n")) {
     if (FENCE.test(line)) {
       if (current) {
-        blocks.push(current.join("\n"));
+        if (!isDiagram) {
+          blocks.push(current.join("\n"));
+        }
         current = null;
       } else {
         current = [];
+        isDiagram = MERMAID_FENCE.test(line);
       }
       continue;
     }
@@ -103,7 +117,7 @@ const headingSlugs: (markdown: string) => Set<string> = (
       : line.match(/^#{1,6}\s+(.*)$/);
 
     if (match && match[1]) {
-      slugs.add(slugify(match[1].trim()));
+      slugs.add(slugifyMarkdownHeading(match[1].trim()));
     }
   }
 
@@ -250,14 +264,21 @@ describe("Database Health docs: anchors", () => {
     }
   });
 
-  test("the Farsi page a language-negotiated link may land on exists", () => {
+  test("every translated page a language-negotiated link may land on exists", () => {
     /*
      * The Dashboard links are language-less: /docs sends the reader to
-     * their own language. Anchors are English heading ids, so on the Farsi
-     * page the fragment matches nothing and the page opens at the top -
-     * degraded, not broken, because the page itself is there.
+     * their own language. Anchors are English heading ids, and a translated
+     * page's headings have translated ids, so there the fragment matches
+     * nothing and the page opens at the top - degraded, not broken, because
+     * the page itself is there.
      */
-    expect(fs.existsSync(FA_PAGE)).toBe(true);
+    expect(TRANSLATIONS.length).toBeGreaterThan(0);
+
+    for (const language of TRANSLATIONS) {
+      expect({ language, exists: fs.existsSync(pagePath(language)) }).toEqual(
+        { language, exists: true },
+      );
+    }
   });
 
   test("every Dashboard link into this page lands on a heading that exists", () => {
@@ -291,42 +312,73 @@ describe("Database Health docs: anchors", () => {
   });
 });
 
-describe("Database Health docs: the Farsi translation", () => {
-  test("carries exactly the English SQL, in the same order", () => {
-    /*
-     * The statements are what an operator copies. A translation that kept
-     * the old Azure paragraph, or an old code block, would hand Farsi
-     * readers the grant that fails on Azure SQL Database.
-     */
-    expect(codeBlocks(readPage(FA_PAGE))).toEqual(
-      codeBlocks(readPage(EN_PAGE)),
+describe("Database Health docs: the translations", () => {
+  test("the English page has the SQL blocks the translations are held to", () => {
+    // PostgreSQL, MySQL, SQL Server, two Azure blocks and the JS example.
+    expect(codeBlocks(readPage(EN_PAGE)).length).toBeGreaterThanOrEqual(5);
+    expect(codeBlocks(readPage(EN_PAGE)).join("\n")).not.toContain(
+      "flowchart",
     );
   });
 
-  test("documents the same SQL Server and Azure grants", () => {
-    const page: string = readPage(FA_PAGE);
+  describe.each(TRANSLATIONS)("%s", (language: string) => {
+    const translatedPage: () => string = (): string => {
+      return readPage(pagePath(language));
+    };
 
-    expect(page).toContain(asDocumented(SQL_SERVER_MONITORING_GRANT));
-    expect(page).toContain(asDocumented(AZURE_SQL_DATABASE_MONITORING_GRANT));
-    expect(page).toContain(
-      asDocumented(AZURE_SQL_DATABASE_SERVER_STATE_READER_GRANT),
-    );
-    expect(page).toContain(
-      "The user does not have permission to perform this action",
-    );
-  });
+    test("carries exactly the English SQL, in the same order", () => {
+      /*
+       * The statements are what an operator copies. A translation that kept
+       * the old Azure paragraph, or an old code block, would hand its
+       * readers the grant that fails on Azure SQL Database.
+       */
+      expect(codeBlocks(translatedPage())).toEqual(
+        codeBlocks(readPage(EN_PAGE)),
+      );
+    });
 
-  test("every in-page link on the Farsi page resolves to a heading", () => {
-    const page: string = readPage(FA_PAGE);
-    const slugs: Set<string> = headingSlugs(page);
+    test("documents the same SQL Server and Azure grants", () => {
+      const page: string = translatedPage();
 
-    for (const match of page.matchAll(/\]\(#([^)]+)\)/g)) {
-      const anchor: string = match[1] || "";
+      expect(page).toContain(asDocumented(SQL_SERVER_MONITORING_GRANT));
+      expect(page).toContain(
+        asDocumented(AZURE_SQL_DATABASE_MONITORING_GRANT),
+      );
+      expect(page).toContain(
+        asDocumented(AZURE_SQL_DATABASE_SERVER_STATE_READER_GRANT),
+      );
+      expect(page).toContain(
+        "The user does not have permission to perform this action",
+      );
+      expect(page).toContain("Msg 4621");
+      expect(page).toContain("DROP USER oneuptime_health;");
+    });
 
-      expect({ anchor, resolves: slugs.has(anchor) }).toEqual({
-        anchor,
-        resolves: true,
+    test("shows the Engine the summary reads for Azure SQL Database", () => {
+      expect(translatedPage()).toContain(
+        `${SqlServerPlatformUtil.getPlatformName(
+          SqlServerEngineEdition.AzureSqlDatabase,
+        )} 12.0.2000.8`,
+      );
+    });
+
+    test("every in-page link resolves to a heading of the translation", () => {
+      const page: string = translatedPage();
+      const slugs: Set<string> = headingSlugs(page);
+      const anchors: Array<string> = Array.from(
+        page.matchAll(/\]\(#([^)]+)\)/g),
+      ).map((match: RegExpMatchArray) => {
+        return decodeURIComponent(match[1] || "");
       });
-    }
+
+      expect(anchors.length).toBeGreaterThan(0);
+
+      for (const anchor of anchors) {
+        expect({ anchor, resolves: slugs.has(anchor) }).toEqual({
+          anchor,
+          resolves: true,
+        });
+      }
+    });
   });
 });
