@@ -21,6 +21,7 @@ import {
   RunDatabaseMigrationsOnBoot,
   ShouldDatabaseSslEnable,
 } from "../../../Server/EnvironmentConfig";
+import CancelOnTimeoutClient from "./CancelOnTimeoutClient";
 import Migrations from "./SchemaMigrations/Index";
 import DatabaseType from "../../../Types/DatabaseType";
 import Entities from "../../../Models/DatabaseModels/Index";
@@ -90,6 +91,16 @@ const dataSourceOptions: DataSourceOptions = {
    * (10 connections, no timeouts) are too small for any non-trivial load.
    */
   extra: {
+    /*
+     * The client every connection is opened with. It keeps query_timeout
+     * below itself: a statement still running when it runs out is cancelled
+     * on the database, and its connection closed rather than given back to
+     * the pool - so a transaction it held open is rolled back by the
+     * database, never committed by the next request to borrow it. Every
+     * pool built from these options (the migration runner's, the failure
+     * diagnosis') has it too. See CancelOnTimeoutClient.
+     */
+    Client: CancelOnTimeoutClient,
     max: MaxPostgresConnections,
     idleTimeoutMillis: PostgresIdleTimeoutMs,
     connectionTimeoutMillis: PostgresConnectionAcquireTimeoutMs,
