@@ -1480,7 +1480,9 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
     } as DeleteBy<IncidentAlert>);
 
     expectBothFilters(result.deleteBy.query);
-    expectBothFilters(readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query);
+    expectBothFilters(
+      readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query,
+    );
     expectBothFilters(findBy.mock.calls[0]![0].query);
   });
 

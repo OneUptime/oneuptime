@@ -165,7 +165,10 @@ describe("DatabaseService.findRowsAndHoldDeleteToThem - OneUptime's own delete",
   });
 
   it("reads the delete's rows as OneUptime, by the delete's own query, with what the hook asks for and their ids", async () => {
-    await rowsADeleteRemoves().findRowsAndHoldDeleteToThem(deleteOf({}), SELECT);
+    await rowsADeleteRemoves().findRowsAndHoldDeleteToThem(
+      deleteOf({}),
+      SELECT,
+    );
 
     const read: Read = readWith();
 
@@ -633,9 +636,9 @@ describe("DatabaseService.findRowsAndHoldDeleteToThem - the rows the caller may 
 
     expect(rows).toEqual([]);
     expect(findBy).not.toHaveBeenCalled();
-    expect(idsNamedBy((deleteBy.query as unknown as JSONObject)["_id"])).toEqual(
-      [],
-    );
+    expect(
+      idsNamedBy((deleteBy.query as unknown as JSONObject)["_id"]),
+    ).toEqual([]);
   });
 
   it("finds the rows the caller may delete itself for a delete that reached the hook without the delete path", async () => {
@@ -833,8 +836,8 @@ describe("DatabaseService.findOneRowAndHoldDeleteToIt", () => {
       oneRow().findOneRowAndHoldDeleteToIt(deleteBy, SELECT),
     ).resolves.toEqual({ row: null, deletesMore: false });
 
-    expect(idsNamedBy((deleteBy.query as unknown as JSONObject)["_id"])).toEqual(
-      [],
-    );
+    expect(
+      idsNamedBy((deleteBy.query as unknown as JSONObject)["_id"]),
+    ).toEqual([]);
   });
 });

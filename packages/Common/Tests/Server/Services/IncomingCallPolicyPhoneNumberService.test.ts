@@ -1498,7 +1498,10 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
       .spyOn(ProjectCallSMSConfigService, "findBy")
       .mockResolvedValue([makeConfig(CONFIG_A), makeConfig(CONFIG_B)]);
     // The configs the caller may delete: those the same read reaches.
-    answerRowsCallerMayWriteLikeFindBy(ProjectCallSMSConfigService, findConfigs);
+    answerRowsCallerMayWriteLikeFindBy(
+      ProjectCallSMSConfigService,
+      findConfigs,
+    );
     jest
       .spyOn(IncomingCallPolicyPhoneNumberService, "findAllBy")
       .mockResolvedValue([]);
@@ -1547,7 +1550,10 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
       .spyOn(ProjectCallSMSConfigService, "findBy")
       .mockResolvedValue([]);
     // The configs the caller may delete: those the same read reaches.
-    answerRowsCallerMayWriteLikeFindBy(ProjectCallSMSConfigService, findConfigs);
+    answerRowsCallerMayWriteLikeFindBy(
+      ProjectCallSMSConfigService,
+      findConfigs,
+    );
     const findPhoneNumbers: any = jest.spyOn(
       IncomingCallPolicyPhoneNumberService,
       "findAllBy",

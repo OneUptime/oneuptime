@@ -201,7 +201,9 @@ describe("resource services' delete hooks clean up OneUptime AI state", () => {
           const named: unknown = read.query["_id"];
 
           return resources.filter((resource: Record<string, unknown>) => {
-            return named === undefined || meetsCondition(named, resource["_id"]);
+            return (
+              named === undefined || meetsCondition(named, resource["_id"])
+            );
           });
         }) as never,
       );

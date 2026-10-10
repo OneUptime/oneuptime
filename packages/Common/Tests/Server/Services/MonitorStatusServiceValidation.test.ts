@@ -97,23 +97,21 @@ beforeEach(() => {
   // The rows a write targets.
   const findBy: SpyInstance<typeof MonitorStatusService.findBy> = jest
     .spyOn(MonitorStatusService, "findBy")
-    .mockImplementation(((
-    findBy: FindBy<MonitorStatus>,
-  ) => {
-    const query: Record<string, unknown> = findBy.query as Record<
-      string,
-      unknown
-    >;
-    targetQueries.push(query);
+    .mockImplementation(((findBy: FindBy<MonitorStatus>) => {
+      const query: Record<string, unknown> = findBy.query as Record<
+        string,
+        unknown
+      >;
+      targetQueries.push(query);
 
-    return Promise.resolve(
-      listRows
-        .filter((row: StatusRow) => {
-          return !query["_id"] || row._id === query["_id"]?.toString();
-        })
-        .map(status),
-    );
-  }) as never);
+      return Promise.resolve(
+        listRows
+          .filter((row: StatusRow) => {
+            return !query["_id"] || row._id === query["_id"]?.toString();
+          })
+          .map(status),
+      );
+    }) as never);
 
   // A teammate may delete the statuses the same read reaches in the project.
   stubRowsCallerMayDeleteLikeFindBy(MonitorStatusService, findBy);

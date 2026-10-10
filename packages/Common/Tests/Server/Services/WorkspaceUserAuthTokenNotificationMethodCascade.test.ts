@@ -79,7 +79,10 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
       .mockResolvedValue([] as never);
 
     // The tokens a teammate may delete: those the same read reaches.
-    stubRowsCallerMayDeleteLikeFindBy(WorkspaceUserAuthTokenService, findTokens);
+    stubRowsCallerMayDeleteLikeFindBy(
+      WorkspaceUserAuthTokenService,
+      findTokens,
+    );
   });
 
   afterEach(() => {

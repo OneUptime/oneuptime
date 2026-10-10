@@ -153,7 +153,10 @@ const CASES: Array<DeleteCase> = [
     accepted: {
       teamId: OTHER_TEAM_ID,
       hasAcceptedInvitation: true,
-      team: { _id: OTHER_TEAM_ID.toString(), shouldHaveAtLeastOneMember: false },
+      team: {
+        _id: OTHER_TEAM_ID.toString(),
+        shouldHaveAtLeastOneMember: false,
+      },
     },
     // The only accepted member of a team that keeps one.
     refused: {

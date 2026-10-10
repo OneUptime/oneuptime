@@ -1696,8 +1696,10 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       ],
     ).toEqual(PROJECT_ID);
 
-    // The delete's own query among them, read as root: another project's
-    // endpoint, which the caller may not delete, is never in it.
+    /*
+     * The delete's own query among them, read as root: another project's
+     * endpoint, which the caller may not delete, is never in it.
+     */
     const call: any = findBy.mock.calls[0]![0];
     expect(call.query._id).toBe(endpointId);
     expect(call.query.projectId).toEqual(OTHER_PROJECT_ID);

@@ -181,9 +181,9 @@ describe("DatabaseService.findProjectsToCheckUpdateIn", () => {
       expect(read.select["projectId"]).toBe(true);
       expect(read.skip).toBe(0);
 
-      expect(
-        idsNamedBy((updateBy.query as JSONObject)["_id"]).sort(),
-      ).toEqual([ROW_A, ROW_B, ROW_C].sort());
+      expect(idsNamedBy((updateBy.query as JSONObject)["_id"]).sort()).toEqual(
+        [ROW_A, ROW_B, ROW_C].sort(),
+      );
       expect(updateBy.limit).toBe(3);
     },
   );

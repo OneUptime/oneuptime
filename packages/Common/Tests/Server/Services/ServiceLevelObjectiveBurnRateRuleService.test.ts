@@ -3495,9 +3495,9 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
       (result as { carryForward: { itemsToDelete: Array<unknown> } })
         .carryForward.itemsToDelete,
     ).toEqual([]);
-    expect(
-      String((deleteBy.query as Record<string, unknown>)["_id"]),
-    ).not.toBe(RULE_ID.toString());
+    expect(String((deleteBy.query as Record<string, unknown>)["_id"])).not.toBe(
+      RULE_ID.toString(),
+    );
     expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 

@@ -304,7 +304,10 @@ describe.each(serviceCases)(
        * The rows the caller may delete: the permission checker narrows the
        * read for real, and the same rows answer it.
        */
-      answerRowsCallerMayWriteLikeFindBy(serviceOf(serviceCase), findPermissions);
+      answerRowsCallerMayWriteLikeFindBy(
+        serviceOf(serviceCase),
+        findPermissions,
+      );
       getJestSpyOn(serviceCase.service, "findOneBy").mockResolvedValue(null);
       getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
         _id: targetId.toString(),
