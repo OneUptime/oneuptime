@@ -327,11 +327,9 @@ describe("the Terraform monitor-steps page", () => {
    */
   it("links to the section that explains field paths and conditions", () => {
     const english: Array<DocsHeading> = headings(CUSTOM_CODE_PAGE, "en");
-    const place: number = english.findIndex(
-      (heading: DocsHeading): boolean => {
-        return heading.text === "Alerting on the returned data";
-      },
-    );
+    const place: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.text === "Alerting on the returned data";
+    });
 
     expect(place).toBeGreaterThan(-1);
 
@@ -363,11 +361,9 @@ describe("the Terraform monitor-steps page", () => {
 
   it("is linked from the Custom Code page's field path list, at its own section", () => {
     const english: Array<DocsHeading> = headings(PAGE, "en");
-    const place: number = english.findIndex(
-      (heading: DocsHeading): boolean => {
-        return heading.text === "Comparing one field of a script's result";
-      },
-    );
+    const place: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.text === "Comparing one field of a script's result";
+    });
 
     expect(place).toBeGreaterThan(-1);
 

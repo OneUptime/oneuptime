@@ -851,9 +851,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
     it("names Admin Dashboard settings as this language's Admin Dashboard draws them", () => {
       const translated: string = readPage(language, entry.page);
-      const missing: Array<string> = (
-        ADMIN_DASHBOARD_LABELS[entry.page] || []
-      )
+      const missing: Array<string> = (ADMIN_DASHBOARD_LABELS[entry.page] || [])
         .map((label: string): string => {
           return adminDashboardLabel(language, label);
         })
@@ -917,10 +915,16 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("find asterisks the renderer leaves when a bold span ends in punctuation and runs into a letter", async () => {
     expect(
-      await strayMarkers("# Title\n\n- **超时。**脚本运行超过 60 秒。", "zh-CN"),
+      await strayMarkers(
+        "# Title\n\n- **超时。**脚本运行超过 60 秒。",
+        "zh-CN",
+      ),
     ).toHaveLength(1);
     expect(
-      await strayMarkers("# Title\n\n- **超时**。脚本运行超过 60 秒。", "zh-CN"),
+      await strayMarkers(
+        "# Title\n\n- **超时**。脚本运行超过 60 秒。",
+        "zh-CN",
+      ),
     ).toEqual([]);
     expect(
       await strayMarkers(

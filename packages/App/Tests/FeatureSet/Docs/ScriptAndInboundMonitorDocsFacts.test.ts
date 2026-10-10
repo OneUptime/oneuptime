@@ -40,7 +40,9 @@ import {
   MAX_SQL_STATEMENT_TIMEOUT_IN_MS,
   MonitorStepSqlMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSqlMonitor";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import SqlDatabaseType, {
   SqlDatabaseTypeUtil,
 } from "Common/Types/Monitor/SqlDatabaseType";
@@ -88,7 +90,8 @@ const PROBE_CUSTOM_CODE_FILE: string =
   "Probe/Utils/Monitors/MonitorTypes/CustomCodeMonitor.ts";
 const PROBE_SYNTHETIC_FILE: string =
   "Probe/Utils/Monitors/MonitorTypes/SyntheticMonitor.ts";
-const PROBE_SQL_FILE: string = "Probe/Utils/Monitors/MonitorTypes/SqlMonitor.ts";
+const PROBE_SQL_FILE: string =
+  "Probe/Utils/Monitors/MonitorTypes/SqlMonitor.ts";
 const PROBE_STATUS_PAGE_FILE: string =
   "Probe/Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor.ts";
 const SYNTHETIC_BOOTSTRAP_FILE: string =
@@ -98,7 +101,8 @@ const SYNTHETIC_BROKER_FILE: string =
 const SYNTHETIC_RPC_FILE: string =
   "Probe/Utils/Monitors/SyntheticRuntime/RpcProtocol.ts";
 const VM_RUNNER_FILE: string = "Common/Server/Utils/VM/VMRunner.ts";
-const METRIC_UTIL_FILE: string = "Common/Server/Utils/Monitor/MonitorMetricUtil.ts";
+const METRIC_UTIL_FILE: string =
+  "Common/Server/Utils/Monitor/MonitorMetricUtil.ts";
 const ATTRIBUTE_UTIL_FILE: string =
   "Common/Server/Utils/Monitor/CapturedMetricAttributeUtil.ts";
 const MONITOR_STEP_FORM_FILE: string =
@@ -314,9 +318,10 @@ function probeDefault(name: string): number {
 function evaluateProduct(expression: string): number {
   const trimmed: string = expression.trim();
 
-  expect({ expression: trimmed, product: NUMBER_PRODUCT.test(trimmed) }).toEqual(
-    { expression: trimmed, product: true },
-  );
+  expect({
+    expression: trimmed,
+    product: NUMBER_PRODUCT.test(trimmed),
+  }).toEqual({ expression: trimmed, product: true });
 
   return trimmed
     .split("*")
@@ -495,7 +500,10 @@ describe("the type picker, on every page that names it", () => {
       MonitorType.IncomingRequest,
     );
     expect(
-      section(englishPage(INCOMING_REQUEST_PAGE), "### Choose Incoming Request"),
+      section(
+        englishPage(INCOMING_REQUEST_PAGE),
+        "### Choose Incoming Request",
+      ),
     ).toContain(
       `pick **${MonitorTypeHelper.getTitle(MonitorType.IncomingRequest)}** — it is one of the common types at the top.`,
     );
@@ -550,9 +558,9 @@ describe("Custom Code Monitor", () => {
     const rows: Array<Array<string>> = tableRows(section(page, "## Criteria"));
     const errorConditions: Array<string> = conditionsOf(CheckOn.Error);
 
-    expect(sorted(((rows[0] as Array<string>)[2] as string).split(", "))).toEqual(
-      sorted(errorConditions),
-    );
+    expect(
+      sorted(((rows[0] as Array<string>)[2] as string).split(", ")),
+    ).toEqual(sorted(errorConditions));
 
     // Result Value: the same, plus the number and boolean conditions.
     const extra: Array<string> = conditionsOf(CheckOn.ResultValue).filter(
@@ -589,12 +597,20 @@ describe("Custom Code Monitor", () => {
     ) as [MonitorCriteriaInstance, MonitorCriteriaInstance];
 
     expect(filtersOf(offline)).toEqual([
-      { checkOn: CheckOn.Error, filterType: FilterType.IsNotEmpty, value: undefined },
+      {
+        checkOn: CheckOn.Error,
+        filterType: FilterType.IsNotEmpty,
+        value: undefined,
+      },
     ]);
     expect(offline.data?.createIncidents).toBe(true);
     expect(offline.data?.incidents[0]?.autoResolveIncident).toBe(true);
     expect(filtersOf(online)).toEqual([
-      { checkOn: CheckOn.Error, filterType: FilterType.IsEmpty, value: undefined },
+      {
+        checkOn: CheckOn.Error,
+        filterType: FilterType.IsEmpty,
+        value: undefined,
+      },
     ]);
     expect(online.data?.createIncidents).toBe(false);
 
@@ -611,7 +627,9 @@ describe("Custom Code Monitor", () => {
     const summary: string = readRepoFile(CUSTOM_CODE_SUMMARY_FILE);
 
     expect(form).toContain('? "JavaScript Code"');
-    expect(page).toContain("Write your script in the **JavaScript Code** editor.");
+    expect(page).toContain(
+      "Write your script in the **JavaScript Code** editor.",
+    );
 
     for (const title of ["Log Messages", "Result", "Script Error"]) {
       expect(summary).toContain(`title: "${title}"`);
@@ -645,9 +663,11 @@ describe("Custom Code Monitor", () => {
       60000,
     );
     expect(page).toContain(
-      "A script that runs longer than 60 seconds is stopped and the check fails with \"Script execution timed out\".",
+      'A script that runs longer than 60 seconds is stopped and the check fails with "Script execution timed out".',
     );
-    expect(vmRunner).toContain('reject(new Error("Script execution timed out"));');
+    expect(vmRunner).toContain(
+      'reject(new Error("Script execution timed out"));',
+    );
     expect(page).toContain("`PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS`");
 
     expect(vmRunner).toContain("new ivm.Isolate({ memoryLimit: 128 })");
@@ -662,7 +682,9 @@ describe("Custom Code Monitor", () => {
     expect(numberConstant(vmRunner, "MAX_HTTP_REQUEST_BYTES")).toBe(
       10 * 1024 * 1024,
     );
-    expect(page).toContain("Request and response sizes are limited (10 MB each)");
+    expect(page).toContain(
+      "Request and response sizes are limited (10 MB each)",
+    );
   });
 
   it("says axios follows no redirect and uses no proxy, as the bridge forces", () => {
@@ -714,8 +736,12 @@ describe("Custom Code Monitor", () => {
     }
 
     // Only console.log, and http/https only as Agent classes.
-    expect(vmRunner).toContain("const sandboxConsole = Object.freeze({\n            log:");
-    expect(vmRunner).toContain("const https = {\n          Agent: class Agent {");
+    expect(vmRunner).toContain(
+      "const sandboxConsole = Object.freeze({\n            log:",
+    );
+    expect(vmRunner).toContain(
+      "const https = {\n          Agent: class Agent {",
+    );
     expect(page).toContain("Only `console.log` exists;");
   });
 
@@ -741,7 +767,9 @@ describe("Custom Code Monitor", () => {
     expect(readRepoFile(METRIC_UTIL_FILE)).toContain(
       "const prefixedName: string = `custom.monitor.${customMetric.name}`;",
     );
-    expect(page).toContain("It is stored with a `custom.monitor.` prefix automatically.");
+    expect(page).toContain(
+      "It is stored with a `custom.monitor.` prefix automatically.",
+    );
   });
 
   it("lists exactly the attribute names a script cannot write", () => {
@@ -769,20 +797,19 @@ describe("Custom Code Monitor", () => {
       expect(reserved).toContain(`\`${key}\``);
     }
 
-    expect(reserved).toContain("Anything in the `oneuptime.` or `resource.` namespaces");
+    expect(reserved).toContain(
+      "Anything in the `oneuptime.` or `resource.` namespaces",
+    );
 
     // Every resource identity key outside those namespaces, and no other.
-    const outsideNamespaces: Array<string> = AllResourceIdentityLabelKeys.filter(
-      (key: string): boolean => {
+    const outsideNamespaces: Array<string> =
+      AllResourceIdentityLabelKeys.filter((key: string): boolean => {
         return !key.startsWith("oneuptime.") && !key.startsWith("resource.");
-      },
-    );
+      });
     const listed: Array<string> = codeItems(
-      reserved
-        .split("\n")
-        .find((line: string): boolean => {
-          return line.startsWith("- Resource identity attributes:");
-        }) || "",
+      reserved.split("\n").find((line: string): boolean => {
+        return line.startsWith("- Resource identity attributes:");
+      }) || "",
     );
 
     expect(sorted(listed)).toEqual(sorted(outsideNamespaces));
@@ -879,7 +906,9 @@ describe("Custom Code Monitor", () => {
       ).toBe(true);
       expect(
         await resultValueMatches({
-          result: { cpu_busy_percent: 95 } as unknown as CustomCodeMonitorResult,
+          result: {
+            cpu_busy_percent: 95,
+          } as unknown as CustomCodeMonitorResult,
           path: "cpu_busy_percent",
           filterType: FilterType.GreaterThan,
           value: "90",
@@ -906,7 +935,7 @@ describe("Custom Code Monitor", () => {
 
     it("matches number conditions only on numbers, as the page warns", async () => {
       expect(page).toContain(
-        "Greater Than, Less Than and the other number conditions only match a number, so return a field as `42`, not `\"42\"`.",
+        'Greater Than, Less Than and the other number conditions only match a number, so return a field as `42`, not `"42"`.',
       );
       expect(
         await resultValueMatches({
@@ -988,7 +1017,9 @@ describe("Synthetic Monitor", () => {
 
       expect(
         sourceBetween(probe, `case ScreenSizeType.${screen}:`, "break;"),
-      ).toContain(`viewPortHeight = ${height};\n        viewPortWidth = ${width};`);
+      ).toContain(
+        `viewPortHeight = ${height};\n        viewPortWidth = ${width};`,
+      );
     }
   });
 
@@ -1045,9 +1076,9 @@ describe("Synthetic Monitor", () => {
     expect(probeDefault("PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS")).toBe(
       60000,
     );
-    expect(probeDefault("PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES")).toBe(
-      1.5 * 1024 * 1024 * 1024,
-    );
+    expect(
+      probeDefault("PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES"),
+    ).toBe(1.5 * 1024 * 1024 * 1024);
     expect(probeDefault("PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES")).toBe(
       256 * 1024 * 1024,
     );
@@ -1069,9 +1100,9 @@ describe("Synthetic Monitor", () => {
     expect(page).toContain("Each execution can use up to eight pages.");
 
     // The Helm chart's probe setting of the same name.
-    expect(fs.readFileSync(path.join(REPO_DIR, HELM_VALUES_FILE), "utf8")).toContain(
-      "syntheticMonitorScriptTimeoutInMs: 60000",
-    );
+    expect(
+      fs.readFileSync(path.join(REPO_DIR, HELM_VALUES_FILE), "utf8"),
+    ).toContain("syntheticMonitorScriptTimeoutInMs: 60000");
     expect(page).toContain("(for example `syntheticMonitorScriptTimeoutInMs`)");
   });
 
@@ -1079,7 +1110,9 @@ describe("Synthetic Monitor", () => {
     expect(numberConstant(rpc, "MAX_SCREENSHOTS")).toBe(20);
     expect(numberConstant(rpc, "MAX_SCREENSHOT_BYTES")).toBe(10_000_000);
     expect(numberConstant(rpc, "MAX_TOTAL_SCREENSHOT_BYTES")).toBe(50_000_000);
-    expect(page).toContain("A run keeps up to 20 screenshots, each up to 10 MB and 50 MB in all.");
+    expect(page).toContain(
+      "A run keeps up to 20 screenshots, each up to 10 MB and 50 MB in all.",
+    );
 
     expect(numberConstant(bootstrap, "MAX_RESULT_BYTES")).toBe(5_000_000);
     expect(numberConstant(bootstrap, "MAX_SERIALIZATION_DEPTH")).toBe(30);
@@ -1192,7 +1225,9 @@ describe("SQL Query Monitor", () => {
     const defaults: ReturnType<typeof MonitorStepSqlMonitorUtil.getDefault> =
       MonitorStepSqlMonitorUtil.getDefault();
 
-    expect(defaults.connectionTimeoutInMs).toBe(DEFAULT_SQL_CONNECTION_TIMEOUT_IN_MS);
+    expect(defaults.connectionTimeoutInMs).toBe(
+      DEFAULT_SQL_CONNECTION_TIMEOUT_IN_MS,
+    );
     expect(tableRows(section(page, "### More fields"))).toEqual([
       [
         "**Connection Timeout (ms)**",
@@ -1216,9 +1251,12 @@ describe("SQL Query Monitor", () => {
 
     // A value above the maximum is lowered to it.
     expect(
-      MonitorStepSqlMonitorUtil.fromJSON({ maxRows: MAX_SQL_MAX_ROWS * 5 }).maxRows,
+      MonitorStepSqlMonitorUtil.fromJSON({ maxRows: MAX_SQL_MAX_ROWS * 5 })
+        .maxRows,
     ).toBe(MAX_SQL_MAX_ROWS);
-    expect(page).toContain("A value above the maximum is lowered to the maximum.");
+    expect(page).toContain(
+      "A value above the maximum is lowered to the maximum.",
+    );
   });
 
   it("names every field as the form draws it", () => {
@@ -1249,7 +1287,9 @@ describe("SQL Query Monitor", () => {
       'const ALLOWED_FIRST_TOKENS: Array<string> = [\n  "select",\n  "with",\n  "values",\n  "table",\n];',
     );
     expect(probe).toContain("return `Disallowed SQL keyword ");
-    expect(page).toContain(':::details A check fails with "Disallowed SQL keyword"');
+    expect(page).toContain(
+      ':::details A check fails with "Disallowed SQL keyword"',
+    );
 
     const forbidden: Array<string> = (
       sourceBetween(probe, "const FORBIDDEN_CONSTRUCTS", "];").match(
@@ -1257,7 +1297,14 @@ describe("SQL Query Monitor", () => {
       )?.[1] || ""
     ).split("|");
 
-    for (const keyword of ["insert", "update", "delete", "drop", "exec", "into"]) {
+    for (const keyword of [
+      "insert",
+      "update",
+      "delete",
+      "drop",
+      "exec",
+      "into",
+    ]) {
       expect({ keyword, refused: forbidden.includes(keyword) }).toEqual({
         keyword,
         refused: true,
@@ -1274,7 +1321,9 @@ describe("SQL Query Monitor", () => {
   });
 
   it("runs the query read-only on every engine", () => {
-    expect(probe).toContain('await client.query("START TRANSACTION READ ONLY");');
+    expect(probe).toContain(
+      'await client.query("START TRANSACTION READ ONLY");',
+    );
     expect(page).toContain(
       "On PostgreSQL and MySQL the probe opens a `READ ONLY` transaction",
     );
@@ -1285,8 +1334,12 @@ describe("SQL Query Monitor", () => {
       'export const SQL_SERVER_ODBC_DRIVER: string = "ODBC Driver 18 for SQL Server";',
     );
     expect(probe).toContain('process.env["SQL_SERVER_ODBC_DRIVER"]');
-    expect(page).toContain("The official probe image bundles **ODBC Driver 18**.");
-    expect(page).toContain("set the `SQL_SERVER_ODBC_DRIVER` environment variable");
+    expect(page).toContain(
+      "The official probe image bundles **ODBC Driver 18**.",
+    );
+    expect(page).toContain(
+      "set the `SQL_SERVER_ODBC_DRIVER` environment variable",
+    );
   });
 
   it("redacts what the page says it redacts", () => {
@@ -1343,7 +1396,9 @@ describe("SQL Query Monitor", () => {
 
   it("reads a number threshold as a whole number", () => {
     expect(CompareCriteria.convertToNumber("10.5")).toBe(10);
-    expect(page).toContain("Numeric thresholds are whole numbers: write `10`, not `10.5`.");
+    expect(page).toContain(
+      "Numeric thresholds are whole numbers: write `10`, not `10.5`.",
+    );
   });
 
   it("starts with the two criteria the page describes", () => {
@@ -1353,12 +1408,20 @@ describe("SQL Query Monitor", () => {
     ];
 
     expect(filtersOf(offline)).toEqual([
-      { checkOn: CheckOn.SqlIsOnline, filterType: FilterType.False, value: undefined },
+      {
+        checkOn: CheckOn.SqlIsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
     ]);
     expect(offline.data?.createIncidents).toBe(true);
     expect(offline.data?.incidents[0]?.autoResolveIncident).toBe(true);
     expect(filtersOf(online)).toEqual([
-      { checkOn: CheckOn.SqlIsOnline, filterType: FilterType.True, value: undefined },
+      {
+        checkOn: CheckOn.SqlIsOnline,
+        filterType: FilterType.True,
+        value: undefined,
+      },
     ]);
   });
 
@@ -1417,12 +1480,18 @@ describe("Incoming Request Monitor", () => {
     expect(api).toContain('router.post(\n  "/incoming-request/:secretkey",');
     expect(api).toContain('router.get(\n  "/incoming-request/:secretkey",');
     expect(api).not.toContain("router.put(");
-    expect(heartbeat).toContain("rewrite ^/heartbeat(.*)$ /incoming-request$1 break;");
+    expect(heartbeat).toContain(
+      "rewrite ^/heartbeat(.*)$ /incoming-request$1 break;",
+    );
     expect(heartbeat).toContain("client_max_body_size 50M;");
-    expect(page).toContain("Bodies up to 50 MB are accepted; a larger one is refused with a `413`.");
+    expect(page).toContain(
+      "Bodies up to 50 MB are accepted; a larger one is refused with a `413`.",
+    );
 
     // The reply is sent first; the request is queued afterwards.
-    const reply: number = api.indexOf("Response.sendEmptySuccessResponse(req, res);");
+    const reply: number = api.indexOf(
+      "Response.sendEmptySuccessResponse(req, res);",
+    );
     const queued: number = api.indexOf(
       "await TelemetryQueueService.addIncomingRequestIngestJob({",
     );
@@ -1447,7 +1516,9 @@ describe("Incoming Request Monitor", () => {
       tableRows(section(page, "### Available Filter Types")),
     );
 
-    expect(sorted(types)).toEqual(sorted(offeredFilters(MonitorType.IncomingRequest)));
+    expect(sorted(types)).toEqual(
+      sorted(offeredFilters(MonitorType.IncomingRequest)),
+    );
     expect(conditionsOf(CheckOn.IncomingRequest)).toEqual([
       FilterType.NotRecievedInMinutes,
       FilterType.RecievedInMinutes,
@@ -1470,19 +1541,27 @@ describe("Incoming Request Monitor", () => {
   });
 
   it("starts with the two body criteria the page tabulates", () => {
-    const [offline, online] = defaultCriteriaFor(MonitorType.IncomingRequest) as [
-      MonitorCriteriaInstance,
-      MonitorCriteriaInstance,
-    ];
-    const keyword: string = MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD;
+    const [offline, online] = defaultCriteriaFor(
+      MonitorType.IncomingRequest,
+    ) as [MonitorCriteriaInstance, MonitorCriteriaInstance];
+    const keyword: string =
+      MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD;
 
     expect(filtersOf(offline)).toEqual([
-      { checkOn: CheckOn.RequestBody, filterType: FilterType.Contains, value: keyword },
+      {
+        checkOn: CheckOn.RequestBody,
+        filterType: FilterType.Contains,
+        value: keyword,
+      },
     ]);
     expect(offline.data?.createIncidents).toBe(true);
     expect(offline.data?.incidents[0]?.autoResolveIncident).toBe(true);
     expect(filtersOf(online)).toEqual([
-      { checkOn: CheckOn.RequestBody, filterType: FilterType.NotContains, value: keyword },
+      {
+        checkOn: CheckOn.RequestBody,
+        filterType: FilterType.NotContains,
+        value: keyword,
+      },
     ]);
     expect(
       tableRows(section(page, "### What you get out of the box")).map(
@@ -1497,7 +1576,9 @@ describe("Incoming Request Monitor", () => {
   });
 
   it("names the setup card, the secret key reset and the grouping fields as the dashboard does", () => {
-    expect(readRepoFile(SETUP_CARD_FILE)).toContain('title="Send the first heartbeat"');
+    expect(readRepoFile(SETUP_CARD_FILE)).toContain(
+      'title="Send the first heartbeat"',
+    );
     expect(readRepoFile(CONNECTION_CARD_FILE)).toContain(
       '[MonitorOverviewSetupKind.HeartbeatUrl]: translationKey("Heartbeat URL"),',
     );
@@ -1537,9 +1618,21 @@ describe("Incoming Request Monitor", () => {
       status: "firing",
       commonLabels: { severity: "critical" },
       alerts: [
-        { status: "firing", labels: { alertname: "HighCPU" }, fingerprint: "a1" },
-        { status: "resolved", labels: { alertname: "HighRAM" }, fingerprint: "b2" },
-        { status: "firing", labels: { alertname: "HighCPU" }, fingerprint: "c3" },
+        {
+          status: "firing",
+          labels: { alertname: "HighCPU" },
+          fingerprint: "a1",
+        },
+        {
+          status: "resolved",
+          labels: { alertname: "HighRAM" },
+          fingerprint: "b2",
+        },
+        {
+          status: "firing",
+          labels: { alertname: "HighCPU" },
+          fingerprint: "c3",
+        },
         { status: "firing", labels: { alertname: "" } },
         { status: "firing", labels: { alertname: { nested: true } } },
       ],
@@ -1559,9 +1652,9 @@ describe("Incoming Request Monitor", () => {
 
     it("matches nothing without the requestBody. prefix, with or without the braces", () => {
       expect(groupingKeys(payload, "alerts[*].labels.alertname")).toEqual([]);
-      expect(groupingKeys(payload, "{{requestBody.alerts[*].fingerprint}}")).toEqual(
-        groupingKeys(payload, "requestBody.alerts[*].fingerprint"),
-      );
+      expect(
+        groupingKeys(payload, "{{requestBody.alerts[*].fingerprint}}"),
+      ).toEqual(groupingKeys(payload, "requestBody.alerts[*].fingerprint"));
       expect(page).toContain(
         "A path without it — `alerts[*].labels.alertname` — matches nothing, silently.",
       );
@@ -1580,7 +1673,9 @@ describe("Incoming Request Monitor", () => {
     });
 
     it("selects one element with [0] and [last]", () => {
-      expect(groupingKeys(payload, "requestBody.alerts[0].fingerprint")).toEqual(["a1"]);
+      expect(
+        groupingKeys(payload, "requestBody.alerts[0].fingerprint"),
+      ).toEqual(["a1"]);
       expect(groupingKeys(payload, "requestBody.alerts[last].status")).toEqual([
         "firing",
       ]);
@@ -1589,7 +1684,15 @@ describe("Incoming Request Monitor", () => {
     it("skips objects, empty strings and nulls, and keeps 0 and false", () => {
       expect(
         groupingKeys(
-          { items: [{ id: 0 }, { id: false }, { id: null }, { id: "" }, { id: [] }] } as unknown as JSONObject,
+          {
+            items: [
+              { id: 0 },
+              { id: false },
+              { id: null },
+              { id: "" },
+              { id: [] },
+            ],
+          } as unknown as JSONObject,
           "requestBody.items[*].id",
         ),
       ).toEqual(["0", "false"]);
@@ -1603,7 +1706,9 @@ describe("Incoming Request Monitor", () => {
         section(page, "### Naming the incidents"),
       );
 
-      for (const [pathCell, variableCell] of variables as Array<[string, string]>) {
+      for (const [pathCell, variableCell] of variables as Array<
+        [string, string]
+      >) {
         const item: IncomingRequestGroupingItem | undefined =
           IncomingRequestIncidentGrouping.extractItems({
             requestBody: {
@@ -1620,12 +1725,17 @@ describe("Incoming Request Monitor", () => {
 
     it("caps the keys of one payload at Max incidents per request", () => {
       const many: JSONObject = {
-        alerts: Array.from({ length: 150 }, (_value: unknown, index: number) => {
-          return { name: `alert-${index}` };
-        }),
+        alerts: Array.from(
+          { length: 150 },
+          (_value: unknown, index: number) => {
+            return { name: `alert-${index}` };
+          },
+        ),
       } as unknown as JSONObject;
 
-      expect(groupingKeys(many, "requestBody.alerts[*].name")).toHaveLength(100);
+      expect(groupingKeys(many, "requestBody.alerts[*].name")).toHaveLength(
+        100,
+      );
     });
 
     it("compares the recovery value exactly", () => {
@@ -1656,7 +1766,9 @@ describe("Incoming Request Monitor", () => {
 
   it("names the switch that evaluates every request on its own", () => {
     expect(
-      fs.existsSync(path.join(PACKAGES_DIR, "App/FeatureSet/Telemetry/Config.ts")) &&
+      fs.existsSync(
+        path.join(PACKAGES_DIR, "App/FeatureSet/Telemetry/Config.ts"),
+      ) &&
         readRepoFile("App/FeatureSet/Telemetry/Config.ts").includes(
           "INCOMING_REQUEST_INGEST_COALESCE_ENABLED",
         ),
@@ -1673,7 +1785,9 @@ describe("Incoming Email Monitor", () => {
       tableRows(section(page, "## Available Filter Types")),
     );
 
-    expect(sorted(types)).toEqual(sorted(offeredFilters(MonitorType.IncomingEmail)));
+    expect(sorted(types)).toEqual(
+      sorted(offeredFilters(MonitorType.IncomingEmail)),
+    );
 
     const stringConditions: Array<string> = firstCells(
       tableRows(section(page, "### String Filters (Subject, From, Body, To)")),
@@ -1690,7 +1804,9 @@ describe("Incoming Email Monitor", () => {
 
     expect(
       sorted(
-        firstCells(tableRows(section(page, "### Time-Based Filters (Email Received)"))),
+        firstCells(
+          tableRows(section(page, "### Time-Based Filters (Email Received)")),
+        ),
       ),
     ).toEqual(sorted(conditionsOf(CheckOn.EmailReceivedAt)));
   });
@@ -1700,14 +1816,23 @@ describe("Incoming Email Monitor", () => {
       MonitorCriteriaInstance,
       MonitorCriteriaInstance,
     ];
-    const keyword: string = MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD;
+    const keyword: string =
+      MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD;
 
     expect(filtersOf(offline)).toEqual([
-      { checkOn: CheckOn.EmailBody, filterType: FilterType.Contains, value: keyword },
+      {
+        checkOn: CheckOn.EmailBody,
+        filterType: FilterType.Contains,
+        value: keyword,
+      },
     ]);
     expect(offline.data?.incidents[0]?.autoResolveIncident).toBe(true);
     expect(filtersOf(online)).toEqual([
-      { checkOn: CheckOn.EmailBody, filterType: FilterType.NotContains, value: keyword },
+      {
+        checkOn: CheckOn.EmailBody,
+        filterType: FilterType.NotContains,
+        value: keyword,
+      },
     ]);
   });
 
@@ -1739,9 +1864,7 @@ describe("Incoming Email Monitor", () => {
 
     expect(
       sourceBetween(nginx, "location /incoming-email {", NGINX_BLOCK_END),
-    ).toContain(
-      "client_max_body_size 50M;",
-    );
+    ).toContain("client_max_body_size 50M;");
     expect(page).toContain("OneUptime accepts an inbound email of up to 50 MB");
   });
 
@@ -1802,20 +1925,28 @@ describe("External Status Page Monitor", () => {
       expect(page).toContain(`\`${endpoint}\``);
     }
 
-    expect(probe).toContain("const apiUrl: string = `${origin}/proxy/${host}`;");
+    expect(probe).toContain(
+      "const apiUrl: string = `${origin}/proxy/${host}`;",
+    );
   });
 
   it("reports what the reachability check reports", () => {
     expect(probe).toContain(
       "const isOnline: boolean = response.status >= 200 && response.status < 400;",
     );
-    expect(probe).toContain('overallStatus: isOnline ? "reachable" : "unreachable",');
+    expect(probe).toContain(
+      'overallStatus: isOnline ? "reachable" : "unreachable",',
+    );
     expect(page).toContain("online on a `2xx` or `3xx` response");
-    expect(page).toContain("the reachability check reports `reachable` or `unreachable`");
+    expect(page).toContain(
+      "the reachability check reports `reachable` or `unreachable`",
+    );
   });
 
   it("counts a feed's items of the last 24 hours as active incidents", () => {
-    expect(probe).toContain("const pubDate: string = (item[\"pubDate\"] as string) || \"\";");
+    expect(probe).toContain(
+      'const pubDate: string = (item["pubDate"] as string) || "";',
+    );
     expect(probe).toContain(
       '(entry["updated"] as string) || (entry["published"] as string) || "";',
     );
@@ -1846,9 +1977,11 @@ describe("External Status Page Monitor", () => {
       });
     }
 
-    expect(rows.map((row: Array<string>): string => {
-      return row[2] as string;
-    })).toEqual([
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[2] as string;
+      }),
+    ).toEqual([
       "—",
       "**Auto**",
       "All groups",
@@ -1859,7 +1992,9 @@ describe("External Status Page Monitor", () => {
   });
 
   it("lists the criteria filters and conditions the form offers", () => {
-    const rows: Array<Array<string>> = tableRows(section(page, "## Monitoring Criteria"));
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "## Monitoring Criteria"),
+    );
 
     expect(sorted(firstCells(rows))).toEqual(
       sorted(offeredFilters(MonitorType.ExternalStatusPage)),
@@ -1878,11 +2013,12 @@ describe("External Status Page Monitor", () => {
     expect((rows[2] as Array<string>)[2]).toBe(textConditions);
 
     // The Component Status dropdown's values, in order.
-    const statuses: Array<string> = CriteriaFilterUtil.getDropdownOptionsByCheckOn({
-      checkOn: CheckOn.ExternalStatusPageComponentStatus,
-    }).map((option: DropdownOption): string => {
-      return option.label;
-    });
+    const statuses: Array<string> =
+      CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+        checkOn: CheckOn.ExternalStatusPageComponentStatus,
+      }).map((option: DropdownOption): string => {
+        return option.label;
+      });
 
     expect((rows[2] as Array<string>)[1]).toContain(
       `${statuses.slice(0, -1).join(", ")} or ${statuses[statuses.length - 1]}`,
@@ -1890,10 +2026,9 @@ describe("External Status Page Monitor", () => {
   });
 
   it("starts with the two criteria the page tabulates", () => {
-    const [offline, online] = defaultCriteriaFor(MonitorType.ExternalStatusPage) as [
-      MonitorCriteriaInstance,
-      MonitorCriteriaInstance,
-    ];
+    const [offline, online] = defaultCriteriaFor(
+      MonitorType.ExternalStatusPage,
+    ) as [MonitorCriteriaInstance, MonitorCriteriaInstance];
 
     expect(offline.data?.filterCondition).toBe(FilterCondition.Any);
     expect(filtersOf(offline)).toEqual([
@@ -1907,15 +2042,18 @@ describe("External Status Page Monitor", () => {
         filterType: FilterType.GreaterThan,
         value: 0,
       },
-      ...["degraded_performance", "partial_outage", "major_outage", "full_outage"].map(
-        (status: string): FilterShape => {
-          return {
-            checkOn: CheckOn.ExternalStatusPageComponentStatus,
-            filterType: FilterType.EqualTo,
-            value: status,
-          };
-        },
-      ),
+      ...[
+        "degraded_performance",
+        "partial_outage",
+        "major_outage",
+        "full_outage",
+      ].map((status: string): FilterShape => {
+        return {
+          checkOn: CheckOn.ExternalStatusPageComponentStatus,
+          filterType: FilterType.EqualTo,
+          value: status,
+        };
+      }),
     ]);
     expect(offline.data?.incidents[0]?.autoResolveIncident).toBe(true);
     expect(online.data?.filterCondition).toBe(FilterCondition.All);
@@ -1932,7 +2070,9 @@ describe("External Status Page Monitor", () => {
       },
     ]);
 
-    const rows: Array<Array<string>> = tableRows(section(page, "### Default Criteria"));
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "### Default Criteria"),
+    );
 
     expect((rows[0] as Array<string>)[1]).toBe(
       "**Any** of: the page is not online; there is at least one active incident in scope; a component in scope reports Degraded Performance, Partial Outage, Major Outage or Full Outage",
@@ -1951,7 +2091,10 @@ describe("External Status Page Monitor", () => {
 
     expect(sorted(documented)).toEqual(
       sorted(
-        templateVariablesOf(MonitorType.ExternalStatusPage, "External Status Page"),
+        templateVariablesOf(
+          MonitorType.ExternalStatusPage,
+          "External Status Page",
+        ),
       ),
     );
     expect(boldItems(page)).toContain("External Status Page Active Incidents");
