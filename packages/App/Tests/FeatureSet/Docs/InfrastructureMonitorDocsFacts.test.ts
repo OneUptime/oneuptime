@@ -251,7 +251,8 @@ const NUMBER_WORDS: Record<number, string> = {
 };
 
 interface Comparison {
-  filterType: FilterType;
+  // Undefined only on a template with no filter, which matches no row.
+  filterType: FilterType | undefined;
   value: number;
 }
 
@@ -569,7 +570,7 @@ function describeTemplateTable(data: {
     });
 
     it.each(
-      templates.map((t: BuiltTemplate) => {
+      templates.map((t: BuiltTemplate): [string, BuiltTemplate] => {
         return [t.name, t];
       }),
     )(
@@ -650,7 +651,7 @@ function describeTemplateTable(data: {
         .filter((t: BuiltTemplate): boolean => {
           return !(data.specialRows || []).includes(t.name);
         })
-        .map((t: BuiltTemplate) => {
+        .map((t: BuiltTemplate): [string, BuiltTemplate] => {
           return [t.name, t];
         }),
     )(
