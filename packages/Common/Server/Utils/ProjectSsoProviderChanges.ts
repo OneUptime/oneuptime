@@ -1,7 +1,6 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
@@ -12,8 +11,6 @@ import {
 } from "../EnvironmentConfig";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
-import QueryHelper from "../Types/Database/QueryHelper";
-import QueryUtil from "../Types/Database/QueryUtil";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -21,7 +18,6 @@ import StatementOutcome, {
   StatementContext,
 } from "./Database/StatementOutcome";
 import logger from "./Logger";
-import { And, Equal, FindOperator } from "typeorm";
 import ProjectSsoProviderStanding, {
   PROVIDER_NOT_FOUND,
   ProjectSsoProviderStandingValue,
@@ -62,10 +58,11 @@ import SsoSignInWays, {
  *     it is written, so what it read is still true when it lands: two
  *     writes at once cannot each take away what the other counted on, and
  *     none can miss a provider another turned on a moment before. It writes
- *     exactly the providers it read under the lock: one that comes to match
- *     its filter afterwards is left alone, and a delete - a hard delete
- *     included - reaches no other provider that is there, only rows deleted
- *     before, which sign nobody in (lockReadAndCheck, writeOnlyTheRowsRead).
+ *     exactly the providers it read under the lock, read - and the write
+ *     held to them - by the helper every check of a write's rows reads them
+ *     with (DatabaseService.findRowsAndHoldUpdateToThem and
+ *     findRowsAndHoldDeleteToThem): one that comes to match its filter
+ *     afterwards is left alone (lockReadAndCheck).
  *     One that leaves a project none of its own providers on, or takes away
  *     the one it requires, also holds the lock on the server's sign-in rules
  *     (lockSignInChange): the project then relies on the global providers
@@ -1130,19 +1127,21 @@ export default class ProjectSsoProviderChanges {
    * each project they are in, so no other turn off, turn on or delete of
    * those projects' providers comes between what this write reads and what
    * it writes. The rows are read once to learn their projects - a write
-   * that reaches no provider takes no lock, and writes nothing - the
-   * projects are locked, and the rows are read again. Read again, they must
-   * stay within the projects locked: a write whose filter now reaches
-   * another project - a provider created, or moved, there in between - is
-   * refused, to be saved again.
+   * that reaches no provider that signs anyone in takes no lock - the
+   * projects are locked, and the rows are read again.
    *
-   * The write then goes to exactly the rows read under the locks
-   * (writeOnlyTheRowsRead): a row that comes to match its filter later - a
-   * provider created, renamed or turned on a moment after - was never
-   * checked, and is left alone; a write whose rows read under the locks are
-   * none writes nothing that is there, a hard delete included, which may
-   * only purge rows deleted before. No write turns off or deletes a
-   * provider its check did not read under a lock.
+   * Each read holds the write to the rows it read, by the helper every
+   * check of a write's rows reads them with
+   * (DatabaseService.findRowsAndHoldUpdateToThem,
+   * findRowsAndHoldDeleteToThem): the read under the locks reads among the
+   * rows read before them - in the projects locked - and the write goes to
+   * exactly the rows it read. A row that comes to match the filter later - a
+   * provider created, moved, renamed or turned on a moment after, in this
+   * project or another - was never checked, and is left alone; a write whose
+   * rows read under the locks are none writes nothing. No write turns off or
+   * deletes a provider its check did not read under a lock. A provider
+   * deleted before, which a hard delete purges as well, signs nobody in: it
+   * is held and purged with the rest, and no lock or check is about it.
    *
    * A write that takes a provider away is checked. When a project it
    * touches would be left none of its own providers on, or loses the one it
@@ -1202,10 +1201,11 @@ export default class ProjectSsoProviderChanges {
 
   /*
    * The check of lockReadAndCheck, run once more should a lock be found
-   * gone before the write: the rows read, their projects locked, the rows
-   * read again under the locks and checked, the write held to them. What it
-   * answers holds the locks it took - none when nothing it names is there -
-   * which it gives back when it throws.
+   * gone before the write: the rows read and the write held to them, their
+   * projects locked, the rows read again under the locks - among those -
+   * and checked, the write held to them. What it answers holds the locks it
+   * took - none when nothing it names signs anyone in - which it gives back
+   * when it throws.
    */
   private static async lockReadAndCheckRows<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
@@ -1214,31 +1214,24 @@ export default class ProjectSsoProviderChanges {
     isDelete: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
-    const readNow: () => Promise<
+    // The providers the write names, and the write held to them.
+    const readAndHold: () => Promise<
       Array<ProjectSsoProviderRow>
     > = async (): Promise<Array<ProjectSsoProviderRow>> => {
-      return await ProjectSsoProviderChanges.readRows({
+      return await ProjectSsoProviderChanges.readAndHoldRows({
         service: data.service,
-        query: data.write.query,
-        limit: data.write.limit,
-        skip: data.write.skip,
+        write: data.write,
+        isDelete: data.isDelete,
       });
     };
 
-    // Read once, unlocked, only to learn which projects to lock.
+    // Read once, unlocked, to learn which projects to lock.
     const lockedProjectIds: Array<string> = Array.from(
-      ProjectSsoProviderChanges.groupByProject(await readNow()).keys(),
+      ProjectSsoProviderChanges.groupByProject(await readAndHold()).keys(),
     );
 
-    // It reaches no provider: nothing to lock or check, and nothing to write.
+    // It reaches no provider: nothing to lock or check.
     if (lockedProjectIds.length === 0) {
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: data.service,
-        write: data.write,
-        rowIds: [],
-        isDelete: data.isDelete,
-      });
-
       return { takenAway: [], turnedOn: [] };
     }
 
@@ -1249,30 +1242,8 @@ export default class ProjectSsoProviderChanges {
       });
 
     try {
-      const rows: Array<ProjectSsoProviderRow> = await readNow();
-
-      /*
-       * Read under the projects' locks, a write that names its rows by a
-       * filter may now reach a project it did not lock - a provider
-       * created, or moved, there in between - whose own changes it could
-       * then overtake. It is refused, to be saved again.
-       */
-      const locked: Set<string> = new Set<string>(lockedProjectIds);
-
-      if (
-        rows.some((row: ProjectSsoProviderRow): boolean => {
-          return !locked.has(row.projectId);
-        })
-      ) {
-        throw new BadDataException(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
-      }
-
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: data.service,
-        write: data.write,
-        rowIds: ProjectSsoProviderChanges.idsOf(rows),
-        isDelete: data.isDelete,
-      });
+      // Read again under the locks: among the rows read before, in their projects.
+      const rows: Array<ProjectSsoProviderRow> = await readAndHold();
 
       // Nothing it writes is there: nothing to check, and nothing to hold.
       if (rows.length === 0) {
@@ -1316,111 +1287,6 @@ export default class ProjectSsoProviderChanges {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
       throw err;
     }
-  }
-
-  /*
-   * Holds a write to the rows its check read under its locks, by their ids,
-   * on top of its own filter: a row that matches the filter only later was
-   * never checked, and one that stops matching it is left alone too. Its
-   * window becomes those rows. A write that read none under its locks
-   * writes nothing.
-   *
-   * A delete that read none may still reach rows deleted before - only a
-   * hard delete does: the retention job's purge removes them a month on -
-   * which no read here sees and which sign nobody in, but no other row: its
-   * filter is held to rows deleted before (deletedAt set), together with
-   * whatever it asks of deletedAt itself. One that read rows is held to
-   * them like any other write; rows deleted before that it also matched are
-   * purged on its next pass.
-   *
-   * Every sign-in change that names its rows by a filter writes through
-   * here: a project's providers (lockReadAndCheck), the global providers
-   * and their attachments (GlobalSsoProviderChanges), and the projects
-   * whose Require SSO for Login is turned on (SsoRequirementChanges).
-   */
-  public static writeOnlyTheRowsRead<TModel extends BaseModel>(data: {
-    service: DatabaseService<TModel>;
-    write: UpdateBy<TModel> | DeleteBy<TModel>;
-    // The rows the change read under its locks, and checked.
-    rowIds: Array<string>;
-    isDelete: boolean;
-  }): void {
-    const ids: Array<string> = data.rowIds;
-
-    const toTheRowsRead: (query: Query<TModel>) => Query<TModel> = (
-      query: Query<TModel>,
-    ): Query<TModel> => {
-      if (ids.length === 0 && data.isDelete) {
-        return {
-          ...query,
-          deletedAt: ProjectSsoProviderChanges.onlyRowsDeletedBefore(
-            data.service,
-            query,
-          ),
-        } as Query<TModel>;
-      }
-
-      return {
-        ...query,
-        _id: QueryHelper.any(ids),
-      } as Query<TModel>;
-    };
-
-    // A query per project (several filters, any of which may match) is held branch by branch.
-    const query: unknown = data.write.query;
-
-    data.write.query = Array.isArray(query)
-      ? (query.map((branch: Query<TModel>): Query<TModel> => {
-          return toTheRowsRead(branch);
-        }) as unknown as Query<TModel>)
-      : toTheRowsRead(data.write.query);
-
-    if (ids.length > 0) {
-      data.write.skip = 0;
-      data.write.limit = ids.length;
-    }
-  }
-
-  // The ids of the rows a check read, to hold its write to (writeOnlyTheRowsRead).
-  public static idsOf(rows: Array<{ id: string }>): Array<string> {
-    return rows.map((row: { id: string }): string => {
-      return row.id;
-    });
-  }
-
-  /*
-   * A delete's condition on deletedAt that reaches only rows deleted before:
-   * deletedAt is set, and - when the delete asks something of deletedAt
-   * itself, as the retention job's purge asks for rows deleted a month ago
-   * - that too.
-   */
-  private static onlyRowsDeletedBefore<TModel extends BaseModel>(
-    service: DatabaseService<TModel>,
-    query: Query<TModel>,
-  ): FindOperator<unknown> {
-    const deletedBefore: FindOperator<unknown> = QueryHelper.notNull();
-    const asked: unknown = (query as Record<string, unknown>)["deletedAt"];
-
-    if (asked === undefined) {
-      return deletedBefore;
-    }
-
-    // What it asks, as the database is asked it: a value, or one of the query types.
-    const askedOfDatabase: unknown =
-      asked instanceof FindOperator
-        ? asked
-        : (
-            QueryUtil.serializeQuery(service.modelType, {
-              deletedAt: asked,
-            } as Query<TModel>) as Record<string, unknown>
-          )["deletedAt"];
-
-    return And(
-      askedOfDatabase instanceof FindOperator
-        ? (askedOfDatabase as FindOperator<unknown>)
-        : Equal(askedOfDatabase),
-      deletedBefore,
-    );
   }
 
   // The providers a write takes away, by project, as the check reads them.
@@ -1519,26 +1385,35 @@ export default class ProjectSsoProviderChanges {
       });
   }
 
-  // The rows a write names: their ids, projects, and whether they are on.
-  private static async readRows<TModel extends BaseModel>(data: {
+  /*
+   * The providers a write names - their ids, projects, and whether they are
+   * on - with the write held to the rows read
+   * (DatabaseService.findRowsAndHoldUpdateToThem,
+   * findRowsAndHoldDeleteToThem). A provider deleted before, which only a
+   * hard delete reads, signs nobody in: it is held and purged with the rest,
+   * and left out of what the change works out.
+   */
+  private static async readAndHoldRows<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
-    query: Query<TModel>;
-    limit: PositiveNumber | number;
-    skip: PositiveNumber | number;
+    write: UpdateBy<TModel> | DeleteBy<TModel>;
+    isDelete: boolean;
   }): Promise<Array<ProjectSsoProviderRow>> {
-    const rows: Array<TModel> = await data.service.findAllBy({
-      query: data.query,
-      select: {
-        _id: true,
-        projectId: true,
-        isEnabled: true,
-      } as unknown as Select<TModel>,
-      limit: data.limit,
-      skip: data.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+    const select: Select<TModel> = {
+      _id: true,
+      projectId: true,
+      isEnabled: true,
+      deletedAt: true,
+    } as unknown as Select<TModel>;
+
+    const rows: Array<TModel> = data.isDelete
+      ? await data.service.findRowsAndHoldDeleteToThem(
+          data.write as DeleteBy<TModel>,
+          select,
+        )
+      : await data.service.findRowsAndHoldUpdateToThem(
+          data.write as UpdateBy<TModel>,
+          select,
+        );
 
     const providerRows: Array<ProjectSsoProviderRow> = [];
 
@@ -1552,7 +1427,7 @@ export default class ProjectSsoProviderChanges {
         ? String(record["projectId"]).toLowerCase()
         : undefined;
 
-      if (!id || !projectId) {
+      if (!id || !projectId || record["deletedAt"]) {
         continue;
       }
 

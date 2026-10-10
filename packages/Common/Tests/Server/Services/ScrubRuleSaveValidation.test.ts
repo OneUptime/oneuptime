@@ -33,6 +33,7 @@ import LogScrubRuleService from "../../../Server/Services/LogScrubRuleService";
 import TraceScrubRuleService from "../../../Server/Services/TraceScrubRuleService";
 import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ListOrderMaintainer from "../../../Server/Utils/Database/ListOrderMaintainer";
 import logger from "../../../Server/Utils/Logger";
@@ -913,9 +914,11 @@ describe.each(SUITES)(
     /*
      * The stored rows are read once the permission checks have narrowed the
      * update to the caller's own project, so a refusal never tells anyone
-     * about another project's rule.
+     * about another project's rule - and in one read, by the query that
+     * check left the update with: the caller's permission to update is not
+     * asked a second time, and the rows they may write are not read first.
      */
-    test("reads the stored rule only within the caller's project", async () => {
+    test("reads the stored rule only within the caller's project, in one read, by the query the permission check left it with", async () => {
       const stored: any = new suite.modelType();
       stored._id = RULE_ID.toString();
       stored.patternType = suite.customPatternType;
@@ -925,6 +928,10 @@ describe.each(SUITES)(
         suite.service,
         "findBy",
       ).mockResolvedValue([stored] as never);
+      const updatableQuery: jest.SpyInstance = getJestSpyOn(
+        ModelPermission,
+        "getUpdatableQuery",
+      );
 
       await expect(
         suite.service.updateOneById({
@@ -937,22 +944,19 @@ describe.each(SUITES)(
         }),
       ).rejects.toThrow(/needs a regular expression/);
 
-      // The rules the caller may write, found in this project only.
-      const writable: any = readsOfRowsCallerMayWrite(
-        suite.service as never,
-      )[0]!;
-      expect(writable.query["projectId"]).toBeDefined();
-      expect(inspect(writable.query["projectId"], { depth: 4 })).toContain(
-        PROJECT_ID.toString(),
-      );
+      // No second narrowing, and no read of the rows the caller may write.
+      expect(updatableQuery).not.toHaveBeenCalled();
+      expect(readsOfRowsCallerMayWrite(suite.service as never)).toEqual([]);
 
-      // Then the one found, by id, within the update's query as its permission check narrowed it.
+      // One read: the rule, by id, within the update's query as its permission check narrowed it.
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
       expect(request.query["_id"]).toBe(RULE_ID.toString());
       expect(inspect(request.query["projectId"], { depth: 4 })).toContain(
         PROJECT_ID.toString(),
       );
+      expect(request.skip).toBe(0);
+      expect(request.limit).toBe(1);
     });
 
     test("reads nothing for a caller who may not edit scrub rules", async () => {

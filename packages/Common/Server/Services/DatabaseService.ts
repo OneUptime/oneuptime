@@ -199,16 +199,42 @@ const rowsTheCallerMayWrite: WeakMap<WriteOfRows, Array<string>> = new WeakMap<
 const hardDeletes: WeakSet<WriteOfRows> = new WeakSet<WriteOfRows>();
 
 /*
- * The conditions on _id the update path names a write's rows by
- * (pinQueryToRows, holdWriteToRows), each with the condition it kept from
- * the query it replaced - null when it kept none. A later hold of the same
- * update replaces one of these, and keeps what it kept, rather than adding
- * one more list of ids to it.
+ * A condition on _id the update path names a write's rows by
+ * (pinQueryToRows, holdWriteToRows): the rows it names, and the condition
+ * it kept from the query it replaced - null when it kept none. A later hold
+ * of the same write replaces it, and keeps what it kept, rather than adding
+ * one more list of ids to it; and a write whose query names its rows by it
+ * reaches none but these (getIdsNamedBy).
  */
+interface IdConditionNamingRows {
+  rowIds: Array<string>;
+  kept: FindOperator<unknown> | null;
+}
+
 const idConditionsNamingRows: WeakMap<
   FindOperator<unknown>,
-  FindOperator<unknown> | null
-> = new WeakMap<FindOperator<unknown>, FindOperator<unknown> | null>();
+  IdConditionNamingRows
+> = new WeakMap<FindOperator<unknown>, IdConditionNamingRows>();
+
+/*
+ * The query each update was left with once it passed its permission check
+ * (ModelPermission.checkUpdateQueryPermissions) - one that names only rows
+ * its caller may write - with its entries as that check left them. A hook
+ * that runs after that check (onBeforeUpdateUniqueCheck, onUpdatePermitted)
+ * and asks for the rows the update writes (findRowsAndHoldUpdateToThem) has
+ * them read with this query, in the update's window, while the update still
+ * holds it as it was - the read the update itself makes - with no second
+ * check and no second read. A hook that put another query in its place, or
+ * changed this one in place, has the rows its caller may write read first,
+ * as a hook before the checks has.
+ */
+interface PermittedUpdateQuery {
+  query: unknown;
+  entries: Array<[string, unknown]>;
+}
+
+const queriesPermittedForUpdate: WeakMap<WriteOfRows, PermittedUpdateQuery> =
+  new WeakMap<WriteOfRows, PermittedUpdateQuery>();
 
 /*
  * A switch an update turns, and the who and when columns the server stamped
@@ -254,13 +280,14 @@ interface PinnedQuery<TBaseModel extends BaseModel> {
 
 /*
  * The rows of an update or a delete read for a check
- * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), and the rows
- * the caller may write they were read among - null when the caller writes
- * any row.
+ * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), and whether
+ * they are a teammate's: rows their caller may write, which a hold keeps
+ * the write's own conditions on _id beside - false for OneUptime and a
+ * master admin, who write any row.
  */
 interface RowsOfWrite<TBaseModel extends BaseModel> {
   rows: Array<TBaseModel>;
-  callerMayWrite: Array<string> | null;
+  isCallerLimited: boolean;
 }
 
 /*
@@ -1125,15 +1152,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     props: DatabaseCommonInteractionProps,
   ): PinnedQuery<TBaseModel> | null {
     const oneRowId: string | null = rowIds.length === 1 ? rowIds[0]! : null;
-
-    if (Array.isArray(query)) {
-      return {
-        query: {
-          _id: DatabaseService.idConditionNamingRows(rowIds, null),
-        } as Query<TBaseModel>,
-        namesTheRows: true,
-      };
-    }
 
     const sentId: unknown = (query as Record<string, unknown>)["_id"];
 
@@ -2971,10 +2989,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Whether the rows `checked` read are the ones `updateBy` writes: the
-   * hooks kept its query - the same one, with the same entries - and its
-   * skip, limit and props. A hook that changed any of them has the rows read
-   * again.
+   * Whether `updateBy` writes no row but the ones `checked` read, for the
+   * same caller (props), so what was asked of them stands:
+   *
+   *  - its query names the rows it writes by id - a plain id, or the ids the
+   *    update path named them by (getIdsNamedBy), as a hook's hold of the
+   *    update to the rows it read does - and each of them is a row read; or
+   *  - the hooks kept its query - the same one, with the same entries - and
+   *    its skip and limit.
+   *
+   * A hook that changed what the update reaches any other way has the rows
+   * read again.
    */
   private static isReadBySameUpdate<TBaseModel extends BaseModel>(
     checked: UpdateNamedRecordsChecked<TBaseModel>,
@@ -2983,28 +3008,49 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const readBy: UpdateNamedRecordsChecked<TBaseModel>["readBy"] =
       checked.readBy;
 
-    if (
-      readBy.query !== updateBy.query ||
-      readBy.skip !== updateBy.skip ||
-      readBy.limit !== updateBy.limit ||
-      readBy.props !== updateBy.props
-    ) {
+    if (readBy.props !== updateBy.props) {
       return false;
     }
 
-    const entries: Array<[string, unknown]> = Object.entries(updateBy.query);
+    const namedIds: Array<string> | null = DatabaseService.getIdsNamedBy(
+      updateBy.query,
+    );
+
+    if (namedIds) {
+      return DatabaseService.areAmong(
+        namedIds,
+        DatabaseService.getRowIds(checked.rows),
+      );
+    }
 
     return (
-      entries.length === readBy.queryEntries.length &&
-      entries.every((entry: [string, unknown], index: number): boolean => {
-        const readEntry: [string, unknown] | undefined =
-          readBy.queryEntries[index];
+      readBy.query === updateBy.query &&
+      readBy.skip === updateBy.skip &&
+      readBy.limit === updateBy.limit &&
+      DatabaseService.hasSameEntries(updateBy.query, readBy.queryEntries)
+    );
+  }
 
-        return (
-          Boolean(readEntry) &&
-          entry[0] === readEntry![0] &&
-          entry[1] === readEntry![1]
-        );
+  /*
+   * Whether `query` still holds exactly `entries` - the same keys, in the
+   * same order, each with the very same value: nothing was put in it, taken
+   * off it or changed since they were taken (isReadBySameUpdate,
+   * isPermittedUpdateQuery).
+   */
+  private static hasSameEntries(
+    query: unknown,
+    entries: Array<[string, unknown]>,
+  ): boolean {
+    const now: Array<[string, unknown]> = Object.entries(
+      (query || {}) as Dictionary<unknown>,
+    );
+
+    return (
+      now.length === entries.length &&
+      now.every((entry: [string, unknown], index: number): boolean => {
+        const then: [string, unknown] | undefined = entries[index];
+
+        return Boolean(then) && entry[0] === then![0] && entry[1] === then![1];
       })
     );
   }
@@ -6554,14 +6600,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `query` without its filters on relations - a record named through a
    * relation, or the records a row is linked to - for a statement that
    * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
-   * own columns stay. A query per project (DeletePermission's answer to a
-   * request across projects) keeps none: the rows it found are named by id.
+   * own columns stay.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
-    if (Array.isArray(query)) {
-      return {} as Query<TBaseModel>;
-    }
-
     const filters: Dictionary<unknown> = {};
 
     for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
@@ -7045,9 +7086,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The read the helpers above make of the rows of an update or a delete -
-   * at most `atMost` of them, when that is given - and the rows the caller
-   * may write they were read among: null for OneUptime and a master admin,
-   * who write any row.
+   * at most `atMost` of them, when that is given - in one read of the
+   * database (two when `select` reads a relation the query sets a condition
+   * on), and whether they are a teammate's.
    */
   private async readRowsOfWrite(
     write: WriteInWindow<TBaseModel>,
@@ -7059,10 +7100,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const withDeleted: boolean =
       type === DatabaseRequestType.Delete && hardDeletes.has(write);
 
-    // Who writes decides which rows: any, or the ones the caller may write.
+    const isCallerLimited: boolean = !DatabaseService.writesAnyRow(write.props);
+
+    /*
+     * The rows the read keeps to: the rows the caller may write, read before
+     * the hooks (keepRowsCallerMayWrite) or by an earlier hold - or here,
+     * first, when nothing read them yet. Null when the write's own query is
+     * read, in its window: OneUptime's and a master admin's, who write any
+     * row, and an update's that has passed its permission check, which
+     * names none but rows its caller may write (isPermittedUpdateQuery).
+     */
     let callerMayWrite: Array<string> | null = null;
 
-    if (!DatabaseService.writesAnyRow(write.props)) {
+    if (isCallerLimited && !this.isPermittedUpdateQuery(write, type)) {
       if (!rowsTheCallerMayWrite.has(write)) {
         await this.readRowsCallerMayWrite(write, type, {
           leaveQuery: true,
@@ -7078,13 +7128,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * the rows the caller may write. None when the caller may write none.
      */
     const rowsQuery: Query<TBaseModel> | null = !callerMayWrite
-      ? await this.getQueryOfWriteOfAnyRow(write, type)
+      ? await this.getQueryOfWriteInItsWindow(write, type)
       : callerMayWrite.length > 0
         ? this.queryWithinRows(write.query, callerMayWrite)
         : null;
 
     if (!rowsQuery) {
-      return { rows: [], callerMayWrite: callerMayWrite };
+      return { rows: [], isCallerLimited: isCallerLimited };
     }
 
     // A relation the query sets a condition on is read by id alone. See above.
@@ -7135,20 +7185,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
-    return { rows: rows, callerMayWrite: callerMayWrite };
+    return { rows: rows, isCallerLimited: isCallerLimited };
   }
 
   /*
-   * The query a write of OneUptime or a master admin reaches its rows by:
-   * an update's own query, which nothing narrows for them, and a delete's
-   * kept to the request's project when it names one - as DeletePermission
-   * keeps the delete itself - so the rows read are the rows it removes.
+   * Whether `write` is an update that has passed its permission check and
+   * still holds the query that check left it with, as it left it
+   * (queriesPermittedForUpdate) - asked by a hook that runs after the check
+   * - with no rows of it read before (rowsTheCallerMayWrite), which a read
+   * would keep to. Its query names none but rows its caller may write.
    */
-  private async getQueryOfWriteOfAnyRow(
+  private isPermittedUpdateQuery(
+    write: WriteInWindow<TBaseModel>,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): boolean {
+    if (
+      type !== DatabaseRequestType.Update ||
+      rowsTheCallerMayWrite.has(write)
+    ) {
+      return false;
+    }
+
+    const permitted: PermittedUpdateQuery | undefined =
+      queriesPermittedForUpdate.get(write);
+
+    return (
+      Boolean(permitted) &&
+      permitted!.query === write.query &&
+      DatabaseService.hasSameEntries(write.query, permitted!.entries)
+    );
+  }
+
+  /*
+   * The query a write reaches its rows by in its own window, read as it is:
+   * an update's own query - nothing narrows OneUptime's or a master admin's,
+   * and a teammate's has passed its permission check (isPermittedUpdateQuery)
+   * - and a delete's kept to the request's project when it names one, as
+   * DeletePermission keeps the delete itself: the rows read are the rows it
+   * writes.
+   */
+  private async getQueryOfWriteInItsWindow(
     write: WriteInWindow<TBaseModel>,
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
   ): Promise<Query<TBaseModel>> {
-    if (type === DatabaseRequestType.Update || Array.isArray(write.query)) {
+    if (type === DatabaseRequestType.Update) {
       return write.query;
     }
 
@@ -7180,10 +7260,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const rowIds: Array<string> = DatabaseService.getRowIds(rowsRead.rows);
 
     this.holdWriteToRows(write, rowIds, {
-      keepIdCondition: rowsRead.callerMayWrite !== null,
+      keepIdCondition: rowsRead.isCallerLimited,
     });
 
-    if (rowsRead.callerMayWrite) {
+    if (rowsRead.isCallerLimited) {
       // What a later call for this write reads within.
       rowsTheCallerMayWrite.set(write, rowIds);
     }
@@ -7209,6 +7289,35 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       updateBy,
       { [tenantColumn]: true } as Select<TBaseModel>,
     );
+
+    return this.getProjectsOfRows(rows);
+  }
+
+  /*
+   * The projects references are checked in for the rows a write read - with
+   * findRowsAndHoldUpdateToThem, for a check of their own - each once: the
+   * project the write is kept to (getProjectWriteIsHeldTo), a teammate's
+   * request's, with nothing more read; for OneUptime and a master admin,
+   * whose writes reach any row their query names, the project of each row
+   * (findProjectsToCheckUpdateIn, without a read of its own).
+   */
+  public getProjectsToCheckRowsIn(
+    props: DatabaseCommonInteractionProps,
+    rows: Array<TBaseModel>,
+  ): Array<ObjectID> {
+    const heldTo: ObjectID | null =
+      DatabaseService.getProjectWriteIsHeldTo(props);
+
+    return heldTo ? [heldTo] : this.getProjectsOfRows(rows);
+  }
+
+  // The projects of `rows`, each once: none for a model with no project.
+  private getProjectsOfRows(rows: Array<TBaseModel>): Array<ObjectID> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (!tenantColumn) {
+      return [];
+    }
 
     const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
 
@@ -7320,27 +7429,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Whether `select` reads a relation `query` - or any query of a list of
-   * them - sets a condition on (findRowsAndHoldUpdateToThem).
+   * Whether `select` reads a relation `query` sets a condition on
+   * (findRowsAndHoldUpdateToThem).
    */
   private static selectsRelationQueried(
     select: unknown,
     query: unknown,
   ): boolean {
-    const queried: Set<string> = new Set<string>();
-
-    for (const each of Array.isArray(query) ? query : [query]) {
-      if (each && typeof each === "object") {
-        for (const key of Object.keys(each as Dictionary<unknown>)) {
-          queried.add(key);
-        }
-      }
-    }
+    const queried: Dictionary<unknown> =
+      query && typeof query === "object" ? (query as Dictionary<unknown>) : {};
 
     return Object.entries(select as Dictionary<unknown>).some(
       ([column, value]: [string, unknown]): boolean => {
         return (
-          typeof value === "object" && value !== null && queried.has(column)
+          typeof value === "object" &&
+          value !== null &&
+          Object.prototype.hasOwnProperty.call(queried, column)
         );
       },
     );
@@ -7372,6 +7476,46 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The ids a write's query names its rows by, when it names them by id: a
+   * plain id (getOneRowIdNamedBy), or a condition on _id the update path set
+   * (idConditionsNamingRows) - pinQueryToRows' names for the rows the caller
+   * may write, a hold's for the rows a hook read. The query reaches no row
+   * but these, whatever else it says. Null when it names its rows some other
+   * way, or not by id at all.
+   */
+  private static getIdsNamedBy(query: unknown): Array<string> | null {
+    const oneRowId: ObjectID | null = DatabaseService.getOneRowIdNamedBy(query);
+
+    if (oneRowId) {
+      return [oneRowId.toString()];
+    }
+
+    const namedById: unknown =
+      query && typeof query === "object"
+        ? (query as Dictionary<unknown>)["_id"]
+        : undefined;
+
+    if (!(namedById instanceof FindOperator)) {
+      return null;
+    }
+
+    return idConditionsNamingRows.get(namedById)?.rowIds || null;
+  }
+
+  // Whether each of `ids` is one of `among`, whatever case either is written in.
+  private static areAmong(ids: Array<string>, among: Array<string>): boolean {
+    const amongIds: Set<string> = new Set<string>(
+      among.map((id: string): string => {
+        return id.toLowerCase();
+      }),
+    );
+
+    return ids.every((id: string): boolean => {
+      return amongIds.has(id.toLowerCase());
+    });
+  }
+
+  /*
    * Holds an update or a delete to `rowIds` (findRowsAndHoldUpdateToThem,
    * findRowsAndHoldDeleteToThem): its query names them - in the shapes its
    * hooks already read (pinQueryToRows), and by their ids where those leave
@@ -7387,16 +7531,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     rowIds: Array<string>,
     options: { keepIdCondition: boolean },
   ): void {
-    const query: Dictionary<unknown> = Array.isArray(write.query)
-      ? {}
-      : (write.query as Dictionary<unknown>);
+    const query: Dictionary<unknown> = write.query as Dictionary<unknown>;
 
     write.skip = 0;
 
     if (rowIds.length === 0) {
       write.query = {
         ...query,
-        _id: DatabaseService.idsCondition([]),
+        _id: DatabaseService.idConditionNamingRows([], null),
       } as Query<TBaseModel>;
 
       return;
@@ -7454,7 +7596,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       namedById instanceof FindOperator &&
       idConditionsNamingRows.has(namedById)
     ) {
-      return idConditionsNamingRows.get(namedById) || null;
+      return idConditionsNamingRows.get(namedById)?.kept || null;
     }
 
     return this.getIdOperator(namedById);
@@ -7484,19 +7626,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * rows it names by _id - and holds together with being one of those rows
    * in the read itself, so a row the query names but the caller may not
    * write never takes a place in the window. A query that names one row by
-   * a plain id is read as it is when that row is one of them. A list of
-   * queries was read when the rows were, and is named by them alone.
+   * a plain id is read as it is when that row is one of them.
    */
   private queryWithinRows(
     query: Query<TBaseModel>,
     rowIds: Array<string>,
   ): Query<TBaseModel> | null {
-    if (Array.isArray(query)) {
-      return {
-        _id: DatabaseService.idsCondition(rowIds),
-      } as Query<TBaseModel>;
-    }
-
     const namedById: unknown = (query as Dictionary<unknown>)["_id"];
 
     if (namedById === undefined || namedById === null) {
@@ -7577,7 +7712,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       : DatabaseService.idsCondition(rowIds);
 
     if (condition instanceof FindOperator) {
-      idConditionsNamingRows.set(condition, kept);
+      idConditionsNamingRows.set(condition, {
+        rowIds: [...rowIds],
+        kept: kept,
+      });
     }
 
     return condition;
@@ -8197,6 +8335,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.data,
         beforeUpdateBy.props,
       );
+
+      // What the hooks below read the rows it writes by. See the map.
+      queriesPermittedForUpdate.set(beforeUpdateBy, {
+        query: beforeUpdateBy.query,
+        entries: Object.entries(beforeUpdateBy.query as Dictionary<unknown>),
+      });
 
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {

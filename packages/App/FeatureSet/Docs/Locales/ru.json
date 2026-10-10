@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Начало работы",
+    "Quickstart": "Быстрый старт",
+    "Core Concepts": "Основные понятия",
+    "Home Page & Shortcuts": "Главная страница и сочетания клавиш",
+    "Your Account": "Ваша учётная запись",
     "Moving from Opsgenie": "Переход с Opsgenie",
     "Moving from PagerDuty": "Переход с PagerDuty",
     "Moving from incident.io": "Переход с incident.io",

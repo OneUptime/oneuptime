@@ -1,7 +1,11 @@
-import fs from "fs";
 import path from "path";
-import ts from "typescript";
 import { describe, expect, it } from "@jest/globals";
+import {
+  findWriteQueryReads,
+  findWriteQueryReadsInCode,
+  RepositoryWriteQueryRead,
+  WriteQueryScan,
+} from "../TestingUtils/WriteQueryReads";
 
 /*
  * EVERY HOOK THAT JUDGES A DELETE BY ITS ROWS READS THEM WITH
@@ -32,6 +36,11 @@ import { describe, expect, it } from "@jest/globals";
  *     not remove. The list only ever shrinks: each entry names how many
  *     times its function reads the query, and an entry that reads it no
  *     more is taken out.
+ *
+ * The scan reads the syntax tree (TestingUtils/WriteQueryReads): a read
+ * through another name for the delete - a parameter declared as a DeleteBy,
+ * a copy of one, one destructured out of what holds it - or one that
+ * destructures the query out of the delete counts as any other.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -59,19 +68,18 @@ const SKIPPED_DIRECTORY_NAMES: Set<string> = new Set<string>([
 const DELETE_PATH: string =
   "packages/Common/Server/Services/DatabaseService.ts";
 
-// The source files scanned: TypeScript, not tests.
-const SOURCE_FILE: RegExp = /\.tsx?$/;
-const TEST_FILE: RegExp = /\.(test|spec)\.tsx?$/;
-
-// What reads the one row a query names by its id.
-const ONE_ROW_ID_READER: RegExp = /\bgetOneRowIdNamedBy$/;
-
-// Hooks that run once the delete is done: they read what was deleted.
-const AFTER_THE_DELETE: Set<string> = new Set<string>([
-  "onDeleteSuccess",
-  "onDeleteError",
-  "onHardDeleteSuccess",
-]);
+// What a delete is: the names it goes by, and the types it is declared with.
+const DELETE_SCAN: WriteQueryScan = {
+  writeNames: new Set<string>(["deleteBy", "deleteOneBy"]),
+  writeTypes: new Set<string>(["DeleteBy", "DeleteOneBy"]),
+  // Hooks that run once the delete is done: they read what was deleted.
+  afterTheWrite: new Set<string>([
+    "onDeleteSuccess",
+    "onDeleteError",
+    "onHardDeleteSuccess",
+  ]),
+  allowsIdPresenceTest: true,
+};
 
 interface Allowed {
   // How many times the function reads the delete's query.
@@ -80,30 +88,6 @@ interface Allowed {
 }
 
 const ALLOWED: Record<string, Allowed> = {
-  "packages/Common/Server/Services/GlobalOidcProjectService.ts::onBeforeDelete":
-    {
-      mentions: 1,
-      reason:
-        "Reads the providers of the attachments the delete removes once GlobalSsoProviderChanges held the delete to the attachments it read under the sign-in lock: the query names exactly those rows.",
-    },
-  "packages/Common/Server/Services/GlobalSsoProjectService.ts::onBeforeDelete":
-    {
-      mentions: 1,
-      reason:
-        "Reads the providers of the attachments the delete removes once GlobalSsoProviderChanges held the delete to the attachments it read under the sign-in lock: the query names exactly those rows.",
-    },
-  "packages/Common/Server/Utils/GlobalSsoProviderChanges.ts::beforeProviderDelete":
-    {
-      mentions: 1,
-      reason:
-        "Reads the providers under the sign-in lock and holds the delete to the providers it read (ProjectSsoProviderChanges.writeOnlyTheRowsRead).",
-    },
-  "packages/Common/Server/Utils/GlobalSsoProviderChanges.ts::beforeAttachmentDelete":
-    {
-      mentions: 1,
-      reason:
-        "Reads the attachments under the sign-in lock and holds the delete to the attachments it read (ProjectSsoProviderChanges.writeOnlyTheRowsRead).",
-    },
   "packages/Common/Server/Services/NetworkSiteService.ts::deleteOneBy": {
     mentions: 1,
     reason:
@@ -159,222 +143,18 @@ const ALLOWED: Record<string, Allowed> = {
     },
 };
 
-interface QueryRead {
-  key: string;
-  line: number;
-  text: string;
-}
-
-function sourceFiles(directory: string): Array<string> {
-  const absolute: string = path.join(REPOSITORY_ROOT, directory);
-
-  if (!fs.existsSync(absolute)) {
-    return [];
-  }
-
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
-    const relative: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      if (!SKIPPED_DIRECTORY_NAMES.has(entry.name)) {
-        files.push(...sourceFiles(relative));
-      }
-
-      continue;
-    }
-
-    if (SOURCE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) {
-      files.push(relative);
-    }
-  }
-
-  return files;
-}
-
-/*
- * The names a delete goes by - `deleteBy`, `deleteOneBy` - alone or as a
- * property: `onDelete.deleteBy`, `data.deleteBy`...
- */
-const DELETE_NAMES: Set<string> = new Set<string>(["deleteBy", "deleteOneBy"]);
-
-function isDeleteBy(expression: ts.Expression): boolean {
-  return (
-    (ts.isIdentifier(expression) && DELETE_NAMES.has(expression.text)) ||
-    (ts.isPropertyAccessExpression(expression) &&
-      DELETE_NAMES.has(expression.name.text))
-  );
-}
-
-// Whether a file can name a delete at all (DELETE_NAMES).
-const NAMES_A_DELETE: RegExp = /\b(deleteBy|deleteOneBy)\b/;
-
-// `<delete>.query`.
-function isDeleteQuery(node: ts.Node): node is ts.PropertyAccessExpression {
-  return (
-    ts.isPropertyAccessExpression(node) &&
-    node.name.text === "query" &&
-    isDeleteBy(node.expression)
-  );
-}
-
-// The class member or top-level function a node is in.
-function functionNameOf(node: ts.Node): string {
-  let current: ts.Node | undefined = node.parent;
-  let name: string = "<module>";
-
-  while (current) {
-    if (
-      (ts.isMethodDeclaration(current) ||
-        ts.isGetAccessorDeclaration(current) ||
-        ts.isPropertyDeclaration(current)) &&
-      current.name
-    ) {
-      return current.name.getText();
-    }
-
-    if (ts.isFunctionDeclaration(current) && current.name) {
-      return current.name.text;
-    }
-
-    if (
-      ts.isVariableDeclaration(current) &&
-      ts.isIdentifier(current.name) &&
-      ts.isSourceFile(current.parent.parent.parent)
-    ) {
-      name = current.name.text;
-    }
-
-    current = current.parent;
-  }
-
-  return name;
-}
-
-// `deleteBy.query = ...`: the query itself, written.
-function isAssigned(node: ts.PropertyAccessExpression): boolean {
-  const parent: ts.Node = node.parent;
-
-  return (
-    ts.isBinaryExpression(parent) &&
-    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-    parent.left === node
-  );
-}
-
-// Inside `deleteBy.query = narrow(deleteBy.query)`: narrowed in place.
-function isNarrowedInPlace(node: ts.Node): boolean {
-  let current: ts.Node | undefined = node.parent;
-
-  while (current && !ts.isStatement(current)) {
-    if (
-      ts.isBinaryExpression(current) &&
-      current.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-      isDeleteQuery(current.left)
-    ) {
-      return true;
-    }
-
-    current = current.parent;
-  }
-
-  return false;
-}
-
-// `getOneRowIdNamedBy(deleteBy.query)`: the one row it names by id.
-function isOneRowIdRead(node: ts.Node): boolean {
-  const parent: ts.Node = node.parent;
-
-  return (
-    ts.isCallExpression(parent) &&
-    parent.arguments.includes(node as ts.Expression) &&
-    ONE_ROW_ID_READER.test(parent.expression.getText())
-  );
-}
-
-/*
- * `!deleteBy.query._id` or `if (deleteBy.query._id)`: whether the query
- * names its rows by id at all - what the query says, not what a row holds.
- */
-function isIdPresenceTest(node: ts.Node): boolean {
-  const idRead: ts.Node = node.parent;
-
-  if (
-    !ts.isPropertyAccessExpression(idRead) ||
-    idRead.expression !== node ||
-    idRead.name.text !== "_id"
-  ) {
-    return false;
-  }
-
-  const test: ts.Node = idRead.parent;
-
-  return (
-    (ts.isPrefixUnaryExpression(test) &&
-      test.operator === ts.SyntaxKind.ExclamationToken) ||
-    (ts.isIfStatement(test) && test.expression === idRead)
-  );
-}
-
-function isCounted(node: ts.Node): boolean {
-  return (
-    isDeleteQuery(node) &&
-    !AFTER_THE_DELETE.has(functionNameOf(node)) &&
-    !isAssigned(node) &&
-    !isNarrowedInPlace(node) &&
-    !isOneRowIdRead(node) &&
-    !isIdPresenceTest(node)
-  );
-}
-
-function findQueryReads(): Array<QueryRead> {
-  const reads: Array<QueryRead> = [];
-
-  for (const directory of SCANNED_DIRECTORIES) {
-    for (const file of sourceFiles(directory)) {
-      if (file === DELETE_PATH) {
-        continue;
-      }
-
-      const text: string = fs.readFileSync(
-        path.join(REPOSITORY_ROOT, file),
-        "utf8",
-      );
-
-      if (!NAMES_A_DELETE.test(text)) {
-        continue;
-      }
-
-      const source: ts.SourceFile = ts.createSourceFile(
-        file,
-        text,
-        ts.ScriptTarget.Latest,
-        true,
-      );
-
-      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-        if (isCounted(node)) {
-          reads.push({
-            key: `${file}::${functionNameOf(node)}`,
-            line:
-              source.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-            text: node.parent.getText().split("\n")[0]!.trim(),
-          });
-        }
-
-        ts.forEachChild(node, visit);
-      };
-
-      visit(source);
-    }
-  }
-
-  return reads;
+function readsIn(code: string): Array<string> {
+  return findWriteQueryReadsInCode(code, DELETE_SCAN);
 }
 
 describe("Hooks that judge a delete by its rows read them with findRowsAndHoldDeleteToThem", () => {
-  const reads: Array<QueryRead> = findQueryReads();
+  const reads: Array<RepositoryWriteQueryRead> = findWriteQueryReads({
+    repositoryRoot: REPOSITORY_ROOT,
+    directories: SCANNED_DIRECTORIES,
+    skippedDirectoryNames: SKIPPED_DIRECTORY_NAMES,
+    writePath: DELETE_PATH,
+    scan: DELETE_SCAN,
+  });
 
   it("finds the delete path's own readers, so the scan reads real code", () => {
     // The listed functions read the query; a scan that sees none of them sees nothing.
@@ -383,10 +163,10 @@ describe("Hooks that judge a delete by its rows read them with findRowsAndHoldDe
 
   it("reads a delete's rows by its query nowhere but in the delete path and the functions listed", () => {
     const unexpected: Array<string> = reads
-      .filter((read: QueryRead): boolean => {
+      .filter((read: RepositoryWriteQueryRead): boolean => {
         return !ALLOWED[read.key];
       })
-      .map((read: QueryRead): string => {
+      .map((read: RepositoryWriteQueryRead): string => {
         return `${read.key} (line ${read.line}): ${read.text}`;
       });
 
@@ -424,28 +204,6 @@ describe("Hooks that judge a delete by its rows read them with findRowsAndHoldDe
 });
 
 describe("The delete query readers the scan recognizes", () => {
-  function readsIn(code: string): Array<string> {
-    const source: ts.SourceFile = ts.createSourceFile(
-      "Example.ts",
-      code,
-      ts.ScriptTarget.Latest,
-      true,
-    );
-    const found: Array<string> = [];
-
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (isCounted(node)) {
-        found.push(functionNameOf(node));
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(source);
-
-    return found;
-  }
-
   it("counts a read of the delete's rows by its query, whatever the delete is called on", () => {
     expect(
       readsIn(`class S {
@@ -473,6 +231,42 @@ describe("The delete query readers the scan recognizes", () => {
         }
       }`),
     ).toEqual(["deleteOneBy", "cleanup"]);
+  });
+
+  it("counts a query destructured out of the delete, however it is written", () => {
+    expect(
+      readsIn(`class S {
+        async plain(deleteBy) {
+          const { query } = deleteBy;
+          return this.findBy({ query, select: {} });
+        }
+        async renamed(onDelete) {
+          const { query: removed } = onDelete.deleteBy;
+          return this.findBy({ query: removed, select: {} });
+        }
+        async parameter({ query }: DeleteBy<Model>) {
+          return this.findBy({ query, select: {} });
+        }
+      }`),
+    ).toEqual(["plain", "renamed", "parameter"]);
+  });
+
+  it("counts a read through another name the delete is held under", () => {
+    expect(
+      readsIn(`class S {
+        async typed(removal: DeleteBy<Model>) {
+          return this.findBy({ query: removal.query, select: {} });
+        }
+        async copied(onDelete) {
+          const removal = onDelete.deleteBy;
+          return this.findBy({ query: removal["query"], select: {} });
+        }
+        async destructuredOut(data) {
+          const { deleteBy: removal } = data;
+          return this.findBy({ query: removal.query, select: {} });
+        }
+      }`),
+    ).toEqual(["typed", "copied", "destructuredOut"]);
   });
 
   it("counts a read of the id a query names, beyond asking whether it names one", () => {
@@ -505,7 +299,8 @@ describe("The delete query readers the scan recognizes", () => {
           return this.findBy({ query: onDelete.deleteBy.query });
         }
         async onDeleteError(error, onDelete) {
-          return this.findBy({ query: onDelete.deleteBy.query });
+          const { query } = onDelete.deleteBy;
+          return this.findBy({ query });
         }
         async onHardDeleteSuccess(onDelete, ids) {
           return this.findBy({ query: onDelete.deleteBy.query });

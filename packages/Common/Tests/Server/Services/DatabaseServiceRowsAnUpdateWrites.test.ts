@@ -15,6 +15,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import { meetsCondition } from "../TestingUtils/QueryConditions";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -96,6 +97,19 @@ function idsNamedBy(value: unknown): Array<string> {
   return Object.values(
     (value as { objectLiteralParameters: JSONObject }).objectLiteralParameters,
   ).flat() as Array<string>;
+}
+
+/*
+ * The ids a query names its rows by, as the update path reads them
+ * (DatabaseService.getIdsNamedBy): a plain id, or a condition on _id the
+ * update path set - null for a query that names its rows any other way.
+ */
+function idsTheUpdatePathNamed(query: unknown): Array<string> | null {
+  return (
+    DatabaseService as unknown as {
+      getIdsNamedBy(query: unknown): Array<string> | null;
+    }
+  ).getIdsNamedBy(query);
 }
 
 describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update", () => {
@@ -213,23 +227,6 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
     }
   });
 
-  it("reads an either-or query as it is", async () => {
-    await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(
-      update({
-        query: [
-          { statusPageId: STATUS_PAGE_ID },
-          { _id: ROW_C },
-        ] as unknown as Query<StatusPageSubscriber>,
-      }),
-      SELECT,
-    );
-
-    expect(readWith().query).toEqual([
-      { statusPageId: STATUS_PAGE_ID },
-      { _id: ROW_C },
-    ]);
-  });
-
   it("hands back the rows read", async () => {
     rowsRead = [row(ROW_A), row(ROW_B)];
 
@@ -291,25 +288,6 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
     expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(ROW_A);
   });
 
-  it("holds an either-or update to the rows read by id alone", async () => {
-    rowsRead = [row(ROW_A), row(ROW_C)];
-
-    const updateBy: UpdateBy<StatusPageSubscriber> = update({
-      query: [
-        { statusPageId: STATUS_PAGE_ID },
-        { _id: ROW_C },
-      ] as unknown as Query<StatusPageSubscriber>,
-    });
-
-    await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(updateBy, SELECT);
-
-    const query: JSONObject = updateBy.query as unknown as JSONObject;
-
-    expect(Object.keys(query)).toEqual(["_id"]);
-    expect(idsNamedBy(query["_id"]).sort()).toEqual([ROW_A, ROW_C].sort());
-    expect(updateBy.limit).toBe(2);
-  });
-
   it("holds an update that reaches no row to none: a row that appears before the write is not written", async () => {
     rowsRead = [];
 
@@ -341,6 +319,68 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
 
     expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(ROW_A);
     expect(updateBy.limit).toBe(1);
+  });
+
+  /*
+   * A hold names the rows it read in a condition the update path records
+   * (idConditionsNamingRows), so a later check knows the update writes none
+   * but those - the named-record check after the hooks asks nothing again
+   * of rows it asked about before them (isReadBySameUpdate).
+   */
+  it("names the rows it read in a way the update path knows again, the same query or a new one", async () => {
+    rowsRead = [row(ROW_A), row(ROW_B)];
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = update({
+      query: {
+        _id: QueryHelper.any([ROW_A, ROW_B, ROW_C]),
+      } as unknown as Query<StatusPageSubscriber>,
+    });
+
+    // A condition the caller wrote is not one the update path set.
+    expect(idsTheUpdatePathNamed(updateBy.query)).toBeNull();
+
+    await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    expect(idsTheUpdatePathNamed(updateBy.query)!.sort()).toEqual(
+      [ROW_A, ROW_B].sort(),
+    );
+
+    // Copied into a query of its own, the condition still names them.
+    expect(
+      idsTheUpdatePathNamed({
+        ...updateBy.query,
+        isUnsubscribed: false,
+      })!.sort(),
+    ).toEqual([ROW_A, ROW_B].sort());
+  });
+
+  it("names no row once it holds an update to none", async () => {
+    rowsRead = [];
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = update({});
+
+    await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    expect(idsTheUpdatePathNamed(updateBy.query)).toEqual([]);
+  });
+});
+
+describe("DatabaseService.getIdsNamedBy", () => {
+  it("answers the one row a plain id names, however it is written", () => {
+    expect(idsTheUpdatePathNamed({ _id: ROW_A })).toEqual([ROW_A]);
+    expect(idsTheUpdatePathNamed({ _id: new ObjectID(ROW_B) })).toEqual([
+      ROW_B,
+    ]);
+  });
+
+  it("answers no rows for a query that names its rows some other way, or not by id", () => {
+    expect(
+      idsTheUpdatePathNamed({ _id: QueryHelper.any([ROW_A, ROW_B]) }),
+    ).toBeNull();
+    expect(idsTheUpdatePathNamed({ _id: QueryHelper.any([]) })).toBeNull();
+    expect(idsTheUpdatePathNamed({ statusPageId: STATUS_PAGE_ID })).toBeNull();
+    expect(idsTheUpdatePathNamed({ _id: "  " })).toBeNull();
+    expect(idsTheUpdatePathNamed(undefined)).toBeNull();
   });
 });
 
@@ -1067,26 +1107,6 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - relations", () => {
     expect(readAt(0).limit).toBe(30);
   });
 
-  it("reads the relation by id alone when any branch of an either-or query sets a condition on it", async () => {
-    const updateBy: UpdateBy<StatusPageSubscriber> = {
-      ...update({ isRoot: true, tenantId: PROJECT_ID }),
-      query: [
-        { statusPageId: STATUS_PAGE_ID },
-        { statusPageResources: { _id: ROW_C } },
-      ],
-    } as unknown as UpdateBy<StatusPageSubscriber>;
-
-    await reads().findRowsAndHoldUpdateToThem(updateBy, RELATION_SELECT);
-
-    expect(findBy).toHaveBeenCalledTimes(2);
-    expect(readAt(0).select).toEqual({ _id: true });
-    expect(readAt(1).select).toEqual({
-      statusPageId: true,
-      statusPageResources: { _id: true },
-      _id: true,
-    });
-  });
-
   it("holds the update to the rows the relation was read for", async () => {
     findBy
       .mockImplementationOnce(
@@ -1266,6 +1286,414 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - more than one check of a
   });
 });
 
+/*
+ * A CHECK THAT RUNS ONCE AN UPDATE PASSED ITS PERMISSION CHECK READS THE ROWS
+ * BY THE QUERY THAT CHECK LEFT IT WITH.
+ *
+ * ModelPermission.checkUpdateQueryPermissions narrows an update to the rows
+ * its caller may write. A check that runs after it
+ * (onBeforeUpdateUniqueCheck, onUpdatePermitted) and asks for the rows the
+ * update writes has them read by that query, in the update's window - the
+ * read the write itself makes - with nothing narrowed a second time and no
+ * read of the rows the caller may write first. A hook that put a query of
+ * its own in that one's place has the rows the caller may write read
+ * first, as a hook before the checks has.
+ *
+ * Through the update path itself, with no database: the permission checks
+ * and the reads are stubbed, and the write's own read of the rows it
+ * writes ends each update.
+ */
+describe("DatabaseService.findRowsAndHoldUpdateToThem - a check once the update passed its permission check", () => {
+  // The write's own read of the rows it writes: where each update ends.
+  const WRITE_READ_REACHED: string = "The write's own read of its rows";
+
+  type Check = (updateBy: UpdateBy<StatusPageSubscriber>) => Promise<void>;
+
+  class ServiceWithPermittedChecks extends DatabaseService<StatusPageSubscriber> {
+    public uniqueCheck: Check | null = null;
+    public permittedCheck: Check | null = null;
+
+    public constructor() {
+      super(StatusPageSubscriber);
+    }
+
+    protected override async onBeforeUpdateUniqueCheck(
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<void> {
+      if (this.uniqueCheck) {
+        await this.uniqueCheck(updateBy);
+      }
+    }
+
+    protected override async onUpdatePermitted(
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<void> {
+      if (this.permittedCheck) {
+        await this.permittedCheck(updateBy);
+      }
+    }
+  }
+
+  // The same, with a hook before the checks too.
+  class ServiceWithHookBeforeTheChecks extends ServiceWithPermittedChecks {
+    protected override async onBeforeUpdate(
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<OnUpdate<StatusPageSubscriber>> {
+      return { updateBy, carryForward: null };
+    }
+  }
+
+  interface Read {
+    query: JSONObject;
+    select: JSONObject;
+    skip: number;
+    limit: number;
+    props: JSONObject;
+  }
+
+  const TEAMMATE: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: new ObjectID("5d000000-0000-4000-8000-000000000001"),
+    ...ON_HIGHEST_PLAN,
+  } as DatabaseCommonInteractionProps;
+
+  let service: ServiceWithPermittedChecks;
+  // A condition the permission check sets on _id, when a test has it set one.
+  let permittedIdCondition: unknown;
+  // What each read of the rows a check makes answers, in turn.
+  let rowsReadInTurn: Array<Array<StatusPageSubscriber>>;
+  // The rows the caller may write, as the update path reads them.
+  let rowsCallerMayWrite: Array<StatusPageSubscriber>;
+  let findBy: jest.SpyInstance;
+  let updatableQuery: jest.SpyInstance;
+  let readsOfRowsCallerMayWrite: Array<Read>;
+  let writeReads: Array<Read>;
+
+  // An update of the subscribers of one status page, in a window.
+  function update(): UpdateBy<StatusPageSubscriber> {
+    return {
+      query: { statusPageId: STATUS_PAGE_ID },
+      data: { isSubscribedToAllResources: false },
+      props: TEAMMATE,
+      skip: 20,
+      limit: 50,
+    } as unknown as UpdateBy<StatusPageSubscriber>;
+  }
+
+  // The check that reads the rows the update writes, holding it to them.
+  const readAndHold: Check = async (
+    updateBy: UpdateBy<StatusPageSubscriber>,
+  ): Promise<void> => {
+    await service.findRowsAndHoldUpdateToThem(updateBy, SELECT);
+  };
+
+  function readAt(index: number): Read {
+    return findBy.mock.calls[index]![0] as Read;
+  }
+
+  function useService(next: ServiceWithPermittedChecks): void {
+    service = next;
+
+    // The rows the caller may write, and the write's own read, which ends the update.
+    getJestSpyOn(service, "_findBy").mockImplementation((async (
+      read: Read,
+    ): Promise<Array<StatusPageSubscriber>> => {
+      if (read.select["isSubscribedToAllResources"]) {
+        writeReads.push(read);
+        throw new Error(WRITE_READ_REACHED);
+      }
+
+      readsOfRowsCallerMayWrite.push(read);
+      return rowsCallerMayWrite;
+    }) as never);
+
+    // The reads a check makes of the rows the update writes.
+    findBy = getJestSpyOn(service, "findBy").mockImplementation(
+      (async (): Promise<Array<StatusPageSubscriber>> => {
+        const turn: number = Math.min(
+          findBy.mock.calls.length - 1,
+          rowsReadInTurn.length - 1,
+        );
+
+        return rowsReadInTurn[turn] || [];
+      }) as never,
+    );
+  }
+
+  beforeEach(() => {
+    permittedIdCondition = undefined;
+    rowsReadInTurn = [[row(ROW_A), row(ROW_B)]];
+    rowsCallerMayWrite = [row(ROW_A), row(ROW_B)];
+    readsOfRowsCallerMayWrite = [];
+    writeReads = [];
+
+    getJestSpyOn(
+      ModelPermission,
+      "checkTableWritePermission",
+    ).mockImplementation((): void => {
+      return undefined;
+    });
+
+    // The permission check: the update kept to the request's project, in a query of its own.
+    getJestSpyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    ).mockImplementation((async (
+      _modelType: unknown,
+      query: JSONObject,
+    ): Promise<unknown> => {
+      return {
+        ...query,
+        projectId: PROJECT_ID,
+        ...(permittedIdCondition ? { _id: permittedIdCondition } : {}),
+      };
+    }) as never);
+
+    updatableQuery = getJestSpyOn(
+      ModelPermission,
+      "getUpdatableQuery",
+    ).mockImplementation((async (
+      _modelType: unknown,
+      query: JSONObject,
+    ): Promise<unknown> => {
+      return { ...query, labelsTheCallerMayWrite: true };
+    }) as never);
+
+    useService(new ServiceWithPermittedChecks());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reads the rows once, by the query the permission check left the update with, in its window: nothing narrowed again, no read of the rows the caller may write", async () => {
+    let rowsChecked: Array<StatusPageSubscriber> = [];
+
+    service.uniqueCheck = async (
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<void> => {
+      rowsChecked = await service.findRowsAndHoldUpdateToThem(updateBy, SELECT);
+    };
+
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    expect(updatableQuery).not.toHaveBeenCalled();
+    expect(readsOfRowsCallerMayWrite).toEqual([]);
+    expect(findBy).toHaveBeenCalledTimes(1);
+
+    expect(readAt(0).query).toEqual({
+      statusPageId: STATUS_PAGE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(readAt(0).select).toEqual({
+      statusPageId: true,
+      isUnsubscribed: true,
+      _id: true,
+    });
+    expect(readAt(0).skip).toBe(20);
+    expect(readAt(0).limit).toBe(50);
+    expect(readAt(0).props).toEqual({ isRoot: true, ignoreHooks: true });
+
+    expect(
+      rowsChecked.map((each: StatusPageSubscriber): string => {
+        return String(each._id);
+      }),
+    ).toEqual([ROW_A, ROW_B]);
+  });
+
+  it("holds the update to the rows read, with the permission check's condition on _id kept beside their ids: the write reads no other row", async () => {
+    permittedIdCondition = QueryHelper.any([ROW_A, ROW_B, ROW_C]);
+    service.uniqueCheck = readAndHold;
+
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    // The check read by the permission check's condition itself.
+    expect(readAt(0).query["_id"]).toBe(permittedIdCondition);
+
+    // The write's own read: the rows the check read, and the condition again.
+    expect(writeReads).toHaveLength(1);
+
+    const written: Read = writeReads[0]!;
+    const heldBy: unknown = written.query["_id"];
+
+    expect(partsOf(heldBy)[0]).toBe(permittedIdCondition);
+    expect(meetsCondition(heldBy, ROW_A)).toBe(true);
+    expect(meetsCondition(heldBy, ROW_B)).toBe(true);
+    expect(meetsCondition(heldBy, ROW_C)).toBe(false);
+    expect(written.query["projectId"]).toEqual(PROJECT_ID);
+    expect(written.skip).toBe(0);
+    expect(written.limit).toBe(2);
+
+    // Named as the update path names rows, so later checks know them again.
+    expect(idsTheUpdatePathNamed(written.query)!.sort()).toEqual(
+      [ROW_A, ROW_B].sort(),
+    );
+  });
+
+  it("has a later check read within the rows the first one held the update to, still without reading the rows the caller may write", async () => {
+    // The second check finds B alone: A stopped matching in between.
+    rowsReadInTurn = [[row(ROW_A), row(ROW_B)], [row(ROW_B)]];
+    service.uniqueCheck = readAndHold;
+    service.permittedCheck = readAndHold;
+
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    expect(updatableQuery).not.toHaveBeenCalled();
+    expect(readsOfRowsCallerMayWrite).toEqual([]);
+    expect(findBy).toHaveBeenCalledTimes(2);
+
+    const secondRead: Read = readAt(1);
+
+    expect(meetsCondition(secondRead.query["_id"], ROW_A)).toBe(true);
+    expect(meetsCondition(secondRead.query["_id"], ROW_B)).toBe(true);
+    expect(meetsCondition(secondRead.query["_id"], ROW_C)).toBe(false);
+    expect(secondRead.skip).toBe(0);
+    expect(secondRead.limit).toBe(2);
+
+    // The write reads the one row the second check read.
+    const written: Read = writeReads[0]!;
+
+    expect(meetsCondition(written.query["_id"], ROW_B)).toBe(true);
+    expect(meetsCondition(written.query["_id"], ROW_A)).toBe(false);
+    expect(written.limit).toBe(1);
+  });
+
+  it("reads the rows the caller may write first when a hook put a query of its own in place of the one the permission check left", async () => {
+    rowsReadInTurn = [[row(ROW_A)]];
+
+    service.uniqueCheck = async (
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<void> => {
+      // The hook's own narrowing, in a new query.
+      updateBy.query = {
+        ...updateBy.query,
+        isUnsubscribed: false,
+      } as Query<StatusPageSubscriber>;
+
+      await service.findRowsAndHoldUpdateToThem(updateBy, SELECT);
+    };
+
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    // The rows the caller may write, by their update permission, in the update's window.
+    expect(updatableQuery).toHaveBeenCalledTimes(1);
+    expect(readsOfRowsCallerMayWrite).toHaveLength(1);
+    expect(readsOfRowsCallerMayWrite[0]!.query["labelsTheCallerMayWrite"]).toBe(
+      true,
+    );
+    expect(readsOfRowsCallerMayWrite[0]!.skip).toBe(20);
+    expect(readsOfRowsCallerMayWrite[0]!.limit).toBe(50);
+
+    // Then the hook's query, within them.
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(readAt(0).query["isUnsubscribed"]).toBe(false);
+    expect(idsNamedBy(readAt(0).query["_id"]).sort()).toEqual(
+      [ROW_A, ROW_B].sort(),
+    );
+    expect(readAt(0).skip).toBe(0);
+    expect(readAt(0).limit).toBe(2);
+
+    expect(meetsCondition(writeReads[0]!.query["_id"], ROW_A)).toBe(true);
+    expect(meetsCondition(writeReads[0]!.query["_id"], ROW_B)).toBe(false);
+  });
+
+  /*
+   * A hook that changes the very query the permission check left - a
+   * condition put in it, or one taken off it - has the rows the caller may
+   * write read first too: what the query names is no longer what the check
+   * passed.
+   */
+  it.each([
+    [
+      "put a condition in",
+      (query: Record<string, unknown>): void => {
+        query["isUnsubscribed"] = false;
+      },
+    ],
+    [
+      "took the project's condition off",
+      (query: Record<string, unknown>): void => {
+        delete query["projectId"];
+      },
+    ],
+  ])(
+    "reads the rows the caller may write first when a hook %s the query the permission check left, in place",
+    async (
+      _change: string,
+      change: (query: Record<string, unknown>) => void,
+    ) => {
+      service.uniqueCheck = async (
+        updateBy: UpdateBy<StatusPageSubscriber>,
+      ): Promise<void> => {
+        change(updateBy.query as Record<string, unknown>);
+        await service.findRowsAndHoldUpdateToThem(updateBy, SELECT);
+      };
+
+      await expect(service.updateBy(update())).rejects.toThrow(
+        WRITE_READ_REACHED,
+      );
+
+      expect(updatableQuery).toHaveBeenCalledTimes(1);
+      expect(readsOfRowsCallerMayWrite).toHaveLength(1);
+      expect(findBy).toHaveBeenCalledTimes(1);
+
+      // The check's read is kept to the rows the caller may write.
+      expect(idsNamedBy(readAt(0).query["_id"]).sort()).toEqual(
+        [ROW_A, ROW_B].sort(),
+      );
+      expect(readAt(0).skip).toBe(0);
+      expect(readAt(0).limit).toBe(2);
+    },
+  );
+
+  it("reads within the rows read before the hooks for a service with a hook before the checks: one read of the rows the caller may write, and one by the check", async () => {
+    useService(new ServiceWithHookBeforeTheChecks());
+    service.uniqueCheck = readAndHold;
+
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    // Before the hooks, once.
+    expect(updatableQuery).toHaveBeenCalledTimes(1);
+    expect(readsOfRowsCallerMayWrite).toHaveLength(1);
+
+    // The check's read, within them.
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(idsNamedBy(readAt(0).query["_id"]).sort()).toEqual(
+      [ROW_A, ROW_B].sort(),
+    );
+    expect(readAt(0).skip).toBe(0);
+    expect(readAt(0).limit).toBe(2);
+  });
+
+  it("reads nothing for an update no check asks about", async () => {
+    await expect(service.updateBy(update())).rejects.toThrow(
+      WRITE_READ_REACHED,
+    );
+
+    expect(updatableQuery).not.toHaveBeenCalled();
+    expect(readsOfRowsCallerMayWrite).toEqual([]);
+    expect(findBy).not.toHaveBeenCalled();
+
+    // The write reads by the permission check's query, in the update's window.
+    expect(writeReads[0]!.query).toEqual({
+      statusPageId: STATUS_PAGE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(writeReads[0]!.skip).toBe(20);
+    expect(writeReads[0]!.limit).toBe(50);
+  });
+});
+
 describe("DatabaseService.findProjectsOfRowsAndHoldUpdateToThem", () => {
   const OTHER_PROJECT_ID: ObjectID = new ObjectID(
     "5e000000-0000-4000-8000-000000000009",
@@ -1347,6 +1775,107 @@ describe("DatabaseService.findProjectsOfRowsAndHoldUpdateToThem", () => {
       } as unknown as UpdateBy<User>),
     ).resolves.toEqual([]);
     expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE PROJECTS A CHECK OF THE ROWS IT READ ASKS IN.
+ *
+ * A check that read the rows an update writes (findRowsAndHoldUpdateToThem)
+ * asks about the records they name in the project the update is kept to -
+ * a teammate's request's - and, for OneUptime and a master admin, whose
+ * writes reach any row their query names, in each row's own project. It
+ * reads nothing more.
+ */
+describe("DatabaseService.getProjectsToCheckRowsIn", () => {
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+    "5e000000-0000-4000-8000-000000000009",
+  );
+
+  function inProject(id: string, projectId?: ObjectID): StatusPageSubscriber {
+    const subscriber: StatusPageSubscriber = row(id);
+
+    if (projectId) {
+      subscriber.projectId = projectId;
+    }
+
+    return subscriber;
+  }
+
+  function asStrings(projectIds: Array<ObjectID>): Array<string> {
+    return projectIds
+      .map((projectId: ObjectID): string => {
+        return projectId.toString();
+      })
+      .sort();
+  }
+
+  const ROWS_IN_TWO_PROJECTS: Array<StatusPageSubscriber> = [
+    inProject(ROW_A, PROJECT_ID),
+    inProject(ROW_B, OTHER_PROJECT_ID),
+    inProject(ROW_C, PROJECT_ID),
+  ];
+
+  let service: DatabaseService<StatusPageSubscriber>;
+  let findBy: jest.SpyInstance;
+
+  beforeEach(() => {
+    service = new DatabaseService<StatusPageSubscriber>(StatusPageSubscriber);
+    findBy = getJestSpyOn(service, "findBy");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("answers the request's project for a teammate's write, whatever the rows name", () => {
+    expect(
+      asStrings(
+        service.getProjectsToCheckRowsIn(
+          {
+            tenantId: PROJECT_ID,
+            userId: new ObjectID("5d000000-0000-4000-8000-000000000001"),
+          } as DatabaseCommonInteractionProps,
+          ROWS_IN_TWO_PROJECTS,
+        ),
+      ),
+    ).toEqual([PROJECT_ID.toString()]);
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  it("answers each project of the rows once for OneUptime's write and a master admin's, with or without a project on the request", () => {
+    for (const props of [
+      { isRoot: true },
+      { isRoot: true, tenantId: PROJECT_ID },
+      { isMasterAdmin: true, tenantId: OTHER_PROJECT_ID },
+    ]) {
+      expect(
+        asStrings(
+          service.getProjectsToCheckRowsIn(
+            props as DatabaseCommonInteractionProps,
+            ROWS_IN_TWO_PROJECTS,
+          ),
+        ),
+      ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()].sort());
+    }
+
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  it("answers no project for rows that name none, or a model with none", () => {
+    expect(
+      service.getProjectsToCheckRowsIn(
+        { isRoot: true } as DatabaseCommonInteractionProps,
+        [inProject(ROW_A)],
+      ),
+    ).toEqual([]);
+
+    expect(
+      new DatabaseService<User>(User).getProjectsToCheckRowsIn(
+        { isRoot: true } as DatabaseCommonInteractionProps,
+        [new User()],
+      ),
+    ).toEqual([]);
   });
 });
 

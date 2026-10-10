@@ -4,7 +4,6 @@ import GlobalSso from "../../Models/DatabaseModels/GlobalSso";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import DatabaseService from "../Services/DatabaseService";
@@ -82,15 +81,17 @@ import SsoSignInWays, {
  *     that writes neither switch - a new certificate, a new name - reads
  *     nothing;
  *   - a write that names its providers or attachments by a filter writes
- *     exactly the rows its hooks read (ProjectSsoProviderChanges.
- *     writeOnlyTheRowsRead): a row that comes to match the filter
+ *     exactly the rows its hooks read: they read them, and hold the write
+ *     to them, with the helper every check of a write's rows uses
+ *     (DatabaseService.findRowsAndHoldUpdateToThem and
+ *     findRowsAndHoldDeleteToThem). A row that comes to match the filter
  *     afterwards - created, renamed, turned on or attached a moment later -
- *     was never checked, nor worked out, and is left alone. A delete,
- *     a hard delete included, reaches no other row that is there, only rows
- *     deleted before, which sign nobody in. A write that only lets more
- *     people in and whose rows could not be read goes on with its own
- *     filter - nothing about it is checked - and every server is told
- *     (workOutUnlocked).
+ *     was never checked, nor worked out, and is left alone. A hard delete
+ *     reads the rows deleted before too, and purges them with the rest:
+ *     they sign nobody in, and nothing is worked out for them. A write that
+ *     only lets more people in and whose rows could not be read goes on with
+ *     its own filter - nothing about it is checked - and every server is
+ *     told (workOutUnlocked).
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
@@ -257,21 +258,14 @@ export default class GlobalSsoProviderChanges {
     const work: () => Promise<
       Omit<GlobalSsoProviderWrite, "locks">
     > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
+      // The providers it writes, and the write held to exactly them.
       const read: Array<GlobalProviderRow> =
-        await GlobalSsoProviderChanges.readProviders({
-          service: data.service,
-          query: data.updateBy.query,
-          limit: data.updateBy.limit,
-          skip: data.updateBy.skip,
-        });
-
-      // The write goes to exactly the providers read here.
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: data.service,
-        write: data.updateBy,
-        rowIds: ProjectSsoProviderChanges.idsOf(read),
-        isDelete: false,
-      });
+        GlobalSsoProviderChanges.toProviderRows(
+          await data.service.findRowsAndHoldUpdateToThem(
+            data.updateBy,
+            GlobalSsoProviderChanges.providerSelect<TModel>(),
+          ),
+        );
 
       /*
        * Only the providers whose switches the write changes: one it leaves
@@ -378,24 +372,18 @@ export default class GlobalSsoProviderChanges {
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.deleteBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const providers: Array<GlobalProviderRow> =
-          await GlobalSsoProviderChanges.readProviders({
-            service: data.service,
-            query: data.deleteBy.query,
-            limit: data.deleteBy.limit,
-            skip: data.deleteBy.skip,
-          });
-
         /*
-         * The delete goes to exactly the providers read here, under the
-         * lock - and rows deleted before, which a hard delete purges.
+         * The providers it removes, read under the lock, and the delete held
+         * to exactly them - a hard delete's rows deleted before among them,
+         * which sign nobody in (toProviderRows).
          */
-        ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-          service: data.service,
-          write: data.deleteBy,
-          rowIds: ProjectSsoProviderChanges.idsOf(providers),
-          isDelete: true,
-        });
+        const providers: Array<GlobalProviderRow> =
+          GlobalSsoProviderChanges.toProviderRows(
+            await data.service.findRowsAndHoldDeleteToThem(
+              data.deleteBy,
+              GlobalSsoProviderChanges.providerSelect<TModel>(),
+            ),
+          );
 
         const attachments: Map<
           string,
@@ -541,22 +529,17 @@ export default class GlobalSsoProviderChanges {
     const work: () => Promise<
       Omit<GlobalSsoProviderWrite, "locks">
     > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
+      // The attachments it writes, and the write held to exactly them.
       const matched: Array<AttachmentRow> =
-        await GlobalSsoProviderChanges.readAttachmentRows({
-          providerType: data.providerType,
-          service: data.service,
-          query: data.updateBy.query,
-          limit: data.updateBy.limit,
-          skip: data.updateBy.skip,
-        });
-
-      // The write goes to exactly the attachments read here.
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: data.service,
-        write: data.updateBy,
-        rowIds: ProjectSsoProviderChanges.idsOf(matched),
-        isDelete: false,
-      });
+        GlobalSsoProviderChanges.toAttachmentRows(
+          data.providerType,
+          await data.service.findRowsAndHoldUpdateToThem(
+            data.updateBy,
+            GlobalSsoProviderChanges.attachmentSelect<TModel>(
+              data.providerType,
+            ),
+          ),
+        );
 
       /*
        * Turned off or moved: told whatever else was read when a provider it
@@ -639,25 +622,21 @@ export default class GlobalSsoProviderChanges {
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.deleteBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const matched: Array<AttachmentRow> =
-          await GlobalSsoProviderChanges.readAttachmentRows({
-            providerType: data.providerType,
-            service: data.service,
-            query: data.deleteBy.query,
-            limit: data.deleteBy.limit,
-            skip: data.deleteBy.skip,
-          });
-
         /*
-         * The delete goes to exactly the attachments read here, under the
-         * lock - and rows deleted before, which a hard delete purges.
+         * The attachments it removes, read under the lock, and the delete
+         * held to exactly them - a hard delete's rows deleted before among
+         * them, which attach nothing (toAttachmentRows).
          */
-        ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-          service: data.service,
-          write: data.deleteBy,
-          rowIds: ProjectSsoProviderChanges.idsOf(matched),
-          isDelete: true,
-        });
+        const matched: Array<AttachmentRow> =
+          GlobalSsoProviderChanges.toAttachmentRows(
+            data.providerType,
+            await data.service.findRowsAndHoldDeleteToThem(
+              data.deleteBy,
+              GlobalSsoProviderChanges.attachmentSelect<TModel>(
+                data.providerType,
+              ),
+            ),
+          );
 
         return {
           reachChanges:
@@ -1135,28 +1114,14 @@ export default class GlobalSsoProviderChanges {
       : ["globalOidcId", "globalOidc"];
   }
 
-  // The providers a write names, read now.
-  private static async readProviders<TModel extends BaseModel>(data: {
-    service: DatabaseService<TModel>;
-    query: Query<TModel>;
-    limit: PositiveNumber | number;
-    skip: PositiveNumber | number;
-  }): Promise<Array<GlobalProviderRow>> {
-    const rows: Array<TModel> = await data.service.findAllBy({
-      query: data.query,
-      select: {
-        _id: true,
-        isEnabled: true,
-        restrictToAttachedProjects: true,
-      } as unknown as Select<TModel>,
-      limit: data.limit,
-      skip: data.skip,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return GlobalSsoProviderChanges.toProviderRows(rows);
+  // What the providers a write names are read with (toProviderRows).
+  private static providerSelect<TModel extends BaseModel>(): Select<TModel> {
+    return {
+      _id: true,
+      isEnabled: true,
+      restrictToAttachedProjects: true,
+      deletedAt: true,
+    } as unknown as Select<TModel>;
   }
 
   private static async readProvidersById(data: {
@@ -1199,6 +1164,11 @@ export default class GlobalSsoProviderChanges {
     return GlobalSsoProviderChanges.toProviderRows(rows);
   }
 
+  /*
+   * The providers read, as the checks weigh them. One deleted before - only
+   * a hard delete reads it, and purges it - signs nobody in, and is left
+   * out.
+   */
   private static toProviderRows(
     rows: Array<BaseModel>,
   ): Array<GlobalProviderRow> {
@@ -1211,7 +1181,7 @@ export default class GlobalSsoProviderChanges {
       >;
       const id: string | null = toIdString(row.id);
 
-      if (!id) {
+      if (!id || record["deletedAt"]) {
         continue;
       }
 
@@ -1267,33 +1237,37 @@ export default class GlobalSsoProviderChanges {
     return attachments;
   }
 
-  // The attachment rows a write names, read now.
-  private static async readAttachmentRows<TModel extends BaseModel>(data: {
-    providerType: GlobalSsoProviderType;
-    service: DatabaseService<TModel>;
-    query: Query<TModel>;
-    limit: PositiveNumber | number;
-    skip: PositiveNumber | number;
-  }): Promise<Array<AttachmentRow>> {
-    const providerColumn: string =
-      data.providerType === SsoProviderType.GlobalSSO
-        ? "globalSsoId"
-        : "globalOidcId";
+  // The column an attachment names its provider by.
+  private static providerColumnOf(providerType: GlobalSsoProviderType): string {
+    return providerType === SsoProviderType.GlobalSSO
+      ? "globalSsoId"
+      : "globalOidcId";
+  }
 
-    const rows: Array<TModel> = await data.service.findAllBy({
-      query: data.query,
-      select: {
-        _id: true,
-        [providerColumn]: true,
-        projectId: true,
-        isEnabled: true,
-      } as unknown as Select<TModel>,
-      limit: data.limit,
-      skip: data.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+  // What the attachments a write names are read with (toAttachmentRows).
+  private static attachmentSelect<TModel extends BaseModel>(
+    providerType: GlobalSsoProviderType,
+  ): Select<TModel> {
+    return {
+      _id: true,
+      [GlobalSsoProviderChanges.providerColumnOf(providerType)]: true,
+      projectId: true,
+      isEnabled: true,
+      deletedAt: true,
+    } as unknown as Select<TModel>;
+  }
+
+  /*
+   * The attachments read, as the checks weigh them. One deleted before -
+   * only a hard delete reads it, and purges it - attaches nothing, and is
+   * left out.
+   */
+  private static toAttachmentRows(
+    providerType: GlobalSsoProviderType,
+    rows: Array<BaseModel>,
+  ): Array<AttachmentRow> {
+    const providerColumn: string =
+      GlobalSsoProviderChanges.providerColumnOf(providerType);
 
     const attachments: Array<AttachmentRow> = [];
 
@@ -1304,7 +1278,7 @@ export default class GlobalSsoProviderChanges {
       >;
       const id: string | null = toIdString(row.id);
 
-      if (!id) {
+      if (!id || record["deletedAt"]) {
         continue;
       }
 

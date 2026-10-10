@@ -629,6 +629,49 @@ const CREATED_LATER: string = id(62);
  * selects `selected` - the hooks' own read of the rows a write names - as
  * another server's write landing then would.
  */
+/*
+ * Each read the hooks make of the rows a write names - holding the write to
+ * them (DatabaseService.findRowsAndHoldUpdateToThem and
+ * findRowsAndHoldDeleteToThem, which read with findBy, or findByWithDeleted
+ * for a hard delete) - told by the column it selects and the deletion it
+ * reads too: `answer` handles each, given the read and the read itself.
+ */
+const onHoldReads: (
+  service: DatabaseService<any>,
+  selected: string,
+  answer: (read: () => Promise<unknown>) => Promise<unknown>,
+) => void = (
+  service: DatabaseService<any>,
+  selected: string,
+  answer: (read: () => Promise<unknown>) => Promise<unknown>,
+): void => {
+  for (const method of ["findBy", "findByWithDeleted"]) {
+    const reads: Record<string, (...args: Array<unknown>) => Promise<unknown>> =
+      service as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >;
+    const read: (...args: Array<unknown>) => Promise<unknown> =
+      reads[method]!.bind(service);
+
+    getJestSpyOn(service, method as never).mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<unknown> => {
+      const select: Record<string, unknown> =
+        (args[0] as { select?: Record<string, unknown> }).select || {};
+
+      if (!select[selected] || !select["deletedAt"]) {
+        return await read(...args);
+      }
+
+      return await answer((): Promise<unknown> => {
+        return read(...args);
+      });
+    }) as never);
+  }
+};
+
+// Once the hooks first read the rows a write names, `landing` runs.
 const afterRead: (
   service: DatabaseService<any>,
   selected: string,
@@ -638,26 +681,37 @@ const afterRead: (
   selected: string,
   landing: () => void,
 ): void => {
-  const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
-    service.findAllBy.bind(service) as unknown as (
-      ...args: Array<unknown>
-    ) => Promise<unknown>;
   let hasLanded: boolean = false;
 
-  getJestSpyOn(service, "findAllBy").mockImplementation((async (
-    ...args: Array<unknown>
-  ): Promise<unknown> => {
-    const answer: unknown = await findAllBy(...args);
-    const select: Record<string, unknown> =
-      (args[0] as { select?: Record<string, unknown> }).select || {};
+  onHoldReads(
+    service,
+    selected,
+    async (read: () => Promise<unknown>): Promise<unknown> => {
+      const rows: unknown = await read();
 
-    if (!hasLanded && select[selected]) {
-      hasLanded = true;
-      landing();
-    }
+      if (!hasLanded) {
+        hasLanded = true;
+        landing();
+      }
 
-    return answer;
-  }) as never);
+      return rows;
+    },
+  );
+};
+
+// The hooks' reads of the rows a write names fail.
+const failHoldReads: (
+  service: DatabaseService<any>,
+  selected: string,
+  error: Error,
+) => void = (
+  service: DatabaseService<any>,
+  selected: string,
+  error: Error,
+): void => {
+  onHoldReads(service, selected, async (): Promise<unknown> => {
+    throw error;
+  });
 };
 
 // Whether each lock Semaphore.lock handed out is kept alive for a write now.
@@ -1925,8 +1979,10 @@ describe.each([
     test("turning providers on by a filter whose providers cannot be read goes on with its own filter - nothing about it is checked - and every server is told", async () => {
       providerRow(kind)!["isEnabled"] = false;
 
-      getJestSpyOn(kind.providerService, "findAllBy").mockRejectedValue(
-        new Error("The database could not read the providers") as never,
+      failHoldReads(
+        kind.providerService,
+        "restrictToAttachedProjects",
+        new Error("The database could not read the providers"),
       );
 
       await expect(
@@ -1951,8 +2007,10 @@ describe.each([
         attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
       ];
 
-      getJestSpyOn(kind.attachmentService, "findAllBy").mockRejectedValue(
-        new Error("The database could not read the attachments") as never,
+      failHoldReads(
+        kind.attachmentService,
+        "projectId",
+        new Error("The database could not read the attachments"),
       );
 
       await expect(
@@ -2043,7 +2101,7 @@ describe.each([
       expect(providerRow(kind, OTHER_PROVIDER)).toBeDefined();
     });
 
-    test("a hard delete by a filter that read no provider purges only rows deleted before, never one created a moment later", async () => {
+    test("a hard delete by a filter that read no provider that is there purges only the rows deleted before that it read, never one created a moment later", async () => {
       kind.providerTable().rows.push({
         ...providerNamed(DELETED_BEFORE, "Retired", true),
         deletedAt: OneUptimeDate.getSomeDaysAgo(40),
@@ -2155,7 +2213,7 @@ describe.each([
       expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
     });
 
-    test("a hard delete of attachments by a filter that read none purges only rows deleted before", async () => {
+    test("a hard delete of attachments by a filter that read none that is there purges only the rows deleted before that it read", async () => {
       kind.attachmentTable().rows = [
         {
           ...attachmentRow(kind, DELETED_BEFORE, ACME),

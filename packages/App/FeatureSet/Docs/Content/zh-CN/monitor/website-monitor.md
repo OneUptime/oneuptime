@@ -1,95 +1,233 @@
-# 网站监控器
+# 网站监控
 
-网站监控允许您监控任何网站或网页的可用性、性能和响应。OneUptime 定期向您的网站 URL 发送 HTTP 请求，并检查其是否正确响应。
+网站监视器检查网页是否应答。每次检查时，探测器都会请求页面的 URL；当页面没有应答或返回错误时，监视器会变为离线并声明事件。要使用方法、标头或正文调用端点，请改用 [API 监控](/docs/monitor/api-monitor)。
 
-## 概述
+:::cards
+- [创建监视器](#创建网站监视器): 在控制台中完成六个步骤。
+- [配置选项](#配置选项): URL 占位符、重定向、证书、超时和重试。
+- [监控标准](#监控标准): 开箱即用时，什么算正常、什么算宕机。
+- [故障排查](#故障排查): 监视器和浏览器的结果不一致时。
+:::
 
-网站监控器通过发送 HTTP 请求并评估响应来检查您的网页。这使您能够：
+## 工作原理
 
-- 监控网站正常运行时间和可用性
-- 跟踪响应时间和性能
-- 验证 HTTP 状态码
-- 检查响应头
-- 在用户发现之前检测停机
+每次检查时，探测器请求该 URL，跟随所有重定向，并记录返回的内容：状态码、响应时间、标头，以及条件需要时的正文。失败、超时、返回 `4xx` 或 `5xx` 状态，或耗时超过 10 秒的请求会被重试，最多重试您允许的次数。然后 OneUptime 用监视器的条件评估结果。
 
-## 创建网站监控器
+```mermaid title="一次网站检查"
+flowchart TB
+    subgraph probe["在探测器上"]
+        direction TB
+        request["请求 URL"] --> answer{"400 以下的<br/>快速应答？"}
+        answer -->|"否，还有重试次数"| request
+    end
+    answer -->|"是，或重试次数用完"| criteria{"条件，<br/>从上到下"}
+    criteria -->|"无应答、4xx 或 5xx"| down["离线，声明事件"]
+    criteria -->|"2xx 或 3xx"| up["运行正常"]
+```
 
-1. 在 OneUptime 控制台中转到 **监视器**
-2. 点击 **创建监视器**
-3. 选择 **网站** 作为监控器类型
-4. 输入您要监控的网站 URL
-5. 根据需要配置监控标准
+当监视器的所有条件都不读取响应正文（**响应主体** 或 **JavaScript Expression** 筛选器）时，探测器会发送 `HEAD` 请求而不是 `GET` 请求；如果服务器拒绝 `HEAD`，则改用 `GET` 重新发送。您服务器的访问日志中可能出现其中任意一种。
+
+失去自身网络连接的探测器不会报告任何结果，因此它无法将您的网站标记为离线。
+
+## 开始之前
+
+- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **能够访问该网站的探测器。** 每个新监视器都会选中您项目的默认探测器。如果网站前面有防火墙，请放行 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses)。私有网络中的网站需要在该网络内运行、并被允许访问私有地址的 [自定义探测器](/docs/probe/custom-probe)：请参阅 [私有网络访问](/docs/self-hosted/private-network-access)。
+
+## 创建网站监视器
+
+:::steps
+### 开始创建新监视器
+
+前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **网站**。
+
+### 命名
+
+输入 **名称**，例如 `Marketing site`，然后点击 **下一步**。
+
+### 输入 URL
+
+在 **网站 URL** 中输入页面的完整地址，包括 `https://`，例如 `https://example.com`。要更改重定向、证书、超时或重试，请展开下方的 **更多字段**（参见 [配置选项](#配置选项)）。
+
+### 测试
+
+点击 **测试监视器**，在 **选择探测器** 中选择一个探测器，然后点击 **运行测试**。**监视器测试结果** 会显示探测器收到的内容。
+
+### 检查条件
+
+**监视器条件** 从 [默认标准](#默认标准) 开始：网站没有应答或返回错误时为离线，返回任何 `2xx` 或 `3xx` 状态时为在线。如有需要可修改，然后点击 **下一步**。
+
+### 选择探测器并创建
+
+保留或修改 **探测器** 和 **监控间隔**（初始为 **每 5 分钟**），然后点击 **创建监视器**。监视器页面随即打开。
+:::
 
 ## 配置选项
 
 ### 网站 URL
 
-输入您要监控的网站的完整 URL，包括协议（例如 `https://example.com`）。
+要检查的页面，以包含协议的完整 URL 表示：`https://example.com`、`https://example.com/pricing` 或 `http://example.com:8080/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [监视器密钥](/docs/monitor/monitor-secrets)，例如查询字符串中的令牌。
 
 ### 动态 URL 占位符
 
-在监控位于 CDN 或缓存代理后面的 URL 时，监控器可能会收到缓存的响应，而不是直接访问源服务器。要在每次检查时绕过缓存，您可以使用动态 URL 占位符，这些占位符在每次监控请求时会被替换为唯一值。
+当网站前面有 CDN 或缓存代理时，探测器可能从缓存而不是您的服务器得到应答。要绕过缓存，请在 URL 中添加占位符；探测器每次检查时都会把它替换为新值。
 
-#### 支持的占位符
+| 占位符 | 替换为 | 示例值 |
+| --- | --- | --- |
+| `{{timestamp}}` | 当前 Unix 时间（秒） | `1719500000` |
+| `{{random}}` | 由 32 个十六进制字符组成的随机唯一字符串 | `3f2b8c1d9e7a4b6c8d0e1f2a3b4c5d6e` |
 
-| 占位符          | 描述                         | 示例值                             |
-| --------------- | ---------------------------- | ---------------------------------- |
-| `{{timestamp}}` | 替换为当前 Unix 时间戳（秒） | `1719500000`                       |
-| `{{random}}`    | 替换为随机唯一字符串         | `a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5` |
+带占位符的 URL：
 
-#### 示例
-
-使用占位符配置您的监控器 URL：
-
-```
+```text
 https://example.com/health?cb={{timestamp}}
 ```
 
-每次监控检查时，URL 变为：
+相隔五分钟的两次检查中，探测器请求的内容：
 
-```
+```text
 https://example.com/health?cb=1719500000
-https://example.com/health?cb=1719500005
-...
+https://example.com/health?cb=1719500300
 ```
 
-您也可以使用 `{{random}}` 在每次请求时生成唯一字符串：
-
-```
-https://example.com/health?nocache={{random}}
-```
+`{{random}}` 的用法相同：`https://example.com/health?nocache={{random}}`。
 
 ### 更多字段
 
+这些设置收起在 URL 下方的 **更多字段** 中。收起的标题会列出它们，并显示您更改过哪些。
+
+| 字段 | 默认值 | 作用 |
+| --- | --- | --- |
+| **不跟随重定向** | 关 | 判断第一个响应，而不是跟随重定向。请参阅 [下文](#不跟随重定向)。 |
+| **允许自签名证书** | 关 | 对监视器自身的主机名跳过 TLS 证书验证。 |
+| **使用客户端证书 (mTLS)** | 关 | 出示客户端证书和私钥。请参阅 [客户端证书 (mTLS)](#客户端证书-mtls)。 |
+| **请求超时（秒）** | `60` | 每次尝试等待的时间。最长为 60 秒。 |
+| **失败时重试** | 探测器默认值，通常为 `3` | 失败的尝试要重试多少次。最多为 3。请参阅 [重试和超时](#重试和超时)。 |
+
 #### 不跟随重定向
 
-默认情况下，OneUptime 跟随 HTTP 重定向（301、302 等）。如果您想监控重定向响应本身而非最终目标，请启用此选项。
+默认情况下，探测器会跟随重定向（`301`、`302`、`303`、`307` 和 `308`），最多 10 次，并判断最终到达的页面。打开 **不跟随重定向** 即可改为判断重定向响应本身，例如检查 `http://` 是否重定向到 `https://`。[默认标准](#默认标准) 将重定向响应视为在线。
 
-#### Allow Self-Signed Certificates
+**允许自签名证书** 会跟随停留在监视器自身主机名上的重定向。重定向到其他主机名时照常验证。
 
-Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+#### 客户端证书 (mTLS)
 
-#### Client Certificate (mTLS)
+如果网站要求双向 TLS，请打开 **使用客户端证书 (mTLS)** 并填写：
 
-If your endpoint requires mutual TLS authentication, enable **使用客户端证书 (mTLS)** and provide:
+| 字段 | 填写内容 |
+| --- | --- |
+| **客户端证书 (PEM)** | 要出示的 PEM 编码客户端证书。 |
+| **客户端私钥 (PEM)** | 与之匹配的 PEM 编码私钥。 |
+| **客户端私钥密码** | 可选。仅当私钥已加密时填写的密码。 |
 
-- **客户端证书 (PEM)** — the PEM-encoded client certificate to present.
-- **客户端私钥 (PEM)** — the matching PEM-encoded private key.
-- **客户端私钥密码** _(optional)_ — required only if the private key is encrypted.
-
-This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+这相当于 curl 的 `--cert` 和 `--key` 参数：
 
 ```bash
-curl --cert client.crt --key client.key https://api.example.com/health
+curl --cert client.crt --key client.key https://example.com/health
 ```
 
-For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+要让密钥不出现在监视器的设置中，请将证书和密钥存储为 [监视器密钥](/docs/monitor/monitor-secrets)，并在这些字段中输入 `{{monitorSecrets.NAME}}`。密钥在服务器上填入，它们的值永远不会出现在控制台中。
+
+只有当请求停留在监视器 URL 的源（相同的协议、主机和端口）上时，才会出示客户端证书。重定向到其他源之后，探测器会在没有证书的情况下继续。
+
+#### 重试和超时
+
+**失败时重试** 统计的是第一次尝试 _之后_ 的重试次数，因此 `0` 只运行一次检查，`2` 最多运行三次。留空时使用探测器的默认值：3，除非探测器的 `PROBE_MONITOR_RETRY_LIMIT` 另有设置。探测器在两次尝试之间等待一秒，每次尝试都有完整的 **请求超时（秒）**。
+
+这些失败会被重试：连接错误、超时、`4xx` 和 `5xx` 响应，以及慢于 10 秒的响应。以下失败不会重试，因为再试也无法改变结果：无效或被阻止的 URL、超过 10 次的重定向，以及大于 512 KiB 的响应。
 
 ## 监控标准
 
-您可以配置标准来判断网站何时处于在线、降级或离线状态，基于以下条件：
+条件决定网站何时算作在线、性能下降或离线，以及是否因此声明事件或创建警报。每个条件检查一个或多个筛选器：
 
-- **响应状态码** - 检查 HTTP 状态码是否与预期值匹配（例如 200、301）
-- **响应时间** - 监控响应时间是否超过阈值
-- **响应主体** - 检查响应体是否包含或匹配特定内容
-- **响应标头** - 验证特定响应头是否存在或匹配预期值
+| 筛选器 | 条件 | 检查内容 |
+| --- | --- | --- |
+| **Is Online** | **是**、**否** | 网站是否有应答，无论状态码是什么。 |
+| **响应状态码** | **Equal To**、**Not Equal To**、**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | HTTP 状态码。 |
+| **响应时间（毫秒）** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 请求所用的时间，包括重定向。 |
+| **响应主体** | **包含**、**Not Contains** | 响应正文中的文本。匹配区分大小写。 |
+| **Response Header** | **包含**、**Not Contains** | 响应中是否有此名称的标头。以小写输入名称，例如 `x-cache`。 |
+| **Response Header Value** | **包含**、**Not Contains** | 某个标头的值是否恰好是此值，以小写比较，例如 `no-store`。 |
+| **JavaScript Expression** | **Evaluates To True** | 针对响应的表达式。请参阅 [JavaScript 表达式](/docs/monitor/javascript-expression)。 |
+| **Is Request Timeout** | **是**、**否** | 请求是否在每次尝试中都超时。 |
+
+**添加条件** 会添加一个已按其筛选器命名的条件，例如 _Response Time (in ms) is above 3000_。在您输入自己的名称之前，名称会随筛选器变化。描述是可选的：要添加描述，请打开条件的 **设置**。
+
+有两个或更多筛选器时，**匹配条件** 决定是 **全部** 筛选器都必须匹配，还是 **任意** 一个匹配即可。条件的 **操作** 决定它做什么：更改监视器状态、创建警报、声明事件，或其中任意几项。
+
+### 默认标准
+
+新的网站监视器以两个条件开始，因此无需任何更改即可工作：
+
+- **离线** — 网站没有应答，或返回 `400` 及以上（或低于 `200`）的状态码。监视器被标记为 **离线** 并创建事件。网站恢复后，事件会自行解决。
+- **在线** — 网站返回任何 `2xx` 或 `3xx` 状态码，例如 `200`、`204` 或 `301`。监视器被标记为 **运行正常**。
+
+在条件列表中，它们以监视器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
+
+因此，返回 `204 No Content` 的页面，或者在打开 **不跟随重定向** 时监视的重定向，都算作正常。如果对您来说只有一个状态码表示健康，请在监视器的 **配置 → 标准** 页面上修改这两个条件：例如在线条件中使用 **响应状态码** / **Equal To** / `200`，离线条件中使用 **Not Equal To** / `200`，替换各自原有的两个状态码筛选器。
+
+条件从上到下检查，第一个匹配的条件决定接下来发生什么。
+
+没有条件匹配时，监视器回到它的默认状态：**运行正常**，除非您在条件下方的 **更多字段** 中选择了其他状态。收起的 **更多字段** 标题会显示是哪个状态。
+
+在 OneUptime 更改这些默认值之前创建的监视器保留创建时的条件，只把 `200` 视为在线。通过 API 或 Terraform 创建的监视器使用您发送的条件。
+
+### 在一段时间内评估
+
+**在一段时间内评估此条件** 是筛选器下方的复选框，适用于 **Is Online**、**响应状态码** 和 **响应时间（毫秒）**。打开它即可判断过去一段时间内的检查，而不只是最近一次：在 **评估** 中选择聚合方式，在 **在过去（分钟）** 中选择 2 到 60 分钟的时间窗口。
+
+| 聚合 | 匹配条件 |
+| --- | --- |
+| **平均值**、**总和**、**Maximum Value**、**Minimum Value** | 该数值在整个窗口内满足条件。仅限数值筛选器。 |
+| **All Values** | 窗口内的每次检查都满足条件。 |
+| **Any Value** | 窗口内至少有一次检查满足条件。 |
+
+**All Values** 只有在窗口真正被数据覆盖后才会匹配。刚创建的监视器，或者检查已不再被记录的监视器，没有足够的历史来说明过去 N 分钟的情况，因此条件会等待，而不是根据手头仅有的一个读数匹配。**Any Value** 用于“只要有一次检查超出阈值就立即告诉我”，并且仍会立即触发。
+
+**如果无数据** 决定在窗口无法支撑条件时发生什么：
+
+| 选项 | 会发生什么 | 适用于 |
+| --- | --- | --- |
+| **Ignore**（默认） | 条件不匹配。 | 普通的阈值告警。 |
+| **触发器** | 缺失的数据本身被视为问题。 | 沉默本身就是故障的检查。 |
+| **Treat As Zero** | 将窗口按单个零值比较。 | 没有事件确实意味着零的计数器。 |
+
+### 示例条件
+
+| 目标 | 筛选器 | 条件 | 值 |
+| --- | --- | --- | --- |
+| 网站变慢时标记为性能下降 | **响应时间（毫秒）** | **Greater Than** | `3000` |
+| 发现以 `200` 返回的错误页面 | **响应主体** | **Not Contains** | `Welcome` |
+| 检查 CDN 标头是否存在 | **Response Header** | **包含** | `x-cache` |
+| 只接受 `200` 为健康 | **响应状态码** | **Equal To** | `200` |
+
+## 故障排查
+
+:::details 监视器显示离线，但网站在我的浏览器中可以打开
+探测器得到的应答与您的浏览器不同。事件的根本原因，以及监视器上的 **监视日志**，会显示探测器看到的内容。常见原因：
+
+- 防火墙或机器人过滤器阻止了探测器。请放行 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses)。
+- 网站只能在您的网络中访问。请在该网络内使用 [自定义探测器](/docs/probe/custom-probe)。
+- 证书是自签名的，或来自私有证书颁发机构。打开 **允许自签名证书**，或用 [SSL 证书监控](/docs/monitor/ssl-certificate-monitor) 单独监视证书。
+:::
+
+:::details 检查失败并显示 "Remote response exceeded the allowed size."
+探测器最多读取响应的 512 KiB，而此页面更大。让监视器指向更小的页面（例如健康检查端点），或者移除 **响应主体** 和 **JavaScript Expression** 筛选器，让探测器只需要标头。
+:::
+
+:::details 检查失败并显示 "Monitor target exceeded 10 redirects."
+该 URL 的重定向超过 10 次，通常是循环。用 `curl -IL` 打开该 URL 查看重定向链，并让监视器指向重定向链应该结束的页面。
+:::
+
+:::details 检查失败并显示一条关于私有网络地址的消息
+该 URL 解析到私有地址，而运行检查的探测器不允许访问私有地址。在自托管的探测器上，用 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 打开它：请参阅 [私有网络访问](/docs/self-hosted/private-network-access)。
+:::
+
+## 后续步骤
+
+:::cards
+- [API 监控](/docs/monitor/api-monitor): 使用方法、标头和正文调用端点。
+- [SSL 证书监控](/docs/monitor/ssl-certificate-monitor): 在网站证书过期之前收到警告。
+- [监控密钥](/docs/monitor/monitor-secrets): 让令牌和密钥不出现在监视器设置中。
+- [事件](/docs/incidents/index): 监视器声明事件之后会发生什么。
+:::
