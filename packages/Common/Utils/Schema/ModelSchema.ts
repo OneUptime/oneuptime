@@ -28,6 +28,16 @@ import OneUptimeDate from "../../Types/Date";
 export type ModelSchemaType = ZodSchema;
 
 /*
+ * The text columns an encrypted secret is stored in. An encrypted JSON
+ * column holds a map of them, not one string, so it is left as it is.
+ */
+const ENCRYPTED_SECRET_COLUMN_TYPES: Array<TableColumnType> = [
+  TableColumnType.ShortText,
+  TableColumnType.LongText,
+  TableColumnType.VeryLongText,
+];
+
+/*
  * The model a relation column points at, as the generated spec names it:
  * `tag` is what that model's endpoints are tagged with (its singular name).
  */
@@ -437,6 +447,14 @@ export class ModelSchema extends BaseSchema {
       // Mark computed fields as readOnly in OpenAPI spec
       if (column.computed) {
         zodType = zodType.openapi({ readOnly: true });
+      }
+
+      // A secret, as getZodTypeForColumn says too.
+      if (
+        column.encrypted &&
+        ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type)
+      ) {
+        zodType = zodType.openapi({ format: "password" });
       }
 
       shape[key] = zodType;
@@ -1678,6 +1696,20 @@ export class ModelSchema extends BaseSchema {
     // Mark computed fields as readOnly in OpenAPI spec
     if (column.computed && !disableOpenApiSchema) {
       zodType = zodType.openapi({ readOnly: true });
+    }
+
+    /*
+     * An encrypted text column holds a secret - a password, a token, a key -
+     * so the spec says so (format: password), as it does for a hashed one:
+     * the Terraform provider marks the attribute Sensitive, and plans and
+     * outputs never print it.
+     */
+    if (
+      column.encrypted &&
+      ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type) &&
+      !disableOpenApiSchema
+    ) {
+      zodType = zodType.openapi({ format: "password" });
     }
 
     return zodType;
