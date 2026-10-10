@@ -1,3 +1,5 @@
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { dashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -11,11 +13,13 @@ import path from "path";
  * settings table listed it before Incident Roles, while the menu did not.
  *
  * Both lists must name exactly the menu's Settings pages, in the menu's
- * order, in English and in Persian (the one translated corpus of the
- * incident pages; every other language falls back to English).
+ * order, in every docs language - each page named as that language's
+ * Dashboard draws it (DocsDashboardLabels).
  *
  * The AI section is listed the same way: the overview's AI row names the
  * section's pages in the menu's order, and none of them is in Settings.
+ * So are the Rules section and the Integrations section, which holds the
+ * tools that open incidents on their own.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -25,23 +29,29 @@ const INCIDENTS_SIDE_MENU_FILE: string = path.join(
   "App/FeatureSet/Dashboard/src/Pages/Incidents/SideMenu.tsx",
 );
 
-const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
+const LANGUAGES: ReadonlyArray<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 const OVERVIEW_PAGE: string = "incidents/index";
 const SETTINGS_PAGE: string = "incidents/settings";
 
-/*
- * The settings page's table of Settings pages, by its heading in each language.
- * The overview's row for the Settings section, and the settings table's Linked Alerts row.
- */
-const OVERVIEW_SETTINGS_ROW: RegExp = /^\|\s*\*\*Settings\*\*\s*\|/;
-const OVERVIEW_AI_ROW: RegExp = /^\|\s*\*\*AI\*\*\s*\|/;
-const LINKED_ALERTS_ROW: RegExp = /^\|\s*\*\*Linked Alerts\*\*\s*\|/;
+// A table row whose first cell is this bold name.
+function rowPattern(name: string): RegExp {
+  const escaped: string = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const SETTINGS_TABLE_HEADING: Record<string, string> = {
-  en: "## Where incident settings live",
-  fa: "## تنظیمات حادثه کجا زندگی می‌کنند",
-};
+  return new RegExp(`^\\|\\s*\\*\\*${escaped}\\*\\*\\s*\\|`);
+}
+
+// The overview's row for a section of the menu, as this language names it.
+function sectionRow(language: string, section: string): RegExp {
+  return rowPattern(dashboardLabel(language, section));
+}
+
+// The menu's titles, as this language's Dashboard draws them.
+function named(language: string, titles: Array<string>): Array<string> {
+  return titles.map((title: string): string => {
+    return dashboardLabel(language, title);
+  });
+}
 
 function readPage(relative: string, language: string): string {
   return fs.readFileSync(
@@ -112,18 +122,20 @@ function aiMenuTitles(): Array<string> {
   return sectionMenuTitles("AI");
 }
 
-// The first column of the table under the settings page's heading.
+/*
+ * The first column of the table under the settings page's first section -
+ * "Where incident settings live", in whatever words the language uses.
+ */
 function settingsTablePages(language: string): Array<string> {
   const markdown: string = readPage(SETTINGS_PAGE, language);
-  const heading: string = SETTINGS_TABLE_HEADING[language] as string;
-  const start: number = markdown.indexOf(`${heading}\n`);
+  const start: number = markdown.search(/\n## /);
 
   expect({ language: language, heading: start >= 0 }).toEqual({
     language: language,
     heading: true,
   });
 
-  const section: string = markdown.slice(start + heading.length);
+  const section: string = markdown.slice(markdown.indexOf("\n", start + 1));
   const nextHeading: number = section.search(/\n## /);
   const lines: Array<string> = (
     nextHeading >= 0 ? section.slice(0, nextHeading) : section
@@ -155,7 +167,7 @@ function overviewRow(language: string, pattern: RegExp): Array<string> {
 }
 
 function overviewSettingsRow(language: string): Array<string> {
-  return overviewRow(language, OVERVIEW_SETTINGS_ROW);
+  return overviewRow(language, sectionRow(language, "Settings"));
 }
 
 describe("Incident docs list the Settings menu's pages", () => {
@@ -179,13 +191,31 @@ describe("Incident docs list the Settings menu's pages", () => {
     expect(aiMenuTitles()).toEqual(["Insights", "Logs", "Settings"]);
   });
 
+  it("reads the menu's Rules and Integrations pages", () => {
+    const rules: Array<string> = sectionMenuTitles("Rules");
+
+    expect(rules).toHaveLength(8);
+    expect(rules).toContain("On-Call Rules");
+    expect(rules).not.toContain("Auto Remediation Rules");
+    expect(sectionMenuTitles("Integrations")).toEqual(["Huntress"]);
+  });
+
+  it("checks every docs language", () => {
+    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toContain("en");
+    expect(LANGUAGES).toContain("hi");
+  });
+
   it.each(LANGUAGES)(
     "%s: the overview's AI row names every page of the AI section, in menu order",
     (language: string) => {
       expect({
         language: language,
-        pages: overviewRow(language, OVERVIEW_AI_ROW),
-      }).toEqual({ language: language, pages: aiMenuTitles() });
+        pages: overviewRow(language, sectionRow(language, "AI")),
+      }).toEqual({
+        language: language,
+        pages: named(language, aiMenuTitles()),
+      });
     },
   );
 
@@ -195,7 +225,36 @@ describe("Incident docs list the Settings menu's pages", () => {
       expect({
         language: language,
         pages: overviewSettingsRow(language),
-      }).toEqual({ language: language, pages: settingsMenuTitles() });
+      }).toEqual({
+        language: language,
+        pages: named(language, settingsMenuTitles()),
+      });
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: the overview's Rules row names every rule page, in menu order",
+    (language: string) => {
+      expect({
+        language: language,
+        pages: overviewRow(language, sectionRow(language, "Rules")),
+      }).toEqual({
+        language: language,
+        pages: named(language, sectionMenuTitles("Rules")),
+      });
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: the overview's Integrations row names every integration, in menu order",
+    (language: string) => {
+      expect({
+        language: language,
+        pages: overviewRow(language, sectionRow(language, "Integrations")),
+      }).toEqual({
+        language: language,
+        pages: named(language, sectionMenuTitles("Integrations")),
+      });
     },
   );
 
@@ -205,21 +264,33 @@ describe("Incident docs list the Settings menu's pages", () => {
       expect({
         language: language,
         pages: settingsTablePages(language),
-      }).toEqual({ language: language, pages: settingsMenuTitles() });
+      }).toEqual({
+        language: language,
+        pages: named(language, settingsMenuTitles()),
+      });
     },
   );
 
   it.each(LANGUAGES)(
     "%s: the Linked Alerts row says what the page is for",
     (language: string) => {
+      const pattern: RegExp = rowPattern(
+        dashboardLabel(language, "Linked Alerts"),
+      );
       const row: string | undefined = readPage(SETTINGS_PAGE, language)
         .split("\n")
         .find((line: string): boolean => {
-          return LINKED_ALERTS_ROW.test(line);
+          return pattern.test(line);
         });
 
       expect(row).toBeDefined();
       expect((tableCells(row || "")[1] || "").length).toBeGreaterThan(20);
     },
   );
+
+  it("finds a row only by its own bold name", () => {
+    expect(rowPattern("AI").test("| **AI**        | Insights |")).toBe(true);
+    expect(rowPattern("AI").test("| **AI Logs** | x |")).toBe(false);
+    expect(rowPattern("SLA Rules").test("| **SLA Rules** | x |")).toBe(true);
+  });
 });

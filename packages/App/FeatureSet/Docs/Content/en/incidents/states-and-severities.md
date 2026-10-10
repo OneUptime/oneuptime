@@ -1,12 +1,39 @@
-# States & Severities
+# Incident States & Severities
 
-Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list and as a colored dot before the name wherever you pick one, both are project-scoped lists you can rename and recolor. They do very different jobs.
+Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. This page explains what each state does, how to add your own, and how severities are ranked — for anyone who configures incidents, or wants to know why one did or did not page, resolve or show on a status page.
+
+:::cards
+- [Add your own states](#adding-your-own-states): Model your response, and see what each state counts as.
+- [What acknowledging does](#what-acknowledging-does): Paging stops and the SLA is marked responded.
+- [What resolving does](#what-resolving-does): Monitors are given back and the SLA is closed.
+- [Telling subscribers](#telling-status-page-subscribers-about-a-state-change): The gates a state change passes before a status page hears of it.
+:::
+
+## How it works
+
+In the dashboard, states and severities look alike — both render as colored pills on the incidents list and as a colored dot before the name wherever you pick one, both are project-scoped lists you can rename and recolor. They do very different jobs.
 
 States drive behavior. Three boolean flags on the state rows, together with the states' order, decide which incidents count as active, which buttons appear on the incident header, when the SLA clock stops, and when the incident drops off your status page. Severities drive nothing by themselves — they are labels that describe impact, and that other rules can match on.
 
-Both lists are seeded when your project is created, and both are edited under **Incidents → Settings**. That section of the Incidents side menu is collapsed by default, so expand **Settings** before you go looking for it.
-
-## States carry behavior, severities carry meaning
+```mermaid title="Incidents only move down the list; where a state sits decides what it counts as"
+flowchart TB
+    subgraph open["Counts as not acknowledged"]
+        identified["Identified"]
+    end
+    subgraph working["Counts as acknowledged"]
+        acknowledged["Acknowledged"]
+        mitigated["Mitigated (custom)"]
+    end
+    subgraph done["Counts as resolved"]
+        resolved["Resolved"]
+        closed["Closed (custom)"]
+    end
+    identified --> acknowledged
+    acknowledged --> mitigated
+    mitigated --> resolved
+    resolved --> closed
+    identified -. "skip ahead" .-> resolved
+```
 
 The `IncidentState` model has `name`, `description`, `color` and `order`, plus three booleans: `isCreatedState`, `isAcknowledgedState` and `isResolvedState`. Everything the product does with states keys off those booleans and off `order` — never off the state's name. That is why you can rename **Resolved** to "Closed" and nothing breaks: the flag travels with the row.
 
@@ -18,6 +45,9 @@ A few quick rules:
 - **Pick states to model your process** — the response steps you actually walk through, in the order you walk through them.
 - **Do not encode urgency in states** — a state named "Critical" would not page anyone. Severity plus an on-call rule does that.
 
+> [!TIP]
+> Both lists are seeded when your project is created, and both are edited under **Incidents → Settings**. That section of the Incidents side menu is collapsed by default, so expand **Settings** before you go looking for them.
+
 ## The seeded states
 
 Three states are created with the project, in this order. The seeding is idempotent — a state is only added when one with that name does not already exist.
@@ -28,7 +58,8 @@ Three states are created with the project, in this order. The seeding is idempot
 | **Acknowledged** | `2`     | `isAcknowledgedState` | `#ffbf53` | Someone has picked the incident up.                |
 | **Resolved**     | `3`     | `isResolvedState`     | `#2ab57d` | The incident is over and stops counting as active. |
 
-Note the name: the first state is **Identified**, even though several descriptions inside the product still call it the "created" state. When a doc or a tooltip says "created state", it means whichever state carries `isCreatedState` — in a fresh project, that is **Identified**.
+> [!NOTE]
+> The first state is named **Identified**, even though several descriptions inside the product still call it the "created" state. When a doc or a tooltip says "created state", it means whichever state carries `isCreatedState` — in a fresh project, that is **Identified**.
 
 ## What each state flag actually does
 
@@ -43,31 +74,44 @@ Only one state per project is expected to hold each flag — the lookups fetch t
 - **They keep their order.** Created comes before acknowledged, and acknowledged before resolved. A drag that would break that — **Resolved** above **Acknowledged**, say — is refused, the rows go back, and the page says why.
 - **They cannot be deleted.** Their **Delete** stays in the row's menu, locked, with the reason. A bulk delete skips them and lists them as not deleted. The API refuses to delete a project's last created, acknowledged or resolved state too.
 
-Because the UI reads state names dynamically, renaming a state changes what you see everywhere — the stat tiles, the confirmation modal titles, and the pill on the incidents list all follow the name you gave the row.
+Because the UI reads state names dynamically, renaming a state changes what you see everywhere — the stat tiles (**Acknowledged in** and **Resolved in** with the seeded names), the **Mark Incident as …** confirmation of a custom state, and the pill on the incidents list all follow the name you gave the row.
 
 ## Adding your own states
 
-Go to **Incidents → Settings → Incident State**. The page lists your states in their order, one row each: a grip to drag it by, its color and name, what an incident in it **Counts as**, and its description. The sentence under the title says it plainly: incidents only ever move down this list.
+A state you add is a step in your response that the seeded three do not name: "Investigating", "Mitigated", "Monitoring", "Closed".
 
-- **Create Incident State**, in the card's header, adds a state **just above the resolved state** — where most states belong, and never below it, where it would quietly count as resolved.
-- **Drag a row by its grip** to move it. The new order is saved as you drop it; there is no order number to type. From the keyboard, focus the grip, press Space, move with the arrow keys and press Space again.
-- **Edit** opens the same form as create. The state's ID is under **Show ID** in the row's menu.
+:::steps
+### Open the state list
 
-**Fields on a state:**
+Go to **Incidents → Settings → Incident State**. The **Incident States** card lists your states in their order, one row each: a grip to drag it by, its color and name, what an incident in it **Counts as**, and its description. The sentence under the title says it plainly: incidents only ever move down this list.
 
-- **Name** — required, at least two characters. The placeholder suggests something like "Investigating".
-- **Description** — optional free text explaining when an incident sits in this state.
-- **Color** — required, and already picked when the form opens: a color none of the states in the list uses yet, so a new state never comes out the same red as the one above it. The field is a row of named colors (Red, Orange, Lime, Green, Teal, Blue, Indigo, Purple, Magenta, Pink) with the picked one ticked; click another to change it, or use the arrow keys. **Custom color** opens a finer picker under them, with a color code box for an exact brand color such as `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
+### Create the state
 
-Every one of those pickers lists the states in the order this page puts them in.
+Click **Create Incident State**, in the card's header, and fill in the form (fields below). The new state is added **just above the resolved state** — where most states belong, and never below it, where it would quietly count as resolved.
+
+### Drag it into place
+
+Drag a row by its grip to move it. The new order is saved as you drop it; there is no order number to type. From the keyboard, focus the grip, press Space, move with the arrow keys and press Space again. The **Counts as** column updates as you drop the row.
+:::
+
+**Edit** opens the same form as create. The state's ID is under **Show ID** in the row's menu.
+
+| Field           | Required | What it does                                                                                                                                                                                                                                                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**        | Yes      | At least two characters. The placeholder suggests something like "Investigating".                                                                                                                                                                                  |
+| **Description** | No       | Free text explaining when an incident sits in this state.                                                                                                                                                                                                          |
+| **Color**       | Yes      | Already picked when the form opens: a color none of the states in the list uses yet, so a new state never comes out the same red as the one above it. Pick another from the row of named colors (Red, Orange, Lime, Green, Teal, Blue, Indigo, Purple, Magenta, Pink), or use **Custom color** for an exact brand color such as `#fd625e`. |
+
+The color tints the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions. Every one of those pickers lists the states in the order this page puts them in.
 
 You cannot set the three flags from this form — they belong to the seeded rows. A state you add is therefore an unflagged state, which has three consequences worth planning around:
 
 - **Where it sits decides what it counts as.** The **Counts as** column shows it, and changes as you drag: above the acknowledged state an incident in it is **Not acknowledged**; from the acknowledged state down it counts as **Acknowledged**, so on-call policies stop escalating it; from the resolved state down it counts as **Resolved**, so status pages stop showing it as active.
 - **Above the resolved state, it keeps the incident active.** **Active Incidents** holds the incidents whose current state sits above the resolved state, so a state you add there keeps the incident in the active list and in the sidebar count. A state dragged below the resolved state counts as resolved everywhere — the active lists, status pages, reminders and the SLA — and moving an incident into it from **Resolved** is not a second resolve.
-- **Its transition button is generic.** Instead of **Acknowledge** or **Resolve**, the confirmation modal is titled **Mark Incident as `<state name>`** with a **Mark as `<state name>`** submit button.
+- **You move an incident into it from the header's menu.** The header's buttons are only **Acknowledge** and **Resolve**; a custom state is under **Change state to** in the **⋯** menu next to them, which lists every state after the current one. Its confirmation is titled **Mark Incident as `<state name>`** with a **Mark as `<state name>`** submit button.
 
-A common shape is a mitigation step between the acknowledged and resolved states — create "Mitigated" and it lands just above **Resolved**, after **Acknowledged**, counting as acknowledged. For a triage step before anyone has acknowledged the incident, drag it above **Acknowledged**.
+> [!TIP]
+> A common shape is a mitigation step between the acknowledged and resolved states — create "Mitigated" and it lands just above **Resolved**, after **Acknowledged**, counting as acknowledged. For a triage step before anyone has acknowledged the incident, drag it above **Acknowledged**.
 
 ## Order is a real constraint, not a display preference
 
@@ -76,7 +120,7 @@ The order is enforced when a state change is written, not just when the list is 
 - **Backwards transitions are rejected.** Moving an incident to a state that sits earlier in the order than its current state fails with an error naming both states.
 - **Re-selecting the current state is rejected.** Setting an incident to the state it is already in fails with "Incident state cannot be same as previous state."
 - **A backdated row cannot duplicate its neighbor.** Inserting a timeline row whose state matches the row that follows it is refused too.
-- **The header buttons follow the flagged states' position in the order.** **Acknowledge** and **Resolve** are offered based on where the current state sits in the order-sorted list. A custom state placed *after* the resolved state will never show a **Resolve** button, because there is nothing left to move forward into.
+- **The header buttons follow the flagged states' position in the order.** **Acknowledge** and **Resolve** are offered based on where the current state sits in the order-sorted list. A custom state placed *after* the resolved state never shows a **Resolve** button, because an incident in it already counts as resolved.
 
 So when you add a state, put it where an incident would genuinely pass through it. Ordering it wrong does not just look odd — it makes transitions impossible. Moving a state later changes how the incidents already in it count, the moment you drop it.
 
@@ -84,11 +128,13 @@ Through the API and Terraform the order is the `order` column: lower numbers com
 
 ## The seeded severities
 
-Three severities are created with the project, in this order:
+Three severities are created with the project, in this order, most severe first:
 
-- **Critical Incident** (`order` 1, `#b70400`) — issues causing very high impact to customers, needing an immediate response. A full outage or a data breach.
-- **Major Incident** (`order` 2, `#fd625e`) — significant impact, usually needing an immediate response, sometimes with a workaround that limits the damage. An important sub-system failing.
-- **Minor Incident** (`order` 3, `#ffbf53`) — low impact, usually handled within working hours, and most customers are unlikely to notice. A slight drop in application performance.
+| Severity              | `order` | Color     | Seeded description                                                                                                                                                                        |
+| --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 Severity is required when you declare an incident, and it is required on each incident spec in a monitor's criteria, so every incident — manual or automatic — arrives with one. See [Declaring an Incident](/docs/incidents/declaring-incidents) for the declare flow and [Incident and Alert Templating](/docs/monitor/incident-alert-templating) for the monitor-driven path.
 
@@ -111,10 +157,14 @@ Where severity does more than describe: on **Incidents → Rules → On-Call Rul
 
 There are four ways an incident changes state:
 
-- **The header buttons.** Open an incident. If its current state is before the acknowledged state, you get **Acknowledge** and **Resolve**; if it is between the two, you get **Resolve**. Each opens a short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). Acknowledging also stops any on-call escalation for the incident.
-- **The state timeline.** Add a row by hand from the incident's **State Timeline** page with **Incident Status**, **Starts At** and **Notify Status Page Subscribers**.
-- **Bulk change.** The incidents list has a **Change State** bulk action for moving several incidents at once: one page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.
-- **Automatically.** A monitor criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met, and the API can update the state through `/api/incident-state-timeline`.
+| Way                 | Where                                                                                       | What it asks                                                                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Header buttons**  | The incident's header: **Acknowledge** and **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). |
+| **State timeline**  | **State Timeline** in the incident side menu                                                | A row added by hand, with **Incident Status**, **Starts At** and **Notify Status Page Subscribers**.                                                                                                        |
+| **Bulk change**     | **Change State** on a selection in the incidents list                                       | One page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.                                                                                                      |
+| **Automatically**   | A monitor criterion, or your own code                                                       | A criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met. The API changes the state by creating a row at `/api/incident-state-timeline`.               |
+
+If the current state is before the acknowledged state, the header offers **Acknowledge** and **Resolve**; if it is between the two, only **Resolve**. Acknowledging also stops any on-call escalation for the incident.
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
 
@@ -143,20 +193,23 @@ Moving on from **Resolved** to a state after it — **Closed**, say — is not a
 
 The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page is titled **Status Timeline**, and it is sorted newest first.
 
-**Columns:**
+| Column                             | What it shows                                                                                                                                                                                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Incident Status**                | A colored pill with the state's name and color.                                                                                                                                                                                                                |
+| **Starts At**                      | When the incident entered this state.                                                                                                                                                                                                                          |
+| **Ends At**                        | When it left. The current state shows `Currently Active`.                                                                                                                                                                                                      |
+| **Duration**                       | Time spent in the state, counted to now for the current one.                                                                                                                                                                                                   |
+| **Subscriber Notification Status** | Whether the status page notification for this change was sent, skipped or is still pending, with a **more details** link, and — when the send failed — a **Retry** action. **Retry** sends the state change again to every status page the incident reaches now, including the subscribers who already got it. |
 
-- **Incident Status** — a colored pill with the state's name and color.
-- **Starts At** — when the incident entered this state.
-- **Ends At** — when it left. The current state shows `Currently Active`.
-- **Duration** — time spent in the state, counted to now for the current one.
-- **Subscriber Notification Status** — whether the status page notification for this change was sent, skipped or is still pending, with a **more details** link, and — when the send failed — a **Retry** action. **Retry** sends the state change again to every status page the incident reaches now, including the subscribers who already got it.
-
-**Row actions:**
+Each row has two actions:
 
 - **View Cause** — opens a **Root Cause** modal rendering the markdown recorded with that state change.
 - **View Logs** — opens a modal explaining why the status changed, with an **Incident State Log** viewer.
 
-Timeline rows can be created and deleted, but not edited. Deleting the wrong row rewrites the incident's history, so treat it as a correction tool rather than a cleanup habit.
+In the dashboard, timeline rows can be added and deleted, but not edited; an incident always keeps at least one row. Through the API, a row's `startsAt` can be corrected, and every measurement worked out from the timeline follows it.
+
+> [!WARNING]
+> Deleting the wrong row rewrites the incident's history, so treat it as a correction tool rather than a cleanup habit.
 
 ## The Active Incidents list
 
@@ -168,7 +221,19 @@ The practical consequence: a custom state you add above the resolved state keeps
 
 ## Telling status page subscribers about a state change
 
-A state change can email your status page subscribers, but it goes through several gates. Understanding them saves a lot of "why didn't anyone get notified" debugging.
+A state change can notify your status page subscribers, but it goes through several gates. Understanding them saves a lot of "why didn't anyone get notified" debugging.
+
+```mermaid title="Does a state change reach subscribers?"
+flowchart TB
+    change["State change saved"] --> box{"Notify box on?"}
+    box -->|No| skipped["Skipped"]
+    box -->|Yes| note{"Public note with it?"}
+    note -->|Yes| carried["The note is the message"]
+    note -->|No| queued["Row queued"]
+    queued --> gates{"Clears every gate?"}
+    gates -->|No| reason["Skipped, reason recorded"]
+    gates -->|Yes| sent["Subscribers notified"]
+```
 
 Notification is requested per timeline row by **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), the checkbox on the state-change modal and on the manual timeline form. On the state-change modal it starts off when the incident was declared without notifying subscribers. The same checkbox also decides whether the modal's public note notifies anyone. When it is off, the row is stored with a skipped status and an explanation. When it is on, the row is queued and a background job picks it up — the job runs every minute, so delivery is quick but not instantaneous.
 
@@ -182,7 +247,7 @@ Notification is requested per timeline row by **Notify Status Page Subscribers**
 
 **One more thing that changes the outcome.** If you write a **Public Note** in the state-change modal (under **Add a public note**) or the **Change State** bulk action while **Notify Status Page Subscribers** is on, the timeline row is marked as already notified rather than queued, and its status message says the note carried it. The note itself is what reaches subscribers, so they get one message instead of two. A note with nothing but spaces in it is not posted, and the row is queued as usual. Scheduled maintenance state changes work the same way. The event type behind the plain state-change message is `Subscriber Incident State Changed`.
 
-**The note says what the incident is now.** Because the note is the one message, it names the new state on every channel, the way the state change message would have: the email's subject reads `[Resolved Incident] <title>` and its details show a **Status** row in the state's colour, the SMS says `Incident <title> on <status page> is Resolved.`, Slack and Microsoft Teams messages carry a `**Status:** Resolved` line, and the webhook's `IncidentNoteCreated` payload carries `incidentState` in `data`. A note posted on its own keeps its usual message, and so does an edit's update notification.
+**The note says what the incident is now.** Because the note is the one message, it names the new state on every channel, the way the state change message would have: the email's subject reads `[Resolved Incident] <title>` and its details show a **Status** row in the state's color, the SMS says `Incident <title> on <status page> is Resolved.`, Slack and Microsoft Teams messages carry a `**Status:** Resolved` line, and the webhook's `IncidentNoteCreated` payload carries `incidentState` in `data`. A note posted on its own keeps its usual message, and so does an edit's update notification.
 
 **Posting the note needs its own permission.** Changing the state and posting a public note are separate permissions (**Create Incident State Timeline** and **Create Incident Status Page Note** in a custom role; the built-in incident and project roles have both). Changing the state takes no permission to edit the incident: see [Changing a state](/docs/permissions/index#changing-a-state). Someone who may change an incident's state but not post public notes is not offered **Add a public note** in the modal or in the **Change State** bulk action. A state change they send with a note through the API is refused whole, with a message that says the state was not changed and why, so a change is never recorded as told by a note that was never posted. Leave the note out and the change goes through. Alerts, alert episodes and incident episodes offer a private note with a state change instead (**Add a private note**), and it works the same way: posting it needs the note's own permission (**Create Alert Internal Note**, **Create Alert Episode Internal Note** or **Create Incident Episode Internal Note** in a custom role; the built-in alert, incident and project roles have them), and a state change sent with a private note by someone without it is refused whole, so the state is not changed.
 
@@ -210,17 +275,17 @@ This holds however the incident is written: the dashboard, the API, Terraform, a
 
 **Episodes follow the same rule.** A private incident episode is hidden from every status page, whatever its **Visible on Status Page** switch says, and its subscribers hear nothing about it. On the episode's **Settings** page the switch says so, and stays off while the episode is private. A private incident never brings its episode onto a status page: an episode reaches a page only through incidents that are not private.
 
-**Upgrading.** Incidents and episodes stored private with **Visible on Status Page** still on, from before these rules, have it switched off when you upgrade. Nothing is sent to anyone. The images such an incident or episode had made viewable by everyone are made private again, unless something your status pages show still has them in it. So are the images in public notes of incidents, episodes and scheduled maintenance events your status pages do not show, which stayed viewable by everyone before.
+:::details Upgrading from a version without these rules
+Incidents and episodes stored private with **Visible on Status Page** still on, from before these rules, have it switched off when you upgrade. Nothing is sent to anyone. The images such an incident or episode had made viewable by everyone are made private again, unless something your status pages show still has them in it. So are the images in public notes of incidents, episodes and scheduled maintenance events your status pages do not show, which stayed viewable by everyone before.
+:::
 
 How much resolved history the page keeps is a status page setting, not an incident one. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) for how monitors on the page decide which incidents show up at all.
 
-## Where to read next
+## Next steps
 
-- [Incidents Overview](/docs/incidents/index) — how the incident feature area fits together.
-- [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare wizard, templates, and the API.
-- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public notes, private notes, and the activity feed.
-- [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, rules, and workflow triggers.
-- [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets the emails a state change sends.
-- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to some of the status pages that list its monitors.
-- [Status Pages Overview](/docs/status-pages/index) — what a status page shows and to whom.
-- [Workflows Overview](/docs/workflows/index) — reacting to state changes with automation.
+:::cards
+- [Declaring an Incident](/docs/incidents/declaring-incidents): Pick a starting state and severity when you declare.
+- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed): Post the public note that goes out with a state change.
+- [Incident Settings & Automation](/docs/incidents/settings): Measure the time between states, and match severities in rules.
+- [Subscribers & Announcements](/docs/status-pages/subscribers): Who gets the messages a state change sends.
+:::

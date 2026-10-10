@@ -11,7 +11,6 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import IsPermissionsIf from "../../Types/Database/IsPermissionsIf";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -34,6 +33,56 @@ import Label from "./Label";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
+/*
+ * Who reads a project's probes: the project's members who see its monitors or
+ * its settings, and Read Project Probe. They read all of a probe but its key
+ * (its owners' and admins') and who created it (its owners').
+ */
+const PROBE_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.MonitorAdmin,
+  Permission.MonitorMember,
+  Permission.MonitorViewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadProjectProbe,
+];
+
+/*
+ * Who picks a probe, or reads a page that names one: the probe readers, and
+ * whoever may create, edit or read monitors (the operational resource
+ * wildcards included), a monitor's probes, network devices, their discovery
+ * scans or network sites. They read what tells a project's probes apart in a
+ * picker - its name, description, icon, status and whether new monitors start
+ * with it - and never its key, its version, its labels or what it reports
+ * about the host it runs on.
+ */
+const PROBE_PICKER_READERS: Array<Permission> = [
+  ...PROBE_READERS,
+  Permission.CreateProjectMonitor,
+  Permission.EditProjectMonitor,
+  Permission.ReadProjectMonitor,
+  Permission.CreateAllOperationalResources,
+  Permission.EditAllOperationalResources,
+  Permission.ReadAllOperationalResources,
+  Permission.CreateMonitorProbe,
+  Permission.EditMonitorProbe,
+  Permission.ReadMonitorProbe,
+  Permission.CreateNetworkDevice,
+  Permission.EditNetworkDevice,
+  Permission.ReadNetworkDevice,
+  Permission.CreateNetworkDeviceDiscoveryScan,
+  Permission.EditNetworkDeviceDiscoveryScan,
+  Permission.ReadNetworkDeviceDiscoveryScan,
+  Permission.CreateNetworkSite,
+  Permission.EditNetworkSite,
+  Permission.ReadNetworkSite,
+];
+
 export enum ProbeConnectionStatus {
   Connected = "connected",
   Disconnected = "disconnected",
@@ -49,7 +98,6 @@ export enum ProbeConnectionStatus {
   update: PlanType.Growth,
   delete: PlanType.Free,
 })
-@IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/probe"))
 @AccessControlColumn("labels")
@@ -74,20 +122,12 @@ export enum ProbeConnectionStatus {
     Permission.SettingsMember,
     Permission.CreateProjectProbe,
   ],
-  read: [
-    Permission.Public,
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.MonitorAdmin,
-    Permission.MonitorMember,
-    Permission.MonitorViewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadProjectProbe,
-  ],
+  /*
+   * Whoever may pick a probe reads the table, and of a probe what a picker
+   * shows (PROBE_PICKER_READERS); the rest of a probe is its readers'
+   * (PROBE_READERS), and its key its owners' and admins'.
+   */
+  read: PROBE_PICKER_READERS,
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -146,7 +186,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: PROBE_PICKER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -178,7 +218,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: PROBE_PICKER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -202,7 +242,7 @@ export default class Probe extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: PROBE_PICKER_READERS,
     update: [],
   })
   @TableColumn({
@@ -230,7 +270,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: PROBE_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -258,19 +298,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_PICKER_READERS,
     update: [],
   })
   @TableColumn({
@@ -294,19 +322,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_PICKER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -346,19 +362,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_PICKER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -391,7 +395,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: PROBE_PICKER_READERS,
     update: [],
   })
   @TableColumn({
@@ -423,7 +427,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: PROBE_PICKER_READERS,
     update: [],
   })
   @TableColumn({
@@ -561,19 +565,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_PICKER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -600,19 +592,7 @@ export default class Probe extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_PICKER_READERS,
     update: [],
   })
   @TableColumn({
@@ -640,19 +620,7 @@ export default class Probe extends BaseModel {
    */
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_READERS,
     update: [],
   })
   @TableColumn({
@@ -682,19 +650,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectProbe,
-    ],
+    read: PROBE_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

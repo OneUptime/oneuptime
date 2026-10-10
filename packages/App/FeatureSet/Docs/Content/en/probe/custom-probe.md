@@ -4,6 +4,8 @@ You can set up custom probes inside your network to monitor resources in your pr
 
 To begin with you need to create a custom probe in your OneUptime Dashboard under Monitors > Settings > Probes. Once you have created the custom probe on your OneUptime Dashboard. You should have the `PROBE_ID` and `PROBE_KEY`
 
+To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.
+
 ### Deploy Probe
 
 #### Docker

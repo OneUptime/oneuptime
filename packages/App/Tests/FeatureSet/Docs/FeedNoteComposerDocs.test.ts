@@ -2,6 +2,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { dashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * The incident notes docs against the composer they describe.
@@ -77,26 +78,26 @@ const CONTROLS: Array<{ label: string; file: string; source: string }> = [
   },
 ];
 
-// The feed's note actions, by their bold label in each language's page.
-const PUBLIC_ACTION: Record<string, string> = { ko: "**공개 노트 추가**" };
-const PRIVATE_ACTION: Record<string, string> = {
-  en: "**Add Private Note**",
-  fa: "**Add Private Note**",
-  da: "**Tilføj privat note**",
-  de: "**Private Notiz hinzufügen**",
-  es: "**Añadir nota privada**",
-  fr: "**Ajouter une note privée**",
-  hi: "**निजी नोट जोड़ें**",
-  it: "**Aggiungi nota privata**",
-  ja: "**プライベートメモを追加**",
-  ko: "**비공개 노트 추가**",
-  nl: "**Privénotitie toevoegen**",
-  no: "**Legg til privat notat**",
-  pt: "**Adicionar nota privada**",
-  ru: "**Добавить личную заметку**",
-  sv: "**Lägg till privat anteckning**",
-  "zh-CN": "**添加私密注释**",
-  "zh-TW": "**新增私人註記**",
+/*
+ * The feed's note actions and the composer's controls a feed bullet names,
+ * in English: each language's page names them as its Dashboard draws them.
+ */
+const PUBLIC_ACTION: string = "Add Public Note";
+const PRIVATE_ACTION: string = "Add Private Note";
+const PUBLIC_BULLET_LABELS: Array<string> = [
+  "Post update",
+  "Posted now",
+  "Draft with AI",
+  "Notify status page subscribers",
+  // The link as it reads on screen, beside the checkbox.
+  "Preview",
+];
+const PRIVATE_BULLET_LABELS: Array<string> = ["Add note"];
+
+type BoldFunction = (language: string, english: string) => string;
+
+const bold: BoldFunction = (language: string, english: string): string => {
+  return `**${dashboardLabel(language, english)}**`;
 };
 
 function bulletStartingWith(page: string, label: string): string {
@@ -115,6 +116,20 @@ describe("the composer's controls are what the docs call them", () => {
     },
   );
 
+  test("the labels the feed bullets name are the Dashboard's", () => {
+    for (const label of [
+      PUBLIC_ACTION,
+      PRIVATE_ACTION,
+      ...PUBLIC_BULLET_LABELS,
+      ...PRIVATE_BULLET_LABELS,
+    ]) {
+      expect({ label, inDashboard: isDashboardLabel(label) }).toEqual({
+        label,
+        inDashboard: true,
+      });
+    }
+  });
+
   test("every language's page is found", () => {
     expect(LANGUAGES).toContain("en");
     expect(LANGUAGES).toContain("fa");
@@ -126,27 +141,35 @@ describe.each(LANGUAGES)("%s: the feed's note actions", (language: string) => {
   const page: string = readPage(language);
   const publicNote: string = bulletStartingWith(
     page,
-    PUBLIC_ACTION[language] || "**Add Public Note**",
+    bold(language, PUBLIC_ACTION),
   );
   const privateNote: string = bulletStartingWith(
     page,
-    PRIVATE_ACTION[language] as string,
+    bold(language, PRIVATE_ACTION),
   );
 
   test("Add Public Note is the composer: posted with Post update, backdated from Posted now", () => {
     expect(publicNote).not.toBe("");
-    expect(publicNote).toContain("**Post update**");
-    expect(publicNote).toContain("**Posted now**");
-    expect(publicNote).toContain("**Draft with AI**");
-    expect(publicNote).toContain("**Notify status page subscribers**");
-    // The link as it reads on screen, beside the checkbox.
-    expect(publicNote).toContain("**Preview**");
+
+    for (const label of PUBLIC_BULLET_LABELS) {
+      expect({
+        label,
+        named: publicNote.includes(bold(language, label)),
+      }).toEqual({ label, named: true });
+    }
+
     expect(publicNote).not.toContain("**Preview notification**");
   });
 
   test("Add Private Note is the composer: posted with Add note", () => {
     expect(privateNote).not.toBe("");
-    expect(privateNote).toContain("**Add note**");
+
+    for (const label of PRIVATE_BULLET_LABELS) {
+      expect({
+        label,
+        named: privateNote.includes(bold(language, label)),
+      }).toEqual({ label, named: true });
+    }
   });
 
   test("no longer describes the feed's old four-field form", () => {

@@ -48,6 +48,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -104,11 +105,11 @@ describe("a probe's page", () => {
 
     expect(request.modelType).toBe(Probe);
     expect(request.id.toString()).toBe(PROBE_ID);
+    // Only what the probe's readers may read: never isGlobalProbe or the key.
     expect(request.select).toEqual({
       _id: true,
       name: true,
       projectId: true,
-      isGlobalProbe: true,
       packetCaptureCapability: true,
     });
     expect(latestTable()["probe"]).toBe(probe);
@@ -137,6 +138,81 @@ describe("a probe's page", () => {
       screen.getByText("This probe could not be loaded."),
     ).toBeInTheDocument();
   });
+});
+
+/*
+ * What a probe says about capturing is read by the probe's readers. Whoever
+ * may only pick a probe - creating monitors, say - opens the probe's page
+ * too, and is shown no capture card at all rather than a refusal; until the
+ * permission snapshot lands, the server decides.
+ */
+describe("a probe's page, by who may read what the probe says about capturing", () => {
+  const SESSION_PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
+
+  const holdInProject: (permissions: Array<Permission>) => void = (
+    permissions: Array<Permission>,
+  ): void => {
+    localStorage.setItem("user_id", "aaaaaaaa-1111-4111-8111-111111111111");
+    localStorage.setItem("is_master_admin", "false");
+    sessionStorage.setItem("current_project_id", SESSION_PROJECT_ID);
+    localStorage.setItem(
+      "project_permissions",
+      JSON.stringify({
+        projectId: SESSION_PROJECT_ID,
+        permissions: permissions.map((permission: Permission) => {
+          return { permission: permission };
+        }),
+      }),
+    );
+  };
+
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  test.each([
+    Permission.CreateProjectMonitor,
+    Permission.ReadProjectMonitor,
+    Permission.EditNetworkDevice,
+  ])(
+    "a viewer who may only pick probes (%s) is shown no card, and nothing is asked",
+    async (permission: Permission) => {
+      holdInProject([permission]);
+
+      const { container } = render(
+        <ProbePacketCaptures probeId={new ObjectID(PROBE_ID)} />,
+      );
+
+      await flush();
+
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(mockCapturedTableProps).toHaveLength(0);
+      expect(screen.queryByText("Packet Captures")).not.toBeInTheDocument();
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
+
+  test.each([
+    Permission.ProjectMember,
+    Permission.MonitorViewer,
+    Permission.ReadProjectProbe,
+  ])(
+    "a probe reader (%s) gets the card, read with the probe's report",
+    async (permission: Permission) => {
+      holdInProject([permission]);
+
+      const probe: Probe = new Probe(new ObjectID(PROBE_ID));
+      getItemMock.mockResolvedValue(probe);
+
+      render(<ProbePacketCaptures probeId={new ObjectID(PROBE_ID)} />);
+
+      await flush();
+
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(latestTable()["probe"]).toBe(probe);
+    },
+  );
 });
 
 describe("a device's Traffic page", () => {

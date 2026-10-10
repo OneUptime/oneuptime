@@ -614,3 +614,68 @@ describe("POST /llm-provider/test - the egress policy is the one AI features use
     expect(rootRead?.select["projectId"]).toBe(true);
   });
 });
+
+/*
+ * A provider's API key and Additional Parameters are sent to its Base URL,
+ * and the Base URL is changed only by who may read them (LlmProvider.baseUrl's
+ * update list, LlmProviderService.mayChangeBaseUrl). The test sends the stored
+ * provider to its stored address with its stored key: nothing in the request
+ * names another address, key or model for it to use.
+ */
+describe("POST /llm-provider/test - the stored provider goes to its stored address", () => {
+  test("an address, a key or a model named in the request is not used", async () => {
+    await callTestRoute({
+      llmProviderId: PROVIDER_ID.toString(),
+      baseUrl: "https://elsewhere.invalid/v1",
+      apiKey: "sk-from-the-request",
+      modelName: "model-from-the-request",
+      llmProviderConfig: {
+        baseUrl: "https://elsewhere.invalid/v1",
+        apiKey: "sk-from-the-request",
+      },
+    });
+
+    const requests: Array<LLMCompletionRequest> = completionRequests();
+
+    expect(requests.length).toBeGreaterThan(0);
+
+    for (const request of requests) {
+      expect(request.llmProviderConfig.baseUrl).toBe(
+        "https://example.invalid/v1",
+      );
+      expect(request.llmProviderConfig.apiKey).toBe("sk-connection-test");
+      expect(request.llmProviderConfig.modelName).toBe("gpt-connection-test");
+    }
+  });
+
+  test("the address and the key come from the stored row the caller may read, read again as OneUptime", async () => {
+    await callTestRoute();
+
+    type ProviderRead = {
+      id: ObjectID;
+      select: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    const reads: Array<ProviderRead> = (
+      providerLookupSpy.mock.calls as Array<Array<ProviderRead>>
+    ).map((call: Array<ProviderRead>): ProviderRead => {
+      return call[0]!;
+    });
+
+    // First as the caller: a provider they may not read is never sent.
+    expect(reads[0]!.props.isRoot).toBeFalsy();
+    expect(reads[0]!.id.toString()).toBe(PROVIDER_ID.toString());
+
+    // Then the same row as OneUptime, for its address and its key.
+    const rootRead: ProviderRead | undefined = reads.find(
+      (read: ProviderRead): boolean => {
+        return read.props.isRoot === true;
+      },
+    );
+
+    expect(rootRead?.id.toString()).toBe(PROVIDER_ID.toString());
+    expect(rootRead?.select["baseUrl"]).toBe(true);
+    expect(rootRead?.select["apiKey"]).toBe(true);
+  });
+});
