@@ -535,11 +535,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   hand. It also dropped off its status pages' upcoming events and their
   RSS and Atom feeds, off the Microsoft Teams app's scheduled maintenance,
   and its subscribers' reminders before the event were dropped. It now
-  starts at its time the way an event left in **Scheduled** does, so an
-  event already past its start in such a state is started within a minute
-  of the upgrade, and it is listed and reminded about as one to come. A
-  state of your own placed before **Scheduled** - a draft or an approval
-  step - is left to a person, as before. Four smaller changes come with
+  starts at its time the way an event left in **Scheduled** does, and
+  until then it is listed and reminded about as one to come. An event
+  already past its start in such a state is started within a minute of
+  the upgrade - and ended a minute later when its **Ends At** has passed
+  too - with its owners and subscribers told as for any start and end, so
+  before upgrading, move on or delete any such event that was left
+  behind. A state of your own placed before **Scheduled** - a draft or an
+  approval step - is left to a person, as before. Four smaller changes come with
   it. Every change of an event's state works out the status of the
   network sites it covers at once, also when it moves back because the
   entry of the state it is in was deleted from its **State Timeline**,
@@ -555,8 +558,8 @@ API, SSO, or the Slack and Microsoft Teams apps.
   complete, so an event completed straight from **Ongoing** records its
   end there. And a state carrying more than one of the four built-in flags
   now reads the same on the event's header as on the server. Projects
-  with no states of their own, or none placed before **Ongoing**, see only
-  the network site and measurement changes. See
+  with no states of their own see only the network site and measurement
+  changes. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 - **A maintenance event in a state of your own after Ongoing counts as
   in progress everywhere.** A scheduled maintenance event moved on from
