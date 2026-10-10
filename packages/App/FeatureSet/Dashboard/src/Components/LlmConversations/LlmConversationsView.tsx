@@ -395,7 +395,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
                     to={usageRoute}
                     className="font-medium text-indigo-600 hover:text-indigo-700"
                   >
-                    {translator.translateText("Usage tab")}
+                    {translator.translateText("Usage tab") || ""}
                   </AppLink>
                 ),
               }}

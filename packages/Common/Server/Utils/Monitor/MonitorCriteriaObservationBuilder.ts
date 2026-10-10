@@ -26,6 +26,7 @@ import LogMonitorGroupResult, {
   LogMonitorGroupResultUtil,
 } from "../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import SnmpMonitorResponse, {
@@ -194,6 +195,12 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.SpanCount:
         return MonitorCriteriaObservationBuilder.describeSpanCountObservation(
+          input,
+        );
+      case CheckOn.LlmBadAnswerPercent:
+      case CheckOn.LlmBadAnswerCount:
+      case CheckOn.LlmAnswerCount:
+        return MonitorCriteriaObservationBuilder.describeLlmAnswersObservation(
           input,
         );
       case CheckOn.MetricValue:
@@ -1338,6 +1345,31 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Security event count was ${securityEventsResponse.securityEventCount}.`;
+  }
+
+  /*
+   * The same sentence for every AI / LLM check-on: how many answers there
+   * were and how many of them were bad, so a reader of the root cause sees
+   * both the count and the share whichever one the criteria compared.
+   */
+  public static describeLlmAnswersObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const llmResponse: LlmMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getLlmMonitorResponse(input.dataToProcess);
+
+    if (!llmResponse) {
+      return null;
+    }
+
+    const answers: number = Number(llmResponse.llmAnswerCount) || 0;
+    const bad: number = Number(llmResponse.llmBadAnswerCount) || 0;
+
+    if (answers === 0) {
+      return "The AI gave no answers in the window.";
+    }
+
+    return `${bad} of ${answers} AI ${answers === 1 ? "answer was" : "answers were"} bad (${Number(llmResponse.llmBadAnswerPercent) || 0}%).`;
   }
 
   private static describeSpanCountObservation(input: {

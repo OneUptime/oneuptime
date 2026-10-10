@@ -91,6 +91,13 @@ import {
   fetchAIInsightMonitorSeedIds,
   toAIInsightMonitorInput,
 } from "../../Utils/AIInsightMonitorData";
+import {
+  LLM_MONITOR_TEMPLATE_QUERY_PARAM,
+  LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR,
+  LlmMonitorSeedIds,
+  buildLlmMonitorPrefill,
+} from "../../Utils/LlmMonitorPrefill";
+import { fetchLlmMonitorSeedIds } from "../../Utils/LlmMonitorData";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
@@ -959,6 +966,44 @@ const MonitorCreate: FunctionComponent<
    * already refuses those, so only a hand-made link lands here, and an empty
    * form would read as the prefill having silently failed.
    */
+  /*
+   * "Create alert" from an AI alert template (AI / LLM > Alerts): open on
+   * the AI / LLM monitor the template describes, with criteria built from
+   * the project's own statuses and severities. A link naming no template
+   * says so in place of the form.
+   */
+  const preSeedFromLlmMonitorTemplate: (
+    templateId: string,
+  ) => Promise<void> = async (templateId: string): Promise<void> => {
+    let seeds: LlmMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchLlmMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildLlmMonitorPrefill({
+      templateId: templateId,
+      seeds: seeds,
+    });
+
+    if (!prefill) {
+      setError(LLM_MONITOR_UNKNOWN_TEMPLATE_ERROR);
+      return;
+    }
+
+    setInitialValues(prefill);
+  };
+
   const preSeedFromAIInsightLink: (
     aiInsightId: string,
   ) => Promise<void> = async (aiInsightId: string): Promise<void> => {
@@ -1110,6 +1155,19 @@ const MonitorCreate: FunctionComponent<
       preSeedFromAIInsightLink(aiInsightId.trim()).finally(() => {
         setIsLoading(false);
       });
+      return;
+    }
+
+    const llmMonitorTemplateId: string | null =
+      Navigation.getQueryStringByName(LLM_MONITOR_TEMPLATE_QUERY_PARAM);
+
+    if (llmMonitorTemplateId) {
+      setIsLoading(true);
+      preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(
+        () => {
+          setIsLoading(false);
+        },
+      );
       return;
     }
 

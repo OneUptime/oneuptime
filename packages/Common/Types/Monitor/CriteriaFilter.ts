@@ -56,6 +56,14 @@ export enum CheckOn {
   // Trace monitors.
   SpanCount = "Span Count",
 
+  /*
+   * AI / LLM monitors (MonitorStepLlmMonitor says what makes an answer
+   * bad). Stored in monitor criteria; never rename one.
+   */
+  LlmBadAnswerPercent = "Bad AI Answers (in %)",
+  LlmBadAnswerCount = "Bad AI Answers",
+  LlmAnswerCount = "AI Answers",
+
   // Exception monitors.
   ExceptionCount = "Exception Count",
 

@@ -91,9 +91,18 @@ import Metric from "../../Models/AnalyticsModels/Metric";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
 import LlmConversationService, {
+  LlmAnswerCounts,
   LlmConversationDetail,
 } from "../Services/LlmConversationService";
+import MonitorStepLlmMonitor, {
+  LlmBadAnswerRule,
+  MonitorStepLlmMonitorUtil,
+} from "../../Types/Monitor/MonitorStepLlmMonitor";
+import { LlmMonitorResponseUtil } from "../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
+import InBetween from "../../Types/BaseDatabase/InBetween";
 import {
+  LLM_ANSWER_STATS_ROUTE,
+  LlmAnswerStatsResponse,
   LLM_CONVERSATIONS_ROUTE,
   LLM_CONVERSATION_DEFAULT_LOOKBACK_MS,
   LLM_CONVERSATION_HINT_PADDING_MS,
@@ -1922,6 +1931,81 @@ router.post(
         req,
         res,
         detail as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * What an AI / LLM monitor would see right now, for its form's preview:
+ * the answers in the step's window and how many were bad, counted exactly
+ * as the monitor's check counts them (LlmConversationService.countAnswers).
+ * The step's apps are narrowed to what the caller may read.
+ */
+router.post(
+  LLM_ANSWER_STATS_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const step: MonitorStepLlmMonitor =
+        MonitorStepLlmMonitorUtil.fromJSON(body);
+      const rule: LlmBadAnswerRule =
+        MonitorStepLlmMonitorUtil.getBadAnswerRule(step);
+      const window: InBetween<Date> = MonitorStepLlmMonitorUtil.getWindow(step);
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+          requested:
+            step.telemetryServiceIds.length > 0
+              ? step.telemetryServiceIds
+              : undefined,
+        });
+
+      const counts: LlmAnswerCounts = await LlmConversationService.countAnswers(
+        {
+          projectId: databaseProps.tenantId,
+          startTime: window.startValue,
+          endTime: window.endValue,
+          serviceIds: serviceFilter.serviceIds,
+          excludedServiceIds: serviceFilter.excludedServiceIds,
+          issues: rule.issues,
+          slowAnswerMs: rule.slowAnswerMs,
+          model: step.model || undefined,
+        },
+      );
+
+      const response: LlmAnswerStatsResponse = {
+        answerCount: counts.answerCount,
+        badAnswerCount: counts.badAnswerCount,
+        badAnswerPercent: LlmMonitorResponseUtil.getBadAnswerPercent(counts),
+        startTime: window.startValue.toISOString(),
+        endTime: window.endValue.toISOString(),
+      };
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        response as unknown as JSONObject,
       );
     } catch (err: unknown) {
       next(err);

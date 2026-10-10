@@ -34,7 +34,8 @@ import { formatLlmClock } from "./LlmConversationFormat";
  * red where something went wrong.
  *
  * It borrows session replay's controls (SessionReplay/ReplayUi) so the two
- * players look and work alike.
+ * players look and work alike. The scrubber is a slider: focused, its arrow
+ * keys step through the messages and Home / End go to either end.
  */
 
 export interface ComponentProps {
@@ -75,11 +76,14 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    controller.pause();
     controller.seekToProgress((clientX - rect.left) / rect.width);
   };
 
   const total: number = props.steps.length;
-  const position: number = Math.max(0, controller.currentIndex + 1);
+  const position: number = controller.isAtEnd
+    ? total
+    : Math.max(0, controller.currentIndex + 1);
 
   /*
    * "Replay" at the end: a conversation opens fully drawn, and the first
@@ -91,6 +95,11 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
       : controller.isAtEnd
         ? translator.translateText("Replay")
         : translator.translateText("Play")) || "";
+
+  const positionText: string = translator.translateTemplate(
+    "Message {{position}} of {{total}}",
+    { position: position, total: total },
+  );
 
   return (
     <div
@@ -105,7 +114,7 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
           className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-indigo-600 pl-3 pr-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           data-testid="llm-replay-play"
           data-state={controller.isPlaying ? "playing" : "paused"}
-          aria-label={playLabel}
+          title={translator.translateText("Play or pause (K)") || ""}
         >
           <Icon
             icon={controller.isPlaying ? IconProp.Pause : IconProp.Play}
@@ -117,31 +126,40 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
         <ReplayButtonGroup ariaLabel="Move through the conversation">
           <ReplayToolButton
             icon={IconProp.Backward}
-            title="First message (Home)"
+            title="First message"
             variant="segment"
-            isDisabled={total === 0}
+            isDisabled={total === 0 || controller.clockMs <= 0}
             dataTestId="llm-replay-restart"
-            onClick={controller.restart}
+            onClick={() => {
+              controller.pause();
+              controller.restart();
+            }}
           />
           <ReplayToolButton
             icon={IconProp.ChevronLeft}
-            title="Previous message (Left arrow)"
+            title="Previous message (J)"
             variant="segment"
             isDisabled={total === 0 || controller.clockMs <= 0}
             dataTestId="llm-replay-previous"
-            onClick={controller.previous}
+            onClick={() => {
+              controller.pause();
+              controller.previous();
+            }}
           />
           <ReplayToolButton
             icon={IconProp.ChevronRight}
-            title="Next message (Right arrow)"
+            title="Next message (L)"
             variant="segment"
             isDisabled={total === 0 || controller.isAtEnd}
             dataTestId="llm-replay-next"
-            onClick={controller.next}
+            onClick={() => {
+              controller.pause();
+              controller.next();
+            }}
           />
           <ReplayToolButton
             icon={IconProp.Forward}
-            title="Whole conversation (End)"
+            title="Whole conversation"
             variant="segment"
             isDisabled={total === 0 || controller.isAtEnd}
             dataTestId="llm-replay-end"
@@ -182,28 +200,48 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
           className="ml-auto text-xs text-gray-500"
           data-testid="llm-replay-position"
         >
-          {translator.translateTemplate("Message {{position}} of {{total}}", {
-            position: position,
-            total: total,
-          })}
+          {positionText}
         </div>
       </div>
 
       <div
         ref={trackRef}
         role="slider"
-        tabIndex={0}
-        aria-label={translator.translateText("Replay position")}
+        tabIndex={total > 0 ? 0 : -1}
+        aria-label={translator.translateText("Replay position") || ""}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={position}
-        aria-valuetext={translator.translateTemplate(
-          "Message {{position}} of {{total}}",
-          { position: position, total: total },
-        )}
+        aria-valuetext={positionText}
         className="relative mt-2 h-6 cursor-pointer touch-none select-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         data-testid="llm-replay-scrubber"
+        onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+          if (total === 0) {
+            return;
+          }
+
+          if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+            event.preventDefault();
+            controller.pause();
+            controller.previous();
+          } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+            event.preventDefault();
+            controller.pause();
+            controller.next();
+          } else if (event.key === "Home") {
+            event.preventDefault();
+            controller.pause();
+            controller.restart();
+          } else if (event.key === "End") {
+            event.preventDefault();
+            controller.goToEnd();
+          }
+        }}
         onPointerDown={(event: React.PointerEvent<HTMLDivElement>) => {
+          if (total === 0) {
+            return;
+          }
+
           setIsDragging(true);
           event.currentTarget.setPointerCapture?.(event.pointerId);
           seekFromPointer(event.clientX);

@@ -26,6 +26,13 @@ import { JSONObject } from "../JSON";
 export const LLM_CONVERSATIONS_ROUTE: string = "/telemetry/llm/conversations";
 export const LLM_CONVERSATION_ROUTE: string = "/telemetry/llm/conversation";
 
+/*
+ * What an AI / LLM monitor would see right now: the answers of its window
+ * and how many were bad, for the monitor form's preview. The body is the
+ * monitor's step (MonitorStepLlmMonitor as JSON).
+ */
+export const LLM_ANSWER_STATS_ROUTE: string = "/telemetry/llm/answer-stats";
+
 export const LLM_CONVERSATION_PAGE_SIZE: number = 25;
 export const LLM_CONVERSATION_MAX_PAGE_SIZE: number = 100;
 
@@ -139,6 +146,16 @@ export interface LlmConversationDetailRequestBody {
   // The list row's first and last call, when known (ISO).
   startTime?: string | undefined;
   endTime?: string | undefined;
+}
+
+export interface LlmAnswerStatsResponse {
+  answerCount: number;
+  badAnswerCount: number;
+  // 0..100, two decimals; 0 when there were no answers.
+  badAnswerPercent: number;
+  // The window the counts cover (ISO).
+  startTime: string;
+  endTime: string;
 }
 
 export class LlmConversationKeyUtil {
@@ -377,6 +394,31 @@ export function readConversationListResponse(
         },
       ),
     hasMore: object["hasMore"] === true,
+  };
+}
+
+export function readAnswerStatsResponse(
+  value: unknown,
+): LlmAnswerStatsResponse | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const object: JSONObject = value as JSONObject;
+  const answerCount: number = Math.max(0, readNumber(object["answerCount"]));
+
+  return {
+    answerCount: answerCount,
+    badAnswerCount: Math.min(
+      answerCount,
+      Math.max(0, readNumber(object["badAnswerCount"])),
+    ),
+    badAnswerPercent: Math.min(
+      100,
+      Math.max(0, readNumber(object["badAnswerPercent"])),
+    ),
+    startTime: readString(object["startTime"]),
+    endTime: readString(object["endTime"]),
   };
 }
 

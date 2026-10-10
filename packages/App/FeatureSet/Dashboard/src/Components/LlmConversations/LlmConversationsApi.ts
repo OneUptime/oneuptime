@@ -5,7 +5,13 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import MonitorStepLlmMonitor, {
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import {
+  LLM_ANSWER_STATS_ROUTE,
+  LlmAnswerStatsResponse,
+  readAnswerStatsResponse,
   LLM_CONVERSATIONS_ROUTE,
   LLM_CONVERSATION_PAGE_SIZE,
   LLM_CONVERSATION_ROUTE,
@@ -139,6 +145,21 @@ export function readLlmConversationView(
       serviceIds: list("serviceIds") as Array<string>,
     },
   };
+}
+
+/*
+ * What an AI / LLM monitor with this step would count right now: the
+ * monitor form's preview. Null when the answer could not be read.
+ */
+export async function fetchLlmAnswerStats(
+  step: MonitorStepLlmMonitor,
+): Promise<LlmAnswerStatsResponse | null> {
+  const body: JSONObject = await post(
+    LLM_ANSWER_STATS_ROUTE,
+    MonitorStepLlmMonitorUtil.toJSON(step),
+  );
+
+  return readAnswerStatsResponse(body);
 }
 
 export async function fetchLlmConversation(data: {

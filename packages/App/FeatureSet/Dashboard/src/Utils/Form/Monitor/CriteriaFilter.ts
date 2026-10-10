@@ -60,7 +60,8 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
-      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
+      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
@@ -438,6 +439,21 @@ export default class CriteriaFilterUtil {
     }
 
     /*
+     * AI / LLM monitors compare their answers: the share that was bad
+     * first, since that is what most alerts on an AI want, then the count
+     * of bad answers and the count of answers ("the AI stopped answering").
+     */
+    if (monitorType === MonitorType.Llm) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.LlmBadAnswerPercent ||
+          i.value === CheckOn.LlmBadAnswerCount ||
+          i.value === CheckOn.LlmAnswerCount
+        );
+      });
+    }
+
+    /*
      * Every monitor type whose criteria the server hands to
      * MetricMonitorCriteria: the metric-only types this form already pins
      * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
@@ -665,6 +681,28 @@ export default class CriteriaFilterUtil {
             i.value === FilterType.AnomalouslyLow ||
             i.value === FilterType.Anomalous);
         return baseStatic || baseAnomaly;
+      });
+    }
+
+    /*
+     * The AI / LLM numbers are compared by LlmMonitorCriteria with
+     * CompareCriteria.compareCriteriaNumbers: these six conditions, and no
+     * anomaly baseline behind any of them.
+     */
+    if (
+      checkOn === CheckOn.LlmBadAnswerPercent ||
+      checkOn === CheckOn.LlmBadAnswerCount ||
+      checkOn === CheckOn.LlmAnswerCount
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo
+        );
       });
     }
 
@@ -1614,6 +1652,18 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SecurityEventCount) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerPercent) {
+      return "5";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerCount) {
+      return "3";
+    }
+
+    if (checkOn === CheckOn.LlmAnswerCount) {
+      return "0";
     }
 
     if (checkOn === CheckOn.ServerProcessCommand) {

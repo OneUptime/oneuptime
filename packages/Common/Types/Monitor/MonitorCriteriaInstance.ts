@@ -109,6 +109,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
   public static readonly DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 14;
   public static readonly DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS: number = 30;
 
+  /*
+   * When a new AI / LLM monitor says the AI is answering badly: more than
+   * DEFAULT_LLM_BAD_ANSWER_PERCENT of its answers in the window were bad,
+   * and at least DEFAULT_LLM_MIN_BAD_ANSWERS of them. The share is what
+   * matters for an AI that answers thousands of times an hour - a few
+   * refusals are normal there - and the floor keeps one bad answer out of
+   * two from paging anyone at 3 a.m.
+   */
+  public static readonly DEFAULT_LLM_BAD_ANSWER_PERCENT: number = 5;
+  public static readonly DEFAULT_LLM_MIN_BAD_ANSWERS: number = 3;
+
   public data: MonitorCriteriaInstanceType | undefined = undefined;
 
   public constructor() {
@@ -230,6 +241,45 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
         description: `This criteria checks if the email body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Llm) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * The complement of the offline default below, so every check lands
+       * on one of the two: a share of bad answers at or under the limit, or
+       * fewer bad answers than the floor, is healthy. A window with no
+       * answers at all is healthy too (0%) - quiet is not broken; "the AI
+       * stopped answering" is a criteria on AI Answers of its own.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} is answering well`,
+        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad`,
       };
 
       return monitorCriteriaInstance;
@@ -1411,6 +1461,56 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} is offline or responds with an error status code`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.Llm) {
+      /*
+       * An alert, not an incident: answers going wrong is a quality
+       * problem worth a look, rarely an outage. Teams that want to page on
+       * it switch incidents on in the criteria.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.GreaterThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName}: the AI is answering badly`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName}: the AI is answering badly`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: true,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} is answering badly`,
+        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
       };
     }
 

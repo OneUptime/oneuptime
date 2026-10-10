@@ -9,6 +9,14 @@ import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupM
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLlmMonitor, {
+  LlmBadAnswerRule,
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
+import {
+  LlmAnswerIssue,
+  LlmAnswerIssueUtil,
+} from "Common/Types/Telemetry/LlmAnswerIssue";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   DEFAULT_NTP_PORT,
@@ -426,6 +434,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getLogRows(data);
       case MonitorType.SecurityEvents:
         return MonitorStepViewModel.getSecurityEventsRows(data);
+      case MonitorType.Llm:
+        return MonitorStepViewModel.getLlmRows(data);
       case MonitorType.Traces:
         return MonitorStepViewModel.getTraceRows(data);
       case MonitorType.Exceptions:
@@ -1234,6 +1244,69 @@ export default class MonitorStepViewModel {
           },
         ),
         placeholder: "No telemetry services entered",
+      }),
+    ]);
+  }
+
+  /*
+   * What an AI / LLM monitor counts as a bad answer, where it looks and over
+   * what window - read through MonitorStepLlmMonitorUtil, so a step saved
+   * without a field shows what the check really uses.
+   */
+  private static getLlmRows(data: MonitorStepType): Array<MonitorStepViewRow> {
+    const llmMonitor: MonitorStepLlmMonitor =
+      MonitorStepLlmMonitorUtil.fromJSON(
+        (data.llmMonitor || {}) as unknown as JSONObject,
+      );
+    const rule: LlmBadAnswerRule =
+      MonitorStepLlmMonitorUtil.getBadAnswerRule(llmMonitor);
+
+    return compact([
+      {
+        key: "llmBadAnswerIssues",
+        title: "Count an answer as bad when it",
+        description: "The problems that make an AI answer count as bad.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: rule.issues.map((issue: LlmAnswerIssue): string => {
+          return LlmAnswerIssueUtil.getInfo(issue).title;
+        }),
+        placeholder: "Only slow answers count",
+      },
+      optional({
+        key: "llmSlowAnswerSeconds",
+        title: "Or takes longer than",
+        description: "An answer slower than this counts as bad too.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(llmMonitor.slowAnswerSeconds),
+        placeholder: "No limit",
+      }),
+      optional({
+        key: "llmModel",
+        title: "Model",
+        description: "Only answers from this model count.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(llmMonitor.model),
+        placeholder: "Any model",
+      }),
+      optional({
+        key: "lastXSecondsOfCalls",
+        title: "Look at answers from the last (time)",
+        description: "How far back each check looks.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(llmMonitor.lastXSecondsOfCalls),
+        placeholder: "15 minutes",
+      }),
+      optional({
+        key: "llmTelemetryServices",
+        title: "Apps",
+        description: "The apps whose AI answers count. Every app when empty.",
+        valueType: MonitorStepViewValueType.TelemetryServices,
+        value: llmMonitor.telemetryServiceIds.map(
+          (serviceId: { toString: () => string }) => {
+            return serviceId.toString();
+          },
+        ),
+        placeholder: "Every app",
       }),
     ]);
   }

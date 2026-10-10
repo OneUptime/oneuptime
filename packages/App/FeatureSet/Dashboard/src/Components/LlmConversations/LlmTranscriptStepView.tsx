@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -48,6 +43,10 @@ import {
  *   - a failed call as a red card with its error;
  *   - an answer whose content was not recorded, with how to record it.
  *
+ * The time on each message replays the conversation from that message.
+ * Nothing here is a control inside another control: the bubbles are text
+ * people select and copy, and their buttons sit beside the text.
+ *
  * Long text is folded behind "Show more": a conversation with a pasted
  * document must not become a page of scrolling. AI answers render as
  * Markdown in safe mode (links are not clickable and images never load), and
@@ -63,12 +62,15 @@ export interface ComponentProps {
   isCurrent: boolean;
   // The person who wrote the user messages ("" when unknown).
   personLabel: string;
-  // Where "Open in Traces" goes for the step's call.
-  traceRoute: (step: LlmTranscriptStep) => Route;
-  // Where "How to record content" goes.
+  // Where "Open this call in Traces" goes.
+  traceRoute: Route;
+  // Where "How to record prompts and answers" goes.
   setupRoute: Route;
-  onSelect: () => void;
+  // Replay the conversation from this message (the time's button).
+  onReplayFromHere?: (() => void) | undefined;
 }
+
+const CURRENT_RING: string = "ring-2 ring-indigo-400";
 
 const FoldableText: FunctionComponent<{
   text: string;
@@ -91,7 +93,7 @@ const FoldableText: FunctionComponent<{
   return (
     <div data-testid={props.dataTestId}>
       {props.markdown ? (
-        <div className="text-sm leading-6 text-gray-800">
+        <div className="break-words text-sm leading-6 text-gray-800">
           <LazyMarkdownViewer text={shown} safeMode={true} />
         </div>
       ) : (
@@ -103,9 +105,9 @@ const FoldableText: FunctionComponent<{
         <button
           type="button"
           className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+          aria-expanded={isOpen}
           data-testid={`${props.dataTestId}-toggle`}
-          onClick={(event: React.MouseEvent) => {
-            event.stopPropagation();
+          onClick={() => {
             setIsOpen(!isOpen);
           }}
         >
@@ -138,31 +140,61 @@ function issuesOf(step: LlmTranscriptStep): Array<LlmAnswerIssue> {
   return LlmAnswerIssueUtil.fromValues(step.call.issues);
 }
 
-const StepTime: FunctionComponent<{ atMs: number }> = (props: {
+/*
+ * The time a message arrived (its date on hover). With a replay action it
+ * is a button: replay the conversation from this message.
+ */
+export const LlmStepTime: FunctionComponent<{
   atMs: number;
+  onReplayFromHere?: (() => void) | undefined;
+}> = (props: {
+  atMs: number;
+  onReplayFromHere?: (() => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const date: Date = new Date(props.atMs);
 
   if (Number.isNaN(date.getTime()) || props.atMs <= 0) {
     return <></>;
   }
 
-  // The time on the message; the full date on hover.
+  const text: string = OneUptimeDate.getLocalTimeString(date, {
+    includeSeconds: true,
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+  const fullDate: string =
+    OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date, false, true);
+
+  if (!props.onReplayFromHere) {
+    return (
+      <span
+        className="text-xs text-gray-400"
+        data-testid="llm-step-time"
+        title={fullDate}
+      >
+        {text}
+      </span>
+    );
+  }
+
   return (
-    <span
-      className="text-xs text-gray-400"
+    <button
+      type="button"
+      className="rounded text-xs text-gray-400 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       data-testid="llm-step-time"
-      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        date,
-        false,
-        true,
+      title={
+        translator.translateTemplate("{{date}} - replay from here", {
+          date: fullDate,
+        }) || fullDate
+      }
+      aria-label={translator.translateTemplate(
+        "Replay the conversation from {{time}}",
+        { time: text },
       )}
+      onClick={props.onReplayFromHere}
     >
-      {OneUptimeDate.getLocalTimeString(date, {
-        includeSeconds: true,
-        use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-      })}
-    </span>
+      {text}
+    </button>
   );
 };
 
@@ -218,7 +250,8 @@ const AnswerMeta: FunctionComponent<{
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const step: LlmTranscriptStep = props.step;
   const issues: Array<LlmAnswerIssue> = issuesOf(step);
-  const tokens: number = step.call.inputTokens + step.call.outputTokens;
+  const tokens: number =
+    (Number(step.call.inputTokens) || 0) + (Number(step.call.outputTokens) || 0);
 
   const facts: Array<string> = [];
 
@@ -262,11 +295,10 @@ const AnswerMeta: FunctionComponent<{
         })}
         <button
           type="button"
-          className="ml-1 inline-flex items-center gap-0.5 font-medium text-gray-500 hover:text-gray-900"
+          className="ml-1 inline-flex items-center gap-0.5 rounded font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-expanded={isOpen}
           data-testid="llm-step-details-toggle"
-          onClick={(event: React.MouseEvent) => {
-            event.stopPropagation();
+          onClick={() => {
             setIsOpen(!isOpen);
           }}
         >
@@ -302,7 +334,9 @@ const AnswerMeta: FunctionComponent<{
                 {translator.translateText("Tokens in / out")}
               </dt>
               <dd className="font-medium text-gray-800">
-                {`${step.call.inputTokens.toLocaleString()} / ${step.call.outputTokens.toLocaleString()}`}
+                {`${(Number(step.call.inputTokens) || 0).toLocaleString()} / ${(
+                  Number(step.call.outputTokens) || 0
+                ).toLocaleString()}`}
               </dd>
             </div>
             {step.call.finishReasons.length > 0 ? (
@@ -399,7 +433,7 @@ const AnswerMeta: FunctionComponent<{
               to={props.traceRoute}
               className="font-medium text-indigo-600 hover:text-indigo-700"
             >
-              {translator.translateText("Open this call in Traces")}
+              {translator.translateText("Open this call in Traces") || ""}
             </AppLink>
           </div>
         </div>
@@ -429,21 +463,121 @@ const Avatar: FunctionComponent<{
   );
 };
 
-const CURRENT_RING: string = "ring-2 ring-indigo-400";
+/*
+ * A tool the AI asked for, or what the tool returned: an indented card so
+ * the eye can skip it while reading the conversation, with the arguments
+ * or the result on one line and the full JSON a click away.
+ */
+const ToolCard: FunctionComponent<{
+  step: LlmTranscriptStep;
+  isCurrent: boolean;
+  onReplayFromHere?: (() => void) | undefined;
+}> = (props: {
+  step: LlmTranscriptStep;
+  isCurrent: boolean;
+  onReplayFromHere?: (() => void) | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const step: LlmTranscriptStep = props.step;
+  const isCall: boolean = step.type === LlmTranscriptStepType.ToolCall;
+  const value: string = isCall ? step.toolArguments : step.text;
+  const oneLine: string = isCall
+    ? truncateLlmText(compactLlmArguments(value), 400)
+    : truncateLlmText(collapseLlmWhitespace(value, 2000), 400);
+  const toolName: string =
+    step.toolName || step.call.name || translator.translateText("a tool") || "";
+
+  return (
+    <div
+      className="flex items-start gap-3 pl-11"
+      data-testid="llm-step"
+      data-step-type={step.type}
+      data-step-id={step.id}
+    >
+      <div
+        className={`min-w-0 max-w-full flex-1 rounded-lg bg-white px-3 py-2 ring-1 ring-inset ring-gray-200 sm:max-w-[85%] ${
+          props.isCurrent ? CURRENT_RING : ""
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md ${
+              isCall ? "bg-cyan-50" : "bg-teal-50"
+            }`}
+            aria-hidden="true"
+          >
+            <Icon
+              icon={isCall ? IconProp.Wrench : IconProp.ArrowUturnLeft}
+              className={`h-3.5 w-3.5 ${isCall ? "text-cyan-600" : "text-teal-600"}`}
+            />
+          </div>
+          <div
+            className="min-w-0 flex-1 truncate text-xs text-gray-600"
+            data-testid="llm-tool-heading"
+          >
+            {isCall
+              ? translator.translateTemplate("Called {{tool}}", {
+                  tool: toolName,
+                })
+              : translator.translateTemplate("{{tool}} returned", {
+                  tool: toolName,
+                })}
+          </div>
+          <LlmStepTime
+            atMs={step.atMs}
+            onReplayFromHere={props.onReplayFromHere}
+          />
+          {value ? (
+            <button
+              type="button"
+              className="flex-shrink-0 rounded text-xs font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-expanded={isOpen}
+              data-testid="llm-tool-toggle"
+              onClick={() => {
+                setIsOpen(!isOpen);
+              }}
+            >
+              {isOpen
+                ? translator.translateText("Hide")
+                : translator.translateText("Show")}
+            </button>
+          ) : (
+            <></>
+          )}
+        </div>
+        {value && !isOpen ? (
+          <div
+            className="mt-1 truncate font-mono text-xs text-gray-500"
+            data-testid="llm-tool-one-line"
+          >
+            {oneLine}
+          </div>
+        ) : (
+          <></>
+        )}
+        {value && isOpen ? (
+          <CodeBlock value={prettyLlmJson(value)} dataTestId="llm-tool-value" />
+        ) : (
+          <></>
+        )}
+        {!value && !isCall ? (
+          <div className="mt-1 text-xs italic text-gray-500">
+            {translator.translateText("The result was not recorded.")}
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const step: LlmTranscriptStep = props.step;
-  const traceRoute: Route = useMemo(() => {
-    return props.traceRoute(step);
-  }, [step]);
-
-  const select: () => void = (): void => {
-    props.onSelect();
-  };
-
   const currentRing: string = props.isCurrent ? CURRENT_RING : "";
 
   switch (step.type) {
@@ -455,23 +589,18 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           data-step-type={step.type}
           data-step-id={step.id}
         >
-          <div className="flex max-w-[92%] flex-col items-end sm:max-w-[80%]">
+          <div className="flex min-w-0 max-w-[92%] flex-col items-end sm:max-w-[80%]">
             <div className="mb-1 flex items-center gap-2 text-xs text-gray-500">
               <span className="font-medium text-gray-700">
                 {props.personLabel || translator.translateText("User")}
               </span>
-              <StepTime atMs={step.atMs} />
+              <LlmStepTime
+                atMs={step.atMs}
+                onReplayFromHere={props.onReplayFromHere}
+              />
             </div>
             <div
-              role="button"
-              tabIndex={0}
-              onClick={select}
-              onKeyDown={(event: React.KeyboardEvent) => {
-                if (event.key === "Enter") {
-                  select();
-                }
-              }}
-              className={`cursor-pointer rounded-2xl rounded-tr-sm bg-indigo-50 px-4 py-2.5 text-left ring-1 ring-inset ring-indigo-100 ${currentRing}`}
+              className={`min-w-0 max-w-full rounded-2xl rounded-tr-sm bg-indigo-50 px-4 py-2.5 ring-1 ring-inset ring-indigo-100 ${currentRing}`}
             >
               {step.text ? (
                 <FoldableText
@@ -510,36 +639,33 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
                 <span
                   className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600"
                   data-testid="llm-step-from-history"
+                  title={
+                    translator.translateText(
+                      "Your app sent this answer back to the AI as history. The call that wrote it was not recorded.",
+                    ) || ""
+                  }
                 >
-                  {translator.translateText("Earlier answer, from the app")}
+                  {translator.translateText("From the chat history")}
                 </span>
               ) : (
-                <StepTime atMs={step.atMs} />
+                <LlmStepTime
+                  atMs={step.atMs}
+                  onReplayFromHere={props.onReplayFromHere}
+                />
               )}
             </div>
             <div
-              role="button"
-              tabIndex={0}
-              onClick={select}
-              onKeyDown={(event: React.KeyboardEvent) => {
-                if (event.key === "Enter") {
-                  select();
-                }
-              }}
-              className={`cursor-pointer rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-left shadow-sm ring-1 ring-inset ring-gray-200 ${currentRing}`}
+              className={`rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm ring-1 ring-inset ring-gray-200 ${currentRing}`}
             >
               {step.reasoning ? (
                 <details
                   className="mb-2 text-xs text-gray-500"
                   data-testid="llm-step-reasoning"
-                  onClick={(event: React.MouseEvent) => {
-                    event.stopPropagation();
-                  }}
                 >
                   <summary className="cursor-pointer select-none font-medium text-gray-600">
                     {translator.translateText("Thinking")}
                   </summary>
-                  <div className="mt-1 whitespace-pre-wrap border-l-2 border-gray-200 pl-3 italic">
+                  <div className="mt-1 whitespace-pre-wrap break-words border-l-2 border-gray-200 pl-3 italic">
                     {truncateLlmText(step.reasoning, 20_000)}
                   </div>
                 </details>
@@ -557,16 +683,14 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
                   className="text-sm italic text-gray-500"
                   data-testid="llm-step-empty-answer"
                 >
-                  {translator.translateText(
-                    "The AI returned an empty answer.",
-                  )}
+                  {translator.translateText("The AI returned an empty answer.")}
                 </div>
               )}
               <MediaList media={step.media} />
               {step.fromHistory ? (
                 <></>
               ) : (
-                <AnswerMeta step={step} traceRoute={traceRoute} />
+                <AnswerMeta step={step} traceRoute={props.traceRoute} />
               )}
             </div>
           </div>
@@ -574,22 +698,12 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
       );
 
     case LlmTranscriptStepType.ToolCall:
-      return (
-        <ToolCard
-          step={step}
-          isCurrent={props.isCurrent}
-          onSelect={select}
-          traceRoute={traceRoute}
-        />
-      );
-
     case LlmTranscriptStepType.ToolResult:
       return (
         <ToolCard
           step={step}
           isCurrent={props.isCurrent}
-          onSelect={select}
-          traceRoute={traceRoute}
+          onReplayFromHere={props.onReplayFromHere}
         />
       );
 
@@ -607,15 +721,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
             iconClassName="text-red-600"
           />
           <div
-            role="button"
-            tabIndex={0}
-            onClick={select}
-            onKeyDown={(event: React.KeyboardEvent) => {
-              if (event.key === "Enter") {
-                select();
-              }
-            }}
-            className={`min-w-0 max-w-[92%] flex-1 cursor-pointer rounded-2xl rounded-tl-sm bg-red-50 px-4 py-3 text-left ring-1 ring-inset ring-red-200 sm:max-w-[85%] ${currentRing}`}
+            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm bg-red-50 px-4 py-3 ring-1 ring-inset ring-red-200 sm:max-w-[85%] ${currentRing}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-medium text-red-700">
@@ -625,7 +731,10 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
                     })
                   : translator.translateText("The AI call failed")}
               </div>
-              <StepTime atMs={step.atMs} />
+              <LlmStepTime
+                atMs={step.atMs}
+                onReplayFromHere={props.onReplayFromHere}
+              />
             </div>
             {step.text ? (
               <div
@@ -639,7 +748,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
                 {translator.translateText("No error message was reported.")}
               </div>
             )}
-            <AnswerMeta step={step} traceRoute={traceRoute} />
+            <AnswerMeta step={step} traceRoute={props.traceRoute} />
           </div>
         </div>
       );
@@ -658,15 +767,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
             iconClassName="text-gray-500"
           />
           <div
-            role="button"
-            tabIndex={0}
-            onClick={select}
-            onKeyDown={(event: React.KeyboardEvent) => {
-              if (event.key === "Enter") {
-                select();
-              }
-            }}
-            className={`min-w-0 max-w-[92%] flex-1 cursor-pointer rounded-2xl rounded-tl-sm border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-left sm:max-w-[85%] ${currentRing}`}
+            className={`min-w-0 max-w-[92%] flex-1 rounded-2xl rounded-tl-sm border border-dashed border-gray-300 bg-gray-50 px-4 py-3 sm:max-w-[85%] ${currentRing}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm text-gray-600">
@@ -674,15 +775,19 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
                   "The AI answered. What it said was not recorded.",
                 )}
               </div>
-              <StepTime atMs={step.atMs} />
+              <LlmStepTime
+                atMs={step.atMs}
+                onReplayFromHere={props.onReplayFromHere}
+              />
             </div>
             <AppLink
               to={props.setupRoute}
               className="mt-1 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-700"
             >
-              {translator.translateText("How to record prompts and answers")}
+              {translator.translateText("How to record prompts and answers") ||
+                ""}
             </AppLink>
-            <AnswerMeta step={step} traceRoute={traceRoute} />
+            <AnswerMeta step={step} traceRoute={props.traceRoute} />
           </div>
         </div>
       );
@@ -695,10 +800,8 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           data-step-type={step.type}
           data-step-id={step.id}
         >
-          <button
-            type="button"
-            onClick={select}
-            className={`inline-flex max-w-full items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 hover:bg-gray-200 ${currentRing}`}
+          <div
+            className={`inline-flex max-w-full items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 ${currentRing}`}
           >
             <Icon
               icon={
@@ -713,7 +816,7 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
               {step.call.model ? ` · ${step.call.model}` : ""}
               {` · ${formatLlmDuration(step.call.durationMs)}`}
             </span>
-          </button>
+          </div>
         </div>
       );
 
@@ -726,14 +829,11 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           data-step-id={step.id}
         >
           <div className="h-px flex-1 bg-gray-200" />
-          <details
-            className="max-w-[80%] text-xs text-gray-500"
-            onClick={select}
-          >
+          <details className="min-w-0 max-w-[80%] text-xs text-gray-500">
             <summary className="cursor-pointer select-none text-center font-medium text-gray-600">
               {translator.translateText("The AI's instructions changed")}
             </summary>
-            <div className="mt-2 whitespace-pre-wrap rounded-md bg-gray-50 px-3 py-2 text-gray-700 ring-1 ring-inset ring-gray-200">
+            <div className="mt-2 whitespace-pre-wrap break-words rounded-md bg-gray-50 px-3 py-2 text-gray-700 ring-1 ring-inset ring-gray-200">
               {truncateLlmText(step.text, 20_000)}
             </div>
           </details>
@@ -744,122 +844,6 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
     default:
       return <></>;
   }
-};
-
-/*
- * A tool the AI asked for, or what the tool returned: an indented card so
- * the eye can skip it while reading the conversation, with the arguments
- * or the result on one line and the full JSON a click away.
- */
-const ToolCard: FunctionComponent<{
-  step: LlmTranscriptStep;
-  isCurrent: boolean;
-  onSelect: () => void;
-  traceRoute: Route;
-}> = (props: {
-  step: LlmTranscriptStep;
-  isCurrent: boolean;
-  onSelect: () => void;
-  traceRoute: Route;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const step: LlmTranscriptStep = props.step;
-  const isCall: boolean = step.type === LlmTranscriptStepType.ToolCall;
-  const value: string = isCall ? step.toolArguments : step.text;
-  const oneLine: string = isCall
-    ? compactLlmArguments(value)
-    : truncateLlmText(collapseLlmWhitespace(value, 2000), 400);
-  const toolName: string =
-    step.toolName || translator.translateText("a tool") || "";
-
-  return (
-    <div
-      className="flex items-start gap-3 pl-11"
-      data-testid="llm-step"
-      data-step-type={step.type}
-      data-step-id={step.id}
-    >
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={props.onSelect}
-        onKeyDown={(event: React.KeyboardEvent) => {
-          if (event.key === "Enter") {
-            props.onSelect();
-          }
-        }}
-        className={`min-w-0 max-w-full flex-1 cursor-pointer rounded-lg bg-white px-3 py-2 text-left ring-1 ring-inset ring-gray-200 sm:max-w-[85%] ${
-          props.isCurrent ? CURRENT_RING : ""
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <div
-            className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md ${
-              isCall ? "bg-cyan-50" : "bg-teal-50"
-            }`}
-            aria-hidden="true"
-          >
-            <Icon
-              icon={isCall ? IconProp.Wrench : IconProp.ArrowUturnLeft}
-              className={`h-3.5 w-3.5 ${isCall ? "text-cyan-600" : "text-teal-600"}`}
-            />
-          </div>
-          <div className="min-w-0 flex-1 text-xs text-gray-600">
-            <span data-testid="llm-tool-heading">
-              {isCall
-                ? translator.translateTemplate("Called {{tool}}", {
-                    tool: toolName,
-                  })
-                : translator.translateTemplate("{{tool}} returned", {
-                    tool: toolName,
-                  })}
-            </span>
-          </div>
-          {value ? (
-            <button
-              type="button"
-              className="flex-shrink-0 text-xs font-medium text-gray-500 hover:text-gray-900"
-              aria-expanded={isOpen}
-              data-testid="llm-tool-toggle"
-              onClick={(event: React.MouseEvent) => {
-                event.stopPropagation();
-                setIsOpen(!isOpen);
-              }}
-            >
-              {isOpen
-                ? translator.translateText("Hide")
-                : translator.translateText("Show")}
-            </button>
-          ) : (
-            <></>
-          )}
-        </div>
-        {value && !isOpen ? (
-          <div
-            className="mt-1 truncate font-mono text-xs text-gray-500"
-            data-testid="llm-tool-one-line"
-          >
-            {oneLine}
-          </div>
-        ) : (
-          <></>
-        )}
-        {value && isOpen ? (
-          <CodeBlock value={prettyLlmJson(value)} dataTestId="llm-tool-value" />
-        ) : (
-          <></>
-        )}
-        {!value && !isCall ? (
-          <div className="mt-1 text-xs italic text-gray-500">
-            {translator.translateText("The result was not recorded.")}
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
-    </div>
-  );
 };
 
 export default LlmTranscriptStepView;

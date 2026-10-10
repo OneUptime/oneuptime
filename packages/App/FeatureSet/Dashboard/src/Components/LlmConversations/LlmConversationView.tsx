@@ -50,15 +50,19 @@ import {
   LlmConversationReplayController,
   useLlmConversationReplay,
 } from "./useLlmConversationReplay";
-import { getLlmPendingAnswer, LlmPendingAnswer, readLlmStepParam } from "./LlmReplayModel";
-import { getLlmReplayKeyAction, LlmReplayKeyAction } from "./LlmReplayKeyboard";
+import {
+  LlmPendingAnswer,
+  getLlmPendingAnswer,
+  readLlmStepParam,
+} from "./LlmReplayModel";
+import { LlmReplayKeyAction, getLlmReplayKeyAction } from "./LlmReplayKeyboard";
 import {
   formatLlmCost,
   formatLlmDuration,
   formatLlmTokens,
   truncateLlmText,
 } from "./LlmConversationFormat";
-import { useLlmServiceNames, LlmServiceNames } from "./useLlmServiceNames";
+import { LlmServiceNames, useLlmServiceNames } from "./useLlmServiceNames";
 
 /*
  * ONE CONVERSATION, TO READ OR TO REPLAY.
@@ -66,12 +70,16 @@ import { useLlmServiceNames, LlmServiceNames } from "./useLlmServiceNames";
  * Opens with the whole conversation on screen, the way a chat app shows its
  * history: what the person said on the right, the AI's answers on the left
  * with their model, time, tokens and cost, tool calls between them, and
- * what went wrong marked where it happened. The bar at the bottom replays
- * it the way session replay replays a visit - from the first message, at
- * the pace it really happened (long silences shortened), with "AI is
- * answering…" counting up while an answer is on its way. Clicking a message
- * moves the replay there; the URL keeps the message (?step=), so a link
- * points at the moment.
+ * what went wrong marked where it happened.
+ *
+ * The bar at the bottom replays it the way session replay replays a visit:
+ * from the first message (or from any message - its time is a button), at
+ * the pace it really happened with long silences shortened, "AI is
+ * answering…" counting up while an answer is on its way. While a replay is
+ * part-way, the messages still to come are hidden and the end of the
+ * transcript says how many, with a way back to the whole conversation. The
+ * URL keeps the message a replay stopped at (?step=), so a link points at
+ * that moment.
  */
 
 type LoadState =
@@ -81,6 +89,33 @@ type LoadState =
   | { kind: "invalid" };
 
 const NO_STEPS: Array<LlmTranscriptStep> = [];
+
+interface Fact {
+  key: string;
+  icon: IconProp;
+  text: string;
+}
+
+export function getLlmConversationTitle(data: {
+  transcript: LlmTranscript;
+  kind: LlmConversationKeyKind;
+  conversationId: string;
+  translator: Translator;
+}): string {
+  if (data.transcript.title) {
+    return truncateLlmText(data.transcript.title, 200);
+  }
+
+  const firstTraceId: string = data.transcript.steps[0]?.call.traceId || "";
+
+  return data.kind === LlmConversationKeyKind.Request
+    ? data.translator.translateTemplate("Request {{id}}", {
+        id: firstTraceId.slice(0, 8),
+      })
+    : data.translator.translateTemplate("Conversation {{id}}", {
+        id: truncateLlmText(data.conversationId, 40),
+      });
+}
 
 const LlmConversationView: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -122,9 +157,10 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
             ? { kind: "loaded", data: data }
             : {
                 kind: "error",
-                message: translator.translateText(
-                  "The conversation could not be read.",
-                ) || "",
+                message:
+                  translator.translateText(
+                    "The conversation could not be read.",
+                  ) || "",
               },
         );
       })
@@ -162,7 +198,8 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
    * A ?step= link arrives before the transcript does: once it has loaded,
    * put the clock on that step.
    */
-  const appliedStepRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const appliedStepRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   useEffect(() => {
     if (appliedStepRef.current || steps.length === 0) {
@@ -188,8 +225,9 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
   }, [replay.currentIndex, replay.isPlaying, replay.isAtEnd, steps.length]);
 
   // Follow the newest message while playing.
-  const stepRefs: React.MutableRefObject<Map<string, HTMLDivElement>> =
-    useRef<Map<string, HTMLDivElement>>(new Map<string, HTMLDivElement>());
+  const stepRefs: React.MutableRefObject<Map<string, HTMLDivElement>> = useRef<
+    Map<string, HTMLDivElement>
+  >(new Map<string, HTMLDivElement>());
 
   useEffect(() => {
     if (!replay.isPlaying || replay.currentIndex < 0) {
@@ -204,7 +242,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     element?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
   }, [replay.currentIndex, replay.isPlaying]);
 
-  // The keyboard, while this page is open.
+  // The replay's keys, while this page is open (see LlmReplayKeyboard).
   const handleKey: (event: KeyboardEvent) => void = useCallback(
     (event: KeyboardEvent): void => {
       const target: HTMLElement | null = event.target as HTMLElement | null;
@@ -229,16 +267,12 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
           replay.togglePlay();
           break;
         case "previous":
+          replay.pause();
           replay.previous();
           break;
         case "next":
+          replay.pause();
           replay.next();
-          break;
-        case "restart":
-          replay.restart();
-          break;
-        case "end":
-          replay.goToEnd();
           break;
       }
     },
@@ -258,16 +292,20 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
 
   if (state.kind === "invalid") {
     return (
-      <div className="rounded-lg bg-white shadow" data-testid="llm-conversation-invalid">
+      <div
+        className="rounded-lg bg-white shadow"
+        data-testid="llm-conversation-invalid"
+      >
         <TableEmptyState
           kind={TableEmptyStateKind.Filtered}
           icon={IconProp.ChatBubbleLeftRight}
-          title="This link does not point to a conversation."
+          title="This link does not point to a conversation"
           description="Open the conversation again from the list."
           actions={[
             {
               title: "All conversations",
               icon: IconProp.ArrowLeft,
+              dataTestId: "llm-conversation-back",
               onClick: () => {
                 Navigation.navigate(listRoute);
               },
@@ -280,10 +318,13 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
 
   if (state.kind === "error") {
     return (
-      <div className="rounded-lg bg-white shadow" data-testid="llm-conversation-error">
+      <div
+        className="rounded-lg bg-white shadow"
+        data-testid="llm-conversation-error"
+      >
         <TableEmptyState
           kind={TableEmptyStateKind.Error}
-          title="Couldn't load this conversation."
+          title="Couldn't load this conversation"
           description={state.message}
           actions={[
             {
@@ -317,16 +358,20 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
 
   if (steps.length === 0) {
     return (
-      <div className="rounded-lg bg-white shadow" data-testid="llm-conversation-not-found">
+      <div
+        className="rounded-lg bg-white shadow"
+        data-testid="llm-conversation-not-found"
+      >
         <TableEmptyState
           kind={TableEmptyStateKind.Filtered}
           icon={IconProp.ChatBubbleLeftRight}
-          title="No AI calls found for this conversation."
+          title="No AI calls found for this conversation"
           description="It may be older than your telemetry retention, or in an app you cannot see."
           actions={[
             {
               title: "All conversations",
               icon: IconProp.ArrowLeft,
+              dataTestId: "llm-conversation-back",
               onClick: () => {
                 Navigation.navigate(listRoute);
               },
@@ -337,11 +382,12 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     );
   }
 
-  const issues: Array<LlmAnswerIssue> = LlmAnswerIssueUtil.getAllIssues().filter(
-    (issue: LlmAnswerIssue): boolean => {
-      return (transcript.issueCounts[issue] || 0) > 0;
-    },
-  );
+  const issues: Array<LlmAnswerIssue> =
+    LlmAnswerIssueUtil.getAllIssues().filter(
+      (issue: LlmAnswerIssue): boolean => {
+        return (transcript.issueCounts[issue] || 0) > 0;
+      },
+    );
 
   const appNames: Array<string> = transcript.serviceIds
     .map((id: string): string => {
@@ -354,10 +400,14 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
   const firstTraceId: string = steps[0]?.call.traceId || "";
   const personLabel: string = transcript.users[0] || "";
 
-  const facts: Array<{ key: string; icon: IconProp; text: string }> = [];
+  const facts: Array<Fact> = [];
 
   if (personLabel) {
-    facts.push({ key: "person", icon: IconProp.User, text: transcript.users.join(", ") });
+    facts.push({
+      key: "person",
+      icon: IconProp.User,
+      text: transcript.users.join(", "),
+    });
   }
 
   if (appNames.length > 0) {
@@ -408,25 +458,25 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
       key: "tokens",
       icon: IconProp.Hashtag,
       text: translator.translateTemplate("{{tokens}} tokens", {
-        tokens: formatLlmTokens(transcript.inputTokens + transcript.outputTokens),
+        tokens: formatLlmTokens(
+          transcript.inputTokens + transcript.outputTokens,
+        ),
       }),
     });
   }
 
-  const title: string = transcript.title
-    ? truncateLlmText(transcript.title, 200)
-    : data.kind === LlmConversationKeyKind.Request
-      ? translator.translateTemplate("Request {{id}}", {
-          id: firstTraceId.slice(0, 8),
-        })
-      : translator.translateTemplate("Conversation {{id}}", {
-          id: truncateLlmText(data.conversationId, 40),
-        });
+  const title: string = getLlmConversationTitle({
+    transcript: transcript,
+    kind: data.kind,
+    conversationId: data.conversationId,
+    translator: translator,
+  });
 
   const visibleSteps: Array<LlmTranscriptStep> = steps.slice(
     0,
     replay.visibleCount,
   );
+  const hiddenCount: number = steps.length - visibleSteps.length;
 
   const pending: LlmPendingAnswer | null = getLlmPendingAnswer(
     steps,
@@ -452,7 +502,10 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50">
+            <div
+              className="hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 sm:flex"
+              aria-hidden="true"
+            >
               <Icon
                 icon={IconProp.ChatBubbleLeftRight}
                 className="h-6 w-6 text-indigo-600"
@@ -466,23 +519,21 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                 {title}
               </h2>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-gray-500">
-                {facts.map(
-                  (fact: { key: string; icon: IconProp; text: string }) => {
-                    return (
-                      <div
-                        key={fact.key}
-                        className="flex min-w-0 items-center gap-1.5"
-                        data-fact={fact.key}
-                      >
-                        <Icon
-                          icon={fact.icon}
-                          className="h-4 w-4 flex-shrink-0 text-gray-400"
-                        />
-                        <div className="truncate">{fact.text}</div>
-                      </div>
-                    );
-                  },
-                )}
+                {facts.map((fact: Fact) => {
+                  return (
+                    <div
+                      key={fact.key}
+                      className="flex min-w-0 items-center gap-1.5"
+                      data-fact={fact.key}
+                    >
+                      <Icon
+                        icon={fact.icon}
+                        className="h-4 w-4 flex-shrink-0 text-gray-400"
+                      />
+                      <div className="truncate">{fact.text}</div>
+                    </div>
+                  );
+                })}
               </div>
               {issues.length > 0 ? (
                 <div
@@ -536,7 +587,8 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                 to={setupRoute}
                 className="font-medium text-indigo-600 hover:text-indigo-700"
               >
-                {translator.translateText("Group calls into conversations")}
+                {translator.translateText("Group calls into conversations") ||
+                  ""}
               </AppLink>
             </div>
           </div>
@@ -561,7 +613,9 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                 to={setupRoute}
                 className="font-medium text-indigo-600 hover:text-indigo-700"
               >
-                {translator.translateText("How to record prompts and answers")}
+                {translator.translateText(
+                  "How to record prompts and answers",
+                ) || ""}
               </AppLink>
             </div>
           </div>
@@ -607,6 +661,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
           return (
             <div
               key={step.id}
+              className="scroll-mb-28"
               ref={(element: HTMLDivElement | null) => {
                 if (element) {
                   stepRefs.current.set(step.id, element);
@@ -619,13 +674,14 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                 step={step}
                 isCurrent={!replay.isAtEnd && index === replay.currentIndex}
                 personLabel={personLabel}
-                traceRoute={(target: LlmTranscriptStep): Route => {
-                  return getLlmTraceRoute(target.call.traceId, target.call.spanId);
-                }}
+                traceRoute={getLlmTraceRoute(
+                  step.call.traceId,
+                  step.call.spanId,
+                )}
                 setupRoute={setupRoute}
-                onSelect={() => {
-                  replay.pause();
+                onReplayFromHere={() => {
                   replay.goToStep(index);
+                  replay.play();
                 }}
               />
             </div>
@@ -637,8 +693,14 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
             className="flex items-center gap-3"
             data-testid="llm-replay-pending-answer"
           >
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-violet-100">
-              <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-violet-600" />
+            <div
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-violet-100"
+              aria-hidden="true"
+            >
+              <Icon
+                icon={IconProp.Sparkles}
+                className="h-4 w-4 text-violet-600"
+              />
             </div>
             <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-sm bg-gray-100 px-4 py-2 text-sm text-gray-600">
               <span className="flex gap-1" aria-hidden="true">
@@ -648,12 +710,14 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
               </span>
               <span>
                 {pending.isTool
-                  ? translator.translateTemplate("Running the tool… {{duration}}", {
-                      duration: formatLlmDuration(pending.elapsedMs),
-                    })
-                  : translator.translateTemplate("AI is answering… {{duration}}", {
-                      duration: formatLlmDuration(pending.elapsedMs),
-                    })}
+                  ? translator.translateTemplate(
+                      "Running the tool… {{duration}}",
+                      { duration: formatLlmDuration(pending.elapsedMs) },
+                    )
+                  : translator.translateTemplate(
+                      "AI is answering… {{duration}}",
+                      { duration: formatLlmDuration(pending.elapsedMs) },
+                    )}
               </span>
             </div>
           </div>
@@ -661,9 +725,30 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
           <></>
         )}
 
-        {visibleSteps.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-500">
-            {translator.translateText("Press play to watch the conversation from the start.")}
+        {hiddenCount > 0 && !replay.isPlaying ? (
+          <div
+            className="flex flex-col items-center gap-1 border-t border-dashed border-gray-200 pt-4 text-center text-xs text-gray-500"
+            data-testid="llm-replay-hidden-note"
+          >
+            <span>
+              {translator.translatePlural(
+                {
+                  one: "{{count}} more message to come in the replay",
+                  other: "{{count}} more messages to come in the replay",
+                },
+                hiddenCount,
+              )}
+            </span>
+            <button
+              type="button"
+              className="rounded font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              data-testid="llm-replay-show-all"
+              onClick={() => {
+                replay.goToEnd();
+              }}
+            >
+              {translator.translateText("Show the whole conversation")}
+            </button>
           </div>
         ) : (
           <></>

@@ -96,10 +96,15 @@ const ISSUE_COUNT_ALIASES: Record<LlmAnswerIssue, string> = {
   [LlmAnswerIssue.Flagged]: "flaggedCount",
 };
 
-function issueCountSql(issue: LlmAnswerIssue): string {
+// A call with the issue - by its status too for "failed", as IS_FAILED_SQL.
+function issueConditionSql(issue: LlmAnswerIssue): string {
   return issue === LlmAnswerIssue.Failed
-    ? `countIf(${IS_FAILED_SQL})`
-    : `countIf(has(llmIssues, '${issue}'))`;
+    ? IS_FAILED_SQL
+    : `has(llmIssues, '${issue}')`;
+}
+
+function issueCountSql(issue: LlmAnswerIssue): string {
+  return `countIf(${issueConditionSql(issue)})`;
 }
 
 export interface LlmConversationListQuery extends TelemetryServiceFilter {
@@ -121,6 +126,26 @@ export interface LlmConversationDetailQuery extends TelemetryServiceFilter {
   key: LlmConversationKey;
   startTime: Date;
   endTime: Date;
+}
+
+/*
+ * The answers of a window and how many were bad, for the AI / LLM monitor
+ * (MonitorStepLlmMonitor) and its preview. An answer is bad when it had
+ * one of `issues`, or took longer than `slowAnswerMs`.
+ */
+export interface LlmAnswerCountQuery extends TelemetryServiceFilter {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  issues: Array<LlmAnswerIssue>;
+  slowAnswerMs: number | null;
+  // Only answers from this model, requested or served; "" or undefined = any.
+  model?: string | undefined;
+}
+
+export interface LlmAnswerCounts {
+  answerCount: number;
+  badAnswerCount: number;
 }
 
 export interface LlmConversationDetail {
@@ -218,6 +243,92 @@ export default class LlmConversationService {
       transcript: LlmConversationTranscriptUtil.build(calls),
       truncated: truncated,
     };
+  }
+
+  @CaptureSpan()
+  public static async countAnswers(
+    query: LlmAnswerCountQuery,
+  ): Promise<LlmAnswerCounts> {
+    const rows: Array<JSONObject> = await LlmConversationService.readRows(
+      LlmConversationService.buildAnswerCountStatement(query),
+    );
+    const row: JSONObject = rows[0] || {};
+    const answerCount: number = Math.max(0, readNumber(row["answerCount"]));
+
+    return {
+      answerCount: answerCount,
+      badAnswerCount: Math.min(
+        answerCount,
+        Math.max(0, readNumber(row["badAnswerCount"])),
+      ),
+    };
+  }
+
+  /*
+   * One row: the answers in the window, and how many were bad. Only
+   * answers are counted (see IS_ANSWER_SQL) - tool runs, embeddings and
+   * agent wrappers would dilute the share of bad answers.
+   */
+  public static buildAnswerCountStatement(
+    query: LlmAnswerCountQuery,
+  ): Statement {
+    const statement: Statement = new Statement();
+    const badConditions: Array<Statement> = LlmAnswerIssueUtil.fromValues(
+      query.issues,
+    ).map((issue: LlmAnswerIssue): Statement => {
+      return new Statement([issueConditionSql(issue)]);
+    });
+
+    const slowAnswerMs: number = Number(query.slowAnswerMs);
+
+    if (Number.isFinite(slowAnswerMs) && slowAnswerMs > 0) {
+      badConditions.push(
+        SQL`durationUnixNano > ${{
+          type: TableColumnType.BigNumber,
+          value: Math.round(slowAnswerMs) * 1_000_000,
+        }}`,
+      );
+    }
+
+    statement.append(`SELECT countIf(${IS_ANSWER_SQL}) AS answerCount, `);
+
+    if (badConditions.length === 0) {
+      statement.append("toUInt64(0) AS badAnswerCount");
+    } else {
+      statement.append(`countIf(${IS_ANSWER_SQL} AND (`);
+
+      badConditions.forEach((condition: Statement, index: number) => {
+        if (index > 0) {
+          statement.append(" OR ");
+        }
+
+        statement.append(condition);
+      });
+
+      statement.append(")) AS badAnswerCount");
+    }
+
+    statement.append(` FROM ${TABLE_NAME}`);
+
+    LlmConversationService.appendScope(statement, query);
+
+    if (query.model && query.model.trim()) {
+      const model: string = query.model.trim();
+
+      statement.append(
+        SQL` AND (llmRequestModel = ${{
+          type: TableColumnType.Text,
+          value: model,
+        }} OR llmResponseModel = ${{
+          type: TableColumnType.Text,
+          value: model,
+        }})`,
+      );
+    }
+
+    statement.append(QUERY_SETTINGS);
+
+    return statement;
   }
 
   // The WHERE every read shares: the project, AI calls, the window, the scope.
