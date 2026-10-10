@@ -1520,12 +1520,13 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each event the query actually matches.
+     * The project of every event the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * event's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =

@@ -237,11 +237,16 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
           storedMonitorSteps:
             templates.length === 1 ? templates[0]!.monitorSteps : undefined,
+          /*
+           * The templates' own project. Templates of more than one project -
+           * a write of OneUptime's or a master admin's - share none.
+           */
           projectId:
-            updateBy.props.tenantId ||
-            (projectIds.size === 1
+            projectIds.size === 1
               ? new ObjectID(Array.from(projectIds)[0]!)
-              : undefined),
+              : projectIds.size === 0
+                ? updateBy.props.tenantId
+                : undefined,
         });
     }
 
@@ -258,7 +263,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-        projectId: updateBy.props.tenantId || template.projectId,
+        projectId: template.projectId || updateBy.props.tenantId,
         alreadyStoredMonitorSteps: template.monitorSteps,
       });
     }

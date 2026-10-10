@@ -827,11 +827,8 @@ export class Service extends ProjectReferencesService<Model> {
                 monitorSteps: updateBy.data.monitorSteps as
                   | MonitorSteps
                   | JSONObject,
-                /*
-                 * Root/API updates do not always carry a tenantId, so fall back
-                 * to the project of the monitor being updated.
-                 */
-                projectId: updateBy.props.tenantId || monitor.projectId,
+                // The project of the monitor being updated.
+                projectId: monitor.projectId || updateBy.props.tenantId,
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
               },
             );
@@ -866,7 +863,7 @@ export class Service extends ProjectReferencesService<Model> {
           if (writtenMonitorTemplateId) {
             await this.validateMonitorTemplateReference({
               monitorTemplateId: writtenMonitorTemplateId,
-              projectId: updateBy.props.tenantId || monitor.projectId,
+              projectId: monitor.projectId || updateBy.props.tenantId,
               monitorType: monitor.monitorType,
               props: updateBy.props,
             });
@@ -876,9 +873,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (currentMonitorStatusReferences.length > 0) {
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+      const projectIds: Array<ObjectID> =
+        await this.findProjectsToCheckUpdateIn(updateBy);
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
@@ -894,9 +890,7 @@ export class Service extends ProjectReferencesService<Model> {
     await this.validateLinkedResourcesBelongToProject({
       payload: updateBy.data,
       getProjectIds: async (): Promise<Array<ObjectID>> => {
-        return updateBy.props.tenantId
-          ? [updateBy.props.tenantId]
-          : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+        return await this.findProjectsToCheckUpdateIn(updateBy);
       },
     });
 
@@ -923,7 +917,7 @@ export class Service extends ProjectReferencesService<Model> {
         targets: monitorsToValidate.map((monitor: Model) => {
           return {
             monitorId: monitor.id || null,
-            projectId: updateBy.props.tenantId || monitor.projectId || null,
+            projectId: monitor.projectId || updateBy.props.tenantId || null,
           };
         }),
         proposedParents: updateBy.data.dependsOnMonitors,
@@ -1964,9 +1958,17 @@ export class Service extends ProjectReferencesService<Model> {
           })
           .filter(Boolean),
       );
+      /*
+       * The default status of the monitors' own project. Monitors of more
+       * than one project - a write of OneUptime's or a master admin's -
+       * share none, so none is filled in.
+       */
       const projectId: string | undefined =
-        data.tenantId?.toString() ||
-        (projectIds.size === 1 ? Array.from(projectIds)[0] : undefined);
+        projectIds.size === 1
+          ? Array.from(projectIds)[0]
+          : projectIds.size === 0
+            ? data.tenantId?.toString()
+            : undefined;
 
       if (projectId) {
         defaultMonitorStatusId =

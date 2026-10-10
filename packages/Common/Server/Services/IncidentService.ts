@@ -2479,12 +2479,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each incident the query actually matches.
+     * The project of every incident the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * incident's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0

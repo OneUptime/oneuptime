@@ -371,30 +371,18 @@ export class Service extends DatabaseService<Model> {
 
       /*
        * The forms read are the ones the update writes. A teammate's are the
-       * forms they may write; OneUptime's, or a master admin's, are whatever
-       * the update's query names, which may be another project's than the
-       * request's. The files must then come from the request's project, as
-       * every other reference a form names does, and what such a form shows
-       * now is not used: an update aimed at another project's form is
-       * refused alike whichever file it names, and so tells nothing about
-       * that project.
+       * forms they may write, all of the request's project; OneUptime's, or
+       * a master admin's, are whatever the update's query names, which may
+       * be another project's than the request's. The files must come from
+       * each form's own project, as every other reference a form names does.
        */
-      const tenantId: ObjectID | undefined = updateBy.props.tenantId;
-
       await this.assertValidBrandingImages({
         values: data,
         forms: forms.map((form: Model): BrandingCheckForm => {
-          const isRequestsOwn: boolean =
-            !tenantId ||
-            Boolean(
-              form.projectId &&
-                form.projectId.toString() === tenantId.toString(),
-            );
-
           return {
-            projectId: tenantId || form.projectId,
-            logoFileId: isRequestsOwn ? form.logoFileId : undefined,
-            faviconFileId: isRequestsOwn ? form.faviconFileId : undefined,
+            projectId: form.projectId || updateBy.props.tenantId,
+            logoFileId: form.logoFileId,
+            faviconFileId: form.faviconFileId,
           };
         }),
       });
@@ -465,8 +453,9 @@ export class Service extends DatabaseService<Model> {
         this.assertValidTargetSettings({ value: settings, targetType });
       }
 
+      // The form's own project, whatever project the request names.
       const projectId: ObjectID | undefined =
-        updateBy.props.tenantId || form.projectId;
+        form.projectId || updateBy.props.tenantId;
 
       if (projectId) {
         await this.validateProjectReferences({

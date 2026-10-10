@@ -378,16 +378,21 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The project(s) an update's template must belong to.
    *
-   * An API caller carries its tenant in props, and that is the only project
-   * its query can touch, so the answer is that one id. A root caller with no
-   * tenant (a worker updating by id) is answered from the matched rows.
+   * A teammate's update is kept to the request's project by its permission
+   * check, so the answer is that one id. OneUptime's and a master admin's
+   * reach any policy their query names, whatever project the request is
+   * made in: they are answered from the matched rows.
    */
   private getProjectIdsForUpdate(
     updateBy: UpdateBy<Model>,
     matchedPolicies: Array<Model>,
   ): Array<ObjectID> {
-    if (updateBy.props.tenantId) {
-      return [updateBy.props.tenantId];
+    const requestProjectId: ObjectID | null = Service.getProjectWriteIsHeldTo(
+      updateBy.props,
+    );
+
+    if (requestProjectId) {
+      return [requestProjectId];
     }
 
     const projectIds: Array<ObjectID> = [];
