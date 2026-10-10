@@ -28,7 +28,10 @@ import type { SpyInstance } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
-import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import {
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -402,6 +405,15 @@ describe("Network Device deletion with automatic monitors", () => {
   beforeEach(() => {
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
     stubProjectDirectory({});
+    /*
+     * The devices the caller may delete: those the case's device read
+     * answers. A case's own delete permission stub, set after this, decides
+     * the rest.
+     */
+    stubRowsCallerMayDeleteLikeFindBy(
+      NetworkDeviceService,
+      jest.spyOn(NetworkDeviceService, "findBy"),
+    );
   });
 
   it("fails closed at the foreign key when a monitor appears after service preflight", () => {

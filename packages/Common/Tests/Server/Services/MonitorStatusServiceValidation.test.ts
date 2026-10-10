@@ -8,6 +8,7 @@ import FindBy from "../../../Server/Types/Database/FindBy";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import type { SpyInstance } from "jest-mock";
+import { stubRowsCallerMayDeleteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -94,7 +95,9 @@ beforeEach(() => {
   }) as never);
 
   // The rows a write targets.
-  jest.spyOn(MonitorStatusService, "findBy").mockImplementation(((
+  const findBy: SpyInstance = jest
+    .spyOn(MonitorStatusService, "findBy")
+    .mockImplementation(((
     findBy: FindBy<MonitorStatus>,
   ) => {
     const query: Record<string, unknown> = findBy.query as Record<
@@ -111,6 +114,9 @@ beforeEach(() => {
         .map(status),
     );
   }) as never);
+
+  // A teammate may delete the statuses the same read reaches in the project.
+  stubRowsCallerMayDeleteLikeFindBy(MonitorStatusService, findBy);
 });
 
 afterEach(() => {
