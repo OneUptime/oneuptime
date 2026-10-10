@@ -4,6 +4,7 @@ import {
   BrowserContext,
   Locator,
   Page,
+  Response,
   expect,
   test,
 } from "@playwright/test";
@@ -283,8 +284,27 @@ test.describe("a dashboard stored in another shape", () => {
       const saveChanges: Locator = page.getByRole("button", {
         name: "Save Changes",
       });
+      /*
+       * Save Changes goes the moment the save starts - the toolbar shows
+       * "Saving..." in its place - so its going says nothing about the write,
+       * and a read straight after it can beat the write to the database.
+       * The editor goes back to view mode only once the server has stored
+       * the board: wait for the write's answer and for view mode.
+       */
+      const written: Promise<Response> = page.waitForResponse(
+        (response: Response): boolean => {
+          return (
+            response.request().method() === "PUT" &&
+            response.url().includes(`/api/dashboard/${dashboardId}`)
+          );
+        },
+      );
       await saveChanges.click();
-      await expect(saveChanges).toHaveCount(0, { timeout: 30000 });
+      expect((await written).ok(), "the save is accepted").toBeTruthy();
+      await expect(
+        page.getByRole("button", { name: "More dashboard options" }),
+      ).toBeVisible({ timeout: 30000 });
+      await expect(saveChanges).toHaveCount(0);
 
       // Saved in the shape the editor saves: the widget list at the top.
       const saved: JSONish = await readConfig({ page, projectId, dashboardId });
