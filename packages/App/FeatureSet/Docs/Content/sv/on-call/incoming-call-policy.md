@@ -1,209 +1,286 @@
-# Policy för inkommande samtal (Twilio-integration)
+# Policy för inkommande samtal
 
-Policyer för inkommande samtal gör det möjligt för externa uppringare att nå dina jour-ingenjörer genom att ringa ett dedikerat telefonnummer. När någon ringer dirigerar OneUptime samtalet genom dina konfigurerade eskaleringsregler tills en ingenjör svarar.
+En policy för inkommande samtal ger ditt team ett telefonnummer som når den som har jour. När någon ringer det ringer OneUptime upp personerna i policyns eskaleringsregler, en efter en, tills någon svarar, och kopplar fram den som ringer. Numren och samtalen går via ditt eget Twilio-konto.
 
-## Hur det fungerar
-
-```mermaid
-flowchart TD
-    A[Uppringare ringer<br/>Inkommande samtalsnummer] --> B[Twilio tar emot samtal]
-    B --> C[Twilio skickar webhook<br/>till OneUptime]
-    C --> D[OneUptime spelar upp<br/>hälsningsmeddelande]
-    D --> E[Ladda eskaleringsregler]
-    E --> F{Regel 1:<br/>Försök jour-användare}
-    F -->|Inget svar| G{Regel 2:<br/>Försök backup-ingenjör}
-    F -->|Besvarat| H[Anslut uppringare<br/>till ingenjör]
-    G -->|Inget svar| I{Regel 3:<br/>Försök chef}
-    G -->|Besvarat| H
-    I -->|Inget svar| J[Spela upp Inget svar-<br/>meddelande & Lägg på]
-    I -->|Besvarat| H
-    H --> K[Samtal anslutet]
-    K --> L[Samtal avslutas]
-    L --> M[Logga samtalsdetaljer]
+```mermaid title="Från ett telefonsamtal till den jourhavande teknikern"
+flowchart TB
+    caller["Uppringaren ringer policyns nummer"] --> twilio["Twilio tar emot samtalet"]
+    twilio --> greeting["OneUptime spelar upp hälsningen"]
+    greeting --> ring["Ring personen i nästa regel"]
+    ring --> answered{"Besvarat<br/>i tid?"}
+    answered -->|"Ja"| connected["Uppringaren kopplas fram"]
+    answered -->|"Nej"| more{"En regel till?"}
+    more -->|"Ja"| ring
+    more -->|"Nej"| repeat{"Upprepa policyn?"}
+    repeat -->|"Ja"| ring
+    repeat -->|"Nej"| missed["Meddelande vid inget svar,<br/>sedan läggs på"]
 ```
 
-## Förutsättningar
+:::cards
+- [Ställ in en policy](#ställ-in-en-policy): Från ditt Twilio-konto till ett testsamtal, i sju steg.
+- [Så routas ett samtal](#så-routas-ett-samtal): Vem som ringes upp, hur länge och vad uppringaren hör.
+- [Missade samtal](#missade-samtal): Vem som får veta, och hur du agerar på dem i ett arbetsflöde.
+- [Felsökning](#felsökning): Samtal som aldrig kommer fram, eller aldrig når en tekniker.
+:::
 
-- Ett Twilio-konto – Skapa ett på [https://www.twilio.com](https://www.twilio.com)
-- Ditt Twilio Account SID och Auth Token
-- Åtkomst till din egeninstallerade OneUptime-instans
+## Innan du börjar
 
-## Översikt
+| Du behöver | Varför |
+| --- | --- |
+| Ett Twilio-konto, med dess Account SID och Auth Token | Policyns nummer och samtal går via det, och Twilio fakturerar dem till det. |
+| Planen **Growth**, på OneUptime Cloud | Ett projekt behöver den för en egen Twilio-konfiguration. |
+| En OneUptime-server som Twilio kan nå, om du kör den själv | Twilio skickar varje samtal till `https://<your host>/notification/incoming-call/voice`. |
+| **SMS** påslaget i projektet | Varje teknikers nummer verifieras med en kod som skickas via SMS. |
+| Ett verifierat nummer för varje tekniker | En regel ringer bara personer som har lagt till och verifierat ett nummer för inkommande samtal i projektet. |
 
-Funktionen för inkommande samtalspolicy fungerar genom att:
+## Ställ in en policy
 
-1. Ta emot inkommande samtal på ett Twilio-telefonnummer
-2. Spela upp ett anpassningsbart hälsningsmeddelande
-3. Dirigera samtalet genom eskaleringsregler (jourscheman eller personer)
-4. Ansluta uppringaren till den första tillgängliga jouringenjören
-5. Eskalera till nästa regel om ingen svarar
+:::steps
+### Lägg till ditt Twilio-konto
 
-Eftersom du egeninstallerar OneUptime behöver du konfigurera ditt eget Twilio-konto. Det ger dig full kontroll över dina telefonnummer och fakturering.
+Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar**. Klicka på **Create Twilio Config** i kortet **Twilio-konfiguration** och fyll i formuläret:
 
-## Steg 1: Skapa ett Twilio-konto
+- **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
+- **Twilio Account SID**: från Twilio Console. Det börjar med `AC`.
+- **Twilio Auth Token**: från Twilio Console.
+- **Twilio primärt telefonnummer**: ett nummer på det kontot, för de SMS och samtal som det skickar.
+- **Twilio sekundära telefonnummer**: valfritt. Nummer som skickar i stället för det primära till mottagare i sitt eget land.
+- **Ange som projektstandard**: på för projektets första Twilio-konfiguration, så att SMS och samtal till projektets medlemmar också går via det här kontot. Stäng av det om kontot bara är för inkommande samtal.
 
-1. Gå till [https://www.twilio.com](https://www.twilio.com) och registrera ett konto
-2. Slutför verifieringsprocessen
-3. Anteckna ditt **Account SID** och **Auth Token** från Twilio-konsolens instrumentpanel
+### Skapa policyn
 
-## Steg 2: Konfigurera Samtal/SMS-konfiguration i OneUptime
+Gå till **Jourtjänst** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje", och om du vill en **Beskrivning** och **Etiketter**. Öppna den sedan från listan.
 
-1. Logga in på din OneUptime-instrumentpanel
-2. Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar**
-3. Klicka på **Create Twilio Config** under **Twilio-konfiguration**
-4. Fyll i följande fält:
-   - **Namn**: Ett beskrivande namn (t.ex. "Produktion Twilio-konfiguration")
-   - **Beskrivning**: Valfri beskrivning
-   - **Twilio Account SID**: Ditt Twilio Account SID (börjar med `AC`)
-   - **Twilio Auth Token**: Ditt Twilio Auth Token
-   - **Twilio primärt telefonnummer**: Ett telefonnummer från ditt Twilio-konto för utgående samtal
-   - **Ange som projektstandard**: påslaget för projektets första Twilio-konfiguration, så SMS och samtal till projektmedlemmar också går via det här kontot. Stäng av det om kontot bara är till för inkommande samtal.
-5. Klicka på **Spara**
+### Välj Twilio-kontot
 
-## Steg 3: Skapa en policy för inkommande samtal
+Policyns **Översikt** visar ett kort **Inställning** med tre numrerade steg. Klicka på **Välj** i det första, välj kontot under **Twilio-konfiguration** och klicka på **Spara**.
 
-1. Gå till **Jourtjänst** > **Inkommande samtalspolicyer**
-2. Klicka på **Skapa policy för inkommande samtal**
-3. Fyll i följande fält:
-   - **Namn**: Ett beskrivande namn (t.ex. "Support Hotline")
-   - **Beskrivning**: Valfri beskrivning
-4. Klicka på **Spara**
+### Lägg till ett telefonnummer
 
-## Steg 4: Länka Twilio-konfiguration till policy
+Klicka på **Add Phone Number** i det andra steget. Välj **Use Existing Phone Number** för att ta med ett nummer som ditt Twilio-konto redan har, eller **Reserve New Phone Number** för att få ett nytt. OneUptime pekar numret mot sig självt, så det finns inget att ställa in i Twilio. Se [Telefonnummer](#telefonnummer).
 
-1. Öppna din nyskapade policy för inkommande samtal
-2. I kortet **Telefonnummerdirigering**, hitta **Steg 2: Länka Twilio-konfiguration**
-3. Klicka på **Välj Twilio-konfiguration** och välj konfigurationen du skapade i Steg 2
-4. Spara valet
+### Lägg till eskaleringsregler
 
-## Steg 5: Konfigurera ett telefonnummer
+Klicka på **Hantera regler** i det tredje steget. Lägg till en regel för varje jourschema eller person som ska ringas upp, i den ordning de ska ringas. Se [Eskaleringsregler](#eskaleringsregler).
 
-Du har två alternativ för att konfigurera ett telefonnummer:
+### Verifiera varje teknikers nummer
 
-### Alternativ A: Använd ett befintligt Twilio-telefonnummer
+Alla som en regel kan ringa upp lägger till och verifierar sitt eget nummer för inkommande samtal. Se [Teknikernas telefonnummer](#teknikernas-telefonnummer).
 
-Om du redan har telefonnummer i ditt Twilio-konto:
+### Ring numret
 
-1. I kortet **Telefonnummer**, klicka på **Använd befintligt nummer**
-2. OneUptime hämtar alla telefonnummer från ditt Twilio-konto
-3. Välj det telefonnummer du vill använda
-4. Klicka på **Använd detta** för att tilldela det till policyn
+När alla tre stegen är klara blir kortet **Phone Numbers & Twilio Configuration**. Ring numret från valfri telefon och öppna sedan policyns **Samtalsloggar** för att se vem som ringdes upp.
+:::
 
-> **Observera**: Om telefonnumret redan har en webhook konfigurerad uppdateras den för att peka på OneUptime.
+## Så routas ett samtal
 
-### Alternativ B: Köp ett nytt telefonnummer
+1. Twilio skickar samtalet till OneUptime, som läser upp policyns **Hälsningsmeddelande**.
+2. OneUptime ringer upp den person som den första eskaleringsregeln nämner: den personen, eller den som har jour i regelns jourschema i det ögonblicket, användaråsidosättningar inräknade. Personens telefon visar policyns nummer som uppringare.
+3. Om personen svarar inom regelns **Ringtid** kopplas uppringaren fram, och samtalsloggen registrerar vem som svarade.
+4. Om inte hör uppringaren "Connecting you to the next available engineer.", och personen i nästa regel ringes upp.
+5. Efter den sista regeln börjar policyn om från den första regeln om **Upprepa policy om ingen svarar** är påslaget, så många gånger som **Antal upprepningar av policy** säger. Annars hör uppringaren **Meddelande vid inget svar**, och samtalet avslutas.
 
-För att köpa ett nytt telefonnummer direkt från OneUptime:
+```mermaid title="Förfrågningarna bakom ett samtal"
+sequenceDiagram
+    participant Caller as Uppringare
+    participant Twilio
+    participant OneUptime
+    participant Engineer as Tekniker
+    Caller->>Twilio: Ringer policyns nummer
+    Twilio->>OneUptime: POST /notification/incoming-call/voice
+    OneUptime-->>Twilio: Hälsning, ring sedan personen i första regeln
+    Twilio->>Engineer: Ringer under regelns ringtid
+    Note over Twilio,Engineer: Ingen svarar i tid
+    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
+    OneUptime-->>Twilio: Ring personen i nästa regel
+    Twilio->>Engineer: Ringer nästa person
+    Engineer-->>Twilio: Svarar
+    Twilio-->>Caller: Kopplar fram uppringaren
+```
 
-1. I kortet **Telefonnummer**, klicka på **Köp nytt nummer**
-2. Välj ett **Land** från rullgardinsmenyn
-3. Ange valfritt ett **Riktnummer** (t.ex. 415 för San Francisco)
-4. Ange valfritt siffror som numret ska **innehålla** (t.ex. 555)
-5. Klicka på **Sök** för att hitta tillgängliga nummer
-6. Välj ett telefonnummer från resultaten
-7. Klicka på **Köp** för att köpa numret
+En regel hoppas över, utan att någon ringes upp, när ingen kan ringas för den just nu: dess schema har ingen med jour, personen har inget verifierat nummer för inkommande samtal i det här projektet, eller personen är inte längre medlem i projektet. När ingen regel har någon att ringa hör uppringaren **Meddelande om att ingen är tillgänglig**. En inaktiverad policy besvarar varje samtal med "Sorry, this service is currently disabled." och lägger på.
 
-Telefonnumret köps från ditt Twilio-konto och webhooken **konfigureras automatiskt** – ingen manuell konfiguration krävs!
+OneUptime kontrollerar Twilios signatur på varje förfrågan med Twilio-konfigurationens Auth Token och avvisar en förfrågan som den inte kan verifiera.
 
-## Steg 6: Konfigurera eskaleringsregler
+> [!TIP]
+> Spara policyns nummer som en kontakt i din telefon, till exempel "Supportlinje", så att du känner igen ett vidarekopplat samtal när det ringer.
 
-Eskaleringsregler avgör vem som ringas när någon ringer policyns nummer, uppifrån och ned i listan:
+## Eskaleringsregler
 
-1. Öppna din policy för inkommande samtal
-2. Gå till fliken **Eskaleringsregler**
-3. Klicka på **Lägg till eskaleringsregel**
-4. Fyll i regeln. Det är ett enda steg:
-   - **Vem som ska ringas**: ett jourschema eller en person. Ett jourschema ringer den som har jour i det när samtalet kommer in. Personerna är medlemmarna i ditt projekt.
-   - **Ringtid (i sekunder)**: hur länge deras telefon ringer innan samtalet går vidare till nästa regel. Den börjar på 20 sekunder, och Twilio tar 5 till 600.
-   - **Namn** och **Beskrivning** är valfria och ligger under **Fler fält**. En regel utan namn visas efter sin plats i listan: **Level 1**, **Level 2**.
-5. Spara den och lägg till en regel för varje jourschema eller person som ska prövas därefter
+Eskaleringsregler bestämmer vem som ringes upp när någon ringer policyns nummer, uppifrån och ned i listan. Öppna policyn, välj **Eskaleringsregler** i dess sidomeny och klicka på **Lägg till eskaleringsregel**. En regel är ett kort steg:
 
-Reglerna prövas uppifrån och ned i listan, och en ny regel läggs till sist. Dra en regel i handtaget uppe till vänster för att ändra ordningen; med tangentbordet fokuserar du handtaget, trycker på blanksteg, flyttar regeln med piltangenterna och trycker på blanksteg igen.
+- **Vem som ska ringas**: ett jourschema eller en person. Ett schema ringer upp den som har jour i det när samtalet kommer in. Personer är medlemmarna i ditt projekt.
+- **Ringtid (i sekunder)**: hur länge personens telefon ringer innan samtalet går vidare till nästa regel. Den börjar på 20 sekunder, och Twilio godtar 5 till 600.
+- **Namn** och **Beskrivning** är valfria, under **Fler fält**. En regel utan namn visas i listan efter sin plats: **Level 1**, **Level 2**.
 
-> **Tänk på röstbrevlådan**: håll **Ringtid** kortare än tiden det tar innan personens telefon skickar ett obesvarat samtal till röstbrevlådan. Om röstbrevlådan svarar först kopplas den som ringer till den, och samtalet går inte vidare till nästa regel. Twilio lägger själv till några sekunder på varje signal. Därför börjar en ny regel på 20 sekunder. Regler som lades till när standardvärdet var 30 sekunder behåller sina 30: om deras samtal hamnar i röstbrevlådan, sänk **Ringtid** på de reglerna.
+Reglerna anropas uppifrån och ned i listan, och en ny regel läggs till sist. För att ändra ordningen drar du en regel i handtaget uppe till vänster. Med tangentbordet fokuserar du handtaget, trycker på blanksteg, flyttar det med piltangenterna och trycker på blanksteg igen.
 
-## Steg 7: Konfigurera röstmeddelanden (valfritt)
+> [!WARNING]
+> **Tänk på röstbrevlådan**: håll **Ringtid** kortare än den tid det tar för personens telefon att skicka ett obesvarat samtal till röstbrevlådan. Om röstbrevlådan svarar först kopplas uppringaren till den, och samtalet går inte vidare till nästa regel. Twilio lägger till några egna sekunder till varje signal. Därför börjar en ny regel på 20 sekunder. Regler som lades till när standardvärdet var 30 sekunder behåller sina 30: om deras samtal hamnar i röstbrevlådan sänker du **Ringtid** på de reglerna.
 
-Anpassa meddelandena som uppringare hör:
+Till exempel tre regler som provar två rotationer och sedan en chef:
 
-1. Öppna din policy för inkommande samtal
-2. Gå till **Inställningar**
-3. Konfigurera:
-   - **Hälsningsmeddelande**: Spelas upp när samtalet besvaras
-   - **Meddelande vid inget svar**: Spelas upp när alla eskaleringsregler misslyckas
-   - **Meddelande om att ingen är tillgänglig**: Spelas upp när ingen är i jour
+| Nivå | Vem som ska ringas | Ringtid |
+| --- | --- | --- |
+| Level 1 | Primärt jourschema | 20 sekunder |
+| Level 2 | Sekundärt jourschema | 20 sekunder |
+| Level 3 | Teknisk chef (en person) | 20 sekunder |
 
-## Konfigurationsalternativ
+## Telefonnummer
 
-### Policyinställningar
+En policy kan ha flera nummer, och alla ringer samma regler. Varje nummer hör till en policy. Lägg till dem med **Add Phone Number** på policyns **Översikt**:
 
-| Inställning                            | Beskrivning                                       | Standard                                                       |
-| -------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------- |
-| Hälsningsmeddelande                    | TTS-meddelande som spelas upp när samtal besvaras | "Please wait while we connect you to the on-call engineer."    |
-| Meddelande vid inget svar              | Meddelande när alla eskaleringsregler misslyckas  | "No one is available. Please try again later."                 |
-| Meddelande om att ingen är tillgänglig | Meddelande när ingen är i jour                    | "We're sorry, but no on-call engineer is currently available." |
-| Upprepa policy om ingen svarar         | Starta om från första regeln om alla misslyckas   | Inaktiverat                                                    |
-| Antal upprepningar av policy           | Maximalt antal upprepningsförsök                  | 1                                                              |
+:::tabs
+@tab Använd ett nummer du har
+1. Klicka på **Add Phone Number** och sedan på **Use Existing Phone Number**. OneUptime visar numren på policyns Twilio-konto.
+2. Klicka på **Välj** bredvid numret och sedan på **Tilldela nummer**.
 
-### Inställningar för eskaleringsregel
+Ett nummer som redan skickar sina samtal någon annanstans säger "Currently has a webhook configured". Att tilldela det skickar dess samtal till OneUptime i stället.
+@tab Reservera ett nytt nummer
+1. Klicka på **Add Phone Number**, sedan på **Reserve New Phone Number** och **Sök efter nummer**.
+2. Välj ett **Land**. Fyll om du vill i **Riktnummer (valfritt)**, till exempel 415, eller **Innehåller (valfritt)** med siffror som numret ska innehålla. Klicka på **Sök**: upp till 10 lokala nummer visas.
+3. Klicka på **Reservera** bredvid ett nummer och bekräfta med **Reservera**. Twilio debiterar numret på ditt Twilio-konto.
+:::
 
-| Inställning          | Beskrivning                                                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vem som ska ringas   | Ett jourschema, som ringer den som har jour i det, eller en person. Varje regel ringer en av dem                                              |
-| Ringtid (i sekunder) | Hur länge telefonen ringer innan samtalet går vidare till nästa regel (standard: 20; från 5 till 600)                                         |
-| Namn och Beskrivning | Valfria, under Fler fält. En regel utan namn visas som Level 1, Level 2 och så vidare, efter sin plats i listan                               |
-| Ordning              | Regelns plats i listan: reglerna prövas uppifrån och ned. Ändras genom att dra reglerna; via API:et hamnar en ny regel utan ordning sist |
+OneUptime ställer in numrets röst-webhook på `https://<your host>/notification/incoming-call/voice`, byggd från `HOST` och `HTTP_PROTOCOL` i en egen installation. För att flytta en policy till ett annat Twilio-konto frigör du först dess nummer: kontot kan bara ändras medan policyn inte har några.
 
-Via API:et anger en regel `onCallDutyPolicyScheduleId` eller `userId` (en av dem, aldrig båda) och `escalateAfterSeconds`: ringtiden, 20 när den utelämnas.
+För att frigöra ett nummer klickar du på **Frigör** bredvid det och bekräftar med **Frigör nummer**.
 
-## Visa samtalsloggar
+> [!CAUTION]
+> Att frigöra ett nummer ger tillbaka det till Twilio, även ett nummer som du tog med via **Use Existing Phone Number**, och du kanske inte får det igen. Att ta bort en policy, eller den Twilio-konfiguration som den använder, frigör också dess nummer.
 
-För att visa historik över inkommande samtal:
+## Teknikernas telefonnummer
 
-1. Gå till **Jourtjänst** > **Inkommande samtalspolicyer**
-2. Klicka på din policy
-3. Gå till fliken **Samtalsloggar**
+En regel ringer en person på det nummer som personen har verifierat för inkommande samtal i det här projektet, och hoppar över alla som inte har något. Varje person lägger till sitt eget:
 
-Loggarna visar:
+:::steps
+1. Öppna **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**. **Inkommande samtalspolicy** är ett avsnitt i sidomenyn som börjar hopfällt.
+2. Klicka på **Lägg till Telefonnummer för inkommande samtalsroutning** i kortet **Telefonnummer för inkommande samtalsroutning** och ange numret med landsnummer, till exempel `+15551234567`.
+3. Ange den 6-siffriga kod som OneUptime skickar till numret via SMS under **Verifieringskod** och klicka på **Verifiera**. **Send a new code** skickar en ny.
+:::
 
-- Uppringarens telefonnummer
-- Samtalsstatus (Slutfört, Inget svar, Misslyckat etc.)
-- Vem som besvarade samtalet
-- Samtalsduration
-- Tidsstämpel
+Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder.
 
-## Konfiguration av användartelefonnummer
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
 
-För att användare ska kunna ta emot inkommande samtal måste de ha ett verifierat telefonnummer:
+## Röstmeddelanden och policyinställningar
 
-1. Användare går till **Användarinställningar** > **Aviseringsmetoder**
-2. Lägg till ett telefonnummer under **Inkommande samtalsnummer**
-3. Verifiera telefonnumret via SMS-kod
+Öppna policyn och välj **Inställningar** under **Avancerad** i dess sidomeny. **Edit Messages** på kortet **Röstmeddelanden** ändrar vad uppringare hör; **Edit Policy Settings** på kortet **Policyinställningar** ändrar resten.
 
-Bara användare med verifierade telefonnummer kan ringas via eskaleringsregler.
+| Inställning | Vad den gör | För en ny policy |
+| --- | --- | --- |
+| **Hälsningsmeddelande** | Läses upp när samtalet besvaras, innan den första personen ringes upp. | "Please wait while we connect you to the on-call engineer." |
+| **Meddelande vid inget svar** | Läses upp när alla regler har provats och ingen svarade. | "No one is available. Please try again later." |
+| **Meddelande om att ingen är tillgänglig** | Läses upp när ingen regel har någon att ringa. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Aktiverad** | En inaktiverad policy avvisar alla samtal. | På |
+| **Upprepa policy om ingen svarar** | Börjar om från den första regeln efter den sista. | Av |
+| **Antal upprepningar av policy** | Hur många gånger det börjar om. | 1 |
 
-Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara på för projektet. En projektägare eller någon med **Billing Admin** eller **Manage Billing** slår på det i kortet **Aviseringskanaler** under **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+Twilio läser upp meddelandena med en text-till-tal-röst, så skriv dem som du vill att de ska låta.
+
+## Samtalsloggar
+
+Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess sidomeny: **Uppringare**, **Number Called**, dess **Status**, vem som besvarade det (**Besvarad av**), **Varaktighet** och när det startade (**Startade den**). Klicka på **View Timeline** vid ett samtal för att se dess **Samtalstidslinje**: varje person som ringdes upp, på vilket nummer och hur varje försök slutade.
+
+| Status | Vad som hände |
+| --- | --- |
+| **Initiated**, **Ringing**, **Escalated** | Samtalet pågår fortfarande: det kom in, en telefon ringer, eller det gick vidare till en senare regel. |
+| **Slutförd** | Någon svarade, och uppringaren kopplades fram. |
+| **Inget svar** | Alla eskaleringsregler provades och ingen svarade. Uppringaren hörde ditt **Meddelande vid inget svar**. |
+| **Caller Hung Up** | Uppringaren lade på medan en teknikers telefon ringde. |
+| **Misslyckades** | Ingen kunde ringas upp: ingen eskaleringsregel hade en användare med jour och ett verifierat nummer för inkommande samtal (uppringaren hörde ditt **Meddelande om att ingen är tillgänglig**), eller så är policyn inaktiverad. |
+
+## Missade samtal
+
+Ett samtal är missat när det slutar utan att nå någon: dess status är **Inget svar**, **Caller Hung Up** eller **Misslyckades**.
+
+### Vem som aviseras
+
+När ett samtal missas aviserar OneUptime policyns ägare: användarna och medlemmarna i de team som har lagts till på policyns sida **Ägare**. Om policyn inte har några ägare aviseras projektets ägare i stället.
+
+Aviseringen säger vem som ringde, vilket nummer personen slog, varför ingen svarade, och vem som ringdes upp och hur varje försök slutade. Den länkar till samtalet i samtalsloggen.
+
+Ägare får e-post som standard. Varje person kan välja andra kanaler (SMS, samtal, push och mer) eller stänga av det i **Användarinställningar** > **Aviseringsinställningar**, under **Jour** > **Inkommande samtalspolicyer** > **Missat samtal**.
+
+### Agera på missade samtal i ett arbetsflöde
+
+Loggar för inkommande samtal finns som utlösare i arbetsflöden:
+
+- **On Create Incoming Call Log** körs när ett samtal kommer in.
+- **On Update Incoming Call Log** körs allteftersom samtalet fortskrider. Den uppdatering som anger **Ended At** är samtalets slut.
+
+För att bara agera på missade samtal, till exempel för att publicera dem i Slack eller Microsoft Teams eller öppna ett ärende:
+
+:::steps
+1. Lägg till utlösaren **On Update Incoming Call Log**. Ställ in **Listen on** på **Ended At** och välj de fält du vill använda, till exempel **Status**, **Caller Phone Number** och **Routing Phone Number**.
+2. Lägg till ett steg **If / Else**. Kontrollera utlösarens **Status**, med jämförelsen **is not equal to** och `Completed`.
+3. Anslut dina steg till porten **Yes**.
+:::
+
+Ett arbetsflöde kan läsa samtalsloggar med **Find One** och **Find Many**, men det kan inte skapa eller ändra dem.
+
+## Vem som kan lägga till och frigöra telefonnummer
+
+En policys telefonnummer följer samma roller som själva policyn:
+
+- **Slå upp nummer** - söka i Twilio efter ett nummer att reservera, eller visa de nummer som ditt Twilio-konto redan har - kräver behörighet att läsa policyer för inkommande samtal och att läsa konfigurationer för samtal och SMS, eftersom det läser ditt Twilio-konto via en sådan. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** och **Settings Viewer** har båda. I en anpassad roll är det **Read Incoming Call Policy** och **Read Call and SMS**.
+- **Reservera ett nummer, använda ett befintligt och frigöra ett** kräver behörighet att redigera policyer för inkommande samtal: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** och **Settings Member**, eller **Edit Incoming Call Policy** i en anpassad roll. De ändrar numren för en policy som du får redigera: med en roll som är begränsad till vissa etiketter, de policyer som har de etiketterna.
+
+Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Add Phone Number** och **Frigör** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
+
+## Skapa policyer med API:et eller Terraform
+
+| Resurs | API-väg |
+| --- | --- |
+| Policyer för inkommande samtal | `/api/incoming-call-policy` |
+| Deras eskaleringsregler | `/api/incoming-call-policy-escalation-rule` |
+| Deras telefonnummer, endast läsning | `/api/incoming-call-policy-phone-number` |
+| Samtalsloggar, endast läsning | `/api/incoming-call-log` |
+
+En regel som skapas via API:et utan `escalateAfterSeconds` ringer i 20 sekunder, och det gör även en regel som Terraform skapar utan `escalate_after_seconds`.
+
+### Inställningar för en eskaleringsregel
+
+| Inställning | API-fält | Vad det innehåller |
+| --- | --- | --- |
+| Vem som ska ringas | `onCallDutyPolicyScheduleId` eller `userId` | Ett av dem, aldrig båda: det schema vars jourhavande ringes upp, eller personen. |
+| Ringtid (i sekunder) | `escalateAfterSeconds` | Hur länge telefonen ringer innan samtalet går vidare (standard: 20; från 5 till 600). |
+| Namn och Beskrivning | `name`, `description` | Valfria. En regel utan namn visas som Level 1, Level 2 och så vidare, efter sin plats i listan. |
+| Ordning | `order` | Var regeln står i listan: reglerna anropas uppifrån och ned. En ny regel utan ordning hamnar sist. |
 
 ## Felsökning
 
-### Samtal tas inte emot
+:::details Samtal når inte fram till OneUptime
+- Öppna numret i Twilio Console: **A call comes in** måste vara webhooken `https://<your host>/notification/incoming-call/voice`, med HTTP POST. OneUptime ställer in den när numret läggs till, från `HOST` och `HTTP_PROTOCOL`. Om de har ändrats sedan dess rättar du webhooken i Twilio.
+- En egen installation av OneUptime måste kunna nås från internet via https. Numrets samtalslogg i Twilio Console, och Twilios **Debugger**, visar vad OneUptime svarade.
+- Ett svar `403` betyder att förfrågans signatur inte stämde. Kontrollera att Twilio-konfigurationen har kontots aktuella **Twilio Auth Token**, och att en proxy framför OneUptime skickar vidare den värd och det schema som Twilio anropade (`X-Forwarded-Host` och `X-Forwarded-Proto`).
+:::
 
-- Verifiera att Twilio-konfigurationen är korrekt länkad till policyn
-- Kontrollera att din OneUptime-instans är tillgänglig från internet
-- Verifiera att Twilio Account SID och Auth Token är korrekta
-- Kontrollera Twilio-konsolen för felloggar
+:::details Samtalet besvaras, men ingen ringes upp
+Samtalsloggen säger **Misslyckades**. Kontrollera att policyn är **Aktiverad**, att varje regels jourschema har någon med jour just nu, och att de personer som reglerna ringer har ett verifierat nummer under **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**, i det här projektet. Regler ringer bara medlemmar i projektet.
+:::
 
-### Samtal ansluts inte till ingenjörer
+:::details Samtal hamnar i röstbrevlådan
+Om samtal hamnar i en teknikers röstbrevlåda ställer du in regelns **Ringtid** under den tid det tar för personens telefon att gå till röstbrevlådan. En röstbrevlåda som svarar räknas som ett svar, och samtalet stannar där.
+:::
 
-- Verifiera att användare har verifierade telefonnummer i sina aviseringsinställningar
-- Kontrollera att eskaleringsregler är korrekt konfigurerade
-- Se till att jourschemana har användare tilldelade för den aktuella tiden
-- Verifiera att policyn är aktiverad
-- Om samtal hamnar i en ingenjörs röstbrevlåda, sätt regelns **Ringtid** lägre än tiden det tar innan deras telefon går till röstbrevlådan
+:::details Ett nytt nummer kan inte reserveras
+Twilio kräver i många länder ett godkänt regulatory bundle innan det säljer lokala nummer, och vissa nummer kräver ett positivt Twilio-saldo. Ordna det i Twilio Console, eller skaffa numret där och lägg till det med **Use Existing Phone Number**.
+:::
 
-## Säkerhetsöverväganden
+:::details Policyns Twilio-konto kan inte ändras
+Kontot kan bara ändras medan policyn inte har några telefonnummer: sidan säger "Remove all phone numbers to change". Att frigöra numren ger tillbaka dem till Twilio, så planera flytten först.
+:::
 
-- Håll ditt Twilio Auth Token säkert och exponera det aldrig offentligt
-- Använd HTTPS för din OneUptime-instans
-- OneUptime validerar webhook-signaturer för att säkerställa att förfrågningar kommer från Twilio
-- Överväg att begränsa vilka telefonnummer som kan ringa dina policyer för inkommande samtal
+:::details Koden för en teknikers nummer kommer inte fram
+SMS måste vara påslaget för projektet. På OneUptime Cloud betalar ett projekt utan en egen standard-Twilio-konfiguration för SMS från sitt saldo, som måste vara över 1 USD. Koder kan ta en minut att komma fram; klicka på **Send a new code** för att skicka en ny, och **Projektinställningar** > **Aviseringar** > **Aviseringsloggar** visar vad som hände med den.
+:::
+
+## Nästa steg
+
+:::cards
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hur en jourpolicy larmar personer, nivå för nivå.
+- [Jourscheman](/docs/on-call/schedules): Bygg de rotationer som dina regler ringer.
+- [Arbetsflöden](/docs/workflows/index): Agera på missade samtal: publicera dem i en kanal eller öppna ett ärende.
+- [Twilio-integration för SMS och röst](/docs/self-hosted/twilio-integration): Ställ in Twilio för en egen installation.
+:::
