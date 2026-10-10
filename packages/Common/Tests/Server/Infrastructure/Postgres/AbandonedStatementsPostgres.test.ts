@@ -23,6 +23,7 @@ import {
   DataSourceOptions,
   Entity,
   PrimaryColumn,
+  QueryRunner,
   Repository,
 } from "typeorm";
 
@@ -258,28 +259,24 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
     });
   };
 
-  const backendOf: (pool: DataSource) => Promise<number> = async (
+  /*
+   * The connection the pool hands the next request: node-postgres' client,
+   * borrowed and given straight back.
+   */
+  const nextConnectionOf: (pool: DataSource) => Promise<Client> = async (
     pool: DataSource,
-  ): Promise<number> => {
-    const answer: Array<{ pid: number }> = await pool.query(
-      "SELECT pg_backend_pid() AS pid",
-    );
-
-    return answer[0]!.pid;
+  ): Promise<Client> => {
+    const runner: QueryRunner = pool.createQueryRunner();
+    const connection: Client = (await runner.connect()) as Client;
+    await runner.release();
+    return connection;
   };
 
-  // Whether a backend is still connected to the database.
-  const isConnected: (pid: number) => Promise<boolean> = async (
-    pid: number,
-  ): Promise<boolean> => {
-    const answer: Array<{ connected: boolean }> = (
-      await admin.query(
-        "SELECT count(*) > 0 AS connected FROM pg_stat_activity WHERE pid = $1",
-        [pid],
-      )
-    ).rows;
-
-    return answer[0]?.connected === true;
+  // Whether a node-postgres client has been closed (or is being closed).
+  const isClosed: (connection: Client) => boolean = (
+    connection: Client,
+  ): boolean => {
+    return (connection as unknown as { _ending: boolean })._ending === true;
   };
 
   beforeAll(async () => {
@@ -390,7 +387,7 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
 
     const failure: unknown = await failureOf(() => {
       return pool.query(
-        `UPDATE "AbandonedWrite" SET "note" = $1 WHERE "id" = $2`,
+        `UPDATE "${schema}"."AbandonedWrite" SET "note" = $1 WHERE "id" = $2`,
         ["written after the app gave up", "kept"],
       );
     });
@@ -420,31 +417,24 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
 
   test("the connection whose statement the app gave up on is closed, and the next request is handed a new one", async () => {
     const pool: DataSource = await appPool();
-    const before: number = await backendOf(pool);
+    const before: Client = await nextConnectionOf(pool);
 
     await failureOf(() => {
       return pool.query("SELECT pg_sleep(20) AS abandoned_sleep");
     });
 
-    const startedAt: number = Date.now();
-    const after: number = await backendOf(pool);
+    expect(isClosed(before)).toBe(true);
 
-    // A connection of its own, at once - not the one still busy with the old statement.
+    const startedAt: number = Date.now();
+    const after: Client = await nextConnectionOf(pool);
+
+    // A connection of its own, at once - not the one the old statement ran on.
     expect(after).not.toBe(before);
+    expect(isClosed(after)).toBe(false);
     expect(Date.now() - startedAt).toBeLessThan(5_000);
 
-    // The old one is gone from the database.
-    let stillThere: boolean = true;
-
-    for (let attempt: number = 0; attempt < 50 && stillThere; attempt++) {
-      stillThere = await isConnected(before);
-
-      if (stillThere) {
-        await sleep(100);
-      }
-    }
-
-    expect(stillThere).toBe(false);
+    // And it works.
+    expect(await pool.query("SELECT 1 AS working")).toEqual([{ working: 1 }]);
   }, 30_000);
 
   test("no session is left idle in a transaction once the app gave up on a save()", async () => {
@@ -535,7 +525,7 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
 
       const failure: unknown = await failureOf(() => {
         return pool.query(
-          `UPDATE "AbandonedWrite" SET "note" = $1 WHERE "id" = $2`,
+          `UPDATE "${schema}"."AbandonedWrite" SET "note" = $1 WHERE "id" = $2`,
           ["written after the app gave up", "kept"],
         );
       });
@@ -576,13 +566,14 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
     }
 
     const pool: DataSource = await appPool({ Client: SlowCancelClient });
-    const before: number = await backendOf(pool);
+    const before: Client = await nextConnectionOf(pool);
 
     const answer: Array<{ finished: string }> = await pool.query(
       "SELECT 'just in time' AS finished FROM pg_sleep(1.3)",
     );
 
     expect(answer).toEqual([{ finished: "just in time" }]);
-    expect(await backendOf(pool)).not.toBe(before);
+    expect(isClosed(before)).toBe(true);
+    expect(await nextConnectionOf(pool)).not.toBe(before);
   }, 30_000);
 });
