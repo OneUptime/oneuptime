@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow, IPFIX ou sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "Aucun enregistrement de flux dans la portion que vous avez zoomée. Double-cliquez ici, ou utilisez Réinitialiser le zoom, pour revenir à la plage d'avant le zoom.",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "Aucun enregistrement de flux dans la portion que vous avez zoomée. Double-cliquez ici, ou utilisez Réinitialiser le zoom, pour revenir à la plage « {{range}} ».",
-  "No flow records in this time range.": "Aucun enregistrement de flux sur cette plage."
+  "Pick a longer time range to see older traffic.": "Choisissez une plage plus longue pour voir le trafic plus ancien."
 }

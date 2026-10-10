@@ -214,7 +214,9 @@ const ZoomedEmptyState: FunctionComponent = (): ReactElement => {
             : translator.translateText(
                 "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.",
               )
-          : translator.translateText("No flow records in this time range.")}
+          : translator.translateText(
+              "Pick a longer time range to see older traffic.",
+            )}
       </p>
     </div>
   );
@@ -682,11 +684,12 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     if (source) {
       return (
         <div
-          className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
+          className="mb-4 flex items-start gap-2 text-sm text-gray-600"
           data-testid="traffic-device-status"
         >
+          {/* Beside the first line, however the sentence wraps. */}
           <span
-            className="h-2 w-2 rounded-full bg-emerald-500"
+            className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500"
             aria-hidden="true"
           />
           <span>
@@ -701,17 +704,18 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                 time: OneUptimeDate.fromNow(toDate(source.lastFlowAt)),
               },
             )}
+            {source.samplingRate > 1 ? (
+              <span className="text-gray-500">
+                {" "}
+                {translator.translateTemplate(
+                  "The device samples 1 in {{rate}} packets.",
+                  { rate: translator.formatNumber(source.samplingRate) },
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
           </span>
-          {source.samplingRate > 1 ? (
-            <span className="text-gray-500">
-              {translator.translateTemplate(
-                "The device samples 1 in {{rate}} packets.",
-                { rate: translator.formatNumber(source.samplingRate) },
-              )}
-            </span>
-          ) : (
-            <></>
-          )}
         </div>
       );
     }
@@ -719,11 +723,11 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     if (summary.lastFlowAt) {
       return (
         <div
-          className="mb-4 flex items-center gap-2 text-sm text-amber-800"
+          className="mb-4 flex items-start gap-2 text-sm text-amber-800"
           data-testid="traffic-device-status"
         >
           <span
-            className="h-2 w-2 rounded-full bg-amber-500"
+            className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-amber-500"
             aria-hidden="true"
           />
           <span>
@@ -859,113 +863,125 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
 
-                  <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div
-                      className="flex min-h-[2rem] flex-wrap items-center gap-2"
-                      data-testid="traffic-filters"
-                    >
-                      {chips.length === 0 ? (
-                        <span className="text-sm text-gray-500">
-                          {translator.translateText(
-                            "Click any row to see only its traffic.",
-                          )}
-                        </span>
-                      ) : (
-                        <Fragment>
-                          {chips.map(
-                            (chip: NetworkTrafficFilterChip): ReactElement => {
-                              const text: string = translator.translateTemplate(
-                                chip.template,
-                                chip.values,
-                              );
-
-                              return (
-                                <span
-                                  key={chip.kind}
-                                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
-                                  data-testid={`traffic-filter-${chip.kind}`}
-                                >
-                                  {text}
-                                  <button
-                                    type="button"
-                                    className="flex h-5 w-5 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                    aria-label={translator.translateTemplate(
-                                      "Remove the filter {{filter}}",
-                                      { filter: text },
-                                    )}
-                                    onClick={() => {
-                                      setFilters(
-                                        withoutNetworkTrafficFilter(
-                                          view.filters,
-                                          chip.kind,
-                                        ),
-                                      );
-                                    }}
-                                  >
-                                    <Icon
-                                      icon={IconProp.Close}
-                                      className="h-3 w-3"
-                                    />
-                                  </button>
-                                </span>
-                              );
-                            },
-                          )}
-                          <button
-                            type="button"
-                            className="text-sm font-medium text-gray-500 hover:text-gray-900 hover:underline"
-                            onClick={() => {
-                              setFilters({});
-                            }}
-                            data-testid="traffic-filters-clear"
-                          >
-                            {translator.translateText("Clear filters")}
-                          </button>
-                        </Fragment>
-                      )}
-                    </div>
-                    <form
-                      className="flex flex-shrink-0 items-start gap-2"
-                      onSubmit={onFindAddress}
-                      data-testid="traffic-find-address"
-                    >
-                      <div>
-                        <input
-                          type="text"
-                          inputMode="text"
-                          value={addressInput}
-                          onChange={(
-                            event: React.ChangeEvent<HTMLInputElement>,
-                          ) => {
-                            setAddressInput(event.target.value);
-                            setAddressError("");
-                          }}
-                          placeholder={translator.translateText(
-                            "Find an IP address",
-                          )}
-                          aria-label={translator.translateText(
-                            "Find an IP address",
-                          )}
-                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
-                        />
-                        {addressError ? (
-                          <p className="mt-1 text-xs text-red-600">
-                            {addressError}
-                          </p>
+                  {/*
+                   * Nothing to narrow in an empty window, unless it is
+                   * empty because of the filters: then the chips are how
+                   * they come off.
+                   */}
+                  {hasTraffic || isFiltered ? (
+                    <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div
+                        className="flex min-h-[2rem] flex-wrap items-center gap-2"
+                        data-testid="traffic-filters"
+                      >
+                        {chips.length === 0 ? (
+                          <span className="text-sm text-gray-500">
+                            {translator.translateText(
+                              "Click any row to see only its traffic.",
+                            )}
+                          </span>
                         ) : (
-                          <></>
+                          <Fragment>
+                            {chips.map(
+                              (
+                                chip: NetworkTrafficFilterChip,
+                              ): ReactElement => {
+                                const text: string =
+                                  translator.translateTemplate(
+                                    chip.template,
+                                    chip.values,
+                                  );
+
+                                return (
+                                  <span
+                                    key={chip.kind}
+                                    className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
+                                    data-testid={`traffic-filter-${chip.kind}`}
+                                  >
+                                    {text}
+                                    <button
+                                      type="button"
+                                      className="flex h-5 w-5 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                      aria-label={translator.translateTemplate(
+                                        "Remove the filter {{filter}}",
+                                        { filter: text },
+                                      )}
+                                      onClick={() => {
+                                        setFilters(
+                                          withoutNetworkTrafficFilter(
+                                            view.filters,
+                                            chip.kind,
+                                          ),
+                                        );
+                                      }}
+                                    >
+                                      <Icon
+                                        icon={IconProp.Close}
+                                        className="h-3 w-3"
+                                      />
+                                    </button>
+                                  </span>
+                                );
+                              },
+                            )}
+                            <button
+                              type="button"
+                              className="text-sm font-medium text-gray-500 hover:text-gray-900 hover:underline"
+                              onClick={() => {
+                                setFilters({});
+                              }}
+                              data-testid="traffic-filters-clear"
+                            >
+                              {translator.translateText("Clear filters")}
+                            </button>
+                          </Fragment>
                         )}
                       </div>
-                      <Button
-                        title="Find"
-                        type={ButtonType.Submit}
-                        icon={IconProp.Search}
-                        buttonSize={ButtonSize.Small}
-                        buttonStyle={ButtonStyleType.OUTLINE}
-                        dataTestId="traffic-find-address-button"
-                      />
-                    </form>
-                  </div>
+                      <form
+                        className="flex flex-shrink-0 items-start gap-2"
+                        onSubmit={onFindAddress}
+                        data-testid="traffic-find-address"
+                      >
+                        <div>
+                          <input
+                            type="text"
+                            inputMode="text"
+                            value={addressInput}
+                            onChange={(
+                              event: React.ChangeEvent<HTMLInputElement>,
+                            ) => {
+                              setAddressInput(event.target.value);
+                              setAddressError("");
+                            }}
+                            placeholder={translator.translateText(
+                              "Find an IP address",
+                            )}
+                            aria-label={translator.translateText(
+                              "Find an IP address",
+                            )}
+                            className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
+                          />
+                          {addressError ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {addressError}
+                            </p>
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                        <Button
+                          title="Find"
+                          type={ButtonType.Submit}
+                          icon={IconProp.Search}
+                          buttonSize={ButtonSize.Small}
+                          buttonStyle={ButtonStyleType.OUTLINE}
+                          dataTestId="traffic-find-address-button"
+                        />
+                      </form>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
 
                   {hasTraffic ? (
                     <Fragment>

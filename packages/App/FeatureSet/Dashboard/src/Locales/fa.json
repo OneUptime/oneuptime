@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow، IPFIX یا sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "در بخشی که روی آن بزرگ‌نمایی کردید هیچ رکورد جریانی نیست. برای بازگشت به بازهٔ زمانی پیش از بزرگ‌نمایی، اینجا دوبار کلیک کنید یا از بازنشانی بزرگ‌نمایی استفاده کنید.",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "در بخشی که روی آن بزرگ‌نمایی کردید هیچ رکورد جریانی نیست. برای بازگشت به بازهٔ «{{range}}»، اینجا دوبار کلیک کنید یا از بازنشانی بزرگ‌نمایی استفاده کنید.",
-  "No flow records in this time range.": "در این بازهٔ زمانی هیچ رکورد جریانی نیست."
+  "Pick a longer time range to see older traffic.": "برای دیدن ترافیک قدیمی‌تر، بازهٔ زمانی طولانی‌تری انتخاب کنید."
 }

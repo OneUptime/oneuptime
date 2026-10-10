@@ -184,7 +184,7 @@ Mehrere Geräte hinter einer NAT-Adresse teilen sich diese Adresse, ihre Flows g
 
 - **Abtastung.** Ein Gerät, das abtastet - sFlow tut es immer, NetFlow oder IPFIX können es -, meldet ein Paket von N. Die Sonde multipliziert die Zahlen mit N, die Seite zeigt also Schätzungen und sagt das unter den vier Zahlen. Sie sind genau bei viel Verkehr und grob bei wenigen Paketen.
 - **Doppelt gezählt.** Verkehr, der durch zwei exportierende Geräte fließt, wird von beiden gemeldet. Die Seite eines Geräts zählt ihn einmal; die Seite eines Standorts oder des Netzwerks zählt ihn einmal pro Gerät, das ihn gemeldet hat.
-- **Anwendungen.** Eine Anwendung ist das Protokoll und der Dienst-Port, benannt nach dem Dienst, der üblicherweise auf diesem Port läuft. Das ist keine Deep Packet Inspection: HTTPS auf Port 8443 erscheint als TCP-Port 8443. Der kurzlebige Port des Clients wird weggelassen, tausend Browserverbindungen zu einem Server sind also eine Anwendung.
+- **Anwendungen.** Eine Anwendung ist das Protokoll und der Dienst-Port, benannt nach dem Dienst, der üblicherweise auf diesem Port läuft. Das ist keine Deep Packet Inspection: HTTPS auf Port 9443 erscheint als TCP-Port 9443. Der kurzlebige Port des Clients wird weggelassen, tausend Browserverbindungen zu einem Server sind also eine Anwendung.
 - **Spitze** ist die Rate des aktivsten Abschnitts des Diagramms, ein kürzerer Zeitraum mit kürzeren Abschnitten zeigt also eine schärfere Spitze. **Durchschnitt** sind die Bytes über den gesamten Zeitraum.
 - **Zeit.** Ein Flow zählt in dem Abschnitt, in dem er begonnen hat. Ein langer Download wird als mehrere Flows gemeldet, einer für jede Minute, die er läuft, deshalb sollte das aktive Timeout der Geräte 60 Sekunden betragen.
 

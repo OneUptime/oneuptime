@@ -1008,9 +1008,15 @@ describe("TrafficOverTimeChart", () => {
       getStandInChart(BANDWIDTH_CHART).props.yAxis as unknown as {
         options: { formatter: (value: number) => string };
       };
-    expect(yAxis.options.formatter(12.345)).toBe("12.3 Mbps");
-    expect(yAxis.options.formatter(0.5)).toBe("500 kbps");
-    expect(yAxis.options.formatter(1500)).toBe("1.50 Gbps");
+    // A no-break space: the chart never breaks a tick label there.
+    expect(yAxis.options.formatter(12.345)).toBe("12.3\u00a0Mbps");
+    expect(yAxis.options.formatter(0.5)).toBe("500\u00a0kbps");
+    // Zeros that say nothing are left off: 75 Mbps on the axis, not 75.0.
+    expect(yAxis.options.formatter(1500)).toBe("1.5\u00a0Gbps");
+    expect(yAxis.options.formatter(75)).toBe("75\u00a0Mbps");
+    expect(yAxis.options.formatter(100)).toBe("100\u00a0Mbps");
+    expect(yAxis.options.formatter(0)).toBe("0\u00a0bps");
+    expect(yAxis.options.formatter(100)).not.toContain(" ");
   });
 
   test("a series with no parseable bucket draws no chart", () => {

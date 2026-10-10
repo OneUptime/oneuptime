@@ -184,7 +184,7 @@ Meerdere apparaten achter één NAT-adres delen dat adres, dus hun flows gaan na
 
 - **Sampling.** Een apparaat dat samplet - sFlow doet dat altijd, NetFlow of IPFIX kunnen het - meldt één pakket op de N. De probe vermenigvuldigt de aantallen met N, dus de pagina toont schattingen en zegt dat onder de vier getallen. Ze zijn nauwkeurig bij veel verkeer en grof bij een paar pakketten.
 - **Dubbel geteld.** Verkeer dat door twee exporterende apparaten gaat, wordt door beide gemeld. De pagina van een apparaat telt het één keer; de pagina van een locatie of van het netwerk telt het één keer per apparaat dat het meldde.
-- **Applicaties.** Een applicatie is het protocol en de servicepoort, genoemd naar de dienst die meestal op die poort draait. Het is geen deep packet inspection: HTTPS op poort 8443 verschijnt als TCP-poort 8443. De kortstondige poort van de client wordt weggelaten, dus duizend browserverbindingen naar één server zijn één applicatie.
+- **Applicaties.** Een applicatie is het protocol en de servicepoort, genoemd naar de dienst die meestal op die poort draait. Het is geen deep packet inspection: HTTPS op poort 9443 verschijnt als TCP-poort 9443. De kortstondige poort van de client wordt weggelaten, dus duizend browserverbindingen naar één server zijn één applicatie.
 - **Piek** is de snelheid van het drukste deel van de grafiek, dus een kortere periode, met kortere delen, toont een scherpere piek. **Gemiddelde** zijn de bytes over de hele periode.
 - **Tijd.** Een flow telt in het deel waarin hij begon. Een lange download wordt gemeld als meerdere flows, één voor elke minuut dat hij loopt; daarom hoort de actieve time-out van de apparaten 60 seconden te zijn.
 

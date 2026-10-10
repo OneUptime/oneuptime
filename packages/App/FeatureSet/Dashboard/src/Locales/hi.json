@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow, IPFIX या sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "जिस हिस्से में आपने ज़ूम किया, उसमें कोई फ़्लो रिकॉर्ड नहीं है। ज़ूम से पहले की समय-सीमा पर लौटने के लिए यहाँ डबल-क्लिक करें, या ज़ूम रीसेट करें इस्तेमाल करें।",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "जिस हिस्से में आपने ज़ूम किया, उसमें कोई फ़्लो रिकॉर्ड नहीं है। समय-सीमा \"{{range}}\" पर लौटने के लिए यहाँ डबल-क्लिक करें, या ज़ूम रीसेट करें इस्तेमाल करें।",
-  "No flow records in this time range.": "इस समय-सीमा में कोई फ़्लो रिकॉर्ड नहीं।"
+  "Pick a longer time range to see older traffic.": "पुराना ट्रैफ़िक देखने के लिए लंबी समय-सीमा चुनें।"
 }

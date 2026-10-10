@@ -33,6 +33,27 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 
 export const TRAFFIC_SERIES_NAME: string = "Traffic";
+
+// The zeros after a decimal point that say nothing: "75.0" is "75".
+const TRAILING_ZEROS: RegExp = /\.?0+$/;
+
+/*
+ * A rate as the axis and the tooltip write it: "12.3 Mbps", "75 Mbps",
+ * with a no-break space. The chart lays its tick labels out by splitting
+ * them at spaces, and measures them larger than it draws them, so
+ * "100 Mbps" broke onto two lines and its top line was cut off; the chart
+ * never splits at a no-break space.
+ */
+export function formatAxisRate(megabitsPerSecond: number): string {
+  const [amount, unit] = formatBitsPerSecond(
+    megabitsPerSecond * 1_000_000,
+  ).split(" ");
+  const shortAmount: string = (amount || "").includes(".")
+    ? (amount || "").replace(TRAILING_ZEROS, "")
+    : amount || "";
+
+  return `${shortAmount}\u00a0${unit || ""}`;
+}
 export const IN_SERIES_NAME: string = "In";
 export const OUT_SERIES_NAME: string = "Out";
 
@@ -189,9 +210,7 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
       min: 0,
       max: "auto",
       precision: YAxisPrecision.TwoDecimals,
-      formatter: (value: number): string => {
-        return formatBitsPerSecond(value * 1_000_000);
-      },
+      formatter: formatAxisRate,
     },
   };
 

@@ -184,7 +184,7 @@ Flere enheder bag én NAT-adresse deler den adresse, så deres flows går til de
 
 - **Sampling.** En enhed, der sampler - sFlow gør det altid, og NetFlow eller IPFIX kan - rapporterer én pakke ud af N. Sonden ganger tallene med N, så siden viser skøn og siger det under de fire tal. De er præcise for meget trafik og grove for få pakker.
 - **Talt to gange.** Trafik, der passerer gennem to eksporterende enheder, rapporteres af begge. En enheds side tæller den én gang; en lokations eller netværkets side tæller den én gang pr. enhed, der rapporterede den.
-- **Applikationer.** En applikation er protokollen og tjenesteporten, navngivet efter den tjeneste, der normalt kører på porten. Det er ikke dyb pakkeinspektion: HTTPS på port 8443 vises som TCP-port 8443. Klientens kortlivede port udelades, så tusind browserforbindelser til én server er én applikation.
+- **Applikationer.** En applikation er protokollen og tjenesteporten, navngivet efter den tjeneste, der normalt kører på porten. Det er ikke dyb pakkeinspektion: HTTPS på port 9443 vises som TCP-port 9443. Klientens kortlivede port udelades, så tusind browserforbindelser til én server er én applikation.
 - **Top** er raten for den travleste del af grafen, så et kortere tidsrum med kortere dele viser en skarpere top. **Gennemsnit** er bytes over hele tidsrummet.
 - **Tid.** Et flow tæller i den del, det startede i. En lang download rapporteres som flere flows, ét for hvert minut den kører, og derfor bør enhedernes aktive timeout være 60 sekunder.
 

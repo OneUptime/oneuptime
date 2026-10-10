@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow, IPFIX eller sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "Ingen flytposter i delen du zoomet inn på. Dobbeltklikk her, eller bruk Tilbakestill zoom, for å gå tilbake til tidsrommet fra før zoomen.",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "Ingen flytposter i delen du zoomet inn på. Dobbeltklikk her, eller bruk Tilbakestill zoom, for å gå tilbake til tidsrommet «{{range}}».",
-  "No flow records in this time range.": "Ingen flytposter i dette tidsrommet."
+  "Pick a longer time range to see older traffic.": "Velg et lengre tidsrom for å se eldre trafikk."
 }

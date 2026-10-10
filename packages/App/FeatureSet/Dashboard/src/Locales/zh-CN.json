@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow、IPFIX 或 sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "你放大的时段内没有流记录。双击此处，或使用“重置缩放”，回到缩放前的时间范围。",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "你放大的时段内没有流记录。双击此处，或使用“重置缩放”，回到“{{range}}”。",
-  "No flow records in this time range.": "此时间范围内没有流记录。"
+  "Pick a longer time range to see older traffic.": "选择更长的时间范围以查看更早的流量。"
 }

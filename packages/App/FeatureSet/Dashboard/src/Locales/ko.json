@@ -27921,5 +27921,5 @@
   "NetFlow, IPFIX or sFlow": "NetFlow, IPFIX 또는 sFlow",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.": "확대한 구간에 플로 레코드가 없습니다. 여기를 두 번 클릭하거나 확대/축소 초기화를 사용해 확대 전 시간 범위로 돌아가세요.",
   "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.": "확대한 구간에 플로 레코드가 없습니다. 여기를 두 번 클릭하거나 확대/축소 초기화를 사용해 '{{range}}' 범위로 돌아가세요.",
-  "No flow records in this time range.": "이 기간에 플로 레코드가 없습니다."
+  "Pick a longer time range to see older traffic.": "이전 트래픽을 보려면 더 긴 기간을 선택하세요."
 }

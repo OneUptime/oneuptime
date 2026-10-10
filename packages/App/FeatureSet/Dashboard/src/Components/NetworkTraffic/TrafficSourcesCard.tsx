@@ -311,7 +311,7 @@ const TrafficSourcesCard: FunctionComponent<ComponentProps> = (
                         title="Add as device"
                         icon={IconProp.Add}
                         buttonSize={ButtonSize.Small}
-                        buttonStyle={ButtonStyleType.OUTLINE}
+                        buttonStyle={ButtonStyleType.NORMAL}
                         dataTestId="traffic-source-add"
                         onClick={() => {
                           Navigation.navigate(

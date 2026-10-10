@@ -184,7 +184,7 @@ Vários dispositivos atrás de um mesmo endereço NAT compartilham esse endereç
 
 - **Amostragem.** Um dispositivo que amostra - o sFlow sempre amostra, e NetFlow ou IPFIX podem amostrar - informa um pacote a cada N. A sonda multiplica as contagens por N, então a página mostra estimativas, e diz isso abaixo dos quatro números. Elas são precisas para muito tráfego e aproximadas para poucos pacotes.
 - **Contado duas vezes.** O tráfego que passa por dois dispositivos exportadores é informado por ambos. A página de um dispositivo o conta uma vez; a página de um site ou da rede o conta uma vez por dispositivo que o informou.
-- **Aplicações.** Uma aplicação é o protocolo e a porta de serviço, com o nome do serviço que costuma estar nessa porta. Não é uma inspeção profunda de pacotes: HTTPS na porta 8443 aparece como porta TCP 8443. A porta efêmera do cliente fica de fora, então mil conexões de navegador para um servidor são uma única aplicação.
+- **Aplicações.** Uma aplicação é o protocolo e a porta de serviço, com o nome do serviço que costuma estar nessa porta. Não é uma inspeção profunda de pacotes: HTTPS na porta 9443 aparece como porta TCP 9443. A porta efêmera do cliente fica de fora, então mil conexões de navegador para um servidor são uma única aplicação.
 - **Pico** é a taxa da fatia mais ativa do gráfico, então um intervalo mais curto, com fatias mais curtas, mostra um pico mais acentuado. **Média** são os bytes no intervalo inteiro.
 - **Tempo.** Um fluxo conta na fatia em que começou. Um download longo é informado como vários fluxos, um para cada minuto que dura; por isso o tempo limite ativo dos dispositivos deve ser de 60 segundos.
 

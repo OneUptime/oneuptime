@@ -631,7 +631,7 @@ describe("Traffic page: an empty window after a zoom is not an onboarding screen
       "No flow records in the last hour.",
     );
     expect(screen.getByTestId("traffic-no-data")).toHaveTextContent(
-      "No flow records in this time range.",
+      "Pick a longer time range to see older traffic.",
     );
     expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
   });
@@ -664,7 +664,7 @@ describe("Traffic page: an empty window after a zoom is not an onboarding screen
     ]).toEqual([CUSTOM_START.toISOString(), CUSTOM_END.toISOString()]);
     expect(empty).toHaveTextContent("No traffic in the selected time range.");
     expect(empty).toHaveTextContent(
-      "No flow records in this time range.",
+      "Pick a longer time range to see older traffic.",
     );
     expect(empty).not.toHaveTextContent("Double-click");
     expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();

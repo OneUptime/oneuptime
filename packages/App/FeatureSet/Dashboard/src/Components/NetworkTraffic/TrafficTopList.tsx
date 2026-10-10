@@ -57,6 +57,12 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // When some rows have a control beside them, the others keep its room.
+  const hasTrailing: boolean = props.rows.some(
+    (row: TrafficTopRow): boolean => {
+      return Boolean(row.trailing);
+    },
+  );
 
   return (
     <Card
@@ -155,7 +161,9 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
                     </div>
                   </button>
                   {row.trailing ? (
-                    <div className="flex-shrink-0">{row.trailing}</div>
+                    <div className="w-7 flex-shrink-0">{row.trailing}</div>
+                  ) : hasTrailing ? (
+                    <div className="w-7 flex-shrink-0" aria-hidden="true" />
                   ) : (
                     <></>
                   )}

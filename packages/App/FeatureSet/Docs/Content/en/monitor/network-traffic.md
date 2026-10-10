@@ -184,7 +184,7 @@ Several devices behind one NAT address share that address, so their flows go to 
 
 - **Sampling.** A device that samples - sFlow always does, and NetFlow or IPFIX can - reports one packet in every N. The probe multiplies the counts by N, so the page shows estimates, and says so under the four numbers. They are accurate for heavy traffic and rough for a few packets.
 - **Counted twice.** Traffic that passes through two exporting devices is reported by both. A device's page counts it once; a site's or the network's page counts it once per device that reported it.
-- **Applications.** An application is the protocol and the service port, named after the service usually on that port. It is not deep packet inspection: HTTPS on port 8443 is shown as TCP port 8443. The client's short-lived port is left out, so a thousand browser connections to one server are one application.
+- **Applications.** An application is the protocol and the service port, named after the service usually on that port. It is not deep packet inspection: HTTPS on port 9443 is shown as TCP port 9443. The client's short-lived port is left out, so a thousand browser connections to one server are one application.
 - **Peak** is the rate of the busiest slice of the chart, so a shorter time range, with shorter slices, shows a sharper peak. **Average** is the bytes over the whole time range.
 - **Time.** A flow counts in the slice it started in. A long download is reported as several flows, one for every minute it runs, which is why the devices' active timeout should be 60 seconds.
 
