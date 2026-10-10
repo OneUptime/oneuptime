@@ -18,9 +18,6 @@ import { JSONArray } from "../JSON";
  * authenticated HTTPS channel; the probe keeps them in memory only.
  */
 
-// The capability a probe declares on its requests when it can collect vCenters.
-export const VMWARE_COLLECTION_PROBE_CAPABILITY: string = "vmwareCollection";
-
 /*
  * How often a probe asks for work. A collection interval is at least a
  * minute, so this bounds how late one starts, and how long a person waits

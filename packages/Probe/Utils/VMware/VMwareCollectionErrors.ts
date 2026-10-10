@@ -1,4 +1,7 @@
-import { VSphereRequestTimeoutError, VSphereResponseTooLargeError } from "./VSphereHttp";
+import {
+  VSphereRequestTimeoutError,
+  VSphereResponseTooLargeError,
+} from "./VSphereHttp";
 import { VSphereFault, VSphereNotVSphereError } from "./VSphereSoapClient";
 import {
   VSphereCertificateError,
@@ -96,7 +99,10 @@ export function classifyVMwareError(
     }
   }
 
-  if (error instanceof VSphereNotVSphereError || error instanceof XmlParseError) {
+  if (
+    error instanceof VSphereNotVSphereError ||
+    error instanceof XmlParseError
+  ) {
     return {
       code: VMwareCollectionErrorCode.NotVSphere,
       message: `${where} is not a vSphere API: ${messageOf(error)} Enter the address of vCenter Server or a standalone ESXi host.`,
@@ -161,7 +167,11 @@ export function classifyVMwareError(
       break;
   }
 
-  if (code === "EPROTO" || code.startsWith("ERR_SSL") || code.startsWith("ERR_TLS")) {
+  if (
+    code === "EPROTO" ||
+    code.startsWith("ERR_SSL") ||
+    code.startsWith("ERR_TLS")
+  ) {
     return {
       code: VMwareCollectionErrorCode.TlsFailed,
       message: `The secure connection to ${where} failed (${code}): ${message} Check that the address points at vCenter's HTTPS port.`,
@@ -177,9 +187,13 @@ export function classifyVMwareError(
       };
     }
 
+    /*
+     * The guard's own sentence says "private" too, but a vCenter's private
+     * address is allowed: only the forbidden tier ever reaches here.
+     */
     return {
       code: VMwareCollectionErrorCode.AddressNotAllowed,
-      message: `${message} The probe never connects to loopback, link-local or cloud metadata addresses.`,
+      message: `The probe does not connect to ${context.host}: it is, or resolves to, a loopback, link-local, cloud metadata or other reserved address. Enter the address vCenter answers on in your network.`,
     };
   }
 

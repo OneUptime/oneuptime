@@ -76,12 +76,15 @@ export interface VMwareCollectorDependencies {
   now: () => Date;
   scopeVersion: string;
   collectVsan: boolean;
-  // Overrides for tests: the upload ceiling and the collection's time budget.
+  // Overrides for tests: the upload ceiling and the time budgets.
   maxPayloadBytes?: number | undefined;
   collectionTimeoutInMs?: number | undefined;
+  testTimeoutInMs?: number | undefined;
 }
 
-export async function resolveVCenterAddress(url: string): Promise<Array<string>> {
+export async function resolveVCenterAddress(
+  url: string,
+): Promise<Array<string>> {
   const target: ValidatedWebhookTarget =
     await SSRFProtection.validateAndResolveWebhookTarget(url, {
       // A probe sits in the network it watches: vCenter is usually private.
@@ -135,6 +138,47 @@ export const DEFAULT_COLLECTOR_DEPENDENCIES: VMwareCollectorDependencies = {
 
 const USER_AGENT: string = `OneUptime-Probe/${AppVersion} (VMware collection)`;
 
+/*
+ * How long one collection may take: its interval - the next one is due by
+ * then - and never more than ten minutes, so a vCenter that stopped
+ * answering frees the probe's slot.
+ */
+export function getCollectionBudgetInMs(
+  collectionIntervalInMinutes: number,
+): number {
+  const minutes: number = Number.isFinite(collectionIntervalInMinutes)
+    ? Math.max(collectionIntervalInMinutes, 1)
+    : 1;
+
+  return Math.min(minutes * 60_000, MAX_COLLECTION_TIME_IN_MS);
+}
+
+// "48 MiB", "2.5 MiB", "300 KiB" - for the sentences a person reads.
+export function formatSize(bytes: number): string {
+  const mebibytes: number = bytes / (1024 * 1024);
+
+  if (mebibytes >= 10) {
+    return `${Math.round(mebibytes)} MiB`;
+  }
+
+  if (mebibytes >= 1) {
+    return `${mebibytes.toFixed(1)} MiB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KiB`;
+}
+
+// "2 minutes", "1 minute", "45 seconds".
+export function formatDuration(milliseconds: number): string {
+  if (milliseconds < 60_000) {
+    const seconds: number = Math.max(1, Math.round(milliseconds / 1000));
+    return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+  }
+
+  const minutes: number = Math.round(milliseconds / 60_000);
+  return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+}
+
 function withDeadline<T>(
   promise: Promise<T>,
   timeoutInMs: number,
@@ -145,7 +189,12 @@ function withDeadline<T>(
   const deadline: Promise<never> = new Promise<never>(
     (_resolve: (value: never) => void, reject: (error: Error) => void) => {
       timer = setTimeout(() => {
-        reject(new VMwareCollectionError(VMwareCollectionErrorCode.TimedOut, message));
+        reject(
+          new VMwareCollectionError(
+            VMwareCollectionErrorCode.TimedOut,
+            message,
+          ),
+        );
       }, timeoutInMs);
     },
   );
@@ -250,10 +299,7 @@ export default class VMwareCollector {
 
     const budgetInMs: number =
       dependencies.collectionTimeoutInMs ??
-      Math.min(
-        Math.max(job.collectionIntervalInMinutes, 1) * 60_000,
-        MAX_COLLECTION_TIME_IN_MS,
-      );
+      getCollectionBudgetInMs(job.collectionIntervalInMinutes);
     const maxPayloadBytes: number =
       dependencies.maxPayloadBytes ?? VMWARE_COLLECTION_MAX_PAYLOAD_BYTES;
 
@@ -290,9 +336,9 @@ export default class VMwareCollector {
           }).collect();
         })(),
         budgetInMs,
-        `Collecting ${address.host} took longer than ${Math.round(
-          budgetInMs / 60_000,
-        )} minutes. Collect it less often, or check vCenter's load.`,
+        `Collecting ${address.host} took longer than ${formatDuration(
+          budgetInMs,
+        )}. Collect it less often, or check vCenter's load.`,
       );
 
       if (snapshot.datacenters.length === 0) {
@@ -311,11 +357,11 @@ export default class VMwareCollector {
       if (payloadBytes > maxPayloadBytes) {
         throw new VMwareCollectionError(
           VMwareCollectionErrorCode.PayloadTooLarge,
-          `This vCenter's collection is ${Math.round(
-            payloadBytes / (1024 * 1024),
-          )} MiB of metrics, more than the ${Math.round(
-            maxPayloadBytes / (1024 * 1024),
-          )} MiB one probe upload takes. Use the VMware agent for this vCenter.`,
+          `This vCenter's collection is ${formatSize(
+            payloadBytes,
+          )} of metrics, more than the ${formatSize(
+            maxPayloadBytes,
+          )} one probe upload takes. Use the VMware agent for this vCenter.`,
         );
       }
 
@@ -429,12 +475,15 @@ export default class VMwareCollector {
         userAgent: USER_AGENT,
       });
 
+      const testTimeoutInMs: number =
+        dependencies.testTimeoutInMs ?? TEST_TIME_IN_MS;
+
       report.summary = await withDeadline(
         VMwareCollector.testWithClient(client, job),
-        TEST_TIME_IN_MS,
-        `${address.host} did not finish the test within ${Math.round(
-          TEST_TIME_IN_MS / 1000,
-        )} seconds.`,
+        testTimeoutInMs,
+        `${address.host} did not finish the test within ${formatDuration(
+          testTimeoutInMs,
+        )}.`,
       );
       report.status = "Succeeded";
     } catch (error) {
@@ -468,7 +517,8 @@ export default class VMwareCollector {
     job: VMwareConnectionTestJob,
   ): Promise<VMwareCollectionSummary> {
     await client.negotiateVersion();
-    const content: VSphereServiceContent = await client.retrieveServiceContent();
+    const content: VSphereServiceContent =
+      await client.retrieveServiceContent();
     await client.login(job.username, job.password);
 
     try {
@@ -484,9 +534,10 @@ export default class VMwareCollector {
         ],
       });
 
-      const count: (type: string, paths: Array<string>) => Promise<
-        Array<VSphereObject>
-      > = async (
+      const count: (
+        type: string,
+        paths: Array<string>,
+      ) => Promise<Array<VSphereObject>> = async (
         type: string,
         paths: Array<string>,
       ): Promise<Array<VSphereObject>> => {
