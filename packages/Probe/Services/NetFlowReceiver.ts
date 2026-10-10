@@ -1,102 +1,141 @@
 import {
   PROBE_INGEST_URL,
+  PROBE_IPFIX_RECEIVER_PORT,
   PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE,
   PROBE_NETFLOW_RECEIVER_ENABLED,
   PROBE_NETFLOW_RECEIVER_PORT,
+  PROBE_SFLOW_RECEIVER_PORT,
 } from "../Config";
-import NetFlowV5Parser, {
-  NetFlowV5Record,
-  ParsedNetFlowV5Datagram,
-} from "../Utils/NetFlow/NetFlowV5Parser";
-import NetFlowV9Parser, {
-  NetFlowV9Record,
-  ParsedNetFlowV9Datagram,
-} from "../Utils/NetFlow/NetFlowV9Parser";
+import FlowAggregator from "../Utils/NetFlow/FlowAggregator";
+import FlowDatagramDecoder, {
+  FlowDatagramOutcome,
+  FlowDatagramResult,
+} from "../Utils/NetFlow/FlowDatagramDecoder";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
+import { NetworkFlowCollectorPortsUtil } from "Common/Types/NetFlow/NetworkFlowCollectorPorts";
 import NetworkFlowRecord from "Common/Types/NetFlow/NetworkFlowRecord";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import dgram from "dgram";
 
 /*
- * NetFlow exports arrive continuously from routers, so flow records are
- * buffered and flushed to the ingest endpoint in batches — every
- * FLUSH_INTERVAL_MS or once FLUSH_DATAGRAM_BATCH_SIZE datagrams' worth of
- * records accumulate, whichever comes first. A v5 datagram carries up to
- * 30 records (a v9 datagram lands in the same ballpark — the MTU caps how
- * many template-sized records fit), so a datagram-count trigger roughly
- * bounds the batch at FLUSH_DATAGRAM_BATCH_SIZE * 30 records; the flush
- * loop's FLUSH_RECORD_BATCH_SIZE splice hard-caps each POST regardless.
+ * The probe's flow collector: NetFlow v5, NetFlow v9, IPFIX and sFlow on
+ * UDP 2055, 4739 and 6343 (every port reads every format).
+ *
+ * Each datagram is decoded (FlowDatagramDecoder) into flow records of one
+ * shape. Records of the same conversation that arrive together are summed
+ * (FlowAggregator) and forwarded to the ingest endpoint in batches - every
+ * FLUSH_INTERVAL_MS, or as soon as FLUSH_RECORD_BATCH_SIZE conversations
+ * are waiting - where the server matches them to devices and stores them.
  */
 const FLUSH_INTERVAL_MS: number = 5000;
-const FLUSH_DATAGRAM_BATCH_SIZE: number = 50;
 
-// Upper bound on records per POST (50 datagrams * 30 records each).
-const FLUSH_RECORD_BATCH_SIZE: number = FLUSH_DATAGRAM_BATCH_SIZE * 30;
+// Upper bound on records per POST.
+const FLUSH_RECORD_BATCH_SIZE: number = 1500;
 
 /*
- * Hard cap on buffered records. If the ingest endpoint is unreachable (or a
- * forward hangs), incoming datagrams would otherwise grow the buffer without
- * bound; past this many records the oldest are dropped. NetFlow is lossy by
- * design, so shedding old records under back-pressure is the correct trade.
+ * Hard cap on conversations waiting to be forwarded. If the ingest
+ * endpoint is unreachable (or a forward hangs), the oldest are dropped past
+ * it: flow export is lossy by design, and shedding old records under
+ * back-pressure is the right trade against running the probe out of memory.
  */
 const MAX_BUFFERED_RECORDS: number = FLUSH_RECORD_BATCH_SIZE * 10;
 
 // Give a stuck forward a bounded lifetime so isFlushing can never wedge.
 const FLUSH_REQUEST_TIMEOUT_MS: number = 30000;
 
-/*
- * Both NetFlow versions put the version number in the first two bytes of
- * the datagram, so it can be peeked before choosing a parser.
- */
-const NETFLOW_V5_VERSION: number = 5;
-const NETFLOW_V9_VERSION: number = 9;
+// How often the collector says what went wrong with whom (once per minute at most).
+const PROBLEM_REPORT_INTERVAL_MS: number = 60000;
+
+// Exporters the collector keeps statistics for (the busiest stay).
+const MAX_TRACKED_EXPORTERS: number = 2000;
+
+export interface FlowExporterStatistics {
+  exporterAddress: string;
+  format: string | null;
+  datagrams: number;
+  flows: number;
+  malformedDatagrams: number;
+  unsupportedDatagrams: number;
+  unsupportedFormat: string | null;
+  dataSetsWaitingForTemplate: number;
+  droppedDatagrams: number;
+  lastSeenAt: number;
+}
+
+export interface FlowSource {
+  address: string;
+  port: number;
+}
 
 export default class NetFlowReceiver {
   private static acceptedThisMinute: number = 0;
   private static minuteWindowStartedAt: number = 0;
   private static droppedThisMinute: number = 0;
 
-  private static buffer: Array<NetworkFlowRecord> = [];
-  private static bufferedDatagramCount: number = 0;
+  private static aggregator: FlowAggregator = new FlowAggregator(
+    MAX_BUFFERED_RECORDS,
+  );
   private static isFlushing: boolean = false;
 
   /*
-   * v9 parsing is stateful — data FlowSets are decoded with templates
-   * learned from earlier datagrams — so the receiver keeps one parser
-   * instance whose template cache persists for the life of the process.
+   * One decoder for the life of the process: NetFlow v9 and IPFIX data is
+   * decoded with templates learned from earlier datagrams.
    */
-  private static netFlowV9Parser: NetFlowV9Parser = new NetFlowV9Parser();
+  private static decoder: FlowDatagramDecoder = new FlowDatagramDecoder();
+
+  private static exporterStatistics: Map<string, FlowExporterStatistics> =
+    new Map();
+  private static lastProblemReportAt: number = 0;
+
+  // The UDP ports to listen on, from the probe's settings.
+  public static getListeningPorts(): Array<number> {
+    return NetworkFlowCollectorPortsUtil.getListeningPorts({
+      netFlowPort: PROBE_NETFLOW_RECEIVER_PORT,
+      ipfixPort: PROBE_IPFIX_RECEIVER_PORT,
+      sFlowPort: PROBE_SFLOW_RECEIVER_PORT,
+    });
+  }
 
   public static start(): void {
     if (!PROBE_NETFLOW_RECEIVER_ENABLED) {
-      logger.debug(
-        "NetFlow receiver is disabled (PROBE_NETFLOW_RECEIVER_ENABLED=false).",
+      logger.info(
+        "Flow collector is off (PROBE_NETFLOW_RECEIVER_ENABLED=false): NetFlow, IPFIX and sFlow are not received.",
       );
       return;
     }
 
-    // IPv4 socket — the primary; bind failures are loud errors.
-    NetFlowReceiver.startSocket("udp4");
+    const ports: Array<number> = NetFlowReceiver.getListeningPorts();
 
-    /*
-     * IPv6 socket — best effort, same port and handler. A host without
-     * IPv6 fails this bind; that is logged as a warning and IPv4
-     * reception continues unaffected.
-     */
-    NetFlowReceiver.startSocket("udp6");
+    if (ports.length === 0) {
+      logger.info(
+        "Flow collector has no port to listen on (every flow receiver port is 0).",
+      );
+      return;
+    }
+
+    for (const port of ports) {
+      // IPv4 is the primary: a bind failure there is an error worth reading.
+      NetFlowReceiver.startSocket("udp4", port);
+      /*
+       * IPv6 on the same port, best effort: a host without IPv6 fails this
+       * bind, which is logged as a warning while IPv4 keeps receiving.
+       */
+      NetFlowReceiver.startSocket("udp6", port);
+    }
 
     setInterval(() => {
       NetFlowReceiver.flush().catch((err: Error) => {
-        logger.error(`NetFlow batch forward failed: ${err}`);
+        logger.error(`Flow batch forward failed: ${err}`);
       });
+      NetFlowReceiver.reportProblems();
     }, FLUSH_INTERVAL_MS);
   }
 
-  private static startSocket(socketType: "udp4" | "udp6"): void {
+  private static startSocket(socketType: "udp4" | "udp6", port: number): void {
     let hasLoggedBindFailure: boolean = false;
 
     try {
@@ -115,9 +154,8 @@ export default class NetFlowReceiver {
           .code;
 
         /*
-         * Socket-level bind failures (no privilege for ports < 1024
-         * outside Docker, the port is taken, or — for udp6 — the host
-         * has no IPv6) arrive through this event. Say clearly — once —
+         * Bind failures (the port is taken, no privilege, or - for udp6 -
+         * no IPv6 on the host) arrive through this event. Say clearly, once,
          * what is off and how to fix it; polling is unaffected either way.
          */
         if (
@@ -131,15 +169,13 @@ export default class NetFlowReceiver {
 
             if (socketType === "udp6") {
               logger.warn(
-                `NetFlow receiver could not bind udp6 port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}); ` +
-                  `this host may not have IPv6. IPv6 NetFlow exports will not be received; IPv4 reception is unaffected.`,
+                `Flow collector could not bind udp6 port ${port} (${errorCode}); this host may not have IPv6. IPv4 reception on port ${port} is unaffected.`,
               );
             } else {
               logger.error(
-                `NetFlow receiver could not bind UDP port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}). ` +
-                  `NetFlow exports will not be received; monitoring checks are unaffected. ` +
-                  `Fix: free the port or set PROBE_NETFLOW_RECEIVER_PORT to another port, ` +
-                  `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to silence this.`,
+                `Flow collector could not bind UDP port ${port} (${errorCode}). Flow records sent to this port will not be received; monitoring is unaffected. ` +
+                  `Fix: free the port, or move the collector with PROBE_NETFLOW_RECEIVER_PORT / PROBE_IPFIX_RECEIVER_PORT / PROBE_SFLOW_RECEIVER_PORT (0 closes one), ` +
+                  `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to turn the collector off.`,
               );
             }
           }
@@ -148,184 +184,218 @@ export default class NetFlowReceiver {
 
         /*
          * Per-message socket errors are routine on an open UDP port
-         * (scanners, malformed senders) — log and keep listening.
+         * (scanners, malformed senders) - log and keep listening.
          */
-        logger.debug(`NetFlow receiver socket error (${socketType}): ${error}`);
+        logger.debug(`Flow collector socket error (${socketType}): ${error}`);
       });
 
       socket.on("message", (datagram: Buffer, remoteInfo: dgram.RemoteInfo) => {
         try {
-          NetFlowReceiver.handleDatagram(datagram, remoteInfo.address);
+          NetFlowReceiver.handleDatagram(datagram, {
+            address: remoteInfo.address,
+            port: remoteInfo.port,
+          });
         } catch (err) {
-          logger.debug(`NetFlow receiver message error: ${err}`);
+          logger.debug(`Flow collector message error: ${err}`);
         }
       });
 
-      socket.bind(PROBE_NETFLOW_RECEIVER_PORT);
+      socket.bind(port);
 
       // Bind completes asynchronously; failures surface via the error event.
       logger.info(
-        `NetFlow receiver starting on ${socketType} port ${PROBE_NETFLOW_RECEIVER_PORT}`,
+        `Flow collector listening for NetFlow, IPFIX and sFlow on ${socketType} port ${port}`,
       );
     } catch (err) {
-      /*
-       * Binding can fail (port in use, no privilege for ports < 1024, no
-       * IPv6 on the host). The probe's polling duties are unaffected —
-       * log and move on; a udp6 failure still leaves udp4 receiving.
-       */
       if (socketType === "udp6") {
         logger.warn(
-          `Could not start NetFlow receiver udp6 socket on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}. Continuing with IPv4 only.`,
+          `Could not start the flow collector's udp6 socket on port ${port}: ${err}. Continuing with IPv4 only.`,
         );
         return;
       }
 
       logger.error(
-        `Could not start NetFlow receiver on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}`,
+        `Could not start the flow collector on port ${port}: ${err}`,
       );
     }
   }
 
-  private static handleDatagram(
+  public static handleDatagram(
     datagram: Buffer,
-    exporterIpAddress: string,
+    source: FlowSource | string,
   ): void {
-    // Both versions carry the version number in the first two bytes.
-    if (datagram.length < 2) {
-      logger.debug(
-        `NetFlow receiver skipped malformed datagram from ${exporterIpAddress}`,
-      );
+    const from: FlowSource =
+      typeof source === "string" ? { address: source, port: 0 } : source;
+
+    const result: FlowDatagramResult = NetFlowReceiver.decoder.decode(
+      datagram,
+      from,
+    );
+
+    const statistics: FlowExporterStatistics =
+      NetFlowReceiver.getExporterStatistics(result.exporterAddress);
+
+    statistics.datagrams++;
+    statistics.lastSeenAt = Date.now();
+    statistics.dataSetsWaitingForTemplate += result.dataSetsWaitingForTemplate;
+
+    if (result.format) {
+      statistics.format = result.format;
+    }
+
+    if (result.outcome === FlowDatagramOutcome.Unsupported) {
+      statistics.unsupportedDatagrams++;
+      statistics.unsupportedFormat = result.unsupportedFormat;
       return;
     }
 
-    const version: number = datagram.readUInt16BE(0);
-
-    let records: Array<NetworkFlowRecord>;
-
-    if (version === NETFLOW_V5_VERSION) {
-      const parsed: ParsedNetFlowV5Datagram | null =
-        NetFlowV5Parser.parse(datagram);
-
-      if (!parsed) {
-        logger.debug(
-          `NetFlow receiver skipped malformed v5 datagram from ${exporterIpAddress}`,
-        );
-        return;
-      }
-
-      records = parsed.records.map((record: NetFlowV5Record) => {
-        return NetFlowReceiver.toNetworkFlowRecord(record, exporterIpAddress);
-      });
-    } else if (version === NETFLOW_V9_VERSION) {
-      const parsed: ParsedNetFlowV9Datagram | null =
-        NetFlowReceiver.netFlowV9Parser.parse(datagram, exporterIpAddress);
-
-      if (!parsed) {
-        logger.debug(
-          `NetFlow receiver skipped malformed v9 datagram from ${exporterIpAddress}`,
-        );
-        return;
-      }
-
-      /*
-       * Routine right after an exporter (or this probe) restarts: data
-       * arrives before the exporter's periodic template refresh. The
-       * records are unrecoverable, but templates in THIS datagram were
-       * still learned above, so subsequent data decodes.
-       */
-      if (parsed.dataFlowSetsSkippedForUnknownTemplate > 0) {
-        logger.debug(
-          `NetFlow receiver skipped ${parsed.dataFlowSetsSkippedForUnknownTemplate} v9 data FlowSet(s) from ${exporterIpAddress} (template not yet received)`,
-        );
-      }
-
-      records = parsed.records.map((record: NetFlowV9Record) => {
-        return NetFlowReceiver.toNetworkFlowRecord(record, exporterIpAddress);
-      });
-    } else {
-      logger.debug(
-        `NetFlow receiver skipped unsupported NetFlow version ${version} datagram from ${exporterIpAddress}`,
-      );
-      return;
-    }
-
-    // Rate limit counts DATAGRAMS (one router export), not flow records.
-    if (!NetFlowReceiver.consumeRateLimitSlot()) {
-      return;
-    }
-
-    for (const record of records) {
-      NetFlowReceiver.buffer.push(record);
+    if (result.outcome === FlowDatagramOutcome.Malformed) {
+      statistics.malformedDatagrams++;
     }
 
     /*
-     * Shed the oldest records if the buffer has outgrown its cap (server
-     * unreachable / forward hung). Bounds memory; the dropped-count warning
-     * rides the existing rate-limit reporting cadence.
+     * Templates and option records were learned by decoding; a datagram
+     * with no flows in it (templates only, or data still waiting for its
+     * template) spends no rate-limit slot.
      */
-    if (NetFlowReceiver.buffer.length > MAX_BUFFERED_RECORDS) {
-      const overflow: number =
-        NetFlowReceiver.buffer.length - MAX_BUFFERED_RECORDS;
-      NetFlowReceiver.buffer.splice(0, overflow);
+    if (result.records.length === 0) {
+      return;
+    }
+
+    // The rate limit counts DATAGRAMS (one export), not flow records.
+    if (!NetFlowReceiver.consumeRateLimitSlot()) {
+      statistics.droppedDatagrams++;
+      return;
+    }
+
+    statistics.flows += result.records.length;
+
+    for (const record of result.records) {
+      NetFlowReceiver.aggregator.add(record);
+    }
+
+    const shed: number = NetFlowReceiver.aggregator.takeDroppedCount();
+
+    if (shed > 0) {
       logger.warn(
-        `NetFlow receiver buffer exceeded ${MAX_BUFFERED_RECORDS} records; dropped ${overflow} oldest record(s) (ingest may be unreachable).`,
+        `Flow collector holds more than ${MAX_BUFFERED_RECORDS} conversations waiting to be forwarded; dropped the ${shed} oldest (OneUptime may be unreachable).`,
       );
     }
 
-    NetFlowReceiver.bufferedDatagramCount++;
-
-    if (NetFlowReceiver.bufferedDatagramCount >= FLUSH_DATAGRAM_BATCH_SIZE) {
+    if (NetFlowReceiver.aggregator.size >= FLUSH_RECORD_BATCH_SIZE) {
       NetFlowReceiver.flush().catch((err: Error) => {
-        logger.error(`NetFlow batch forward failed: ${err}`);
+        logger.error(`Flow batch forward failed: ${err}`);
       });
     }
   }
 
+  private static getExporterStatistics(
+    exporterAddress: string,
+  ): FlowExporterStatistics {
+    let statistics: FlowExporterStatistics | undefined =
+      NetFlowReceiver.exporterStatistics.get(exporterAddress);
+
+    if (!statistics) {
+      statistics = {
+        exporterAddress: exporterAddress,
+        format: null,
+        datagrams: 0,
+        flows: 0,
+        malformedDatagrams: 0,
+        unsupportedDatagrams: 0,
+        unsupportedFormat: null,
+        dataSetsWaitingForTemplate: 0,
+        droppedDatagrams: 0,
+        lastSeenAt: 0,
+      };
+
+      NetFlowReceiver.exporterStatistics.set(exporterAddress, statistics);
+
+      // Keep the map bounded: forget the exporter heard from longest ago.
+      if (NetFlowReceiver.exporterStatistics.size > MAX_TRACKED_EXPORTERS) {
+        let oldestAddress: string | null = null;
+        let oldestSeenAt: number = Infinity;
+
+        for (const [address, entry] of NetFlowReceiver.exporterStatistics) {
+          if (address !== exporterAddress && entry.lastSeenAt < oldestSeenAt) {
+            oldestSeenAt = entry.lastSeenAt;
+            oldestAddress = address;
+          }
+        }
+
+        if (oldestAddress !== null) {
+          NetFlowReceiver.exporterStatistics.delete(oldestAddress);
+        }
+      }
+    }
+
+    return statistics;
+  }
+
+  // What the collector has heard from each exporter (for the probe's report).
+  public static getExporterStatisticsSnapshot(): Array<FlowExporterStatistics> {
+    return Array.from(NetFlowReceiver.exporterStatistics.values()).map(
+      (statistics: FlowExporterStatistics): FlowExporterStatistics => {
+        return { ...statistics };
+      },
+    );
+  }
+
   /*
-   * v5 and v9 records share the field names NetworkFlowRecord needs (the
-   * v9 parser mirrors the v5 record shape on purpose), so one mapping
-   * covers both.
+   * Once a minute at most, says in the probe's log what kept flows out:
+   * formats it does not read, datagrams it could not read, data still
+   * waiting for a template, and what the rate limit dropped.
    */
-  private static toNetworkFlowRecord(
-    record: NetFlowV5Record | NetFlowV9Record,
-    exporterIpAddress: string,
-  ): NetworkFlowRecord {
-    return {
-      exporterIpAddress: exporterIpAddress,
-      sourceIpAddress: record.sourceIpAddress,
-      destinationIpAddress: record.destinationIpAddress,
-      sourcePort: record.sourcePort,
-      destinationPort: record.destinationPort,
-      protocolNumber: record.protocolNumber,
-      octets: record.octets,
-      packets: record.packets,
-      flowStartAt: record.flowStartAt,
-      flowEndAt: record.flowEndAt,
-      inputInterfaceIndex: record.inputInterfaceIndex,
-      outputInterfaceIndex: record.outputInterfaceIndex,
-      tcpFlags: record.tcpFlags,
-      tos: record.tos,
-    };
+  private static reportProblems(): void {
+    const now: number = Date.now();
+
+    if (now - NetFlowReceiver.lastProblemReportAt < PROBLEM_REPORT_INTERVAL_MS) {
+      return;
+    }
+
+    NetFlowReceiver.lastProblemReportAt = now;
+
+    for (const statistics of NetFlowReceiver.exporterStatistics.values()) {
+      if (statistics.unsupportedDatagrams > 0) {
+        logger.warn(
+          `Flow collector: ${statistics.exporterAddress} sends ${statistics.unsupportedFormat || "a flow format"} (${statistics.unsupportedDatagrams} datagram(s)), which is not supported. Configure it to export NetFlow v9, IPFIX or sFlow v5.`,
+        );
+      }
+
+      if (statistics.malformedDatagrams > 0) {
+        logger.warn(
+          `Flow collector: ${statistics.malformedDatagrams} datagram(s) from ${statistics.exporterAddress} could not be read (cut short or not flow export).`,
+        );
+      }
+
+      if (statistics.dataSetsWaitingForTemplate > 0 && statistics.flows === 0) {
+        logger.info(
+          `Flow collector: ${statistics.exporterAddress} sends ${statistics.format || "flow"} data, but not yet the templates to read it. They arrive with the device's next template refresh; set its template timeout to 60 seconds so that is soon.`,
+        );
+      }
+
+      statistics.unsupportedDatagrams = 0;
+      statistics.malformedDatagrams = 0;
+      statistics.dataSetsWaitingForTemplate = 0;
+      statistics.droppedDatagrams = 0;
+    }
   }
 
   private static async flush(): Promise<void> {
-    if (NetFlowReceiver.isFlushing || NetFlowReceiver.buffer.length === 0) {
+    if (NetFlowReceiver.isFlushing || NetFlowReceiver.aggregator.size === 0) {
       return;
     }
 
     NetFlowReceiver.isFlushing = true;
-    NetFlowReceiver.bufferedDatagramCount = 0;
 
     try {
-      while (NetFlowReceiver.buffer.length > 0) {
-        const batch: Array<NetworkFlowRecord> = NetFlowReceiver.buffer.splice(
-          0,
-          FLUSH_RECORD_BATCH_SIZE,
-        );
+      while (NetFlowReceiver.aggregator.size > 0) {
+        const batch: Array<NetworkFlowRecord> =
+          NetFlowReceiver.aggregator.drain(FLUSH_RECORD_BATCH_SIZE);
 
         try {
           /*
-           * Build the URL from a fresh copy of PROBE_INGEST_URL — Route
+           * Build the URL from a fresh copy of PROBE_INGEST_URL - Route
            * .addRoute mutates in place, so calling it on the shared global
            * would permanently append "/probe/network-flow" to the base URL
            * used by every probe request.
@@ -347,12 +417,12 @@ export default class NetFlowReceiver {
           });
         } catch (err) {
           /*
-           * Drop the failed batch rather than re-buffering it — NetFlow is
-           * lossy by design (UDP) and re-queueing would grow memory without
-           * bound while the server is unreachable.
+           * Drop the failed batch rather than re-buffering it - flow export
+           * is lossy by design (UDP), and re-queueing would grow memory
+           * without bound while the server is unreachable.
            */
           logger.error(
-            `NetFlow receiver failed to forward a batch of ${batch.length} flow record(s): ${err}`,
+            `Flow collector failed to forward a batch of ${batch.length} flow record(s): ${err}`,
           );
         }
       }
@@ -367,7 +437,7 @@ export default class NetFlowReceiver {
     if (now - NetFlowReceiver.minuteWindowStartedAt >= 60000) {
       if (NetFlowReceiver.droppedThisMinute > 0) {
         logger.warn(
-          `NetFlow receiver dropped ${NetFlowReceiver.droppedThisMinute} datagrams in the last minute (rate limit: ${PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE}/min)`,
+          `Flow collector dropped ${NetFlowReceiver.droppedThisMinute} datagram(s) in the last minute (limit ${PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE} a minute): the Traffic pages are missing that traffic. Raise PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE if this probe has the room.`,
         );
       }
       NetFlowReceiver.minuteWindowStartedAt = now;
