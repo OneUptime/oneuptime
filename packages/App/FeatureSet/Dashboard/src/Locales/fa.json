@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "اگر OneUptime در آن بازه از این میزبان معیار دریافت کرده باشد Up و اگر چیزی نرسیده باشد Down است؛ یک دقیقه از دست‌رفته میان بازه‌های Up، Up حساب می‌شود. نشان زمان کارکرد زمانی را که OneUptime داده دریافت نمی‌کرد کنار می‌گذارد و جدیدترین بازه تا رسیدن داده ارزیابی نمی‌شود.",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "برای هر بازه‌ای که عامل کلاستر در آن معیار ارسال کرده Up و اگر هیچ معیاری نفرستاده Down است؛ یک دقیقه از دست‌رفته‌ی تنها میان بازه‌های Up، Up حساب می‌شود. نشان سهم Up است، بدون جدیدترین بازه‌هایی که هنوز منتظر داده‌اند و بدون زمانی که OneUptime داده دریافت نمی‌کرد.",
   "Has Additional Parameters": "پارامترهای اضافی دارد",
-  "Only project owners and admins can read them, like the API key.": "مانند کلید API، فقط مالکان و مدیران پروژه می‌توانند آن‌ها را بخوانند."
+  "Only project owners and admins can read them, like the API key.": "مانند کلید API، فقط مالکان و مدیران پروژه می‌توانند آن‌ها را بخوانند.",
+  "Download the whole map as a PDF, with every device and connection listed.": "کل نقشه را به‌صورت PDF دانلود کنید، همراه با فهرست همهٔ دستگاه‌ها و اتصال‌ها.",
+  "Export PDF": "خروجی PDF",
+  "There is nothing on the map to export.": "چیزی روی نقشه برای خروجی گرفتن وجود ندارد.",
+  "We couldn't create the PDF. Try again.": "ساخت PDF ممکن نشد. دوباره تلاش کنید."
 }

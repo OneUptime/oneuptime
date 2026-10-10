@@ -27591,5 +27591,9 @@
   "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up, если OneUptime получил метрики с этого хоста в этом интервале, Down, если ничего не пришло; одна пропущенная минута между интервалами Up считается как Up. Значок доступности не учитывает время, когда OneUptime ничего не принимал, а самый новый интервал оценивается только после прихода данных.",
   "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up для каждого интервала, в котором агент кластера отправлял метрики, Down, если не отправлял ни одной; одна пропущенная минута между интервалами Up считается как Up. Значок — доля Up без самых новых интервалов, которые ещё ждут данных, и без времени, когда OneUptime ничего не принимал.",
   "Has Additional Parameters": "Есть дополнительные параметры",
-  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта."
+  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта.",
+  "Download the whole map as a PDF, with every device and connection listed.": "Скачать всю карту в PDF со списком всех устройств и подключений.",
+  "Export PDF": "Экспорт в PDF",
+  "There is nothing on the map to export.": "На карте нет ничего для экспорта.",
+  "We couldn't create the PDF. Try again.": "Не удалось создать PDF. Попробуйте снова."
 }

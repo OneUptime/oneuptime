@@ -84,6 +84,8 @@ A role runs the runbooks its scope reaches. A `RunbookMember`, `RunbookAdmin` or
 
 Credentials and secrets sit outside `RunbookAdmin`. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` and `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` permissions. See [Runbook Credentials](/docs/runbooks/credentials).
 
+The owner rules and label rules under **Runbooks → Settings** sit outside `RunbookAdmin` too. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookOwnerRule` and `CreateRunbookLabelRule` permissions and their edit, delete and read counterparts.
+
 For how roles and granular permissions combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
 ## Queue & worker
@@ -96,7 +98,7 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 
 - **JavaScript, Bash, SSH and Kubernetes** run on a Runner host you control, not on the OneUptime Worker. JavaScript runs in a separate `isolated-vm` isolate with 128 MB of memory and no access to the Runner's filesystem or processes; it can make HTTP requests with `axios`, but requests to private networks, loopback and link-local addresses are refused. Bash runs via `bash -c`, with its timeout enforced on the Runner.
 - **HTTP steps** use a permissive status validator, so a 4xx or 5xx response is recorded as a failed step rather than thrown, and the captured output reflects what the upstream actually returned. Redirects are not followed. The Worker never calls loopback or link-local addresses, such as a cloud metadata endpoint; on OneUptime Cloud it also refuses private network addresses, and a self-hosted OneUptime refuses them with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
-- **AI steps** never see private incident notes or Slack and Microsoft Teams messages, and earlier step output is scanned for secrets, which are redacted, before it reaches the model. See [AI](/docs/runbooks/authoring#ai).
+- **AI steps** never see private incident notes or Slack and Microsoft Teams messages, and earlier step output is scanned for secrets, which are redacted, before it reaches the model. Embedded images and long encoded data are left out of the prompt. See [AI](/docs/runbooks/authoring#ai).
 - **Runner auth** is by ID and secret key, set on the Runner container as environment variables. Server-side, the authoritative Runner identity comes from the database row keyed by the presented ID and key: a client cannot impersonate a different Runner even with a compromised key.
 - **Credentials and secrets** are encrypted at rest, never returned by the API, and handed only to the Runners they are assigned to, when those claim a step.
 

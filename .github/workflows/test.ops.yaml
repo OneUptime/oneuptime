@@ -22,6 +22,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Before the real-Docker tests below pull their images: through
+      # mirror.gcr.io, not anonymously from Docker Hub
+      # (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - uses: actions/setup-node@v4
         with:
           node-version: 26

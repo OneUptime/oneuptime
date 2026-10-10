@@ -5,16 +5,23 @@ import NetworkTopology, {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
-  TopologyComponentBox,
   TopologyGroupBox,
   TopologyLayoutModel,
-  computeTieredTopologyLayoutModel,
 } from "../NetworkDevice/TopologyLayout";
-import { computeForceTopologyModel } from "../NetworkDevice/ForceTopologyLayout";
-import { computeRadialTopologyModel } from "../NetworkDevice/RadialTopologyLayout";
-import { computeStarTopologyModel } from "../NetworkDevice/StarTopologyLayout";
-import { computeParentChildTopologyModel } from "../NetworkDevice/ParentChildTopologyLayout";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
+import {
+  TOPOLOGY_DRAWING_STYLE,
+  TOPOLOGY_VIEW_HEIGHT,
+  TOPOLOGY_VIEW_WIDTH,
+  TopologyHullView,
+  attentionHaloRadiusFor,
+  buildTopologyHulls,
+  computeTopologyLayoutModel,
+  glyphFillOpacityFor,
+  glyphStrokeWidthFor,
+  labelFontSizeFor,
+  labelLineHeightFor,
+} from "./NetworkTopologyDrawing";
 import {
   HEALTH_STATE_COLORS,
   TopologyHealthFilterMode,
@@ -150,6 +157,14 @@ export interface ComponentProps {
    * the caller so this component stays free of router imports.
    */
   emptyStateFooter?: ReactElement | undefined;
+  /*
+   * Hands the parent the layout this graph is drawing, every time it is
+   * recomputed. The PDF export draws from exactly this model: the layout
+   * is only recomputed when the graph's SHAPE changes (see the memo
+   * below), so recomputing it for the export could place a device whose
+   * role changed since somewhere the map on screen does not.
+   */
+  onLayoutModelChange?: ((model: TopologyLayoutModel) => void) | undefined;
 }
 
 /*
@@ -157,10 +172,11 @@ export interface ComponentProps {
  * viewBox with the tiered layout up to a hard cap, which meant a tall
  * graph rendered at a third of its size between two wide empty bars and
  * anything past the cap was simply unreachable. The viewBox is now
- * constant and the VIEW zooms to fit whatever the layout produced.
+ * constant and the VIEW zooms to fit whatever the layout produced. It is
+ * also the frame every layout is computed for (NetworkTopologyDrawing).
  */
-const VIEW_WIDTH: number = 1000;
-const VIEW_HEIGHT: number = 700;
+const VIEW_WIDTH: number = TOPOLOGY_VIEW_WIDTH;
+const VIEW_HEIGHT: number = TOPOLOGY_VIEW_HEIGHT;
 const VIEW_BOX: ViewBoxSize = { width: VIEW_WIDTH, height: VIEW_HEIGHT };
 
 const ZOOM_BUTTON_FACTOR: number = 1.3;
@@ -169,8 +185,6 @@ const WHEEL_ZOOM_SENSITIVITY: number = 0.0015;
 const WHEEL_PINCH_SENSITIVITY: number = 0.01;
 const KEYBOARD_PAN_FRACTION: number = 0.2;
 const DOT_GRID_SPACING: number = 16;
-// Clearance between a hull and the ink of the nodes it encloses.
-const HULL_PADDING: number = 22;
 // Padding, in world units, left around the graph when fitting it.
 const FIT_BOUNDS_PADDING: number = 40;
 
@@ -192,13 +206,9 @@ const renderNodeSilhouette: (nodeView: TopologyNodeView) => ReactElement = (
   nodeView: TopologyNodeView,
 ): ReactElement => {
   const geometry: TopologyShapeGeometry = nodeView.footprint.shape;
-  const isEndpoint: boolean = nodeView.kind === "endpoint";
-  const fillOpacity: number = isEndpoint
-    ? 0.85
-    : nodeView.kind === "device"
-      ? 0.9
-      : 1;
-  const strokeWidth: number = isEndpoint ? 1.5 : 2;
+  // Shared with the PDF export, which paints the same glyphs.
+  const fillOpacity: number = glyphFillOpacityFor(nodeView.kind);
+  const strokeWidth: number = glyphStrokeWidthFor(nodeView.kind);
   const paint: {
     fill: string;
     fillOpacity: number;
@@ -426,35 +436,28 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [nodes, edges]);
 
   const baseModel: TopologyLayoutModel = useMemo(() => {
-    if (layoutMode === "tiered") {
-      return computeTieredTopologyLayoutModel(
-        nodes,
-        edges,
-        VIEW_WIDTH,
-        VIEW_HEIGHT,
-      );
-    }
-    if (layoutMode === "radial") {
-      return computeRadialTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
-    }
-    if (layoutMode === "star") {
-      return computeStarTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
-    }
-    if (layoutMode === "parentChild") {
-      return computeParentChildTopologyModel(
-        nodes,
-        edges,
-        VIEW_WIDTH,
-        VIEW_HEIGHT,
-      );
-    }
-    return computeForceTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
+    return computeTopologyLayoutModel(layoutMode, nodes, edges);
     /*
      * `nodes`/`edges` are intentionally not dependencies: the signature
      * already captures every property of them the layout reads, and
      * depending on the arrays themselves would recompute on every poll.
      */
   }, [structuralSignature, layoutMode]);
+
+  /*
+   * Report the model to the parent, which exports exactly what is drawn
+   * here. Through a ref, so a parent that hands over a fresh callback on
+   * every render does not re-run this for a model that has not changed.
+   */
+  const onLayoutModelChangeRef: React.MutableRefObject<
+    ((model: TopologyLayoutModel) => void) | undefined
+  > = useRef<((model: TopologyLayoutModel) => void) | undefined>(
+    props.onLayoutModelChange,
+  );
+  onLayoutModelChangeRef.current = props.onLayoutModelChange;
+  useEffect(() => {
+    onLayoutModelChangeRef.current?.(baseModel);
+  }, [baseModel]);
 
   const positions: Map<string, TopologyPoint> = useMemo(() => {
     const withUserPositions: Map<string, TopologyPoint> =
@@ -545,102 +548,12 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
 
   /*
    * The soft hulls behind the graph: one per island, one per endpoint
-   * group, one for the unlinked strip.
-   *
-   * Re-derived from where the member nodes are ACTUALLY drawn rather than
-   * taken from the layout as-is. The layout's boxes are computed once per
-   * graph shape, so they know nothing about a device the user has since
-   * dragged out of its island, or about a node kind the user has switched
-   * off — either of which would otherwise leave a labelled rectangle
-   * outlining empty canvas.
+   * group, one for the unlinked strip — re-derived from where the member
+   * nodes are actually drawn (see buildTopologyHulls, which the PDF export
+   * draws from too).
    */
-  const hulls: Array<{
-    key: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    caption: string | null;
-    isDashed: boolean;
-  }> = useMemo(() => {
-    const drawn: Map<string, TopologyNodeView> = new Map<
-      string,
-      TopologyNodeView
-    >();
-    for (const nodeView of viewModel.nodes) {
-      drawn.set(nodeView.id, nodeView);
-    }
-
-    type HullSource = {
-      key: string;
-      nodeIds: Array<string>;
-      caption: string | null;
-      isDashed: boolean;
-    };
-    const sources: Array<HullSource> = [
-      ...baseModel.groups.map((box: TopologyGroupBox): HullSource => {
-        return {
-          key: `group-${box.anchorNodeId || "unattached"}`,
-          nodeIds: box.nodeIds,
-          caption: null,
-          isDashed: box.anchorNodeId === null,
-        };
-      }),
-      ...baseModel.componentBoxes.map(
-        (box: TopologyComponentBox): HullSource => {
-          return {
-            key: `component-${box.key}`,
-            nodeIds: box.nodeIds,
-            caption: box.isUnlinked ? "Not linked to anything" : null,
-            isDashed: box.isUnlinked,
-          };
-        },
-      ),
-    ];
-
-    const result: Array<{
-      key: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      caption: string | null;
-      isDashed: boolean;
-    }> = [];
-
-    for (const source of sources) {
-      let minX: number = Infinity;
-      let minY: number = Infinity;
-      let maxX: number = -Infinity;
-      let maxY: number = -Infinity;
-      let members: number = 0;
-      for (const nodeId of source.nodeIds) {
-        const nodeView: TopologyNodeView | undefined = drawn.get(nodeId);
-        if (!nodeView) {
-          continue;
-        }
-        const footprint: TopologyNodeFootprint = nodeView.footprint;
-        minX = Math.min(minX, nodeView.x - footprint.inkHalfWidth);
-        maxX = Math.max(maxX, nodeView.x + footprint.inkHalfWidth);
-        minY = Math.min(minY, nodeView.y - footprint.halfHeight);
-        maxY = Math.max(maxY, nodeView.y + footprint.labelBottom);
-        members++;
-      }
-      // A hull with nothing left inside it is not a hull, it is a ghost.
-      if (members === 0) {
-        continue;
-      }
-      result.push({
-        key: source.key,
-        x: minX - HULL_PADDING,
-        y: minY - HULL_PADDING,
-        width: maxX - minX + 2 * HULL_PADDING,
-        height: maxY - minY + 2 * HULL_PADDING,
-        caption: source.caption ? `${source.caption} (${members})` : null,
-        isDashed: source.isDashed,
-      });
-    }
-    return result;
+  const hulls: Array<TopologyHullView> = useMemo(() => {
+    return buildTopologyHulls(baseModel, viewModel.nodes);
   }, [baseModel, viewModel]);
 
   /*
@@ -1496,47 +1409,45 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           >
             {/* Islands and endpoint groups, painted behind everything. */}
             <g aria-hidden={true}>
-              {hulls.map(
-                (hull: {
-                  key: string;
-                  x: number;
-                  y: number;
-                  width: number;
-                  height: number;
-                  caption: string | null;
-                  isDashed: boolean;
-                }): ReactElement => {
-                  return (
-                    <g key={hull.key}>
-                      <rect
-                        x={hull.x}
-                        y={hull.y}
-                        width={hull.width}
-                        height={hull.height}
-                        rx={14}
-                        fill="var(--ou-surface-secondary, #f9fafb)"
-                        fillOpacity={hull.isDashed ? 0.65 : 0.4}
-                        stroke="var(--ou-border-subtle, #e5e7eb)"
-                        strokeWidth={1}
-                        strokeDasharray={hull.isDashed ? "5 4" : undefined}
-                      />
-                      {hull.caption ? (
-                        <text
-                          x={hull.x + 6}
-                          y={hull.y - 6}
-                          fontSize={12}
-                          fontWeight={600}
-                          fill="var(--ou-text-muted, #6b7280)"
-                        >
-                          {hull.caption}
-                        </text>
-                      ) : (
-                        <></>
-                      )}
-                    </g>
-                  );
-                },
-              )}
+              {hulls.map((hull: TopologyHullView): ReactElement => {
+                return (
+                  <g key={hull.key}>
+                    <rect
+                      x={hull.x}
+                      y={hull.y}
+                      width={hull.width}
+                      height={hull.height}
+                      rx={TOPOLOGY_DRAWING_STYLE.hullCornerRadius}
+                      fill={TOPOLOGY_DRAWING_STYLE.hullFill}
+                      fillOpacity={
+                        hull.isDashed
+                          ? TOPOLOGY_DRAWING_STYLE.dashedHullFillOpacity
+                          : TOPOLOGY_DRAWING_STYLE.hullFillOpacity
+                      }
+                      stroke={TOPOLOGY_DRAWING_STYLE.hullStroke}
+                      strokeWidth={TOPOLOGY_DRAWING_STYLE.hullStrokeWidth}
+                      strokeDasharray={
+                        hull.isDashed
+                          ? TOPOLOGY_DRAWING_STYLE.hullDash
+                          : undefined
+                      }
+                    />
+                    {hull.caption ? (
+                      <text
+                        x={hull.x + TOPOLOGY_DRAWING_STYLE.hullCaptionOffset}
+                        y={hull.y - TOPOLOGY_DRAWING_STYLE.hullCaptionOffset}
+                        fontSize={TOPOLOGY_DRAWING_STYLE.hullCaptionFontSize}
+                        fontWeight={600}
+                        fill={TOPOLOGY_DRAWING_STYLE.hullCaptionColor}
+                      >
+                        {hull.caption}
+                      </text>
+                    ) : (
+                      <></>
+                    )}
+                  </g>
+                );
+              })}
             </g>
 
             {/* Edges below nodes so a node is never covered by a line. */}
@@ -1562,7 +1473,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       role={isClickable ? "button" : undefined}
                       tabIndex={isClickable ? 0 : undefined}
                       aria-label={edgeView.ariaLabel}
-                      opacity={edgeView.isDimmed ? 0.15 : 1}
+                      opacity={
+                        edgeView.isDimmed
+                          ? TOPOLOGY_DRAWING_STYLE.dimmedEdgeOpacity
+                          : 1
+                      }
                       style={isClickable ? { cursor: "pointer" } : undefined}
                       onKeyDown={
                         isClickable
@@ -1611,7 +1526,6 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
               {viewModel.nodes.map(
                 (nodeView: TopologyNodeView): ReactElement => {
                   const footprint: TopologyNodeFootprint = nodeView.footprint;
-                  const isEndpoint: boolean = nodeView.kind === "endpoint";
                   return (
                     <g
                       key={nodeView.id}
@@ -1622,7 +1536,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       role="button"
                       tabIndex={0}
                       aria-label={nodeView.ariaLabel}
-                      opacity={nodeView.isDimmed ? 0.2 : 1}
+                      opacity={
+                        nodeView.isDimmed
+                          ? TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity
+                          : 1
+                      }
                       style={{ cursor: "grab" }}
                       onPointerDown={(
                         event: React.PointerEvent<SVGGElement>,
@@ -1687,16 +1605,15 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                         <circle
                           cx={nodeView.x}
                           cy={nodeView.y}
-                          r={
-                            Math.max(
-                              footprint.halfWidth,
-                              footprint.halfHeight,
-                            ) + 5
-                          }
+                          r={attentionHaloRadiusFor(footprint)}
                           fill={HEALTH_STATE_COLORS[nodeView.health]}
-                          fillOpacity={0.16}
+                          fillOpacity={
+                            TOPOLOGY_DRAWING_STYLE.attentionHaloFillOpacity
+                          }
                           stroke={HEALTH_STATE_COLORS[nodeView.health]}
-                          strokeOpacity={0.55}
+                          strokeOpacity={
+                            TOPOLOGY_DRAWING_STYLE.attentionHaloStrokeOpacity
+                          }
                           strokeWidth={1.5 * hairline}
                           pointerEvents="none"
                           data-testid={`network-topology-attention-halo-${nodeView.id}`}
@@ -1751,12 +1668,12 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                           x={nodeView.x}
                           y={nodeView.y + footprint.shape.badgeBaselineOffset}
                           textAnchor="middle"
-                          fontSize={9}
+                          fontSize={TOPOLOGY_DRAWING_STYLE.badgeFontSize}
                           fontWeight={600}
                           fill={
                             nodeView.kind === "device"
-                              ? "#ffffff"
-                              : "var(--ou-text-secondary, #374151)"
+                              ? TOPOLOGY_DRAWING_STYLE.deviceBadgeColor
+                              : TOPOLOGY_DRAWING_STYLE.labelColor
                           }
                           pointerEvents="none"
                         >
@@ -1777,8 +1694,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                            */
                           y={nodeView.y + footprint.labelBaselineOffset}
                           textAnchor="middle"
-                          fontSize={isEndpoint ? 10 : 12}
-                          fill="var(--ou-text-secondary, #374151)"
+                          fontSize={labelFontSizeFor(nodeView.kind)}
+                          fill={TOPOLOGY_DRAWING_STYLE.labelColor}
                           /*
                            * A halo drawn behind the glyphs (paint-order
                            * puts the stroke first) is what keeps a label
@@ -1786,8 +1703,10 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                            * the view scale holds it at a constant three
                            * screen pixels at any zoom.
                            */
-                          stroke="var(--ou-surface-primary, #ffffff)"
-                          strokeWidth={3 * hairline}
+                          stroke={TOPOLOGY_DRAWING_STYLE.labelHaloColor}
+                          strokeWidth={
+                            TOPOLOGY_DRAWING_STYLE.labelHaloWidth * hairline
+                          }
                           strokeLinejoin="round"
                           paintOrder="stroke"
                           pointerEvents="none"
@@ -1799,7 +1718,9 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                                   key={`${nodeView.id}-label-${lineIndex}`}
                                   x={nodeView.x}
                                   dy={
-                                    lineIndex === 0 ? 0 : isEndpoint ? 11 : 13
+                                    lineIndex === 0
+                                      ? 0
+                                      : labelLineHeightFor(nodeView.kind)
                                   }
                                 >
                                   {line}

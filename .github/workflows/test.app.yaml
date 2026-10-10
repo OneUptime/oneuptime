@@ -43,8 +43,11 @@ jobs:
       TEST_CLICKHOUSE_URL: http://default:test@localhost:18123
     services:
       clickhouse:
-        # Match the version docker-compose.base.yml ships.
-        image: clickhouse/clickhouse-server:26.7
+        # Match the version docker-compose.base.yml ships. Docker Hub's
+        # clickhouse/clickhouse-server, from mirror.gcr.io: the runner starts
+        # service containers before any step, so the daemon's mirror
+        # (.github/actions/docker-hub-mirror) is not set yet.
+        image: mirror.gcr.io/clickhouse/clickhouse-server:26.7
         env:
           CLICKHOUSE_PASSWORD: test
         ports:
@@ -67,6 +70,9 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # Before test-setup.sh pulls postgres and valkey: through mirror.gcr.io,
+      # not anonymously from Docker Hub (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - run: cd packages/Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
