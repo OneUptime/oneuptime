@@ -102,7 +102,7 @@ To be warned earlier, change the value of the **Expires In Days** filter in the 
 Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it:
 
 1. On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**.
-2. Click **Add Criteria**. Set its filter to **Is Valid Certificate** / **True**, click **Add Filter**, and set the second one to **Expires In Days** / **Less Than or Equal To** / `14`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
+2. Click **Add Criteria**. Set its filter to **Is Valid Certificate** / **True**, click **Add Filter**, and set the second one to **Expires In Days** / **Less Than Or Equal To** / `14`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
 3. Under **Actions**, turn on **When filters match, create an alert.** and leave **When filters match, change monitor status.** off, so it creates an alert and does not change the monitor status.
 4. Drag the new criteria above the criteria that marks the monitor as online, then save.
 :::

@@ -29,7 +29,7 @@ Because placeholders are replaced as text, `{{responseBody.item}}` becomes the r
 :::steps
 ### Open the criteria
 
-Open the monitor's **Criteria** page — or the **Criteria** step of **Create Monitor** — and click the criteria you want to change, or **Add Criteria** for a new one.
+On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**, or use the **Criteria** step of **Create Monitor**. Work in the criteria you want to change, or click **Add Criteria** for a new one.
 
 ### Add a filter
 
@@ -131,7 +131,7 @@ For a Database Health monitor, read one metric by indexing the whole `metrics` o
 
 ## Quoting rules
 
-`{{var}}` will replace the variable with the value, so if you want to compare a string, you need to wrap it in quotes, e.g. `"{{responseBody.item}}" === "hello"` and if you want to compare a number, you don't need to wrap it in quotes, e.g. `{{responseStatusCode}} === 200`.
+`{{var}}` is replaced with the value, as text. To compare a string, wrap it in quotes, as in `"{{responseBody.item}}" === "hello"`; to compare a number, leave it bare, as in `{{responseStatusCode}} === 200`.
 
 | Value type | Write it as | Example |
 | --- | --- | --- |

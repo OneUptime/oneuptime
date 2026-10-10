@@ -17,9 +17,9 @@ On each check, a probe runs a set of DNS queries against the zone:
 | --- | --- | --- |
 | `DNSKEY` | The first resolver in **Resolvers** | Whether the zone publishes its signing keys. |
 | `DS` | The first resolver in **Resolvers** | Whether the parent zone publishes a delegation signer record for the zone. |
-| `RRSIG` | The first resolver in **Resolvers** | Whether the zone's records are signed, and when the soonest signature expires. |
+| `SOA`, with DNSSEC records | The first resolver in **Resolvers** | Whether the zone's records are signed (the `RRSIG` that signs its `SOA` record), and when the soonest signature expires. |
 | `A`, with DNSSEC validation | Every resolver in **Resolvers** | Whether each validating resolver accepts the zone, which it shows with the authenticated-data (AD) flag. |
-| `SOA` | Every authoritative nameserver of the zone | Whether they all serve the same serial. Only when **Check Nameserver Consistency** is on. |
+| `NS`, then `SOA` | The first resolver, then each authoritative nameserver it names | Whether every nameserver serves the same SOA serial. Only when **Check Nameserver Consistency** is on. |
 
 Validating resolvers check the chain of trust from the root down, so the AD flag tells you the whole chain holds. The chain counts as valid when all of these hold:
 
@@ -29,7 +29,7 @@ flowchart TB
         direction LR
         dnskey["DNSKEY published"]
         ds["DS at the parent"]
-        rrsig["Signatures present<br/>and unexpired"]
+        rrsig["Signatures present,<br/>a day or more left"]
         ad["AD flag from<br/>every resolver"]
     end
     checks --> valid{"All four hold?"}
@@ -37,7 +37,7 @@ flowchart TB
     valid -->|"No"| broken["Chain Is Valid: False"]
 ```
 
-A check that finds the chain broken, or the nameservers out of step, is run again, up to the number of retries you set, before OneUptime runs the result through the monitor's criteria. All the queries of one attempt share a deadline of three times the **Timeout (ms)**; an attempt that runs out of time reports a timeout, not a verdict about the zone.
+A signature with less than a day left already counts as broken, so you hear about it up to a day before resolvers start rejecting the zone. A check that finds the chain broken, or the nameservers out of step, is run again a second later, up to the number of retries you set, before OneUptime runs the result through the monitor's criteria. All the queries of one attempt share a deadline of three times the **Timeout (ms)**; an attempt that runs out of time reports a timeout, not a verdict about the zone.
 
 ## Before you begin
 
@@ -90,7 +90,7 @@ Criteria decide when the zone counts as online, degraded or offline, and whether
 
 | Filter | Conditions | What it checks |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **True**, **False** | All four checks above hold: keys published, DS at the parent, signatures present and unexpired, and the AD flag from every resolver. |
+| **DNSSEC Chain Is Valid** | **True**, **False** | All four checks above hold: keys published, DS at the parent, signatures present with a day or more left, and the AD flag from every resolver. |
 | **DNSSEC DNSKEY Record Exists** | **True**, **False** | The zone publishes at least one DNSKEY record. |
 | **DNSSEC DS Record Exists At Parent** | **True**, **False** | The parent zone publishes a DS record for the zone. |
 | **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Whole days until the soonest signature (RRSIG) expires. |
