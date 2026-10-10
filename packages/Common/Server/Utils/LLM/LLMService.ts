@@ -16,6 +16,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
 import ClaudeModels from "./ClaudeModels";
 import RejectedRequestParameter from "./RejectedRequestParameter";
+import LlmProviderEndpoint, {
+  AzureOpenAIRequestEndpoint,
+} from "../../../Utils/LLM/LlmProviderEndpoint";
 
 export interface LLMToolDefinition {
   name: string;
@@ -231,6 +234,31 @@ const EGRESS_REFUSAL_DESCRIPTIONS: Record<EgressFailureReason, string> = {
 const NO_USER_QUERY_ERROR_PATTERN: RegExp = /no user query found in messages/i;
 const PROMPT_LONGER_THAN_CONTEXT_ERROR_PATTERN: RegExp =
   /prompt is longer than the context length/i;
+
+/*
+ * What Azure says when a deployment's model is newer than the api-version a
+ * deployment URL asks for: "Model o3-mini is enabled only for api versions
+ * 2024-12-01-preview and later". Only a dated version is ever read out of it.
+ */
+const AZURE_API_VERSION_TOO_OLD_PATTERN: RegExp =
+  /enabled only for api versions? (\d{4}-\d{2}-\d{2}(?:-preview)?) and later/i;
+
+// An api-version the endpoint does not take at all, such as a dated one on v1.
+const AZURE_API_VERSION_UNSUPPORTED_PATTERN: RegExp =
+  /(?:api[- ]version (?:is )?not supported|unsupported api[- ]version|invalid api[- ]version)/i;
+
+// A resource whose key access is turned off (disableLocalAuth).
+const AZURE_KEY_AUTH_DISABLED_PATTERN: RegExp =
+  /key based authentication is disabled/i;
+
+// No deployment of that name on the resource.
+const AZURE_DEPLOYMENT_NOT_FOUND_PATTERN: RegExp =
+  /deployment for this resource does not exist/i;
+
+const AZURE_DEPLOYMENT_NOT_FOUND_CODES: Set<string> = new Set([
+  "DeploymentNotFound",
+  "model_not_found",
+]);
 
 export default class LLMService {
   /*
@@ -1300,6 +1328,13 @@ export default class LLMService {
     request: LLMCompletionRequest;
     response: HTTPErrorResponse;
     logAttributes: LogAttributes;
+    /*
+     * What to change, when the provider's answer says: one or two sentences
+     * of OneUptime's own words (describeAzureOpenAIFailure). It leads the
+     * message, so it survives the truncation of a long provider body in the
+     * LLM log, and it is shown even where that body is not.
+     */
+    hint?: string | undefined;
   }): never {
     logger.error(`Error from ${data.providerName} API:`, data.logAttributes);
 
@@ -1314,15 +1349,17 @@ export default class LLMService {
       logger.error(data.response, data.logAttributes);
       throw new BadDataException(
         contextWindowOverflowError ??
-          `${data.providerName} API error: ${JSON.stringify(
-            data.response.jsonData,
-          )}`,
+          `${data.providerName} API error: ${
+            data.hint ? `${data.hint} Details: ` : ""
+          }${JSON.stringify(data.response.jsonData)}`,
       );
     }
 
     throw new BadDataException(
       contextWindowOverflowError ??
-        `${data.providerName} API request failed. Review the provider configuration and try again.`,
+        `${data.providerName} API request failed. ${
+          data.hint || "Review the provider configuration and try again."
+        }`,
     );
   }
 
@@ -1696,56 +1733,47 @@ export default class LLMService {
   }
 
   /*
-   * Default Azure OpenAI API version. Users can override by including
-   * ?api-version=... in their configured base URL.
+   * The deployment an Azure OpenAI provider asks for when its Model Name is
+   * left blank. A deployment URL (/openai/deployments/<name>) names its
+   * deployment itself and Azure goes by that; on the v1 API the deployment
+   * is this `model`. The long-standing guess stays: a deployment named after
+   * the model it serves is the Foundry portal's default, and existing
+   * providers that left Model Name blank keep the deployment they have.
    */
-  private static readonly AZURE_OPENAI_DEFAULT_API_VERSION: string =
-    "2024-10-21";
+  public static readonly AZURE_OPENAI_DEFAULT_DEPLOYMENT: string = "gpt-4o";
 
-  private static buildAzureOpenAIChatCompletionsUrl(baseUrl: string): string {
-    const trimmed: string = baseUrl.replace(/\/+$/, "");
-    const queryIndex: number = trimmed.indexOf("?");
-    const pathPart: string =
-      queryIndex >= 0 ? trimmed.substring(0, queryIndex) : trimmed;
-    const queryPart: string =
-      queryIndex >= 0 ? trimmed.substring(queryIndex + 1) : "";
-
-    const params: URLSearchParams = new URLSearchParams(queryPart);
-    if (!params.has("api-version")) {
-      params.set("api-version", LLMService.AZURE_OPENAI_DEFAULT_API_VERSION);
-    }
-
-    return `${pathPart}/chat/completions?${params.toString()}`;
-  }
-
+  /*
+   * Microsoft Foundry and Azure OpenAI: the OpenAI wire, sent to the
+   * endpoint LlmProviderEndpoint.resolveAzureOpenAI works out from the Base
+   * URL (the resource's v1 API, or a deployment URL with an api-version),
+   * with the resource's key in the `api-key` header.
+   */
   @CaptureSpan()
   private static async getAzureOpenAICompletion(
     config: LLMProviderConfig,
     request: LLMCompletionRequest,
   ): Promise<LLMCompletionResponse> {
     if (!config.apiKey) {
-      throw new BadDataException("Azure OpenAI API key is required");
+      throw new BadDataException(
+        "Azure OpenAI API key is required: KEY 1 or KEY 2 from the resource's Keys and Endpoint page in the Azure portal.",
+      );
     }
 
     if (!config.baseUrl) {
       throw new BadDataException(
-        "Azure OpenAI Base URL is required (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>)",
+        "Azure OpenAI Base URL is required: your Microsoft Foundry or Azure OpenAI resource's endpoint (e.g. https://<resource>.openai.azure.com/openai/v1).",
       );
     }
 
     /*
-     * On Azure the model field is the DEPLOYMENT NAME the operator chose —
-     * not a model id. Keep the long-standing "gpt-4o" guess for tenants who
-     * left it blank: existing deployments named after the old default keep
-     * working, and Azure deployment names cannot contain dots, so a
-     * "gpt-5.1"-style id would never match a real deployment. The
-     * error-driven parameter adaptation corrects token-param mismatches
-     * either way.
+     * On Azure the model field is the DEPLOYMENT NAME the operator chose,
+     * not a model id. The error-driven parameter adaptation corrects
+     * token-param mismatches whatever the deployment is called.
      */
-    const modelName: string = config.modelName || "gpt-4o";
-    const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
-      config.baseUrl,
-    );
+    const modelName: string =
+      config.modelName || LLMService.AZURE_OPENAI_DEFAULT_DEPLOYMENT;
+    const endpoint: AzureOpenAIRequestEndpoint =
+      LlmProviderEndpoint.resolveAzureOpenAI(config.baseUrl);
     const logAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
@@ -1754,7 +1782,7 @@ export default class LLMService {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
         providerName: "Azure OpenAI",
-        requestUrl: requestUrl,
+        requestUrl: endpoint.requestUrl,
         headers: {
           "api-key": config.apiKey,
           "Content-Type": "application/json",
@@ -1772,6 +1800,11 @@ export default class LLMService {
         request,
         response,
         logAttributes,
+        hint: this.describeAzureOpenAIFailure({
+          response: response,
+          endpoint: endpoint,
+          modelName: modelName,
+        }),
       });
     }
 
@@ -1779,6 +1812,79 @@ export default class LLMService {
       response.jsonData as JSONObject,
       "Azure OpenAI",
     );
+  }
+
+  /*
+   * What to change when a Microsoft Foundry or Azure OpenAI resource refuses
+   * a request, for the refusals people meet while they set one up: a wrong
+   * key, key access turned off, a network rule, a deployment name the
+   * resource does not have, a wrong address, and an api-version the model or
+   * the API does not take. Undefined for anything else.
+   *
+   * Built from OneUptime's own words, Azure's fixed codes and phrases, an
+   * api-version matched digit by digit and the provider's own Model Name, so
+   * it can be shown where Azure's error body cannot.
+   */
+  private static describeAzureOpenAIFailure(data: {
+    response: HTTPErrorResponse;
+    endpoint: AzureOpenAIRequestEndpoint;
+    modelName: string;
+  }): string | undefined {
+    const statusCode: number = data.response.statusCode;
+    const rawError: unknown = (data.response.data as JSONObject | undefined)?.[
+      "error"
+    ];
+    const errorCode: string =
+      rawError && typeof rawError === "object" && !Array.isArray(rawError)
+        ? String((rawError as JSONObject)["code"] ?? "")
+        : "";
+    const errorText: string = this.getProviderErrorText(data.response);
+
+    const requiredApiVersion: string | undefined = errorText.match(
+      AZURE_API_VERSION_TOO_OLD_PATTERN,
+    )?.[1];
+
+    if (requiredApiVersion) {
+      return `This model needs api-version ${requiredApiVersion} or later. Use the resource's v1 API, which takes no api-version: set the Base URL to https://<resource>.openai.azure.com/openai/v1 and Model Name to the deployment's name. Or add ?api-version=${requiredApiVersion} to the Base URL.`;
+    }
+
+    if (AZURE_API_VERSION_UNSUPPORTED_PATTERN.test(errorText)) {
+      return data.endpoint.usesV1Api
+        ? "Azure's v1 API takes no dated api-version: remove api-version from the Base URL."
+        : "Azure does not take the api-version this request asked for: remove api-version from the Base URL, or set the Base URL to the resource's v1 API (https://<resource>.openai.azure.com/openai/v1).";
+    }
+
+    if (statusCode === 401) {
+      return "Azure did not accept the API key. Copy KEY 1 or KEY 2 from the Keys and Endpoint page of the same resource the Base URL points to.";
+    }
+
+    if (
+      statusCode === 403 &&
+      (errorCode === "AuthenticationTypeDisabled" ||
+        AZURE_KEY_AUTH_DISABLED_PATTERN.test(errorText))
+    ) {
+      return "Key-based authentication is turned off for this resource, and OneUptime signs in with the resource's API key. Turn key access back on for the resource (disableLocalAuth set to false).";
+    }
+
+    if (statusCode === 403) {
+      return "Azure refused the request. If the resource's Networking settings allow only selected networks or private endpoints, OneUptime has to reach it from one of them.";
+    }
+
+    if (
+      statusCode === 404 &&
+      (AZURE_DEPLOYMENT_NOT_FOUND_CODES.has(errorCode) ||
+        AZURE_DEPLOYMENT_NOT_FOUND_PATTERN.test(errorText))
+    ) {
+      return data.endpoint.usesV1Api
+        ? `This resource has no deployment named "${data.modelName}". Set Model Name to the deployment's name exactly as the Foundry portal shows it. A deployment created in the last few minutes may not be ready yet.`
+        : "This resource has no deployment with the name in the Base URL (after /openai/deployments/). Check that name, or set the Base URL to the resource's v1 API (https://<resource>.openai.azure.com/openai/v1) and Model Name to the deployment's name.";
+    }
+
+    if (statusCode === 404) {
+      return "Azure found nothing at this address. Set the Base URL to the resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1.";
+    }
+
+    return undefined;
   }
 
   /*
@@ -1923,10 +2029,15 @@ export default class LLMService {
       throw new BadDataException("Anthropic API key is required");
     }
 
-    const baseUrl: string = config.baseUrl || "https://api.anthropic.com/v1";
     const modelName: string =
       config.modelName || LLMService.ANTHROPIC_DEFAULT_MODEL;
-    const anthropicRequestUrl: string = `${baseUrl}/messages`;
+    /*
+     * Anthropic's API by default; with a Base URL, Claude in Microsoft
+     * Foundry or a gateway, which accept the same x-api-key and
+     * anthropic-version headers.
+     */
+    const anthropicRequestUrl: string =
+      LlmProviderEndpoint.resolveAnthropicMessagesUrl(config.baseUrl);
     const anthropicLogAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
