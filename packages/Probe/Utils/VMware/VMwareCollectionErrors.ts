@@ -46,7 +46,8 @@ function readCode(error: unknown): string {
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const message: unknown = (error as { message?: unknown } | null)?.message;
+  return typeof message === "string" ? message : String(error);
 }
 
 export function classifyVMwareError(

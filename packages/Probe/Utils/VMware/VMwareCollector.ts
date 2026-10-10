@@ -76,6 +76,9 @@ export interface VMwareCollectorDependencies {
   now: () => Date;
   scopeVersion: string;
   collectVsan: boolean;
+  // Overrides for tests: the upload ceiling and the collection's time budget.
+  maxPayloadBytes?: number | undefined;
+  collectionTimeoutInMs?: number | undefined;
 }
 
 export async function resolveVCenterAddress(url: string): Promise<Array<string>> {
@@ -245,10 +248,14 @@ export default class VMwareCollector {
 
     let handle: VMwareTransportHandle | null = null;
 
-    const budgetInMs: number = Math.min(
-      Math.max(job.collectionIntervalInMinutes, 1) * 60_000,
-      MAX_COLLECTION_TIME_IN_MS,
-    );
+    const budgetInMs: number =
+      dependencies.collectionTimeoutInMs ??
+      Math.min(
+        Math.max(job.collectionIntervalInMinutes, 1) * 60_000,
+        MAX_COLLECTION_TIME_IN_MS,
+      );
+    const maxPayloadBytes: number =
+      dependencies.maxPayloadBytes ?? VMWARE_COLLECTION_MAX_PAYLOAD_BYTES;
 
     try {
       const pinnedAddresses: Array<string> = await dependencies.resolve(
@@ -301,13 +308,13 @@ export default class VMwareCollector {
         JSON.stringify(built.resourceMetrics),
       );
 
-      if (payloadBytes > VMWARE_COLLECTION_MAX_PAYLOAD_BYTES) {
+      if (payloadBytes > maxPayloadBytes) {
         throw new VMwareCollectionError(
           VMwareCollectionErrorCode.PayloadTooLarge,
           `This vCenter's collection is ${Math.round(
             payloadBytes / (1024 * 1024),
           )} MiB of metrics, more than the ${Math.round(
-            VMWARE_COLLECTION_MAX_PAYLOAD_BYTES / (1024 * 1024),
+            maxPayloadBytes / (1024 * 1024),
           )} MiB one probe upload takes. Use the VMware agent for this vCenter.`,
         );
       }

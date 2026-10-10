@@ -309,7 +309,14 @@ export async function openVerifiedSocket(
         throw error;
       }
 
-      lastError = error instanceof Error ? error : new Error(String(error));
+      /*
+       * Kept as thrown - its code (ECONNREFUSED ...) is what says what went
+       * wrong - whatever realm made it.
+       */
+      lastError =
+        error && typeof error === "object"
+          ? (error as Error)
+          : new Error(String(error));
     }
   }
 
