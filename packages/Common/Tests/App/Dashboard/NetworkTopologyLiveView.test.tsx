@@ -621,7 +621,11 @@ describe("network topology live view: Export PDF", () => {
   test("hiding every node type leaves nothing to export", async () => {
     await renderSite();
     fireEvent.click(screen.getByRole("button", { name: /Map options/ }));
-    for (const name of ["Monitored devices", "Discovered neighbors", "Endpoints"]) {
+    for (const name of [
+      "Monitored devices",
+      "Discovered neighbors",
+      "Endpoints",
+    ]) {
       fireEvent.click(screen.getByRole("button", { name: name }));
     }
     await waitFor(() => {

@@ -330,12 +330,7 @@ function frameOf(page: ExportPage): ExportRectItem {
 }
 
 // Everything the map draws, as opposed to the page's header and legend.
-const DIAGRAM_TAGS: Array<string> = [
-  "hull",
-  "edge:",
-  "node-",
-  "empty-diagram",
-];
+const DIAGRAM_TAGS: Array<string> = ["hull", "edge:", "node-", "empty-diagram"];
 
 function diagramItems(page: ExportPage): Array<ExportItem> {
   return page.items.filter((item: ExportItem): boolean => {
@@ -345,7 +340,11 @@ function diagramItems(page: ExportPage): Array<ExportItem> {
   });
 }
 
-function expectInside(inner: Extent, outer: Extent, slack: number = 0.01): void {
+function expectInside(
+  inner: Extent,
+  outer: Extent,
+  slack: number = 0.01,
+): void {
   expect(inner.minX).toBeGreaterThanOrEqual(outer.minX - slack);
   expect(inner.minY).toBeGreaterThanOrEqual(outer.minY - slack);
   expect(inner.maxX).toBeLessThanOrEqual(outer.maxX + slack);
@@ -444,7 +443,10 @@ describe("the map page draws the whole map the reader is looking at", () => {
       ];
       const centres: Array<[number, number]> = [from, to].map(
         (extent: Extent): [number, number] => {
-          return [(extent.minX + extent.maxX) / 2, (extent.minY + extent.maxY) / 2];
+          return [
+            (extent.minX + extent.maxX) / 2,
+            (extent.minY + extent.maxY) / 2,
+          ];
         },
       );
       for (const [x, y] of ends) {
@@ -731,15 +733,16 @@ describe("the reader's own arrangement and filters", () => {
     expect(after).toBeLessThan(before);
     // Forty layout units to the right, at the page's scale.
     expect(centre(moved, "lab1")[0] - centre(moved, "r1")[0]).toBeCloseTo(
-      40 * buildNetworkTopologyExportDocument(
-        input({
-          layoutModel: model,
-          positionOverrides: new Map<string, TopologyPoint>([
-            ["lab1", { x: r1.x + 40, y: r1.y }],
-          ]),
-        }),
-        measure,
-      ).summary.diagramScale,
+      40 *
+        buildNetworkTopologyExportDocument(
+          input({
+            layoutModel: model,
+            positionOverrides: new Map<string, TopologyPoint>([
+              ["lab1", { x: r1.x + 40, y: r1.y }],
+            ]),
+          }),
+          measure,
+        ).summary.diagramScale,
       3,
     );
   });
@@ -755,7 +758,10 @@ describe("the reader's own arrangement and filters", () => {
       ...model,
       positions: new Map<string, TopologyPoint>(
         STORE_NODES.map(
-          (node: NetworkTopologyNode, index: number): [string, TopologyPoint] => {
+          (
+            node: NetworkTopologyNode,
+            index: number,
+          ): [string, TopologyPoint] => {
             return [node.id, { x: index * 200, y: 100 }];
           },
         ),
@@ -775,7 +781,11 @@ describe("the reader's own arrangement and filters", () => {
       const extent: Extent = extentOf(shapeOf(page, node.id));
       return (extent.minX + extent.maxX) / 2;
     });
-    expect([...xs].sort((a: number, b: number) => a - b)).toEqual(xs);
+    expect(
+      [...xs].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(xs);
   });
 
   test("a hidden node type is left out of the map, the tables and the counts", () => {
@@ -911,7 +921,10 @@ describe("the reader's own arrangement and filters", () => {
   test("no notices means no notice lines", () => {
     expect(describeExportNotices(undefined)).toEqual([]);
     expect(
-      describeExportNotices({ droppedEndpointCount: 0, suppressedNodeCount: 0 }),
+      describeExportNotices({
+        droppedEndpointCount: 0,
+        suppressedNodeCount: 0,
+      }),
     ).toEqual([]);
     expect(describeExportNotices({ suppressedNodeCount: 2 })).toEqual([
       "2 nodes are hidden from this map by your project.",
@@ -941,7 +954,10 @@ describe("the PDF is light, whatever the dashboard's theme", () => {
     expect(frameOf(page).fill).toBeUndefined();
     for (const item of items(page, "hull:")) {
       expect((item as ExportRectItem).fill).toBe(
-        blendWithPaper("#f9fafb", (item as ExportRectItem).stroke?.dash ? 0.65 : 0.4),
+        blendWithPaper(
+          "#f9fafb",
+          (item as ExportRectItem).stroke?.dash ? 0.65 : 0.4,
+        ),
       );
     }
   });
@@ -958,7 +974,9 @@ describe("page size: legible names at any size, as vectors", () => {
     expect([page.width, page.height].sort()).toEqual(
       [A4_SHORT_SIDE, A4_LONG_SIDE].sort(),
     );
-    expect(document.summary.diagramScale).toBeLessThanOrEqual(MAX_DIAGRAM_SCALE);
+    expect(document.summary.diagramScale).toBeLessThanOrEqual(
+      MAX_DIAGRAM_SCALE,
+    );
     expect(document.summary.diagramScale).toBeGreaterThanOrEqual(
       MIN_LEGIBLE_DIAGRAM_SCALE,
     );
@@ -1011,7 +1029,10 @@ describe("page size: legible names at any size, as vectors", () => {
       layoutModel: {
         positions: new Map<string, TopologyPoint>(
           STORE_NODES.map(
-            (node: NetworkTopologyNode, index: number): [string, TopologyPoint] => {
+            (
+              node: NetworkTopologyNode,
+              index: number,
+            ): [string, TopologyPoint] => {
               return [node.id, { x: 0, y: index * 60 }];
             },
           ),
@@ -1027,7 +1048,10 @@ describe("page size: legible names at any size, as vectors", () => {
       layoutModel: {
         positions: new Map<string, TopologyPoint>(
           STORE_NODES.map(
-            (node: NetworkTopologyNode, index: number): [string, TopologyPoint] => {
+            (
+              node: NetworkTopologyNode,
+              index: number,
+            ): [string, TopologyPoint] => {
               return [node.id, { x: index * 70, y: 0 }];
             },
           ),
@@ -1070,11 +1094,17 @@ describe("page size: legible names at any size, as vectors", () => {
       scopeNames: [],
     });
     const page: ExportPage = mapPage(document);
-    const title: ExportTextItem = items(page, "header:title")[0] as ExportTextItem;
+    const title: ExportTextItem = items(
+      page,
+      "header:title",
+    )[0] as ExportTextItem;
     if (document.summary.chromeScale > 1) {
       expect(title.fontSize).toBeCloseTo(17 * document.summary.chromeScale, 6);
     }
-    const footer: ExportTextItem = items(page, "footer:page")[0] as ExportTextItem;
+    const footer: ExportTextItem = items(
+      page,
+      "footer:page",
+    )[0] as ExportTextItem;
     expect(footer.fontSize).toBeCloseTo(7 * document.summary.chromeScale, 6);
     expect(footer.y).toBeLessThan(page.height);
   });
@@ -1091,15 +1121,19 @@ describe("page size: legible names at any size, as vectors", () => {
       MAX_PAGE_SIDE + 1e-6,
     );
     // The map shrinks to fit the largest page instead of running off it.
-    expect(document.summary.diagramScale).toBeLessThan(MIN_LEGIBLE_DIAGRAM_SCALE);
+    expect(document.summary.diagramScale).toBeLessThan(
+      MIN_LEGIBLE_DIAGRAM_SCALE,
+    );
     for (const item of diagramItems(page)) {
       expectInside(extentOf(item), extentOf(frameOf(page)));
     }
   });
 
   test("hundreds of devices lay out quickly", () => {
-    const large: { nodes: Array<NetworkTopologyNode>; edges: Array<NetworkTopologyEdge> } =
-      estate(1500);
+    const large: {
+      nodes: Array<NetworkTopologyNode>;
+      edges: Array<NetworkTopologyEdge>;
+    } = estate(1500);
     const model: TopologyLayoutModel = computeTopologyLayoutModel(
       "force",
       large.nodes,
@@ -1132,7 +1166,9 @@ describe("the tables list every device and every connection", () => {
         const prefix: string = `table-cell:${table}:${row}:`;
         if (item.type === "text" && item.tag.startsWith(prefix)) {
           const column: number = Number(item.tag.slice(prefix.length));
-          cells[column] = cells[column] ? `${cells[column]} ${item.text}` : item.text;
+          cells[column] = cells[column]
+            ? `${cells[column]} ${item.text}`
+            : item.text;
         }
       }
     }
@@ -1153,7 +1189,11 @@ describe("the tables list every device and every connection", () => {
 
   test("every device on the map has a row, managed first, then peers, then endpoints", () => {
     const rows: Array<Array<string>> = rowsOf("devices");
-    expect(rows.map((row: Array<string>): string => row[0]!)).toEqual([
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0]!;
+      }),
+    ).toEqual([
       "Back office switch",
       "Backup NAS",
       "Core switch",
@@ -1325,7 +1365,9 @@ describe("the tables list every device and every connection", () => {
       expect(page.kind).toBe("table");
       for (const item of page.items) {
         if (item.tag.startsWith("table-")) {
-          expect(extentOf(item).maxY).toBeLessThanOrEqual(TABLE_BOTTOM_LIMIT + 0.01);
+          expect(extentOf(item).maxY).toBeLessThanOrEqual(
+            TABLE_BOTTOM_LIMIT + 0.01,
+          );
         }
       }
       // Every table page starts with a table's headings.

@@ -306,7 +306,10 @@ describe("buildTopologyHulls: the soft hulls behind the graph", () => {
       }
       expect(hull!.x).toBeCloseTo(minX - TOPOLOGY_HULL_PADDING, 6);
       expect(hull!.y).toBeCloseTo(minY - TOPOLOGY_HULL_PADDING, 6);
-      expect(hull!.width).toBeCloseTo(maxX - minX + 2 * TOPOLOGY_HULL_PADDING, 6);
+      expect(hull!.width).toBeCloseTo(
+        maxX - minX + 2 * TOPOLOGY_HULL_PADDING,
+        6,
+      );
       expect(hull!.height).toBeCloseTo(
         maxY - minY + 2 * TOPOLOGY_HULL_PADDING,
         6,

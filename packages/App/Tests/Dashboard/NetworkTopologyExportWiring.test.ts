@@ -173,7 +173,9 @@ describe("the export is handed what the reader is looking at", () => {
   });
 
   test("the graph is drawn from the same VLAN-filtered topology the export is given", () => {
-    expect(LIVE_VIEW).toContain("<NetworkDeviceGraph topology={visibleTopology}");
+    expect(LIVE_VIEW).toContain(
+      "<NetworkDeviceGraph topology={visibleTopology}",
+    );
   });
 });
 
@@ -186,7 +188,9 @@ describe("every view of the device map draws it with the live view", () => {
   });
 
   test("the Network Map's site view renders it, named after the site", () => {
-    expect(NETWORK_MAP).toContain("<NetworkTopologyLiveView siteId={currentSiteId}");
+    expect(NETWORK_MAP).toContain(
+      "<NetworkTopologyLiveView siteId={currentSiteId}",
+    );
     expect(NETWORK_MAP).toContain(
       "scopeNames={(childrenData?.breadcrumb || []).map( (entry: SiteBreadcrumbEntry): string => { return entry.name; }, )}",
     );
@@ -213,7 +217,11 @@ describe("every view of the device map draws it with the live view", () => {
         if (!entry.name.endsWith(".tsx")) {
           continue;
         }
-        if (stripComments(fs.readFileSync(full, "utf8")).includes("<NetworkDeviceGraph")) {
+        if (
+          stripComments(fs.readFileSync(full, "utf8")).includes(
+            "<NetworkDeviceGraph",
+          )
+        ) {
           users.push(path.relative(DASHBOARD_SRC, full));
         }
       }
@@ -231,7 +239,9 @@ describe("the canvas and the PDF draw from one module", () => {
     expect(GRAPH).toContain(
       "return computeTopologyLayoutModel(layoutMode, nodes, edges);",
     );
-    expect(GRAPH).toContain("return buildTopologyHulls(baseModel, viewModel.nodes);");
+    expect(GRAPH).toContain(
+      "return buildTopologyHulls(baseModel, viewModel.nodes);",
+    );
   });
 
   test("the graph keeps no layout dispatch of its own", () => {
@@ -256,7 +266,9 @@ describe("the canvas and the PDF draw from one module", () => {
         ),
       ),
     );
-    expect(document).toContain("computeTopologyLayoutModel(input.layoutMode, nodes, edges)");
+    expect(document).toContain(
+      "computeTopologyLayoutModel(input.layoutMode, nodes, edges)",
+    );
     expect(document).toContain("buildTopologyHulls( model, viewModel.nodes, )");
     expect(document).toContain("buildTopologyViewModel({");
     expect(document).toContain("buildTopologyLegend(");
@@ -266,7 +278,10 @@ describe("the canvas and the PDF draw from one module", () => {
 describe("the PDF library is loaded only when somebody exports", () => {
   test("jsPDF is imported dynamically, in the loader alone", () => {
     for (const file of exportModules()) {
-      const source: string = fs.readFileSync(path.join(EXPORT_DIR, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(EXPORT_DIR, file),
+        "utf8",
+      );
       // A static value import would put jsPDF in the dashboard's main bundle.
       expect(source).not.toMatch(/^import\s+(?!type\b)[^;]*from\s+"jspdf"/m);
       expect(source).not.toMatch(/from\s+"jspdf-autotable"/);
@@ -287,7 +302,10 @@ describe("the PDF library is loaded only when somebody exports", () => {
       if (file === "NetworkTopologyPdfExport.ts") {
         continue;
       }
-      const source: string = fs.readFileSync(path.join(EXPORT_DIR, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(EXPORT_DIR, file),
+        "utf8",
+      );
       expect(source).not.toContain("NetworkTopologyPdfExport");
     }
   });
@@ -295,7 +313,10 @@ describe("the PDF library is loaded only when somebody exports", () => {
   test("the export modules are plain TypeScript: no React, no DOM rendering", () => {
     for (const file of exportModules()) {
       expect(file.endsWith(".ts")).toBe(true);
-      const source: string = fs.readFileSync(path.join(EXPORT_DIR, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(EXPORT_DIR, file),
+        "utf8",
+      );
       expect(source).not.toMatch(/from\s+"react"/);
     }
   });

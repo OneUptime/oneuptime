@@ -210,7 +210,10 @@ export function buildTopologyTables(
       edgeView.fromNodeId,
       (linkCount.get(edgeView.fromNodeId) || 0) + 1,
     );
-    linkCount.set(edgeView.toNodeId, (linkCount.get(edgeView.toNodeId) || 0) + 1);
+    linkCount.set(
+      edgeView.toNodeId,
+      (linkCount.get(edgeView.toNodeId) || 0) + 1,
+    );
   }
   const nameOf: (nodeId: string) => string = (nodeId: string): string => {
     return strings.clean(nodeById.get(nodeId)?.name || nodeId);
@@ -524,7 +527,8 @@ export function layoutTables(
       );
       for (let column: number = 0; column < row.length; column++) {
         const cell: ExportTableCell = row[column]!;
-        let textLeft: number = (columnLefts[column] || 0) + TABLE_CELL_PADDING_X;
+        let textLeft: number =
+          (columnLefts[column] || 0) + TABLE_CELL_PADDING_X;
         if (cell.dotColor) {
           cursor.page.items.push({
             type: "circle",

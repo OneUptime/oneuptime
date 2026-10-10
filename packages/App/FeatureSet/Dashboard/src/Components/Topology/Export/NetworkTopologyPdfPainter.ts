@@ -72,7 +72,12 @@ export interface TopologyPdfCanvas {
     ry: number,
     style: TopologyPdfDrawStyle,
   ) => unknown;
-  circle: (x: number, y: number, r: number, style: TopologyPdfDrawStyle) => unknown;
+  circle: (
+    x: number,
+    y: number,
+    r: number,
+    style: TopologyPdfDrawStyle,
+  ) => unknown;
   line: (x1: number, y1: number, x2: number, y2: number) => unknown;
   moveTo: (x: number, y: number) => unknown;
   lineTo: (x: number, y: number) => unknown;
@@ -280,7 +285,11 @@ function paintPathCommand(
   }
 }
 
-function paintLine(state: CanvasState, canvas: TopologyPdfCanvas, item: ExportLineItem): void {
+function paintLine(
+  state: CanvasState,
+  canvas: TopologyPdfCanvas,
+  item: ExportLineItem,
+): void {
   state.stroke(item.stroke);
   state.cap(item.roundCaps ? "round" : "butt");
   canvas.line(item.x1, item.y1, item.x2, item.y2);
@@ -405,7 +414,11 @@ export async function paintNetworkTopologyDocument(
   const state: CanvasState = new CanvasState(canvas);
   let sinceLastPause: number = 0;
 
-  for (let pageIndex: number = 0; pageIndex < document.pages.length; pageIndex++) {
+  for (
+    let pageIndex: number = 0;
+    pageIndex < document.pages.length;
+    pageIndex++
+  ) {
     const page: ExportPage = document.pages[pageIndex]!;
     if (pageIndex > 0) {
       canvas.addPage([page.width, page.height], orientationOf(page));

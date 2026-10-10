@@ -47,8 +47,7 @@ interface PdfContents {
 
 const STREAM: RegExp = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
 const TEXT_OPERATOR: RegExp = /\(((?:\\.|[^\\)])*)\)\s*Tj/g;
-const MEDIA_BOX: RegExp =
-  /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/g;
+const MEDIA_BOX: RegExp = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/g;
 const PAGE_OBJECT: RegExp = /\/Type\s*\/Page(?!s)/g;
 const OCTAL_ESCAPE: RegExp = /\\([0-7]{1,3})/g;
 const CHARACTER_ESCAPE: RegExp = /\\(.)/g;
@@ -380,7 +379,11 @@ test("the map of every device shows the devices with no links, and a large netwo
   expect(pdf.texts).toContain("Connections (1,199)");
   // The strip of devices with no links, captioned as on screen.
   expect(pdf.texts).toContain("Not linked to anything (3)");
-  for (const name of ["Spare core switch", "Lab router", "Unpatched firewall"]) {
+  for (const name of [
+    "Spare core switch",
+    "Lab router",
+    "Unpatched firewall",
+  ]) {
     expect(pdf.texts).toContain(name);
   }
   // Too large for A4 with legible names: the map page grows instead.

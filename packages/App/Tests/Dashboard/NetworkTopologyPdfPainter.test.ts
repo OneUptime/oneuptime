@@ -198,7 +198,12 @@ describe("paintExportItem: one item, one drawing", () => {
     const canvas: RecordingCanvas = paint([
       { ...RECT, fill: undefined },
       { type: "circle", tag: "c", cx: 1, cy: 1, r: 1 },
-      { type: "path", tag: "p", commands: [{ op: "m", points: [0, 0] }], closed: true },
+      {
+        type: "path",
+        tag: "p",
+        commands: [{ op: "m", points: [0, 0] }],
+        closed: true,
+      },
     ]);
     expect(canvas.calls).toEqual([]);
   });
@@ -232,9 +237,7 @@ describe("paintExportItem: one item, one drawing", () => {
       "close",
       "fillStroke",
     ]);
-    expect(canvas.named("curveTo")).toEqual([
-      ["curveTo", 12, 0, 14, 2, 14, 4],
-    ]);
+    expect(canvas.named("curveTo")).toEqual([["curveTo", 12, 0, 14, 2, 14, 4]]);
   });
 
   test("an open path (a drum's rim) is stroked without closing it", () => {
@@ -302,11 +305,15 @@ describe("paintExportItem: one item, one drawing", () => {
     expect(PDF_FONT_NAME).toBe("helvetica");
     expect(canvas.named("setFont")).toEqual([["setFont", "helvetica", "bold"]]);
     expect(canvas.named("setFontSize")).toEqual([["setFontSize", 5.4]]);
-    expect(canvas.named("setTextColor")).toEqual([
-      ["setTextColor", "#374151"],
-    ]);
+    expect(canvas.named("setTextColor")).toEqual([["setTextColor", "#374151"]]);
     expect(canvas.named("text")).toEqual([
-      ["text", "Core switch", 50, 60, { align: "center", baseline: "alphabetic" }],
+      [
+        "text",
+        "Core switch",
+        50,
+        60,
+        { align: "center", baseline: "alphabetic" },
+      ],
     ]);
   });
 
@@ -328,7 +335,13 @@ describe("paintExportItem: one item, one drawing", () => {
         60,
         { align: "center", baseline: "alphabetic", renderingMode: "stroke" },
       ],
-      ["text", "Core switch", 50, 60, { align: "center", baseline: "alphabetic" }],
+      [
+        "text",
+        "Core switch",
+        50,
+        60,
+        { align: "center", baseline: "alphabetic" },
+      ],
     ]);
     const order: Array<string> = canvas.names();
     expect(order.indexOf("setDrawColor")).toBeLessThan(order.indexOf("text"));

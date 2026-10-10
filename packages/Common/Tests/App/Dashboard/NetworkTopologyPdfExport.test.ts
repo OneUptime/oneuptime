@@ -195,8 +195,7 @@ describe("buildNetworkTopologyPdf: the PDF of one map", () => {
       format: "a4",
       orientation: "landscape",
     });
-    const firstPage: { width: number; height: number } =
-      pdf.document.pages[0]!;
+    const firstPage: { width: number; height: number } = pdf.document.pages[0]!;
     expect(document.options).toEqual({
       unit: "pt",
       format: [firstPage.width, firstPage.height],
@@ -343,13 +342,13 @@ describe("exportNetworkTopologyAsPdf: the download", () => {
     expect(formatSpy).toHaveBeenCalledWith(
       new Date("2026-10-10T12:32:05.000Z"),
     );
-    const texts: Array<unknown> = FakeJsPdf.instances[1]!.calls
-      .filter((call: Call) => {
+    const texts: Array<unknown> = FakeJsPdf.instances[1]!.calls.filter(
+      (call: Call) => {
         return call[0] === "text";
-      })
-      .map((call: Call) => {
-        return call[1];
-      });
+      },
+    ).map((call: Call) => {
+      return call[1];
+    });
     expect(texts.join(" ")).toContain("Exported Oct 10 2026, 14:32 CEST");
   });
 
@@ -358,7 +357,9 @@ describe("exportNetworkTopologyAsPdf: the download", () => {
       { ...request(), scopeNames: [] },
       { loadPdfLibrary: loadPdfLibrary, yieldToBrowser: noPause },
     );
-    expect(filename).toBe("network-topology-acme-retail-2026-10-10T12-32-05.pdf");
+    expect(filename).toBe(
+      "network-topology-acme-retail-2026-10-10T12-32-05.pdf",
+    );
   });
 
   test("nothing is downloaded when the PDF cannot be built", async () => {

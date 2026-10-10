@@ -357,8 +357,7 @@ function buildLargeNetwork() {
   );
   return { nodes, edges };
 }
-const largeNetwork =
-  selectedNetwork === "large" ? buildLargeNetwork() : null;
+const largeNetwork = selectedNetwork === "large" ? buildLargeNetwork() : null;
 
 const stats = { total: 7, healthy: 4, down: 1, degraded: 1, unknown: 1 };
 const site = (id, name) => ({

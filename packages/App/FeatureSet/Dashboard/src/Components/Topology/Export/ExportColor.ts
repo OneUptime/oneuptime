@@ -78,7 +78,10 @@ function toHexChannel(value: number): string {
  */
 export function blendWithPaper(color: string, alpha: number): string {
   const hex: string = resolvePrintColor(color);
-  const a: number = Math.max(0, Math.min(1, Number.isFinite(alpha) ? alpha : 1));
+  const a: number = Math.max(
+    0,
+    Math.min(1, Number.isFinite(alpha) ? alpha : 1),
+  );
   if (a >= 1) {
     return hex;
   }

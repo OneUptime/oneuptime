@@ -49,7 +49,11 @@ export interface HeaderContent {
   footnote: string;
 }
 
-const STATUS_ORDER: Array<NetworkTopologyNodeStatus> = ["up", "down", "unknown"];
+const STATUS_ORDER: Array<NetworkTopologyNodeStatus> = [
+  "up",
+  "down",
+  "unknown",
+];
 
 const STATUS_WORDS: Record<NetworkTopologyNodeStatus, string> = {
   up: "up",

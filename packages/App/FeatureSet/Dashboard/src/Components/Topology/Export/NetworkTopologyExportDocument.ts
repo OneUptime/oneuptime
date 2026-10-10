@@ -340,8 +340,7 @@ export function planDiagramPage(
   }
 
   // Too large for A4: a page cut to the map.
-  const chrome: PageChrome =
-    world.width >= world.height ? landscape : portrait;
+  const chrome: PageChrome = world.width >= world.height ? landscape : portrait;
   const widthScale: number = boxWidthOf(chrome) / Math.max(1, world.width);
   let diagramScale: number;
   let chromeScale: number;
@@ -529,7 +528,13 @@ function chromeFor(
     orientation: orientation,
     width: width,
     height: height,
-    header: layoutHeader(header, PAGE_MARGIN, PAGE_MARGIN, contentWidth, measure),
+    header: layoutHeader(
+      header,
+      PAGE_MARGIN,
+      PAGE_MARGIN,
+      contentWidth,
+      measure,
+    ),
     legend: layoutLegend(legend, PAGE_MARGIN, 0, contentWidth, measure),
   };
 }
@@ -724,7 +729,8 @@ export function buildNetworkTopologyExportDocument(
     diagramPage.items.push(
       ...buildDiagramItems(viewModel, hulls, labels, {
         scale: s,
-        offsetX: plan.box.x + (plan.box.width - drawnWidth) / 2 - world.minX * s,
+        offsetX:
+          plan.box.x + (plan.box.width - drawnWidth) / 2 - world.minX * s,
         offsetY:
           plan.box.y + (plan.box.height - drawnHeight) / 2 - world.minY * s,
       }),

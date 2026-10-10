@@ -1407,39 +1407,37 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           >
             {/* Islands and endpoint groups, painted behind everything. */}
             <g aria-hidden={true}>
-              {hulls.map(
-                (hull: TopologyHullView): ReactElement => {
-                  return (
-                    <g key={hull.key}>
-                      <rect
-                        x={hull.x}
-                        y={hull.y}
-                        width={hull.width}
-                        height={hull.height}
-                        rx={14}
-                        fill="var(--ou-surface-secondary, #f9fafb)"
-                        fillOpacity={hull.isDashed ? 0.65 : 0.4}
-                        stroke="var(--ou-border-subtle, #e5e7eb)"
-                        strokeWidth={1}
-                        strokeDasharray={hull.isDashed ? "5 4" : undefined}
-                      />
-                      {hull.caption ? (
-                        <text
-                          x={hull.x + 6}
-                          y={hull.y - 6}
-                          fontSize={12}
-                          fontWeight={600}
-                          fill="var(--ou-text-muted, #6b7280)"
-                        >
-                          {hull.caption}
-                        </text>
-                      ) : (
-                        <></>
-                      )}
-                    </g>
-                  );
-                },
-              )}
+              {hulls.map((hull: TopologyHullView): ReactElement => {
+                return (
+                  <g key={hull.key}>
+                    <rect
+                      x={hull.x}
+                      y={hull.y}
+                      width={hull.width}
+                      height={hull.height}
+                      rx={14}
+                      fill="var(--ou-surface-secondary, #f9fafb)"
+                      fillOpacity={hull.isDashed ? 0.65 : 0.4}
+                      stroke="var(--ou-border-subtle, #e5e7eb)"
+                      strokeWidth={1}
+                      strokeDasharray={hull.isDashed ? "5 4" : undefined}
+                    />
+                    {hull.caption ? (
+                      <text
+                        x={hull.x + 6}
+                        y={hull.y - 6}
+                        fontSize={12}
+                        fontWeight={600}
+                        fill="var(--ou-text-muted, #6b7280)"
+                      >
+                        {hull.caption}
+                      </text>
+                    ) : (
+                      <></>
+                    )}
+                  </g>
+                );
+              })}
             </g>
 
             {/* Edges below nodes so a node is never covered by a line. */}

@@ -35,7 +35,10 @@ const NETWORK_SIDE_MENU: string = fs.readFileSync(
 const EXPORT_BUTTON_TITLE: RegExp = /title: "(Export PDF)"/;
 
 function readGuide(language: string): string {
-  return fs.readFileSync(path.join(CONTENT_DIR, language, DEVICE_GUIDE), "utf8");
+  return fs.readFileSync(
+    path.join(CONTENT_DIR, language, DEVICE_GUIDE),
+    "utf8",
+  );
 }
 
 // The section between `heading` and the next heading of the same level or higher.

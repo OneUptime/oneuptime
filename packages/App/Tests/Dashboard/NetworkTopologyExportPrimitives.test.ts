@@ -142,9 +142,12 @@ describe("wrapText and friends: text laid out to a width", () => {
   });
 
   test("a word wider than a line is broken between characters", () => {
-    expect(
-      wrapText("core-1.dc-east.example.com", 40, measure, 10),
-    ).toEqual(["core-1.d", "c-east.e", "xample.c", "om"]);
+    expect(wrapText("core-1.dc-east.example.com", 40, measure, 10)).toEqual([
+      "core-1.d",
+      "c-east.e",
+      "xample.c",
+      "om",
+    ]);
   });
 
   test("every wrapped line fits the width", () => {
@@ -403,7 +406,10 @@ describe("shapeItems: the silhouettes the canvas draws", () => {
     const ry: number = cylinderCapHalfHeight(geometry.halfHeight);
     const top: number = -geometry.halfHeight + ry;
     expect(body.commands[1]!.points.slice(4)).toEqual([0, top - ry]);
-    expect(body.commands[1]!.points[1]).toBeCloseTo(top - ry * ELLIPSE_KAPPA, 6);
+    expect(body.commands[1]!.points[1]).toBeCloseTo(
+      top - ry * ELLIPSE_KAPPA,
+      6,
+    );
   });
 
   test("an endpoint leaf is the small rect the canvas draws", () => {

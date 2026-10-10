@@ -1,5 +1,8 @@
 import { TopologyNodeFootprint } from "../../NetworkDevice/TopologyFootprint";
-import { TopologyNodeView, TopologyViewModel } from "../NetworkTopologyViewModel";
+import {
+  TopologyNodeView,
+  TopologyViewModel,
+} from "../NetworkTopologyViewModel";
 import { HEALTH_STATE_COLORS } from "../TopologyHealthFilter";
 import { TopologyHullView } from "../NetworkTopologyDrawing";
 import { blendWithPaper, resolvePrintColor } from "./ExportColor";
@@ -40,6 +43,8 @@ const DASHED_HULL_FILL_OPACITY: number = 0.65;
 const HALO_FILL_OPACITY: number = 0.16;
 const HALO_STROKE_OPACITY: number = 0.55;
 
+// The hull's outline is one layout unit wide, as on the canvas.
+const HULL_STROKE_WIDTH: number = 1;
 const HULL_FILL: string = "var(--ou-surface-secondary, #f9fafb)";
 const HULL_STROKE: string = "var(--ou-border-subtle, #e5e7eb)";
 const HULL_CAPTION_COLOR: string = "var(--ou-text-muted, #6b7280)";
@@ -193,7 +198,7 @@ export function buildDiagramItems(
       ),
       stroke: {
         color: resolvePrintColor(HULL_STROKE),
-        width: 1 * s,
+        width: HULL_STROKE_WIDTH * s,
         dash: hull.isDashed ? [5 * s, 4 * s] : undefined,
       },
     });
