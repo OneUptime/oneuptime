@@ -274,21 +274,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/dns-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/dnssec-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/docker-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/docker-swarm-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "monitor/domain-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/exceptions-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -315,10 +306,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/iot-device-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "monitor/javascript-expression": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/kubernetes-agent": {
     pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION_BUT_FA,
@@ -329,13 +316,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/logs-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/manual-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/metrics-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/monitor-secrets": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/network-device-monitor": {
@@ -365,9 +346,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/sql-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/ssl-certificate-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/storage-array-monitor": {
