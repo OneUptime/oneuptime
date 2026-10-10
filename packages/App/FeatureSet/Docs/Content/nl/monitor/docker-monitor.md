@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"eerste gegevens"| registered["Docker-host geregistreerd"]
     oneuptime --> monitor["Docker-monitor"]
     monitor -->|"elke minuut"| criteria{"Criteria voldaan?"}
-    criteria -->|"ja"| incident["Incident of waarschuwing"]
+    criteria -->|"ja"| incident["Incident of<br/>waarschuwing"]
     criteria -->|"nee"| online["Monitor online"]
 ```
 

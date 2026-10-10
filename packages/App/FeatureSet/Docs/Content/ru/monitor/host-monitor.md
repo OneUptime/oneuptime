@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"первые данные"| registered["Хост зарегистрирован"]
     oneuptime --> monitor["Монитор хоста"]
     monitor -->|"каждую минуту"| criteria{"Критерии выполнены?"}
-    criteria -->|"да"| incident["Инцидент или оповещение"]
+    criteria -->|"да"| incident["Инцидент<br/>или оповещение"]
     criteria -->|"нет"| online["Монитор в сети"]
 ```
 

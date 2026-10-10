@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"primeiros dados"| registered["Host Podman registrado"]
     oneuptime --> monitor["Monitor de Podman"]
     monitor -->|"a cada minuto"| criteria{"Critérios atendidos?"}
-    criteria -->|"sim"| incident["Incidente ou alerta"]
+    criteria -->|"sim"| incident["Incidente<br/>ou alerta"]
     criteria -->|"não"| online["Monitor online"]
 ```
 

@@ -22,10 +22,10 @@ flowchart TB
         containers["Containers"] --> agent["OneUptime-Podman-agent"]
     end
     agent -->|"metrieken en logboeken via OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"eerste gegevens"| registered["Podman-host geregistreerd"]
+    oneuptime -->|"eerste gegevens"| registered["Podman-host<br/>geregistreerd"]
     oneuptime --> monitor["Podman-monitor"]
     monitor -->|"elke minuut"| criteria{"Criteria voldaan?"}
-    criteria -->|"ja"| incident["Incident of waarschuwing"]
+    criteria -->|"ja"| incident["Incident of<br/>waarschuwing"]
     criteria -->|"nee"| online["Monitor online"]
 ```
 

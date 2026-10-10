@@ -25,8 +25,8 @@ flowchart TB
     oneuptime -->|"最初のデータ"| registered["Docker ホストを登録"]
     oneuptime --> monitor["Docker モニター"]
     monitor -->|"毎分"| criteria{"条件を満たす？"}
-    criteria -->|"はい"| incident["インシデントまたはアラート"]
-    criteria -->|"いいえ"| online["モニターはオンライン"]
+    criteria -->|"はい"| incident["インシデント<br/>またはアラート"]
+    criteria -->|"いいえ"| online["モニターは<br/>オンライン"]
 ```
 
 ## 始める前に
