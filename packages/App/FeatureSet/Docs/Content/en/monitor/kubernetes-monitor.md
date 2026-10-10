@@ -137,11 +137,11 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 | Node Not Ready | Node | A node reports NotReady | Critical |
 | High Node CPU Utilization | Node | A node's average CPU usage is above 90% of its allocatable CPU | Warning |
 | High Node Memory Utilization | Node | A node's average memory usage is above 85% of its allocatable memory | Warning |
-| Deployment Replica Mismatch | Workload | A deployment has fewer available replicas than desired for fifteen minutes | Warning |
+| Deployment Replica Mismatch | Workload | A deployment has fewer available replicas than desired for 15 minutes | Warning |
 | Job Failures | Workload | A job has failed pods | Warning |
 | etcd No Leader | Control Plane | etcd has no elected leader | Critical |
 | API Server Request Saturation | Control Plane | The API server holds 200 or more in-flight requests for the whole window | Critical |
-| Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for five minutes | Warning |
+| Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for 5 minutes | Warning |
 | High Node Disk Usage | Storage | A node's filesystem is more than 90% full | Warning |
 | DaemonSet Misscheduled Nodes | Workload | A DaemonSet runs pods on nodes that no longer match its node selector, affinity or tolerations | Warning |
 | High Node CPU Request Commitment | Node | A node's summed container CPU requests exceed 90% of its allocatable CPU | Warning |
