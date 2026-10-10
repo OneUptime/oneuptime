@@ -930,6 +930,60 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     );
   });
 
+  test("someone unlinked whose Teams name carries Markdown is named as written, and the settings link is the only link", async () => {
+    userAuthSpy.mockResolvedValue(null);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({
+        reactingUserName: "**Jane** [Doe](https://example.com)",
+      }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      `\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), to save messages as notes, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/microsoft-teams-integration), then react again.`,
+    );
+  });
+
+  test("a member the check refuses is named, and told the refusal, as text", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission: the label *Payments* is not yours.",
+      ),
+    );
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({
+        reactingUserName: "**Jane** [Doe](https://example.com)",
+      }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), You do not have permission: the label \\*Payments\\* is not yours.",
+    );
+  });
+
+  test("a refusal the check gives without a name is still text", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "The label [x](https://example.com) is not yours.",
+      ),
+    );
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: undefined }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "The label \\[x\\](https://example.com) is not yours.",
+    );
+  });
+
   test("an old reaction whose save is refused gets no reply, and is not retried either", async () => {
     saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
 

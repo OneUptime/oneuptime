@@ -89,19 +89,13 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<ScheduledMaintenanceState> {
-    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-      await this.getAllScheduledMaintenanceStates({
-        projectId: data.projectId,
-        props: data.props,
-      });
-
-    const resolvedScheduledMaintenanceState:
-      | ScheduledMaintenanceState
-      | undefined = scheduledMaintenanceStates.find(
-      (scheduledMaintenanceState: ScheduledMaintenanceState) => {
-        return scheduledMaintenanceState?.isResolvedState;
-      },
-    );
+    const resolvedScheduledMaintenanceState: ScheduledMaintenanceState | null =
+      this.getCompletedStateAmong(
+        await this.getAllScheduledMaintenanceStates({
+          projectId: data.projectId,
+          props: data.props,
+        }),
+      );
 
     if (!resolvedScheduledMaintenanceState) {
       throw new BadDataException(
@@ -110,6 +104,54 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     }
 
     return resolvedScheduledMaintenanceState;
+  }
+
+  /*
+   * Where Mark as Complete moves an event, among its project's states as
+   * getAllScheduledMaintenanceStates reads them (top first): the first
+   * state flagged completed. Null when the list has none.
+   */
+  public getCompletedStateAmong(
+    states: Array<ScheduledMaintenanceState>,
+  ): ScheduledMaintenanceState | null {
+    return (
+      states.find((state: ScheduledMaintenanceState): boolean => {
+        return Boolean(state?.isResolvedState);
+      }) || null
+    );
+  }
+
+  /*
+   * Whether an event in `stateId` is complete, among its project's states:
+   * in the completed state or one placed after it - the rule
+   * ScheduledMaintenanceService.isScheduledMaintenanceCompleted reads off an
+   * event it reads itself, for an event its caller has read already (the
+   * chats' Mark as Complete and Mark as Ongoing, WorkspaceMemberActions).
+   * False for a state that is none of the project's.
+   */
+  public isCompleteAmong(data: {
+    states: Array<ScheduledMaintenanceState>;
+    stateId: ObjectID | undefined;
+  }): boolean {
+    const completedState: ScheduledMaintenanceState | null =
+      this.getCompletedStateAmong(data.states);
+
+    const currentState: ScheduledMaintenanceState | undefined = data.stateId
+      ? data.states.find((state: ScheduledMaintenanceState): boolean => {
+          return state.id?.toString() === data.stateId!.toString();
+        })
+      : undefined;
+
+    if (
+      completedState?.order === undefined ||
+      completedState.order === null ||
+      currentState?.order === undefined ||
+      currentState.order === null
+    ) {
+      return false;
+    }
+
+    return currentState.order >= completedState.order;
   }
 
   @CaptureSpan()

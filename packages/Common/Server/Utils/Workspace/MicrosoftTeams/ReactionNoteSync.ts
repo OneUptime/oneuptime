@@ -35,7 +35,10 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../WorkspaceReactionNote";
 import MicrosoftTeamsUtil from "./MicrosoftTeams";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -643,9 +646,10 @@ export default class MicrosoftTeamsReactionNoteSync {
         await this.replyInThread({
           channel: channel,
           threadId: reaction.threadId,
+          // The person's name and the refusal are both text.
           text: reaction.reactingUserName
-            ? `${reaction.reactingUserName}, ${err.message}`
-            : err.message,
+            ? mdText`${reaction.reactingUserName}, ${err.message}`.toString()
+            : mdText`${err.message}`.toString(),
         });
       }
 
@@ -711,13 +715,7 @@ export default class MicrosoftTeamsReactionNoteSync {
           noteType: reaction.noteType,
           resourceLabel: display.label,
           resourceLink: display.link.toString(),
-          formatLink: (url: string, linkText: string): string => {
-            return mdText`[${linkText}](${url})`.toString();
-          },
-          formatBold: (boldText: string): string => {
-            return mdText`**${boldText}**`.toString();
-          },
-        }),
+        }).toString(),
       });
     } catch (err) {
       logger.error("Error building Microsoft Teams note confirmation", {
@@ -774,28 +772,28 @@ export default class MicrosoftTeamsReactionNoteSync {
     projectId: ObjectID;
     reactingUserName?: string | undefined;
   }): Promise<string> {
-    const greeting: string = data.reactingUserName
-      ? `${data.reactingUserName}, to`
-      : "To";
+    // The person's Teams name is theirs to set: it is placed as text.
+    const greeting: MarkdownText = data.reactingUserName
+      ? mdText`${data.reactingUserName}, to`
+      : mdText`To`;
 
-    let settingsLink: string = "";
+    let settingsLink: MarkdownText = FeedMarkdown.empty();
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-      settingsLink =
-        mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
-          dashboardUrl.toString(),
+      settingsLink = mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
+        dashboardUrl.toString(),
+      )
+        .addRoute(
+          `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
         )
-          .addRoute(
-            `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
-          )
-          .toString()})`.toString();
+        .toString()})`;
     } catch (err) {
       logger.debug("Could not build the Microsoft Teams settings link");
       logger.debug(err);
     }
 
-    return `${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`;
+    return mdText`${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`.toString();
   }
 
   // The text of a Graph chatMessage: its body, plus any adaptive card it carries.

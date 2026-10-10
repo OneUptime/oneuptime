@@ -3,6 +3,9 @@ import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeStateTimeline from "../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -23,6 +26,7 @@ import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
 import ResolvedStateUtil, {
   ResolvedStateList,
 } from "../../../Utils/ResolvedState";
+import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
 import { StateListType } from "../../../Utils/StateOrder";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertEpisodeStateTimelineService from "../../Services/AlertEpisodeStateTimelineService";
@@ -38,8 +42,12 @@ import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicy
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
+import Query from "../../Types/Database/Query";
+import Select from "../../Types/Database/Select";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
+import WorkspaceActionAuthorization, {
+  WorkspaceActionResource,
+} from "./WorkspaceActionAuthorization";
 
 /*
  * WHAT A SLACK OR MICROSOFT TEAMS BUTTON CHANGES, IT CHANGES AS THE MEMBER
@@ -74,7 +82,11 @@ import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
  *
  * The record is read as the member first: one they may not read is
  * answered like one that is not there, before anything about it - its state
- * included - is told to them.
+ * included - is told to them. A press reads it once. The check that the
+ * member may act (authorize) reads it with what the actions and the chats'
+ * own answers need, and hands it on as a WorkspaceEventRecord; an action
+ * given one reads nothing of it again, and one given only the record's id
+ * (OneUptime AI's tools) reads it itself.
  */
 
 // The records Slack and Microsoft Teams buttons act on.
@@ -91,16 +103,41 @@ export interface WorkspaceEvent {
   id: ObjectID;
 }
 
+/*
+ * The record a button acts on, as its member read it: in their project,
+ * under their labels, owners and blocks. Handed from the read that checked
+ * the member may act on it to the chat's own answer and to the write.
+ */
+export interface WorkspaceEventRecord extends WorkspaceEvent {
+  projectId: ObjectID;
+  currentStateId: ObjectID | undefined;
+  // Its number, for the chats' own sentences: 42, and "INC-42" with a prefix.
+  number: number | null;
+  numberWithPrefix: string | null;
+}
+
+/*
+ * Where a record stands, for a chat's own answer to a button that comes too
+ * late. An incident, an alert or an episode is acknowledged in the
+ * project's acknowledged state or any state after it, resolved included
+ * (Common/Utils/AcknowledgedState), and resolved in its resolved state or
+ * after it (Common/Utils/ResolvedState). A scheduled maintenance event has
+ * started once it is ongoing or anything after it
+ * (ScheduledMaintenanceStartUtil), and is complete in its completed state or
+ * after it (ScheduledMaintenanceStateService.isCompleteAmong). What does not
+ * apply to a kind is false.
+ */
+export interface WorkspaceEventStanding {
+  isAcknowledged: boolean;
+  isResolved: boolean;
+  hasStarted: boolean;
+  isComplete: boolean;
+}
+
 // A state a chat's change-state form offers.
 export interface WorkspaceEventStateOption {
   id: ObjectID;
   name: string;
-}
-
-// The record a button acts on, as its member reads it.
-interface ReadEvent {
-  projectId: ObjectID;
-  currentStateId: ObjectID | undefined;
 }
 
 // A state of the record's list, with what decides where it sits.
@@ -149,6 +186,215 @@ export default class WorkspaceMemberActions {
   }
 
   /*
+   * The record as a resource of WorkspaceActionAuthorization: the service
+   * that reads it, and what the actions and the chats' answers need of it -
+   * its state and its number - so the read that checks the member may act on
+   * it is the only read of it.
+   */
+  public static getEventResource(
+    event: WorkspaceEvent,
+  ): WorkspaceActionResource {
+    switch (event.type) {
+      case WorkspaceEventType.Incident: {
+        const select: Select<Incident> = {
+          currentIncidentStateId: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+        };
+
+        return {
+          service: IncidentService,
+          id: event.id,
+          select: select as Select<DatabaseBaseModel>,
+        };
+      }
+      case WorkspaceEventType.Alert: {
+        const select: Select<Alert> = {
+          currentAlertStateId: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+        };
+
+        return {
+          service: AlertService,
+          id: event.id,
+          select: select as Select<DatabaseBaseModel>,
+        };
+      }
+      case WorkspaceEventType.IncidentEpisode: {
+        const select: Select<IncidentEpisode> = {
+          currentIncidentStateId: true,
+          episodeNumber: true,
+          episodeNumberWithPrefix: true,
+        };
+
+        return {
+          service: IncidentEpisodeService,
+          id: event.id,
+          select: select as Select<DatabaseBaseModel>,
+        };
+      }
+      case WorkspaceEventType.AlertEpisode: {
+        const select: Select<AlertEpisode> = {
+          currentAlertStateId: true,
+          episodeNumber: true,
+          episodeNumberWithPrefix: true,
+        };
+
+        return {
+          service: AlertEpisodeService,
+          id: event.id,
+          select: select as Select<DatabaseBaseModel>,
+        };
+      }
+      case WorkspaceEventType.ScheduledMaintenance: {
+        const select: Select<ScheduledMaintenance> = {
+          currentScheduledMaintenanceStateId: true,
+          scheduledMaintenanceNumber: true,
+          scheduledMaintenanceNumberWithPrefix: true,
+        };
+
+        return {
+          service: ScheduledMaintenanceService,
+          id: event.id,
+          select: select as Select<DatabaseBaseModel>,
+        };
+      }
+    }
+  }
+
+  /*
+   * Whether the member may make a `modelType` row for the record - the row
+   * the button writes - and read the record and every other record the
+   * action names (`resources`): WorkspaceActionAuthorization's check, with
+   * its refusals, written for them. Hands back the record as that check read
+   * it, for the chat's own answer and for the write, so the press reads it
+   * once.
+   */
+  @CaptureSpan()
+  public static async authorize(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    action: string;
+    event: WorkspaceEvent;
+    resources?: Array<WorkspaceActionResource> | undefined;
+  }): Promise<WorkspaceEventRecord> {
+    const records: Array<DatabaseBaseModel> =
+      await WorkspaceActionAuthorization.assertCanCreateAndRead({
+        props: data.props,
+        modelType: data.modelType,
+        action: data.action,
+        resources: [
+          this.getEventResource(data.event),
+          ...(data.resources || []),
+        ],
+      });
+
+    return this.toEventRecord({
+      event: data.event,
+      // The check refuses props without a project, so there is one here.
+      projectId: data.props.tenantId!,
+      record: records[0]!,
+    });
+  }
+
+  /*
+   * The record as read with getEventResource's columns, in `projectId` - the
+   * member's project, which the read was held to.
+   */
+  public static toEventRecord(data: {
+    event: WorkspaceEvent;
+    projectId: ObjectID;
+    record: DatabaseBaseModel;
+  }): WorkspaceEventRecord {
+    const read: (
+      currentStateId: ObjectID | undefined,
+      number: number | undefined,
+      numberWithPrefix: string | undefined,
+    ) => WorkspaceEventRecord = (
+      currentStateId: ObjectID | undefined,
+      number: number | undefined,
+      numberWithPrefix: string | undefined,
+    ): WorkspaceEventRecord => {
+      return {
+        type: data.event.type,
+        id: data.event.id,
+        projectId: data.projectId,
+        currentStateId: currentStateId,
+        number: number ? Number(number) : null,
+        numberWithPrefix: numberWithPrefix || null,
+      };
+    };
+
+    switch (data.event.type) {
+      case WorkspaceEventType.Incident: {
+        const incident: Incident = data.record as Incident;
+
+        return read(
+          incident.currentIncidentStateId,
+          incident.incidentNumber,
+          incident.incidentNumberWithPrefix,
+        );
+      }
+      case WorkspaceEventType.Alert: {
+        const alert: Alert = data.record as Alert;
+
+        return read(
+          alert.currentAlertStateId,
+          alert.alertNumber,
+          alert.alertNumberWithPrefix,
+        );
+      }
+      case WorkspaceEventType.IncidentEpisode: {
+        const episode: IncidentEpisode = data.record as IncidentEpisode;
+
+        return read(
+          episode.currentIncidentStateId,
+          episode.episodeNumber,
+          episode.episodeNumberWithPrefix,
+        );
+      }
+      case WorkspaceEventType.AlertEpisode: {
+        const episode: AlertEpisode = data.record as AlertEpisode;
+
+        return read(
+          episode.currentAlertStateId,
+          episode.episodeNumber,
+          episode.episodeNumberWithPrefix,
+        );
+      }
+      case WorkspaceEventType.ScheduledMaintenance: {
+        const scheduledMaintenance: ScheduledMaintenance =
+          data.record as ScheduledMaintenance;
+
+        return read(
+          scheduledMaintenance.currentScheduledMaintenanceStateId,
+          scheduledMaintenance.scheduledMaintenanceNumber,
+          scheduledMaintenance.scheduledMaintenanceNumberWithPrefix,
+        );
+      }
+    }
+  }
+
+  /*
+   * Where the record stands, from the record as its member read it and the
+   * project's states, read as OneUptime as the moves read them - the record
+   * itself is not read again.
+   */
+  @CaptureSpan()
+  public static async getStanding(
+    event: WorkspaceEventRecord,
+  ): Promise<WorkspaceEventStanding> {
+    return this.getStandingAmong({
+      event: event,
+      states: await this.getProjectStates({
+        type: event.type,
+        projectId: event.projectId,
+      }),
+    });
+  }
+
+  /*
    * Moves the record into `stateId`, as the member: the state timeline row
    * the dashboard's state panel creates for the same change, so it is
    * refused where the dashboard's would be. Every timeline service refuses a
@@ -159,18 +405,17 @@ export default class WorkspaceMemberActions {
    */
   @CaptureSpan()
   public static async changeState(data: {
-    event: WorkspaceEvent;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     stateId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const event: ReadEvent = await this.readEvent({
+    const event: WorkspaceEventRecord = await this.getEventRecord({
       event: data.event,
       props: data.props,
     });
 
     await this.createStateChange({
-      event: data.event,
-      projectId: event.projectId,
+      event: event,
       stateId: data.stateId,
       props: data.props,
     });
@@ -184,7 +429,7 @@ export default class WorkspaceMemberActions {
    */
   @CaptureSpan()
   public static async acknowledge(data: {
-    event: WorkspaceEvent;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const definition: EventTypeDefinition = EVENT_TYPES[data.event.type];
@@ -195,13 +440,13 @@ export default class WorkspaceMemberActions {
       );
     }
 
-    const event: ReadEvent = await this.readEvent({
+    const event: WorkspaceEventRecord = await this.getEventRecord({
       event: data.event,
       props: data.props,
     });
 
     const states: Array<ProjectState> = await this.getProjectStates({
-      type: data.event.type,
+      type: event.type,
       projectId: event.projectId,
     });
 
@@ -229,8 +474,7 @@ export default class WorkspaceMemberActions {
     }
 
     await this.createStateChange({
-      event: data.event,
-      projectId: event.projectId,
+      event: event,
       stateId: acknowledgedState.id,
       props: data.props,
     });
@@ -240,55 +484,52 @@ export default class WorkspaceMemberActions {
    * Resolve, as the member: a move into the project's resolved state - the
    * first from the top flagged resolved (Common/Utils/ResolvedState) -
    * refused for a record resolved already. For a scheduled maintenance
-   * event, Mark as Complete: a move into its completed state.
+   * event, Mark as Complete: a move into its completed state, refused for an
+   * event complete already.
    */
   @CaptureSpan()
   public static async resolve(data: {
-    event: WorkspaceEvent;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const definition: EventTypeDefinition = EVENT_TYPES[data.event.type];
 
-    const event: ReadEvent = await this.readEvent({
+    const event: WorkspaceEventRecord = await this.getEventRecord({
       event: data.event,
       props: data.props,
     });
 
-    if (data.event.type === WorkspaceEventType.ScheduledMaintenance) {
-      if (
-        await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
-          scheduledMaintenanceId: data.event.id,
-        })
-      ) {
+    const states: Array<ProjectState> = await this.getProjectStates({
+      type: event.type,
+      projectId: event.projectId,
+    });
+
+    if (event.type === WorkspaceEventType.ScheduledMaintenance) {
+      const completedState: ScheduledMaintenanceState | null =
+        ScheduledMaintenanceStateService.getCompletedStateAmong(
+          states as Array<ScheduledMaintenanceState>,
+        );
+
+      if (!completedState || !completedState.id) {
+        throw new BadDataException(
+          "Completed ScheduledMaintenance State not found for this project",
+        );
+      }
+
+      if (this.getStandingAmong({ event: event, states: states }).isComplete) {
         throw new BadDataException(
           `${definition.subject} is already complete.`,
         );
       }
 
-      const completedState: ScheduledMaintenanceState =
-        await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
-          {
-            projectId: event.projectId,
-            props: {
-              isRoot: true,
-            },
-          },
-        );
-
       await this.createStateChange({
-        event: data.event,
-        projectId: event.projectId,
-        stateId: completedState.id!,
+        event: event,
+        stateId: completedState.id,
         props: data.props,
       });
 
       return;
     }
-
-    const states: Array<ProjectState> = await this.getProjectStates({
-      type: data.event.type,
-      projectId: event.projectId,
-    });
 
     const stateList: ResolvedStateList = definition.stateList!;
 
@@ -315,8 +556,7 @@ export default class WorkspaceMemberActions {
     }
 
     await this.createStateChange({
-      event: data.event,
-      projectId: event.projectId,
+      event: event,
       stateId: resolvedState.id,
       props: data.props,
     });
@@ -330,48 +570,53 @@ export default class WorkspaceMemberActions {
    */
   @CaptureSpan()
   public static async markScheduledMaintenanceAsOngoing(data: {
-    scheduledMaintenanceId: ObjectID;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const event: WorkspaceEvent = {
-      type: WorkspaceEventType.ScheduledMaintenance,
-      id: data.scheduledMaintenanceId,
-    };
+    if (data.event.type !== WorkspaceEventType.ScheduledMaintenance) {
+      throw new BadDataException(
+        `A ${this.getNoun(data.event.type)} cannot be marked as ongoing.`,
+      );
+    }
 
-    const readEvent: ReadEvent = await this.readEvent({
-      event: event,
+    const event: WorkspaceEventRecord = await this.getEventRecord({
+      event: data.event,
       props: data.props,
     });
 
-    if (
-      await ScheduledMaintenanceService.isScheduledMaintenanceOngoing({
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
-      })
-    ) {
+    const states: Array<ProjectState> = await this.getProjectStates({
+      type: event.type,
+      projectId: event.projectId,
+    });
+
+    const standing: WorkspaceEventStanding = this.getStandingAmong({
+      event: event,
+      states: states,
+    });
+
+    if (standing.hasStarted) {
       // Started already: say whether it is over, too.
       throw new BadDataException(
-        (await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
-          scheduledMaintenanceId: data.scheduledMaintenanceId,
-        }))
+        standing.isComplete
           ? "Scheduled maintenance event is already complete."
           : "Scheduled maintenance event is already ongoing.",
       );
     }
 
-    const ongoingState: ScheduledMaintenanceState =
-      await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-        {
-          projectId: readEvent.projectId,
-          props: {
-            isRoot: true,
-          },
-        },
+    const ongoingState: ScheduledMaintenanceState | null =
+      ScheduledMaintenanceStartUtil.getOngoingState({
+        states: states as Array<ScheduledMaintenanceState>,
+      });
+
+    if (!ongoingState || !ongoingState.id) {
+      throw new BadDataException(
+        "Ongoing ScheduledMaintenance State not found for this project",
       );
+    }
 
     await this.createStateChange({
       event: event,
-      projectId: readEvent.projectId,
-      stateId: ongoingState.id!,
+      stateId: ongoingState.id,
       props: data.props,
     });
   }
@@ -412,11 +657,11 @@ export default class WorkspaceMemberActions {
    */
   @CaptureSpan()
   public static async executeOnCallPolicy(data: {
-    event: WorkspaceEvent;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     onCallDutyPolicyId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const event: ReadEvent = await this.readEvent({
+    const event: WorkspaceEventRecord = await this.getEventRecord({
       event: data.event,
       props: data.props,
     });
@@ -426,24 +671,24 @@ export default class WorkspaceMemberActions {
     executionLog.projectId = event.projectId;
     executionLog.onCallDutyPolicyId = data.onCallDutyPolicyId;
 
-    switch (data.event.type) {
+    switch (event.type) {
       case WorkspaceEventType.Incident:
-        executionLog.triggeredByIncidentId = data.event.id;
+        executionLog.triggeredByIncidentId = event.id;
         executionLog.userNotificationEventType =
           UserNotificationEventType.IncidentCreated;
         break;
       case WorkspaceEventType.Alert:
-        executionLog.triggeredByAlertId = data.event.id;
+        executionLog.triggeredByAlertId = event.id;
         executionLog.userNotificationEventType =
           UserNotificationEventType.AlertCreated;
         break;
       case WorkspaceEventType.IncidentEpisode:
-        executionLog.triggeredByIncidentEpisodeId = data.event.id;
+        executionLog.triggeredByIncidentEpisodeId = event.id;
         executionLog.userNotificationEventType =
           UserNotificationEventType.IncidentEpisodeCreated;
         break;
       case WorkspaceEventType.AlertEpisode:
-        executionLog.triggeredByAlertEpisodeId = data.event.id;
+        executionLog.triggeredByAlertEpisodeId = event.id;
         executionLog.userNotificationEventType =
           UserNotificationEventType.AlertEpisodeCreated;
         break;
@@ -460,6 +705,32 @@ export default class WorkspaceMemberActions {
   }
 
   /*
+   * The record as its member reads it: the one handed in, read already in
+   * their project by the check that they may act on it (authorize), or read
+   * here when only its id was.
+   */
+  private static async getEventRecord(data: {
+    event: WorkspaceEvent | WorkspaceEventRecord;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<WorkspaceEventRecord> {
+    const event: WorkspaceEvent | WorkspaceEventRecord = data.event;
+
+    if (
+      "projectId" in event &&
+      event.projectId instanceof ObjectID &&
+      data.props.tenantId &&
+      event.projectId.toString() === data.props.tenantId.toString()
+    ) {
+      return event;
+    }
+
+    return await this.readEvent({
+      event: { type: event.type, id: event.id },
+      props: data.props,
+    });
+  }
+
+  /*
    * The record, read with the member's props: in its project, under their
    * labels, owners and blocks, a private incident only for those who may
    * see it. One they may not read is refused like one that is not there.
@@ -467,7 +738,7 @@ export default class WorkspaceMemberActions {
   private static async readEvent(data: {
     event: WorkspaceEvent;
     props: DatabaseCommonInteractionProps;
-  }): Promise<ReadEvent> {
+  }): Promise<WorkspaceEventRecord> {
     const projectId: ObjectID | undefined = data.props.tenantId;
 
     if (!data.props.userId || !projectId) {
@@ -476,12 +747,20 @@ export default class WorkspaceMemberActions {
       );
     }
 
-    let readEvent: ReadEvent | null = null;
+    const resource: WorkspaceActionResource = this.getEventResource(data.event);
+
+    let record: DatabaseBaseModel | null = null;
 
     try {
-      readEvent = await this.findEvent({
-        event: data.event,
-        projectId: projectId,
+      record = await resource.service.findOneBy({
+        query: {
+          _id: data.event.id.toString(),
+          projectId: projectId,
+        } as Query<DatabaseBaseModel>,
+        select: {
+          ...(resource.select || {}),
+          _id: true,
+        } as Select<DatabaseBaseModel>,
         props: data.props,
       });
     } catch (err) {
@@ -490,135 +769,74 @@ export default class WorkspaceMemberActions {
       }
     }
 
-    if (!readEvent) {
+    if (!record) {
       throw new NotAuthorizedException(
         `The ${this.getNoun(data.event.type)} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
       );
     }
 
-    return readEvent;
+    return this.toEventRecord({
+      event: data.event,
+      projectId: projectId,
+      record: record,
+    });
   }
 
-  private static async findEvent(data: {
-    event: WorkspaceEvent;
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<ReadEvent | null> {
-    const { event, projectId, props } = data;
+  // Where the record stands among the project's states (getStanding).
+  private static getStandingAmong(data: {
+    event: WorkspaceEventRecord;
+    states: Array<ProjectState>;
+  }): WorkspaceEventStanding {
+    const { event, states } = data;
+    const stateList: ResolvedStateList | null =
+      EVENT_TYPES[event.type].stateList;
 
-    switch (event.type) {
-      case WorkspaceEventType.Incident: {
-        const incident: Incident | null = await IncidentService.findOneBy({
-          query: {
-            _id: event.id.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-            currentIncidentStateId: true,
-          },
-          props: props,
-        });
+    if (!stateList) {
+      const maintenanceStates: Array<ScheduledMaintenanceState> =
+        states as Array<ScheduledMaintenanceState>;
 
-        return incident
-          ? {
-              projectId: projectId,
-              currentStateId: incident.currentIncidentStateId,
-            }
-          : null;
-      }
-      case WorkspaceEventType.Alert: {
-        const alert: Alert | null = await AlertService.findOneBy({
-          query: {
-            _id: event.id.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-            currentAlertStateId: true,
-          },
-          props: props,
-        });
-
-        return alert
-          ? {
-              projectId: projectId,
-              currentStateId: alert.currentAlertStateId,
-            }
-          : null;
-      }
-      case WorkspaceEventType.IncidentEpisode: {
-        const episode: IncidentEpisode | null =
-          await IncidentEpisodeService.findOneBy({
-            query: {
-              _id: event.id.toString(),
-              projectId: projectId,
+      return {
+        isAcknowledged: false,
+        isResolved: false,
+        hasStarted: ScheduledMaintenanceStartUtil.hasStarted({
+          states: maintenanceStates,
+          state: maintenanceStates.find(
+            (state: ScheduledMaintenanceState): boolean => {
+              return (
+                Boolean(event.currentStateId) &&
+                state.id?.toString() === event.currentStateId!.toString()
+              );
             },
-            select: {
-              _id: true,
-              currentIncidentStateId: true,
-            },
-            props: props,
-          });
-
-        return episode
-          ? {
-              projectId: projectId,
-              currentStateId: episode.currentIncidentStateId,
-            }
-          : null;
-      }
-      case WorkspaceEventType.AlertEpisode: {
-        const episode: AlertEpisode | null =
-          await AlertEpisodeService.findOneBy({
-            query: {
-              _id: event.id.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-              currentAlertStateId: true,
-            },
-            props: props,
-          });
-
-        return episode
-          ? {
-              projectId: projectId,
-              currentStateId: episode.currentAlertStateId,
-            }
-          : null;
-      }
-      case WorkspaceEventType.ScheduledMaintenance: {
-        const scheduledMaintenance: ScheduledMaintenance | null =
-          await ScheduledMaintenanceService.findOneBy({
-            query: {
-              _id: event.id.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-              currentScheduledMaintenanceStateId: true,
-            },
-            props: props,
-          });
-
-        return scheduledMaintenance
-          ? {
-              projectId: projectId,
-              currentStateId:
-                scheduledMaintenance.currentScheduledMaintenanceStateId,
-            }
-          : null;
-      }
+          ),
+        }),
+        isComplete: ScheduledMaintenanceStateService.isCompleteAmong({
+          states: maintenanceStates,
+          stateId: event.currentStateId,
+        }),
+      };
     }
+
+    return {
+      isAcknowledged: AcknowledgedStateUtil.isAcknowledged({
+        list: stateList,
+        states: states,
+        stateId: event.currentStateId,
+      }),
+      isResolved: ResolvedStateUtil.isResolved({
+        list: stateList,
+        states: states,
+        stateId: event.currentStateId,
+      }),
+      hasStarted: false,
+      isComplete: false,
+    };
   }
 
   /*
    * The project's states of the record's kind, as OneUptime reads them:
-   * where Acknowledge and Resolve move a record is the project's rule, not
-   * the member's pick. The state the move names is still held to the
-   * member's read, by the create.
+   * where Acknowledge, Resolve and the maintenance moves take a record is
+   * the project's rule, not the member's pick. The state the move names is
+   * still held to the member's read, by the create.
    */
   private static async getProjectStates(data: {
     type: WorkspaceEventType;
@@ -720,12 +938,12 @@ export default class WorkspaceMemberActions {
    * the change to the record's feed and channels as theirs.
    */
   private static async createStateChange(data: {
-    event: WorkspaceEvent;
-    projectId: ObjectID;
+    event: WorkspaceEventRecord;
     stateId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const { event, projectId, stateId, props } = data;
+    const { event, stateId, props } = data;
+    const projectId: ObjectID = event.projectId;
 
     switch (event.type) {
       case WorkspaceEventType.Incident: {

@@ -329,17 +329,14 @@ export default class SlackReactionNoteActions {
         channelId: channelId,
         // Reply in the thread the message is in; Slack threads hang off the parent.
         threadTs: message.threadTs || messageTs,
-        text: WorkspaceReactionNote.getConfirmationMessage({
-          noteType: noteType,
-          resourceLabel: display.label,
-          resourceLink: display.link.toString(),
-          formatLink: (url: string, text: string): string => {
-            return `<${url}|${text}>`;
-          },
-          formatBold: (text: string): string => {
-            return `*${text}*`;
-          },
-        }),
+        // Markdown, posted as Slack's mrkdwn: the label is text in the link.
+        text: SlackUtil.slackify(
+          WorkspaceReactionNote.getConfirmationMessage({
+            noteType: noteType,
+            resourceLabel: display.label,
+            resourceLink: display.link.toString(),
+          }).toString(),
+        ).trim(),
       });
     } catch (err) {
       logger.error("Error sending note confirmation to Slack:", {

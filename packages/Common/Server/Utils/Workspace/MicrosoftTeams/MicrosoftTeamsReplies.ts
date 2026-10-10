@@ -11,7 +11,7 @@ import logger, { LogAttributes } from "../../Logger";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Replies the Microsoft Teams bot sends, and the rule they follow: an inbound
@@ -246,10 +246,10 @@ export default class MicrosoftTeamsReplies {
       route: "/user-settings/microsoft-teams-integration",
     });
 
-    const where: string = settingsLink
-      ? mdText`in [OneUptime → User Settings → Microsoft Teams](${settingsLink})`.toString()
+    const where: MarkdownText | string = settingsLink
+      ? mdText`in [OneUptime → User Settings → Microsoft Teams](${settingsLink})`
       : "in OneUptime under User Settings → Microsoft Teams";
 
-    return `To ${data.purpose}, first connect your Microsoft Teams account to OneUptime ${where}, then try again.`;
+    return mdText`To ${data.purpose}, first connect your Microsoft Teams account to OneUptime ${where}, then try again.`.toString();
   }
 }
