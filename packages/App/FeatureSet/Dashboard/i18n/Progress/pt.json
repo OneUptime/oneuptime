@@ -5,17 +5,22 @@
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "App",
+    "Apps",
+    "Embedding",
     "Interface",
     "Interface {{index}}",
     "Offline",
     "Runbook: {{name}}",
     "Runner",
+    "Status",
     "VMware vCenter",
     "cluster",
     "host",
     "kubectl set image deployment/web * -n web",
     "{{count}} B",
     "{{count}} KB",
-    "{{count}} MB"
+    "{{count}} MB",
+    "{{tokens}} tokens"
   ]
 }

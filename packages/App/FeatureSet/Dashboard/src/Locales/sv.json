@@ -21025,7 +21025,6 @@
   "Bring in the {{plural}} you already have": "Bring in the {{plural}} you already have",
   "Browse all resources, {{count}}": "Browse all resources, {{count}}",
   "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.": "Build filter rules to target specific {{entities}}. Conditions are evaluated in order.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals match the Overview page.": "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals match the Overview page.",
   "Capacity {{capacity}}": "Capacity {{capacity}}",
   "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.": "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
   "Captured {{time}}.": "Captured {{time}}.",
@@ -27791,5 +27790,6 @@
   "Say who asked": "Say who asked",
   "Send your AI calls": "Send your AI calls",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.",
-  "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person."
+  "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.",
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call."
 }

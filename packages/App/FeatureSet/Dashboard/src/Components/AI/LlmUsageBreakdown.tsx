@@ -874,8 +874,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * The share denominator is the sum over EVERY group, including the
        * Unattributed one and the groups that fall outside the visible top-K.
        * Dropping unattributed spend from the total is the specific mistake
-       * that would make this page disagree with the Overview KPIs, which
-       * count every LLM span whether or not it carries an identity.
+       * that would make this page disagree with the conversation tiles and
+       * the budgets, which count every LLM span whether or not it carries an
+       * identity.
        */
       const totalCost: number = allRows.reduce(
         (accumulator: number, row: LlmUsageRow): number => {
@@ -917,7 +918,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * Never silently dropped. An unattributed row is a real bucket of
        * spend; hiding it would make this page's totals disagree with the
-       * Overview KPIs and quietly understate the bill.
+       * conversation tiles and the budgets, and quietly understate the bill.
        */
       return (
         <span
@@ -1071,7 +1072,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
          */}
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
           <TranslatedSentence
-            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals match the Overview page."
+            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call."
             values={{
               unattributed: translator.translateText(
                 UNATTRIBUTED_LABEL,
