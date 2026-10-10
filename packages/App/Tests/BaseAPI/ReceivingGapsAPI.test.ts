@@ -19,6 +19,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 
@@ -73,8 +74,9 @@ const PROJECT_ID: ObjectID = ObjectID.generate();
 const STARTS_AT: string = "2026-10-09T10:00:00.000Z";
 const ENDS_AT: string = "2026-10-09T12:00:00.000Z";
 
-const responseUtil: { sendJsonObjectResponse: jest.Mock } =
-  Response as unknown as { sendJsonObjectResponse: jest.Mock };
+const responseUtil: { sendJsonObjectResponse: Mock } = Response as unknown as {
+  sendJsonObjectResponse: Mock;
+};
 
 function mockProps(
   extra: Partial<DatabaseCommonInteractionProps> & {
@@ -109,7 +111,7 @@ async function callRoute(body: JSONObject): Promise<NextFunction> {
 }
 
 function errorFrom(next: NextFunction): Error {
-  const calls: Array<Array<unknown>> = (next as unknown as jest.Mock).mock
+  const calls: Array<Array<unknown>> = (next as unknown as Mock).mock
     .calls as Array<Array<unknown>>;
   expect(calls).toHaveLength(1);
   return calls[0]![0] as Error;
@@ -129,8 +131,8 @@ const GAPS: Array<ReceivingGap> = [
 ];
 
 describe("ReceivingGapsAPI", () => {
-  let getGaps: jest.SpiedFunction<typeof ReceivingCoverage.getGaps>;
-  let holdsPermission: jest.SpiedFunction<
+  let getGaps: SpyInstance<typeof ReceivingCoverage.getGaps>;
+  let holdsPermission: SpyInstance<
     typeof CallerPermission.holdsModelPermission
   >;
 

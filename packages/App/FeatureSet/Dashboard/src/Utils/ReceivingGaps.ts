@@ -7,10 +7,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import ReceivingGapsUtil, {
   ReceivingGap,
   ReceivingGapReason,

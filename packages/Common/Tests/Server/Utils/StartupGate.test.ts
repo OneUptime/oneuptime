@@ -84,9 +84,12 @@ describe("StartupGate over HTTP", () => {
     app.use(StartupGate.middleware);
 
     // Mounted after it, like every feature set's routes.
-    app.post("/otlp/v1/metrics", (_req: express.Request, res: express.Response) => {
-      res.status(200).json({});
-    });
+    app.post(
+      "/otlp/v1/metrics",
+      (_req: express.Request, res: express.Response) => {
+        res.status(200).json({});
+      },
+    );
     app.get("/dashboard", (_req: express.Request, res: express.Response) => {
       res.send("<html>dashboard</html>");
     });

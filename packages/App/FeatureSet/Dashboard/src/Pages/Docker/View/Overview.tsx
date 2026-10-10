@@ -178,9 +178,7 @@ const DockerHostOverview: FunctionComponent<
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
   // When OneUptime itself was not receiving, inside the chart window.
-  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>(
-    [],
-  );
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{

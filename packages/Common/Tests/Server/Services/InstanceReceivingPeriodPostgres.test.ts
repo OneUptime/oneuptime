@@ -150,8 +150,7 @@ describePostgres("The instance receiving ledger on Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["INSTANCE_RECEIVING_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["INSTANCE_RECEIVING_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["INSTANCE_RECEIVING_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -194,9 +193,9 @@ describePostgres("The instance receiving ledger on Postgres", () => {
     const [first] = await allPeriods();
     const before: Date = await databaseNow();
     expect(first!.startedAt.getTime()).toBe(first!.lastReceivingAt.getTime());
-    expect(Math.abs(before.getTime() - first!.startedAt.getTime())).toBeLessThan(
-      5 * SECOND,
-    );
+    expect(
+      Math.abs(before.getTime() - first!.startedAt.getTime()),
+    ).toBeLessThan(5 * SECOND);
 
     expect(await InstanceReceivingPeriodService.recordReceiving()).toBe(false);
     expect(await InstanceReceivingPeriodService.recordReceiving()).toBe(false);
@@ -238,18 +237,20 @@ describePostgres("The instance receiving ledger on Postgres", () => {
     expect(periods).toHaveLength(2);
 
     const gaps: Array<ReceivingGap> = await gapsNow();
-    expect(gaps.map((gap: ReceivingGap) => {
-      return gap.reason;
-    })).toEqual([
+    expect(
+      gaps.map((gap: ReceivingGap) => {
+        return gap.reason;
+      }),
+    ).toEqual([
       ReceivingGapReason.NotReceiving,
       ReceivingGapReason.Reconnecting,
     ]);
     expect(gaps[0]!.startsAt).toEqual(periods[0]!.lastReceivingAt);
     expect(gaps[0]!.endsAt).toEqual(periods[1]!.startedAt);
     // The grace has only just begun.
-    expect(gaps[1]!.endsAt.getTime() - gaps[1]!.startsAt.getTime()).toBeLessThan(
-      RECONNECT_GRACE_MS,
-    );
+    expect(
+      gaps[1]!.endsAt.getTime() - gaps[1]!.startsAt.getTime(),
+    ).toBeLessThan(RECONNECT_GRACE_MS);
   });
 
   test("replicas heartbeating at once after an outage converge on one timeline (multi-replica)", async () => {
@@ -357,8 +358,7 @@ describePostgres("The instance receiving ledger on Postgres", () => {
   });
 
   test("pruning removes only stretches older than the retention", async () => {
-    const retentionMs: number =
-      RECEIVING_PERIOD_RETENTION_IN_DAYS * 24 * HOUR;
+    const retentionMs: number = RECEIVING_PERIOD_RETENTION_IN_DAYS * 24 * HOUR;
     await seedPeriods([
       [retentionMs + 3 * 24 * HOUR, retentionMs + 2 * 24 * HOUR],
       [retentionMs + HOUR, retentionMs - HOUR],

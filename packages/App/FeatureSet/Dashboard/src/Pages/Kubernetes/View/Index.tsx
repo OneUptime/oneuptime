@@ -448,9 +448,7 @@ const KubernetesClusterOverview: FunctionComponent<
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
   // When OneUptime itself was not receiving, inside the chart window.
-  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>(
-    [],
-  );
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>([]);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;

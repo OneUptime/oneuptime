@@ -6,8 +6,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
-const postMock: jest.Mock<(options: unknown) => Promise<unknown>> = jest.fn();
+const postMock: Mock<(options: unknown) => Promise<unknown>> = jest.fn();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {

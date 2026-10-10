@@ -166,27 +166,32 @@ afterEach(() => {
 });
 
 describe("Every disconnected sweep measures silence in receiving time", () => {
-  test.each(FIND_BY_SWEEPS.map((sweep: Sweep) => {
-    return [sweep.name, sweep];
-  }))("%s asks for its cutoff and queries by it", async (_name: string, sweep: Sweep) => {
-    const cutoffSpy: SpyInstance<typeof ReceivingCoverage.getSilenceCutoff> =
-      jest
-        .spyOn(ReceivingCoverage, "getSilenceCutoff")
-        .mockResolvedValue(SENTINEL_CUTOFF);
-    const findBy: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
-      jest.spyOn(sweep.service, "findBy").mockResolvedValue([]);
+  test.each(
+    FIND_BY_SWEEPS.map((sweep: Sweep): [string, Sweep] => {
+      return [sweep.name, sweep];
+    }),
+  )(
+    "%s asks for its cutoff and queries by it",
+    async (_name: string, sweep: Sweep) => {
+      const cutoffSpy: SpyInstance<typeof ReceivingCoverage.getSilenceCutoff> =
+        jest
+          .spyOn(ReceivingCoverage, "getSilenceCutoff")
+          .mockResolvedValue(SENTINEL_CUTOFF);
+      const findBy: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
+        jest.spyOn(sweep.service, "findBy").mockResolvedValue([]);
 
-    await sweep.run();
+      await sweep.run();
 
-    expect(cutoffSpy).toHaveBeenCalledWith({
-      silenceInMinutes: sweep.silenceInMinutes,
-    });
-    expect(findBy).toHaveBeenCalledTimes(1);
-    const query: Record<string, unknown> = (
-      findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-    expect(lessThanValue(query["lastSeenAt"])).toEqual(SENTINEL_CUTOFF);
-  });
+      expect(cutoffSpy).toHaveBeenCalledWith({
+        silenceInMinutes: sweep.silenceInMinutes,
+      });
+      expect(findBy).toHaveBeenCalledTimes(1);
+      const query: Record<string, unknown> = (
+        findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(lessThanValue(query["lastSeenAt"])).toEqual(SENTINEL_CUTOFF);
+    },
+  );
 
   test("CloudResourceService.markUnreportedMonitoredResources updates by its receiving-time cutoff", async () => {
     const cutoffSpy: SpyInstance<typeof ReceivingCoverage.getSilenceCutoff> =
@@ -249,14 +254,21 @@ describe("The cutoff the sweeps get", () => {
   test("is exactly N minutes ago while OneUptime was receiving throughout", async () => {
     jest.spyOn(ReceivingCoverage, "getGaps").mockResolvedValue([]);
     expect(
-      await ReceivingCoverage.getSilenceCutoff({ silenceInMinutes: 15, now: NOW }),
+      await ReceivingCoverage.getSilenceCutoff({
+        silenceInMinutes: 15,
+        now: NOW,
+      }),
     ).toEqual(at(15));
   });
 
   test("reaches back past a restart, so nothing turns disconnected the moment OneUptime returns", async () => {
     // Down for 25 minutes, back 1 minute ago (still reconnecting).
     const gaps: Array<ReceivingGap> = [
-      { startsAt: at(26), endsAt: at(1), reason: ReceivingGapReason.NotReceiving },
+      {
+        startsAt: at(26),
+        endsAt: at(1),
+        reason: ReceivingGapReason.NotReceiving,
+      },
       { startsAt: at(1), endsAt: NOW, reason: ReceivingGapReason.Reconnecting },
     ];
     jest.spyOn(ReceivingCoverage, "getGaps").mockResolvedValue(gaps);
@@ -273,11 +285,16 @@ describe("The cutoff the sweeps get", () => {
   });
 
   test("a backed-up ingest queue does not make a resource disconnected either", async () => {
-    jest.spyOn(ReceivingCoverage, "getGaps").mockResolvedValue([
-      { startsAt: at(6), endsAt: NOW, reason: ReceivingGapReason.CatchingUp },
-    ]);
+    jest
+      .spyOn(ReceivingCoverage, "getGaps")
+      .mockResolvedValue([
+        { startsAt: at(6), endsAt: NOW, reason: ReceivingGapReason.CatchingUp },
+      ]);
     expect(
-      await ReceivingCoverage.getSilenceCutoff({ silenceInMinutes: 15, now: NOW }),
+      await ReceivingCoverage.getSilenceCutoff({
+        silenceInMinutes: 15,
+        now: NOW,
+      }),
     ).toEqual(at(21));
   });
 });
@@ -290,7 +307,10 @@ describe("The cutoff the sweeps get", () => {
  * ReceivingCoverage.getSilenceCutoff.
  */
 describe("Guard: silence sweeps use ReceivingCoverage", () => {
-  const servicesDir: string = path.resolve(__dirname, "../../../Server/Services");
+  const servicesDir: string = path.resolve(
+    __dirname,
+    "../../../Server/Services",
+  );
   const SWEEP_NAME: RegExp = /^mark(Disconnected|Unreported)/;
 
   const sweeps: Array<{ file: string; name: string; body: string }> = [];
@@ -299,7 +319,10 @@ describe("Guard: silence sweeps use ReceivingCoverage", () => {
     if (!file.endsWith(".ts")) {
       continue;
     }
-    const source: string = fs.readFileSync(path.join(servicesDir, file), "utf8");
+    const source: string = fs.readFileSync(
+      path.join(servicesDir, file),
+      "utf8",
+    );
     if (
       !source.includes("markDisconnected") &&
       !source.includes("markUnreported")

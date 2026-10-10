@@ -1782,11 +1782,10 @@ const monitorProfile: MonitorProfileFunction = async (data: {
     throw new BadDataException("Profile monitor config is missing");
   }
 
-  const analyticsQuery: Query<Profile> =
-    MonitorStepProfileMonitorUtil.toQuery(
-      profileMonitorConfig,
-      data.evaluateUntil,
-    );
+  const analyticsQuery: Query<Profile> = MonitorStepProfileMonitorUtil.toQuery(
+    profileMonitorConfig,
+    data.evaluateUntil,
+  );
 
   analyticsQuery.projectId = data.projectId;
 

@@ -53,18 +53,21 @@ jest.mock("Common/Server/Services/AIAgentService", () => {
   };
 });
 
-jest.mock("../../../FeatureSet/Workers/Utils/ProbeConnectionDowntimeGrace", () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => {
-      return {
-        canMarkProbesDisconnected: (): Promise<boolean> => {
-          return Promise.resolve(true);
-        },
-      };
-    }),
-  };
-});
+jest.mock(
+  "../../../FeatureSet/Workers/Utils/ProbeConnectionDowntimeGrace",
+  () => {
+    return {
+      __esModule: true,
+      default: jest.fn().mockImplementation(() => {
+        return {
+          canMarkProbesDisconnected: (): Promise<boolean> => {
+            return Promise.resolve(true);
+          },
+        };
+      }),
+    };
+  },
+);
 
 jest.mock("Common/Server/Utils/Telemetry/ReceivingCoverage", () => {
   return {

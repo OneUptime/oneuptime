@@ -108,7 +108,9 @@ async function heartbeatStampMs(data: {
 
   expect(heartbeat).toBeDefined();
 
-  return Number(BigInt(String(heartbeat!["timeUnixNano"])) / 1_000_000n);
+  return Number(
+    BigInt(String(heartbeat!["timeUnixNano"])) / BigInt(1_000_000),
+  );
 }
 
 beforeEach(() => {
@@ -211,7 +213,8 @@ describe("The synthetic host heartbeat is stamped by when its batch arrived", ()
 });
 
 describe("OtelMetricsIngestService.getBatchArrivalUnixNano", () => {
-  const NOW_NANO: number = Date.parse("2026-10-09T12:00:00.000Z") * NANOS_PER_MS;
+  const NOW_NANO: number =
+    Date.parse("2026-10-09T12:00:00.000Z") * NANOS_PER_MS;
 
   test("reads a Date or an ISO string", () => {
     const arrived: Date = new Date("2026-10-09T11:50:00.000Z");

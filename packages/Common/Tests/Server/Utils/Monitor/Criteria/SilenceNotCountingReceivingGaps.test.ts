@@ -22,7 +22,14 @@ import {
   ReceivingGap,
   ReceivingGapReason,
 } from "../../../../../Utils/Telemetry/ReceivingGaps";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -55,13 +62,11 @@ function gap(
 let gapsSpy: SpyInstance<typeof ReceivingCoverage.getGaps>;
 
 function givenGaps(gaps: Array<ReceivingGap>): void {
-  gapsSpy.mockImplementation(
-    async (data: { startsAt: Date; endsAt: Date }) => {
-      return gaps.filter((g: ReceivingGap) => {
-        return g.endsAt > data.startsAt && g.startsAt < data.endsAt;
-      });
-    },
-  );
+  gapsSpy.mockImplementation(async (data: { startsAt: Date; endsAt: Date }) => {
+    return gaps.filter((g: ReceivingGap) => {
+      return g.endsAt > data.startsAt && g.startsAt < data.endsAt;
+    });
+  });
 }
 
 beforeEach(() => {
@@ -211,9 +216,7 @@ describe("Incoming request: received / not received in N minutes", () => {
      * Only the part of the outage after the last ping counts as excluded.
      */
     givenGaps([gap(14, 3)]);
-    expect(
-      await heartbeat(13, FilterType.NotRecievedInMinutes, 10),
-    ).toBeNull();
+    expect(await heartbeat(13, FilterType.NotRecievedInMinutes, 10)).toBeNull();
     expect(await heartbeat(13, FilterType.RecievedInMinutes, 10)).toBe(
       "Incoming request / heartbeat received in 10 minutes. It was received 13 minutes ago, 10 of them while OneUptime was not receiving requests, which do not count.",
     );
@@ -234,9 +237,7 @@ describe("Incoming request: received / not received in N minutes", () => {
     expect(await heartbeat(10, FilterType.RecievedInMinutes, 10)).toBe(
       "Incoming request / heartbeat received in 10 minutes. It was received 10 minutes ago.",
     );
-    expect(
-      await heartbeat(10, FilterType.NotRecievedInMinutes, 10),
-    ).toBeNull();
+    expect(await heartbeat(10, FilterType.NotRecievedInMinutes, 10)).toBeNull();
   });
 
   test("a request inside the window never asks when OneUptime was receiving", async () => {
@@ -342,14 +343,22 @@ describe("ReceivingSilence", () => {
   test("describes the silence in a root cause, with the excluded time only when there is some", () => {
     expect(
       ReceivingSilence.describe({
-        silence: { wallMinutes: 9, receivingMinutes: 9, notReceivingMinutes: 0 },
+        silence: {
+          wallMinutes: 9,
+          receivingMinutes: 9,
+          notReceivingMinutes: 0,
+        },
         verb: "received",
         what: "requests",
       }),
     ).toBe("It was received 9 minutes ago.");
     expect(
       ReceivingSilence.describe({
-        silence: { wallMinutes: 9, receivingMinutes: 4, notReceivingMinutes: 5 },
+        silence: {
+          wallMinutes: 9,
+          receivingMinutes: 4,
+          notReceivingMinutes: 5,
+        },
         verb: "received",
         what: "requests",
       }),

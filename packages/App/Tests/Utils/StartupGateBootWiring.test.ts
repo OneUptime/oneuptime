@@ -40,9 +40,10 @@ function code(filePath: string): string {
 function indexOfOnly(haystack: string, needle: string): number {
   const first: number = haystack.indexOf(needle);
   expect({ needle, found: first >= 0 }).toEqual({ needle, found: true });
-  expect({ needle, unique: haystack.indexOf(needle, first + 1) === -1 }).toEqual(
-    { needle, unique: true },
-  );
+  expect({
+    needle,
+    unique: haystack.indexOf(needle, first + 1) === -1,
+  }).toEqual({ needle, unique: true });
   return first;
 }
 
@@ -58,7 +59,10 @@ describe("StartServer mounts the startup gate", () => {
   test("after the status routes and vendor assets, before anything else the service mounts", () => {
     const status: number = indexOfOnly(source, "CommonAPI({");
     const vendor: number = indexOfOnly(source, "mountVendorAssets(app);");
-    const gate: number = indexOfOnly(source, "app.use(StartupGate.middleware);");
+    const gate: number = indexOfOnly(
+      source,
+      "app.use(StartupGate.middleware);",
+    );
     const frontend: number = indexOfOnly(source, "if (isFrontendApp) {");
 
     expect(status).toBeLessThan(gate);
@@ -94,7 +98,10 @@ describe("App/Index.ts starts behind the gate", () => {
 
   test("opens the gate once, after every route is mounted", () => {
     const open: number = indexOfOnly(source, "StartupGate.open();");
-    const defaults: number = indexOfOnly(source, "await App.addDefaultRoutes();");
+    const defaults: number = indexOfOnly(
+      source,
+      "await App.addDefaultRoutes();",
+    );
 
     expect(defaults).toBeLessThan(open);
 

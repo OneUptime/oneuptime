@@ -8,14 +8,11 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import { ReceivingPeriod } from "Common/Utils/Telemetry/ReceivingGaps";
 import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+  ReceivingGapReason,
+  ReceivingPeriod,
+} from "Common/Utils/Telemetry/ReceivingGaps";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Issue #2825: a telemetry check never judges a window that holds time
@@ -103,7 +100,6 @@ import TelemetryIngestBacklog from "Common/Server/Utils/Telemetry/TelemetryInges
 import ReceivingCoverage, {
   TELEMETRY_EVALUATION_MAX_DEFERRAL_MS,
 } from "Common/Server/Utils/Telemetry/ReceivingCoverage";
-import { ReceivingGapReason } from "Common/Utils/Telemetry/ReceivingGaps";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 const SECOND: number = 1_000;
@@ -113,7 +109,8 @@ const HOUR: number = 60 * MINUTE;
 const monitorId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
 
-const findOneById: jest.Mock = MonitorService.findOneById as unknown as jest.Mock;
+const findOneById: jest.Mock =
+  MonitorService.findOneById as unknown as jest.Mock;
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
 const logCountBy: jest.Mock = LogService.countBy as unknown as jest.Mock;
@@ -134,6 +131,7 @@ function hostStep(rollingTime: RollingTime): MonitorStep {
       title: "cpu",
       description: "cpu",
       legend: "cpu",
+      legendUnit: undefined,
     },
     metricQueryData: {
       filterData: {
@@ -178,6 +176,7 @@ async function runOnce(): Promise<void> {
   await processTelemetryMonitorEvaluationFromQueue({
     monitorId: monitorId.toString(),
     projectId: projectId.toString(),
+    queuedAt: new Date(),
   });
 }
 

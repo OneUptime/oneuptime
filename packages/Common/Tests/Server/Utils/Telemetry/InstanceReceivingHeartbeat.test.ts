@@ -8,7 +8,14 @@ import GracefulShutdown, {
 } from "../../../../Server/Utils/GracefulShutdown";
 import logger from "../../../../Server/Utils/Logger";
 import { RECEIVING_HEARTBEAT_INTERVAL_MS } from "../../../../Utils/Telemetry/ReceivingGaps";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -164,10 +171,9 @@ describe("InstanceReceivingHeartbeat.beat", () => {
 describe("InstanceReceivingHeartbeat.start", () => {
   test("beats at once, then every interval, and stops vouching as the process stops taking requests", async () => {
     jest.useFakeTimers();
-    const register: SpyInstance<typeof GracefulShutdown.registerHandler> =
-      jest
-        .spyOn(GracefulShutdown, "registerHandler")
-        .mockImplementation(() => {});
+    const register: SpyInstance<typeof GracefulShutdown.registerHandler> = jest
+      .spyOn(GracefulShutdown, "registerHandler")
+      .mockImplementation(() => {});
 
     InstanceReceivingHeartbeat.start();
     await flush();
@@ -196,7 +202,9 @@ describe("InstanceReceivingHeartbeat.start", () => {
 
   test("starting twice does not start a second heartbeat", async () => {
     jest.useFakeTimers();
-    jest.spyOn(GracefulShutdown, "registerHandler").mockImplementation(() => {});
+    jest
+      .spyOn(GracefulShutdown, "registerHandler")
+      .mockImplementation(() => {});
 
     InstanceReceivingHeartbeat.start();
     InstanceReceivingHeartbeat.start();
@@ -208,42 +216,104 @@ describe("InstanceReceivingHeartbeat.start", () => {
   });
 
   test("a process ingress does not reach never vouches (RECEIVES_INGRESS_TRAFFIC=false)", async () => {
-    const previous: string | undefined = process.env["RECEIVES_INGRESS_TRAFFIC"];
-    process.env["RECEIVES_INGRESS_TRAFFIC"] = "false";
+    const started: IsolatedStart = await startInFreshProcess("false");
 
-    try {
-      jest.isolateModules(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const isolated: { default: typeof InstanceReceivingHeartbeat } =
-          require("../../../../Server/Utils/Telemetry/InstanceReceivingHeartbeat");
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const isolatedService: {
-          default: typeof InstanceReceivingPeriodService;
-        } = require("../../../../Server/Services/InstanceReceivingPeriodService");
-        const isolatedRecord: SpyInstance<
-          typeof InstanceReceivingPeriodService.recordReceiving
-        > = jest
-          .spyOn(isolatedService.default, "recordReceiving")
-          .mockResolvedValue(false);
-        const isolatedRegister: SpyInstance<
-          typeof GracefulShutdown.registerHandler
-        > = jest
-          .spyOn(GracefulShutdown, "registerHandler")
-          .mockImplementation(() => {});
+    expect(started.recordReceiving).not.toHaveBeenCalled();
+    expect(started.registerHandler).not.toHaveBeenCalled();
+  });
 
-        isolated.default.start();
+  test("a process that takes ingress (the variable unset) vouches at once, so the check above is not vacuous", async () => {
+    const started: IsolatedStart = await startInFreshProcess(undefined);
 
-        // start() returned without beating or registering anything.
-        expect(isolatedRecord).not.toHaveBeenCalled();
-        expect(isolatedRegister).not.toHaveBeenCalled();
-        isolated.default.stop();
-      });
-    } finally {
-      if (previous === undefined) {
-        delete process.env["RECEIVES_INGRESS_TRAFFIC"];
-      } else {
-        process.env["RECEIVES_INGRESS_TRAFFIC"] = previous;
-      }
-    }
+    expect(started.recordReceiving).toHaveBeenCalledTimes(1);
+    expect(started.registerHandler).toHaveBeenCalledTimes(1);
   });
 });
+
+interface IsolatedStart {
+  recordReceiving: SpyInstance<
+    typeof InstanceReceivingPeriodService.recordReceiving
+  >;
+  registerHandler: SpyInstance<typeof GracefulShutdown.registerHandler>;
+}
+
+/*
+ * Starts the heartbeat as a freshly booted process with RECEIVES_INGRESS_TRAFFIC
+ * set to `value` would: EnvironmentConfig reads the variable once, at import,
+ * so every module is loaded anew in an isolated registry, with that copy's
+ * datastores up and its writes stood in for.
+ */
+async function startInFreshProcess(
+  value: string | undefined,
+): Promise<IsolatedStart> {
+  const previous: string | undefined = process.env["RECEIVES_INGRESS_TRAFFIC"];
+
+  if (value === undefined) {
+    delete process.env["RECEIVES_INGRESS_TRAFFIC"];
+  } else {
+    process.env["RECEIVES_INGRESS_TRAFFIC"] = value;
+  }
+
+  let started: IsolatedStart | null = null;
+  let stop: () => void = (): void => {};
+
+  try {
+    jest.isolateModules(() => {
+      const heartbeat: typeof InstanceReceivingHeartbeat = (
+        jest.requireActual(
+          "../../../../Server/Utils/Telemetry/InstanceReceivingHeartbeat",
+        ) as { default: typeof InstanceReceivingHeartbeat }
+      ).default;
+      const service: typeof InstanceReceivingPeriodService = (
+        jest.requireActual(
+          "../../../../Server/Services/InstanceReceivingPeriodService",
+        ) as { default: typeof InstanceReceivingPeriodService }
+      ).default;
+      const redis: typeof Redis = (
+        jest.requireActual("../../../../Server/Infrastructure/Redis") as {
+          default: typeof Redis;
+        }
+      ).default;
+      const clickhouse: typeof ClickhouseAppInstance = (
+        jest.requireActual(
+          "../../../../Server/Infrastructure/ClickhouseDatabase",
+        ) as { ClickhouseAppInstance: typeof ClickhouseAppInstance }
+      ).ClickhouseAppInstance;
+      const shutdown: typeof GracefulShutdown = (
+        jest.requireActual("../../../../Server/Utils/GracefulShutdown") as {
+          default: typeof GracefulShutdown;
+        }
+      ).default;
+
+      jest.spyOn(redis, "checkConnnectionStatus").mockResolvedValue(true);
+      jest.spyOn(clickhouse, "checkConnnectionStatus").mockResolvedValue(true);
+      jest.spyOn(service, "pruneOldPeriods").mockResolvedValue(0);
+
+      started = {
+        recordReceiving: jest
+          .spyOn(service, "recordReceiving")
+          .mockResolvedValue(false),
+        registerHandler: jest
+          .spyOn(shutdown, "registerHandler")
+          .mockImplementation(() => {}),
+      };
+
+      heartbeat.start();
+      stop = (): void => {
+        heartbeat.stop();
+      };
+    });
+
+    await flush();
+  } finally {
+    stop();
+
+    if (previous === undefined) {
+      delete process.env["RECEIVES_INGRESS_TRAFFIC"];
+    } else {
+      process.env["RECEIVES_INGRESS_TRAFFIC"] = previous;
+    }
+  }
+
+  return started!;
+}

@@ -79,15 +79,18 @@ describe("Heartbeat availability charts leave out OneUptime's own downtime", () 
     PAGES.map((page: { file: string; source: string }) => {
       return [relative(page.file), page.source];
     }),
-  )("%s fetches the gaps, judges with them, shades them and breaks the line", (_file: string, source: string) => {
-    expect(source).toContain("fetchReceivingGaps(");
-    expect(source).toContain("getNotMonitoredRegions(");
-    expect(source).toContain("connectNulls: false");
+  )(
+    "%s fetches the gaps, judges with them, shades them and breaks the line",
+    (_file: string, source: string) => {
+      expect(source).toContain("fetchReceivingGaps(");
+      expect(source).toContain("getNotMonitoredRegions(");
+      expect(source).toContain("connectNulls: false");
 
-    const call: string = source.slice(
-      source.indexOf("HeartbeatAvailabilityUtil.buildAvailabilitySeries("),
-    );
-    const callBody: string = call.slice(0, call.indexOf("});") + 3);
-    expect(callBody).toContain("receivingGaps:");
-  });
+      const call: string = source.slice(
+        source.indexOf("HeartbeatAvailabilityUtil.buildAvailabilitySeries("),
+      );
+      const callBody: string = call.slice(0, call.indexOf("});") + 3);
+      expect(callBody).toContain("receivingGaps:");
+    },
+  );
 });

@@ -74,7 +74,10 @@ export default class StartupGate {
     StartupGate.answerStarting(req, res);
   }
 
-  private static answerStarting(req: ExpressRequest, res: ExpressResponse): void {
+  private static answerStarting(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
     const message: string = StartupGate.getStartingMessage();
 
     res.setHeader("Retry-After", String(StartupGate.RETRY_AFTER_SECONDS));

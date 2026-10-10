@@ -30,7 +30,11 @@ function minute(hhmm: string): Date {
   return new Date(`2026-10-09T${hhmm}:00.000Z`);
 }
 
-function rows(fromHhmm: string, toHhmm: string, skip: Array<string> = []): Array<AggregatedModel> {
+function rows(
+  fromHhmm: string,
+  toHhmm: string,
+  skip: Array<string> = [],
+): Array<AggregatedModel> {
   const result: Array<AggregatedModel> = [];
   const skipped: Set<number> = new Set(
     skip.map((hhmm: string) => {
@@ -258,9 +262,7 @@ describe("A queue that is behind", () => {
     // Heartbeats processed up to 10:23; the queue is catching up since 10:24.
     const result: HeartbeatAvailabilityResult = build({
       heartbeatData: rows("10:00", "10:23"),
-      receivingGaps: [
-        gap(minute("10:24"), NOW, ReceivingGapReason.CatchingUp),
-      ],
+      receivingGaps: [gap(minute("10:24"), NOW, ReceivingGapReason.CatchingUp)],
     });
     expect(minutesWith(result, 0)).toEqual([]);
     expect(result.uptimePercent).toBe(100);
@@ -283,20 +285,30 @@ describe("No gaps, no change", () => {
     [],
   ];
 
-  test.each(scenarios.map((scenario: Array<AggregatedModel>, i: number) => {
-    return [i, scenario];
-  }))("scenario %i reads the same with no gaps, an empty list, or malformed gaps", (_i: number, heartbeatData: Array<AggregatedModel>) => {
-    const baseline: HeartbeatAvailabilityResult = build({ heartbeatData });
-    expect(build({ heartbeatData, receivingGaps: [] })).toEqual(baseline);
-    expect(
-      build({
-        heartbeatData,
-        receivingGaps: [
-          gap(new Date("nope"), minute("10:20")),
-          gap(minute("10:20"), minute("10:10")),
-          gap(minute("09:00"), minute("09:30")),
-        ],
-      }),
-    ).toEqual(baseline);
-  });
+  test.each(
+    scenarios.map(
+      (
+        scenario: Array<AggregatedModel>,
+        i: number,
+      ): [number, Array<AggregatedModel>] => {
+        return [i, scenario];
+      },
+    ),
+  )(
+    "scenario %i reads the same with no gaps, an empty list, or malformed gaps",
+    (_i: number, heartbeatData: Array<AggregatedModel>) => {
+      const baseline: HeartbeatAvailabilityResult = build({ heartbeatData });
+      expect(build({ heartbeatData, receivingGaps: [] })).toEqual(baseline);
+      expect(
+        build({
+          heartbeatData,
+          receivingGaps: [
+            gap(new Date("nope"), minute("10:20")),
+            gap(minute("10:20"), minute("10:10")),
+            gap(minute("09:00"), minute("09:30")),
+          ],
+        }),
+      ).toEqual(baseline);
+    },
+  );
 });
