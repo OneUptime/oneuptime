@@ -4,19 +4,28 @@ import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 
 /*
- * One NetFlow v5 flow record exported by a network device, received by a
- * probe's NetFlow receiver and correlated to a NetworkDevice on ingest.
- * Powers top-talker / bandwidth-attribution queries: who talked to whom,
- * over which protocol/port, and how many bytes/packets, per device.
+ * One network flow a device reported - in NetFlow v5, NetFlow v9, IPFIX or
+ * sFlow - received by a probe's flow collector and matched to a
+ * NetworkDevice on ingest. Powers the Traffic pages: who talked to whom,
+ * over which protocol and port, through which interfaces, and how many
+ * bytes and packets, per device, per site and across the project.
  *
- * Access control mirrors the NetworkDevice database model — flows are an
- * attribute of the device that exported them.
+ * Counts are estimates of the real traffic: a sampled record's bytes and
+ * packets were multiplied by its sampling rate before they were stored.
+ *
+ * Access control mirrors the NetworkDevice database model - flows are an
+ * attribute of the device that exported them. Flows a project's own probe
+ * receives from an address that is not one of its devices yet are kept for
+ * the project, with the project's ID in place of a device ID, so the
+ * Traffic pages can show them and offer to add the device.
  */
 
 const readPermissions: Array<Permission> = [
@@ -43,9 +52,16 @@ const createPermissions: Array<Permission> = [
  * A flow is read through the device that exported it: a caller whose
  * grants are limited to labels or to owned devices reads the flows of the
  * devices those reach, and a block with labels takes away the flows of the
- * devices carrying them (ModelPermission.getReadScope).
+ * devices carrying them (ModelPermission.getReadScope). Flows from an
+ * exporter that is not a device yet carry the project's ID instead: like
+ * telemetry from no known resource, they belong to the project, so a
+ * project-wide or Owned grant reads them and a grant limited to labels
+ * does not.
  */
-@OwnedThrough("networkDeviceId", NetworkDevice, { onlyParentModels: true })
+@OwnedThrough("networkDeviceId", NetworkDevice, {
+  onlyParentModels: true,
+  includeProjectScope: true,
+})
 export default class NetworkFlow extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -63,18 +79,18 @@ export default class NetworkFlow extends AnalyticsBaseModel {
     });
 
     /*
-     * Required (not Nullable) even though a flow could in principle lack a
-     * device: the ingest path DROPS flows whose exporter matches no
-     * NetworkDevice (there is no project to attribute them to), so every
-     * stored row has one — and the column sits in the sort key, where
-     * ClickHouse rejects Nullable columns.
+     * Required (not Nullable): the column sits in the sort key, where
+     * ClickHouse rejects Nullable columns. A flow from an exporter that is
+     * no device of the project yet - received by the project's own probe -
+     * carries the project's ID here (the project's bucket); on a global probe
+     * such a flow has no project to belong to and is dropped.
      */
     const networkDeviceIdColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
         key: "networkDeviceId",
         title: "Network Device ID",
         description:
-          "ID of the NetworkDevice that exported this flow (correlated from the exporter IP on ingest)",
+          "ID of the NetworkDevice that exported this flow (matched from the exporter's address on ingest), or the project's ID when the exporter is not a device of the project yet",
         required: true,
         type: TableColumnType.ObjectID,
         accessControl: {
@@ -89,7 +105,7 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       isLowCardinality: true,
       title: "Exporter IP",
       description:
-        "Source IP of the NetFlow export datagram — the router/switch that observed the flow",
+        "Address of the router or switch that observed the flow: the sFlow agent address, or the address an IPFIX or NetFlow v9 exporter gives for itself, else the source address of the export datagram",
       required: true,
       type: TableColumnType.Text,
       accessControl: {
@@ -99,6 +115,11 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * The Traffic pages filter by an address on either side ("everything
+     * 10.0.0.5 did this week"); a bloom filter per granule lets that read
+     * skip the parts of the window the address never appears in.
+     */
     const srcIpColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "srcIp",
       codec: { codec: "ZSTD", level: 1 },
@@ -106,6 +127,12 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       description: "Source IP address of the flow's traffic",
       required: true,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_src_ip",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 4,
+      },
       accessControl: {
         read: readPermissions,
         create: createPermissions,
@@ -120,6 +147,12 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       description: "Destination IP address of the flow's traffic",
       required: true,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_dst_ip",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 4,
+      },
       accessControl: {
         read: readPermissions,
         create: createPermissions,
@@ -130,7 +163,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
     const srcPortColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "srcPort",
       title: "Source Port",
-      description: "TCP/UDP source port (0 when not applicable)",
+      description:
+        "TCP/UDP source port; 0 when the protocol has none, and on the client side of a conversation with a service (the probe folds a client's ephemeral port into 0)",
       required: true,
       type: TableColumnType.Number,
       accessControl: {
@@ -143,7 +177,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
     const dstPortColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "dstPort",
       title: "Destination Port",
-      description: "TCP/UDP destination port (0 when not applicable)",
+      description:
+        "TCP/UDP destination port; 0 when the protocol has none, and on the client side of a conversation with a service",
       required: true,
       type: TableColumnType.Number,
       accessControl: {
@@ -205,7 +240,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
     const octetsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "octets",
       title: "Octets",
-      description: "Total bytes in the flow",
+      description:
+        "Bytes in the flow - an estimate of the real traffic: what the device reported, multiplied by its sampling rate",
       required: true,
       type: TableColumnType.UInt64,
       accessControl: {
@@ -218,7 +254,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
     const packetsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "packets",
       title: "Packets",
-      description: "Total packets in the flow",
+      description:
+        "Packets in the flow - an estimate of the real traffic: what the device reported, multiplied by its sampling rate",
       required: true,
       type: TableColumnType.UInt64,
       accessControl: {
@@ -270,6 +307,72 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * The three columns below arrived with IPFIX and sFlow. Rows stored
+     * before them read '' and 0 (ClickHouse fills a column added to a
+     * table with its type's default): readers treat a rate or a count below
+     * 1 as 1, and an empty format as "NetFlow v5 or v9" - all an older probe
+     * could decode.
+     */
+    const flowFormatColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "flowFormat",
+      isLowCardinality: true,
+      title: "Flow Format",
+      description:
+        "The export format the device used: NetFlow v5, NetFlow v9, IPFIX or sFlow (empty on rows from probes older than IPFIX and sFlow support)",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const samplingRateColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "samplingRate",
+        title: "Sampling Rate",
+        description:
+          "The device counted one packet in this many (1: every packet). Octets and Packets are already multiplied by it.",
+        required: true,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      },
+    );
+
+    const flowCountColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "flowCount",
+      title: "Flow Count",
+      description:
+        "How many flow records the device sent for this conversation that the probe summed into this row (records of the same conversation arriving within seconds of each other)",
+      required: true,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const probeIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "probeId",
+      title: "Probe ID",
+      description:
+        "ID of the probe whose flow collector received this flow (empty on rows stored before it was recorded)",
+      required: false,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
     super({
       tableName: AnalyticsTableName.NetworkFlow,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -312,6 +415,10 @@ export default class NetworkFlow extends AnalyticsBaseModel {
         flowStartAtColumn,
         flowEndAtColumn,
         ingestedAtColumn,
+        flowFormatColumn,
+        samplingRateColumn,
+        flowCountColumn,
+        probeIdColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "networkDeviceId", "flowStartAt"],
@@ -467,5 +574,37 @@ export default class NetworkFlow extends AnalyticsBaseModel {
 
   public set ingestedAt(v: Date | undefined) {
     this.setColumnValue("ingestedAt", v);
+  }
+
+  public get flowFormat(): string | undefined {
+    return this.getColumnValue("flowFormat") as string | undefined;
+  }
+
+  public set flowFormat(v: string | undefined) {
+    this.setColumnValue("flowFormat", v);
+  }
+
+  public get samplingRate(): number | undefined {
+    return this.getColumnValue("samplingRate") as number | undefined;
+  }
+
+  public set samplingRate(v: number | undefined) {
+    this.setColumnValue("samplingRate", v);
+  }
+
+  public get flowCount(): number | undefined {
+    return this.getColumnValue("flowCount") as number | undefined;
+  }
+
+  public set flowCount(v: number | undefined) {
+    this.setColumnValue("flowCount", v);
+  }
+
+  public get probeId(): ObjectID | undefined {
+    return this.getColumnValue("probeId") as ObjectID | undefined;
+  }
+
+  public set probeId(v: ObjectID | undefined) {
+    this.setColumnValue("probeId", v);
   }
 }

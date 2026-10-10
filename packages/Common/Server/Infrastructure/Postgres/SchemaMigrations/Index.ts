@@ -76,6 +76,7 @@ import { AddNetworkDeviceDiscoveredName1800900000000 } from "./1800900000000-Add
 import { AddVideoCallConnectionSignIn1801000000000 } from "./1801000000000-AddVideoCallConnectionSignIn";
 import { AddVideoCallConnectionSignInIndex1801050000000 } from "./1801050000000-AddVideoCallConnectionSignInIndex";
 import { AddInstanceReceivingPeriod1801150000000 } from "./1801150000000-AddInstanceReceivingPeriod";
+import { AddNetworkDeviceOtherAddresses1801250000000 } from "./1801250000000-AddNetworkDeviceOtherAddresses";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1352,4 +1353,5 @@ export default [
   AddVideoCallConnectionSignIn1801000000000,
   AddVideoCallConnectionSignInIndex1801050000000,
   AddInstanceReceivingPeriod1801150000000,
+  AddNetworkDeviceOtherAddresses1801250000000,
 ];
