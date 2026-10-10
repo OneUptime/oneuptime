@@ -108,9 +108,7 @@ async function heartbeatStampMs(data: {
 
   expect(heartbeat).toBeDefined();
 
-  return Number(
-    BigInt(String(heartbeat!["timeUnixNano"])) / BigInt(1_000_000),
-  );
+  return Number(BigInt(String(heartbeat!["timeUnixNano"])) / BigInt(1_000_000));
 }
 
 beforeEach(() => {
