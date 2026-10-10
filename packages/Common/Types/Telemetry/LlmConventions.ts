@@ -148,6 +148,13 @@ export const LlmConversationIdAttributeKeys: Array<string> = [
   "session.id",
   "langfuse.session.id",
   "traceloop.association.properties.session_id",
+  /*
+   * The Vercel AI SDK has no conversation attribute of its own; its docs
+   * (and Langfuse's) tell apps to pass the chat id as telemetry metadata,
+   * `experimental_telemetry: { metadata: { sessionId } }`, which arrives as
+   * this key.
+   */
+  "ai.telemetry.metadata.sessionId",
 ];
 
 export const LlmAgentNameAttributeKeys: Array<string> = [
@@ -354,6 +361,8 @@ export const LlmEndUserAttributeKeys: Array<string> = withResourcePrefixedKeys(
 export const LlmToolNameAttributeKeys: Array<string> = [
   "gen_ai.tool.name",
   "tool.name",
+  // The Vercel AI SDK's tool span (ai.toolCall).
+  "ai.toolCall.name",
 ];
 
 /*
@@ -379,7 +388,86 @@ export const LlmFinishReasonAttributeKeys: Array<string> = [
   "gen_ai.response.finish_reasons",
   "gen_ai.response.finish_reason",
   "llm.response.finish_reason",
+  // The Vercel AI SDK ("stop", "length", "content-filter", "tool-calls", ...).
+  "ai.response.finishReason",
 ];
+
+/*
+ * Why the call ended in an error, when it did (the OTel general `error.type`
+ * attribute the GenAI conventions require on a failed operation). Read only
+ * to tell a failed call from a successful one; never denormalized.
+ */
+export const LlmErrorTypeAttributeKeys: Array<string> = ["error.type"];
+
+/*
+ * The system prompt when it is sent apart from the chat history (the
+ * current GenAI conventions record it in its own attribute rather than as a
+ * `system` message).
+ */
+export const LlmSystemInstructionsAttributeKeys: Array<string> = [
+  "gen_ai.system_instructions",
+];
+
+/*
+ * A tool run (gen_ai.operation.name = execute_tool): which call of the model
+ * asked for it, what it was given and what it returned. OpenInference TOOL
+ * spans carry the arguments and the result in input.value / output.value,
+ * the Vercel AI SDK's tool span in its own ai.toolCall.* keys. Read by the
+ * conversation view only.
+ */
+export const LlmToolCallIdAttributeKeys: Array<string> = [
+  "gen_ai.tool.call.id",
+  "ai.toolCall.id",
+];
+
+export const LlmToolCallArgumentsAttributeKeys: Array<string> = [
+  "gen_ai.tool.call.arguments",
+  "ai.toolCall.args",
+  "input.value",
+];
+
+export const LlmToolCallResultAttributeKeys: Array<string> = [
+  "gen_ai.tool.call.result",
+  "ai.toolCall.result",
+  "output.value",
+];
+
+/*
+ * The Vercel AI SDK's answer: the text, and the tool calls the model asked
+ * for (a JSON array of {toolCallId, toolName, args}). Its prompt is the JSON
+ * message array in ai.prompt.messages (see LlmPromptJsonAttributeKeys).
+ */
+export const LlmResponseToolCallsAttributeKeys: Array<string> = [
+  "ai.response.toolCalls",
+];
+
+/*
+ * The current GenAI conventions' content event: one event per operation
+ * carrying gen_ai.system_instructions, gen_ai.input.messages and
+ * gen_ai.output.messages as structured attributes. An instrumentation that
+ * records content on events rather than on the span puts it here.
+ */
+export const LlmInferenceDetailsEventName: string =
+  "gen_ai.client.inference.operation.details";
+
+/*
+ * gen_ai.evaluation.result: the result of judging a GenAI answer (a
+ * guardrail, an eval library, an LLM judge or a person's thumbs-down). The
+ * conventions parent it to the span of the answer it judges, which is what
+ * lets OneUptime mark that answer as flagged. Read off the span's events.
+ */
+export const LlmEvaluationResultEventName: string = "gen_ai.evaluation.result";
+
+export const LlmEvaluationNameAttributeKey: string = "gen_ai.evaluation.name";
+
+export const LlmEvaluationScoreLabelAttributeKey: string =
+  "gen_ai.evaluation.score.label";
+
+export const LlmEvaluationScoreValueAttributeKey: string =
+  "gen_ai.evaluation.score.value";
+
+export const LlmEvaluationExplanationAttributeKey: string =
+  "gen_ai.evaluation.explanation";
 
 /*
  * Attribute-key namespace prefixes. Any span carrying an attribute in one of
@@ -393,24 +481,42 @@ export const LlmAttributeNamespacePrefixes: Array<string> = [
 
 /*
  * Indexed prompt/completion message conventions of the shape
- * `${prefix}.${i}.${contentSuffix}` / `${prefix}.${i}.${roleSuffix}`. Used only
- * by the display parser to reconstruct message content for rendering.
+ * `${prefix}.${i}.${contentSuffix}` / `${prefix}.${i}.${roleSuffix}`. Read by
+ * the message parser (Common/Utils/Telemetry/LlmMessageParser.ts), which
+ * reconstructs each message - text, tool calls, tool results - for the
+ * conversation view, the span panel and the answer checks at ingest.
+ *
+ * `style` names whose spelling the rest of a message's keys follow:
+ *   - openllmetry:   tool_calls.<j>.{id,name,arguments}, tool_call_id,
+ *                    finish_reason, refusal
+ *   - openinference: message.tool_calls.<j>.tool_call.{id,function.name,
+ *                    function.arguments}, message.tool_call_id,
+ *                    message.contents.<j>.message_content.{type,text}
  */
+export type LlmIndexedMessageStyle = "openllmetry" | "openinference";
+
 export interface LlmIndexedMessageConvention {
   prefix: string;
   contentSuffix: string;
   roleSuffix: string;
+  style: LlmIndexedMessageStyle;
 }
 
 export const LlmPromptIndexedMessageConventions: Array<LlmIndexedMessageConvention> =
   [
     // OpenLLMetry indexed prompts.
-    { prefix: "gen_ai.prompt", contentSuffix: "content", roleSuffix: "role" },
+    {
+      prefix: "gen_ai.prompt",
+      contentSuffix: "content",
+      roleSuffix: "role",
+      style: "openllmetry",
+    },
     // OpenInference indexed input messages.
     {
       prefix: "llm.input_messages",
       contentSuffix: "message.content",
       roleSuffix: "message.role",
+      style: "openinference",
     },
   ];
 
@@ -421,36 +527,52 @@ export const LlmCompletionIndexedMessageConventions: Array<LlmIndexedMessageConv
       prefix: "gen_ai.completion",
       contentSuffix: "content",
       roleSuffix: "role",
+      style: "openllmetry",
     },
     // OpenInference indexed output messages.
     {
       prefix: "llm.output_messages",
       contentSuffix: "message.content",
       roleSuffix: "message.role",
+      style: "openinference",
     },
   ];
 
-// JSON-encoded message-array attribute keys (checked in order).
+/*
+ * JSON-encoded message-array attribute keys (checked in order). A value may
+ * also be plain text (the Vercel AI SDK's ai.response.text, an
+ * OpenInference input.value that is just the question), which the parser
+ * reads as one message.
+ */
 export const LlmPromptJsonAttributeKeys: Array<string> = [
   "gen_ai.input.messages",
   "gen_ai.prompt",
+  // The Vercel AI SDK.
+  "ai.prompt.messages",
   "input.value",
 ];
 
 export const LlmCompletionJsonAttributeKeys: Array<string> = [
   "gen_ai.output.messages",
   "gen_ai.completion",
+  // The Vercel AI SDK.
+  "ai.response.text",
   "output.value",
 ];
 
-// Span-event names carrying prompt/completion content.
+/*
+ * Span-event names carrying prompt/completion content, from the per-role
+ * events the GenAI conventions used before gen_ai.client.inference
+ * .operation.details. Every message event - the assistant's included -
+ * describes chat history SENT to the model (`gen_ai.assistant.message` is an
+ * earlier answer replayed as context); the model's own answer is
+ * `gen_ai.choice`.
+ */
 export const LlmPromptEventNames: Array<string> = [
   "gen_ai.system.message",
   "gen_ai.user.message",
+  "gen_ai.assistant.message",
   "gen_ai.tool.message",
 ];
 
-export const LlmCompletionEventNames: Array<string> = [
-  "gen_ai.assistant.message",
-  "gen_ai.choice",
-];
+export const LlmCompletionEventNames: Array<string> = ["gen_ai.choice"];
