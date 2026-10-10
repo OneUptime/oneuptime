@@ -507,33 +507,22 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data,
       updateBy.props,
     );
-    const selectedPermissions: Array<Model> = await this.findAllBy({
-      query: updateBy.query,
-      select: { _id: true },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: { isRoot: true },
-    });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map(
-      (row: Model) => {
-        return row.id!;
-      },
-    );
-    // Reload by ID so a label filter cannot hide part of a saved block's scope.
-    const existingPermissions: Array<Model> = await this.findAllBy({
-      query: { _id: QueryHelper.any(selectedIds) },
-      select: {
+    /*
+     * The permissions the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem) - their labels read whole, so a label
+     * filter cannot hide part of a saved block's scope.
+     */
+    const existingPermissions: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
-        labels: true,
+        labels: {
+          _id: true,
+        },
         isBlockPermission: true,
         projectId: true,
         apiKeyId: true,
         permission: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     const rawUpdatedPermission: unknown = updateBy.data.permission;
     if (
@@ -681,8 +670,6 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    updateBy.query = { ...updateBy.query, _id: QueryHelper.any(selectedIds) };
-    updateBy.skip = 0;
     return { updateBy, carryForward: null };
   }
 

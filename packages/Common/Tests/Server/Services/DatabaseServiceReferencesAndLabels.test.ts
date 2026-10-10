@@ -66,6 +66,7 @@ const PRODUCTION: string = "0193c0de-bbbb-4aaa-8bbb-0000000000a1";
 const STAGING: string = "0193c0de-bbbb-4aaa-8bbb-0000000000a2";
 
 const RESOURCE_ID: string = "0193c0de-bbbb-4aaa-8bbb-00000000c001";
+const OTHER_RESOURCE_ID: string = "0193c0de-bbbb-4aaa-8bbb-00000000c002";
 const PAGE_A: string = "0193c0de-bbbb-4aaa-8bbb-00000000d001";
 const PRODUCTION_MONITOR: string = "0193c0de-bbbb-4aaa-8bbb-00000000a001";
 const OTHER_PRODUCTION_MONITOR: string = "0193c0de-bbbb-4aaa-8bbb-00000000a002";
@@ -234,8 +235,10 @@ class ResourceService extends DatabaseService<StatusPageResource> {
   public sideEffects: number = 0;
   public createHookCalls: number = 0;
   public updateHookCalls: number = 0;
-  // The update hook changes what the update reaches, and so the rows it writes.
-  public replacesQueryInUpdateHook: boolean = false;
+  // The update hook has the update reach this row instead, which was not read.
+  public rowNamedByUpdateHook: string | null = null;
+  // The update hook puts a copy of the update's query in its place.
+  public copiesQueryInUpdateHook: boolean = false;
   public onUpdateHook: (() => void) | null = null;
 
   public constructor() {
@@ -277,7 +280,14 @@ class ResourceService extends DatabaseService<StatusPageResource> {
       );
     }
 
-    if (this.replacesQueryInUpdateHook) {
+    if (this.rowNamedByUpdateHook) {
+      updateBy.query = {
+        ...updateBy.query,
+        _id: this.rowNamedByUpdateHook,
+      } as UpdateBy<StatusPageResource>["query"];
+    }
+
+    if (this.copiesQueryInUpdateHook) {
       updateBy.query = { ...updateBy.query };
     }
 
@@ -630,12 +640,12 @@ describe("a record a hook fills in from one the write names", () => {
     expect(monitorReads()).toEqual([[OTHER_PRODUCTION_MONITOR]]);
   });
 
-  test("on an update whose hook changes the rows it writes, what the caller sent there is asked about again, on those rows", async () => {
+  test("on an update whose hook has it write a row it did not read, what the caller sent there is asked about again, on that row", async () => {
     // The row the update reaches shows the monitor the caller keeps.
     storedMonitor = STAGING_MONITOR;
     const stubs: ResourceStubs = resourceService(new FillingResourceService());
-    stubs.service.replacesQueryInUpdateHook = true;
-    // The rows the hook's query reaches show another one.
+    stubs.service.rowNamedByUpdateHook = OTHER_RESOURCE_ID;
+    // The row the hook's query reaches shows another one.
     stubs.service.onUpdateHook = (): void => {
       storedMonitor = PRODUCTION_MONITOR;
     };
@@ -653,6 +663,37 @@ describe("a record a hook fills in from one the write names", () => {
     expect(stubs.update).not.toHaveBeenCalled();
     // Kept by the row before the hooks, new to the rows after them.
     expect(monitorReads()).toEqual([[STAGING_MONITOR]]);
+  });
+
+  /*
+   * An update that names its one row by id writes no row but that one,
+   * whatever query object its hook hands on: the row read before the hooks
+   * is the row written, and nothing is read or asked again.
+   */
+  test("on an update by id whose hook hands on a copy of its query, nothing is read or asked again", async () => {
+    storedMonitor = STAGING_MONITOR;
+
+    const copied: ResourceStubs = resourceService(new FillingResourceService());
+    copied.service.copiesQueryInUpdateHook = true;
+
+    await copied.service.updateOneById({
+      id: new ObjectID(RESOURCE_ID),
+      data: { monitorId: STAGING_MONITOR } as never,
+      props: member(RESOURCE_EDITOR),
+    });
+
+    const kept: ResourceStubs = resourceService(new FillingResourceService());
+
+    await kept.service.updateOneById({
+      id: new ObjectID(RESOURCE_ID),
+      data: { monitorId: STAGING_MONITOR } as never,
+      props: member(RESOURCE_EDITOR),
+    });
+
+    // Kept by the row: never asked about, and the row read as often as when the hook kept the query.
+    expect(monitorReads()).toEqual([]);
+    expect(copied.rowReads).toHaveLength(kept.rowReads.length);
+    expect(copied.update).toHaveBeenCalledTimes(1);
   });
 
   test("a service that does not say so has what its hook fills in asked about", async () => {

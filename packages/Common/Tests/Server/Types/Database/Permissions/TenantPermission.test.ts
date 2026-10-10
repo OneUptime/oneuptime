@@ -1,4 +1,7 @@
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import User from "../../../../../Models/DatabaseModels/User";
+import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
+import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../../../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import UserSession from "../../../../../Models/DatabaseModels/UserSession";
@@ -9,6 +12,7 @@ import UserService from "../../../../../Server/Services/UserService";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import DeleteBy from "../../../../../Server/Types/Database/DeleteBy";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
+import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import TenantPermission from "../../../../../Server/Types/Database/Permissions/TenantPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import UpdateBy from "../../../../../Server/Types/Database/UpdateBy";
@@ -20,6 +24,7 @@ import CurrentUserCanAccessRecordBy from "../../../../../Types/Database/CurrentU
 import TableColumn from "../../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import TenantColumn from "../../../../../Types/Database/TenantColumn";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
@@ -312,6 +317,154 @@ describe("TenantPermission current-user ownership scope", () => {
         queries[projectIds.indexOf(adminProjectId)]?.["userId"],
       ).toBeUndefined();
     }
+  });
+
+  /*
+   * A CHANGE IS MADE IN ONE PROJECT AT A TIME. A read that names no project,
+   * or asks across projects (a model that may be read so), is answered with
+   * a query per project (above). An update or a delete would have to read
+   * its rows by such a query before it writes them, and no read takes one,
+   * so it is refused before anything is read - with a 400 that says what to
+   * do, where it once failed in the database. A model a person reads
+   * without a project (AllowUserQueryWithoutTenant: their own team
+   * memberships, which they accept and decline from the invitations list)
+   * is kept to their own rows instead, as before.
+   */
+  describe("a change that names no project, or asks across projects", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    const withoutProject: DatabaseCommonInteractionProps = {
+      userId,
+      userGlobalAccessPermission: {
+        projectIds: [projectId, ObjectID.generate()],
+        globalPermissions: [
+          Permission.Public,
+          Permission.User,
+          Permission.CurrentUser,
+        ],
+        _type: "UserGlobalAccessPermission",
+      },
+    };
+
+    const acrossProjects: DatabaseCommonInteractionProps = {
+      ...withoutProject,
+      tenantId: projectId,
+      isMultiTenantRequest: true,
+    };
+
+    it.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+      "is refused (%s) with words that say to name the project",
+      async (requestType: DatabaseRequestType) => {
+        const noProject: Promise<unknown> =
+          TenantPermission.addTenantScopeToQuery(
+            TenantScopedCurrentUserModel,
+            {},
+            null,
+            withoutProject,
+            requestType,
+          );
+
+        await expect(noProject).rejects.toThrow(BadDataException);
+        await expect(noProject).rejects.toThrow(
+          "Changes to records are made in one project at a time. Please pass the project ID in the 'tenantid' header.",
+        );
+
+        // A model that may be read across projects is changed in one too.
+        const everyProject: Promise<unknown> =
+          TenantPermission.addTenantScopeToQuery(
+            Incident,
+            {},
+            null,
+            acrossProjects,
+            requestType,
+          );
+
+        await expect(everyProject).rejects.toThrow(BadDataException);
+        await expect(everyProject).rejects.toThrow(
+          "Changes to incidents are made in one project at a time. Please pass the project ID in the 'tenantid' header.",
+        );
+      },
+    );
+
+    it("is refused through each permission check DatabaseService asks of an update or a delete", async () => {
+      const ruleQuery: Query<UserNotificationRule> = {
+        _id: ObjectID.generate().toString(),
+      };
+      const message: string = TenantPermission.getWriteAcrossProjectsMessage(
+        new UserNotificationRule(),
+      );
+
+      // The rows a teammate may update, read before an update's hooks.
+      await expect(
+        ModelPermission.getUpdatableQuery(
+          UserNotificationRule,
+          ruleQuery,
+          withoutProject,
+        ),
+      ).rejects.toThrow(message);
+
+      // The rows a teammate may delete, read before a delete's hooks.
+      await expect(
+        ModelPermission.checkDeleteQueryPermission(
+          UserNotificationRule,
+          ruleQuery,
+          withoutProject,
+        ),
+      ).rejects.toThrow(message);
+    });
+
+    it("still answers a read across projects with a query per project", async () => {
+      const queries: unknown = await TenantPermission.addTenantScopeToQuery(
+        TenantScopedCurrentUserModel,
+        {},
+        null,
+        withoutProject,
+        DatabaseRequestType.Read,
+      );
+
+      expect(Array.isArray(queries)).toBe(true);
+      expect(queries as Array<unknown>).toHaveLength(2);
+    });
+
+    it("keeps a person's own team memberships to their rows, with or without a project", async () => {
+      for (const props of [withoutProject, acrossProjects]) {
+        const query: Query<BaseModel> =
+          await TenantPermission.addTenantScopeToQuery(
+            TeamMember,
+            { _id: ObjectID.generate().toString() } as Query<BaseModel>,
+            null,
+            props,
+            DatabaseRequestType.Update,
+          );
+
+        expect(Array.isArray(query)).toBe(false);
+        expect((query as any).userId?.toString()).toBe(userId.toString());
+      }
+    });
+
+    it("names the records the change was for", () => {
+      expect(
+        TenantPermission.getWriteAcrossProjectsMessage(
+          new UserNotificationRule(),
+        ),
+      ).toBe(
+        "Changes to notification rules are made in one project at a time. Please pass the project ID in the 'tenantid' header.",
+      );
+    });
+
+    it("leaves a change in the project the request names as it was", async () => {
+      const query: Query<BaseModel> =
+        await TenantPermission.addTenantScopeToQuery(
+          TenantScopedCurrentUserModel,
+          {},
+          null,
+          { ...withoutProject, tenantId: projectId },
+          DatabaseRequestType.Update,
+        );
+
+      expect(Array.isArray(query)).toBe(false);
+      expect((query as any).projectId?.toString()).toBe(projectId.toString());
+    });
   });
 
   it("rejects a cross-user delete before UserService inspects memberships", async () => {

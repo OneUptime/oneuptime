@@ -1,7 +1,11 @@
-import fs from "fs";
 import path from "path";
-import ts from "typescript";
 import { describe, expect, it } from "@jest/globals";
+import {
+  findWriteQueryReads,
+  findWriteQueryReadsInCode,
+  RepositoryWriteQueryRead,
+  WriteQueryScan,
+} from "../TestingUtils/WriteQueryReads";
 
 /*
  * EVERY HOOK THAT JUDGES AN UPDATE BY ITS ROWS READS THEM WITH
@@ -27,6 +31,11 @@ import { describe, expect, it } from "@jest/globals";
  *     not write. The list only ever shrinks: each entry names how many
  *     times its function reads the query, and an entry that reads it no
  *     more is taken out.
+ *
+ * The scan reads the syntax tree (TestingUtils/WriteQueryReads): a read
+ * through another name for the update - a parameter declared as an
+ * UpdateBy, a copy of one, one destructured out of what holds it - or one
+ * that destructures the query out of the update counts as any other.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -54,18 +63,13 @@ const SKIPPED_DIRECTORY_NAMES: Set<string> = new Set<string>([
 const UPDATE_PATH: string =
   "packages/Common/Server/Services/DatabaseService.ts";
 
-// The source files scanned: TypeScript, not tests.
-const SOURCE_FILE: RegExp = /\.tsx?$/;
-const TEST_FILE: RegExp = /\.(test|spec)\.tsx?$/;
-
-// What reads the one row a query names by its id.
-const ONE_ROW_ID_READER: RegExp = /\bgetOneRowIdNamedBy$/;
-
-// Hooks that run once the write is done: they read what was written.
-const AFTER_THE_WRITE: Set<string> = new Set<string>([
-  "onUpdateSuccess",
-  "onUpdateError",
-]);
+// What an update is: the names it goes by, and the types it is declared with.
+const UPDATE_SCAN: WriteQueryScan = {
+  writeNames: new Set<string>(["updateBy", "updateOneBy", "update", "write"]),
+  writeTypes: new Set<string>(["UpdateBy", "UpdateOneBy"]),
+  // Hooks that run once the write is done: they read what was written.
+  afterTheWrite: new Set<string>(["onUpdateSuccess", "onUpdateError"]),
+};
 
 interface Allowed {
   // How many times the function reads the update's query.
@@ -74,57 +78,6 @@ interface Allowed {
 }
 
 const ALLOWED: Record<string, Allowed> = {
-  "packages/Common/Server/Services/ApiKeyPermissionService.ts::onBeforeUpdate":
-    {
-      mentions: 1,
-      reason:
-        "Narrows the update by the caller's update permission first, reads the rows in the update's own window, and holds the update to them by id itself.",
-    },
-  "packages/Common/Server/Services/TeamPermissionService.ts::onBeforeUpdate": {
-    mentions: 1,
-    reason:
-      "Narrows the update by the caller's update permission first, reads the rows in the update's own window, and holds the update to them by id itself.",
-  },
-  "packages/Common/Server/Utils/SsoProviderTeamGrant.ts::checkUpdate": {
-    mentions: 1,
-    reason:
-      "Narrows the update by the caller's update permission first, reads the rows in the update's own window, and holds the update to them by id itself.",
-  },
-  "packages/Common/Server/Utils/SsoRequirementChanges.ts::rememberProjectRulesBefore":
-    {
-      mentions: 1,
-      reason:
-        "The sign-in rules as they were, for the announcement made after the write; the write is held to the projects read again under the sign-in lock (lockAndCheckProjects).",
-    },
-  "packages/Common/Server/Utils/SsoRequirementChanges.ts::rememberServerRuleBefore":
-    {
-      mentions: 1,
-      reason:
-        "The server's sign-in rule as it was, for the announcement made after the write; it judges nothing.",
-    },
-  "packages/Common/Server/Utils/SsoRequirementChanges.ts::lockAndCheckProjects":
-    {
-      mentions: 1,
-      reason:
-        "Reads the projects under the sign-in lock and holds the write to the projects it read (ProjectSsoProviderChanges.writeOnlyTheRowsRead).",
-    },
-  "packages/Common/Server/Utils/SsoRequirementChanges.ts::readProjectIds": {
-    mentions: 1,
-    reason:
-      "Which projects' sign-in locks to take; the projects are read again, and the write held to them, under those locks.",
-  },
-  "packages/Common/Server/Utils/GlobalSsoProviderChanges.ts::beforeProviderUpdate":
-    {
-      mentions: 1,
-      reason:
-        "Reads the providers under the sign-in lock and holds the write to the providers it read (ProjectSsoProviderChanges.writeOnlyTheRowsRead).",
-    },
-  "packages/Common/Server/Utils/GlobalSsoProviderChanges.ts::beforeAttachmentUpdate":
-    {
-      mentions: 1,
-      reason:
-        "Reads the attachments under the sign-in lock and holds the write to the attachments it read (ProjectSsoProviderChanges.writeOnlyTheRowsRead).",
-    },
   "packages/Common/Server/Services/NetworkSiteService.ts::updateBy": {
     mentions: 1,
     reason:
@@ -163,18 +116,6 @@ const ALLOWED: Record<string, Allowed> = {
       reason:
         "Reads, with the step's own permissions, the records the step's Update Many reaches in its window, to merge each one's custom fields; each is then written by its own id (queryForRecord).",
     },
-  "packages/Common/Server/Utils/ProjectSsoProviderChanges.ts::lockReadAndCheckRows":
-    {
-      mentions: 1,
-      reason:
-        "Reads the rows to learn which projects' sign-in locks to take, reads them again under the locks and checks them, and holds the write to the rows read (writeOnlyTheRowsRead).",
-    },
-  "packages/Common/Server/Utils/ProjectSsoProviderChanges.ts::writeOnlyTheRowsRead":
-    {
-      mentions: 1,
-      reason:
-        "Holds the write to the rows read under the sign-in lock: reads the query only to name those rows in it, branch by branch.",
-    },
   "packages/Common/Server/Services/UserService.ts::onBeforeUpdate": {
     mentions: 1,
     reason:
@@ -199,199 +140,18 @@ const ALLOWED: Record<string, Allowed> = {
     },
 };
 
-interface QueryRead {
-  key: string;
-  line: number;
-  text: string;
-}
-
-function sourceFiles(directory: string): Array<string> {
-  const absolute: string = path.join(REPOSITORY_ROOT, directory);
-
-  if (!fs.existsSync(absolute)) {
-    return [];
-  }
-
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
-    const relative: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      if (!SKIPPED_DIRECTORY_NAMES.has(entry.name)) {
-        files.push(...sourceFiles(relative));
-      }
-
-      continue;
-    }
-
-    if (SOURCE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) {
-      files.push(relative);
-    }
-  }
-
-  return files;
-}
-
-/*
- * The names an update goes by - `updateBy`, `updateOneBy`, `update`,
- * `write` - alone or as a property: `data.updateBy`, `onUpdate.updateBy`,
- * `data.write`...
- */
-const UPDATE_NAMES: Set<string> = new Set<string>([
-  "updateBy",
-  "updateOneBy",
-  "update",
-  "write",
-]);
-
-function isUpdateBy(expression: ts.Expression): boolean {
-  return (
-    (ts.isIdentifier(expression) && UPDATE_NAMES.has(expression.text)) ||
-    (ts.isPropertyAccessExpression(expression) &&
-      UPDATE_NAMES.has(expression.name.text))
-  );
-}
-
-// Whether a file can name an update at all (UPDATE_NAMES).
-const NAMES_AN_UPDATE: RegExp = /\b(updateBy|updateOneBy|update|write)\b/;
-
-// `<update>.query`.
-function isUpdateQuery(node: ts.Node): node is ts.PropertyAccessExpression {
-  return (
-    ts.isPropertyAccessExpression(node) &&
-    node.name.text === "query" &&
-    isUpdateBy(node.expression)
-  );
-}
-
-// The class member or top-level function a node is in.
-function functionNameOf(node: ts.Node): string {
-  let current: ts.Node | undefined = node.parent;
-  let name: string = "<module>";
-
-  while (current) {
-    if (
-      (ts.isMethodDeclaration(current) ||
-        ts.isGetAccessorDeclaration(current) ||
-        ts.isPropertyDeclaration(current)) &&
-      current.name
-    ) {
-      return current.name.getText();
-    }
-
-    if (ts.isFunctionDeclaration(current) && current.name) {
-      return current.name.text;
-    }
-
-    if (
-      ts.isVariableDeclaration(current) &&
-      ts.isIdentifier(current.name) &&
-      ts.isSourceFile(current.parent.parent.parent)
-    ) {
-      name = current.name.text;
-    }
-
-    current = current.parent;
-  }
-
-  return name;
-}
-
-// `updateBy.query = ...`: the query itself, written.
-function isAssigned(node: ts.PropertyAccessExpression): boolean {
-  const parent: ts.Node = node.parent;
-
-  return (
-    ts.isBinaryExpression(parent) &&
-    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-    parent.left === node
-  );
-}
-
-// Inside `updateBy.query = narrow(updateBy.query)`: narrowed in place.
-function isNarrowedInPlace(node: ts.Node): boolean {
-  let current: ts.Node | undefined = node.parent;
-
-  while (current && !ts.isStatement(current)) {
-    if (
-      ts.isBinaryExpression(current) &&
-      current.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-      isUpdateQuery(current.left)
-    ) {
-      return true;
-    }
-
-    current = current.parent;
-  }
-
-  return false;
-}
-
-// `getOneRowIdNamedBy(updateBy.query)`: the one row it names by id.
-function isOneRowIdRead(node: ts.Node): boolean {
-  const parent: ts.Node = node.parent;
-
-  return (
-    ts.isCallExpression(parent) &&
-    parent.arguments.includes(node as ts.Expression) &&
-    ONE_ROW_ID_READER.test(parent.expression.getText())
-  );
-}
-
-function findQueryReads(): Array<QueryRead> {
-  const reads: Array<QueryRead> = [];
-
-  for (const directory of SCANNED_DIRECTORIES) {
-    for (const file of sourceFiles(directory)) {
-      if (file === UPDATE_PATH) {
-        continue;
-      }
-
-      const text: string = fs.readFileSync(
-        path.join(REPOSITORY_ROOT, file),
-        "utf8",
-      );
-
-      if (!NAMES_AN_UPDATE.test(text)) {
-        continue;
-      }
-
-      const source: ts.SourceFile = ts.createSourceFile(
-        file,
-        text,
-        ts.ScriptTarget.Latest,
-        true,
-      );
-
-      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-        if (
-          isUpdateQuery(node) &&
-          !AFTER_THE_WRITE.has(functionNameOf(node)) &&
-          !isAssigned(node) &&
-          !isNarrowedInPlace(node) &&
-          !isOneRowIdRead(node)
-        ) {
-          reads.push({
-            key: `${file}::${functionNameOf(node)}`,
-            line:
-              source.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-            text: node.parent.getText().split("\n")[0]!.trim(),
-          });
-        }
-
-        ts.forEachChild(node, visit);
-      };
-
-      visit(source);
-    }
-  }
-
-  return reads;
+function readsIn(code: string): Array<string> {
+  return findWriteQueryReadsInCode(code, UPDATE_SCAN);
 }
 
 describe("Hooks that judge an update by its rows read them with findRowsAndHoldUpdateToThem", () => {
-  const reads: Array<QueryRead> = findQueryReads();
+  const reads: Array<RepositoryWriteQueryRead> = findWriteQueryReads({
+    repositoryRoot: REPOSITORY_ROOT,
+    directories: SCANNED_DIRECTORIES,
+    skippedDirectoryNames: SKIPPED_DIRECTORY_NAMES,
+    writePath: UPDATE_PATH,
+    scan: UPDATE_SCAN,
+  });
 
   it("finds the update path's own readers, so the scan reads real code", () => {
     // The listed functions read the query; a scan that sees none of them sees nothing.
@@ -400,10 +160,10 @@ describe("Hooks that judge an update by its rows read them with findRowsAndHoldU
 
   it("reads an update's rows by its query nowhere but in the update path and the functions listed", () => {
     const unexpected: Array<string> = reads
-      .filter((read: QueryRead): boolean => {
+      .filter((read: RepositoryWriteQueryRead): boolean => {
         return !ALLOWED[read.key];
       })
-      .map((read: QueryRead): string => {
+      .map((read: RepositoryWriteQueryRead): string => {
         return `${read.key} (line ${read.line}): ${read.text}`;
       });
 
@@ -441,34 +201,6 @@ describe("Hooks that judge an update by its rows read them with findRowsAndHoldU
 });
 
 describe("The update query readers the scan recognizes", () => {
-  function readsIn(code: string): Array<string> {
-    const source: ts.SourceFile = ts.createSourceFile(
-      "Example.ts",
-      code,
-      ts.ScriptTarget.Latest,
-      true,
-    );
-    const found: Array<string> = [];
-
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (
-        isUpdateQuery(node) &&
-        !AFTER_THE_WRITE.has(functionNameOf(node)) &&
-        !isAssigned(node) &&
-        !isNarrowedInPlace(node) &&
-        !isOneRowIdRead(node)
-      ) {
-        found.push(functionNameOf(node));
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(source);
-
-    return found;
-  }
-
   it("counts a read of the update's rows by its query, whatever the update is called on", () => {
     expect(
       readsIn(`class S {
@@ -501,6 +233,85 @@ describe("The update query readers the scan recognizes", () => {
     ).toEqual(["updateOneBy", "step", "lockRows"]);
   });
 
+  it("counts a query destructured out of the update, however it is written", () => {
+    expect(
+      readsIn(`class S {
+        async plain(updateBy) {
+          const { query } = updateBy;
+          return this.findBy({ query, select: {} });
+        }
+        async renamed(updateBy) {
+          const { query: rowsQuery, props } = updateBy;
+          return this.findBy({ query: rowsQuery, select: {}, props });
+        }
+        async nested(data) {
+          const { updateBy: { query } } = data;
+          return this.findBy({ query, select: {} });
+        }
+        async parameter({ query, props }: UpdateBy<Model>) {
+          return this.findBy({ query, select: {}, props });
+        }
+        async assigned(updateBy) {
+          let query;
+          ({ query } = updateBy);
+          return this.findBy({ query, select: {} });
+        }
+      }`),
+    ).toEqual(["plain", "renamed", "nested", "parameter", "assigned"]);
+  });
+
+  it("counts a read through another name the update is held under", () => {
+    expect(
+      readsIn(`class S {
+        async typed(change: UpdateBy<Model>) {
+          return this.findBy({ query: change.query, select: {} });
+        }
+        async typedVariable(data) {
+          const change: UpdateBy<Model> | null = data.pending;
+          return this.findBy({ query: change!.query, select: {} });
+        }
+        async copied(data) {
+          const change = data.updateBy;
+          return this.findBy({ query: change.query, select: {} });
+        }
+        async spread(updateBy) {
+          const copy = { ...updateBy, data: {} };
+          return this.findBy({ query: copy.query, select: {} });
+        }
+        async destructuredOut(data) {
+          const { updateBy: change } = data;
+          return this.findBy({ query: change.query, select: {} });
+        }
+        async asserted(data) {
+          return this.findBy({ query: (data.updateBy as UpdateBy<Model>)["query"], select: {} });
+        }
+      }`),
+    ).toEqual([
+      "typed",
+      "typedVariable",
+      "copied",
+      "spread",
+      "destructuredOut",
+      "asserted",
+    ]);
+  });
+
+  it("does not count a name of the same kind that holds no update", () => {
+    expect(
+      readsIn(`class S {
+        async other(data) {
+          const change = data.createBy;
+          const { query } = data.findBy;
+          const copy = { ...data.updateBy, query: {} };
+          return [change.query, query, copy.query];
+        }
+        async shadowed(updateBy, rows) {
+          return rows.map((change: Row) => change.query);
+        }
+      }`),
+    ).toEqual([]);
+  });
+
   it("does not count a narrowing in place, a one-row id read, or a read after the write", () => {
     expect(
       readsIn(`class S {
@@ -510,7 +321,11 @@ describe("The update query readers the scan recognizes", () => {
           const id = Service.getOneRowIdNamedBy(updateBy.query);
           return this.findRowsAndHoldUpdateToThem(updateBy, { _id: true });
         }
+        async narrowedThroughAName(change: UpdateBy<Model>) {
+          change.query = applyFilter(change.query, change.props);
+        }
         async onUpdateSuccess(onUpdate, ids) {
+          const { query } = onUpdate.updateBy;
           return this.findBy({ query: onUpdate.updateBy.query });
         }
       }`),

@@ -77,12 +77,12 @@ import SsoSignInWays, {
  * asks for less and is never refused or locked.
  *
  * An update that names its projects by a filter writes exactly the projects
- * it read under their locks (ProjectSsoProviderChanges.writeOnlyTheRowsRead):
- * a project that comes to match the filter afterwards - one created a
- * moment later - was never checked, and is left alone. One that comes to
- * match it between the read that picks the projects to lock and the read
- * under the locks was never locked: the update is refused, to be saved
- * again ("Another change to who can sign in with SSO is being saved").
+ * it read under their locks: each read holds the write to the projects it
+ * read, by the helper every check of a write's rows reads them with
+ * (DatabaseService.findRowsAndHoldUpdateToThem), and the read under the
+ * locks reads among the projects read to pick them. A project that comes to
+ * match the filter after that first read - one created a moment later - was
+ * never checked, nor locked, and is left alone.
  */
 
 export const NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE: string =
@@ -212,10 +212,9 @@ export default class SsoRequirementChanges {
    * projects', and the check runs under both.
    *
    * The projects are read once to learn which to lock, and again under the
-   * locks. Read again, they must be the projects locked: a write whose
-   * filter now reaches another - a project created in between - is refused,
-   * to be saved again. The write then goes to exactly the projects read
-   * under the locks (ProjectSsoProviderChanges.writeOnlyTheRowsRead), and a
+   * locks - among the ones read first - each read holding the write to the
+   * projects it read (DatabaseService.findRowsAndHoldUpdateToThem). The
+   * write then goes to exactly the projects read under the locks, and a
    * write that read none writes none: a project that comes to match its
    * filter afterwards was never checked. Its locks are kept for the write
    * from the check on (ProjectSsoProviderChanges.holdForWrite), and once
@@ -510,7 +509,9 @@ export default class SsoRequirementChanges {
    * Before an update that asks less of a project's sign-in - Require SSO
    * for Login off, or the provider it requires cleared - is written
    * (ProjectService.onUpdatePermitted): the rules of the projects it
-   * reaches, as they are. One that asks for more reads nothing: it is told
+   * reaches, as they are - read, and the write held to them, by
+   * DatabaseService.findRowsAndHoldUpdateToThem, so the projects told of
+   * are the ones written. One that asks for more reads nothing: it is told
    * whatever they were. Never throws: a read that fails leaves every
    * project it writes to be told.
    */
@@ -538,19 +539,12 @@ export default class SsoRequirementChanges {
     }
 
     try {
-      const projects: Array<Project> = await ProjectService.findAllBy({
-        query: updateBy.query,
-        select: {
+      const projects: Array<Project> =
+        await ProjectService.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           requireSsoForLogin: true,
           requireSsoWithSsoProviderId: true,
-        },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+        });
 
       const rules: Map<string, ProjectSignInRule> = new Map<
         string,
@@ -635,9 +629,11 @@ export default class SsoRequirementChanges {
 
   /*
    * Before an update that turns the server's Require SSO for Login off is
-   * written (GlobalConfigService.onUpdatePermitted): the rule as it is. One
-   * that turns it on reads nothing: it is told whatever the rule was. Never
-   * throws: a read that fails leaves the write to be told.
+   * written (GlobalConfigService.onUpdatePermitted): the rule as it is -
+   * read, and the write held to what it read, by
+   * DatabaseService.findRowsAndHoldUpdateToThem. One that turns it on reads
+   * nothing: it is told whatever the rule was. Never throws: a read that
+   * fails leaves the write to be told.
    */
   public static async rememberServerRuleBefore(
     updateBy: UpdateBy<GlobalConfig>,
@@ -655,15 +651,11 @@ export default class SsoRequirementChanges {
     }
 
     try {
-      const config: GlobalConfig | null = await GlobalConfigService.findOneBy({
-        query: updateBy.query,
-        select: {
+      const config: GlobalConfig | undefined = (
+        await GlobalConfigService.findRowsAndHoldUpdateToThem(updateBy, {
           requireSsoForLogin: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        })
+      )[0];
 
       if (config) {
         SsoRequirementChanges.serverRuleBefore.set(
@@ -737,30 +729,27 @@ export default class SsoRequirementChanges {
   /*
    * The check of an update to projects' sign-in rules (beforeProjectUpdate),
    * from the start - as it runs again, too, should a lock be found gone
-   * before the write: the projects the update names are read, locked, and
-   * read again under the locks - refused, to be saved again, when they now
-   * reach a project that was not locked - the update is held to them, and
-   * each is checked against the rule the update leaves it with: every one,
-   * whether its rule changes or is saved back as it is. Answers the locks it
-   * holds, or null when the update reaches no project (it then writes none).
+   * before the write: the projects the update names are read and the update
+   * held to them, those projects locked, and the projects read again under
+   * the locks - among those - with the update held to them, and each is
+   * checked against the rule the update leaves it with: every one, whether
+   * its rule changes or is saved back as it is. Answers the locks it holds,
+   * or null when the update reaches no project (it then writes none).
    * Refused, it gives back what it took.
    */
   private static async lockAndCheckProjects(data: {
     updateBy: UpdateBy<Project>;
     asked: ProjectRuleAsked;
   }): Promise<Array<SemaphoreMutex> | null> {
-    const projectIdsToLock: Array<string> =
-      await SsoRequirementChanges.readProjectIds(data.updateBy);
+    // Read once, unlocked, to learn which projects to lock: the write is held to them.
+    const projectIdsToLock: Array<string> = SsoRequirementChanges.projectIdsOf(
+      await ProjectService.findRowsAndHoldUpdateToThem(data.updateBy, {
+        _id: true,
+      }),
+    );
 
     // It names no project: nothing to check, and nothing to write.
     if (projectIdsToLock.length === 0) {
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: ProjectService,
-        write: data.updateBy,
-        rowIds: [],
-        isDelete: false,
-      });
-
       return null;
     }
 
@@ -771,47 +760,16 @@ export default class SsoRequirementChanges {
       });
 
     try {
-      // Read again under the lock: the rules as they are now.
-      const projects: Array<Project> = await ProjectService.findAllBy({
-        query: data.updateBy.query,
-        select: {
+      /*
+       * Read again under the locks - among the projects read first - the
+       * rules as they are now, and the write held to exactly those projects.
+       */
+      const projects: Array<Project> =
+        await ProjectService.findRowsAndHoldUpdateToThem(data.updateBy, {
           _id: true,
           requireSsoForLogin: true,
           requireSsoWithSsoProviderId: true,
-        },
-        limit: data.updateBy.limit,
-        skip: data.updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      const projectIdsRead: Array<string> =
-        SsoRequirementChanges.projectIdsOf(projects);
-
-      /*
-       * Read under the projects' locks, a write that names its projects by
-       * a filter may now reach one it did not lock - a project created in
-       * between - whose own changes it could then overtake. It is refused,
-       * to be saved again.
-       */
-      const locked: Set<string> = new Set<string>(projectIdsToLock);
-
-      if (
-        projectIdsRead.some((projectId: string): boolean => {
-          return !locked.has(projectId);
-        })
-      ) {
-        throw new BadDataException(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
-      }
-
-      // The write goes to exactly the projects read under the locks.
-      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-        service: ProjectService,
-        write: data.updateBy,
-        rowIds: projectIdsRead,
-        isDelete: false,
-      });
+        });
 
       /*
        * Each project is asked for what the write asks of it, as the rule
@@ -1008,25 +966,6 @@ export default class SsoRequirementChanges {
     SsoRequirementChanges.writes.delete(key);
 
     await ProjectSsoProviderChanges.giveBack(write.locks, failure);
-  }
-
-  // The projects an update names, to lock them before they are read again.
-  private static async readProjectIds(
-    updateBy: UpdateBy<Project>,
-  ): Promise<Array<string>> {
-    const projects: Array<Project> = await ProjectService.findAllBy({
-      query: updateBy.query,
-      select: {
-        _id: true,
-      },
-      limit: updateBy.limit,
-      skip: updateBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return SsoRequirementChanges.projectIdsOf(projects);
   }
 
   // The ids of the projects read.
