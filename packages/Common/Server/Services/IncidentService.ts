@@ -768,8 +768,10 @@ export class Service extends ProjectReferencesService<Model> {
    * state - the first from the top flagged acknowledged. One that is
    * acknowledged already, or further along, is refused with a sentence that
    * says which (Common/Utils/AcknowledgedState) rather than moved back up
-   * its list. The state timeline row is created with `props`, crediting
-   * `acknowledgedByUserId`.
+   * its list. The incident is read, and its state timeline row created,
+   * with `props`: a person's props hold the acknowledge to their read of the
+   * incident and their permission to create the row, and credit it to them;
+   * root props credit `acknowledgedByUserId`.
    *
    * A person's acknowledge is the state timeline row created with their own
    * props: the dashboard creates it through the API, and Slack, Microsoft
@@ -793,9 +795,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentNumber: true,
         currentIncidentStateId: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     if (!incident || !incident.projectId) {

@@ -669,7 +669,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
       expect(outcome.success).toBe(false);
       expect(outcome.result).toBeUndefined();
       expect(outcome.textForLlm).toBe(
-        "Error: acknowledge_incident changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.",
+        "Error: acknowledge_incident changes the project, and only runs for a signed-in person who asked for it, in the project their request is for. Answer with the data you already have.",
       );
       expect(outcome.errorMessage).toContain("no signed-in person to act as");
     },
@@ -688,6 +688,27 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
       name: tool.name,
       args: { incidentId: ObjectID.generate().toString() },
       ctx: ctx,
+    });
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    expect(outcome.success).toBe(false);
+    expect(outcome.errorMessage).toContain("no signed-in person to act as");
+  });
+
+  test("refuses a tool that changes the project for a master admin whose request names no project, without running it", async () => {
+    const tool: ObservabilityTool = mutationTool();
+    const executeSpy: SpyInstance<typeof tool.execute> = jest.spyOn(
+      tool,
+      "execute",
+    );
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: tool.name,
+      args: { incidentId: ObjectID.generate().toString() },
+      ctx: {
+        projectId: projectId,
+        props: { isMasterAdmin: true, userId: ObjectID.generate() },
+      },
     });
 
     expect(executeSpy).not.toHaveBeenCalled();
@@ -750,6 +771,53 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain(
       "It needs one of these permissions: Project Owner, Project Member.",
+    );
+  });
+
+  test("tells the model a permission the user holds is blocked on some labels, rather than missing", async () => {
+    const ctx: ToolContext = contextFor({ allow: [Permission.ProjectMember] });
+    ctx.props.userTenantAccessPermission![
+      projectId.toString()
+    ]!.permissions.push({
+      permission: Permission.ProjectMember,
+      labelIds: [ObjectID.generate()],
+      isBlockPermission: true,
+      _type: "UserPermission",
+    });
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: ctx,
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Member on some labels, and a block on some labels refuses this tool everywhere.",
+    );
+    expect(outcome.textForLlm).not.toContain(
+      "It needs one of these permissions",
+    );
+    expect(outcome.textForLlm).not.toContain("which permission is missing");
+  });
+
+  test("tells the model a permission the user holds is blocked outright, rather than missing", async () => {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: contextFor({
+        allow: [Permission.ProjectMember],
+        block: [Permission.ProjectOwner],
+      }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Owner.",
+    );
+    expect(outcome.textForLlm).not.toContain("on some labels");
+    expect(outcome.textForLlm).not.toContain(
+      "It needs one of these permissions",
     );
   });
 

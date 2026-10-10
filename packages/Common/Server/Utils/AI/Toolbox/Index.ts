@@ -349,7 +349,7 @@ export default class AIToolbox {
     if (tool.isMutation && !this.isPersonContext(data.ctx)) {
       return {
         success: false,
-        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
+        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it, in the project their request is for. Answer with the data you already have.`,
         errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
       };
     }
@@ -357,7 +357,7 @@ export default class AIToolbox {
     if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
       return {
         success: false,
-        textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.${this.describeRequiredPermissions(tool, data.args)}`,
+        textForLlm: this.describePermissionRefusal(tool, data.ctx, data.args),
         errorMessage: `Permission denied for tool: ${data.name}`,
       };
     }
@@ -413,25 +413,69 @@ export default class AIToolbox {
 
   /*
    * Whether a tool runs for a signed-in person: a user, not OneUptime
-   * itself. Only then is there someone a change can be made as.
+   * itself, whose request is for the project the tool acts in. Only then is
+   * there someone a change can be made as - in that project, with their
+   * grants there (WorkspaceMemberActions reads the project from the
+   * request's tenant).
    */
   public static isPersonContext(ctx: ToolContext): boolean {
-    return Boolean(ctx.props.userId) && !ctx.props.isRoot;
+    return (
+      Boolean(ctx.props.userId) &&
+      !ctx.props.isRoot &&
+      Boolean(ctx.props.tenantId) &&
+      ctx.props.tenantId!.toString() === ctx.projectId.toString()
+    );
   }
 
-  // " It needs one of these permissions: ...", for a tool with one list.
-  private static describeRequiredPermissions(
+  /*
+   * What the model is told when the person may not use a tool, for the
+   * first list of permissions they fall short of: the permissions it needs,
+   * when they hold none of them - or, when they hold one, the block that
+   * takes it away (a team's block on any permission of the list refuses the
+   * tool, one limited to some labels included: hasPermissionForTool), so
+   * they are not sent after a role they already have.
+   */
+  private static describePermissionRefusal(
     tool: ObservabilityTool,
+    ctx: ToolContext,
     args: JSONObject,
   ): string {
+    const refused: string = `Error: the current user does not have permission to use ${tool.name}. Answer with the data you already have`;
+
+    const held: HeldPermissions = CallerPermission.getHeld(ctx.props);
     const groups: Array<Array<Permission>> = tool.getRequiredPermissionGroups
       ? tool.getRequiredPermissionGroups(args)
       : [tool.requiredPermissions];
+    const missing: Array<Permission> | undefined = groups.find(
+      (group: Array<Permission>): boolean => {
+        return !HeldPermissionsUtil.holdsAnyOf(held, group, {
+          labelledBlocksRefuse: true,
+        });
+      },
+    );
 
-    if (groups.length !== 1 || groups[0]!.length === 0) {
-      return "";
+    if (!missing || missing.length === 0) {
+      return `${refused}, and tell the user which permission is missing.`;
     }
 
-    return ` It needs one of these permissions: ${PermissionHelper.getPermissionTitles(groups[0]!).join(", ")}.`;
+    if (!HeldPermissionsUtil.isGrantedAny(held, missing)) {
+      return `${refused}, and tell the user which permission is missing. It needs one of these permissions: ${PermissionHelper.getPermissionTitles(missing).join(", ")}.`;
+    }
+
+    const blocked: Array<Permission> = missing.filter(
+      (permission: Permission): boolean => {
+        return (
+          held.blocked.includes(permission) ||
+          held.blockedForSomeLabels.includes(permission)
+        );
+      },
+    );
+    const blockedOnSomeLabelsOnly: boolean = blocked.every(
+      (permission: Permission): boolean => {
+        return !held.blocked.includes(permission);
+      },
+    );
+
+    return `${refused}, and tell the user why: they hold a permission it needs, but a team they belong to blocks ${PermissionHelper.getPermissionTitles(blocked).join(", ")}${blockedOnSomeLabelsOnly ? " on some labels, and a block on some labels refuses this tool everywhere" : ""}.`;
   }
 }

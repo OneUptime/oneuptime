@@ -9,6 +9,8 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
@@ -227,6 +229,32 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
 };
 
 /*
+ * A runbook's name as the person reads it, or undefined when they may not
+ * read it: a granular permission to start runs reaches runbooks it does not
+ * show.
+ */
+async function readableRunbookName(data: {
+  runbookId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<string | undefined> {
+  try {
+    const runbook: Runbook | null = await RunbookService.findOneById({
+      id: data.runbookId,
+      select: { _id: true, name: true },
+      props: data.props,
+    });
+
+    return runbook?.name || undefined;
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+/*
  * ---------------------------------------------------------------------------
  * run_runbook — start an automated runbook.
  * ---------------------------------------------------------------------------
@@ -293,15 +321,25 @@ export const RunRunbookTool: ObservabilityTool = {
      */
     assertCanExecuteRunbooks(ctx.props, ctx.projectId);
 
+    /*
+     * The runbook is read as OneUptime and matched to the project, as that
+     * route reads it, and RunbookRunAccess decides whether the person's
+     * permission to start runs reaches it: a run role by its labels, owned
+     * scope and blocks, a granular run permission (Create Runbook
+     * Execution) every runbook of the project - whether or not it lets
+     * them read runbooks. A runbook of another project is answered like
+     * one that does not exist.
+     */
     const runbook: Runbook | null = await RunbookService.findOneById({
       id: runbookId,
-      select: { _id: true, name: true },
-      props: ctx.props,
+      select: { _id: true, projectId: true },
+      props: { isRoot: true },
     });
-    if (!runbook) {
-      throw new BadDataException(
-        "Runbook not found (or you do not have access to it).",
-      );
+    if (
+      !runbook ||
+      runbook.projectId?.toString() !== ctx.projectId.toString()
+    ) {
+      throw new BadDataException("Runbook not found.");
     }
 
     await RunbookRunAccess.assertMayStart({
@@ -309,6 +347,15 @@ export const RunRunbookTool: ObservabilityTool = {
       projectId: ctx.projectId,
       runbookId: runbookId,
     });
+
+    // The runbook's name, for the answer, only when the person may read it.
+    const runbookName: string | undefined = await readableRunbookName({
+      runbookId: runbookId,
+      props: ctx.props,
+    });
+    const runbookLabel: string = runbookName
+      ? `runbook "${runbookName}"`
+      : `runbook ${runbookId.toString()}`;
 
     /*
      * Only link an incident the caller can actually read in this project.
@@ -341,29 +388,32 @@ export const RunRunbookTool: ObservabilityTool = {
 
     if (!execution) {
       throw new BadDataException(
-        `Runbook "${runbook.name}" could not be started. It may be disabled, empty, or not part of this project.`,
+        `Could not start ${runbookLabel}. It may be disabled or have no steps.`,
       );
     }
 
     const serialized: SerializedResult = ToolResultSerializer.serializeRows([
       {
-        runbook: runbook.name,
+        runbook: runbookName || "",
+        runbookId: runbookId.toString(),
         executionId: execution.id?.toString(),
       },
     ]);
 
     const result: ToolExecutionResult = {
-      dataForLlm: `Started runbook "${runbook.name}". Execution is scheduled.\n${serialized.text}`,
+      dataForLlm: `Started ${runbookLabel}. Execution is scheduled.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Started runbook "${runbook.name}"`,
+      citationLabel: `Started ${runbookLabel}`,
       redactionCount: serialized.redactionCount,
       isTruncated: false,
       widget: WidgetBuilder.resourceCard({
         title: "Runbook started",
         resourceType: "Runbook",
-        heading: runbook.name || "Runbook",
+        heading: runbookName || "Runbook",
         subheading: "Execution scheduled",
-        fields: [{ label: "Runbook", value: runbook.name || "—" }],
+        fields: [
+          { label: "Runbook", value: runbookName || runbookId.toString() },
+        ],
       }),
     };
 

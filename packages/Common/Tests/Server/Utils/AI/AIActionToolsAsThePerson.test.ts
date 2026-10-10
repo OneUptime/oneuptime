@@ -35,9 +35,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *   - page_on_call_policy needs the permission to create the policy's
  *     execution log - what the dashboard's Execute On-Call Policy creates -
  *     not the permission to edit incidents;
- *   - run_runbook needs the permission to start runs, for a runbook that
- *     permission reaches (labels, owners, blocks) - as the dashboard's Run
- *     Runbook asks - before OneUptime starts the run;
+ *   - run_runbook needs the permission to start runs, for a runbook of the
+ *     project that permission reaches (labels, owners, blocks) - as the
+ *     dashboard's Run Runbook asks, reading the runbook as OneUptime - before
+ *     OneUptime starts the run;
  *   - change_incident_severity changes the incident as the person, and an
  *     incident they may read but not change is answered as unchanged, never
  *     as changed.
@@ -76,9 +77,10 @@ function contextFor(allow: Array<Permission>): ToolContext {
   return { projectId: projectId, props: props };
 }
 
-function buildRunbook(): Runbook {
+function buildRunbook(inProject: ObjectID = projectId): Runbook {
   const runbook: Runbook = new Runbook();
   runbook._id = runbookId.toString();
+  runbook.projectId = inProject;
   runbook.name = "Restart checkout";
   return runbook;
 }
@@ -182,6 +184,78 @@ describe("run_runbook asks what the dashboard's Run Runbook asks", () => {
     expect(asked.projectId.toString()).toBe(projectId.toString());
     expect(asked.runbookId.toString()).toBe(runbookId.toString());
     expect(start).not.toHaveBeenCalled();
+  });
+
+  test("the runbook is read as OneUptime, and one of another project is answered like one that does not exist", async () => {
+    const runbookRead: jest.SpiedFunction<typeof RunbookService.findOneById> =
+      jest
+        .spyOn(RunbookService, "findOneById")
+        .mockResolvedValue(buildRunbook(ObjectID.generate()) as never);
+    const mayStart: jest.SpiedFunction<typeof RunbookRunAccess.assertMayStart> =
+      jest
+        .spyOn(RunbookRunAccess, "assertMayStart")
+        .mockResolvedValue(undefined as never);
+    const start: jest.SpiedFunction<
+      typeof RunbookRuleEngineService.startRunbookFor
+    > = stubStart();
+
+    await expect(
+      RunRunbookTool.execute(
+        { runbookId: runbookId.toString() },
+        contextFor([Permission.RunbookMember]),
+      ),
+    ).rejects.toThrow("Runbook not found.");
+
+    const read: {
+      id: ObjectID;
+      select: Record<string, boolean>;
+      props: DatabaseCommonInteractionProps;
+    } = runbookRead.mock.calls[0]![0] as unknown as {
+      id: ObjectID;
+      select: Record<string, boolean>;
+      props: DatabaseCommonInteractionProps;
+    };
+    expect(read.id.toString()).toBe(runbookId.toString());
+    expect(read.select["projectId"]).toBe(true);
+    expect(read.props).toEqual({ isRoot: true });
+    expect(mayStart).not.toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  test("a permission to start runs that does not show runbooks still starts one it reaches, named by its ID", async () => {
+    const ctx: ToolContext = contextFor([Permission.CreateRunbookExecution]);
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockImplementation((async (findOneById: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Runbook> => {
+        // Read as OneUptime it is there; read as the person it is not shown.
+        if (findOneById.props.isRoot) {
+          return buildRunbook();
+        }
+
+        throw new NotAuthorizedException(
+          "You do not have permission to read Runbook.",
+        );
+      }) as never);
+    jest
+      .spyOn(RunbookRunAccess, "assertMayStart")
+      .mockResolvedValue(undefined as never);
+    const start: jest.SpiedFunction<
+      typeof RunbookRuleEngineService.startRunbookFor
+    > = stubStart();
+
+    const result: ToolExecutionResult = await RunRunbookTool.execute(
+      { runbookId: runbookId.toString() },
+      ctx,
+    );
+
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(result.dataForLlm).toContain(
+      `Started runbook ${runbookId.toString()}.`,
+    );
+    expect(result.dataForLlm).not.toContain("Restart checkout");
+    expect(result.citationLabel).not.toContain("Restart checkout");
   });
 
   test("an incident the person may not read is not linked, and nothing starts", async () => {

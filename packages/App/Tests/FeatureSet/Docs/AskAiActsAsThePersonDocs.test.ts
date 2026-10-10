@@ -167,6 +167,18 @@ describe("Docs: Ask AI's actions are made as the person who asked", () => {
     expect(line).toContain(
       "An action you may not take is refused, and the AI tells you which permission it needs.",
     );
+    // A held permission a team blocks is answered as blocked, not missing.
+    expect(line).toContain(
+      "When you hold the permission but a team you belong to blocks it, the AI tells you that instead: a block on some labels refuses that action in Ask AI for every record",
+    );
+  });
+
+  test("says a granular permission to start runbook executions reaches every runbook", () => {
+    const line: string = bullet(actions, "**What each action needs.**");
+
+    expect(line).toContain(
+      "**Create Runbook Execution** in a custom role, which reaches every runbook of the project",
+    );
   });
 
   test("says only records the person may change are acted on, and the plan is asked too", () => {

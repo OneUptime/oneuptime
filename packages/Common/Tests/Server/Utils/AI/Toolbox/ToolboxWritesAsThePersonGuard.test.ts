@@ -89,7 +89,7 @@ const ALLOWED: Array<AllowedWrite> = [
     file: "AIActionTools.ts",
     call: "RunbookRuleEngineService.startRunbookFor",
     reason:
-      "The run the dashboard's Run Runbook starts, written by OneUptime as that route writes it, after the same checks with the person's props: their permission to run runbooks (assertCanExecuteRunbooks), the runbooks their grant reaches (RunbookRunAccess.assertMayStart) and their read of the linked incident.",
+      "The run the dashboard's Run Runbook starts, written by OneUptime as that route writes it, after the same checks: the runbook read as OneUptime and matched to the project, as that route reads it, then with the person's props their permission to run runbooks (assertCanExecuteRunbooks), the runbooks their grant reaches (RunbookRunAccess.assertMayStart) and their read of the linked incident.",
   },
   {
     file: "AIMetaTools.ts",
