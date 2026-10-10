@@ -170,7 +170,18 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
         guide,
         "docker pull oneuptime/runner:release",
       );
-      expect(note).toContain(`**${labelIn(language, "Runner Version")}**`);
+      /*
+       * The Runner guide was translated again with the other runbook pages,
+       * and names the Dashboard as each language's Dashboard draws it,
+       * Persian included (RunbookDocsTranslations).
+       */
+      const runnerVersion: string =
+        language === "fa"
+          ? (JSON.parse(
+              fs.readFileSync(path.join(LOCALES_DIR, "fa.json"), "utf8"),
+            ) as Record<string, string>)["Runner Version"] || "Runner Version"
+          : labelIn(language, "Runner Version");
+      expect(note).toContain(`**${runnerVersion}**`);
       expect(guide).toContain(
         "```bash\n" + getRunnerUpgradeCommand() + "\n```",
       );

@@ -83,6 +83,13 @@ const DIAGRAM_QUOTED_LABEL: RegExp = /"[^"\n]*"/g;
 const DIAGRAM_EDGE_LABEL: RegExp = /\|[^|\n]*\|/g;
 const DIAGRAM_PARTICIPANT_ALIAS: RegExp = /^(\s*participant\s+\S+)\s+as\s+.*$/;
 const DIAGRAM_MESSAGE_TEXT: RegExp = /:.*$/;
+/*
+ * A sequence diagram's block and its label: "loop Every 10 seconds",
+ * "alt The step failed". The label is words, like a message's text; the
+ * block is how the diagram is built.
+ */
+const DIAGRAM_BLOCK_LABEL: RegExp =
+  /^(\s*(?:loop|alt|else|opt|par|and|critical|break))(?:\s.*)?$/;
 
 /*
  * A Mermaid diagram with its words taken out: node ids, shapes, arrows and
@@ -91,10 +98,16 @@ const DIAGRAM_MESSAGE_TEXT: RegExp = /:.*$/;
  * one exactly.
  */
 export function diagramSkeleton(code: string): string {
+  const isSequence: boolean = code.trimStart().startsWith("sequenceDiagram");
+
   return code
     .split("\n")
     .map((line: string): string => {
-      return line
+      const built: string = isSequence
+        ? line.replace(DIAGRAM_BLOCK_LABEL, "$1")
+        : line;
+
+      return built
         .replace(DIAGRAM_QUOTED_LABEL, '""')
         .replace(DIAGRAM_EDGE_LABEL, "||")
         .replace(DIAGRAM_PARTICIPANT_ALIAS, "$1")

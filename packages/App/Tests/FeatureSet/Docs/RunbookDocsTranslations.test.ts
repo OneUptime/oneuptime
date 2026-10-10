@@ -471,6 +471,38 @@ describe("the comparisons, on these pages' diagrams and paths", () => {
     expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(english));
   });
 
+  it("compare a sequence diagram's loop by its block, not its label", () => {
+    const english: string = [
+      "sequenceDiagram",
+      "    participant R as Runner",
+      "    loop Every 10 seconds while it runs",
+      "        R->>O: Renew the lease",
+      "    end",
+    ].join("\n");
+    const translated: string = [
+      "sequenceDiagram",
+      "    participant R as Runner",
+      "    loop Alle 10 Sekunden, solange er läuft",
+      "        R->>O: Das Lease erneuern",
+      "    end",
+    ].join("\n");
+    // The loop taken out: the build changed.
+    const unlooped: string = [
+      "sequenceDiagram",
+      "    participant R as Runner",
+      "        R->>O: Das Lease erneuern",
+      "    end",
+    ].join("\n");
+
+    expect(diagramSkeleton(translated)).toBe(diagramSkeleton(english));
+    expect(diagramSkeleton(unlooped)).not.toBe(diagramSkeleton(english));
+
+    // A flowchart is never read that way: a node id "loop" keeps its line.
+    expect(diagramSkeleton("flowchart TB\n    loop --> done")).toBe(
+      "flowchart TB\n    loop --> done",
+    );
+  });
+
   it("tell a menu path from a label", () => {
     const markdown: string =
       "**Runbooks → Runners → Credentials**, **Runbooks › Runners** and **Run Now**";

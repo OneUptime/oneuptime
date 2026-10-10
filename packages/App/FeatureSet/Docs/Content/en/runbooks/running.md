@@ -13,7 +13,12 @@ Each run of a runbook is an **execution**: a snapshot of the runbook's steps, wo
 
 ```mermaid title="The states of a runbook execution"
 stateDiagram-v2
+    state "Scheduled" as Scheduled
+    state "Running" as Running
     state "Waiting for you" as WaitingForManualStep
+    state "Completed" as Completed
+    state "Failed" as Failed
+    state "Cancelled" as Cancelled
     [*] --> Scheduled: run started
     Scheduled --> Running: a Worker picks it up
     Running --> WaitingForManualStep: Manual step or approval
