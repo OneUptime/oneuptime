@@ -1,3 +1,7 @@
+import CancelOnTimeoutClient, {
+  CancelRequestOutcome,
+  QUERY_READ_TIMEOUT_MESSAGE,
+} from "../../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
 import AppDataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
 import StatementOutcome from "../../../../Server/Utils/Database/StatementOutcome";
 import logger from "../../../../Server/Utils/Logger";
@@ -48,7 +52,14 @@ import {
  *     up on it, and the caller is told what the database answered;
  *   - an UPDATE outside a transaction never lands after the app gave up on
  *     it;
- *   - the connection is not handed to anyone again.
+ *   - the connection is not handed to anyone again, and no session is left
+ *     idle in a transaction;
+ *   - when the cancel cannot reach the database, the caller is told the
+ *     read timed out: a save() is still never committed by anyone (its
+ *     connection is closed, so the database rolls it back), while an UPDATE
+ *     outside a transaction may still land - as StatementOutcome says;
+ *   - a statement that finished just before its cancel came is answered
+ *     with its result, and its connection is still closed.
  *
  * Opt in with RUN_POSTGRES_ABANDONED_STATEMENT_TESTS=true:
  *
@@ -434,5 +445,144 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
     }
 
     expect(stillThere).toBe(false);
+  }, 30_000);
+
+  test("no session is left idle in a transaction once the app gave up on a save()", async () => {
+    const pool: DataSource = await appPool();
+    const writes: Repository<AbandonedWrite> =
+      pool.getRepository(AbandonedWrite);
+    const holder: Client = await holdTable();
+
+    await failureOf(() => {
+      return writes.save({ id: "abandoned", note: "given up on" });
+    });
+
+    await letGo(holder);
+
+    let leftOpen: number = -1;
+
+    for (let attempt: number = 0; attempt < 50 && leftOpen !== 0; attempt++) {
+      const answer: Array<{ open: number }> = (
+        await admin.query(
+          `SELECT count(*)::int AS open FROM pg_stat_activity
+            WHERE state LIKE 'idle in transaction%' AND pid <> pg_backend_pid()
+              AND datname = current_database()`,
+        )
+      ).rows;
+      leftOpen = answer[0]?.open ?? -1;
+
+      if (leftOpen !== 0) {
+        await sleep(100);
+      }
+    }
+
+    expect(leftOpen).toBe(0);
+  }, 30_000);
+
+  /*
+   * When the cancel cannot reach the database - a network that fails, a
+   * pooler that drops it - the caller waits out the answer and is told the
+   * read timed out. The connection is closed all the same.
+   */
+  describe("when the cancel cannot reach the database", () => {
+    class UnreachableCancelClient extends CancelOnTimeoutClient {
+      protected override sendCancelRequest(): Promise<CancelRequestOutcome> {
+        return Promise.resolve(CancelRequestOutcome.Failed);
+      }
+
+      protected override getCancelAnswerWaitInMs(): number {
+        return 500;
+      }
+    }
+
+    test("a save() is still never committed by anyone: its connection is closed, and the database rolls its transaction back", async () => {
+      const pool: DataSource = await appPool({
+        Client: UnreachableCancelClient,
+      });
+      const writes: Repository<AbandonedWrite> =
+        pool.getRepository(AbandonedWrite);
+      const holder: Client = await holdTable();
+
+      const failure: unknown = await failureOf(() => {
+        return writes.save({ id: "abandoned", note: "no cancel reached it" });
+      });
+
+      expect((failure as Error).message).toBe(QUERY_READ_TIMEOUT_MESSAGE);
+      // Its INSERT, unanswered in save()'s own transaction, can land only by a COMMIT.
+      expect(
+        StatementOutcome.mayStillApply(failure, { inOwnTransaction: true }),
+      ).toBe(false);
+      // Not cancelled: still waiting on the database.
+      expect(await waitingOnTheTable()).toBe(1);
+
+      // The table is free: the INSERT finishes, on a connection nobody holds.
+      await letGo(holder);
+      await writes.save({ id: "next", note: "the next request" });
+      await sleep(500);
+
+      expect(await rows()).toEqual([{ id: "next", note: "the next request" }]);
+    }, 30_000);
+
+    test("an UPDATE outside a transaction may still land, as the caller is told", async () => {
+      await admin.query(
+        `INSERT INTO "${schema}"."AbandonedWrite" ("id", "note") VALUES ('kept', 'as it was')`,
+      );
+
+      const pool: DataSource = await appPool({
+        Client: UnreachableCancelClient,
+      });
+      const holder: Client = await holdRow("kept");
+
+      const failure: unknown = await failureOf(() => {
+        return pool.query(
+          `UPDATE "AbandonedWrite" SET "note" = $1 WHERE "id" = $2`,
+          ["written after the app gave up", "kept"],
+        );
+      });
+
+      expect((failure as Error).message).toBe(QUERY_READ_TIMEOUT_MESSAGE);
+      expect(StatementOutcome.mayStillApply(failure)).toBe(true);
+
+      await letGo(holder);
+
+      let note: string | undefined = undefined;
+
+      for (
+        let attempt: number = 0;
+        attempt < 50 && note !== "written after the app gave up";
+        attempt++
+      ) {
+        await sleep(100);
+        note = (await rows())[0]?.note;
+      }
+
+      expect(note).toBe("written after the app gave up");
+    }, 30_000);
+  });
+
+  /*
+   * A statement that finishes in the moment between the app's timeout and
+   * its cancel is answered with its result; its connection is closed all
+   * the same.
+   */
+  test("a statement that finished before its cancel came is answered with its result, and its connection is not handed out again", async () => {
+    class SlowCancelClient extends CancelOnTimeoutClient {
+      protected override async sendCancelRequest(
+        waitInMs: number,
+      ): Promise<CancelRequestOutcome> {
+        await sleep(800);
+        return await super.sendCancelRequest(waitInMs);
+      }
+    }
+
+    const pool: DataSource = await appPool({ Client: SlowCancelClient });
+    const before: number = await backendOf(pool);
+
+    const answer: Array<{ finished: string }> = await pool.query(
+      "SELECT 'just in time' AS finished FROM pg_sleep(1.3)",
+    );
+
+    expect(answer).toEqual([{ finished: "just in time" }]);
+    expect(await backendOf(pool)).not.toBe(before);
   }, 30_000);
 });
