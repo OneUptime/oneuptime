@@ -200,7 +200,6 @@ const VMwareDataCollectionCard: FunctionComponent<ComponentProps> = (
             id="vmware-data-collection"
             item={vcenter}
             showDetailsInNumberOfColumns={2}
-            showRecordLine={false}
             fields={[
               {
                 key: "vcenterUrl",
