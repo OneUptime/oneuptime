@@ -18,6 +18,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -853,7 +854,7 @@ describe("the network's page and the addresses that are not devices yet", () => 
   });
 
   test("Add as device opens Add Device with the address and the probe filled in", async () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
     await renderView({ kind: "network" });

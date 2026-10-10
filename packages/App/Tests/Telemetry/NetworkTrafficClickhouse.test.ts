@@ -26,6 +26,7 @@ import {
   NetworkTrafficDeviceRow,
   NetworkTrafficFilters,
   NetworkTrafficInterfaceRow,
+  NetworkTrafficSeriesPoint,
   NetworkTrafficSource,
 } from "Common/Types/NetFlow/NetworkTraffic";
 import ObjectID from "Common/Types/ObjectID";
@@ -456,7 +457,9 @@ integration("network traffic reads against ClickHouse", () => {
     expect(result.totals.octets).toBe(PROJECT_OCTETS);
     // 3 summed records + 1 + 1 + 1 (router) + 1 (switch) + 1 (unknown) + 1 (old probe).
     expect(result.totals.flows).toBe(9);
-    expect(result.totals.packets).toBe(1000 + 6000 + 400 + 100 + 4000 + 10 + 30);
+    expect(result.totals.packets).toBe(
+      1000 + 6000 + 400 + 100 + 4000 + 10 + 30,
+    );
     // The switch samples 1 in 1000; the page says its numbers are estimates.
     expect(result.maxSamplingRate).toBe(1000);
   });
@@ -585,12 +588,16 @@ integration("network traffic reads against ClickHouse", () => {
 
     expect(result.totals.octets).toBe(10_000_000);
 
-    const tenPast: { inOctets?: number; outOctets?: number } | undefined =
-      result.series.find((point: { time: string }) => {
+    const tenPast: NetworkTrafficSeriesPoint | undefined = result.series.find(
+      (point: NetworkTrafficSeriesPoint) => {
         return point.time.startsWith("2026-09-01 10:10");
-      });
+      },
+    );
 
-    expect(tenPast).toMatchObject({ inOctets: 9_000_000, outOctets: 1_000_000 });
+    expect(tenPast).toMatchObject({
+      inOctets: 9_000_000,
+      outOctets: 1_000_000,
+    });
   });
 
   test("every filter narrows the whole page: host, source, destination, application, exporter, device", async () => {
