@@ -5,8 +5,9 @@ import ObjectID from "../ObjectID";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
- * The Traffic pages' one request and one answer (POST /network-flow/traffic),
- * shared by the server that builds it and the dashboard that draws it.
+ * The Traffic pages' one request and one answer (POST
+ * /network-traffic/summary), shared by the server that builds it and the
+ * dashboard that draws it.
  *
  * One request answers a whole page: the window's totals, its traffic over
  * time, and the top sources, destinations, conversations, applications,
@@ -226,12 +227,11 @@ export class NetworkTrafficFiltersUtil {
       filters.port = port;
     }
 
-    const interfaceIndex: number | null =
-      NetworkTrafficFiltersUtil.readInteger(
-        raw["interfaceIndex"],
-        0xffffffff,
-        "interfaceIndex",
-      );
+    const interfaceIndex: number | null = NetworkTrafficFiltersUtil.readInteger(
+      raw["interfaceIndex"],
+      0xffffffff,
+      "interfaceIndex",
+    );
 
     if (interfaceIndex !== null) {
       filters.interfaceIndex = interfaceIndex;
@@ -284,7 +284,9 @@ export class NetworkTrafficFiltersUtil {
     const parsed: number = Number(value);
 
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > max) {
-      throw new BadDataException(`${field} must be a whole number from 0 to ${max}`);
+      throw new BadDataException(
+        `${field} must be a whole number from 0 to ${max}`,
+      );
     }
 
     return parsed;

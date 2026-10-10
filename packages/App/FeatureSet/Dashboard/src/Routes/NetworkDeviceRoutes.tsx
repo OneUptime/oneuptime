@@ -8,6 +8,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import NetworkOverview from "../Pages/NetworkDevice/Overview";
+import NetworkTraffic from "../Pages/NetworkDevice/Traffic";
 import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
@@ -61,6 +62,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkOverview
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_OVERVIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_TRAFFIC] || ""}
+          element={
+            <NetworkTraffic
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_TRAFFIC] as Route}
             />
           }
         />

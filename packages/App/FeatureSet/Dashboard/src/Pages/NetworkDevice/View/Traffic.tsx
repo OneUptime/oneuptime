@@ -1,48 +1,84 @@
 import PageComponentProps from "../../PageComponentProps";
-import FlowTopTalkers from "../../../Components/NetworkDevice/FlowTopTalkers";
+import NetworkTrafficView, {
+  NetworkTrafficDeviceInfo,
+} from "../../../Components/NetworkTraffic/NetworkTrafficView";
 import DevicePacketCaptures from "../../../Components/PacketCapture/DevicePacketCaptures";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
- * Traffic page for one device: NetFlow top talkers (sources,
- * destinations, protocol/port pairs by bytes), the packet captures run on
- * the device's probe - the packets themselves, for Wireshark - and how to
- * turn the flow firehose on for devices that are not exporting yet.
+ * One device's Traffic page: where its traffic goes, from the flow records
+ * it exports (NetFlow, IPFIX or sFlow) - and, below, the packet captures
+ * run on its probe, for when the flows are not enough (issue #4601: flows
+ * first, captures second).
+ *
+ * The device's addresses and probe are read here only for the set-up guide
+ * the page shows before the first flow arrives: which probe to send to, and
+ * which addresses the records are matched by.
  */
 const NetworkDeviceTraffic: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const [device, setDevice] = useState<NetworkTrafficDeviceInfo | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    ModelAPI.getItem<NetworkDevice>({
+      modelType: NetworkDevice,
+      id: modelId,
+      select: {
+        _id: true,
+        hostname: true,
+        otherAddresses: true,
+        probe: {
+          _id: true,
+          name: true,
+          isGlobalProbe: true,
+        },
+      },
+    })
+      .then((item: NetworkDevice | null) => {
+        if (!isCurrent || !item) {
+          return;
+        }
+
+        setDevice({
+          hostname: item.hostname || undefined,
+          otherAddresses: item.otherAddresses || undefined,
+          probeName: item.probe?.name || undefined,
+          isGlobalProbe: Boolean(item.probe?.isGlobalProbe),
+        });
+      })
+      .catch(() => {
+        // The guide reads well without the device's details.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [modelId.toString()]);
 
   return (
     <Fragment>
-      <FlowTopTalkers networkDeviceId={modelId} />
+      <NetworkTrafficView
+        key={modelId.toString()}
+        scope={{ kind: "device", networkDeviceId: modelId }}
+        device={device}
+      />
       <DevicePacketCaptures networkDeviceId={modelId} />
-      <Card
-        title="Setting up NetFlow"
-        description="How traffic data gets here, if this page is empty."
-      >
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>
-            <TranslatedSentence
-              template="Traffic analysis is powered by {{protocol}}. Your probe listens for flow records on UDP port 2055 — point this device's flow export at the probe's IP address and traffic will appear here within a few minutes."
-              slots={{ protocol: <strong>NetFlow v5</strong> }}
-            />
-          </p>
-          <p className="text-gray-500">
-            {translator.translateText(
-              "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.",
-            )}
-          </p>
-        </div>
-      </Card>
     </Fragment>
   );
 };

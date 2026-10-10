@@ -2102,6 +2102,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["network map", "site map", "geo map"],
           },
           {
+            page: PageMap.NETWORK_TRAFFIC,
+            title: "Traffic",
+            icon: IconProp.ArrowUpDown,
+            keywords: [
+              "netflow",
+              "ipfix",
+              "sflow",
+              "flows",
+              "top talkers",
+              "bandwidth",
+              "network traffic",
+            ],
+          },
+          {
             page: PageMap.NETWORK_DEVICE_DISCOVERY,
             title: "Discovery",
             icon: IconProp.Search,

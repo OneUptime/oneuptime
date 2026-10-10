@@ -17,7 +17,7 @@ import path from "path";
 /*
  * The Network guides tell the story the Network area now tells.
  *
- * The area was made simpler - a menu of five open rows, an Overview that
+ * The area was made simpler - a menu of six open rows, an Overview that
  * opens on a one-sentence verdict, Add Device on one page, a scan in two
  * steps (one for a ping sweep), Add Site in three - and the guides walked
  * the old forms: Create Network Device through three steps, Create
@@ -323,12 +323,13 @@ describe("the device guide opens on the Overview's verdict", () => {
 describe("the guides' menu paths lead somewhere", () => {
   const menu: Map<string, Array<string>> = networkMenu();
 
-  test("the menu parsed is the menu: five open rows first", () => {
+  test("the menu parsed is the menu: six open rows first", () => {
     expect(menu.get("Network")).toEqual([
       "Overview",
       "Devices",
       "Sites",
       "Map",
+      "Traffic",
       "Discovery",
     ]);
     expect(menu.get("Rules")).toContain("Auto Import Rules");

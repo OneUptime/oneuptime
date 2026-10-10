@@ -28,20 +28,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     so its picker reads Custom (the view used to narrow only its own window
  *     and leave the picker on the old range), both panels re-fetch, and a
  *     double-click or "Reset zoom" puts the range back.
- *   - Traffic (FlowTopTalkers): the bandwidth chart - once a hand-drawn SVG
- *     with no gestures, now the shared area chart - zooms the card's range,
- *     and the totals and every top-N table, which come from the same fetch,
- *     follow it.
+ *   - Traffic (NetworkTrafficView): the traffic chart - the shared area
+ *     chart - zooms the page's range, and the tiles and every top list,
+ *     which come from the same fetch, follow it. The range is the URL's
+ *     too, so a zoomed view is a link.
  *
- * The network is replaced (the metric fetch, the top-talkers POST); so is the
+ * The network is replaced (the metric fetch, the traffic POST); so is the
  * card's range picker (a stand-in showing the range, which can pick "Past 1
  * Day"). MetricView renders for real around a MetricCharts stand-in; the
- * bandwidth chart is ChartZoomStandIn, which resolves its zoom exactly as
- * the real area chart wrapper does.
+ * traffic chart is ChartZoomStandIn, which resolves its zoom exactly as the
+ * real area chart wrapper does.
  */
 
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
-const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const MINUTE: number = 60 * 1000;
 const ZOOM_START: Date = new Date("2026-09-28T11:20:00.000Z");
@@ -52,7 +51,9 @@ const ZOOM_WINDOW: [string, string] = [
   ZOOM_START.toISOString(),
   ZOOM_END.toISOString(),
 ];
-const BANDWIDTH_CHART: string = "Bandwidth [Mbps]";
+const BANDWIDTH_CHART: string = "Traffic [Mbps]";
+// ".000Z" at the end of an ISO string: ClickHouse writes naive UTC.
+const NAIVE_MILLISECONDS: RegExp = /\.\d{3}Z$/;
 
 const fetchResultsMock: MockFunction = getJestMockFunction();
 const apiPostMock: MockFunction = getJestMockFunction();
@@ -203,10 +204,11 @@ jest.mock("../../../UI/Utils/API/API", () => {
 });
 
 import DeviceHealthCharts from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceHealthCharts";
-import FlowTopTalkers, {
-  BandwidthOverTimeChart,
-  getBandwidthAxisPrecision,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/FlowTopTalkers";
+import NetworkTrafficView from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
+import TrafficOverTimeChart, {
+  getTrafficAxisPrecision,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficOverTimeChart";
+import { getNetworkTrafficBucketSeconds } from "../../../Types/NetFlow/NetworkTraffic";
 import {
   StandInChartRecord,
   getStandInChart,
@@ -246,6 +248,8 @@ function resetButtons(): Array<HTMLElement> {
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  // The Traffic view keeps its range in the URL: every test starts bare.
+  window.history.replaceState(null, "", "/");
   fetchResultsMock.mockReset();
   apiPostMock.mockReset();
   mockMetricCharts.current = null;
@@ -461,82 +465,106 @@ describe("Network device Metrics: the health panels zoom the card's range", () =
   });
 });
 
-// -------------------------------------------------- Traffic: FlowTopTalkers
+// ---------------------------------------------- Traffic: NetworkTrafficView
 
-interface FlowRequest {
+interface TrafficRequest {
   startTime: string;
   endTime: string;
-  networkDeviceId: string;
-  projectId: string;
+  networkDeviceId?: string | undefined;
+  filters?: Record<string, unknown> | undefined;
 }
 
-function flowRequests(): Array<FlowRequest> {
-  return apiPostMock.mock.calls.map((call: Array<unknown>): FlowRequest => {
-    return (call[0] as { data: FlowRequest }).data;
+function trafficRequests(): Array<TrafficRequest> {
+  return apiPostMock.mock.calls.map((call: Array<unknown>): TrafficRequest => {
+    return (call[0] as { data: TrafficRequest }).data;
   });
 }
 
-function lastFlowRequest(): FlowRequest {
-  const requests: Array<FlowRequest> = flowRequests();
-  const last: FlowRequest | undefined = requests[requests.length - 1];
+function lastTrafficRequest(): TrafficRequest {
+  const requests: Array<TrafficRequest> = trafficRequests();
+  const last: TrafficRequest | undefined = requests[requests.length - 1];
   if (!last) {
-    throw new Error("The top talkers were never fetched");
+    throw new Error("The traffic was never fetched");
   }
   return last;
 }
 
-function requestMinutes(request: FlowRequest): number {
+function requestMinutes(request: TrafficRequest): number {
   return (Date.parse(request.endTime) - Date.parse(request.startTime)) / MINUTE;
 }
 
 /*
- * What the top-talkers endpoint answers for a window: figures that depend
- * on its length (so a card that did not follow the zoom shows the wrong
- * number), one-minute buckets, and the window echoed back.
+ * What the traffic endpoint answers for a window: figures that depend on its
+ * length (so a page that did not follow the zoom shows the wrong number),
+ * one-minute buckets, and the window echoed back.
  */
-function flowResponse(request: FlowRequest): Record<string, unknown> {
+function trafficResponse(request: TrafficRequest): Record<string, unknown> {
   const minutes: number = requestMinutes(request);
   const start: number = Date.parse(request.startTime);
   return {
     data: {
-      totalOctets: minutes * 1000,
-      totalPackets: minutes * 10,
-      totalFlows: minutes,
-      topSources: [{ key: `10.0.0.${minutes}`, octets: 3000, packets: 20 }],
-      topDestinations: [{ key: "10.0.0.9", octets: 2000, packets: 10 }],
-      topProtocolPorts: [
-        { protocolNumber: 6, destinationPort: 443, octets: 5000, packets: 30 },
-      ],
-      topConversations: [],
+      windowStartAt: request.startTime,
+      windowEndAt: request.endTime,
+      bucketSeconds: 60,
+      totals: { octets: minutes * 1000, packets: minutes * 10, flows: minutes },
+      maxSamplingRate: 1,
       series: [
         // 7.5 MB in the first minute: 1 Mbps.
-        {
-          time: new Date(start).toISOString(),
-          octets: 7_500_000,
-          packets: 50,
-        },
+        { time: new Date(start).toISOString(), octets: 7_500_000 },
         // A naive ClickHouse string, UTC: 0.5 Mbps in the third minute.
         {
           time: new Date(start + 2 * MINUTE)
             .toISOString()
             .replace("T", " ")
-            .replace(/\.\d{3}Z$/, ""),
+            .replace(NAIVE_MILLISECONDS, ""),
           octets: 3_750_000,
-          packets: 25,
         },
       ],
-      seriesBucketSeconds: 60,
+      topSources: [{ ip: `10.0.0.${minutes}`, octets: 3000, packets: 20 }],
+      topDestinations: [{ ip: "10.0.0.9", octets: 2000, packets: 10 }],
+      topConversations: [],
+      topApplications: [
+        { protocolNumber: 6, port: 443, octets: 5000, packets: 30 },
+      ],
+      topInterfaces: [],
+      topDevices: [],
+      sources: [],
+      lastFlowAt: "2026-09-28 11:59:00",
+    },
+  };
+}
+
+// A window with no flows, for a device that has sent some before.
+function quietResponse(request: TrafficRequest): Record<string, unknown> {
+  return {
+    data: {
       windowStartAt: request.startTime,
       windowEndAt: request.endTime,
+      bucketSeconds: 60,
+      totals: { octets: 0, packets: 0, flows: 0 },
+      maxSamplingRate: 1,
+      series: [],
+      topSources: [],
+      topDestinations: [],
+      topConversations: [],
+      topApplications: [],
+      topInterfaces: [],
+      topDevices: [],
+      sources: [],
+      lastFlowAt: "2026-09-27 08:00:00",
     },
   };
 }
 
 async function renderTraffic(): Promise<void> {
   apiPostMock.mockImplementation(async (args: unknown) => {
-    return flowResponse((args as { data: FlowRequest }).data);
+    return trafficResponse((args as { data: TrafficRequest }).data);
   });
-  render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+  render(
+    <NetworkTrafficView
+      scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+    />,
+  );
   await flush();
   await waitFor(() => {
     expect(screen.getByTestId(`chart ${BANDWIDTH_CHART}`)).toBeInTheDocument();
@@ -560,22 +588,17 @@ async function doubleClickBandwidth(): Promise<void> {
   await flush();
 }
 
-function tileValue(title: string): string {
-  const tile: HTMLElement | null = screen
-    .getByRole("button", { name: `About ${title}` })
-    .closest("div.rounded-md");
-  return (
-    (tile?.querySelector("div.text-2xl") as HTMLElement | null)?.textContent ||
-    ""
-  );
+function tileValue(tile: "total" | "average" | "peak" | "flows"): string {
+  return screen.getByTestId(`traffic-tile-${tile}-value`).textContent || "";
 }
 
-describe("Network device Traffic: the bandwidth chart zooms the card's range", () => {
+describe("Traffic: the traffic chart zooms the page's range", () => {
   test("the chart is the shared area chart over the fetched window, in Mbps", async () => {
     await renderTraffic();
 
     const record: StandInChartRecord = getStandInChart(BANDWIDTH_CHART);
-    const request: FlowRequest = lastFlowRequest();
+    const request: TrafficRequest = lastTrafficRequest();
+    expect(request.networkDeviceId).toBe(DEVICE_ID);
     expect(record.props.xAxis.options.type).toBe(XAxisType.Time);
     expect((record.props.xAxis.options.min as Date).toISOString()).toBe(
       request.startTime,
@@ -599,7 +622,7 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     });
   });
 
-  test("it passes no handlers of its own: it takes the card's zoom", async () => {
+  test("it passes no handlers of its own: it takes the page's zoom", async () => {
     await renderTraffic();
 
     const record: StandInChartRecord = getStandInChart(BANDWIDTH_CHART);
@@ -616,39 +639,35 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     expect(hint).toHaveTextContent(/^Drag to zoom$/);
     expect(hint).toHaveClass("group-hover/zoomhint:opacity-100");
     expect(hint.closest('[class~="group/zoomhint"]')).toContainElement(
-      screen.getByText("Bandwidth Over Time"),
+      screen.getByText("Traffic over time"),
     );
   });
 
-  test("Min / Avg / Max still read the gap-filled buckets", async () => {
+  test("the Peak tile reads the busiest bucket, the Average the whole window", async () => {
     await renderTraffic();
 
-    const stats: HTMLElement = screen.getByText("Min").parentElement!;
-    // Silent minutes count as zero: the minimum is 0.
-    expect(stats).toHaveTextContent("Min 0.00 Mbps");
-    expect(stats).toHaveTextContent("Max 1.00 Mbps");
-    // (1 + 0.5) Mbps over 60 minutes.
-    expect(stats).toHaveTextContent("Avg 0.03 Mbps");
+    // 7.5 MB in one minute.
+    expect(tileValue("peak")).toBe("1.00 Mbps");
+    // 60 kB over the hour: 133 bits a second.
+    expect(tileValue("average")).toBe("133 bps");
+    expect(tileValue("total")).toBe("60.0 kB");
   });
 
-  test("a drag re-fetches the card over the dragged window: chart, totals and tables follow", async () => {
+  test("a drag re-fetches the page over the dragged window: chart, tiles and lists follow", async () => {
     await renderTraffic();
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expect(screen.getByText("10.0.0.60")).toBeInTheDocument();
 
     await dragAcrossBandwidth();
     await waitFor(() => {
-      expect(
-        screen.getByTestId(`chart ${BANDWIDTH_CHART}`),
-      ).toBeInTheDocument();
+      expect(tileValue("flows")).toBe("20");
     });
 
-    expect([lastFlowRequest().startTime, lastFlowRequest().endTime]).toEqual(
-      ZOOM_WINDOW,
-    );
-    expect(lastFlowRequest().networkDeviceId).toBe(DEVICE_ID);
-    expect(lastFlowRequest().projectId).toBe(PROJECT_ID);
-    expect(tileValue("Flows")).toBe("20");
+    expect([
+      lastTrafficRequest().startTime,
+      lastTrafficRequest().endTime,
+    ]).toEqual(ZOOM_WINDOW);
+    expect(lastTrafficRequest().networkDeviceId).toBe(DEVICE_ID);
     expect(screen.getByText("10.0.0.20")).toBeInTheDocument();
     expect(screen.queryByText("10.0.0.60")).not.toBeInTheDocument();
     const record: StandInChartRecord = getStandInChart(BANDWIDTH_CHART);
@@ -658,14 +677,12 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     expect(record.props.data[0]!.data).toHaveLength(20);
   });
 
-  test("after a drag the picker reads Custom, Reset zoom appears, and the hint names the reset", async () => {
+  test("after a drag the picker reads Custom, Reset zoom appears, the hint names the reset, and the URL holds the window", async () => {
     await renderTraffic();
 
     await dragAcrossBandwidth();
     await waitFor(() => {
-      expect(
-        screen.getByTestId(`chart ${BANDWIDTH_CHART}`),
-      ).toBeInTheDocument();
+      expect(tileValue("flows")).toBe("20");
     });
 
     expect(pickerLabel()).toBe(TimeRange.CUSTOM);
@@ -673,15 +690,12 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     expect(screen.getByTestId(TIME_RANGE_ZOOM_HINT_TEST_ID)).toHaveTextContent(
       "Double-click to reset",
     );
-    // The card says which window it describes.
-    expect(
-      screen.getByText(
-        /Who this device saw talking over the selected time range/,
-      ),
-    ).toBeInTheDocument();
+    const params: URLSearchParams = new URLSearchParams(window.location.search);
+    expect(params.get("range")).toBe(TimeRange.CUSTOM);
+    expect([params.get("start"), params.get("end")]).toEqual(ZOOM_WINDOW);
   });
 
-  test("a double-click on the chart puts the past hour back", async () => {
+  test("a double-click on the chart puts the past hour back, and takes the window out of the URL", async () => {
     await renderTraffic();
 
     await dragAcrossBandwidth();
@@ -692,18 +706,16 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     });
     await doubleClickBandwidth();
     await waitFor(() => {
-      expect(
-        screen.getByTestId(`chart ${BANDWIDTH_CHART}`),
-      ).toBeInTheDocument();
+      expect(tileValue("flows")).toBe("60");
     });
 
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
-    expect(Date.parse(lastFlowRequest().endTime)).toBeGreaterThanOrEqual(
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
+    expect(Date.parse(lastTrafficRequest().endTime)).toBeGreaterThanOrEqual(
       NOW.getTime(),
     );
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
     expect(resetButtons()).toHaveLength(0);
-    expect(tileValue("Flows")).toBe("60");
+    expect(window.location.search).toBe("");
   });
 
   test("Reset zoom beside the picker does the same", async () => {
@@ -713,7 +725,7 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     fireEvent.click(resetButtons()[0]!);
     await flush();
 
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
   });
 
@@ -722,24 +734,20 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
 
     await dragAcrossBandwidth();
     await waitFor(() => {
-      expect(
-        screen.getByTestId(`chart ${BANDWIDTH_CHART}`),
-      ).toBeInTheDocument();
+      expect(tileValue("flows")).toBe("20");
     });
     await dragAcrossBandwidth(INNER_ZOOM_START, INNER_ZOOM_END);
     await waitFor(() => {
-      expect(
-        screen.getByTestId(`chart ${BANDWIDTH_CHART}`),
-      ).toBeInTheDocument();
+      expect(tileValue("flows")).toBe("5");
     });
-    expect([lastFlowRequest().startTime, lastFlowRequest().endTime]).toEqual([
-      INNER_ZOOM_START.toISOString(),
-      INNER_ZOOM_END.toISOString(),
-    ]);
+    expect([
+      lastTrafficRequest().startTime,
+      lastTrafficRequest().endTime,
+    ]).toEqual([INNER_ZOOM_START.toISOString(), INNER_ZOOM_END.toISOString()]);
 
     await doubleClickBandwidth();
 
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
   });
 
@@ -751,7 +759,7 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     await flush();
 
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_DAY);
-    expect(requestMinutes(lastFlowRequest())).toBe(24 * 60);
+    expect(requestMinutes(lastTrafficRequest())).toBe(24 * 60);
     expect(resetButtons()).toHaveLength(0);
   });
 
@@ -760,7 +768,7 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
 
     /*
      * The zoom's fetch is still in flight when the reset's fetch lands:
-     * the card must end up on the past hour's figures, not the zoom's.
+     * the page must end up on the past hour's figures, not the zoom's.
      */
     let resolveZoomFetch: (value: unknown) => void = (): void => {};
     apiPostMock.mockImplementationOnce(() => {
@@ -773,43 +781,42 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     fireEvent.click(resetButtons()[0]!);
     await flush();
     await waitFor(() => {
-      expect(tileValue("Flows")).toBe("60");
+      expect(tileValue("flows")).toBe("60");
     });
 
     await act(async () => {
       resolveZoomFetch(
-        flowResponse({
+        trafficResponse({
           startTime: ZOOM_WINDOW[0],
           endTime: ZOOM_WINDOW[1],
-          networkDeviceId: DEVICE_ID,
-          projectId: PROJECT_ID,
         }),
       );
     });
     await flush();
 
-    expect(tileValue("Flows")).toBe("60");
+    expect(tileValue("flows")).toBe("60");
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
   });
 
   test("a zoom into a quiet stretch: the empty state takes the double-click", async () => {
     await renderTraffic();
     apiPostMock.mockImplementation(async (args: unknown) => {
-      const request: FlowRequest = (args as { data: FlowRequest }).data;
+      const request: TrafficRequest = (args as { data: TrafficRequest }).data;
       return requestMinutes(request) < 60
-        ? { data: { totalOctets: 0, totalPackets: 0, totalFlows: 0 } }
-        : flowResponse(request);
+        ? quietResponse(request)
+        : trafficResponse(request);
     });
 
     await dragAcrossBandwidth();
-    const empty: HTMLElement = await screen.findByTestId("flow-no-data");
-    // Not the NetFlow setup steps: the device was just seen exporting.
-    expect(empty).toHaveTextContent("No flows in the selected time range.");
+    const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
+    // Not the set-up guide: the device was just seen exporting.
+    expect(empty).toHaveTextContent("No traffic in the selected time range.");
+    expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
 
     fireEvent.doubleClick(empty);
     await flush();
 
-    expect(requestMinutes(lastFlowRequest())).toBe(60);
+    expect(requestMinutes(lastTrafficRequest())).toBe(60);
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
     await waitFor(() => {
       expect(
@@ -819,24 +826,28 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
   });
 
   test("the empty state ignores a double-click when there is nothing to undo", async () => {
-    apiPostMock.mockResolvedValue({
-      data: { totalOctets: 0, totalPackets: 0, totalFlows: 0 },
+    apiPostMock.mockImplementation(async (args: unknown) => {
+      return quietResponse((args as { data: TrafficRequest }).data);
     });
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+    render(
+      <NetworkTrafficView
+        scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+      />,
+    );
     await flush();
     const requests: number = apiPostMock.mock.calls.length;
 
-    fireEvent.doubleClick(await screen.findByTestId("flow-no-data"));
+    fireEvent.doubleClick(await screen.findByTestId("traffic-no-data"));
     await flush();
 
     expect(apiPostMock.mock.calls.length).toBe(requests);
     expect(pickerLabel()).toBe(TimeRange.PAST_ONE_HOUR);
   });
 
-  test("the card keeps its own zoom inside a page that zooms", async () => {
+  test("the view keeps its own zoom inside a page that zooms", async () => {
     const pageZoomToTimeRange: MockFunction = getJestMockFunction();
     apiPostMock.mockImplementation(async (args: unknown) => {
-      return flowResponse((args as { data: FlowRequest }).data);
+      return trafficResponse((args as { data: TrafficRequest }).data);
     });
     render(
       <TimeRangeZoomScope
@@ -845,7 +856,9 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
           pageZoomToTimeRange as unknown as (value: unknown) => void
         }
       >
-        <FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />
+        <NetworkTrafficView
+          scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+        />
       </TimeRangeZoomScope>,
     );
     await flush();
@@ -858,20 +871,45 @@ describe("Network device Traffic: the bandwidth chart zooms the card's range", (
     await dragAcrossBandwidth();
 
     expect(pageZoomToTimeRange).not.toHaveBeenCalled();
-    expect([lastFlowRequest().startTime, lastFlowRequest().endTime]).toEqual(
-      ZOOM_WINDOW,
+    expect([
+      lastTrafficRequest().startTime,
+      lastTrafficRequest().endTime,
+    ]).toEqual(ZOOM_WINDOW);
+  });
+
+  test("a link with a zoomed window opens on that window", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/?range=Custom&start=${ZOOM_WINDOW[0]}&end=${ZOOM_WINDOW[1]}`,
     );
+    apiPostMock.mockImplementation(async (args: unknown) => {
+      return trafficResponse((args as { data: TrafficRequest }).data);
+    });
+    render(
+      <NetworkTrafficView
+        scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+      />,
+    );
+    await flush();
+
+    expect([
+      lastTrafficRequest().startTime,
+      lastTrafficRequest().endTime,
+    ]).toEqual(ZOOM_WINDOW);
+    expect(pickerLabel()).toBe(TimeRange.CUSTOM);
+    expect(trafficRequests()).toHaveLength(1);
   });
 });
 
-describe("BandwidthOverTimeChart", () => {
+describe("TrafficOverTimeChart", () => {
   const WINDOW_START: string = "2026-09-28T10:00:00.000Z";
   const WINDOW_END: string = "2026-09-28T11:00:00.000Z";
 
   test("an axis that spans the whole window, even when traffic is only at its start", () => {
     render(
-      <BandwidthOverTimeChart
-        series={[{ time: WINDOW_START, octets: 7_500_000, packets: 1 }]}
+      <TrafficOverTimeChart
+        series={[{ time: WINDOW_START, octets: 7_500_000 }]}
         bucketSeconds={60}
         windowStartAt={WINDOW_START}
         windowEndAt={WINDOW_END}
@@ -889,10 +927,10 @@ describe("BandwidthOverTimeChart", () => {
 
   test("without a window from the API, the first and last buckets bound the axis", () => {
     render(
-      <BandwidthOverTimeChart
+      <TrafficOverTimeChart
         series={[
-          { time: "2026-09-28T10:00:00.000Z", octets: 1, packets: 1 },
-          { time: "2026-09-28T10:05:00.000Z", octets: 1, packets: 1 },
+          { time: "2026-09-28T10:00:00.000Z", octets: 1 },
+          { time: "2026-09-28T10:05:00.000Z", octets: 1 },
         ]}
         bucketSeconds={300}
         windowStartAt=""
@@ -910,31 +948,56 @@ describe("BandwidthOverTimeChart", () => {
     );
   });
 
-  test("keeps its indigo look and draws no legend (Min / Avg / Max is the legend)", () => {
+  test("one indigo series and no legend; in and out through an interface are two, with a legend", () => {
     render(
-      <BandwidthOverTimeChart
-        series={[{ time: WINDOW_START, octets: 7_500_000, packets: 1 }]}
+      <TrafficOverTimeChart
+        series={[{ time: WINDOW_START, octets: 7_500_000 }]}
         bucketSeconds={60}
         windowStartAt={WINDOW_START}
         windowEndAt={WINDOW_END}
       />,
     );
 
-    const props: Record<string, unknown> = getStandInChart(BANDWIDTH_CHART)
+    const single: Record<string, unknown> = getStandInChart(BANDWIDTH_CHART)
       .props as unknown as Record<string, unknown>;
-    expect(props["colors"]).toEqual(["indigo"]);
-    expect(props["showLegend"]).toBe(false);
+    expect(single["colors"]).toEqual(["indigo"]);
+    expect(single["showLegend"]).toBe(false);
     expect(
       screen.getByRole("figure", {
-        name: "Bandwidth over time in megabits per second",
+        name: "Traffic over time, in bits per second",
       }),
     ).toBeInTheDocument();
+    cleanup();
+
+    render(
+      <TrafficOverTimeChart
+        series={[
+          {
+            time: WINDOW_START,
+            octets: 9_000_000,
+            inOctets: 7_500_000,
+            outOctets: 1_500_000,
+          },
+        ]}
+        bucketSeconds={60}
+        windowStartAt={WINDOW_START}
+        windowEndAt={WINDOW_END}
+      />,
+    );
+
+    const split: StandInChartRecord = getStandInChart("In + Out [Mbps]");
+    const splitProps: Record<string, unknown> =
+      split.props as unknown as Record<string, unknown>;
+    expect(splitProps["colors"]).toEqual(["indigo", "emerald"]);
+    expect(splitProps["showLegend"]).toBe(true);
+    expect(split.props.data[0]!.data[0]!.y).toBe(1);
+    expect(split.props.data[1]!.data[0]!.y).toBe(0.2);
   });
 
-  test("the tooltip and axis read Mbps", () => {
+  test("the tooltip and axis read bits a second, in the unit that fits", () => {
     render(
-      <BandwidthOverTimeChart
-        series={[{ time: WINDOW_START, octets: 7_500_000, packets: 1 }]}
+      <TrafficOverTimeChart
+        series={[{ time: WINDOW_START, octets: 7_500_000 }]}
         bucketSeconds={60}
         windowStartAt={WINDOW_START}
         windowEndAt={WINDOW_END}
@@ -946,41 +1009,44 @@ describe("BandwidthOverTimeChart", () => {
         options: { formatter: (value: number) => string };
       };
     expect(yAxis.options.formatter(12.345)).toBe("12.3 Mbps");
-    expect(yAxis.options.formatter(0.5)).toBe("0.50 Mbps");
+    expect(yAxis.options.formatter(0.5)).toBe("500 kbps");
+    expect(yAxis.options.formatter(1500)).toBe("1.50 Gbps");
   });
 
-  test("a series with no parseable bucket keeps its figures but draws no chart", () => {
+  test("a series with no parseable bucket draws no chart", () => {
     render(
-      <BandwidthOverTimeChart
-        series={[{ time: "not a time", octets: 7_500_000, packets: 1 }]}
+      <TrafficOverTimeChart
+        series={[{ time: "not a time", octets: 7_500_000 }]}
         bucketSeconds={60}
         windowStartAt=""
         windowEndAt=""
       />,
     );
 
-    expect(screen.getByText("Max")).toBeInTheDocument();
     expect(
       screen.queryByTestId(`chart ${BANDWIDTH_CHART}`),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("traffic-over-time-chart"),
+    ).not.toBeInTheDocument();
   });
 
-  test("inside a zoomable card the chart offers the card's drag", () => {
+  test("inside a zoomable page the chart offers the page's drag", () => {
     const zoomToTimeRange: MockFunction = getJestMockFunction();
+    const zoom: TimeRangeZoom = {
+      isZoomed: false,
+      rangeBeforeZoom: null,
+      timeRange: { range: TimeRange.PAST_ONE_HOUR },
+      zoomToTimeRange: zoomToTimeRange as unknown as (
+        startTime: Date,
+        endTime: Date,
+      ) => void,
+      resetZoom: () => {},
+    };
     render(
-      <TimeRangeZoomProvider
-        zoom={{
-          isZoomed: false,
-          rangeBeforeZoom: null,
-          zoomToTimeRange: zoomToTimeRange as unknown as (
-            startTime: Date,
-            endTime: Date,
-          ) => void,
-          resetZoom: () => {},
-        }}
-      >
-        <BandwidthOverTimeChart
-          series={[{ time: WINDOW_START, octets: 7_500_000, packets: 1 }]}
+      <TimeRangeZoomProvider zoom={zoom}>
+        <TrafficOverTimeChart
+          series={[{ time: WINDOW_START, octets: 7_500_000 }]}
           bucketSeconds={60}
           windowStartAt={WINDOW_START}
           windowEndAt={WINDOW_END}
@@ -1017,14 +1083,9 @@ function walkedStepSeconds(precision: XAxisPrecision): number {
   return (intervals[1]!.getTime() - intervals[0]!.getTime()) / 1000;
 }
 
-// The API's bucket width for a window, as pickBucketSeconds sizes it.
-function apiBucketSeconds(windowSeconds: number): number {
-  return Math.max(60, Math.ceil(Math.ceil(windowSeconds / 120) / 60) * 60);
-}
-
-describe("getBandwidthAxisPrecision", () => {
+describe("getTrafficAxisPrecision", () => {
   test("pins one-minute buckets to a one-minute grid", () => {
-    expect(getBandwidthAxisPrecision(60)).toBe(XAxisPrecision.EVERY_MINUTE);
+    expect(getTrafficAxisPrecision(60)).toBe(XAxisPrecision.EVERY_MINUTE);
   });
 
   /*
@@ -1063,7 +1124,7 @@ describe("getBandwidthAxisPrecision", () => {
   ])(
     "pins %i-second buckets to the coarsest step no wider than one: %s",
     (bucketSeconds: number, precision: XAxisPrecision) => {
-      expect(getBandwidthAxisPrecision(bucketSeconds)).toBe(precision);
+      expect(getTrafficAxisPrecision(bucketSeconds)).toBe(precision);
     },
   );
 
@@ -1071,7 +1132,7 @@ describe("getBandwidthAxisPrecision", () => {
     const steps: Array<number> = [
       60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200,
     ];
-    const widest: number = apiBucketSeconds(31 * 24 * 60 * 60);
+    const widest: number = getNetworkTrafficBucketSeconds(31 * 24 * 60 * 60);
     expect(widest).toBe(22320);
     for (
       let bucketSeconds: number = 60;
@@ -1079,7 +1140,7 @@ describe("getBandwidthAxisPrecision", () => {
       bucketSeconds += 60
     ) {
       const precision: XAxisPrecision | undefined =
-        getBandwidthAxisPrecision(bucketSeconds);
+        getTrafficAxisPrecision(bucketSeconds);
       expect([bucketSeconds, precision]).not.toEqual([
         bucketSeconds,
         undefined,
@@ -1103,13 +1164,13 @@ describe("getBandwidthAxisPrecision", () => {
     expect(
       [60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200].map(
         (seconds: number): number => {
-          return walkedStepSeconds(getBandwidthAxisPrecision(seconds)!);
+          return walkedStepSeconds(getTrafficAxisPrecision(seconds)!);
         },
       ),
     ).toEqual([60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200]);
   });
 
   test("a bucket narrower than a second fits no step: the axis picks its own", () => {
-    expect(getBandwidthAxisPrecision(0.5)).toBeUndefined();
+    expect(getTrafficAxisPrecision(0.5)).toBeUndefined();
   });
 });

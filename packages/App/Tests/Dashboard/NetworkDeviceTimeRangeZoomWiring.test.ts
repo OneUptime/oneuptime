@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Issue #4105 wiring pins for a network device's Metrics and Traffic pages:
- * drag across any chart to zoom, double-click any chart to go back. Each
- * page is one card that owns the page's range. App's node test environment
+ * Issue #4105 wiring pins for a network device's Metrics page and the
+ * Traffic pages (a device's, a site's, the network's): drag across any
+ * chart to zoom, double-click any chart to go back. Each page owns its
+ * range. App's node test environment
  * cannot render React, so the load-bearing wiring is pinned here as
  * comment-stripped, whitespace-squashed source; what it DOES is rendered
  * and exercised in Common/Tests/App/Dashboard/NetworkDeviceTimeRangeZoom.test.tsx.
@@ -101,18 +102,29 @@ describe("Network device Metrics: the health card's range is the page's", () => 
   });
 });
 
-describe("Network device Traffic: the top-talkers card's range is the page's", () => {
-  const code: string = readCode("Components/NetworkDevice/FlowTopTalkers.tsx");
+describe("Traffic pages: the traffic view's range is the page's", () => {
+  const code: string = readCode(
+    "Components/NetworkTraffic/NetworkTrafficView.tsx",
+  );
+  const chartCode: string = readCode(
+    "Components/NetworkTraffic/TrafficOverTimeChart.tsx",
+  );
 
-  test("the Traffic page is this card", () => {
+  test("a device's, a site's and the network's Traffic pages are this view", () => {
     expect(readCode("Pages/NetworkDevice/View/Traffic.tsx")).toContain(
-      "<FlowTopTalkers networkDeviceId={modelId} />",
+      'scope={{ kind: "device", networkDeviceId: modelId }}',
+    );
+    expect(readCode("Pages/NetworkSite/View/Traffic.tsx")).toContain(
+      'scope={{ kind: "site", networkSiteId: modelId }}',
+    );
+    expect(readCode("Pages/NetworkDevice/Traffic.tsx")).toContain(
+      '<NetworkTrafficView scope={{ kind: "network" }} />',
     );
   });
 
-  test("the card is a zoom scope over its own range and setter, above its loader", () => {
+  test("the view is a zoom scope over its own range and setter, above its loader", () => {
     expect(code).toMatch(SCOPE_IMPORT);
-    const open: number = scopeOpening(code, "timeRange", "setTimeRange");
+    const open: number = scopeOpening(code, "view.range", "setRange");
     expect(code.slice(open - "return ( ".length, open)).toBe("return ( ");
     expect(
       indexOfOrFail(code, "{!loaded && isLoading ? <ComponentLoader />"),
@@ -120,104 +132,86 @@ describe("Network device Traffic: the top-talkers card's range is the page's", (
   });
 
   test("a refetch keeps the last data on screen: the loader and the full error are for the first load only", () => {
-    // sdn-2: every zoom and reset used to swap the whole body for a loader.
     expect(code).not.toContain("{isLoading ? <ComponentLoader />");
     expect(code).toContain(
       "{!loaded && !isLoading && error ? ( <ErrorMessage message={error} /> )",
     );
-    // Once loaded, the figures stay, dimmed, with a note that they refresh.
     expect(code).toContain(
-      '<div className={isLoading ? "opacity-75 transition-opacity" : ""} data-testid="flow-top-talkers-body" > {loaded.data.totalFlows > 0 ? ( <FlowTopTalkersFigures data={loaded.data} /> ) : ( <FlowNoDataState timeRange={loaded.timeRange} /> )}',
+      '<div className={isLoading ? "opacity-75 transition-opacity" : ""} data-testid="traffic-body" >',
     );
-    // Only a fetch that succeeded replaces them, with the range it was for.
+    // Only a fetch that succeeded replaces them, with the view it was for.
     expect(code).toContain(
-      "} else if (result) { setLoaded({ data: result, timeRange: timeRange }); }",
+      "} else if (summary) { setLoaded({ summary: summary, view: requestedView }); }",
     );
   });
 
-  test("the picker keeps setting the range directly, with Reset zoom beside it", () => {
+  test("the picker sets the range directly, with Reset zoom beside it", () => {
     expect(code).toContain(RESET_IMPORT);
-    expect(code).toContain(PICKER_AND_RESET);
+    expect(code).toContain(
+      '<div className="flex items-center gap-2"> <RangeStartAndEndDateView dashboardStartAndEndDate={view.range} onChange={setRange} /> <ResetTimeRangeZoomButton /> </div>',
+    );
   });
 
-  test("the bandwidth chart is the shared area chart on a time axis, not a hand-drawn SVG", () => {
-    expect(code).toContain(
+  test("the traffic chart is the shared area chart on a time axis, with no zoom of its own", () => {
+    expect(chartCode).toContain(
       'import AreaChartElement from "Common/UI/Components/Charts/Area/AreaChart";',
     );
-    const chart: string = code.slice(
-      indexOfOrFail(code, "<AreaChartElement"),
-      indexOfOrFail(code, 'colors={["indigo"]} />'),
+    const chart: string = chartCode.slice(
+      indexOfOrFail(chartCode, "<AreaChartElement"),
+      indexOfOrFail(chartCode, "/> </div> </div> ); };"),
     );
     expect(chart).toContain("xAxis={xAxis}");
-    // It takes the card's zoom; it has none of its own.
     expect(chart).not.toContain("onTimeRangeSelect");
     expect(chart).not.toContain("disableTimeRangeZoom");
-    expect(code).toContain("type: XAxisType.Time,");
-    expect(code).not.toContain("<svg");
-    expect(code).not.toContain("<polyline");
+    expect(chartCode).toContain("type: XAxisType.Time,");
+    expect(chartCode).not.toContain("<svg");
   });
 
   test("the chart names the gesture, revealed over its section", () => {
+    expect(chartCode).toContain("<TimeRangeZoomHint revealOnHover={true} />");
     expect(code).toContain(
-      '<TimeRangeZoomHint revealOnHover={true} className="ml-auto" />',
-    );
-    expect(code).toContain(
-      '<div className="group/zoomhint mb-6"> <FlowSectionTitle title="Bandwidth Over Time"',
+      '<div className="group/zoomhint mt-6"> <div className="mb-1 text-sm font-medium text-gray-900"> {translator.translateText("Traffic over time")} </div> <TrafficOverTimeChart',
     );
   });
 
-  test("everything on the card comes from one fetch over the card's range", () => {
+  test("everything on the page comes from one fetch over the view's range, and only the latest lands", () => {
     expect(code).toContain(
-      "RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);",
+      "RangeStartAndEndDateTimeUtil.getStartAndEndDate(requestedView.range);",
     );
-    expect(code).toContain("}, [props.networkDeviceId, timeRange]);");
-    // And only the latest fetch lands, so a quick zoom-and-back cannot race.
+    expect(code).toContain("}, [scopeKey, view, refreshKey]);");
     expect(code).toContain(
       "if (fetchId !== latestFetchRef.current) { return; }",
     );
   });
 
   test("a zoom into a quiet stretch can be double-clicked away", () => {
-    expect(code).toContain(
-      "const onTimeRangeReset: (() => void) | undefined = zoom?.onTimeRangeReset;",
-    );
-    expect(code).toContain(
-      'data-testid="flow-no-data" onDoubleClick={onTimeRangeReset} >',
-    );
-    // The empty state reads the window the card LOADED, not the picker's.
-    expect(code).toContain("<FlowNoDataState timeRange={loaded.timeRange} />");
-  });
-
-  test("a zoom into a quiet stretch says so, and keeps the NetFlow setup steps for a preset window", () => {
-    // sdn-6
-    expect(code).toContain(
-      '{props.timeRange.range === TimeRange.CUSTOM ? ( <div className="text-center max-w-md"> <div className="text-sm font-medium text-gray-900"> {translator.translateText("No flows in the selected time range.")} </div>',
-    );
-    expect(code).toContain("No flow data yet.");
-    expect(code).toContain("PROBE_NETFLOW_RECEIVER_ENABLED=true");
+    expect(code).toContain("onDoubleClick={zoom?.onTimeRangeReset}");
+    expect(code).toContain('data-testid="traffic-no-data"');
+    // The set-up guide reads the window the view LOADED, never the picker's.
+    expect(code).toContain("shownView.range.range !== TimeRange.CUSTOM &&");
   });
 });
 
-describe("Network device Traffic: the API's bucket widths, which the chart tests mirror", () => {
-  test("pickBucketSeconds still sizes buckets to ~120 per window, in whole minutes", () => {
+describe("Traffic pages: the API's bucket widths, which the chart's grid is pinned to", () => {
+  test("getNetworkTrafficBucketSeconds sizes buckets to ~120 per window, in whole minutes", () => {
     /*
-     * Common/Tests/App/Dashboard/FlowBandwidthAxisCases.tsx restates this
-     * formula to build API responses for every window; if it changes, that
-     * mirror must change with it.
+     * The chart pins its grid to the coarsest step no wider than a bucket
+     * (getTrafficAxisPrecision); Common/Tests/App/Dashboard/
+     * FlowBandwidthAxisCases.tsx draws every window through this function.
+     * A change here is a change to how the chart lays out its slots.
      */
-    const server: string = fs
+    const types: string = fs
       .readFileSync(
-        path.join(
-          __dirname,
-          "../../FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts",
-        ),
+        path.join(__dirname, "../../../Common/Types/NetFlow/NetworkTraffic.ts"),
         "utf8",
       )
       .replace(/\s+/g, " ");
-    expect(server).toContain(
-      "export function pickBucketSeconds(windowInSeconds: number): number { const targetPoints: number = 120; const rawSeconds: number = Math.ceil(windowInSeconds / targetPoints); return Math.max(60, Math.ceil(rawSeconds / 60) * 60); }",
+    expect(types).toContain(
+      "export function getNetworkTrafficBucketSeconds( windowInSeconds: number, ): number { const targetPoints: number = 120; const rawSeconds: number = Math.ceil(windowInSeconds / targetPoints); return Math.max(60, Math.ceil(rawSeconds / 60) * 60); }",
     );
-    expect(server).toContain("const MAX_RANGE_DAYS: number = 31;");
+    expect(types).toContain(
+      "export const MAX_NETWORK_TRAFFIC_RANGE_DAYS: number = 31;",
+    );
   });
 });
 
