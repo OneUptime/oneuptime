@@ -1,48 +1,107 @@
-# Monitor Secrets
+# Overvåkingshemmeligheter
 
-Du kan bruke hemmeligheter til å lagre sensitiv informasjon som du ønsker å bruke i overvåkingssjekkene dine. Hemmeligheter krypteres og lagres sikkert.
+Overvåkingshemmeligheter holder passordene, API-nøklene og tokenene som monitorene dine trenger, utenfor selve monitoren. Du lagrer en verdi én gang, kryptert, velger hvilke monitorer som kan bruke den, og viser til den som `{{monitorSecrets.NAME}}` der monitoren trenger den.
 
-### Legge til en hemmelighet
+:::cards
+- [Legg til en hemmelighet](#legg-til-en-hemmelighet): Lagre en verdi og velg hvem som kan bruke den.
+- [Velg tilgang](#velg-hvilke-monitorer-som-kan-bruke-en-hemmelighet): Alle monitorer, bestemte monitorer eller monitorer med etiketter.
+- [Bruk en hemmelighet](#bruk-en-hemmelighet): Hvor `{{monitorSecrets.NAME}}` fungerer.
+:::
 
-For å legge til en hemmelighet, gå til OneUptime Dashboard -> Overvåkere -> Innstillinger -> Hemmeligheter -> Create Monitor Secret.
+## Slik når hemmeligheter frem til en monitor
 
-![Opprett hemmelighet](/docs/static/images/CreateMonitorSecret.png)
+En hemmelighet lagres kryptert og vises aldri igjen etter at du har lagret den. Før OneUptime gir en monitor videre til en sonde, erstatter den hver henvisning som monitoren kan bruke, med den dekrypterte verdien; en henvisning som monitoren ikke kan bruke, blir stående som den er skrevet.
 
-Gi hemmeligheten et navn og en verdi, og velg deretter i trinnet **Tilgang** hvilke overvåkere som kan bruke den. I dette eksemplet har vi lagt til en `ApiKey`-hemmelighet.
+```mermaid title="Slik fylles en henvisning til en hemmelighet inn"
+flowchart TB
+    secret["Kryptert hemmelighet"] --> check{"Kan monitoren bruke den?"}
+    check -->|Ja| value["Henvisningen erstattes med verdien"]
+    check -->|Nei| left["Henvisningen blir stående som den er skrevet"]
+    value --> run["Sjekken kjører med verdien"]
+```
 
-**Merk**: Hemmeligheter krypteres og lagres sikkert. Verdien vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Mister du verdien, må du hente den fra kilden og sette den på nytt. Bruk knappen **Oppdater hemmelig verdi** på raden for å rotere en hemmelighet; du trenger ikke slette og opprette den på nytt.
+Sonden som kjører sjekken, mottar verdien, så en monitor som bruker en hemmelighet, bør kjøre på sonder du stoler på: OneUptimes egne, eller en [egendefinert sonde](/docs/probe/custom-probe) som du kjører selv.
 
-### Velg hvilke overvåkere som kan bruke en hemmelighet
+## Før du starter
 
-Hver hemmelighet har ett av tre tilgangsvalg:
+- **Growth-abonnementet eller høyere**, på OneUptime Cloud. Selvdriftede installasjoner har ingen abonnementer.
+- **En rolle som kan administrere hemmeligheter**: Project Owner, Project Admin, eller en egendefinert rolle med tillatelsen Create Monitor Secret.
 
-- **Alle overvåkere**: alle overvåkere i prosjektet kan bruke hemmeligheten, også overvåkere du oppretter senere. Bruk dette for påloggingsinformasjon som mange overvåkere deler.
-- **Bestemte overvåkere**: bare overvåkerne du velger, kan bruke hemmeligheten. Dette er standardvalget, og hemmeligheter som ble opprettet før disse valgene fantes, fungerer slik.
-- **Overvåkere med etiketter**: overvåkere som har minst én av etikettene du velger, kan bruke hemmeligheten. Legger du til en av etikettene på en overvåker, får den tilgang, og fjerner du etiketten, mister den tilgangen neste gang overvåkeren kjører.
+## Arbeid med hemmeligheter
 
-Du kan endre valget når som helst med **Rediger** på hemmelighetens rad. Bare listen for det valgte alternativet beholdes: bytter du til **Alle overvåkere**, tømmes hemmelighetens overvåker- og etikettliste, og bytter du mellom **Bestemte overvåkere** og **Overvåkere med etiketter**, tømmes listen du bytter bort fra.
+### Legg til en hemmelighet
 
-En hemmelighet er aldri tilgjengelig for overvåkere i et annet prosjekt.
+:::steps
+1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og klikk på **Opprett Monitor Hemmelighet**.
+2. Angi et **Navn** og **Verdi for hemmelighet**. Navnet er det du viser til, for eksempel `ApiKey`. Det kan bare inneholde bokstaver, tall, bindestreker (`-`) og understreker (`_`), og to hemmeligheter i et prosjekt kan ikke ha det samme.
+3. Velg i trinnet **Tilgang** hvilke monitorer som kan bruke den (se neste avsnitt), og klikk så på **Opprett Monitor Hemmelighet**.
+:::
 
-Alle som kan redigere en overvåker med tilgang til en hemmelighet, kan sende hemmeligheten til et hvilket som helst mål overvåkeren kobler til. Med **Alle overvåkere** er det alle som kan opprette eller redigere overvåkere i prosjektet. Med **Overvåkere med etiketter** gjelder det også alle som kan legge til en av etikettene på en overvåker.
+> [!IMPORTANT]
+> Hemmeligheter krypteres og lagres sikkert. Verdien til hemmeligheten vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Hvis du mister verdien, må du hente den fra der den kom fra, og sette den på nytt. For å rotere en hemmelighet bruker du knappen **Oppdater hemmelig verdi** på raden dens; du trenger ikke å slette og opprette den på nytt.
 
-I API-et er tilgangsvalget feltet `monitorAccess`: `All Monitors`, `Specific Monitors` eller `Monitors With Labels`. Feltene `monitors` og `labels` inneholder listene. En hemmelighet som opprettes uten `monitorAccess`, får `Specific Monitors`.
+### Velg hvilke monitorer som kan bruke en hemmelighet
 
-### Bruke en hemmelighet
+Hver hemmelighet har ett av tre tilgangsalternativer:
 
-Du kan bruke hemmeligheter i følgende overvåkingstyper:
+| Alternativ | Hvilke monitorer som kan bruke hemmeligheten | Bruk det til |
+| --- | --- | --- |
+| **Alle overvåkere** | Hver monitor i prosjektet, også monitorer du oppretter senere. | En påloggingsinformasjon som mange monitorer deler. |
+| **Bestemte overvåkere** | Bare monitorene du velger. Dette er standard, og hemmeligheter som ble opprettet før disse alternativene fantes, fungerer slik. | En påloggingsinformasjon for én eller noen få monitorer. |
+| **Overvåkere med etiketter** | Monitorer som har minst én av etikettene du velger. Når en av de etikettene legges til på en monitor, får den tilgang, og når etiketten fjernes, mister den tilgangen neste gang monitoren kjører. | En påloggingsinformasjon for en gruppe monitorer som endrer seg over tid. |
 
-- API (i forespørselshoder, forespørselskropp og URL)
-- Nettsted, IP, Port, Ping, SSL-sertifikat (i URL)
-- Syntetisk monitor, egendefinert kode-monitor (i koden)
-- SNMP-monitor (i community-streng, SNMPv3-autentiseringsnøkkel og priv-nøkkel)
+Du kan når som helst endre alternativet med **Rediger** på raden til hemmeligheten. Bare listen for det valgte alternativet beholdes: å bytte til **Alle overvåkere** tømmer hemmelighetens lister over monitorer og etiketter, og å bytte mellom **Bestemte overvåkere** og **Overvåkere med etiketter** tømmer listen du bytter bort fra.
 
-![Bruke hemmelighet](/docs/static/images/UsingMonitorSecret.png)
+En hemmelighet er aldri tilgjengelig for monitorer i et annet prosjekt.
 
-For å bruke en hemmelighet, legg til `{{monitorSecrets.SECRET_NAME}}` i feltet der du ønsker å bruke hemmeligheten. For eksempel la vi i dette tilfellet til `{{monitorSecrets.ApiKey}}` i feltet for forespørselshode.
+> [!WARNING]
+> Alle som kan redigere en monitor som kan bruke en hemmelighet, kan sende den hemmeligheten dit monitoren kobler seg til. Med **Alle overvåkere** er det alle som kan opprette eller redigere monitorer i prosjektet. Med **Overvåkere med etiketter** omfatter det også alle som kan legge en av de etikettene til på en monitor.
 
-Hemmeligheter injiseres på proben før Syntetiske eller Egendefinerte kode-monitor-skript kjøres, slik at referanser som `{{monitorSecrets.ApiKey}}` løses til den dekrypterte verdien inne i det kjørende skriptet.
+Via API-et er tilgangsalternativet feltet `monitorAccess`: `All Monitors`, `Specific Monitors` eller `Monitors With Labels`. Feltene `monitors` og `labels` inneholder listene. En hemmelighet som opprettes uten `monitorAccess`, får `Specific Monitors`.
 
-Hvis en overvåker refererer til en hemmelighet den ikke kan bruke, blir referansen stående som den er og erstattes ikke med verdien.
+### Bruk en hemmelighet
 
-Når du tester en overvåker før du lagrer den, fylles bare hemmeligheter med **Alle overvåkere** inn, fordi en ny overvåker ikke står på noen liste og ikke har etiketter ennå. Etter at overvåkeren er lagret, bruker tester alle hemmelighetene overvåkeren kan bruke.
+For å bruke en hemmelighet skriver du `{{monitorSecrets.SECRET_NAME}}` i et felt som tar imot hemmeligheter. For eksempel sender forespørselshodet `Authorization: Bearer {{monitorSecrets.ApiKey}}` verdien til hemmeligheten `ApiKey`.
+
+Disse monitortypene og feltene tar imot hemmeligheter:
+
+| Monitortype | Felt |
+| --- | --- |
+| API | URL-en, forespørselens hoder og brødtekst, og klientsertifikatet, den private nøkkelen og passordfrasen (mTLS) |
+| Nettsted | URL-en, og klientsertifikatet, den private nøkkelen og passordfrasen (mTLS) |
+| Ping, IP, Port, NTP, SSL Certificate | Verten eller URL-en som sjekkes |
+| DNS | Domenenavnet og DNS-serveren |
+| DNSSEC, Domene | Domenenavnet |
+| SQL Query | Verten, databasenavnet, brukernavnet, passordet og spørringen |
+| Database Health | Verten, databasenavnet, brukernavnet og passordet |
+| External Status Page | URL-en til statussiden |
+| Synthetic Monitor, Custom JavaScript Code | Skriptet |
+| Network Device | SNMP-fellesskapsstrengen, og autentiserings- og personvernnøklene for SNMPv3 |
+
+Hemmeligheter fylles inn før skriptet til en monitor av typen Synthetic Monitor eller Custom JavaScript Code kjører, så en henvisning som `{{monitorSecrets.ApiKey}}` i skriptet er den dekrypterte verdien når det kjøres.
+
+Hvis en monitor viser til en hemmelighet den ikke kan bruke, blir henvisningen stående som den er og erstattes ikke med verdien.
+
+Når du tester en monitor før du lagrer den, fylles bare hemmeligheter som er tilgjengelige for **Alle overvåkere**, inn, fordi en ny monitor ikke står på noen liste og ikke har noen etiketter ennå. Etter at du har lagret monitoren, bruker testene hver hemmelighet som monitoren kan bruke.
+
+## Feilsøking
+
+:::details Monitoren sender `{{monitorSecrets.NAME}}` bokstavelig
+Monitoren kan ikke bruke hemmeligheten, eller navnet stemmer ikke. Sjekk hemmelighetens tilgangsalternativ med **Rediger** på raden dens, og at navnet i henvisningen er nøyaktig navnet på hemmeligheten.
+:::
+
+:::details Når en ny monitor testes, fylles ikke hemmeligheten inn
+Før en monitor er lagret, fylles bare hemmeligheter som er tilgjengelige for **Alle overvåkere**, inn. Lagre monitoren, og test den igjen.
+:::
+
+:::details Et felt ignorerer hemmeligheten
+Bare feltene i tabellen ovenfor tar imot hemmeligheter. I ethvert annet felt sendes `{{monitorSecrets.NAME}}` som det er skrevet.
+:::
+
+## Neste steg
+
+:::cards
+- [API-overvåking](/docs/monitor/api-monitor): Send en hemmelighet i et forespørselshode.
+- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Bruk en hemmelighet i et nettleserskript.
+- [SQL-spørring-overvåking](/docs/monitor/sql-monitor): Hold et databasepassord kryptert.
+:::
