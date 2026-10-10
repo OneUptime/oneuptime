@@ -112,7 +112,7 @@ Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett k
 | Monitor Quorum Degraded | Kritisk | `ceph_mon_quorum_status`, Min per `ceph_daemon`, senaste minuten | En monitor sjunker under 1, utanför quorum. En incident per monitor | Tillbaka på 1 |
 | Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Över 0: Klustrets `SLOW_OPS`-check är aktiv | Vid 0 |
 | Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` för `type = SLOW_OPS`, Max per `ceph_daemon` | Över 0. En incident per OSD eller monitor | Serien försvinner |
-| Daemon Crash | Kritisk | `ceph_health_detail` för `name = RECENT_CRASH`, Max | Checken är aktiv: Det finns daemonkrascher som inte arkiverats. Mgr:n har inget `ceph_crash_*`-mätvärde, så detta är den enda kraschsignalen | Kraschningarna arkiveras |
+| Daemon Crash | Kritisk | `ceph_health_detail` för `name = RECENT_CRASH`, Max | Checken är aktiv: Det finns daemonkrascher som inte arkiverats. Mgr:n har inget `ceph_crash_*`-mätvärde, så detta är den enda kraschsignalen | Krascherna arkiveras |
 | Monitor Clock Skew | Warning | `ceph_health_detail` för `name = MON_CLOCK_SKEW`, Max | Checken är aktiv: Monitorernas klockor avviker mer än tillåtet (standard 0,05 s) | Checken försvinner |
 | Monitor Disk Critically Low | Kritisk | `ceph_health_detail` för `name = MON_DISK_CRIT`, Max | Checken är aktiv: En monitors databasdisk har mindre än 5 % ledigt (standard) | Checken försvinner |
 | Monitor Disk Space Low | Warning | `ceph_health_detail` för `name = MON_DISK_LOW`, Max | Checken är aktiv: mindre än 30 % ledigt (standard) | Checken försvinner |

@@ -278,10 +278,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/api-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/ceph-monitor": {
-    uniqueHeadings: ["en", "fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "monitor/create-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
