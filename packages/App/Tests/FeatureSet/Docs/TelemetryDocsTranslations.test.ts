@@ -283,6 +283,9 @@ const OPTION_DETAIL: RegExp = /\s*[(（].*$/;
 // An inline code span, which may hold asterisks of its own.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 
+// A bold span on one line.
+const BOLD_SPAN: RegExp = /\*\*([^*\n]+?)\*\*/g;
+
 // Code in rendered HTML: a code block or an inline code span.
 const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
 
@@ -488,6 +491,16 @@ async function strayMarkers(
         line.includes("**") || line.replace(UNDERSCORED_NAME, "").includes("_")
       );
     });
+}
+
+/*
+ * How many bold spans a page writes outside its code: every label, path and
+ * lead the English page stresses is stressed once in a translation too.
+ */
+function boldSpanCount(markdown: string): number {
+  return Array.from(
+    prose(markdown).replace(INLINE_CODE_SPAN, " ").matchAll(BOLD_SPAN),
+  ).length;
 }
 
 // The components of a page, in order, with their tab and step counts.
@@ -855,6 +868,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(listItemCount(translated)).toBe(listItemCount(english));
     });
 
+    it("stresses as many words as the English page: every label, path and lead stays bold", () => {
+      expect(boldSpanCount(readPage(language, entry.page))).toBe(
+        boldSpanCount(english),
+      );
+    });
+
     it("names its tabs as the English page does", () => {
       expect(tabNames(readPage(language, entry.page))).toEqual(
         tabNames(english),
@@ -1073,6 +1092,14 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       await strayMarkers("# Title\n\n名为 *SD-WAN gateway latency* 的规则。", "zh-CN"),
     ).toEqual([]);
+  });
+
+  it("count the bold spans a page writes, not those inside code", () => {
+    expect(
+      boldSpanCount(
+        "**One** and **two**, `**not**` here.\n\n```text\n**nor here**\n```",
+      ),
+    ).toBe(2);
   });
 
   it("read a page's tabs and components, with their tab and step counts", () => {
