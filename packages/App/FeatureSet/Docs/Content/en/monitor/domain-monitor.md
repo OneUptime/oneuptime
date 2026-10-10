@@ -75,14 +75,14 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 | Field | Default | What to enter |
 | --- | --- | --- |
-| **Domain Name** | None | The registered domain, such as `example.com`. |
+| **Domain Name** | None | The registered domain, such as `example.com`. A pasted address works too: `https://example.com/pricing` is read as `example.com`. |
 | **Lookup Method** | **Auto** | **Auto**, **RDAP** or **WHOIS**. See [Lookup methods](#lookup-methods). |
 | **Timeout (ms)** (under **More fields**) | `10000` | How long to wait for each registration lookup, in milliseconds. |
 | **Retries** (under **More fields**) | `3` | Retries after the first attempt fails. `0` means a single attempt. |
 
 Every failed lookup is retried, with a one-second pause between attempts. That includes a registry answering that the domain is not registered, or that it has no registration service, in case the answer was a passing fault. Only a malformed domain name is reported at once, without a lookup.
 
-The timeout applies to each lookup, so an **Auto** check that tries RDAP and then falls back to WHOIS can take up to twice this long in the worst case.
+The timeout applies to each request, not to the whole check: an **Auto** check that tries RDAP and then falls back to WHOIS can take twice as long, or longer.
 
 ### Lookup methods
 
@@ -136,7 +136,7 @@ To be warned earlier, change the value of the **Domain Expires In Days** filter 
 Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it:
 
 1. On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**.
-2. Click **Add Criteria**. Set its filter to **Domain Is Expired** / **False**, click **Add Filter**, and set the second one to **Domain Expires In Days** / **Less Than or Equal To** / `30`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
+2. Click **Add Criteria**. Set its filter to **Domain Is Expired** / **False**, click **Add Filter**, and set the second one to **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
 3. Under **Actions**, turn on **When filters match, create an alert.** and leave **When filters match, change monitor status.** off, so it creates an alert and does not change the monitor status.
 4. Drag the new criteria above the criteria that marks the monitor as online, then save.
 :::
@@ -156,9 +156,9 @@ Monitors created before OneUptime added this warning have no "expires soon" crit
 ## Best Practices
 
 1. **Give yourself time to renew** — The default warning comes 30 days before expiry. If renewing needs approvals or a payment that takes longer, raise it to 60 days.
-2. **Cover failed lookups** — Include an **Is Online / False** filter in your offline criteria so an unreadable registration is not mistaken for a healthy one. Monitors created from now on get this by default; monitors created earlier need it added by hand.
+2. **Cover failed lookups** — Include an **Is Online** / **False** filter in your offline criteria so an unreadable registration is not mistaken for a healthy one. New monitors have it in their default criteria; a monitor created before it was added needs it added by hand. To ride out a WHOIS server that rate limits the probe now and then, tick **Evaluate this criteria over a period of time** under that filter and pick **All Values**: the domain then goes offline only when every lookup in the window failed.
 3. **Monitor all critical domains** — Include primary domains, subdomains registered separately, and any domains used for email or APIs.
-4. **Track registrar changes** — Monitor the registrar field to detect unauthorized domain transfers.
+4. **Track registrar changes** — Add a criteria with **Domain Registrar** / **Not Contains** / your registrar's name, to catch an unauthorized transfer.
 
 ## Troubleshooting
 

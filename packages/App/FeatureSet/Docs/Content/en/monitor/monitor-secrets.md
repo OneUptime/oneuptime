@@ -10,7 +10,7 @@ Monitor secrets keep the passwords, API keys and tokens your monitors need out o
 
 ## How secrets reach a monitor
 
-A secret is stored encrypted and is never shown again after you save it. When a monitor that is allowed to use the secret runs, the reference is replaced with the decrypted value; a monitor that is not allowed keeps the reference as written.
+A secret is stored encrypted and is never shown again after you save it. Before OneUptime hands a monitor to a probe, it replaces each reference the monitor may use with the decrypted value; a reference the monitor may not use is left as written.
 
 ```mermaid title="How a secret reference is filled in"
 flowchart TB
@@ -20,17 +20,22 @@ flowchart TB
     value --> run["Check runs with the value"]
 ```
 
+The probe that runs the check receives the value, so a monitor that uses a secret should run on probes you trust: OneUptime's own, or a [custom probe](/docs/probe/custom-probe) you run yourself.
+
+## Before you begin
+
+- **The Growth plan or above**, on OneUptime Cloud. Self-hosted installs have no plans.
+- **A role that can manage secrets**: Project Owner, Project Admin, or a custom role with the Create Monitor Secret permission.
+
 ## Work with secrets
 
 ### Adding a secret
 
 :::steps
-1. Go to OneUptime Dashboard -> **Monitors** -> **Settings** -> **Secrets** and click **Create Monitor Secret**.
-2. Give the secret a name and a value. The name is what you reference, for example `ApiKey`.
-3. On the **Access** step, choose which monitors can use it (see the next section), then create the secret.
+1. Go to **Monitors → Settings → Secrets** and click **Create Monitor Secret**.
+2. Enter a **Name** and the **Secret Value**. The name is what you reference, for example `ApiKey`. It can only contain letters, numbers, hyphens (`-`) and underscores (`_`), and no two secrets in a project share one.
+3. On the **Access** step, choose which monitors can use it (see the next section), then click **Create Monitor Secret**.
 :::
-
-![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 > [!IMPORTANT]
 > Secrets are encrypted and stored securely. The secret value is never shown again after it is saved — not in the table, not in the edit form, and not over the API. If you lose the value you will need to get it from wherever it came from and set it again. To rotate a secret, use the **Update Secret Value** button on its row; you do not need to delete and recreate it.
@@ -56,20 +61,24 @@ Over the API, the access option is the `monitorAccess` field: `All Monitors`, `S
 
 ### Using a secret
 
-To use a secret, add `{{monitorSecrets.SECRET_NAME}}` in the field where you want to use the secret. For example, a request header of `Authorization: Bearer {{monitorSecrets.ApiKey}}` sends the `ApiKey` secret's value.
+To use a secret, write `{{monitorSecrets.SECRET_NAME}}` in a field that takes secrets. For example, a request header of `Authorization: Bearer {{monitorSecrets.ApiKey}}` sends the `ApiKey` secret's value.
 
-![Using Secret](/docs/static/images/UsingMonitorSecret.png)
-
-You can use secrets in these monitor types and fields:
+These monitor types and fields take secrets:
 
 | Monitor type | Fields |
 | --- | --- |
-| API | Request headers, request body, and URL |
-| Website, IP, Port, Ping, SSL Certificate | URL |
-| Synthetic Monitor, Custom Code Monitor | The script |
-| SNMP (Network Device) | Community string, SNMPv3 auth key, and priv key |
+| API | The URL, the request headers and body, and the client certificate, private key and passphrase (mTLS) |
+| Website | The URL, and the client certificate, private key and passphrase (mTLS) |
+| Ping, IP, Port, NTP, SSL Certificate | The host or URL to check |
+| DNS | The domain name and the DNS server |
+| DNSSEC, Domain | The domain name |
+| SQL Query | The host, database name, username, password and query |
+| Database Health | The host, database name, username and password |
+| External Status Page | The status page URL |
+| Synthetic Monitor, Custom JavaScript Code | The script |
+| Network Device | The SNMP community string, and the SNMPv3 authentication and privacy keys |
 
-Secrets are injected on the probe before Synthetic or Custom Code monitor scripts execute, so references such as `{{monitorSecrets.ApiKey}}` resolve to the decrypted value inside the running script.
+Secrets are filled in before a Synthetic or Custom JavaScript Code monitor's script runs, so a reference such as `{{monitorSecrets.ApiKey}}` inside the script is the decrypted value when it executes.
 
 If a monitor references a secret it cannot use, the reference is left as it is and is not replaced with the value.
 
@@ -83,6 +92,10 @@ The monitor cannot use the secret, or the name does not match. Check the secret'
 
 :::details Testing a new monitor does not fill in the secret
 Before a monitor is saved, only secrets available to **All monitors** are filled in. Save the monitor, then test it again.
+:::
+
+:::details A field ignores the secret
+Only the fields in the table above take secrets. In any other field, `{{monitorSecrets.NAME}}` is sent as written.
 :::
 
 ## Next steps

@@ -29,7 +29,7 @@ Because placeholders are replaced as text, `{{responseBody.item}}` becomes the r
 :::steps
 ### Open the criteria
 
-Open the monitor's **Criteria** page — or the **Criteria** step of **Create Monitor** — and click the criteria you want to change, or **Add Criteria** for a new one.
+On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**, or use the **Criteria** step of **Create Monitor**. Work in the criteria you want to change, or click **Add Criteria** for a new one.
 
 ### Add a filter
 
