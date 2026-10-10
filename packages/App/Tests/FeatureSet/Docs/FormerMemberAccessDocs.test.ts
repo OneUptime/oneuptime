@@ -50,7 +50,7 @@ const STATEMENTS: Record<string, Statements> = {
     leaving: "Si un remplacement transfère les alertes de quel",
     mcpClient: "Quitter le projet déconnecte aussi le cl",
     scim: "Les utilisateurs que SCIM crée lui-même et les utilisateurs ",
-    personalLink: "Un lien personnel n'affiche des gardes q",
+    personalLink: "Un lien personnel n'affiche des permanen",
     emptyCalendar: "Si vous avez quitté le projet, le li",
   },
   es: {

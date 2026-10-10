@@ -704,6 +704,19 @@ export const DisableQueueWorkers: boolean =
   process.env["DISABLE_QUEUE_WORKERS"] === "true";
 
 /*
+ * Whether ingress traffic reaches this process: the agents', collectors',
+ * probes' and heartbeat senders' requests. Default true - the single App
+ * container of docker-compose, and the Helm chart's app pods, take it. The
+ * Helm chart's worker pods run the same image with no ingress in front of
+ * them and set it to "false", so they never vouch that OneUptime was
+ * receiving (InstanceReceivingHeartbeat): if every app pod is down while the
+ * workers keep running, that time is still recorded as time OneUptime was
+ * not receiving, and nobody's hosts are marked down for it.
+ */
+export const ReceivesIngressTraffic: boolean =
+  process.env["RECEIVES_INGRESS_TRAFFIC"] !== "false";
+
+/*
  * When "false", this process does NOT run schema or data migrations on boot.
  * Set on runtime pods (app/worker/nginx) when a dedicated one-shot migrate Job
  * (App/Migrate.ts) owns migrations instead, so the fleet's many replicas never

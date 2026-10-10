@@ -230,7 +230,7 @@ Put the critical criteria first: criteria are checked from the top, and the firs
 | Email is late | **Email Received** Not Recieved In Minutes `60` | Change the status to offline; create an alert |
 | Email arrived | **Email Received** Recieved In Minutes `60` | Change the status to online |
 
-The first criteria fires when no email has arrived for 60 minutes — useful for scheduled jobs or batch processes that send a completion email. The second resolves the alert as soon as one arrives.
+The first criteria fires when no email has arrived for 60 minutes — useful for scheduled jobs or batch processes that send a completion email. The second resolves the alert as soon as one arrives. Minutes OneUptime itself was not receiving email do not count toward the 60, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Use Cases
 

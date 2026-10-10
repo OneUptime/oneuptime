@@ -19,6 +19,10 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import ReceivingCoverage, {
+  TelemetryEvaluationPlan,
+} from "Common/Server/Utils/Telemetry/ReceivingCoverage";
+import TelemetryMonitorWindow from "Common/Utils/Monitor/TelemetryMonitorWindow";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
@@ -366,11 +370,43 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     return;
   }
 
+  const monitorStep: MonitorStep =
+    monitor.monitorSteps.data.monitorStepsInstanceArray[0]!;
+
+  /*
+   * OneUptime's own downtime is never a resource's silence (issue #2825).
+   * While the window this check judges holds time OneUptime was not
+   * receiving - it was restarting, upgrading or its datastores were
+   * unreachable, or it had only just come back - the check waits: no status
+   * change, nothing opened, nothing resolved. While the ingest queue is
+   * behind, the window ends where the queue is, so the check judges data
+   * that has been read rather than data still waiting to be.
+   */
+  const plan: TelemetryEvaluationPlan =
+    await ReceivingCoverage.planTelemetryEvaluation({
+      windowInMs: TelemetryMonitorWindow.getWindowInMs({
+        monitorType: monitor.monitorType!,
+        monitorStep,
+      }),
+    });
+
+  if (!plan.evaluate) {
+    logger.debug(
+      `Telemetry monitor ${data.monitorId} waits: its window holds time this instance was not receiving data (${plan.deferredBecause}).`,
+      {
+        service: "workers",
+        projectId: monitor.projectId?.toString(),
+      },
+    );
+    return;
+  }
+
   const response: TelemetryMonitorResponse = await monitorTelemetryMonitor({
-    monitorStep: monitor.monitorSteps.data.monitorStepsInstanceArray[0]!,
+    monitorStep,
     monitorType: monitor.monitorType!,
     monitorId: monitor.id,
     projectId: monitor.projectId!,
+    evaluateUntil: plan.isIngestBehind ? plan.evaluateUntil : undefined,
   });
 
   await MonitorResourceUtil.monitorResource(response);
@@ -381,6 +417,7 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorType: MonitorType;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<TelemetryMonitorResponse>;
 
 /**
@@ -1232,6 +1269,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorType: MonitorType;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<
   | LogMonitorResponse
   | SecurityEventsMonitorResponse
@@ -1240,13 +1278,15 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   | ExceptionMonitorResponse
   | ProfileMonitorResponse
 > => {
-  const { monitorStep, monitorType, monitorId, projectId } = data;
+  const { monitorStep, monitorType, monitorId, projectId, evaluateUntil } =
+    data;
 
   if (monitorType === MonitorType.Logs) {
     return monitorLogs({
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1255,6 +1295,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1263,6 +1304,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1271,6 +1313,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1279,6 +1322,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1287,6 +1331,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1295,6 +1340,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1303,6 +1349,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1311,6 +1358,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1319,6 +1367,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1327,6 +1376,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1335,6 +1385,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1343,6 +1394,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1351,6 +1403,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1359,6 +1412,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1367,6 +1421,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
       monitorStep,
       monitorId,
       projectId,
+      evaluateUntil,
     });
   }
 
@@ -1377,12 +1432,14 @@ type MonitorTraceFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<TraceMonitorResponse>;
 
 export const monitorTrace: MonitorTraceFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<TraceMonitorResponse> => {
   /*
    * Fall back to the default config when the step was saved without a
@@ -1393,7 +1450,10 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
     data.monitorStep.data?.traceMonitor ||
     MonitorStepTraceMonitorUtil.getDefault();
 
-  const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(traceQuery);
+  const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(
+    traceQuery,
+    data.evaluateUntil,
+  );
 
   query.projectId = data.projectId;
 
@@ -1418,12 +1478,14 @@ type MonitorMetricFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorMetric: MonitorMetricFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   // Monitor traces
   const metricMonitorConfig: MonitorStepMetricMonitor | undefined =
@@ -1436,6 +1498,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -1614,12 +1677,14 @@ type MonitorExceptionFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<ExceptionMonitorResponse>;
 
 export const monitorException: MonitorExceptionFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<ExceptionMonitorResponse> => {
   /*
    * Fall back to the default config when the step was saved without an
@@ -1631,7 +1696,10 @@ export const monitorException: MonitorExceptionFunction = async (data: {
     MonitorStepExceptionMonitorUtil.getDefault();
 
   const analyticsQuery: Query<ExceptionInstance> =
-    MonitorStepExceptionMonitorUtil.toAnalyticsQuery(exceptionMonitorConfig);
+    MonitorStepExceptionMonitorUtil.toAnalyticsQuery(
+      exceptionMonitorConfig,
+      data.evaluateUntil,
+    );
 
   analyticsQuery.projectId = data.projectId;
 
@@ -1698,12 +1766,14 @@ type MonitorProfileFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<ProfileMonitorResponse>;
 
 const monitorProfile: MonitorProfileFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<ProfileMonitorResponse> => {
   const profileMonitorConfig: MonitorStepProfileMonitor | undefined =
     data.monitorStep.data?.profileMonitor;
@@ -1712,8 +1782,10 @@ const monitorProfile: MonitorProfileFunction = async (data: {
     throw new BadDataException("Profile monitor config is missing");
   }
 
-  const analyticsQuery: Query<Profile> =
-    MonitorStepProfileMonitorUtil.toQuery(profileMonitorConfig);
+  const analyticsQuery: Query<Profile> = MonitorStepProfileMonitorUtil.toQuery(
+    profileMonitorConfig,
+    data.evaluateUntil,
+  );
 
   analyticsQuery.projectId = data.projectId;
 
@@ -1740,12 +1812,14 @@ type MonitorKubernetesFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const kubernetesMonitorConfig: MonitorStepKubernetesMonitor | undefined =
     data.monitorStep.data?.kubernetesMonitor;
@@ -1757,6 +1831,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -1982,12 +2057,14 @@ type MonitorDockerFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorDocker: MonitorDockerFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const dockerMonitorConfig: MonitorStepDockerMonitor | undefined =
     data.monitorStep.data?.dockerMonitor;
@@ -1999,6 +2076,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -2169,12 +2247,14 @@ type MonitorHostFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorHost: MonitorHostFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const hostMonitorConfig: MonitorStepHostMonitor | undefined =
     data.monitorStep.data?.hostMonitor;
@@ -2186,6 +2266,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -2363,12 +2444,14 @@ type MonitorPodmanFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorPodman: MonitorPodmanFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const podmanMonitorConfig: MonitorStepPodmanMonitor | undefined =
     data.monitorStep.data?.podmanMonitor;
@@ -2380,6 +2463,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -2550,12 +2634,14 @@ type MonitorProxmoxFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorProxmox: MonitorProxmoxFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const proxmoxMonitorConfig: MonitorStepProxmoxMonitor | undefined =
     data.monitorStep.data?.proxmoxMonitor;
@@ -2567,6 +2653,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -2793,6 +2880,7 @@ type MonitorVMwareFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 /*
@@ -2863,6 +2951,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const vmwareMonitorConfig: MonitorStepVMwareMonitor | undefined =
     data.monitorStep.data?.vmwareMonitor;
@@ -2874,6 +2963,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -3079,12 +3169,14 @@ type MonitorIoTFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorIoT: MonitorIoTFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const iotMonitorConfig: MonitorStepIoTMonitor | undefined =
     data.monitorStep.data?.iotMonitor;
@@ -3096,6 +3188,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -3303,12 +3396,14 @@ type MonitorDockerSwarmFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const dockerSwarmMonitorConfig: MonitorStepDockerSwarmMonitor | undefined =
     data.monitorStep.data?.dockerSwarmMonitor;
@@ -3320,6 +3415,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -3563,12 +3659,14 @@ type MonitorCephFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 export const monitorCeph: MonitorCephFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const cephMonitorConfig: MonitorStepCephMonitor | undefined =
     data.monitorStep.data?.cephMonitor;
@@ -3580,6 +3678,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -3793,6 +3892,7 @@ type MonitorStorageArrayFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
 /*
@@ -3874,6 +3974,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<MetricMonitorResponse> => {
   const storageArrayMonitorConfig: MonitorStepStorageArrayMonitor | undefined =
     data.monitorStep.data?.storageArrayMonitor;
@@ -3885,6 +3986,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
     );
 
   const finalResult: Array<AggregatedResult> = [];
@@ -4096,12 +4198,14 @@ type MonitorLogsFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<LogMonitorResponse>;
 
 export const monitorLogs: MonitorLogsFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }): Promise<LogMonitorResponse> => {
   /*
    * A telemetry monitor step created on defaults can persist its sub-config
@@ -4118,7 +4222,10 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
   const logQuery: MonitorStepLogMonitor =
     data.monitorStep.data?.logMonitor || MonitorStepLogMonitorUtil.getDefault();
 
-  const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
+  const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(
+    logQuery,
+    data.evaluateUntil,
+  );
   query.projectId = data.projectId;
 
   const groupByAttributes: Array<string> =
@@ -4225,6 +4332,7 @@ type MonitorSecurityEventsFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
 }) => Promise<SecurityEventsMonitorResponse>;
 
 export const monitorSecurityEvents: MonitorSecurityEventsFunction =
@@ -4232,6 +4340,7 @@ export const monitorSecurityEvents: MonitorSecurityEventsFunction =
     monitorStep: MonitorStep;
     monitorId: ObjectID;
     projectId: ObjectID;
+    evaluateUntil?: Date | undefined;
   }): Promise<SecurityEventsMonitorResponse> => {
     /*
      * Same fallback rationale as monitorLogs above: a step saved on
@@ -4243,7 +4352,10 @@ export const monitorSecurityEvents: MonitorSecurityEventsFunction =
       MonitorStepSecurityEventsMonitorUtil.getDefault();
 
     const query: Query<SecurityEvent> =
-      MonitorStepSecurityEventsMonitorUtil.toQuery(securityEventsQueryConfig);
+      MonitorStepSecurityEventsMonitorUtil.toQuery(
+        securityEventsQueryConfig,
+        data.evaluateUntil,
+      );
     query.projectId = data.projectId;
 
     const countEvents: PositiveNumber = await SecurityEventService.countBy({

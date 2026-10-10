@@ -16,7 +16,7 @@ A Server / VM monitor watches one machine through the OneUptime infrastructure a
 
 The agent runs as a system service. Every 30 seconds it collects a report and sends it to your OneUptime URL, signed with the monitor's secret key. OneUptime stores the numbers as the monitor's metrics and checks the report against the monitor's criteria.
 
-Silence is checked separately. Every minute, OneUptime re-evaluates the **Is Online** criteria of every Server / VM monitor that has not reported for 3 minutes or more, and a server silent for longer than its criteria allows (3 minutes by default) counts as offline. A monitor with no **Is Online** criteria is never marked offline just because the agent went quiet.
+Silence is checked separately. Every minute, OneUptime re-evaluates the **Is Online** criteria of every Server / VM monitor that has not reported for 3 minutes or more, and a server silent for longer than its criteria allows (3 minutes by default) counts as offline. A monitor with no **Is Online** criteria is never marked offline just because the agent went quiet. Only time OneUptime was receiving counts toward that silence: time OneUptime itself was restarting, being upgraded or catching up does not, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ```mermaid title="How a Server / VM monitor gets its data"
 flowchart TB
