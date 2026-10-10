@@ -345,7 +345,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "successful",
     "attempt",
   ],
-  [SWARM]: ["Install the Docker Swarm Agent", "Check the cluster is registered."],
+  [SWARM]: [
+    "Install the Docker Swarm Agent",
+    "Check the cluster is registered.",
+  ],
 };
 
 const PATH_SEPARATOR: string = " → ";
@@ -1006,7 +1009,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           numbers: numbersIn(
             (translatedTable[row + 1] as Array<string>).join(" | "),
           ),
-        }).toEqual({ template: cells[0], numbers: numbersIn(cells.join(" | ")) });
+        }).toEqual({
+          template: cells[0],
+          numbers: numbersIn(cells.join(" | ")),
+        });
       });
     });
 

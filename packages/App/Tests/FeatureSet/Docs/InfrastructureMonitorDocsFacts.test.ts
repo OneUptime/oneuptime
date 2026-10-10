@@ -256,31 +256,30 @@ interface Comparison {
 }
 
 // How a "Fires when" or "Recovers when" cell states its comparison.
-const COMPARISON_PHRASES: Array<{ pattern: RegExp; filterType: FilterType }> =
-  [
-    {
-      pattern: /^(?:Any value is )?below (\d+(?:\.\d+)?)/i,
-      filterType: FilterType.LessThan,
-    },
-    {
-      pattern: /^(?:Every value is )?at or above (\d+(?:\.\d+)?)/i,
-      filterType: FilterType.GreaterThanOrEqualTo,
-    },
-    {
-      pattern: /^at or below (\d+(?:\.\d+)?)/i,
-      filterType: FilterType.LessThanOrEqualTo,
-    },
-    {
-      pattern: /^(?:above|more than) (\d+(?:\.\d+)?)/i,
-      filterType: FilterType.GreaterThan,
-    },
-    { pattern: /^equal to (\d+(?:\.\d+)?)/i, filterType: FilterType.EqualTo },
-    { pattern: /^at (\d+(?:\.\d+)?)$/i, filterType: FilterType.EqualTo },
-    {
-      pattern: /^(\d+(?:\.\d+)?)(?:%| ms)? or (?:fewer|less)\b/i,
-      filterType: FilterType.LessThanOrEqualTo,
-    },
-  ];
+const COMPARISON_PHRASES: Array<{ pattern: RegExp; filterType: FilterType }> = [
+  {
+    pattern: /^(?:Any value is )?below (\d+(?:\.\d+)?)/i,
+    filterType: FilterType.LessThan,
+  },
+  {
+    pattern: /^(?:Every value is )?at or above (\d+(?:\.\d+)?)/i,
+    filterType: FilterType.GreaterThanOrEqualTo,
+  },
+  {
+    pattern: /^at or below (\d+(?:\.\d+)?)/i,
+    filterType: FilterType.LessThanOrEqualTo,
+  },
+  {
+    pattern: /^(?:above|more than) (\d+(?:\.\d+)?)/i,
+    filterType: FilterType.GreaterThan,
+  },
+  { pattern: /^equal to (\d+(?:\.\d+)?)/i, filterType: FilterType.EqualTo },
+  { pattern: /^at (\d+(?:\.\d+)?)$/i, filterType: FilterType.EqualTo },
+  {
+    pattern: /^(\d+(?:\.\d+)?)(?:%| ms)? or (?:fewer|less)\b/i,
+    filterType: FilterType.LessThanOrEqualTo,
+  },
+];
 
 function comparisonIn(cell: string): Comparison | null {
   for (const phrase of COMPARISON_PHRASES) {
@@ -485,7 +484,8 @@ function comparisonOf(filter: CriteriaFilter): Comparison {
 }
 
 function windowAggregationOf(filter: CriteriaFilter): EvaluateOverTimeType {
-  return filter.metricMonitorOptions?.metricAggregationType as EvaluateOverTimeType;
+  return filter.metricMonitorOptions
+    ?.metricAggregationType as EvaluateOverTimeType;
 }
 
 interface TemplateRow {
@@ -520,7 +520,10 @@ const GROUP_BY_WORDS: Array<{ pattern: RegExp; keys: Array<string> }> = [
   { pattern: /\bper container\b/, keys: ["resource.container.name"] },
   { pattern: /\bper task\b/, keys: ["resource.container.name"] },
   { pattern: /\bper `id`/, keys: ["id"] },
-  { pattern: /\bper `mountpoint` and `device`/, keys: ["mountpoint", "device"] },
+  {
+    pattern: /\bper `mountpoint` and `device`/,
+    keys: ["mountpoint", "device"],
+  },
 ];
 
 function groupByWritten(watches: string): Array<string> {
@@ -565,7 +568,11 @@ function describeTemplateTable(data: {
       );
     });
 
-    it.each(templates.map((t: BuiltTemplate) => [t.name, t]))(
+    it.each(
+      templates.map((t: BuiltTemplate) => {
+        return [t.name, t];
+      }),
+    )(
       "%s: severity, metrics, filters, group-by, window and aggregation",
       (_name: string, template: BuiltTemplate) => {
         const index: number = rows.findIndex((candidate: TemplateRow) => {
@@ -591,8 +598,7 @@ function describeTemplateTable(data: {
             expect({ key, value, named: true }).toEqual({
               key,
               value,
-              named:
-                code.includes(`${key} = ${value}`) || code.includes(value),
+              named: code.includes(`${key} = ${value}`) || code.includes(value),
             });
           }
         }
@@ -632,8 +638,7 @@ function describeTemplateTable(data: {
             expect({ query: metricNameOf(query), aggregation: true }).toEqual({
               query: metricNameOf(query),
               aggregation:
-                aggregationOf(query) ===
-                AGGREGATION_OF_WORD[word[1] as string],
+                aggregationOf(query) === AGGREGATION_OF_WORD[word[1] as string],
             });
           }
         }
@@ -940,9 +945,9 @@ describe("the Host templates the page explains", () => {
     expect(named("High CPU Utilization").formulas).toEqual([
       "(host_cpu_user + host_cpu_system) * 100",
     ]);
-    expect(named("High Memory Utilization").queries.map(attributesOf)).toEqual(
-      [{ state: "used" }],
-    );
+    expect(named("High Memory Utilization").queries.map(attributesOf)).toEqual([
+      { state: "used" },
+    ]);
     expect(named("High Memory Utilization").formulas[0]).toContain("* 100");
     expect(named("High Filesystem Usage").formulas[0]).toContain("* 100");
   });
@@ -1086,7 +1091,9 @@ describe(`${KUBERNETES}: the template table`, () => {
       filterType: FilterType.GreaterThan,
       value: 5,
     });
-    expect(englishPage(KUBERNETES)).toContain("so the count does not fall back once it has passed 5.");
+    expect(englishPage(KUBERNETES)).toContain(
+      "so the count does not fall back once it has passed 5.",
+    );
   });
 
   it("the control-plane templates need the agent's control-plane scrape, which is off by default", () => {
@@ -1132,9 +1139,7 @@ describe(`${KUBERNETES}: the metric catalog`, () => {
     const listed: Record<string, Array<string>> = {};
 
     for (const cells of rows) {
-      listed[cells[0] as string] = (cells[1] as string).split(
-        /, (?![^(]*\))/,
-      );
+      listed[cells[0] as string] = (cells[1] as string).split(/, (?![^(]*\))/);
     }
 
     const expected: Record<string, Array<string>> = {};
@@ -1142,10 +1147,7 @@ describe(`${KUBERNETES}: the metric catalog`, () => {
     for (const metric of getAllKubernetesMetrics()) {
       const category: string = CATEGORY_ROWS[metric.category] as string;
 
-      expected[category] = [
-        ...(expected[category] || []),
-        metric.friendlyName,
-      ];
+      expected[category] = [...(expected[category] || []), metric.friendlyName];
     }
 
     expect(listed).toEqual(expected);
@@ -1219,9 +1221,11 @@ describe(`${KUBERNETES}: the form`, () => {
     }
 
     // Namespace shows for the namespace, workload and pod scopes.
-    expect(rows.map((cells: Array<string>): string => {
-      return cells[2] as string;
-    })).toEqual([
+    expect(
+      rows.map((cells: Array<string>): string => {
+        return cells[2] as string;
+      }),
+    ).toEqual([
       "—",
       "**Namespace**",
       "**Namespace**, **Workload Name**",
@@ -1376,19 +1380,23 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
     },
   );
 
-  it.each([...CREATE_FACTS.map((facts: CreateFacts) => facts.form), "KubernetesMonitor/KubernetesMonitorStepForm.tsx"])(
-    "%s offers the aggregations the pages list",
-    (formFile: string) => {
-      const form: string = source(`${FORMS}/${formFile}`);
-      const labels: Array<string> = Array.from(
-        form.matchAll(/\{ label: "([^"]+)", value: MetricsAggregationType\.\w+ \}/g),
-      ).map((match: RegExpMatchArray): string => {
-        return match[1] as string;
-      });
+  it.each([
+    ...CREATE_FACTS.map((facts: CreateFacts) => {
+      return facts.form;
+    }),
+    "KubernetesMonitor/KubernetesMonitorStepForm.tsx",
+  ])("%s offers the aggregations the pages list", (formFile: string) => {
+    const form: string = source(`${FORMS}/${formFile}`);
+    const labels: Array<string> = Array.from(
+      form.matchAll(
+        /\{ label: "([^"]+)", value: MetricsAggregationType\.\w+ \}/g,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
 
-      expect(labels).toEqual(["Average", "Maximum", "Minimum", "Sum", "Count"]);
-    },
-  );
+    expect(labels).toEqual(["Average", "Maximum", "Minimum", "Sum", "Count"]);
+  });
 
   it("every page lists those aggregations and the time range", () => {
     for (const facts of CREATE_FACTS) {
@@ -1463,7 +1471,10 @@ describe("the Products menu paths the pages give", () => {
   );
 
   // The product's title key in the Products menu, and its own side menu folder.
-  const PRODUCTS: Record<string, { titleKey: string; folder: string; list: string }> = {
+  const PRODUCTS: Record<
+    string,
+    { titleKey: string; folder: string; list: string }
+  > = {
     Hosts: { titleKey: "hostsTitle", folder: "Host", list: "All Hosts" },
     Kubernetes: {
       titleKey: "kubernetesTitle",
@@ -1484,7 +1495,8 @@ describe("the Products menu paths the pages give", () => {
     },
   };
 
-  const PATH: RegExp = /\*\*Products → Infrastructure → ([^*→]+?)(?: → ([^*]+?))?\*\*/g;
+  const PATH: RegExp =
+    /\*\*Products → Infrastructure → ([^*→]+?)(?: → ([^*]+?))?\*\*/g;
 
   it("each product is under Infrastructure, and each path's last step is on the product's own menu", () => {
     let paths: number = 0;
@@ -1493,7 +1505,11 @@ describe("the Products menu paths the pages give", () => {
       for (const match of Array.from(englishPage(page).matchAll(PATH))) {
         const product: string = (match[1] as string).trim();
         const facts: { titleKey: string; folder: string; list: string } =
-          PRODUCTS[product] as { titleKey: string; folder: string; list: string };
+          PRODUCTS[product] as {
+            titleKey: string;
+            folder: string;
+            list: string;
+          };
 
         expect({ page, product, known: true }).toEqual({
           page,
@@ -1588,11 +1604,12 @@ describe("the criteria of the telemetry-backed monitors", () => {
   });
 
   it("offer the comparisons and anomaly conditions the pages list", () => {
-    const conditions: Array<string> = CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
-      CheckOn.MetricValue,
-    ).map((option: DropdownOption): string => {
-      return String(option.value);
-    });
+    const conditions: Array<string> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue).map(
+        (option: DropdownOption): string => {
+          return String(option.value);
+        },
+      );
 
     expect(conditions.sort()).toEqual(
       [
@@ -1659,9 +1676,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     }
 
     expect(criteriaForm).toContain('label: "14 days (default)"');
-    expect(criteriaForm).toContain(
-      "|| AnomalyDetectionSensitivity.Medium;",
-    );
+    expect(criteriaForm).toContain("|| AnomalyDetectionSensitivity.Medium;");
     expect(criteriaForm).toContain('"Learning" state');
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
@@ -1681,9 +1696,9 @@ describe("the criteria of the telemetry-backed monitors", () => {
     );
 
     expect(moreFields).toBeGreaterThan(0);
-    expect(criteriaForm.indexOf('title="If No Data"', moreFields)).toBeGreaterThan(
-      moreFields,
-    );
+    expect(
+      criteriaForm.indexOf('title="If No Data"', moreFields),
+    ).toBeGreaterThan(moreFields);
     expect(criteriaForm).toContain(
       "criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||\n                        NoDataPolicy.Ignore;",
     );
@@ -1711,15 +1726,13 @@ describe("the criteria of the telemetry-backed monitors", () => {
   ])(
     "%s states the default criteria a new %s monitor gets",
     (page: string, monitorType: MonitorType) => {
-      const criteria: MonitorCriteria = MonitorCriteria.getDefaultMonitorCriteria(
-        {
+      const criteria: MonitorCriteria =
+        MonitorCriteria.getDefaultMonitorCriteria({
           monitorType: monitorType,
           monitorName: "Acme",
           ...IDS,
-        },
-      );
-      const [offline, online] = criteria.data!
-        .monitorCriteriaInstanceArray as [
+        });
+      const [offline, online] = criteria.data!.monitorCriteriaInstanceArray as [
         MonitorCriteriaInstance,
         MonitorCriteriaInstance,
       ];
@@ -1822,9 +1835,13 @@ describe("the worker scopes each monitor as its page says", () => {
     const podman: string = functionBody(worker, "export const monitorPodman");
 
     expect(docker).toContain('attributes["resource.host.name"]');
-    expect(docker).toContain('attributes["resource.container.runtime"] = "docker";');
+    expect(docker).toContain(
+      'attributes["resource.container.runtime"] = "docker";',
+    );
     expect(podman).toContain('attributes["resource.host.name"]');
-    expect(podman).toContain('attributes["resource.container.runtime"] = "podman";');
+    expect(podman).toContain(
+      'attributes["resource.container.runtime"] = "podman";',
+    );
 
     for (const [page, runtime] of [
       [DOCKER, "docker"],
@@ -1854,12 +1871,16 @@ describe("the worker scopes each monitor as its page says", () => {
   it("Proxmox: the cluster, then the Guest ID over the Node Name over the scope and PVE ID", () => {
     const proxmox: string = functionBody(worker, "export const monitorProxmox");
     const guest: number = proxmox.indexOf("if (resourceFilters.guestId) {");
-    const node: number = proxmox.indexOf("} else if (resourceFilters.nodeName) {");
+    const node: number = proxmox.indexOf(
+      "} else if (resourceFilters.nodeName) {",
+    );
 
     expect(proxmox).toContain('attributes["resource.proxmox.cluster.name"]');
     expect(guest).toBeGreaterThan(0);
     expect(node).toBeGreaterThan(guest);
-    expect(proxmox).toContain('attributes["pve.scope"] = ProxmoxResourceScope.Node;');
+    expect(proxmox).toContain(
+      'attributes["pve.scope"] = ProxmoxResourceScope.Node;',
+    );
     expect(englishPage(PROXMOX)).toContain(
       "Exact match on the raw `id` label, such as `qemu/100` or `lxc/101`. When set, the other filters are ignored.",
     );
@@ -1881,7 +1902,9 @@ describe("the worker scopes each monitor as its page says", () => {
 
 describe("the agents the pages describe", () => {
   it("Docker: docker_stats every 30 seconds, json-file logs, and the optional metrics it turns on", () => {
-    const config: string = source("agents/DockerAgent/otel-collector-config.yaml");
+    const config: string = source(
+      "agents/DockerAgent/otel-collector-config.yaml",
+    );
 
     expect(config).toContain("endpoint: unix:///var/run/docker.sock");
     expect(config).toContain("collection_interval: 30s");
@@ -1892,7 +1915,9 @@ describe("the agents the pages describe", () => {
   });
 
   it("Podman: Podman's Docker-compatible socket every 30 seconds, and the k8s-file logs", () => {
-    const config: string = source("agents/PodmanAgent/otel-collector-config.yaml");
+    const config: string = source(
+      "agents/PodmanAgent/otel-collector-config.yaml",
+    );
 
     expect(config).toContain("endpoint: unix:///run/podman/podman.sock");
     expect(config).toContain("collection_interval: 30s");
@@ -1918,7 +1943,9 @@ describe("the agents the pages describe", () => {
       expect(config).toContain(
         'value: \'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")\'',
       );
-      expect(config).toContain("is_first_entry: 'body matches \"^[^\\\\s\\\\}\\\\)\\\\]]\"'");
+      expect(config).toContain(
+        "is_first_entry: 'body matches \"^[^\\\\s\\\\}\\\\)\\\\]]\"'",
+      );
       expect(englishPage(page)).toContain(
         "A line with no level falls back to its stream: `stderr` is `ERROR`, `stdout` is `INFO`.",
       );
@@ -1926,11 +1953,29 @@ describe("the agents the pages describe", () => {
   );
 
   it.each([
-    ["agents/DockerAgent/otel-collector-config.yaml", DOCKER, getAllDockerMetrics],
-    ["agents/PodmanAgent/otel-collector-config.yaml", PODMAN, getAllPodmanMetrics],
-  ] as Array<[string, string, () => Array<DockerMetricDefinition | PodmanMetricDefinition>]>)(
+    [
+      "agents/DockerAgent/otel-collector-config.yaml",
+      DOCKER,
+      getAllDockerMetrics,
+    ],
+    [
+      "agents/PodmanAgent/otel-collector-config.yaml",
+      PODMAN,
+      getAllPodmanMetrics,
+    ],
+  ] as Array<
+    [
+      string,
+      string,
+      () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
+    ]
+  >)(
     "%s leaves off the extra metrics the page says the picker lists but the agent does not turn on",
-    (configPath: string, page: string, catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>) => {
+    (
+      configPath: string,
+      page: string,
+      catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
+    ) => {
       const config: string = source(configPath);
       const extras: Array<string> = [
         "container.cpu.usage.percpu",
@@ -1974,7 +2019,9 @@ describe("the agents the pages describe", () => {
     const config: string = source(
       "agents/DockerSwarmAgent/otel-collector-config.yaml",
     );
-    const compose: string = source("agents/DockerSwarmAgent/docker-compose.yml");
+    const compose: string = source(
+      "agents/DockerSwarmAgent/docker-compose.yml",
+    );
 
     expect(config).toContain("collection_interval: 30s");
     expect(config).toContain("- key: docker.swarm.cluster.name");
@@ -1992,7 +2039,9 @@ describe("the agents the pages describe", () => {
   });
 
   it("Proxmox: the cluster and node collectors every 30 seconds, and id split into pve.scope, pve.type and pve.id", () => {
-    const config: string = source("agents/ProxmoxAgent/otel-collector-config.yaml");
+    const config: string = source(
+      "agents/ProxmoxAgent/otel-collector-config.yaml",
+    );
 
     expect(config).toContain('cluster: ["1"]');
     expect(config).toContain('node: ["1"]');
@@ -2054,9 +2103,14 @@ describe("the metric tables against the catalogs", () => {
   it.each([
     [DOCKER, getAllDockerMetrics],
     [PODMAN, getAllPodmanMetrics],
-  ] as Array<[string, () => Array<DockerMetricDefinition | PodmanMetricDefinition>]>)(
+  ] as Array<
+    [string, () => Array<DockerMetricDefinition | PodmanMetricDefinition>]
+  >)(
     "%s lists every catalog metric under its category, or in the sentence on the extras",
-    (page: string, catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>) => {
+    (
+      page: string,
+      catalog: () => Array<DockerMetricDefinition | PodmanMetricDefinition>,
+    ) => {
       const extras: string = sectionOf(page, "### Container")
         .split("\n")
         .filter((line: string): boolean => {
@@ -2245,15 +2299,15 @@ describe(`${SERVER}`, () => {
 
   it("lists exactly the agent's commands", () => {
     const help: Array<string> = Array.from(
-      agentMain.matchAll(/fmt\.Println\("  (\w+) {2,}/g),
+      agentMain.matchAll(/fmt\.Println\(" {2}(\w+) {2,}/g),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
-    const listed: Array<string> = tableBody(sectionOf(SERVER, "### Commands")).map(
-      (cells: Array<string>): string => {
-        return (cells[0] as string).replace(/`/g, "").split(" ")[0] as string;
-      },
-    );
+    const listed: Array<string> = tableBody(
+      sectionOf(SERVER, "### Commands"),
+    ).map((cells: Array<string>): string => {
+      return (cells[0] as string).replace(/`/g, "").split(" ")[0] as string;
+    });
 
     expect(listed.sort()).toEqual(help.sort());
     expect(help).toEqual(
@@ -2271,12 +2325,8 @@ describe(`${SERVER}`, () => {
   });
 
   it("configure needs both the secret key and the URL, and takes a proxy", () => {
-    expect(agentMain).toContain(
-      'installFlags.String("secret-key", "",',
-    );
-    expect(agentMain).toContain(
-      'installFlags.String("oneuptime-url", "",',
-    );
+    expect(agentMain).toContain('installFlags.String("secret-key", "",');
+    expect(agentMain).toContain('installFlags.String("oneuptime-url", "",');
     expect(agentMain).toContain('installFlags.String("proxy-url", "",');
     expect(agentMain).toContain(
       'if agentSvc.config.SecretKey == "" || agentSvc.config.OneUptimeURL == "" {',
@@ -2305,12 +2355,16 @@ describe(`${SERVER}`, () => {
   });
 
   it("keeps its files where the page says, with the fallback and the overrides", () => {
-    expect(config).toContain('basePath = fmt.Sprintf("%setc", string(filepath.Separator))');
+    expect(config).toContain(
+      'basePath = fmt.Sprintf("%setc", string(filepath.Separator))',
+    );
     expect(config).toContain('basePath = os.Getenv("PROGRAMDATA")');
     expect(config).toContain(
       'configDirectory := filepath.Join(basePath, "oneuptime-infrastructure-agent")',
     );
-    expect(config).toContain('return filepath.Join(configDirectory, "config.json")');
+    expect(config).toContain(
+      'return filepath.Join(configDirectory, "config.json")',
+    );
     expect(config).toContain('os.Getenv("ONEUPTIME_AGENT_CONFIG_PATH")');
     expect(config).toContain(
       'configDirectory = filepath.Join(home, ".oneuptime-infrastructure-agent")',
@@ -2340,17 +2394,27 @@ describe(`${SERVER}`, () => {
     expect(script).toContain("BINDIR=$HOME/bin");
     expect(script).toContain('echo "Installing to ${BINDIR}"');
     expect(script).toContain('while getopts "b:d" opt; do');
-    expect(page).toContain("puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`");
+    expect(page).toContain(
+      "puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`",
+    );
     expect(page).toContain("| sudo bash -s -- -b /usr/local/bin");
   });
 
   it("the Windows downloads are the release's zip archives", () => {
-    const release: string = source("agents/InfrastructureAgent/.goreleaser.yaml");
+    const release: string = source(
+      "agents/InfrastructureAgent/.goreleaser.yaml",
+    );
 
-    expect(release).toContain("name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'");
+    expect(release).toContain(
+      "name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'",
+    );
     expect(release).toContain("- goos: windows\n        format: zip");
-    expect(page).toContain("`oneuptime-infrastructure-agent_windows_amd64.zip`");
-    expect(page).toContain("`oneuptime-infrastructure-agent_windows_arm64.zip`");
+    expect(page).toContain(
+      "`oneuptime-infrastructure-agent_windows_amd64.zip`",
+    );
+    expect(page).toContain(
+      "`oneuptime-infrastructure-agent_windows_arm64.zip`",
+    );
   });
 
   it("the monitor's setup commands are on Documentation, and on Overview until the first report", () => {
@@ -2412,16 +2476,19 @@ describe(`${SERVER}`, () => {
     const rows: Array<Array<string>> = tableBody(
       sectionOf(SERVER, "## Monitoring criteria"),
     );
-    const offered: Array<string> = CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
-      MonitorType.Server,
-    ).map((option: DropdownOption): string => {
-      return String(option.value);
-    });
+    const offered: Array<string> =
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Server).map(
+        (option: DropdownOption): string => {
+          return String(option.value);
+        },
+      );
 
     expect(
-      rows.map((cells: Array<string>): string => {
-        return cells[0] as string;
-      }).sort(),
+      rows
+        .map((cells: Array<string>): string => {
+          return cells[0] as string;
+        })
+        .sort(),
     ).toEqual([...offered].sort());
 
     const cpuConditions: string = (
@@ -2433,13 +2500,17 @@ describe(`${SERVER}`, () => {
     for (const cells of rows) {
       const written: string =
         cells[2] === "Same as CPU" ? cpuConditions : (cells[2] as string);
-      const conditions: Array<string> = CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
-        cells[0] as CheckOn,
-      ).map((option: DropdownOption): string => {
-        return String(option.value);
-      });
+      const conditions: Array<string> =
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+          cells[0] as CheckOn,
+        ).map((option: DropdownOption): string => {
+          return String(option.value);
+        });
 
-      expect({ filter: cells[0], conditions: written.split(", ").sort() }).toEqual({
+      expect({
+        filter: cells[0],
+        conditions: written.split(", ").sort(),
+      }).toEqual({
         filter: cells[0],
         conditions: [...conditions].sort(),
       });
@@ -2453,7 +2524,9 @@ describe(`${SERVER}`, () => {
     const form: string = source(`${FORMS}/CriteriaFilter.tsx`);
 
     expect(form).toContain('title="Disk Path"');
-    expect(form).toContain('placeholder={"* or C:\\\\ or /mnt/data or /dev/sda1"}');
+    expect(form).toContain(
+      'placeholder={"* or C:\\\\ or /mnt/data or /dev/sda1"}',
+    );
     expect(criteria).toMatch(EMPTY_DISK_PATH_IS_ROOT);
     expect(page).toContain(
       "**Disk Path** takes a mount point or device, such as `/`, `/mnt/data`, `C:\\` or `/dev/sda1`; it is `/` when left empty. Enter `*` to check every disk the agent reports",
@@ -2463,9 +2536,13 @@ describe(`${SERVER}`, () => {
   it("evaluates over time with the aggregates and no-data choices the page lists", () => {
     const form: string = source(`${FORMS}/CriteriaFilter.tsx`);
 
-    expect(form).toContain('title={"Evaluate this criteria over a period of time"}');
+    expect(form).toContain(
+      'title={"Evaluate this criteria over a period of time"}',
+    );
     expect(form).toContain('<FieldLabelElement title="Evaluate" />');
-    expect(form).toContain('<FieldLabelElement title="For the last (in minutes)" />');
+    expect(form).toContain(
+      '<FieldLabelElement title="For the last (in minutes)" />',
+    );
     expect(page).toContain(
       "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value)",
     );
