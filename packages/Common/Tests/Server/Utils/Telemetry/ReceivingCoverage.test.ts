@@ -1,3 +1,4 @@
+import { CLOUD_RESOURCE_DISCONNECTED_MINUTES } from "../../../../Server/Services/CloudResourceService";
 import ReceivingCoverage, {
   RECEIVING_LEDGER_CACHE_HORIZON_MS,
   TELEMETRY_EVALUATION_MAX_DEFERRAL_MS,
@@ -10,11 +11,19 @@ import TelemetryIngestBacklog from "../../../../Server/Utils/Telemetry/Telemetry
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import logger from "../../../../Server/Utils/Logger";
 import {
+  MAX_RECEIVING_LOOKBACK_EXTENSION_MS,
   ReceivingGap,
   ReceivingGapReason,
   ReceivingPeriod,
 } from "../../../../Utils/Telemetry/ReceivingGaps";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -44,23 +53,21 @@ let oldestWaiting: SpyInstance<
 >;
 
 function givenLedger(periods: Array<ReceivingPeriod>): void {
-  readLedger.mockImplementation(
-    async (): Promise<ReceivingLedgerRead> => {
-      const latest: number | null =
-        periods.length > 0
-          ? Math.max(
-              ...periods.map((p: ReceivingPeriod) => {
-                return p.lastReceivingAt.getTime();
-              }),
-            )
-          : null;
-      return {
-        periods,
-        latestReceivingAt: latest === null ? null : new Date(latest),
-        now: NOW,
-      };
-    },
-  );
+  readLedger.mockImplementation(async (): Promise<ReceivingLedgerRead> => {
+    const latest: number | null =
+      periods.length > 0
+        ? Math.max(
+            ...periods.map((p: ReceivingPeriod) => {
+              return p.lastReceivingAt.getTime();
+            }),
+          )
+        : null;
+    return {
+      periods,
+      latestReceivingAt: latest === null ? null : new Date(latest),
+      now: NOW,
+    };
+  });
 }
 
 function givenBacklogSince(agoMs: number | null): void {
@@ -196,7 +203,11 @@ describe("ReceivingCoverage.getGaps", () => {
   });
 
   test("the cache expires after a few seconds, so a restart is seen promptly", async () => {
-    await ReceivingCoverage.getGaps({ startsAt: ago(HOUR), endsAt: NOW, now: NOW });
+    await ReceivingCoverage.getGaps({
+      startsAt: ago(HOUR),
+      endsAt: NOW,
+      now: NOW,
+    });
     await ReceivingCoverage.getGaps({
       startsAt: ago(HOUR),
       endsAt: NOW,
@@ -222,11 +233,19 @@ describe("ReceivingCoverage.getGaps", () => {
     readLedger.mockRejectedValue(new Error("connection refused"));
 
     expect(
-      await ReceivingCoverage.getGaps({ startsAt: ago(HOUR), endsAt: NOW, now: NOW }),
+      await ReceivingCoverage.getGaps({
+        startsAt: ago(HOUR),
+        endsAt: NOW,
+        now: NOW,
+      }),
     ).toEqual([]);
     ReceivingCoverage.clearCache();
     expect(
-      await ReceivingCoverage.getGaps({ startsAt: ago(HOUR), endsAt: NOW, now: NOW }),
+      await ReceivingCoverage.getGaps({
+        startsAt: ago(HOUR),
+        endsAt: NOW,
+        now: NOW,
+      }),
     ).toEqual([]);
 
     expect(errorLog.mock.calls.length).toBeLessThanOrEqual(2);
@@ -236,7 +255,11 @@ describe("ReceivingCoverage.getGaps", () => {
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(false);
 
     expect(
-      await ReceivingCoverage.getGaps({ startsAt: ago(HOUR), endsAt: NOW, now: NOW }),
+      await ReceivingCoverage.getGaps({
+        startsAt: ago(HOUR),
+        endsAt: NOW,
+        now: NOW,
+      }),
     ).toEqual([]);
     expect(readLedger).not.toHaveBeenCalled();
   });
@@ -246,7 +269,11 @@ describe("ReceivingCoverage.getGaps", () => {
     oldestWaiting.mockRejectedValue(new Error("valkey down"));
 
     expect(
-      await ReceivingCoverage.getGaps({ startsAt: ago(HOUR), endsAt: NOW, now: NOW }),
+      await ReceivingCoverage.getGaps({
+        startsAt: ago(HOUR),
+        endsAt: NOW,
+        now: NOW,
+      }),
     ).toEqual([]);
   });
 });
@@ -302,6 +329,48 @@ describe("ReceivingCoverage silence measures", () => {
       }),
     ).toEqual(ago(15 * MINUTE));
   });
+
+  test("after a three-day outage, a resource that reported until it went down is not silent yet", async () => {
+    // Down for three days, back five minutes ago; agents reconnecting until three minutes ago.
+    givenLedger([
+      period(10 * DAY, 3 * DAY + 5 * MINUTE),
+      period(5 * MINUTE, 10 * SECOND),
+    ]);
+
+    const cutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+      now: NOW,
+    });
+
+    // Three receiving minutes since the grace; the other twelve come from before the outage.
+    expect(cutoff).toEqual(ago(3 * DAY + 5 * MINUTE + 12 * MINUTE));
+    const lastReportedBeforeTheOutage: Date = ago(
+      3 * DAY + 5 * MINUTE + 30 * SECOND,
+    );
+    expect(lastReportedBeforeTheOutage.getTime()).toBeGreaterThan(
+      cutoff.getTime(),
+    );
+  });
+
+  test("every sweep's cutoff, even the longest threshold's, is answered from the cached horizon", async () => {
+    expect(
+      MAX_RECEIVING_LOOKBACK_EXTENSION_MS +
+        (CLOUD_RESOURCE_DISCONNECTED_MINUTES + 60) * MINUTE,
+    ).toBeLessThan(RECEIVING_LEDGER_CACHE_HORIZON_MS);
+
+    await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: CLOUD_RESOURCE_DISCONNECTED_MINUTES,
+      now: NOW,
+    });
+    await ReceivingCoverage.getSilenceCutoff({ silenceInMinutes: 3, now: NOW });
+
+    expect(readLedger).toHaveBeenCalledTimes(1);
+    const window: { startsAt: Date; endsAt: Date } = readLedger.mock
+      .calls[0]![0] as { startsAt: Date; endsAt: Date };
+    expect(NOW.getTime() - window.startsAt.getTime()).toBe(
+      RECEIVING_LEDGER_CACHE_HORIZON_MS,
+    );
+  });
 });
 
 describe("ReceivingCoverage.planTelemetryEvaluation", () => {
@@ -319,7 +388,10 @@ describe("ReceivingCoverage.planTelemetryEvaluation", () => {
 
   test("a window holding the restart or its grace waits, and says why", async () => {
     // Down from 12 to 5 minutes ago; agents reconnecting until 3 minutes ago.
-    givenLedger([period(10 * DAY, 12 * MINUTE), period(5 * MINUTE, 10 * SECOND)]);
+    givenLedger([
+      period(10 * DAY, 12 * MINUTE),
+      period(5 * MINUTE, 10 * SECOND),
+    ]);
     expect(await plan(10 * MINUTE)).toEqual({
       evaluate: false,
       evaluateUntil: NOW,

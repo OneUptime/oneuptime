@@ -44,12 +44,12 @@ import ReceivingGapsUtil, {
 
 /*
  * Live verdicts look back at most this far (a heartbeat monitor with a long
- * window, a silence cutoff walking back past an outage), so the ledger is
+ * window, a silence cutoff walking back past an outage - at most
+ * MAX_RECEIVING_LOOKBACK_EXTENSION_MS past its threshold), so the ledger is
  * read for this whole horizon at once and cached. Older windows (a chart of
  * last quarter) are read directly.
  */
-export const RECEIVING_LEDGER_CACHE_HORIZON_MS: number =
-  35 * 24 * 60 * 60_000;
+export const RECEIVING_LEDGER_CACHE_HORIZON_MS: number = 35 * 24 * 60 * 60_000;
 
 const LEDGER_CACHE_TTL_MS: number = 15_000;
 const BACKLOG_CACHE_TTL_MS: number = 10_000;
@@ -112,17 +112,15 @@ export default class ReceivingCoverage {
   }): Promise<Array<ReceivingGap>> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
 
-    const [ledgerGaps, backlogGap]: [
-      Array<ReceivingGap>,
-      ReceivingGap | null,
-    ] = await Promise.all([
-      this.getLedgerGaps({
-        startsAt: data.startsAt,
-        endsAt: data.endsAt,
-        now,
-      }),
-      this.getBacklogGap(now),
-    ]);
+    const [ledgerGaps, backlogGap]: [Array<ReceivingGap>, ReceivingGap | null] =
+      await Promise.all([
+        this.getLedgerGaps({
+          startsAt: data.startsAt,
+          endsAt: data.endsAt,
+          now,
+        }),
+        this.getBacklogGap(now),
+      ]);
 
     return ReceivingGapsUtil.clip(
       backlogGap ? [...ledgerGaps, backlogGap] : ledgerGaps,

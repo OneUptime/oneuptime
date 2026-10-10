@@ -49,7 +49,9 @@ function describeGaps(
 
 describe("ReceivingGaps constants", () => {
   test("a gap needs three missed heartbeats, so one late beat is never a gap", () => {
-    expect(RECEIVING_GAP_THRESHOLD_MS).toBe(3 * RECEIVING_HEARTBEAT_INTERVAL_MS);
+    expect(RECEIVING_GAP_THRESHOLD_MS).toBe(
+      3 * RECEIVING_HEARTBEAT_INTERVAL_MS,
+    );
   });
 
   test("the reconnect grace outlasts an OpenTelemetry collector's 30 s retry backoff", () => {
@@ -59,7 +61,7 @@ describe("ReceivingGaps constants", () => {
   test("an open gap is believed for an hour at most, and the backlog allowance matches the charts' ingest lag", () => {
     expect(OPEN_GAP_MAX_TRUST_MS).toBe(HOUR);
     expect(INGEST_BACKLOG_ALLOWANCE_MS).toBe(MINUTE);
-    expect(MAX_RECEIVING_LOOKBACK_EXTENSION_MS).toBe(24 * HOUR);
+    expect(MAX_RECEIVING_LOOKBACK_EXTENSION_MS).toBe(30 * 24 * HOUR);
   });
 });
 
@@ -92,15 +94,18 @@ describe("ReceivingGapsUtil.gapsFromPeriods", () => {
       now: NOW,
     });
     expect(gaps).toEqual([]);
-    expect(
-      ReceivingGapsUtil.getReceivingMs(gaps, at(-3 * HOUR), NOW),
-    ).toBe(3 * HOUR);
+    expect(ReceivingGapsUtil.getReceivingMs(gaps, at(-3 * HOUR), NOW)).toBe(
+      3 * HOUR,
+    );
   });
 
   test("a restart between two periods is a gap, followed by the reconnect grace", () => {
     // Receiving until 11:00, down until 11:12, receiving since.
     const gaps: Array<ReceivingGap> = ReceivingGapsUtil.gapsFromPeriods({
-      periods: [period(-3 * HOUR, -1 * HOUR), period(-48 * MINUTE, -5 * SECOND)],
+      periods: [
+        period(-3 * HOUR, -1 * HOUR),
+        period(-48 * MINUTE, -5 * SECOND),
+      ],
       latestReceivingAt: at(-5 * SECOND),
       now: NOW,
     });
@@ -116,12 +121,18 @@ describe("ReceivingGapsUtil.gapsFromPeriods", () => {
 
   test("periods may arrive in any order", () => {
     const ordered: Array<ReceivingGap> = ReceivingGapsUtil.gapsFromPeriods({
-      periods: [period(-3 * HOUR, -1 * HOUR), period(-48 * MINUTE, -5 * SECOND)],
+      periods: [
+        period(-3 * HOUR, -1 * HOUR),
+        period(-48 * MINUTE, -5 * SECOND),
+      ],
       latestReceivingAt: at(-5 * SECOND),
       now: NOW,
     });
     const reversed: Array<ReceivingGap> = ReceivingGapsUtil.gapsFromPeriods({
-      periods: [period(-48 * MINUTE, -5 * SECOND), period(-3 * HOUR, -1 * HOUR)],
+      periods: [
+        period(-48 * MINUTE, -5 * SECOND),
+        period(-3 * HOUR, -1 * HOUR),
+      ],
       latestReceivingAt: at(-5 * SECOND),
       now: NOW,
     });
@@ -217,7 +228,11 @@ describe("ReceivingGapsUtil.gapsFromPeriods", () => {
       now: NOW,
     });
     expect(describeGaps(gaps)).toEqual([
-      [-3 * HOUR, -3 * HOUR + OPEN_GAP_MAX_TRUST_MS, ReceivingGapReason.NotReceiving],
+      [
+        -3 * HOUR,
+        -3 * HOUR + OPEN_GAP_MAX_TRUST_MS,
+        ReceivingGapReason.NotReceiving,
+      ],
     ]);
   });
 
@@ -274,7 +289,11 @@ describe("ReceivingGapsUtil.gapsFromPeriods", () => {
         -50 * MINUTE + 40 * SECOND,
         ReceivingGapReason.Reconnecting,
       ],
-      [-50 * MINUTE + 40 * SECOND, -40 * MINUTE, ReceivingGapReason.NotReceiving],
+      [
+        -50 * MINUTE + 40 * SECOND,
+        -40 * MINUTE,
+        ReceivingGapReason.NotReceiving,
+      ],
       [
         -40 * MINUTE,
         -40 * MINUTE + RECONNECT_GRACE_MS,
@@ -338,7 +357,9 @@ describe("ReceivingGapsUtil time arithmetic", () => {
 
   test("clip keeps only the parts inside the window", () => {
     expect(
-      describeGaps(ReceivingGapsUtil.clip(gaps, at(-45 * MINUTE), at(-39 * MINUTE))),
+      describeGaps(
+        ReceivingGapsUtil.clip(gaps, at(-45 * MINUTE), at(-39 * MINUTE)),
+      ),
     ).toEqual([
       [-45 * MINUTE, -40 * MINUTE, ReceivingGapReason.NotReceiving],
       [-40 * MINUTE, -39 * MINUTE, ReceivingGapReason.Reconnecting],
@@ -366,7 +387,11 @@ describe("ReceivingGapsUtil time arithmetic", () => {
       from,
       NOW,
     );
-    const receivingMs: number = ReceivingGapsUtil.getReceivingMs(gaps, from, NOW);
+    const receivingMs: number = ReceivingGapsUtil.getReceivingMs(
+      gaps,
+      from,
+      NOW,
+    );
     expect(notReceivingMs).toBe(17 * MINUTE);
     expect(receivingMs).toBe(43 * MINUTE);
     expect(notReceivingMs + receivingMs).toBe(60 * MINUTE);
@@ -375,16 +400,18 @@ describe("ReceivingGapsUtil time arithmetic", () => {
   test("a silence that partly overlaps a gap only counts the receiving part", () => {
     // Last heard at 11:15; OneUptime was down 11:10-11:20 and reconnecting to 11:22.
     expect(
-      ReceivingGapsUtil.getReceivingMs(gaps, at(-45 * MINUTE), at(-30 * MINUTE)),
+      ReceivingGapsUtil.getReceivingMs(
+        gaps,
+        at(-45 * MINUTE),
+        at(-30 * MINUTE),
+      ),
     ).toBe(8 * MINUTE);
   });
 
   test("an empty or reversed window has no receiving time", () => {
     expect(ReceivingGapsUtil.getReceivingMs(gaps, NOW, NOW)).toBe(0);
     expect(ReceivingGapsUtil.getReceivingMs(gaps, NOW, at(-MINUTE))).toBe(0);
-    expect(
-      ReceivingGapsUtil.getReceivingMs(gaps, new Date("x"), NOW),
-    ).toBe(0);
+    expect(ReceivingGapsUtil.getReceivingMs(gaps, new Date("x"), NOW)).toBe(0);
   });
 
   test("the latest overlapping end is the end of the newest gap inside the window", () => {
@@ -481,10 +508,21 @@ describe("ReceivingGapsUtil.getReceivingWindowStart", () => {
     ).toEqual(at(-(15 * MINUTE + 2 * HOUR)));
   });
 
-  test("the default extension cap is a day", () => {
+  test("an outage over a long weekend is walked past in full: the silence threshold is still receiving time", () => {
+    // Down for three days, back a minute ago: 14 of the 15 minutes come from before.
     expect(
       ReceivingGapsUtil.getReceivingWindowStart({
-        gaps: [gap(-10 * 24 * HOUR, 0)],
+        gaps: [gap(-3 * 24 * HOUR, -1 * MINUTE)],
+        endsAt: NOW,
+        receivingMs: 15 * MINUTE,
+      }),
+    ).toEqual(at(-(3 * 24 * HOUR + 14 * MINUTE)));
+  });
+
+  test("the default extension cap is thirty days", () => {
+    expect(
+      ReceivingGapsUtil.getReceivingWindowStart({
+        gaps: [gap(-60 * 24 * HOUR, 0)],
         endsAt: NOW,
         receivingMs: 15 * MINUTE,
       }),
@@ -544,7 +582,11 @@ describe("ReceivingGapsUtil JSON", () => {
         null,
         "x",
         [],
-        { startsAt: "nope", endsAt: at(0).toISOString(), reason: "NotReceiving" },
+        {
+          startsAt: "nope",
+          endsAt: at(0).toISOString(),
+          reason: "NotReceiving",
+        },
         { startsAt: at(-MINUTE).toISOString(), endsAt: at(0).toISOString() },
         {
           startsAt: at(-MINUTE).toISOString(),

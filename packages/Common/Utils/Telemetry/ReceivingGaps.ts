@@ -103,11 +103,18 @@ export const INGEST_BACKLOG_ALLOWANCE_MS: number = 60_000;
 
 /*
  * A window that has to reach back past gaps to hold enough receiving time
- * never reaches back further than this past its own length. Past it the
- * outage was longer than a day, and judging that day's silence is the
- * lesser evil.
+ * never reaches back further than this past its own length.
+ *
+ * Long enough for any outage an installation comes back from: a OneUptime
+ * that was off for a long weekend still gives every resource its full
+ * silence threshold of receiving time before calling it disconnected, as
+ * the monitors' own silence criteria do. Short enough that, with the
+ * longest silence threshold added, the walk stays inside the ledger horizon
+ * every process keeps cached (RECEIVING_LEDGER_CACHE_HORIZON_MS), so a
+ * sweep never reads the ledger itself.
  */
-export const MAX_RECEIVING_LOOKBACK_EXTENSION_MS: number = 24 * 60 * 60_000;
+export const MAX_RECEIVING_LOOKBACK_EXTENSION_MS: number =
+  30 * 24 * 60 * 60_000;
 
 /*
  * When two reasons cover the same instant, the one that says the most about
@@ -147,8 +154,10 @@ export default class ReceivingGapsUtil {
   }): Array<ReceivingGap> {
     const nowMs: number = data.now.getTime();
 
-    const merged: Array<{ startMs: number; endMs: number }> =
-      this.mergePeriods(data.periods, nowMs);
+    const merged: Array<{ startMs: number; endMs: number }> = this.mergePeriods(
+      data.periods,
+      nowMs,
+    );
 
     if (merged.length === 0) {
       return [];
@@ -180,8 +189,7 @@ export default class ReceivingGapsUtil {
       }
     }
 
-    const last: { startMs: number; endMs: number } =
-      merged[merged.length - 1]!;
+    const last: { startMs: number; endMs: number } = merged[merged.length - 1]!;
     const latestMs: number | null = this.toMs(data.latestReceivingAt);
 
     /*
@@ -189,8 +197,7 @@ export default class ReceivingGapsUtil {
      * later period exists outside what was read, the time after `last` is
      * the gap to that period, which `periods` would have included.
      */
-    const isLedgerNewest: boolean =
-      latestMs === null || latestMs <= last.endMs;
+    const isLedgerNewest: boolean = latestMs === null || latestMs <= last.endMs;
 
     if (isLedgerNewest && nowMs - last.endMs > RECEIVING_GAP_THRESHOLD_MS) {
       gaps.push({
@@ -209,8 +216,7 @@ export default class ReceivingGapsUtil {
    * the same reason are joined. Empty and malformed gaps are dropped.
    */
   public static normalize(gaps: Array<ReceivingGap>): Array<ReceivingGap> {
-    const valid: Array<{ startMs: number; endMs: number; reason: string }> =
-      [];
+    const valid: Array<{ startMs: number; endMs: number; reason: string }> = [];
 
     for (const gap of gaps || []) {
       const startMs: number | null = this.toMs(gap?.startsAt);
@@ -252,7 +258,8 @@ export default class ReceivingGapsUtil {
 
       for (const gap of valid) {
         if (gap.startMs <= pieceStart && gap.endMs >= pieceEnd) {
-          const candidate: ReceivingGapReason = gap.reason as ReceivingGapReason;
+          const candidate: ReceivingGapReason =
+            gap.reason as ReceivingGapReason;
           if (
             reason === null ||
             REASON_PRIORITY[candidate] > REASON_PRIORITY[reason]
