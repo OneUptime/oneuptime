@@ -268,6 +268,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/network-vendor-guides",
       },
       {
+        title: "Network Traffic (NetFlow, IPFIX, sFlow)",
+        url: "/docs/monitor/network-traffic",
+      },
+      {
         title: "Kubernetes Monitor",
         url: "/docs/monitor/kubernetes-monitor",
       },

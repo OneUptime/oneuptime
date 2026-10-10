@@ -1,15 +1,8 @@
 import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
-/*
- * AccessTokenService reaches services that ask this rule (through
- * KubernetesClusterService), so the two load each other: use it only inside
- * a method, never while this module loads.
- */
-import AccessTokenService from "../../Services/AccessTokenService";
-import WorkflowPrincipal from "../Workflow/WorkflowPrincipal";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PermissionHelper } from "../../../Types/Permission";
-import UserType from "../../../Types/UserType";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { PermissionHelper } from "../../../Types/Permission";
 
 /*
  * WHO MAY LET A COMMAND RUN WITH A RUNBOOK CREDENTIAL: WHOEVER MAY READ
@@ -23,87 +16,67 @@ import UserType from "../../../Types/UserType";
  * runbook's steps (RunbookService), binding one to a cluster for its AI
  * agent (KubernetesClusterService) - and the one way each names who may:
  * the read list of RunbookCredential (RelationListPermission.mayReadTable).
+ * It imports no service, so a service may ask it too.
  *
- * A WORKFLOW DOES NOT LEND THE READ. A workflow's steps act as a Project Admin
- * of its project (WorkflowPrincipal), and a Project Admin may read runbook
- * credentials - but whoever may edit the workflow decides what its steps do.
- * So a step is answered for the person who last saved the workflow's steps,
- * in the workflow's project, as their permissions are there when the step
- * asks (props.workflowSavedByUserId, read with the steps it ran): what they
- * may do elsewhere - as a server admin, say - is not lent to the step
- * either. A workflow whose steps were last saved by nobody - with an API
- * key, or before OneUptime recorded who saved them - may not, until someone
- * who may saves them.
+ * A WORKFLOW'S STEP NEVER HAS IT. A step acts as a Project Admin of its
+ * project (WorkflowPrincipal), and a Project Admin may read runbook
+ * credentials - but whoever may edit a workflow decides what its steps do,
+ * and whatever its variables, webhooks and runs hand them. So the read of a
+ * setting that holds credentials is not lent to a step
+ * (RelationListPermission.isReadWithheldFromWorkflow, so mayReadTable
+ * answers no for one), and a change that takes it has to be made by a
+ * person who has it (getWorkflowNote).
+ * No workflow step writes a Runner, a runbook credential, an auto
+ * remediation rule, a runbook or a cluster today; the rule holds for any
+ * that ever does.
  */
 export default class RunbookCredentialReaders {
-  // Whether `props` may read runbook credentials, so let commands use them.
-  public static async mayRead(
+  /*
+   * Whether `props` may read runbook credentials, so let commands use them:
+   * in `projectId` when it is given - a check of a record whose project is
+   * known asks about that project - and in the props' own project
+   * (tenantId) otherwise.
+   */
+  public static mayRead(
     props: DatabaseCommonInteractionProps,
-  ): Promise<boolean> {
-    if (props.isRoot || props.isMasterAdmin) {
-      return true;
-    }
-
-    if (!RunbookCredentialReaders.isWorkflowStep(props)) {
-      return RelationListPermission.mayReadTable(RunbookCredential, props);
-    }
-
-    const saverProps: DatabaseCommonInteractionProps | null =
-      await RunbookCredentialReaders.getWorkflowSaverProps(props);
-
-    return (
-      saverProps !== null &&
-      RelationListPermission.mayReadTable(RunbookCredential, saverProps)
+    projectId?: ObjectID | undefined,
+  ): boolean {
+    return RelationListPermission.mayReadTable(
+      RunbookCredential,
+      projectId ? { ...props, tenantId: projectId } : props,
     );
   }
 
-  // Whether `props` are a workflow step's (WorkflowPrincipal).
-  public static isWorkflowStep(props: DatabaseCommonInteractionProps): boolean {
-    return WorkflowPrincipal.isWorkflow(props);
+  // The permissions that read runbook credentials: RunbookCredential's read list.
+  public static getReadPermissions(): Array<Permission> {
+    return new RunbookCredential().getReadPermissions();
   }
 
   // The permissions that read runbook credentials, by title.
   public static getTitles(): string {
     return PermissionHelper.getPermissionTitles(
-      new RunbookCredential().getReadPermissions(),
+      RunbookCredentialReaders.getReadPermissions(),
     ).join(", ");
   }
 
   /*
-   * What a refusal adds for a workflow's step: whose permission it was asked
-   * about, and how to let the workflow do it. Nothing for anyone else.
+   * What a refusal adds for a workflow's step: that no step has the
+   * permission, so a person has to make the change. Nothing for anyone
+   * else.
    */
   public static getWorkflowNote(props: DatabaseCommonInteractionProps): string {
-    if (!RunbookCredentialReaders.isWorkflowStep(props)) {
+    if (
+      !RelationListPermission.isReadWithheldFromWorkflow(
+        RunbookCredential,
+        props,
+      )
+    ) {
       return "";
     }
 
-    return " A workflow's step has this permission only when the person who last saved the workflow's steps has it, and they do not. Ask someone who has it to save the workflow's steps.";
+    return ` ${RunbookCredentialReaders.WORKFLOW_NOTE}`;
   }
 
-  /*
-   * The person who last saved the steps of the workflow a step belongs to,
-   * as they are in the step's project now - or null when the workflow names
-   * nobody, or the step no project.
-   */
-  private static async getWorkflowSaverProps(
-    props: DatabaseCommonInteractionProps,
-  ): Promise<DatabaseCommonInteractionProps | null> {
-    if (!props.tenantId || !props.workflowSavedByUserId) {
-      return null;
-    }
-
-    const saverProps: DatabaseCommonInteractionProps =
-      await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-        {
-          userId: props.workflowSavedByUserId,
-          projectId: props.tenantId,
-        },
-      );
-
-    return {
-      ...saverProps,
-      userType: UserType.User,
-    };
-  }
+  public static readonly WORKFLOW_NOTE: string =
+    "Workflow steps never have this permission, so a person who has it has to make this change.";
 }

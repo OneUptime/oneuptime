@@ -17,6 +17,11 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "Devices",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_TRAFFIC, [
+      "Project",
+      "Network",
+      "Traffic",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW, [
       "Project",
       "Network",

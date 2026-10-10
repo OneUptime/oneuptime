@@ -283,6 +283,7 @@
     "Database Health Monitor": "डेटाबेस हेल्थ मॉनिटर",
     "Network Sites (Health Rollup & Uptime)": "नेटवर्क साइटें (स्थिति सारांश और अपटाइम)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "नेटवर्क वेंडर गाइड (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "नेटवर्क ट्रैफ़िक (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "होस्ट मॉनिटर",
     "Podman Monitor": "Podman मॉनिटर",
     "Proxmox Monitor": "Proxmox मॉनिटर",

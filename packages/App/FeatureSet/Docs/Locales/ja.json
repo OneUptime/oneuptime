@@ -283,6 +283,7 @@
     "Database Health Monitor": "データベースヘルス モニター",
     "Network Sites (Health Rollup & Uptime)": "ネットワークサイト (ヘルスの集約と稼働率)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "ネットワークベンダー別ガイド (Sophos、Extreme、Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "ネットワークトラフィック（NetFlow、IPFIX、sFlow）",
     "Host Monitor": "ホスト モニター",
     "Podman Monitor": "Podman モニター",
     "Proxmox Monitor": "Proxmox モニター",

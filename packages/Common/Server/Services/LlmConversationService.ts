@@ -80,6 +80,20 @@ const QUERY_SETTINGS: string = getQuerySettings({
 const CONVERSATION_KEY_SQL: string = `if(llmConversationId != '', concat('${LlmConversationKeyUtil.CONVERSATION_PREFIX}', llmConversationId), concat('${LlmConversationKeyUtil.REQUEST_PREFIX}', lower(traceId)))`;
 
 /*
+ * When a call started and ended. Trace ingest stores startTime and endTime
+ * to the whole second; the exact times are in startTimeUnixNano and
+ * endTimeUnixNano. Read from the whole-second columns, a call shorter than
+ * a second lasts 0 ms - its answer arriving with its question in the
+ * replay - and calls made within one second come back in any order. So a
+ * call's times, the order of a conversation's calls, and which call came
+ * first all read the exact columns. The time window still filters on
+ * startTime, which the table is sorted and partitioned by.
+ */
+const CALL_START_SQL: string = "startTimeUnixNano";
+const CALL_END_SQL: string = "endTimeUnixNano";
+const NANOS_PER_MILLI: number = 1_000_000;
+
+/*
  * A call that produced an answer. Rows ingested before llmCallKind existed
  * read "": a model on them still says a model was called.
  */
@@ -458,9 +472,9 @@ export default class LlmConversationService {
     statement.append(
       `SELECT ${CONVERSATION_KEY_SQL} AS conversationKey, ` +
         `any(llmConversationId) AS conversationId, ` +
-        `argMin(traceId, startTime) AS firstTraceId, ` +
-        `toUnixTimestamp64Milli(min(startTime)) AS startedAtMs, ` +
-        `toUnixTimestamp64Milli(max(endTime)) AS endedAtMs, ` +
+        `argMin(traceId, ${CALL_START_SQL}) AS firstTraceId, ` +
+        `intDiv(min(${CALL_START_SQL}), ${NANOS_PER_MILLI}) AS startedAtMs, ` +
+        `intDiv(max(${CALL_END_SQL}), ${NANOS_PER_MILLI}) AS endedAtMs, ` +
         `count() AS callCount, ` +
         `countIf(${IS_ANSWER_SQL}) AS answerCount, ` +
         `sum(llmCost) AS costUsd, ` +
@@ -468,7 +482,7 @@ export default class LlmConversationService {
         `sum(llmOutputTokens) AS outputTokens, ` +
         `${issueColumns}, ` +
         `maxIf(durationUnixNano, ${IS_ANSWER_SQL}) AS slowestAnswerNano, ` +
-        `argMinIf(llmUserMessagePreview, startTime, llmUserMessagePreview != '') AS title, ` +
+        `argMinIf(llmUserMessagePreview, ${CALL_START_SQL}, llmUserMessagePreview != '') AS title, ` +
         `groupUniqArrayIf(5)(llmRequestModel, llmRequestModel != '') AS models, ` +
         `groupUniqArrayIf(5)(${PERSON_SQL}, ${PERSON_SQL} != '') AS people, ` +
         `groupUniqArray(5)(primaryEntityId) AS serviceIds, ` +
@@ -570,8 +584,8 @@ export default class LlmConversationService {
 
     statement.append(
       `SELECT spanId, traceId, parentSpanId, name, ` +
-        `toUnixTimestamp64Milli(startTime) AS startMs, ` +
-        `toUnixTimestamp64Milli(endTime) AS endMs, ` +
+        `intDiv(${CALL_START_SQL}, ${NANOS_PER_MILLI}) AS startMs, ` +
+        `intDiv(${CALL_END_SQL}, ${NANOS_PER_MILLI}) AS endMs, ` +
         `statusCode, statusMessage, llmCallKind, llmOperation, ` +
         `llmRequestModel, llmResponseModel, llmSystem, llmAgentName, llmToolName, ` +
         `llmInputTokens, llmOutputTokens, llmCost, llmIssues, ` +
@@ -602,8 +616,10 @@ export default class LlmConversationService {
       );
     }
 
+    // A column name, so plain text: the SQL tag would bind it as a value.
+    statement.append(` ORDER BY ${CALL_START_SQL} ASC`);
     statement.append(
-      SQL` ORDER BY startTime ASC LIMIT ${{
+      SQL` LIMIT ${{
         type: TableColumnType.Number,
         value: LLM_CONVERSATION_MAX_CALLS + 1,
       }}`,

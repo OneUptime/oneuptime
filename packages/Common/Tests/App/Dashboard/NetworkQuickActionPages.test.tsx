@@ -33,6 +33,10 @@ import { JSONObject } from "../../../Types/JSON";
  * And an empty device list offers the other way in beside Add Device:
  * Discover Devices, which opens the scan form.
  *
+ * The Traffic page's "Add as device", for an address that sends flows but
+ * is no device yet, adds &address=...&probe=...: the form opens with the
+ * hostname filled in, and the probe that received the flows picked.
+ *
  * ModelTable is replaced by a recorder that draws only what this file is
  * about: whether the page asked for its create form, and the empty state's
  * actions.
@@ -42,6 +46,7 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 
 type RecordedTableProps = {
   showCreateForm?: boolean | undefined;
+  createInitialValues?: Record<string, unknown> | undefined;
   createVerb?: string | undefined;
   singularName?: string | undefined;
   emptyState?:
@@ -58,6 +63,8 @@ type RecordedTableProps = {
 };
 
 let mockTableProps: Array<RecordedTableProps> = [];
+// The probes the Add Device form offers.
+let mockProbes: Array<unknown> = [];
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -181,7 +188,7 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
     __esModule: true,
     default: {
       getAllProbes: async (): Promise<Array<unknown>> => {
-        return [];
+        return mockProbes;
       },
     },
   };
@@ -288,6 +295,7 @@ function navigatedTo(): Array<string> {
 
 beforeEach(() => {
   mockTableProps = [];
+  mockProbes = [];
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
   });
@@ -336,6 +344,77 @@ describe("Devices, opened with ?open=add-device", () => {
     await renderAt(leftBehind, NetworkDevicesPage);
 
     expect(screen.queryByTestId("create-form-opened")).toBeNull();
+  });
+});
+
+describe("Devices, opened from the Traffic page's Add as device", () => {
+  const PROBE_ID: string = "5d6f8e2a-1b3c-4d5e-8f70-9a1b2c3d4e5f";
+  const OTHER_PROBE_ID: string = "6e7f8a9b-1b3c-4d5e-8f70-9a1b2c3d4e5f";
+
+  function probe(id: string, name: string): unknown {
+    const ObjectIDClass: { default: new (value: string) => unknown } =
+      jest.requireActual("../../../Types/ObjectID") as {
+        default: new (value: string) => unknown;
+      };
+
+    return { _id: id, id: new ObjectIDClass.default(id), name: name };
+  }
+
+  test("opens the form with the address as the hostname and the probe that received the flows", async () => {
+    mockProbes = [probe(OTHER_PROBE_ID, "HQ probe"), probe(PROBE_ID, "Branch")];
+
+    await renderAt(
+      `${DEVICES_PATH}?open=add-device&address=198.51.100.7&probe=${PROBE_ID}`,
+      NetworkDevicesPage,
+    );
+
+    expect(screen.getByTestId("create-form-opened")).toBeInTheDocument();
+    expect(lastTableProps().createInitialValues).toEqual({
+      hostname: "198.51.100.7",
+      probe: PROBE_ID,
+    });
+  });
+
+  test("a probe the form does not offer is left out, so the form's own default stands", async () => {
+    mockProbes = [probe(OTHER_PROBE_ID, "HQ probe")];
+
+    await renderAt(
+      `${DEVICES_PATH}?open=add-device&address=198.51.100.7&probe=${PROBE_ID}`,
+      NetworkDevicesPage,
+    );
+
+    expect(lastTableProps().createInitialValues).toEqual({
+      hostname: "198.51.100.7",
+    });
+  });
+
+  test("takes the address and the probe off the address bar with the action", async () => {
+    mockProbes = [probe(PROBE_ID, "Branch")];
+
+    await renderAt(
+      `${DEVICES_PATH}?open=add-device&address=198.51.100.7&probe=${PROBE_ID}`,
+      NetworkDevicesPage,
+    );
+
+    expect(window.location.search).toBe("");
+    // What the form was opened with stays, after the address bar is clean.
+    expect(lastTableProps().createInitialValues).toEqual({
+      hostname: "198.51.100.7",
+      probe: PROBE_ID,
+    });
+  });
+
+  test("an address without the action fills in nothing", async () => {
+    await renderAt(`${DEVICES_PATH}?address=198.51.100.7`, NetworkDevicesPage);
+
+    expect(screen.queryByTestId("create-form-opened")).toBeNull();
+    expect(lastTableProps().createInitialValues).toBeUndefined();
+  });
+
+  test("Add Device opened from anywhere else starts empty", async () => {
+    await renderAt(`${DEVICES_PATH}?open=add-device`, NetworkDevicesPage);
+
+    expect(lastTableProps().createInitialValues).toBeUndefined();
   });
 });
 

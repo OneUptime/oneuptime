@@ -25,6 +25,7 @@ import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
  *   - Sites: where they are.
  *   - Map: the network drawn - by location when there are sites, as one
  *     device graph when there are none.
+ *   - Traffic: where the traffic goes, from the devices' flow records.
  *   - Discovery: find the devices you have not added yet.
  *
  * Everything else is folded down to a section title, one click away and
@@ -78,6 +79,15 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             RouteMap[PageMap.NETWORK_SITE_MAP] as Route,
           ),
           icon: IconProp.Map,
+        },
+        {
+          link: {
+            title: "Traffic",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_TRAFFIC] as Route,
+            ),
+          },
+          icon: IconProp.ArrowUpDown,
         },
         {
           link: {

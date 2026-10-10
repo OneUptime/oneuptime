@@ -1977,8 +1977,8 @@ function getDatabaseName(): string {
 
 /*
  * The @clickhouse/client types are a Common dependency and are not
- * resolvable from App, so the result set is typed structurally — the same
- * shape App/FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts uses.
+ * resolvable from App, so the result set is typed structurally: the
+ * shape of the JSON a ClickHouse query answers with.
  */
 interface ClickhouseJsonResultSet {
   json: () => Promise<{ data: Array<JSONObject> }>;

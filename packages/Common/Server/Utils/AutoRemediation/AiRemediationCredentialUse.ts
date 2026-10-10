@@ -60,17 +60,17 @@ export interface RuleCommandSettingsChange {
  * which only someone who may read credentials can bind, and the approve
  * route refuses a kubectl command composed for any other binding; a
  * resource's command never carries a credential. Neither picks one.
+ *
+ * A workflow's step is never one who may (RunbookCredentialReaders): a
+ * person who may read runbook credentials has to approve such a plan or save
+ * such a rule.
  */
 export default class AiRemediationCredentialUse {
-  /*
-   * Whether `props` may read runbook credentials, so let commands use them -
-   * for a workflow's step, whether the person who last saved the workflow's
-   * steps may (RunbookCredentialReaders).
-   */
-  public static async mayUseCredentials(
+  // Whether `props` may read runbook credentials, so let commands use them.
+  public static mayUseCredentials(
     props: DatabaseCommonInteractionProps,
-  ): Promise<boolean> {
-    return await RunbookCredentialReaders.mayRead(props);
+  ): boolean {
+    return RunbookCredentialReaders.mayRead(props);
   }
 
   /*
@@ -108,17 +108,14 @@ export default class AiRemediationCredentialUse {
    * credentials when one of its commands runs with a credential OneUptime AI
    * picked. Nothing to refuse otherwise.
    */
-  public static async assertApproverMayUseCredentials(data: {
+  public static assertApproverMayUseCredentials(data: {
     plan: AiRemediationCommandPlan;
     props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
+  }): void {
     const command: AiRemediationCommand | undefined =
       AiRemediationCredentialUse.getCommandWithPickedCredential(data.plan);
 
-    if (
-      !command ||
-      (await AiRemediationCredentialUse.mayUseCredentials(data.props))
-    ) {
+    if (!command || AiRemediationCredentialUse.mayUseCredentials(data.props)) {
       return;
     }
 
@@ -212,7 +209,8 @@ export default class AiRemediationCredentialUse {
 
   /*
    * Why a rule cannot be left running OneUptime AI's commands without
-   * asking - and, for a workflow's step, whose permission was asked about.
+   * asking - and, for a workflow's step, that a person has to save it
+   * (RunbookCredentialReaders.getWorkflowNote).
    */
   public static getUnattendedRuleRefusal(
     props?: DatabaseCommonInteractionProps | undefined,
@@ -227,20 +225,17 @@ export default class AiRemediationCredentialUse {
    * leaves any of `changes` running OneUptime AI's commands without asking
    * more widely than before (widensCommandsWithoutAsking).
    */
-  public static async assertMaySaveRules(data: {
+  public static assertMaySaveRules(data: {
     props: DatabaseCommonInteractionProps;
     changes: Array<RuleCommandSettingsChange>;
-  }): Promise<void> {
+  }): void {
     const widens: boolean = data.changes.some(
       (change: RuleCommandSettingsChange): boolean => {
         return AiRemediationCredentialUse.widensCommandsWithoutAsking(change);
       },
     );
 
-    if (
-      !widens ||
-      (await AiRemediationCredentialUse.mayUseCredentials(data.props))
-    ) {
+    if (!widens || AiRemediationCredentialUse.mayUseCredentials(data.props)) {
       return;
     }
 

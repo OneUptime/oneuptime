@@ -13,7 +13,6 @@ import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { normalizeReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import AiCommandCredentialReach, {
   CredentialReachHold,
@@ -30,13 +29,14 @@ import AiCommandCredentialReach, {
  * on for a Runner that holds SSH credentials does (RunnerService).
  *
  * Both sides are checked under one lock per project (AiCommandCredentialReach),
- * taken by every create or update by someone who may not read runbook
- * credentials that assigns an SSH credential to Runners, before the Runners
- * are read and held until the write is done: a Runner's switch turned on at
- * the same moment is either seen by this check, or sees the credential in its
- * own. One who may read them is not checked and takes no lock: their write
- * ends as it would have after a switch turned on at the same moment, and
- * they may assign the credential whatever the switch.
+ * taken by every create by someone who may not read runbook credentials
+ * that gives an SSH credential Runners, before the Runners are read, and
+ * held until the write is done: a Runner's switch turned on at the same
+ * moment is either seen by this check, or sees the credential in its own.
+ * One who may read them is not checked and takes no lock: their write ends
+ * as it would have after a switch turned on at the same moment, and they
+ * may assign the credential whatever the switch. An update is made only by
+ * someone who may read them (see onBeforeUpdate), so it takes none either.
  */
 export class Service extends ProjectReferencesService<RunbookCredential> {
   public constructor() {
@@ -125,7 +125,7 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
      * One who may read runbook credentials may create one with any Runners:
      * nothing the create reads decides, so it takes no lock.
      */
-    if (await RunbookCredentialReaders.mayRead(createBy.props)) {
+    if (RunbookCredentialReaders.mayRead(createBy.props)) {
       return { createBy, carryForward: [] };
     }
 
@@ -139,7 +139,8 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     try {
       await Service.assertMayAssignToRunners({
         props: createBy.props,
-        assigned: [{ projectId: projectId!, runnerIds: runnerIds }],
+        projectId: projectId!,
+        runnerIds: runnerIds,
       });
     } catch (error) {
       await AiCommandCredentialReach.giveBack(hold);
@@ -193,14 +194,18 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
    * the Runner list, so assigning an existing credential to one is refused
    * the same way as creating it assigned.
    *
-   * And an update that gives an SSH credential Runners holds the project's
-   * lock, and adding a Runner that runs OneUptime AI's commands needs the
-   * read of runbook credentials (see the top of this file). The credentials
-   * are the ones the update writes - the ones its caller may write - and the
-   * update is held to them (findRowsAndHoldUpdateToThem); the Runners each
-   * one holds are read under the lock. A Runner a credential has when the
-   * lock is taken is not asked about again: the form posts the whole list
-   * back.
+   * And an update that gives a credential Runners is made by someone who may
+   * read runbook credentials, or not at all. Changing a record takes the
+   * read of it (a write needs a read: TablePermission.checkTableLevelReadForWrite,
+   * the same read RunbookCredentialReaders asks), so a person or an API key
+   * that reaches this hook may read runbook credentials, and may assign one
+   * to any Runner: nothing the update reads decides, so it takes no lock (see
+   * the top of this file). A workflow's step acts as a Project Admin, who may
+   * read them, but is never lent that read, and no workflow step writes a
+   * runbook credential: one that does, or anyone else who reaches here
+   * without the read, is refused before anything is read rather than
+   * checked. Clearing a credential's Runners, or not writing them, assigns
+   * nothing.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -213,193 +218,57 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       assignedWhat: "credential",
     });
 
-    const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
-
     const runnerIds: Array<ObjectID> = RunnerServiceClass.readRunnerIds(
-      data["runners"],
+      (updateBy.data as unknown as JSONObject)["runners"],
     );
 
-    // Clearing a credential's Runners, or not writing them, assigns nothing.
-    if (updateBy.props.isRoot || runnerIds.length === 0) {
+    if (
+      updateBy.props.isRoot ||
+      runnerIds.length === 0 ||
+      RunbookCredentialReaders.mayRead(updateBy.props)
+    ) {
       return { updateBy, carryForward: null };
     }
 
-    /*
-     * One who may read runbook credentials may assign an SSH credential to
-     * any Runner: nothing the update reads decides, so it takes no lock (see
-     * the top of this file).
-     */
-    if (await RunbookCredentialReaders.mayRead(updateBy.props)) {
-      return { updateBy, carryForward: null };
-    }
-
-    // A credential's type and project never change: these tell which locks.
-    const credentials: Array<RunbookCredential> =
-      await this.findRowsAndHoldUpdateToThem(updateBy, {
-        _id: true,
-        projectId: true,
-        credentialType: true,
-      });
-
-    const sshCredentials: Array<RunbookCredential> =
-      Service.getSshCredentials(credentials);
-
-    if (sshCredentials.length === 0) {
-      return { updateBy, carryForward: null };
-    }
-
-    /*
-     * Held until the update is written, whichever Runners it adds - the
-     * Runners a credential holds are the lock's to read: they are read
-     * again under it, as they are now, not as they were before it was
-     * taken. Another update may have taken a Runner off the credential
-     * since, and this one, which writes it back, then adds it.
-     */
-    const hold: CredentialReachHold = await AiCommandCredentialReach.take(
-      sshCredentials.map(
-        (credential: RunbookCredential): ObjectID | undefined => {
-          return credential.projectId || updateBy.props.tenantId;
-        },
-      ),
+    throw new NotAuthorizedException(
+      Service.getRunnersWriteRefusal(updateBy.props),
     );
-
-    try {
-      const current: Array<RunbookCredential> = Service.getSshCredentials(
-        await this.findRowsAndHoldUpdateToThem(updateBy, {
-          _id: true,
-          projectId: true,
-          credentialType: true,
-          runners: {
-            _id: true,
-          },
-        }),
-      );
-
-      await Service.assertMayAssignToRunners({
-        props: updateBy.props,
-        assigned: current.map(
-          (
-            credential: RunbookCredential,
-          ): { projectId: ObjectID; runnerIds: Array<ObjectID> } => {
-            return {
-              projectId: (credential.projectId || updateBy.props.tenantId)!,
-              runnerIds: Service.getRunnersAdded({
-                held: credential.runners,
-                written: runnerIds,
-              }),
-            };
-          },
-        ),
-      });
-    } catch (error) {
-      await AiCommandCredentialReach.giveBack(hold);
-      throw error;
-    }
-
-    return AiCommandCredentialReach.heldUpdate(updateBy, hold);
   }
 
-  // Right before the write: the lock its check was made under is still the update's.
-  @CaptureSpan()
-  protected override async onUpdatePermitted(
-    updateBy: UpdateBy<RunbookCredential>,
-  ): Promise<void> {
-    await super.onUpdatePermitted(updateBy);
-
-    await AiCommandCredentialReach.keepForUpdate(updateBy);
-  }
-
-  // The update is written: its lock is given back.
-  @CaptureSpan()
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<RunbookCredential>,
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<RunbookCredential>> {
-    await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
-
-    return await super.onUpdateSuccess(onUpdate, updatedItemIds);
+  // Why a caller who may not read runbook credentials cannot give one Runners.
+  public static getRunnersWriteRefusal(
+    props: DatabaseCommonInteractionProps,
+  ): string {
+    return `Assigning a runbook credential to Runners takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`;
   }
 
   /*
-   * The update was refused or failed after its check: its lock is given
-   * back, unless the database may still write it.
-   */
-  @CaptureSpan()
-  protected override async onUpdateError(
-    error: Exception,
-    onUpdate?: OnUpdate<RunbookCredential> | undefined,
-  ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBackAfterFailedUpdate(error, onUpdate);
-
-    return await super.onUpdateError(error, onUpdate);
-  }
-
-  // The SSH credentials of `credentials`.
-  private static getSshCredentials(
-    credentials: Array<RunbookCredential>,
-  ): Array<RunbookCredential> {
-    return credentials.filter((credential: RunbookCredential): boolean => {
-      return credential.credentialType === RunbookCredentialType.SSH;
-    });
-  }
-
-  /*
-   * Of the Runners a write gives a credential (`written`), the ones it did
-   * not have (`held`, as stored), compared as the other reference checks
-   * compare ids (normalizeReferenceId).
-   */
-  public static getRunnersAdded(data: {
-    held: unknown;
-    written: Array<ObjectID>;
-  }): Array<ObjectID> {
-    const held: Set<string> = new Set<string>(
-      RunnerServiceClass.readRunnerIds(data.held).map(
-        (id: ObjectID): string => {
-          return normalizeReferenceId(id.toString());
-        },
-      ),
-    );
-
-    return data.written.filter((id: ObjectID): boolean => {
-      return !held.has(normalizeReferenceId(id.toString()));
-    });
-  }
-
-  /*
-   * Refuses a write that assigns an SSH credential to a Runner that runs
+   * Refuses a create that assigns an SSH credential to a Runner that runs
    * OneUptime AI's commands. Asked only for a caller who may not read
-   * runbook credentials - both hooks let one who may through before they
-   * take the lock - so it asks nothing more of who the caller is. `assigned`
-   * names, per project, the Runners the write assigns the credential to that
-   * it was not assigned to already. Read under the project's lock
-   * (AiCommandCredentialReach).
+   * runbook credentials - the create hook lets one who may through before
+   * it takes the lock - so it asks nothing more of who the caller is.
+   * `runnerIds` are the Runners of `projectId` the create assigns the
+   * credential to. Read under the project's lock (AiCommandCredentialReach).
    */
   public static async assertMayAssignToRunners(data: {
     props: DatabaseCommonInteractionProps;
-    assigned: Array<{ projectId: ObjectID; runnerIds: Array<ObjectID> }>;
+    projectId: ObjectID;
+    runnerIds: Array<ObjectID>;
   }): Promise<void> {
-    const asked: Array<{ projectId: ObjectID; runnerIds: Array<ObjectID> }> =
-      data.assigned.filter(
-        (entry: {
-          projectId: ObjectID;
-          runnerIds: Array<ObjectID>;
-        }): boolean => {
-          return entry.runnerIds.length > 0;
-        },
+    if (data.runnerIds.length === 0) {
+      return;
+    }
+
+    const runners: Array<Runner> =
+      await RunnerService.findRunnersRunningAiCommands({
+        runnerIds: data.runnerIds,
+        projectId: data.projectId,
+      });
+
+    if (runners.length > 0) {
+      throw new NotAuthorizedException(
+        Service.getAiCommandRunnerRefusal(runners[0]!, data.props),
       );
-
-    for (const entry of asked) {
-      const runners: Array<Runner> =
-        await RunnerService.findRunnersRunningAiCommands({
-          runnerIds: entry.runnerIds,
-          projectId: entry.projectId,
-        });
-
-      if (runners.length > 0) {
-        throw new NotAuthorizedException(
-          Service.getAiCommandRunnerRefusal(runners[0]!, data.props),
-        );
-      }
     }
   }
 
