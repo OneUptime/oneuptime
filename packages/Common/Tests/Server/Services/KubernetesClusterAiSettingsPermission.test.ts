@@ -550,7 +550,9 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     it("is refused whatever the step's props carry, even Read Runbook Credential", async () => {
       const props: DatabaseCommonInteractionProps = step();
 
-      props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push(
+      props.userTenantAccessPermission![
+        PROJECT_ID.toString()
+      ]!.permissions.push(
         permissionRow(Permission.ReadRunbookCredential),
         permissionRow(Permission.ProjectOwner),
       );
@@ -612,11 +614,12 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ).rejects.toThrow(getAiAccessCredentialRefusal());
 
-      const asked: Array<DatabaseCommonInteractionProps> = mayRead.mock.calls.map(
-        (call: Array<unknown>): DatabaseCommonInteractionProps => {
-          return call[0] as DatabaseCommonInteractionProps;
-        },
-      );
+      const asked: Array<DatabaseCommonInteractionProps> =
+        mayRead.mock.calls.map(
+          (call: Array<unknown>): DatabaseCommonInteractionProps => {
+            return call[0] as DatabaseCommonInteractionProps;
+          },
+        );
 
       expect(asked).toContain(person);
       expect(

@@ -300,9 +300,7 @@ describe("the principal", () => {
       ApiKey,
     ]) {
       expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(true);
-      expect(RelationListPermission.mayReadTable(modelType, props)).toBe(
-        false,
-      );
+      expect(RelationListPermission.mayReadTable(modelType, props)).toBe(false);
     }
 
     expect(RunbookCredentialReaders.mayRead(props)).toBe(false);

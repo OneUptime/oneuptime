@@ -336,7 +336,9 @@ describe("the workflow records that can name a setting that holds credentials", 
       for (const relation of RelationListPermission.getCheckedRelations(
         modelType,
       ) as Array<CheckedRelationList>) {
-        if (RelationListPermission.isHeldToTableRead(relation.listedModelType)) {
+        if (
+          RelationListPermission.isHeldToTableRead(relation.listedModelType)
+        ) {
           found.push(
             `${model.tableName}.${relation.column} -> ${
               new relation.listedModelType().tableName

@@ -857,11 +857,9 @@ describe("the AI SRE page's cluster-access section", () => {
     // The permission only credential binding adds: the read of runbook credentials.
     const credentialOnly: Array<Permission> = new RunbookCredential()
       .getReadPermissions()
-      .filter(
-        (permission: Permission): boolean => {
-          return !KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS.includes(permission);
-        },
-      );
+      .filter((permission: Permission): boolean => {
+        return !KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS.includes(permission);
+      });
 
     expect(credentialOnly.length).toBeGreaterThan(0);
 

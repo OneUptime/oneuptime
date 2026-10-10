@@ -69,7 +69,6 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 const AI_RUNNER: string = "ce000000-0000-4000-8000-000000000011";
 const PLAIN_RUNNER: string = "ce000000-0000-4000-8000-000000000012";
 const CREDENTIAL_ID: string = "ce000000-0000-4000-8000-000000000021";
-const OTHER_CREDENTIAL_ID: string = "ce000000-0000-4000-8000-000000000022";
 
 const LOCK_NAMESPACE: string = "AiCommandCredentialReach";
 
@@ -727,7 +726,9 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
     it("lets OneUptime itself through", async () => {
       await expect(
         hooks.onBeforeUpdate(
-          update([AI_RUNNER], { isRoot: true } as DatabaseCommonInteractionProps),
+          update([AI_RUNNER], {
+            isRoot: true,
+          } as DatabaseCommonInteractionProps),
         ),
       ).resolves.toBeDefined();
     });
@@ -776,7 +777,9 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       for (const permission of Object.values(Permission) as Array<Permission>) {
         for (const props of [
           caller({ permissions: [permission] }),
-          caller({ permissions: [Permission.EditRunbookCredential, permission] }),
+          caller({
+            permissions: [Permission.EditRunbookCredential, permission],
+          }),
           caller({
             permissions: [Permission.ProjectAdmin, permission],
             blocked: [Permission.ReadRunbookCredential],

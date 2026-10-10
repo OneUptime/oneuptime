@@ -52,8 +52,7 @@ function person(data: {
 }): DatabaseCommonInteractionProps {
   return {
     tenantId: PROJECT_ID,
-    userId:
-      data.userType === UserType.API ? undefined : ObjectID.generate(),
+    userId: data.userType === UserType.API ? undefined : ObjectID.generate(),
     userType: data.userType || UserType.User,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
@@ -97,16 +96,19 @@ describe("RunbookCredentialReaders", () => {
       ["Read Runbook Credential", [Permission.ReadRunbookCredential]],
       ["Project Owner", [Permission.ProjectOwner]],
       ["Project Admin", [Permission.ProjectAdmin]],
-    ])("lets whoever holds %s", (_label: string, permissions: Array<Permission>) => {
-      expect(RunbookCredentialReaders.mayRead(person({ permissions }))).toBe(
-        true,
-      );
-      expect(
-        RunbookCredentialReaders.mayRead(
-          person({ permissions, userType: UserType.API }),
-        ),
-      ).toBe(true);
-    });
+    ])(
+      "lets whoever holds %s",
+      (_label: string, permissions: Array<Permission>) => {
+        expect(RunbookCredentialReaders.mayRead(person({ permissions }))).toBe(
+          true,
+        );
+        expect(
+          RunbookCredentialReaders.mayRead(
+            person({ permissions, userType: UserType.API }),
+          ),
+        ).toBe(true);
+      },
+    );
 
     it.each([
       ["Project Member", [Permission.ProjectMember]],
@@ -175,7 +177,9 @@ describe("RunbookCredentialReaders", () => {
     it("is not lent it by any permission it might carry, not even Read Runbook Credential itself", () => {
       const props: DatabaseCommonInteractionProps = step();
 
-      props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push(
+      props.userTenantAccessPermission![
+        PROJECT_ID.toString()
+      ]!.permissions.push(
         {
           _type: "UserPermission",
           permission: Permission.ReadRunbookCredential,
@@ -219,9 +223,9 @@ describe("RunbookCredentialReaders", () => {
     });
 
     it("is the same answer the check of the records a write names gives (RelationListPermission)", () => {
-      expect(RelationListPermission.mayReadTable(RunbookCredential, step())).toBe(
-        false,
-      );
+      expect(
+        RelationListPermission.mayReadTable(RunbookCredential, step()),
+      ).toBe(false);
     });
   });
 

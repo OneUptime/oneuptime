@@ -180,7 +180,6 @@ export function getKubernetesAiAccessEditCapabilities(): KubernetesAiAccessEditC
   return {
     canConfigureUnattended,
     canPickRunner: canConfigureUnattended && canPickKubernetesRunner(),
-    canPickCredential:
-      canConfigureUnattended && canPickKubernetesCredential(),
+    canPickCredential: canConfigureUnattended && canPickKubernetesCredential(),
   };
 }

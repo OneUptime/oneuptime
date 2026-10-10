@@ -576,12 +576,17 @@ describe("a workflow's step", () => {
   test("may not name credentials, though it acts as a Project Admin", () => {
     expect(RunbookServiceType.mayNameCredentials(step())).toBe(false);
     expect(
-      RunbookServiceType.mayNameCredentials(member([row(Permission.ProjectAdmin)])),
+      RunbookServiceType.mayNameCredentials(
+        member([row(Permission.ProjectAdmin)]),
+      ),
     ).toBe(true);
   });
 
   test("creating a runbook whose steps name a credential is refused, saying a person has to name it", async () => {
-    const refusal: unknown = await createRunbook([sshStep(CREDENTIAL_A)], step());
+    const refusal: unknown = await createRunbook(
+      [sshStep(CREDENTIAL_A)],
+      step(),
+    );
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect((refusal as Error).message).toBe(

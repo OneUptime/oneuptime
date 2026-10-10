@@ -90,7 +90,10 @@ describe("Workflow", () => {
         const full: string = path.join(directory, entry.name);
 
         if (entry.isDirectory()) {
-          if (entry.name !== "SchemaMigrations" && entry.name !== "node_modules") {
+          if (
+            entry.name !== "SchemaMigrations" &&
+            entry.name !== "node_modules"
+          ) {
             walk(full);
           }
           continue;

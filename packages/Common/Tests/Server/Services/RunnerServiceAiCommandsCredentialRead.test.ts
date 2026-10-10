@@ -793,7 +793,10 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       await hooks.onBeforeUpdate(updateBy);
 
       // Turned off by someone else after the save read it: not in the write, so off it stays.
-      expect("canRunAiCommands" in (updateBy.data as object)).toBe(false);
+      expect(
+        "canRunAiCommands" in
+          (updateBy.data as unknown as Record<string, unknown>),
+      ).toBe(false);
     });
 
     it("is left as posted for someone who may read credentials: they may write the switch whatever it holds", async () => {
