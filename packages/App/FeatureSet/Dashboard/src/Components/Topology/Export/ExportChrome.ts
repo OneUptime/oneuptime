@@ -217,7 +217,7 @@ export function layoutHeader(
 
   const metaSize: number = 8.5;
   for (const line of wrapTextToLines(
-    content.metaParts.join("  ·  "),
+    content.metaParts.join(" · "),
     width,
     2,
     measure,
@@ -504,7 +504,7 @@ export function footerItems(
   return [
     textItem(
       "footer:scope",
-      `Network topology  ·  ${scopeLabel}`,
+      `Network topology · ${scopeLabel}`,
       PAGE_MARGIN * factor,
       baseline,
       size,

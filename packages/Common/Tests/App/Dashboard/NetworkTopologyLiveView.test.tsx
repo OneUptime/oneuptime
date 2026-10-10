@@ -19,9 +19,34 @@ import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import NetworkTopologyLiveView from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyLiveView";
 import { ComponentProps as GraphProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceGraph";
+import { NetworkTopologyPdfRequest } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/Export/NetworkTopologyPdfExport";
+import { TopologyLayoutModel } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const postMock: MockFunction = getJestMockFunction();
+
+/*
+ * Issue #4616: the PDF export itself is laid out and drawn by modules the App
+ * suite tests on their own (NetworkTopologyExportDocument and friends) and
+ * the offline Topology suite runs for real. Here it is a recorder, so these
+ * tests can hold the live view to handing it exactly the map on screen.
+ */
+const exportMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Topology/Export/NetworkTopologyPdfExport",
+  () => {
+    return {
+      __esModule: true,
+      exportNetworkTopologyAsPdf: (...args: Array<unknown>) => {
+        return exportMock(...args);
+      },
+    };
+  },
+);
+
+// The props the live view last handed the (stand-in) graph.
+let latestGraphProps: GraphProps | null = null;
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -66,6 +91,9 @@ jest.mock("../../../UI/Utils/Project", () => {
     default: {
       getCurrentProjectId: () => {
         return "10000000-0000-4000-8000-000000000001";
+      },
+      getCurrentProject: () => {
+        return { name: "Acme Retail" };
       },
     },
   };
@@ -130,6 +158,7 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: GraphProps): ReactElement => {
+        latestGraphProps = props;
         return (
           <div
             data-testid="live-network-graph"
@@ -321,5 +350,282 @@ describe("network topology live view integration", () => {
     expect(
       screen.queryByTestId("network-topology-refresh-error"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Issue #4616: one Export PDF action on the map, handed the map exactly as
+ * the reader sees it.
+ */
+describe("network topology live view: Export PDF", () => {
+  function exportButton(): HTMLElement {
+    return screen.getByRole("button", { name: "Export PDF" });
+  }
+
+  function lastRequest(): NetworkTopologyPdfRequest {
+    const calls: Array<Array<unknown>> = exportMock.mock.calls;
+    return calls[calls.length - 1]![0] as NetworkTopologyPdfRequest;
+  }
+
+  async function renderSite(): Promise<void> {
+    render(
+      <MemoryRouter>
+        <NetworkTopologyLiveView
+          siteId="branch-1"
+          layoutMode="tiered"
+          scopeNames={["Europe", "London office"]}
+        />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("live-network-graph");
+  }
+
+  beforeEach(() => {
+    postMock.mockReset();
+    postMock.mockResolvedValue(PAYLOAD);
+    exportMock.mockReset();
+    exportMock.mockResolvedValue("network-topology-london-office.pdf");
+    latestGraphProps = null;
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the map's card offers Export PDF beside Refresh", async () => {
+    await renderSite();
+    const buttons: Array<HTMLElement> = screen.getAllByTestId("card-button");
+    const titles: Array<string> = buttons.map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+    expect(titles).toEqual(["Export PDF", "Refresh"]);
+    expect(exportButton()).toBeEnabled();
+  });
+
+  test("exporting hands over the site, its layout and the whole topology", async () => {
+    await renderSite();
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    const request: NetworkTopologyPdfRequest = lastRequest();
+    expect(request.scopeNames).toEqual(["Europe", "London office"]);
+    expect(request.projectName).toBe("Acme Retail");
+    expect(request.layoutMode).toBe("tiered");
+    expect(request.searchText).toBe("");
+    expect(request.healthFilterMode).toBe("all");
+    expect(request.vlanId).toBeNull();
+    expect(
+      request.topology.nodes.map((node: { id: string }): string => {
+        return node.id;
+      }),
+    ).toEqual(["router-1", "switch-1", "peer-1", "endpoint-1"]);
+    expect(Array.from(request.visibleKinds).sort()).toEqual([
+      "device",
+      "endpoint",
+      "unmanaged",
+    ]);
+    expect(Array.from(request.availableKinds || []).sort()).toEqual([
+      "device",
+      "endpoint",
+      "unmanaged",
+    ]);
+    expect(request.positionOverrides.size).toBe(0);
+  });
+
+  test("exporting hands over the filters and the arrangement the reader chose", async () => {
+    await renderSite();
+    fireEvent.click(screen.getByRole("button", { name: /Map options/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Hub and spoke" }));
+    fireEvent.click(screen.getByRole("button", { name: "Endpoints" }));
+    fireEvent.click(screen.getByRole("button", { name: /Needs attention/ }));
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Find a network device" }),
+      { target: { value: "router" } },
+    );
+    act(() => {
+      latestGraphProps!.onPositionOverridesChange!(
+        new Map([["router-1", { x: 10, y: 20 }]]),
+      );
+    });
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    const request: NetworkTopologyPdfRequest = lastRequest();
+    expect(request.layoutMode).toBe("star");
+    expect(request.searchText).toBe("router");
+    expect(request.healthFilterMode).toBe("attention");
+    expect(Array.from(request.visibleKinds).sort()).toEqual([
+      "device",
+      "unmanaged",
+    ]);
+    expect(request.positionOverrides.get("router-1")).toEqual({ x: 10, y: 20 });
+  });
+
+  test("the export draws the layout the graph reported, not one of its own", async () => {
+    await renderSite();
+    const model: TopologyLayoutModel = {
+      positions: new Map([["router-1", { x: 1, y: 2 }]]),
+      componentBoxes: [],
+      groups: [],
+      contentWidth: 10,
+      contentHeight: 10,
+    };
+    act(() => {
+      latestGraphProps!.onLayoutModelChange!(model);
+    });
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    expect(lastRequest().layoutModel).toBe(model);
+  });
+
+  test("before the graph has drawn, the export lays the map out itself", async () => {
+    await renderSite();
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    expect(lastRequest().layoutModel).toBeUndefined();
+  });
+
+  test("the map of every device is exported without a site", async () => {
+    render(
+      <MemoryRouter>
+        <NetworkTopologyLiveView />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("live-network-graph");
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    expect(lastRequest().scopeNames).toEqual([]);
+    expect(lastRequest().layoutMode).toBe("force");
+  });
+
+  test("the partial-map warnings travel with the export", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        ...(PAYLOAD["data"] as Record<string, unknown>),
+        isTruncated: true,
+        endpointsTruncated: true,
+        droppedEndpointCount: 4,
+        suppressedNodeCount: 2,
+      },
+    });
+    await renderSite();
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportMock).toHaveBeenCalledTimes(1);
+    });
+    expect(lastRequest().notices).toEqual({
+      isTruncated: true,
+      endpointsTruncated: true,
+      droppedEndpointCount: 4,
+      suppressedNodeCount: 2,
+    });
+  });
+
+  test("while the PDF is built the button is busy, and a second click starts nothing", async () => {
+    let finish: (value: string) => void = (): void => {};
+    exportMock.mockImplementation((): Promise<string> => {
+      return new Promise<string>((resolve: (value: string) => void) => {
+        finish = resolve;
+      });
+    });
+    await renderSite();
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(exportButton()).toBeDisabled();
+    });
+    fireEvent.click(exportButton());
+    expect(exportMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish("network-topology.pdf");
+    });
+    await waitFor(() => {
+      expect(exportButton()).toBeEnabled();
+    });
+    expect(
+      screen.queryByTestId("network-topology-export-error"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failed export says so in the card, and the next one clears it", async () => {
+    exportMock.mockRejectedValueOnce(new Error("Failed to fetch module"));
+    await renderSite();
+    fireEvent.click(exportButton());
+    const alert: HTMLElement = await screen.findByTestId(
+      "network-topology-export-error",
+    );
+    expect(alert).toHaveAttribute("role", "alert");
+    expect(alert).toHaveTextContent("We couldn't create the PDF. Try again.");
+    // The map stays, and so does the way to try again.
+    expect(screen.getByTestId("live-network-graph")).toBeVisible();
+    await waitFor(() => {
+      expect(exportButton()).toBeEnabled();
+    });
+    fireEvent.click(exportButton());
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("network-topology-export-error"),
+      ).not.toBeInTheDocument();
+    });
+    expect(exportMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a map with no devices has nothing to export", async () => {
+    postMock.mockResolvedValue({ data: { nodes: [], edges: [] } });
+    render(
+      <MemoryRouter>
+        <NetworkTopologyLiveView />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("live-network-graph");
+    expect(exportButton()).toBeDisabled();
+    fireEvent.click(exportButton());
+    expect(exportMock).not.toHaveBeenCalled();
+  });
+
+  test("a health filter that leaves nothing on the map leaves nothing to export", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        nodes: [
+          {
+            id: "switch-1",
+            name: "Access switch",
+            kind: "device",
+            isManaged: true,
+            status: "up",
+          },
+        ],
+        edges: [],
+      },
+    });
+    await renderSite();
+    expect(exportButton()).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: /Needs attention/ }));
+    await waitFor(() => {
+      expect(exportButton()).toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^All/ }));
+    await waitFor(() => {
+      expect(exportButton()).toBeEnabled();
+    });
+  });
+
+  test("hiding every node type leaves nothing to export", async () => {
+    await renderSite();
+    fireEvent.click(screen.getByRole("button", { name: /Map options/ }));
+    for (const name of ["Monitored devices", "Discovered neighbors", "Endpoints"]) {
+      fireEvent.click(screen.getByRole("button", { name: name }));
+    }
+    await waitFor(() => {
+      expect(exportButton()).toBeDisabled();
+    });
   });
 });
