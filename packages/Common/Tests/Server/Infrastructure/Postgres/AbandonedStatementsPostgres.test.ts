@@ -244,14 +244,15 @@ describePostgres("statements the app stops waiting for, on Postgres", () => {
     return rows[0]?.running ?? -1;
   };
 
-  const rows: () => Promise<Array<{ id: string; note: string }>> =
-    async (): Promise<Array<{ id: string; note: string }>> => {
-      return (
-        await admin.query(
-          `SELECT "id", "note" FROM "${schema}"."AbandonedWrite" ORDER BY "id"`,
-        )
-      ).rows;
-    };
+  const rows: () => Promise<
+    Array<{ id: string; note: string }>
+  > = async (): Promise<Array<{ id: string; note: string }>> => {
+    return (
+      await admin.query(
+        `SELECT "id", "note" FROM "${schema}"."AbandonedWrite" ORDER BY "id"`,
+      )
+    ).rows;
+  };
 
   const sleep: (ms: number) => Promise<void> = (ms: number): Promise<void> => {
     return new Promise<void>((resolve: () => void): void => {
