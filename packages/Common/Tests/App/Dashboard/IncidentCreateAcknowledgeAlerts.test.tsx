@@ -168,8 +168,6 @@ const PLURAL_DESCRIPTION: string =
 
 const TIMELINE_CREATE_REASON: string =
   "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert State Timeline.";
-const ALERT_UPDATE_REASON: string =
-  "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Edit Alert.";
 
 const NO_POLICIES_TEXT: string =
   "No on-call policies will be executed when this incident is created.";
@@ -963,9 +961,9 @@ describe("acknowledging the alerts an incident is declared from", () => {
         TIMELINE_CREATE_REASON,
       ],
       [
-        "somebody who may add state timeline rows but not edit alerts",
-        [Permission.Viewer, Permission.CreateAlertStateTimeline],
-        ALERT_UPDATE_REASON,
+        "an incident member, who may declare incidents from alerts",
+        [Permission.IncidentMember],
+        TIMELINE_CREATE_REASON,
       ],
     ])(
       "locks the box, unticked, for %s and never sends the key",
@@ -1060,7 +1058,35 @@ describe("acknowledging the alerts an incident is declared from", () => {
       });
     });
 
-    test("offers a working box to somebody with just the two fine-grained permissions", async () => {
+    /*
+     * What acknowledging an alert takes on its own page: a state timeline row,
+     * and no permission to edit the alert. The declare form asks the same.
+     */
+    test("offers a working, ticked box to somebody who may add state timeline rows but not edit alerts", async () => {
+      permissionsForTest = [Permission.Viewer, Permission.CreateAlertStateTimeline];
+      declareFrom([ALERT_ONE_ID, ALERT_TWO_ID]);
+
+      await openPage();
+
+      const checkbox: HTMLInputElement = acknowledgeCheckbox();
+
+      await waitFor(() => {
+        expect(checkbox).toBeChecked();
+      });
+      expect(checkbox).toBeEnabled();
+      expect(checkbox).not.toHaveAttribute("title");
+      expect(descriptionOf(checkbox)).toBe(PLURAL_DESCRIPTION);
+      expect(descriptionOf(checkbox)).not.toContain("Edit Alert");
+      expect(
+        screen.queryByTestId(KEEP_ESCALATING_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(await miscDataSent()).toEqual({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+        [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: true,
+      });
+    });
+
+    test("offers a working box to somebody with Edit Alert besides", async () => {
       permissionsForTest = [
         Permission.Viewer,
         Permission.CreateAlertStateTimeline,
