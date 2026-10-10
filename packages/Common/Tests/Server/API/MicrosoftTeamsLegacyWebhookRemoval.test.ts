@@ -9,6 +9,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceMemberActions from "../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
@@ -213,20 +214,21 @@ describe("Microsoft Teams inbound route authentication", () => {
       > = jest
         .spyOn(IncidentService, "acknowledgeIncident")
         .mockRejectedValue(new Error("unexpected incident mutation"));
-      const resolveIncidentSpy: SpyInstance<
-        typeof IncidentService.resolveIncident
+      const memberAcknowledgeSpy: SpyInstance<
+        typeof WorkspaceMemberActions.acknowledge
       > = jest
-        .spyOn(IncidentService, "resolveIncident")
-        .mockRejectedValue(new Error("unexpected incident mutation"));
+        .spyOn(WorkspaceMemberActions, "acknowledge")
+        .mockRejectedValue(new Error("unexpected state change"));
       const acknowledgeAlertSpy: SpyInstance<
         typeof AlertService.acknowledgeAlert
       > = jest
         .spyOn(AlertService, "acknowledgeAlert")
         .mockRejectedValue(new Error("unexpected alert mutation"));
-      const resolveAlertSpy: SpyInstance<typeof AlertService.resolveAlert> =
-        jest
-          .spyOn(AlertService, "resolveAlert")
-          .mockRejectedValue(new Error("unexpected alert mutation"));
+      const memberResolveSpy: SpyInstance<
+        typeof WorkspaceMemberActions.resolve
+      > = jest
+        .spyOn(WorkspaceMemberActions, "resolve")
+        .mockRejectedValue(new Error("unexpected state change"));
       const botFrameworkSpy: SpyInstance<
         typeof MicrosoftTeamsUtil.processBotActivity
       > = jest.spyOn(MicrosoftTeamsUtil, "processBotActivity");
@@ -239,9 +241,9 @@ describe("Microsoft Teams inbound route authentication", () => {
       expect(projectLookupSpy).not.toHaveBeenCalled();
       expect(userLookupSpy).not.toHaveBeenCalled();
       expect(acknowledgeIncidentSpy).not.toHaveBeenCalled();
-      expect(resolveIncidentSpy).not.toHaveBeenCalled();
+      expect(memberAcknowledgeSpy).not.toHaveBeenCalled();
       expect(acknowledgeAlertSpy).not.toHaveBeenCalled();
-      expect(resolveAlertSpy).not.toHaveBeenCalled();
+      expect(memberResolveSpy).not.toHaveBeenCalled();
       expect(botFrameworkSpy).not.toHaveBeenCalled();
     },
   );
