@@ -61,6 +61,9 @@ const AZURE_OPENAI_ROOT: RegExp = /^\/openai$/i;
 
 const AZURE_OPENAI_V1_PATH: RegExp = /\/openai\/v1$/i;
 
+// Azure OpenAI's dated API names a deployment in the path.
+const AZURE_OPENAI_DEPLOYMENT_PATH: RegExp = /\/openai\/deployments\//i;
+
 const MESSAGES_SUFFIX: RegExp = /\/messages$/i;
 
 // The Anthropic SDKs' base URL for Claude in Foundry and for gateways.
@@ -244,6 +247,11 @@ export default class LlmProviderEndpoint {
    * and one provider type covers every deployment on a Foundry resource.
    */
   public static isAnthropicApiBaseUrl(baseUrl: string): boolean {
-    return ANTHROPIC_API_PATH.test(LlmProviderEndpoint.splitBaseUrl(baseUrl).path);
+    const path: string = LlmProviderEndpoint.splitBaseUrl(baseUrl).path;
+
+    // A deployment someone named "anthropic" is still an OpenAI deployment.
+    return (
+      ANTHROPIC_API_PATH.test(path) && !AZURE_OPENAI_DEPLOYMENT_PATH.test(path)
+    );
   }
 }

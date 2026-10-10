@@ -315,6 +315,8 @@ describe("a Base URL that names an Anthropic Messages API", () => {
     "https://contoso.services.ai.azure.com/anthropic/v2",
     "https://api.anthropic.com/v1",
     "https://gateway.example.com/v1/messages",
+    // A deployment someone named "anthropic" is an OpenAI deployment.
+    "https://contoso.openai.azure.com/openai/deployments/anthropic",
   ])("%s is not", (baseUrl: string) => {
     expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(baseUrl)).toBe(false);
   });
