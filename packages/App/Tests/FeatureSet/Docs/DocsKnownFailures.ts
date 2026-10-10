@@ -151,10 +151,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "emails/notification-rollup": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "emails/smtp": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
@@ -282,21 +278,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/api-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/ceph-monitor": {
-    uniqueHeadings: ["en", "fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "monitor/create-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/custom-code-monitor": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/database-health-monitor": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "monitor/dns-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -625,10 +612,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/log-recording-rules": {
     translated: EVERY_TRANSLATION,
-  },
-  "telemetry/open-telemetry": {
-    headingLevels: EN,
-    sameShape: except(EVERY_TRANSLATION, "zh-TW", "fa"),
   },
   "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
