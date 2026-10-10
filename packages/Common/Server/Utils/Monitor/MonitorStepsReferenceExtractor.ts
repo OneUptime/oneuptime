@@ -40,6 +40,7 @@ export enum MonitorStepsReferenceModel {
 const TELEMETRY_SERVICE_STEP_FIELDS: Array<string> = [
   "logMonitor",
   "securityEventsMonitor",
+  "llmMonitor",
   "traceMonitor",
   "exceptionMonitor",
   "profileMonitor",

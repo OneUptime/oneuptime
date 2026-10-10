@@ -21,7 +21,7 @@ Read this before you go looking for a trace waterfall. Cursor's export sends **m
 
 Practical consequences in OneUptime:
 
-- Cursor usage will **not** appear in the span-based **LLM Calls** list, and there is no per-call trace to open. That list is built from `gen_ai.*` spans; Cursor emits none.
+- Cursor usage will **not** appear in the span-based **Calls** list, and there is no per-call trace to open. That list is built from `gen_ai.*` spans; Cursor emits none.
 - Cursor **does** appear in the **Usage** tab of the **AI / LLM** section, because OneUptime recognizes `cursor.token.usage` and `cursor.cost.usage`. Because Cursor is a metrics-only source, two limits apply — read [Where Cursor shows up in the Usage tab](#where-cursor-shows-up-in-the-usage-tab) before you build a chargeback report on it.
 - The per-request grain lives in the **Logs** explorer, on the `cursor.api.request` log event — that is the only place per-request token totals exist.
 
@@ -176,7 +176,7 @@ When the fallback does engage:
 | Provider              | **No.** Cursor routes to several model providers behind one subscription and never reports which |
 | Application / Service | **No.** A Cursor cost counter is not attached to a OneUptime telemetry service                   |
 
-And one limit that catches people out: **a metric-sourced row carries cost only.** The Calls, Input tokens, Output tokens and Total tokens cells render as `—` for Cursor rows, because `cursor.cost.usage` has no per-call detail and a `0` there would read as "this developer made no calls". `cursor.token.usage` still feeds the Overview page's input/output token tiles, and it is still chartable on a dashboard grouped by `cursor.token.type` — the per-employee token _column_ in the Usage table is what is unavailable. Note also that only the `input` and `output` token types are counted in those totals; `cache_read` and `cache_creation` are real tokens but are neither, so they are left out rather than folded in.
+And one limit that catches people out: **a metric-sourced row carries cost only.** The Calls, Input tokens, Output tokens and Total tokens cells render as `—` for Cursor rows, because `cursor.cost.usage` has no per-call detail and a `0` there would read as "this developer made no calls". `cursor.token.usage` still feeds the Usage tab's input/output token totals, and it is still chartable on a dashboard grouped by `cursor.token.type` — the per-employee token _column_ in the Usage table is what is unavailable. Note also that only the `input` and `output` token types are counted in those totals; `cache_read` and `cache_creation` are real tokens but are neither, so they are left out rather than folded in.
 
 ### Resolving a user id to a person
 

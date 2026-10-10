@@ -92,6 +92,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Exceptions:
       case MonitorType.Profiles:
       case MonitorType.SecurityEvents:
+      case MonitorType.Llm:
         return MonitorOverviewFamily.TelemetrySignal;
 
       case MonitorType.Kubernetes:

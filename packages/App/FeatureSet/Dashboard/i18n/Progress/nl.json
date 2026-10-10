@@ -1,14 +1,21 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 17104
+    "keys": 27758,
+    "untranslated": 17020
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
+    "AI / LLM",
+    "Agent",
     "Alarm",
+    "App",
+    "Apps",
+    "Budget",
     "Capture",
     "CloudWatch Metric Streams",
+    "Details",
+    "Embedding",
     "Filter:",
     "Filter: {{expression}}",
     "In Huntress",
@@ -16,11 +23,18 @@
     "Interface",
     "Interface {{index}}",
     "Label: {{name}}",
+    "Model",
     "Offline",
     "Protocol",
+    "Provider",
     "Runbook: {{name}}",
     "Runner",
+    "Service",
+    "Service:",
+    "Status",
     "Stratum",
+    "Team",
+    "Tool",
     "Transceivers",
     "VMware vCenter",
     "Website",
@@ -35,6 +49,7 @@
     "{{count}} MB",
     "{{count}} alarm",
     "{{count}} product",
-    "{{field}} is {{value}}"
+    "{{field}} is {{value}}",
+    "{{tokens}} tokens"
   ]
 }

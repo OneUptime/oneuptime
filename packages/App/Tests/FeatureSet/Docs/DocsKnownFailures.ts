@@ -550,9 +550,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/ai-gateways": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/ai-llm-observability": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/ceph": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],

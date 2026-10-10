@@ -17,6 +17,7 @@ import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
+import LlmMonitorCriteria from "./Criteria/LlmMonitorCriteria";
 import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
@@ -1339,6 +1340,18 @@ ${contextBlock}
 
       if (securityEventsMonitorResult) {
         return securityEventsMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Llm) {
+      const llmMonitorResult: string | null =
+        await LlmMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (llmMonitorResult) {
+        return llmMonitorResult;
       }
     }
 
