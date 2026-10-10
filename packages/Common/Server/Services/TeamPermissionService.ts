@@ -533,22 +533,13 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data,
       updateBy.props,
     );
-    const selectedPermissions: Array<Model> = await this.findAllBy({
-      query: updateBy.query,
-      select: { _id: true },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: { isRoot: true },
-    });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map(
-      (row: Model) => {
-        return row.id!;
-      },
-    );
-    // Read complete labels independently of any relation filters in the query.
-    const teamPermissions: Array<Model> = await this.findAllBy({
-      query: { _id: QueryHelper.any(selectedIds) },
-      select: {
+    /*
+     * The permissions the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem) - their labels and team read whole,
+     * whatever relation filters the query sets.
+     */
+    const teamPermissions: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         teamId: true,
         projectId: true,
@@ -561,11 +552,7 @@ export class Service extends ProjectReferencesService<Model> {
         team: {
           isPermissionsEditable: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, updateBy.props);
@@ -660,8 +647,6 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    updateBy.query = { ...updateBy.query, _id: QueryHelper.any(selectedIds) };
-    updateBy.skip = 0;
     return { updateBy, carryForward: teamPermissions };
   }
 
