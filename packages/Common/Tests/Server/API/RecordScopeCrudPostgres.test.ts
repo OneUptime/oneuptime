@@ -3,6 +3,8 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import AlertFeedService from "../../../Server/Services/AlertFeedService";
+import AlertOwnerUserService from "../../../Server/Services/AlertOwnerUserService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageOwnerUserService from "../../../Server/Services/StatusPageOwnerUserService";
@@ -19,6 +21,7 @@ import Response from "../../../Server/Utils/Response";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import DashboardOwnerTeam from "../../../Models/DatabaseModels/DashboardOwnerTeam";
 import DashboardOwnerUser from "../../../Models/DatabaseModels/DashboardOwnerUser";
@@ -2922,6 +2925,85 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
           await removeDisposable(disposable);
         }
+      });
+
+      /*
+       * A delete whose hook acts on every row it removes - the owner's hook
+       * posts a feed line naming who was removed - by a grant limited to
+       * labels: the hook reads the owners of the alerts the grant reaches,
+       * in the same read as the delete's own query, and the delete removes
+       * exactly those. An owner of an alert outside the grant is neither
+       * read nor removed.
+       */
+      test("a delete by query whose hook acts on each row reads and removes only the rows the grant reaches", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.AlertMember, labelIds: [productionLabelId] },
+        ]);
+
+        const production: { alertId: ObjectID; noteId: ObjectID } =
+          await disposableAlertWithNote([productionLabelId]);
+        const staging: { alertId: ObjectID; noteId: ObjectID } =
+          await disposableAlertWithNote([stagingLabelId]);
+        const productionOwnerId: ObjectID = ObjectID.generate();
+        const stagingOwnerId: ObjectID = ObjectID.generate();
+
+        for (const [ownerId, alertId] of [
+          [productionOwnerId, production.alertId],
+          [stagingOwnerId, staging.alertId],
+        ] as Array<[ObjectID, ObjectID]>) {
+          await insert("AlertOwnerUser", {
+            _id: ownerId,
+            projectId: homeProjectId,
+            userId: outsiderId,
+            alertId: alertId,
+            version: 1,
+          });
+        }
+
+        // The feed line the hook posts goes to a table this suite leaves out.
+        const feed: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+          AlertFeedService,
+          "createAlertFeedItem",
+        ).mockResolvedValue(undefined as never);
+        const rowsRead: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+          AlertOwnerUserService,
+          "findRowsAndHoldDeleteToThem",
+        );
+
+        try {
+          await AlertOwnerUserService.deleteBy({
+            query: { userId: outsiderId },
+            props: await propsOf(caller),
+            limit: 50,
+            skip: 0,
+          });
+
+          // The rows the hook read, and acted on: the reachable owner alone.
+          const read: Array<AlertOwnerUser> = (await rowsRead.mock.results[0]!
+            .value) as Array<AlertOwnerUser>;
+
+          expect(
+            read.map((owner: AlertOwnerUser): string => {
+              return owner.id!.toString();
+            }),
+          ).toEqual([productionOwnerId.toString()]);
+          expect(feed).toHaveBeenCalledTimes(1);
+        } finally {
+          rowsRead.mockRestore();
+          feed.mockRestore();
+        }
+
+        expect(await rowExists("AlertOwnerUser", productionOwnerId)).toBe(
+          false,
+        );
+        expect(await rowExists("AlertOwnerUser", stagingOwnerId)).toBe(true);
+
+        await removeRows([
+          ["AlertOwnerUser", "_id", productionOwnerId],
+          ["AlertOwnerUser", "_id", stagingOwnerId],
+        ]);
+        await removeDisposable(production);
+        await removeDisposable(staging);
       });
 
       test("a record the caller may read but not change is refused, not answered as missing", async () => {

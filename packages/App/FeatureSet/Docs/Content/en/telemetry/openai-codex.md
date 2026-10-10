@@ -169,7 +169,7 @@ Separately, note that identity (`user.email`, `user.account_id`) is on log recor
 
 Run an interactive `codex` session, ask it something small, and let the turn finish. Then in OneUptime:
 
-1. **AI / LLM → LLM Calls** should list the turn's model calls with token counts filled in.
+1. **AI / LLM → Calls** should list the turn's model calls with token counts filled in.
 2. Open one and check the span's **AI / LLM** panel, plus the attributes you set in `[otel.span_attributes]`.
 3. **AI / LLM → Usage** should show your identity with tokens and spend against it.
 4. **Logs** should contain the Codex events — `codex.conversation_starts`, `codex.api_request`, `codex.turn_cost` and the rest.

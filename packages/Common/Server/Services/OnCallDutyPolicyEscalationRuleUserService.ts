@@ -12,7 +12,6 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
@@ -198,12 +197,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    // The rows the delete removes, and the delete held to them.
+    const itemsToFetchBeforeDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         projectId: true,
         user: {
           timezone: true,
@@ -219,10 +215,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           _id: true,
         },
         createdByUserId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+      });
 
     const deleteByUserId: ObjectID | undefined =
       deleteBy.deletedByUser?.id || deleteBy.props.userId;

@@ -55,6 +55,10 @@ import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
+import LlmMonitorStepForm from "./LlmMonitor/LlmMonitorStepForm";
+import MonitorStepLlmMonitor, {
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -1573,6 +1577,25 @@ return {
               value: MonitorStepSecurityEventsMonitor,
             ) => {
               monitorStep.setSecurityEventsMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            telemetryServices={telemetryServices}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Llm && (
+        <Card
+          title="What counts as a bad answer"
+          description="Pick the problems that count, and where to look. The criteria below decide how many bad answers are too many."
+        >
+          <LlmMonitorStepForm
+            monitorStepLlmMonitor={
+              monitorStep.data?.llmMonitor ||
+              MonitorStepLlmMonitorUtil.getDefault()
+            }
+            onMonitorStepLlmMonitorChanged={(value: MonitorStepLlmMonitor) => {
+              monitorStep.setLlmMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             telemetryServices={telemetryServices}

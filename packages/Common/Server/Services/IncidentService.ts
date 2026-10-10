@@ -2479,12 +2479,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each incident the query actually matches.
+     * The project of every incident the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * incident's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
@@ -5955,11 +5956,10 @@ ${incidentSeverity.name}
       deleteBy.props,
     );
 
-    const incidents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The incidents the delete removes, and the delete held to them.
+    const incidents: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitors: {
@@ -5967,10 +5967,7 @@ ${incidentSeverity.name}
         },
         holdsMonitors: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -5983,10 +5980,14 @@ ${incidentSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
-      for (const incident of onDelete.carryForward.incidents) {
+      // The incidents the delete removed, of those onBeforeDelete read.
+      for (const incident of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.incidents,
+        deletedIds: deletedIds,
+      })) {
         /*
          * Deleting an incident gives back the monitors it holds - and those
          * of an incident from before that was recorded, which is how

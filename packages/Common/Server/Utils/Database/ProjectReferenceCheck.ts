@@ -269,13 +269,15 @@ export default class ProjectReferenceCheck {
    * the project, must not be locked against editing. An empty list or a
    * cleared relation only removes references and needs no check.
    *
-   * With a tenant - the caller's own project, the common case - the ids are
-   * checked first, and only those that are not the project's are looked for
-   * among what the records of that project hold: an update that names only
-   * the project's records reads nothing else. A root or master admin update
-   * with no tenant is checked against each record's own project. Either
-   * way the records are the rows the update writes, read once and the
-   * update held to them (readHeldIds).
+   * A teammate's update - kept to the request's project by its permission
+   * check, the common case - has its ids checked against that project first,
+   * and only those that are not the project's are looked for among what the
+   * records of that project hold: an update that names only the project's
+   * records reads nothing else. A root or master admin update, which reaches
+   * any record its query names with or without a project on the request, is
+   * checked against each record's own project. Either way the records are
+   * the rows the update writes, read once and the update held to them
+   * (readHeldIds).
    */
   public static async validateUpdate<TModel extends DatabaseBaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -308,7 +310,9 @@ export default class ProjectReferenceCheck {
     }
 
     const subject: string = ProjectReferenceCheck.getSubject(model);
-    const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
+    const tenantId: ObjectID | null = DatabaseService.getProjectWriteIsHeldTo(
+      data.updateBy.props,
+    );
 
     const isHeld: (
       held: Dictionary<Set<string>>,

@@ -1,17 +1,22 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 17039
+    "keys": 27758,
+    "untranslated": 16959
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "App",
+    "Budget",
+    "Embedding",
     "In Huntress",
     "Offline",
     "Pattern {{number}}: {{problem}}",
+    "Provider",
     "Report",
     "Runbook: {{name}}",
     "Runner",
     "Stratum",
+    "Team",
     "VMware vCenter",
     "cluster",
     "host",

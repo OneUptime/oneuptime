@@ -153,7 +153,10 @@ export class Service extends ProjectReferencesService<Model> {
     if (nextGroupId) {
       for (const rule of await this.findRulesForQuery(updateBy)) {
         await this.assertReferencesAreInScope({
-          projectId: updateBy.props.tenantId || rule.projectId,
+          projectId: Service.getProjectToCheckRowIn(
+            updateBy.props,
+            rule.projectId,
+          ),
           statusPageId: rule.statusPageId,
           statusPageGroupId: nextGroupId,
         });
@@ -260,11 +263,10 @@ export class Service extends ProjectReferencesService<Model> {
    * StatusPageMonitorRule foreign key is ON DELETE CASCADE: by the time the
    * rule row is gone, so are the resources that named the monitors.
    *
-   * It is READ ONLY, and reads through the caller's own props rather than as
-   * root. onBeforeDelete runs before checkDeleteQueryPermission, so anything
-   * here sees the caller's raw query — a root-privileged write from this hook
-   * would let a caller destroy another project's status page resources by
-   * naming that project's rule id.
+   * It is READ ONLY: it reads the rules the delete removes - for a teammate,
+   * among the ones they may delete - and holds the delete to them, so the
+   * monitors noted down are those of the rules that go. Nothing here writes:
+   * a delete that is refused leaves every status page as it was.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -272,17 +274,15 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     const monitorIdsByRuleId: Record<string, Array<string>> = {};
 
-    try {
-      const rules: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: deleteBy.props,
-      });
+    // The rules the delete removes, and the delete held to them.
+    const rules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+      },
+    );
 
+    try {
       for (const rule of rules) {
         if (!rule.id) {
           continue;

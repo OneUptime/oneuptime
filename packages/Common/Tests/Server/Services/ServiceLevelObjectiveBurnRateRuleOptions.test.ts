@@ -1111,6 +1111,10 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   });
 
   it("lets a newly introduced cross-project policy abort the update", async () => {
+    // The rule the update writes: OneUptime's update is checked in its project.
+    findBySpy.mockResolvedValue([
+      makeRule({ _id: RULE_ID.toString(), id: RULE_ID, projectId: PROJECT_ID }),
+    ]);
     validatorSpy.mockRejectedValue(
       new BadDataException(
         `This SLO burn rate rule references records that are not in this project: On-Call Duty Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
@@ -1130,6 +1134,11 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   });
 
   it("lets a newly introduced non-member owner abort the update", async () => {
+    // The rule the update writes: OneUptime's update is checked in its project.
+    findBySpy.mockResolvedValue([
+      makeRule({ _id: RULE_ID.toString(), id: RULE_ID, projectId: PROJECT_ID }),
+    ]);
+
     await expectBadData(
       callHook(
         "onBeforeUpdate",

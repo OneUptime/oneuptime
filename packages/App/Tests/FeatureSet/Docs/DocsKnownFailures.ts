@@ -151,10 +151,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "emails/notification-rollup": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "emails/smtp": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
@@ -200,9 +196,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "integrations/crowdstrike-falcon": {
     translated: EVERY_TRANSLATION,
   },
-  "integrations/datadog": {
-    pageLinks: ["fa"],
-  },
   "integrations/elastic-security": {
     translated: EVERY_TRANSLATION,
   },
@@ -214,14 +207,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     pageLinks: EVERY_TRANSLATION,
   },
   "integrations/jira": {
-    pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION,
   },
   "integrations/microsoft-defender-xdr": {
     translated: EVERY_TRANSLATION,
   },
   "integrations/microsoft-dynamics-365": {
-    pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION,
   },
   "integrations/microsoft-sentinel": {
@@ -231,7 +222,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "integrations/prometheus-alertmanager": {
-    pageLinks: ["fa"],
     codeLanguage: EN,
   },
   "integrations/splunk": {
@@ -288,21 +278,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/api-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/ceph-monitor": {
-    uniqueHeadings: ["en", "fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "monitor/create-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/custom-code-monitor": {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/database-health-monitor": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "monitor/dns-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -556,9 +537,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/ai-gateways": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/ai-llm-observability": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/ceph": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
@@ -635,10 +613,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/log-recording-rules": {
     translated: EVERY_TRANSLATION,
   },
-  "telemetry/open-telemetry": {
-    headingLevels: EN,
-    sameShape: except(EVERY_TRANSLATION, "zh-TW", "fa"),
-  },
   "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
@@ -714,25 +688,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "terraform/troubleshooting": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "workflows/authoring": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workflows/components": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workflows/configuration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workflows/runs-and-logs": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workflows/triggers": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workflows/variables": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
   },
   "workspace-connections/microsoft-teams": {
     headingLevels: EN,

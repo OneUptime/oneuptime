@@ -106,6 +106,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
     "an old address of the Exceptions list, which has a status filter now",
   [PageMap.EXCEPTIONS_ARCHIVED]:
     "an old address of the Exceptions list, which has a status filter now",
+  [PageMap.LLM_OVERVIEW]:
+    "an old address of AI / LLM's Overview: it forwards to Conversations, which is offered, and its totals are on Usage",
   [PageMap.EXCEPTIONS_VIEW_ROOT]:
     "the prefix an exception's own pages hang off; the Exceptions product is offered",
   [PageMap.INVENTORY_VIEW_ROOT]:

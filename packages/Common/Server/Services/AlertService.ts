@@ -26,7 +26,7 @@ import LinkedAffectedResources, {
 } from "../Utils/AffectedResources/LinkedAffectedResources";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -740,12 +740,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each alert the query actually matches.
+     * The project of every alert the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * alert's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
@@ -2317,21 +2318,17 @@ ${alertSeverity.name}
       deleteBy.props,
     );
 
-    const alerts: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The alerts the delete removes, and the delete held to them.
+    const alerts: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitor: {
           _id: true,
         },
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -2344,10 +2341,14 @@ ${alertSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.alerts) {
-      for (const alert of onDelete.carryForward.alerts) {
+      // The alerts the delete removed, of those onBeforeDelete read.
+      for (const alert of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.alerts,
+        deletedIds: deletedIds,
+      })) {
         if (alert.projectId && alert.id) {
           const metricRetentionDays: number =
             await this.getMetricRetentionDays();

@@ -317,12 +317,14 @@ export default class ProjectScopedReferenceValidator {
    * refused (getWrittenRelationReferences) - checked against the project of
    * every record the update changes.
    *
-   * With a project on the request, against that project. Without one -
-   * OneUptime's own update, or a master admin's - against the project of
-   * each record the update writes, with the update held to those records
-   * (getHeldRelationIds): handing validateReferencesBelongToProject the
-   * request's project alone would check nothing for those updates. There an
-   * id that every record of the project already holds is left alone, as
+   * A teammate's update, which its permission check keeps to the request's
+   * project, against that project. OneUptime's own update, or a master
+   * admin's - which reach any record their query names, with or without a
+   * project on the request - against the project of each record the update
+   * writes, with the update held to those records (getHeldRelationIds):
+   * handing validateReferencesBelongToProject the request's project alone
+   * would check those records against a project they may not be in. There
+   * an id that every record of the project already holds is left alone, as
    * ProjectReferenceCheck leaves it: writing back what a record holds
    * attaches nothing new to it.
    */
@@ -358,11 +360,12 @@ export default class ProjectScopedReferenceValidator {
       return;
     }
 
-    const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
+    const requestProjectId: ObjectID | null =
+      DatabaseService.getProjectWriteIsHeldTo(data.updateBy.props);
 
-    if (tenantId) {
+    if (requestProjectId) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
-        projectId: tenantId,
+        projectId: requestProjectId,
         references: written.flatMap(
           (entry: {
             references: Array<ProjectScopedReference>;

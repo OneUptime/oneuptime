@@ -78,7 +78,7 @@ export class Service extends DatabaseService<Model> {
      * "Monitor records still reference it" failure. Live monitors are left
      * untouched (see repointDeletedMonitorsAwayFromStatuses).
      */
-    await this.clearDeletedMonitorReferences(deleteBy.query);
+    await this.clearDeletedMonitorReferences(deleteBy);
 
     return {
       deleteBy,
@@ -94,20 +94,14 @@ export class Service extends DatabaseService<Model> {
    * blocking a monitor-status delete on dead rows.
    */
   private async clearDeletedMonitorReferences(
-    query: DeleteBy<Model>["query"],
+    deleteBy: DeleteBy<Model>,
   ): Promise<void> {
-    const statusesBeingDeleted: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    // The statuses the delete removes, and the delete held to them.
+    const statusesBeingDeleted: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     // Group the statuses being deleted by project.
     const byProject: Map<

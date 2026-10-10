@@ -447,6 +447,7 @@ export default class MonitorStepResourceIdentity {
     const idLists: Array<Array<ObjectID> | undefined> = [
       stepData.logMonitor?.telemetryServiceIds,
       stepData.securityEventsMonitor?.telemetryServiceIds,
+      stepData.llmMonitor?.telemetryServiceIds,
       stepData.traceMonitor?.telemetryServiceIds,
       stepData.exceptionMonitor?.telemetryServiceIds,
       stepData.profileMonitor?.telemetryServiceIds,

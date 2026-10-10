@@ -371,30 +371,34 @@ export class Service extends DatabaseService<Model> {
 
       /*
        * The forms read are the ones the update writes. A teammate's are the
-       * forms they may write; OneUptime's, or a master admin's, are whatever
-       * the update's query names, which may be another project's than the
-       * request's. The files must then come from the request's project, as
-       * every other reference a form names does, and what such a form shows
-       * now is not used: an update aimed at another project's form is
-       * refused alike whichever file it names, and so tells nothing about
-       * that project.
+       * forms they may write, of the request's project, and the files must
+       * come from that project, as every other reference a form names does;
+       * what a form of another project shows now is not used, so an update
+       * aimed at one is refused alike whichever file it names, and tells
+       * nothing about that project. OneUptime's, or a master admin's, are
+       * whatever the update's query names, which may be another project's
+       * than the request's: the files must come from each form's own project.
        */
-      const tenantId: ObjectID | undefined = updateBy.props.tenantId;
+      const heldTo: ObjectID | null = DatabaseService.getProjectWriteIsHeldTo(
+        updateBy.props,
+      );
 
       await this.assertValidBrandingImages({
         values: data,
         forms: forms.map((form: Model): BrandingCheckForm => {
-          const isRequestsOwn: boolean =
-            !tenantId ||
+          const isProjectsOwn: boolean =
+            !heldTo ||
             Boolean(
-              form.projectId &&
-                form.projectId.toString() === tenantId.toString(),
+              form.projectId && form.projectId.toString() === heldTo.toString(),
             );
 
           return {
-            projectId: tenantId || form.projectId,
-            logoFileId: isRequestsOwn ? form.logoFileId : undefined,
-            faviconFileId: isRequestsOwn ? form.faviconFileId : undefined,
+            projectId: DatabaseService.getProjectToCheckRowIn(
+              updateBy.props,
+              form.projectId,
+            ),
+            logoFileId: isProjectsOwn ? form.logoFileId : undefined,
+            faviconFileId: isProjectsOwn ? form.faviconFileId : undefined,
           };
         }),
       });
@@ -465,8 +469,13 @@ export class Service extends DatabaseService<Model> {
         this.assertValidTargetSettings({ value: settings, targetType });
       }
 
+      /*
+       * A teammate's update is kept to the request's project; OneUptime's,
+       * or a master admin's, is checked in the form's own project, whatever
+       * project the request names.
+       */
       const projectId: ObjectID | undefined =
-        updateBy.props.tenantId || form.projectId;
+        DatabaseService.getProjectToCheckRowIn(updateBy.props, form.projectId);
 
       if (projectId) {
         await this.validateProjectReferences({

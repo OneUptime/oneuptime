@@ -718,27 +718,13 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    // Scope the root lookup using the same delete authorization as the write.
-    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
-      Model,
-      deleteBy.query,
-      deleteBy.props,
-    );
-    const selectedPermissions: Array<Model> = await this.findAllBy({
-      query: deleteBy.query,
-      select: { _id: true },
-      skip: deleteBy.skip,
-      limit: deleteBy.limit,
-      props: { isRoot: true },
-    });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map(
-      (row: Model) => {
-        return row.id!;
-      },
-    );
-    const teamPermissions: Array<Model> = await this.findAllBy({
-      query: { _id: QueryHelper.any(selectedIds) },
-      select: {
+    /*
+     * The permissions the delete removes - the ones the caller may delete, in
+     * the delete's own window - with all their labels, and the delete held
+     * to them: the write removes only rows whose authority was checked.
+     */
+    const teamPermissions: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         teamId: true,
         projectId: true,
@@ -749,11 +735,7 @@ export class Service extends ProjectReferencesService<Model> {
         team: {
           isPermissionsEditable: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, deleteBy.props);
@@ -772,13 +754,6 @@ export class Service extends ProjectReferencesService<Model> {
         });
       }
     }
-
-    // Keep the write restricted to the page whose authority was checked.
-    deleteBy.query = {
-      ...deleteBy.query,
-      _id: QueryHelper.any(selectedIds),
-    };
-    deleteBy.skip = 0;
 
     let teamMembers: Array<TeamMember> = [];
 

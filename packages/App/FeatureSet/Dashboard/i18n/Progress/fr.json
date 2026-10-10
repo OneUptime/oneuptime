@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 9632
+    "keys": 27758,
+    "untranslated": 9611
   },
   "sameAsEnglish": [
     " incidents",
@@ -125,6 +125,8 @@
     "Content Security Policy",
     "Controller Manager",
     "Conversation",
+    "Conversation {{id}}",
+    "Conversations",
     "Costa Rica",
     "CrowdStrike",
     "Cuba",
@@ -159,6 +161,7 @@
     "Down + Out",
     "EKS Fargate",
     "ERR",
+    "Embedding",
     "Enterprise Edition",
     "Envoy Proxy",
     "Europe",

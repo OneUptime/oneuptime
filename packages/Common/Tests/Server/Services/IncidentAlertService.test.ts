@@ -58,6 +58,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
+import { idsNamedBy } from "../TestingUtils/QueryConditions";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -646,8 +651,17 @@ describe("the project check and the service's own answer agree", () => {
   });
 
   test("a workflow may not point a link at another project's alert", async () => {
-    // The link holds nothing the update names.
-    jest.spyOn(IncidentAlertService, "findBy").mockResolvedValue([] as never);
+    /*
+     * The link the update writes, of the project: OneUptime's update is
+     * checked in the project of the link it writes. It holds nothing the
+     * update names.
+     */
+    jest.spyOn(IncidentAlertService, "findBy").mockResolvedValue([
+      {
+        _id: "0194a1e7-0000-4000-8000-0000000000d1",
+        projectId: PROJECT_ID,
+      },
+    ] as never);
 
     const update: (alertId: ObjectID) => Promise<unknown> = (
       alertId: ObjectID,
@@ -1312,7 +1326,7 @@ describe("feed entries", () => {
 });
 
 describe("onBeforeDelete carries the rows it may delete", () => {
-  test("reads the matching rows as root, pinned to the caller's project", async () => {
+  test("reads the rows the caller may delete in the caller's project, then the delete's own among them as root", async () => {
     const row: IncidentAlert = buildLink();
     row._id = ObjectID.generate().toString();
     const incomplete: IncidentAlert = new IncidentAlert();
@@ -1321,15 +1335,24 @@ describe("onBeforeDelete carries the rows it may delete", () => {
     const findBy: jest.SpyInstance = jest
       .spyOn(IncidentAlertService, "findBy")
       .mockResolvedValue([row, incomplete] as never);
+    // The links the caller may delete.
+    stubRowsCallerMayDelete(IncidentAlertService, () => {
+      return [row, incomplete];
+    });
 
     const result: OnDelete<IncidentAlert> = await callHook<
       OnDelete<IncidentAlert>
     >("onBeforeDelete", {
-      query: { _id: row._id },
+      query: {},
       props: userProps(Permission.ProjectAdmin),
-      limit: 1,
+      limit: 2,
       skip: 0,
     } as DeleteBy<IncidentAlert>);
+
+    // The links the caller may delete are read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query["projectId"],
+    ).toBe(PROJECT_ID);
 
     const args: {
       query: Query<IncidentAlert>;
@@ -1337,15 +1360,16 @@ describe("onBeforeDelete carries the rows it may delete", () => {
       props: DatabaseCommonInteractionProps;
     } = findBy.mock.calls[0]![0];
 
-    expect(args.props).toEqual({ isRoot: true });
+    expect(args.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(args.select).toEqual({
       _id: true,
       incidentId: true,
       alertId: true,
       projectId: true,
     });
-    expect(args.query._id).toBe(row._id);
-    expect(args.query.projectId).toBe(PROJECT_ID);
+    expect(idsNamedBy(args.query._id).sort()).toEqual(
+      [row._id, incomplete._id].sort(),
+    );
 
     expect(result.carryForward).toEqual([
       {
@@ -1436,9 +1460,15 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
   });
 
   test("delete, including the rows it carries forward", async () => {
+    const link: IncidentAlert = buildLink();
+    link._id = ObjectID.generate().toString();
     const findBy: jest.SpyInstance = jest
       .spyOn(IncidentAlertService, "findBy")
-      .mockResolvedValue([] as never);
+      .mockResolvedValue([link] as never);
+    // The link the caller may delete.
+    stubRowsCallerMayDelete(IncidentAlertService, () => {
+      return [link];
+    });
 
     const result: OnDelete<IncidentAlert> = await callHook<
       OnDelete<IncidentAlert>
@@ -1450,6 +1480,9 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
     } as DeleteBy<IncidentAlert>);
 
     expectBothFilters(result.deleteBy.query);
+    expectBothFilters(
+      readsOfRowsCallerMayWrite(IncidentAlertService)[0]!.query,
+    );
     expectBothFilters(findBy.mock.calls[0]![0].query);
   });
 

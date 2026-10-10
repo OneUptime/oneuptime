@@ -549,16 +549,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const monitorsPendingDeletion: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    /*
+     * The monitors the delete removes, and the delete held to them: only
+     * their status page resources go and only their channels are archived.
+     */
+    const monitorsPendingDeletion: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      props: deleteBy.props,
-    });
+      });
 
     for (const monitor of monitorsPendingDeletion) {
       if (!monitor.id) {
@@ -828,11 +827,11 @@ export class Service extends ProjectReferencesService<Model> {
                 monitorSteps: updateBy.data.monitorSteps as
                   | MonitorSteps
                   | JSONObject,
-                /*
-                 * Root/API updates do not always carry a tenantId, so fall back
-                 * to the project of the monitor being updated.
-                 */
-                projectId: updateBy.props.tenantId || monitor.projectId,
+                // The project the monitor being updated is checked in.
+                projectId: Service.getProjectToCheckRowIn(
+                  updateBy.props,
+                  monitor.projectId,
+                ),
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
               },
             );
@@ -867,7 +866,10 @@ export class Service extends ProjectReferencesService<Model> {
           if (writtenMonitorTemplateId) {
             await this.validateMonitorTemplateReference({
               monitorTemplateId: writtenMonitorTemplateId,
-              projectId: updateBy.props.tenantId || monitor.projectId,
+              projectId: Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ),
               monitorType: monitor.monitorType,
               props: updateBy.props,
             });
@@ -876,10 +878,24 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * The projects the update's references are checked in
+     * (findProjectsToCheckUpdateIn), read once for every check below that
+     * needs them.
+     */
+    let projectsToCheckIn: Array<ObjectID> | null = null;
+    const getProjectsToCheckIn: () => Promise<
+      Array<ObjectID>
+    > = async (): Promise<Array<ObjectID>> => {
+      if (!projectsToCheckIn) {
+        projectsToCheckIn = await this.findProjectsToCheckUpdateIn(updateBy);
+      }
+
+      return projectsToCheckIn;
+    };
+
     if (currentMonitorStatusReferences.length > 0) {
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+      const projectIds: Array<ObjectID> = await getProjectsToCheckIn();
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
@@ -894,11 +910,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateLinkedResourcesBelongToProject({
       payload: updateBy.data,
-      getProjectIds: async (): Promise<Array<ObjectID>> => {
-        return updateBy.props.tenantId
-          ? [updateBy.props.tenantId]
-          : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
-      },
+      getProjectIds: getProjectsToCheckIn,
     });
 
     if (
@@ -924,7 +936,11 @@ export class Service extends ProjectReferencesService<Model> {
         targets: monitorsToValidate.map((monitor: Model) => {
           return {
             monitorId: monitor.id || null,
-            projectId: updateBy.props.tenantId || monitor.projectId || null,
+            projectId:
+              Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ) || null,
           };
         }),
         proposedParents: updateBy.data.dependsOnMonitors,
@@ -1965,9 +1981,17 @@ export class Service extends ProjectReferencesService<Model> {
           })
           .filter(Boolean),
       );
+      /*
+       * The default status of the monitors' own project. Monitors of more
+       * than one project - a write of OneUptime's or a master admin's -
+       * share none, so none is filled in.
+       */
       const projectId: string | undefined =
-        data.tenantId?.toString() ||
-        (projectIds.size === 1 ? Array.from(projectIds)[0] : undefined);
+        projectIds.size === 1
+          ? Array.from(projectIds)[0]
+          : projectIds.size === 0
+            ? data.tenantId?.toString()
+            : undefined;
 
       if (projectId) {
         defaultMonitorStatusId =

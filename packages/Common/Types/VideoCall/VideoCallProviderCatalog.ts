@@ -175,7 +175,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
     provider: VideoCallProvider.Zoom,
     title: "Zoom",
     description:
-      "Start a dedicated Zoom meeting for every incident and alert, hosted by a Zoom service account.",
+      "Start a dedicated Zoom meeting for every incident and alert, hosted by the Zoom account you connect.",
     docsPath: "/docs/workspace-connections/video-calls#zoom",
     createsMeetingPerCall: true,
     configFields: [
@@ -236,7 +236,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
     provider: VideoCallProvider.GoogleMeet,
     title: "Google Meet",
     description:
-      "Create a dedicated Google Meet for every incident and alert, owned by a Google Workspace service user.",
+      "Create a dedicated Google Meet for every incident and alert, owned by the Google account you connect.",
     docsPath: "/docs/workspace-connections/video-calls#google-meet",
     createsMeetingPerCall: true,
     configFields: [
@@ -281,7 +281,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
     provider: VideoCallProvider.MicrosoftTeams,
     title: "Microsoft Teams",
     description:
-      "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by a Microsoft 365 service account.",
+      "Create a dedicated Microsoft Teams meeting for every incident and alert, organized by the Microsoft 365 account you connect.",
     docsPath: "/docs/workspace-connections/video-calls#microsoft-teams",
     createsMeetingPerCall: true,
     configFields: [
