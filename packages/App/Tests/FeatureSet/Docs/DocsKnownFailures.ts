@@ -274,22 +274,11 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     uniqueHeadings: EVERY_TRANSLATION,
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/docker-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/docker-swarm-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "monitor/exceptions-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/external-status-page-monitor": {
     sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/host-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "monitor/incident-alert-templating": {
     pageLinks: ["fa"],
@@ -310,9 +299,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "monitor/kubernetes-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/logs-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -331,18 +317,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/network-vendor-guides": {
     translated: EVERY_TRANSLATION,
   },
-  "monitor/podman-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "monitor/profiles-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/proxmox-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "monitor/server-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/sql-monitor": {
