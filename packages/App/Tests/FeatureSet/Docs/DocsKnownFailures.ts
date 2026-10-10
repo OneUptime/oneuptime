@@ -716,22 +716,22 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "workflows/authoring": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workflows/components": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workflows/configuration": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workflows/runs-and-logs": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workflows/triggers": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workflows/variables": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko"),
   },
   "workspace-connections/microsoft-teams": {
     headingLevels: EN,
