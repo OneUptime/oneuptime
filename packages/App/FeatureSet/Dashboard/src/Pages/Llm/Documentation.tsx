@@ -139,7 +139,7 @@ const LlmDocumentationPage: FunctionComponent<PageComponentProps> = (
             href={LLM_DOCS_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex flex-shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            className="inline-flex flex-shrink-0 items-center gap-1 self-end text-sm font-medium text-indigo-600 hover:text-indigo-700 sm:self-auto"
           >
             <Icon icon={IconProp.Book} className="h-4 w-4" />
             <span>{translator.translateText("Read the full guide")}</span>

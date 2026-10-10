@@ -106,6 +106,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     };
   }),
   {
+    file: `${DASHBOARD}/Components/Form/Monitor/LlmMonitor/LlmMonitorStepForm.tsx`,
+    form: "BasicForm: llm-monitor-filter",
+    reason:
+      "The AI / LLM monitor's settings, embedded in one step of the monitor form like the other monitors' filters; a stepper inside a step would nest one wizard in another. On screen are the questions every AI alert answers (which problems make an answer bad, how slow is too slow, how far back to look, which apps); the model folds under More fields, and the preview of what the monitor would count sits under them.",
+  },
+  {
     file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx`,
     form: "ModelForm: Layer Configuration",
     reason:
