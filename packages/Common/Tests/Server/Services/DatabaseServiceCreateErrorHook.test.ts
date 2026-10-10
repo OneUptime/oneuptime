@@ -244,3 +244,330 @@ describe("a create's error hook", () => {
     expect(service.calls).toEqual(["before", "error: taken"]);
   });
 });
+
+/*
+ * THE CREATE'S ONE OnCreate (DatabaseService.create): the object
+ * onBeforeCreate hands back is the very one onCreatePermitted,
+ * onCreateSuccess and onCreateError are handed, so a service gives back what
+ * its hooks took through that object - by the OnCreate itself, by the create
+ * a later hook was handed, or by what it carries forward - however the create
+ * ends. It used to hand onCreatePermitted and onCreateSuccess objects of its
+ * own and onCreateError what onBeforeCreate returned: a hook that handed back
+ * a create of its own made onCreateError look a lock up by the wrong create,
+ * and keep it.
+ */
+
+type HookSeen = {
+  hook: "permitted" | "success" | "error";
+  onCreate: OnCreate<IncidentInternalNote> | undefined;
+  createBy: CreateBy<IncidentInternalNote> | undefined;
+  carryForward: unknown;
+};
+
+class OneObjectService extends DatabaseService<IncidentInternalNote> {
+  // What onBeforeCreate handed back, each create.
+  public handedBack: Array<OnCreate<IncidentInternalNote>> = [];
+  public seen: Array<HookSeen> = [];
+  // onBeforeCreate hands back a create of its own, as a hook may.
+  public handsBackNewCreate: boolean = false;
+  // onCreatePermitted carries something further forward on the object.
+  public carriesForwardInPermitted: boolean = false;
+  // A lock taken in onCreatePermitted, kept by the OnCreate it is handed...
+  public lockByOnCreate: WeakMap<OnCreate<IncidentInternalNote>, string> =
+    new WeakMap();
+  // ...and one kept by the create that OnCreate holds then.
+  public lockByCreateBy: WeakMap<CreateBy<IncidentInternalNote>, string> =
+    new WeakMap();
+  public taken: Array<string> = [];
+  public givenBack: Array<string> = [];
+
+  public constructor() {
+    super(IncidentInternalNote);
+  }
+
+  protected override async onBeforeCreate(
+    createBy: CreateBy<IncidentInternalNote>,
+  ): Promise<OnCreate<IncidentInternalNote>> {
+    const onCreate: OnCreate<IncidentInternalNote> = {
+      createBy: this.handsBackNewCreate ? { ...createBy } : createBy,
+      carryForward: { from: "onBeforeCreate" },
+    };
+
+    this.handedBack.push(onCreate);
+
+    return onCreate;
+  }
+
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<IncidentInternalNote>,
+  ): Promise<void> {
+    this.record("permitted", onCreate);
+
+    this.lockByOnCreate.set(onCreate, "the lock kept by the OnCreate");
+    this.lockByCreateBy.set(onCreate.createBy, "the lock kept by the create");
+    this.taken.push(
+      "the lock kept by the OnCreate",
+      "the lock kept by the create",
+    );
+
+    if (this.carriesForwardInPermitted) {
+      onCreate.carryForward = { from: "onCreatePermitted" };
+    }
+  }
+
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<IncidentInternalNote>,
+    createdItem: IncidentInternalNote,
+  ): Promise<IncidentInternalNote> {
+    this.record("success", onCreate);
+    this.giveBack(onCreate);
+    return createdItem;
+  }
+
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<IncidentInternalNote> | undefined,
+  ): Promise<Exception> {
+    this.record("error", onCreate);
+
+    if (onCreate) {
+      this.giveBack(onCreate);
+    }
+
+    return error;
+  }
+
+  private record(
+    hook: HookSeen["hook"],
+    onCreate: OnCreate<IncidentInternalNote> | undefined,
+  ): void {
+    this.seen.push({
+      hook: hook,
+      onCreate: onCreate,
+      createBy: onCreate?.createBy,
+      carryForward: onCreate?.carryForward,
+    });
+  }
+
+  // Each lock this create holds, given back once.
+  private giveBack(onCreate: OnCreate<IncidentInternalNote>): void {
+    const byOnCreate: string | undefined = this.lockByOnCreate.get(onCreate);
+
+    if (byOnCreate) {
+      this.lockByOnCreate.delete(onCreate);
+      this.givenBack.push(byOnCreate);
+    }
+
+    const byCreateBy: string | undefined = this.lockByCreateBy.get(
+      onCreate.createBy,
+    );
+
+    if (byCreateBy) {
+      this.lockByCreateBy.delete(onCreate.createBy);
+      this.givenBack.push(byCreateBy);
+    }
+  }
+}
+
+describe("a create's one OnCreate", () => {
+  let service: OneObjectService;
+  let saveFails: boolean;
+  let saved: Array<IncidentInternalNote>;
+
+  beforeEach(() => {
+    service = new OneObjectService();
+    saveFails = false;
+    saved = [];
+
+    jest.spyOn(service, "getRepository").mockReturnValue({
+      save: async (
+        entity: IncidentInternalNote,
+      ): Promise<IncidentInternalNote> => {
+        if (saveFails) {
+          throw new Error("The database could not write the note");
+        }
+
+        saved.push(entity);
+        entity.id = ObjectID.generate();
+        return entity;
+      },
+    } as never);
+
+    jest
+      .spyOn(service, "onTriggerWorkflow")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(service, "onTriggerRealtime")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(PublishedImages, "afterCreate")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("onCreatePermitted and onCreateSuccess are handed the very object onBeforeCreate handed back", async () => {
+    await service.create({ data: note(), props: { isRoot: true } });
+
+    expect(service.handedBack).toHaveLength(1);
+    expect(
+      service.seen.map((seen: HookSeen): string => {
+        return seen.hook;
+      }),
+    ).toEqual(["permitted", "success"]);
+
+    for (const seen of service.seen) {
+      expect(seen.onCreate).toBe(service.handedBack[0]);
+    }
+  });
+
+  test("onCreateError is handed that same object, the one onCreatePermitted was handed", async () => {
+    saveFails = true;
+
+    await rejectionOf(
+      service.create({ data: note(), props: { isRoot: true } }),
+    );
+
+    expect(
+      service.seen.map((seen: HookSeen): string => {
+        return seen.hook;
+      }),
+    ).toEqual(["permitted", "error"]);
+    expect(service.seen[1]!.onCreate).toBe(service.seen[0]!.onCreate);
+    expect(service.seen[1]!.onCreate).toBe(service.handedBack[0]);
+  });
+
+  test("from onCreatePermitted on, it holds the create as it is written: the caller's create, with the row the INSERT writes - even when onBeforeCreate handed back a create of its own", async () => {
+    service.handsBackNewCreate = true;
+
+    const createBy: CreateBy<IncidentInternalNote> = {
+      data: note(),
+      props: { isRoot: true },
+    };
+
+    await service.create(createBy);
+
+    expect(service.handedBack[0]!.createBy).toBe(createBy);
+    expect(service.seen[0]!.createBy).toBe(createBy);
+    expect(service.seen[1]!.createBy).toBe(createBy);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toBe(createBy.data);
+  });
+
+  /*
+   * Each step that can fail once onCreatePermitted has taken its locks: the
+   * locks are given back by onCreateError, once - whether onBeforeCreate
+   * handed back the caller's create or one of its own, and whether the lock
+   * is kept by the OnCreate or by the create it holds.
+   */
+  const FAILURES: Array<[string, string | null, boolean]> = [
+    // [what fails, the method made to fail (null: the INSERT), synchronously]
+    ["the INSERT", null, false],
+    ["the serializing of the row", "sanitizeCreateOrUpdate", false],
+    ["the check that the write inserts", "assertCreateWillInsert", true],
+    ["a success hook that throws", "onCreateSuccess", false],
+  ];
+
+  describe.each([
+    ["the caller's create", false],
+    ["a create of its own", true],
+  ])(
+    "when onBeforeCreate hands back %s",
+    (_what: string, handsBackNewCreate: boolean) => {
+      test.each(FAILURES)(
+        "a create that fails at %s gives back every lock onCreatePermitted took, once",
+        async (
+          _failure: string,
+          method: string | null,
+          isSynchronous: boolean,
+        ) => {
+          service.handsBackNewCreate = handsBackNewCreate;
+
+          const failure: BadDataException = new BadDataException(
+            "This note could not be written.",
+          );
+
+          if (method === null) {
+            saveFails = true;
+          } else if (isSynchronous) {
+            jest
+              .spyOn(service as never, method as never)
+              .mockImplementation((() => {
+                throw failure;
+              }) as never);
+          } else {
+            jest
+              .spyOn(service as never, method as never)
+              .mockRejectedValue(failure as never);
+          }
+
+          await rejectionOf(
+            service.create({ data: note(), props: { isRoot: true } }),
+          );
+
+          expect(service.taken).toEqual([
+            "the lock kept by the OnCreate",
+            "the lock kept by the create",
+          ]);
+          expect([...service.givenBack].sort()).toEqual(
+            [...service.taken].sort(),
+          );
+        },
+      );
+
+      test("a create that is saved gives back every lock onCreatePermitted took, once", async () => {
+        service.handsBackNewCreate = handsBackNewCreate;
+
+        await service.create({ data: note(), props: { isRoot: true } });
+
+        expect([...service.givenBack].sort()).toEqual(
+          [...service.taken].sort(),
+        );
+        expect(service.givenBack).toHaveLength(2);
+      });
+    },
+  );
+
+  test("what a later hook carries forward on the object reaches onCreateError", async () => {
+    service.carriesForwardInPermitted = true;
+    saveFails = true;
+
+    await rejectionOf(
+      service.create({ data: note(), props: { isRoot: true } }),
+    );
+
+    expect(service.seen[1]!.hook).toBe("error");
+    expect(service.seen[1]!.carryForward).toEqual({
+      from: "onCreatePermitted",
+    });
+  });
+
+  test("...and onCreateSuccess", async () => {
+    service.carriesForwardInPermitted = true;
+
+    await service.create({ data: note(), props: { isRoot: true } });
+
+    expect(service.seen[1]!.hook).toBe("success");
+    expect(service.seen[1]!.carryForward).toEqual({
+      from: "onCreatePermitted",
+    });
+  });
+
+  test("two creates are handed two objects: one create's locks are never another's", async () => {
+    saveFails = true;
+
+    await rejectionOf(
+      service.create({ data: note(), props: { isRoot: true } }),
+    );
+
+    saveFails = false;
+
+    await service.create({ data: note(), props: { isRoot: true } });
+
+    expect(service.handedBack).toHaveLength(2);
+    expect(service.handedBack[0]).not.toBe(service.handedBack[1]);
+    expect(service.givenBack).toHaveLength(4);
+  });
+});
