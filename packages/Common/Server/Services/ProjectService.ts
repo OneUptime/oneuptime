@@ -782,7 +782,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *     update to Require SSO for Login does
    *     (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
    *     lock on the server's sign-in rules, held until the project is
-   *     written (onCreateSuccess) or its create fails (onCreateError).
+   *     written (onCreateSuccess) or its create fails (onCreateError) - kept
+   *     by the create's one OnCreate, the very object those hooks are handed
+   *     too, so it is given back however the create ends.
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -797,7 +799,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
 
     await SsoRequirementChanges.beforeProjectCreate({
-      createBy: onCreate.createBy,
+      create: onCreate,
       isCreatorExemptFromServerRule:
         carryForward?.isCreatorMasterAdmin === true,
     });
@@ -850,7 +852,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * whatever happened - or, when the database may still commit the project
    * (its COMMIT went unanswered), kept until it would have cancelled it
    * (SsoRequirementChanges). DatabaseService.create hands every failure
-   * after onBeforeCreate to this hook.
+   * after onBeforeCreate to this hook, with the create's one OnCreate - the
+   * very object onCreatePermitted kept the lock by.
    */
   @CaptureSpan()
   protected override async onCreateError(
@@ -859,7 +862,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     await SsoRequirementChanges.afterFailedProjectCreate(
-      onCreate?.createBy,
+      onCreate,
       error,
       failedStatement,
     );
@@ -2212,7 +2215,7 @@ These are no longer recorded against the project and have to be cancelled by han
     createdItem: Model,
   ): Promise<Model> {
     // Written: the lock its sign-in check held is given back before anything else.
-    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+    await SsoRequirementChanges.afterProjectCreate(onCreate);
 
     // Create billing.
 

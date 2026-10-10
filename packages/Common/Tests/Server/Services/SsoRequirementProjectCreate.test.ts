@@ -12,6 +12,8 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../Server/Utils/Logger";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import ProjectSsoProviderChanges, {
   SERVER_SIGN_IN_LOCK_KEY,
@@ -694,6 +696,102 @@ describe("a project created while the server does not require SSO", () => {
     );
     expect(events.indexOf(`keep:${SERVER_LOCK}`)).toBeLessThan(
       events.indexOf("save"),
+    );
+  });
+});
+
+/*
+ * The lock is kept by the create's one OnCreate - the very object
+ * DatabaseService hands onCreatePermitted, onCreateSuccess and onCreateError
+ * alike - and never by the create it holds, which onBeforeCreate may hand
+ * back anew. It used to be looked up by the create onBeforeCreate handed
+ * back, which only worked while that was the one onCreatePermitted was
+ * handed.
+ */
+describe("the lock, when onBeforeCreate hands back a create of its own", () => {
+  beforeEach(() => {
+    const original: (
+      createBy: CreateBy<Project>,
+    ) => Promise<OnCreate<Project>> = Object.getPrototypeOf(ProjectService)
+      .onBeforeCreate as (
+      createBy: CreateBy<Project>,
+    ) => Promise<OnCreate<Project>>;
+
+    getJestSpyOn(ProjectService, "onBeforeCreate").mockImplementation((async (
+      createBy: CreateBy<Project>,
+    ): Promise<OnCreate<Project>> => {
+      const onCreate: OnCreate<Project> = await original.call(
+        ProjectService,
+        createBy,
+      );
+
+      return {
+        createBy: { ...onCreate.createBy },
+        carryForward: onCreate.carryForward,
+      };
+    }) as never);
+  });
+
+  test("is given back when the database fails the create", async () => {
+    saveFails = true;
+
+    await expect(create("member")).rejects.toThrow(
+      "The database could not write the project",
+    );
+
+    expect(saved).toEqual([]);
+    expect(lockEvents()).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("is given back when a step after the check refuses the create", async () => {
+    getJestSpyOn(ProjectService, "assertCreateWillInsert").mockImplementation(
+      (() => {
+        throw new BadDataException("This project cannot be written.");
+      }) as never,
+    );
+
+    await expect(create("member")).resolves.toBe(
+      "This project cannot be written.",
+    );
+
+    expect(saved).toEqual([]);
+    expect(lockEvents()).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+  });
+
+  test("is kept while a COMMIT that went unanswered may still land, as it is for any create", async () => {
+    saveFailsWith = connectionLost(COMMIT_STATEMENT);
+
+    await expect(create("member")).rejects.toThrow(
+      "Connection terminated unexpectedly",
+    );
+
+    expect(lockEvents()).toEqual([`lock:${SERVER_LOCK}`]);
+    expect(keptForWrite()).toEqual([true]);
+
+    // Stops keeping it, so nothing outlives the test.
+    await ProjectSsoProviderChanges.releaseSignInChange(
+      Array.from(lockObjects.values()) as never,
+    );
+  });
+
+  test("is given back once when the project is written, before the seeding", async () => {
+    await expect(create("member")).resolves.toBe("created");
+
+    expect(saved).toHaveLength(1);
+    expect(
+      events.filter((event: string): boolean => {
+        return event === `release:${SERVER_LOCK}`;
+      }),
+    ).toHaveLength(1);
+    expect(events.indexOf(`release:${SERVER_LOCK}`)).toBeLessThan(
+      events.indexOf("seed"),
     );
   });
 });

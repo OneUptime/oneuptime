@@ -15,6 +15,9 @@ import path from "path";
  * Users, Teams & Permissions says so in every docs language, with the
  * permission for each kind of record; the incident state and linked-alert
  * pages point to it, and the upgrade notes say what changes for custom roles.
+ * Acknowledging the alerts of an incident as it is declared takes the same as
+ * acknowledging each of them on its own page (AlertStateChangeAuthorization),
+ * and the English pages say so.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -127,15 +130,16 @@ describe("Docs: changing a state takes the state timeline's create permission", 
     }
   });
 
-  test("it keeps the note a change posts, and acknowledging alerts on declare, to their own permissions", () => {
+  test("it keeps the note a change posts to its own permission, and acknowledging alerts on declare to the timeline's", () => {
     const { body } = stateChangeSection(english);
 
     expect(body).toContain(
       "Only the state is written for you. A note posted with a change is posted as you and takes the note's own permission",
     );
     expect(body).toContain(
-      "Acknowledging the alerts of an incident as you declare it still also takes **Edit Alert**",
+      "Acknowledging the alerts of an incident as you declare it takes the same as acknowledging each of them on its own page: **Create Alert State Timeline**, narrowed through each alert, and no **Edit Alert**.",
     );
+    expect(body).not.toContain("still also takes **Edit Alert**");
     expect(body).toContain(
       "(/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare)",
     );
@@ -164,7 +168,7 @@ describe("Docs: changing a state takes the state timeline's create permission", 
         ]).toEqual([language, permission, true]);
       }
 
-      // The two permissions the change no longer needs, and the one it still does on declare.
+      // The two edit permissions a change does not need - on declare either.
       for (const permission of ["**Edit Incident**", "**Edit Alert**"]) {
         expect([
           language,
@@ -222,11 +226,39 @@ describe("Docs: changing a state takes the state timeline's create permission", 
     );
   });
 
-  test("the linked alerts page says acknowledging on declare takes more than on the alert's own page", () => {
+  test("the linked alerts page says acknowledging on declare takes what the alert's own page takes", () => {
     const page: string = read("en", "incidents/linked-alerts.md");
 
     expect(page).toContain(
-      "Acknowledging them as you declare takes **Create Alert State Timeline** and **Edit Alert** (acknowledging an alert on its own page takes only the first: see [Changing a state](/docs/permissions/index#changing-a-state))",
+      "Acknowledging them as you declare takes what acknowledging each of them on its own page takes: **Create Alert State Timeline**, and no **Edit Alert** (see [Changing a state](/docs/permissions/index#changing-a-state)).",
+    );
+    expect(page).not.toContain(
+      "**Create Alert State Timeline** and **Edit Alert**",
+    );
+  });
+
+  test("the upgrade notes say acknowledging alerts on declare no longer takes Edit Alert", () => {
+    const page: string = read("en", "installation/upgrading.md");
+
+    for (const sentence of [
+      "- **Acknowledging alerts as you declare an incident takes what acknowledging",
+      "take **Edit Alert** as well as **Create Alert State Timeline** for each",
+      "on their own pages. It now takes **Create Alert State Timeline** alone,",
+      "**Edit Alert** - or a team with a block on **Edit Alert** - acknowledges",
+      "[Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).",
+    ]) {
+      expect([sentence, page.includes(sentence)]).toEqual([sentence, true]);
+    }
+
+    // Right after the note on changing a state.
+    expect(
+      page.indexOf(
+        "- **Acknowledging alerts as you declare an incident takes what acknowledging",
+      ),
+    ).toBeGreaterThan(
+      page.indexOf(
+        "- **Changing a state takes the state timeline's permission, and nothing",
+      ),
     );
   });
 

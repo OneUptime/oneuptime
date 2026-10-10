@@ -335,6 +335,20 @@ const PAGES_THAT_LINK_TO_LINKED_ALERTS: ReadonlyArray<string> = [
 const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
 const ALL_LANGUAGES: ReadonlyArray<string> = ["en", ...TRANSLATED_LANGUAGES];
 
+/*
+ * The permission acknowledging the alerts as an incident is declared takes:
+ * the alert state timeline's create permission - what acknowledging one
+ * alert on its own page takes - and no Edit Alert
+ * (AlertStateChangeAuthorization asks AlertStateTimelineService's own create
+ * check). Every language's page names it; the English page also says Edit
+ * Alert is not needed (the other languages' copies are translated in a pass
+ * of their own).
+ */
+const ACKNOWLEDGE_PERMISSION: string = `**${PermissionHelper.getTitle(
+  Permission.CreateAlertStateTimeline,
+)}**`;
+const EDIT_ALERT: string = `**${PermissionHelper.getTitle(Permission.EditAlert)}**`;
+
 const LINK_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.CreateIncidentAlert,
   Permission.ReadIncidentAlert,
@@ -2326,10 +2340,7 @@ describe("Incident Linked Alerts docs", () => {
         }),
       ).toEqual(positions);
 
-      const permissionNames: Array<string> = [
-        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
-        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
-      ];
+      const permissionNames: Array<string> = [ACKNOWLEDGE_PERMISSION];
 
       for (const language of ALL_LANGUAGES) {
         const prose: Array<string> = splitMarkdown(
@@ -2380,6 +2391,12 @@ describe("Incident Linked Alerts docs", () => {
           noAcknowledgedState: true,
           noPermission: true,
         });
+
+        // The English refusal names what is needed, and no Edit Alert.
+        if (language === "en") {
+          expect(cases[3]).not.toContain(EDIT_ALERT);
+          expect(cases[3]).toContain("as acknowledging each of them does");
+        }
       }
     });
 
@@ -2552,26 +2569,22 @@ describe("Incident Linked Alerts docs", () => {
       }
     });
 
-    it("names the permissions acknowledging takes, and exactly the roles that have them and that do not, in every language", () => {
+    it("names the permission acknowledging takes, and exactly the roles that have it and that do not, in every language", () => {
       const timelineCreators: Array<Permission> =
         new AlertStateTimeline().getCreatePermissions();
-      const alertEditors: Array<Permission> =
-        new Alert().getUpdatePermissions();
 
-      // The granular permissions the docs name are the ones the two models grant.
+      // The granular permission the docs name is the one the timeline grants.
       expect(timelineCreators).toContain(Permission.CreateAlertStateTimeline);
-      expect(alertEditors).toContain(Permission.EditAlert);
 
-      // The dashboard gates the box on the same two models, in that order.
-      expect(readSource(ACKNOWLEDGE_ON_DECLARE_FILE)).toMatch(
-        /new AlertStateTimeline\(\),\s*ModelAction\.Create,[\s\S]*new Alert\(\),\s*ModelAction\.Update,/,
+      // The dashboard gates the box on the timeline's create alone - no alert update.
+      const gate: string = readSource(ACKNOWLEDGE_ON_DECLARE_FILE);
+      expect(gate).toMatch(
+        /new AlertStateTimeline\(\),\s*ModelAction\.Create,/,
       );
+      expect(gate).not.toMatch(/ModelAction\.Update/);
 
-      const acknowledgers: Array<string> = roleTitlesOf(
-        timelineCreators.filter((permission: Permission): boolean => {
-          return alertEditors.includes(permission);
-        }),
-      );
+      // Whoever may create the timeline row may acknowledge: no Edit Alert besides.
+      const acknowledgers: Array<string> = roleTitlesOf(timelineCreators);
       const linkers: Array<string> = roleTitlesOf(
         new IncidentAlert().getCreatePermissions(),
       );
@@ -2585,10 +2598,7 @@ describe("Incident Linked Alerts docs", () => {
       expect(acknowledgers.length).toBeGreaterThan(0);
       expect(declareButCannotAcknowledge.length).toBeGreaterThan(0);
 
-      const permissionNames: Array<string> = [
-        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
-        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
-      ];
+      const permissionNames: Array<string> = [ACKNOWLEDGE_PERMISSION];
       const candidates: Array<string> = Array.from(
         new Set<string>([...acknowledgers, ...linkers]),
       );
@@ -2633,8 +2643,25 @@ describe("Incident Linked Alerts docs", () => {
         }).toEqual({ language: language, mentions: 3 });
       }
 
-      expect(readPage(LINKED_ALERTS_PAGE)).toContain(
-        `${declareButCannotAcknowledge.join(" and ")}, who can declare incidents from alerts, have neither.`,
+      const english: string = readPage(LINKED_ALERTS_PAGE);
+
+      expect(english).toContain(
+        `${declareButCannotAcknowledge.join(" and ")}, who can declare incidents from alerts, do not.`,
+      );
+
+      /*
+       * In English, the one line that names Edit Alert says it is not needed:
+       * acknowledging as you declare takes what an alert's own page takes.
+       */
+      const editAlertLines: Array<string> = splitMarkdown(english).prose.filter(
+        (line: string): boolean => {
+          return line.includes(EDIT_ALERT);
+        },
+      );
+
+      expect(editAlertLines).toHaveLength(1);
+      expect(editAlertLines[0]).toContain(
+        `Acknowledging them as you declare takes what acknowledging each of them on its own page takes: ${ACKNOWLEDGE_PERMISSION}, and no ${EDIT_ALERT}`,
       );
     });
 
@@ -2823,10 +2850,7 @@ describe("Incident Linked Alerts docs", () => {
         /acknowledgeAlertsDeclaredWithIncident\(\{\s*projectId: projectId,\s*incidentId: incidentId,\s*alertIds: alertIdsToAcknowledge,/,
       );
 
-      const permissionNames: Array<string> = [
-        `**${PermissionHelper.getTitle(Permission.CreateAlertStateTimeline)}**`,
-        `**${PermissionHelper.getTitle(Permission.EditAlert)}**`,
-      ];
+      const permissionNames: Array<string> = [ACKNOWLEDGE_PERMISSION];
       const acknowledging: number = englishHeadingIndex(
         3,
         ACKNOWLEDGING_HEADING,

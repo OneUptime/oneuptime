@@ -1028,6 +1028,20 @@ API, SSO, or the Slack and Microsoft Teams apps.
   ahead at once, where it used to wait about ten seconds and then go ahead
   without the lock that keeps two changes from crossing. See
   [Changing a state](/docs/permissions/index#changing-a-state).
+- **Acknowledging alerts as you declare an incident takes what acknowledging
+  them takes anywhere else.** Declaring an incident from alerts with the box
+  to acknowledge them ticked - `acknowledgeAlertsToLink` in the API - used to
+  take **Edit Alert** as well as **Create Alert State Timeline** for each
+  alert it acknowledged, more than acknowledging the same alerts one by one
+  on their own pages. It now takes **Create Alert State Timeline** alone,
+  narrowed by your labels, owners and each alert's privacy as it is on the
+  alert's page, so a custom role with that permission but without
+  **Edit Alert** - or a team with a block on **Edit Alert** - acknowledges
+  the alerts as it declares. A block on **Create Alert State Timeline**
+  still keeps a team from it, and the built-in roles see no change. The
+  dashboard's box asks for the same, and Terraform does not declare
+  incidents from alerts, so nothing changes there. See
+  [Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).
 - **An incoming call policy's phone numbers follow the policy's roles.**
   Looking numbers up - `POST /api/notification/phone-number/search` and
   `/list-owned` - needs permission to read incoming call policies and to
