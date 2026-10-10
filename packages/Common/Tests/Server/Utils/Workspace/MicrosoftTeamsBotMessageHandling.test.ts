@@ -2104,6 +2104,16 @@ describe("MicrosoftTeamsUtil.getUnexpectedErrorMessage", () => {
       UNEXPECTED_ERROR_TEXT,
     );
   });
+
+  test("the reference is text in the reply, whatever it holds", () => {
+    expect(
+      MicrosoftTeamsUtil.getUnexpectedErrorMessage({
+        id: "**1727** [logs](https://example.com)",
+      }),
+    ).toBe(
+      `${UNEXPECTED_ERROR_TEXT} If it keeps happening, ask your OneUptime administrator to look for reference \\*\\*1727\\*\\* \\[logs\\](https://example.com) in the server logs.`,
+    );
+  });
 });
 
 describe("MicrosoftTeamsUtil.recoverFromFailedTurn: the turn ends normally, with at most one reply", () => {

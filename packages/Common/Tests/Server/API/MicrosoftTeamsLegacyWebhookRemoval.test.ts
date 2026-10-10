@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { TurnContext } from "botbuilder";
+import fs from "fs";
+import path from "path";
 import type { SpyInstance } from "jest-mock";
 import MicrosoftTeamsAPI from "../../../Server/API/MicrosoftTeamsAPI";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -23,9 +25,14 @@ import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsMonitorActionType,
 } from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
+import MicrosoftTeamsAlertActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
+import MicrosoftTeamsAlertEpisodeActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode";
 import MicrosoftTeamsAuthAction from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
 import MicrosoftTeamsIncidentActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
+import MicrosoftTeamsIncidentEpisodeActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode";
 import MicrosoftTeamsMonitorActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Monitor";
+import MicrosoftTeamsOnCallDutyActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
+import MicrosoftTeamsScheduledMaintenanceActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../Types/JSON";
@@ -496,4 +503,95 @@ describe("Microsoft Teams inbound route authentication", () => {
     expect(databaseProps.tenantId).toBe(projectId);
     expect(databaseProps.userTeamIds).toEqual([teamId]);
   });
+});
+
+/*
+ * Card actions reach OneUptime through the Bot Framework adapter alone. The
+ * request handlers the old webhook route called went with that route; these
+ * tests keep them, and anything like them, from coming back.
+ */
+describe("Microsoft Teams card action modules", () => {
+  const ACTIONS_DIRECTORY: string = path.join(
+    __dirname,
+    "../../../Server/Utils/Workspace/MicrosoftTeams/Actions",
+  );
+  const HTTP_REQUEST_OR_RESPONSE_TYPE: RegExp = /\bExpress(Request|Response)\b/;
+  const HTTP_RESPONSE_HELPER_IMPORT: RegExp =
+    /from "\.\.\/\.\.\/\.\.\/Response"/;
+  const HANDLER_NAME: RegExp = /^(handle|show|submit)[A-Z]/;
+
+  test("no card action module reads an HTTP request or writes an HTTP response", () => {
+    const files: Array<string> = fs
+      .readdirSync(ACTIONS_DIRECTORY)
+      .filter((file: string): boolean => {
+        return file.endsWith(".ts");
+      });
+
+    expect(files.length).toBeGreaterThan(0);
+
+    const answeringHttp: Array<string> = files.filter(
+      (file: string): boolean => {
+        const source: string = fs.readFileSync(
+          path.join(ACTIONS_DIRECTORY, file),
+          "utf8",
+        );
+
+        return (
+          HTTP_REQUEST_OR_RESPONSE_TYPE.test(source) ||
+          HTTP_RESPONSE_HELPER_IMPORT.test(source)
+        );
+      },
+    );
+
+    expect(answeringHttp).toEqual([]);
+  });
+
+  test.each([
+    {
+      name: "MicrosoftTeamsIncidentActions",
+      actions: MicrosoftTeamsIncidentActions,
+      botHandler: "handleBotIncidentAction",
+    },
+    {
+      name: "MicrosoftTeamsAlertActions",
+      actions: MicrosoftTeamsAlertActions,
+      botHandler: "handleBotAlertAction",
+    },
+    {
+      name: "MicrosoftTeamsIncidentEpisodeActions",
+      actions: MicrosoftTeamsIncidentEpisodeActions,
+      botHandler: "handleBotIncidentEpisodeAction",
+    },
+    {
+      name: "MicrosoftTeamsAlertEpisodeActions",
+      actions: MicrosoftTeamsAlertEpisodeActions,
+      botHandler: "handleBotAlertEpisodeAction",
+    },
+    {
+      name: "MicrosoftTeamsScheduledMaintenanceActions",
+      actions: MicrosoftTeamsScheduledMaintenanceActions,
+      botHandler: "handleBotScheduledMaintenanceAction",
+    },
+    {
+      name: "MicrosoftTeamsMonitorActions",
+      actions: MicrosoftTeamsMonitorActions,
+      botHandler: "handleBotMonitorAction",
+    },
+    {
+      name: "MicrosoftTeamsOnCallDutyActions",
+      actions: MicrosoftTeamsOnCallDutyActions,
+      botHandler: "handleBotOnCallDutyAction",
+    },
+  ])(
+    "$name answers card actions through its Bot Framework handler alone",
+    (data: { name: string; actions: unknown; botHandler: string }) => {
+      const handlers: Array<string> = Object.getOwnPropertyNames(
+        data.actions,
+      ).filter((name: string): boolean => {
+        return HANDLER_NAME.test(name);
+      });
+
+      expect(handlers).toEqual([data.botHandler]);
+    },
+  );
 });

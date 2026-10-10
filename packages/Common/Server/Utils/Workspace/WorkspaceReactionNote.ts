@@ -35,6 +35,7 @@ import WorkspaceNotificationLogService from "../../Services/WorkspaceNotificatio
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 export enum WorkspaceNoteResourceType {
   Incident = "Incident",
@@ -602,22 +603,20 @@ export default class WorkspaceReactionNote {
   }
 
   /*
-   * The confirmation posted in the message's thread. `formatLink` renders a
-   * link in the workspace's own syntax.
+   * The confirmation posted in the message's thread, as Markdown. The label
+   * - "Incident INC-42", with the prefix the project chose - is text in the
+   * link, so it is never a link, a mention or styling of its own. Microsoft
+   * Teams posts it as it is; Slack posts it as mrkdwn (SlackUtil.slackify).
    */
   public static getConfirmationMessage(data: {
     noteType: WorkspaceNoteType;
     resourceLabel: string;
     resourceLink: string;
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  }): string {
-    const link: string = data.formatLink(data.resourceLink, data.resourceLabel);
-
+  }): MarkdownText {
     if (data.noteType === WorkspaceNoteType.Public) {
-      return `✅ Message saved as ${data.formatBold("public note")} to ${link}. This note will be visible on the status page.`;
+      return mdText`✅ Message saved as **public note** to [${data.resourceLabel}](${data.resourceLink}). This note will be visible on the status page.`;
     }
 
-    return `✅ Message saved as ${data.formatBold("private note")} to ${link}.`;
+    return mdText`✅ Message saved as **private note** to [${data.resourceLabel}](${data.resourceLink}).`;
   }
 }

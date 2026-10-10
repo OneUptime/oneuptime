@@ -75,16 +75,17 @@ export default class WorkspaceInlineImages {
         continue;
       }
 
-      const definitions: string =
+      // Pieces of the block's own Markdown, put back together.
+      const definitionsMarkdown: string =
         options?.repeatLinkDefinitions && split.linkDefinitionsMarkdown
-          ? `${split.linkDefinitionsMarkdown}\n\n`
+          ? split.linkDefinitionsMarkdown + "\n\n"
           : "";
 
       for (const piece of split.pieces) {
         if (piece.kind === ChatMarkdownPieceKind.Markdown) {
           const markdownBlock: WorkspacePayloadMarkdown = {
             _type: "WorkspacePayloadMarkdown",
-            text: definitions + piece.markdown,
+            text: definitionsMarkdown + piece.markdown,
           };
 
           WorkspaceInlineImages.splitFrom.set(markdownBlock, block);
