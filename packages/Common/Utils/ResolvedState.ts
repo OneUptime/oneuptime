@@ -28,9 +28,10 @@ import {
  *     alerts and alert episodes its alert states;
  *   - on the server, the state services read the project's list once and
  *     answer per record (IncidentStateService.isResolvedIncidentState,
- *     getUnresolvedIncidentStates...), and the record services per record
- *     (IncidentService.isIncidentResolved, AlertService.isAlertResolved, the
- *     episode services' isEpisodeResolved);
+ *     getUnresolvedIncidentStates...), the record services per record
+ *     (IncidentService.isIncidentResolved, AlertService.isAlertResolved),
+ *     and the chats' buttons for a record they read already
+ *     (WorkspaceMemberActions.getStanding);
  *   - in the dashboard and on status pages, the pages read the project's
  *     states and ask this module.
  *

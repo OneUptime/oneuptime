@@ -64,8 +64,7 @@ describe("one rule decides whether a scheduled maintenance event is in progress"
      * hasEnded, getInProgressStateIds, getOngoingState, getStartRows and
      * getEndRows) or ScheduledMaintenanceStateService
      * (getInProgressScheduledMaintenanceStateIds,
-     * getInProgressEventQueriesOfEveryProject,
-     * getOngoingScheduledMaintenanceState) instead.
+     * getInProgressEventQueriesOfEveryProject) instead.
      */
     expect(unexpected).toEqual([]);
   });

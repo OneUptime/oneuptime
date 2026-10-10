@@ -35,6 +35,7 @@ import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
 import FeedMarkdown, {
+  MarkdownText,
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 
@@ -309,18 +310,21 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       /*
        * Read as the member: an event they may not read is answered like
        * one that is not there, before anything about it is shown. This is
-       * the press's one read of it: it reads what the buttons below need -
-       * its state and its number (WorkspaceMemberActions.getEventResource)
-       * - and they act on it as read here.
+       * the press's one read of it: it reads what View shows and what the
+       * buttons below need - its state and its number - and they act on it
+       * as read here.
        */
-      const scheduledMaintenance: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneBy({
-          query: {
-            _id: scheduledMaintenanceId.toString(),
-            projectId: request.projectId,
+      const found: {
+        record: ScheduledMaintenance;
+        event: WorkspaceEventRecord;
+      } | null =
+        await WorkspaceMemberActions.findEventForMember<ScheduledMaintenance>({
+          event: {
+            type: WorkspaceEventType.ScheduledMaintenance,
+            id: scheduledMaintenanceId,
           },
+          props: databaseProps,
           select: {
-            _id: true,
             title: true,
             description: true,
             startsAt: true,
@@ -328,15 +332,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             currentScheduledMaintenanceState: {
               name: true,
             },
-            currentScheduledMaintenanceStateId: true,
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-            projectId: true,
           },
-          props: databaseProps,
         });
 
-      if (!scheduledMaintenance) {
+      if (!found) {
         logger.error("ScheduledMaintenance not found", {
           scheduledMaintenanceId: scheduledMaintenanceId.toString(),
         });
@@ -344,14 +343,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         return;
       }
 
-      const event: WorkspaceEventRecord = WorkspaceMemberActions.toEventRecord({
-        event: {
-          type: WorkspaceEventType.ScheduledMaintenance,
-          id: scheduledMaintenanceId,
-        },
-        projectId: request.projectId,
-        record: scheduledMaintenance,
-      });
+      const scheduledMaintenance: ScheduledMaintenance = found.record;
+      const event: WorkspaceEventRecord = found.event;
 
       switch (actionType) {
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance:
@@ -721,18 +714,22 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     endsAt: Date;
     timezone: MicrosoftTeamsUserTimezone;
   }): Promise<string> {
-    let message: string =
-      mdText`✅ Scheduled maintenance created successfully!\n\n**Starts:** ${MicrosoftTeamsTimezone.format(
+    const paragraphs: Array<MarkdownText> = [
+      mdText`✅ Scheduled maintenance created successfully!`,
+      mdText`**Starts:** ${MicrosoftTeamsTimezone.format(
         data.startsAt,
         data.timezone,
-      )}\n\n**Ends:** ${MicrosoftTeamsTimezone.format(
+      )}`,
+      mdText`**Ends:** ${MicrosoftTeamsTimezone.format(
         data.endsAt,
         data.timezone,
-      )}`.toString();
+      )}`,
+    ];
 
     if (MicrosoftTeamsTimezone.isUtcOffsetOnly(data.timezone)) {
-      message +=
-        mdText`\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.timezone.label}. If daylight saving time changes before then, check them in OneUptime.`.toString();
+      paragraphs.push(
+        mdText`Microsoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.timezone.label}. If daylight saving time changes before then, check them in OneUptime.`,
+      );
     }
 
     if (data.scheduledMaintenance.id) {
@@ -743,8 +740,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             data.scheduledMaintenance.id,
           );
 
-        message +=
-          mdText`\n\nView scheduled maintenance: ${maintenanceLink.toString()}`.toString();
+        paragraphs.push(
+          mdText`View scheduled maintenance: ${maintenanceLink.toString()}`,
+        );
       } catch (error) {
         logger.debug(
           "Could not build the link to a new scheduled maintenance event",
@@ -753,7 +751,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       }
     }
 
-    return message;
+    return FeedMarkdown.join(paragraphs, "\n\n").toString();
   }
 
   /*

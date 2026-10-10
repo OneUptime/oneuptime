@@ -934,20 +934,79 @@ describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void =>
 /*
  * A press reads its record once: the check that the member may act
  * (authorize) reads it with what the actions need, and an action handed
- * that record reads nothing of it again.
+ * that record reads nothing of it again. Only a record this class read for
+ * the member, in their project, is taken as read: one built by hand, or read
+ * for another member or in another project, is read again as the member.
  */
 describe("WorkspaceMemberActions: the record as the check read it", (): void => {
-  // The record as authorize hands it on: read as the member, in their project.
-  function recordAsRead(data: {
+  // The row the check reads for `kind`: the columns getEventResource names.
+  function rowAsChecked(data: {
+    kind: RecordKind;
+    id: ObjectID;
+    currentStateId: ObjectID;
+  }): Record<string, unknown> {
+    const resource: ReturnType<typeof WorkspaceMemberActions.getEventResource> =
+      WorkspaceMemberActions.getEventResource({
+        type: data.kind.type,
+        id: data.id,
+      });
+    const row: Record<string, unknown> = {
+      _id: data.id.toString(),
+      projectId: projectId,
+    };
+
+    for (const column of Object.keys(resource.select || {})) {
+      row[column] = column.toLowerCase().includes("state")
+        ? data.currentStateId
+        : column.endsWith("WithPrefix")
+          ? "PFX-7"
+          : 7;
+    }
+
+    return row;
+  }
+
+  /*
+   * The record as authorize hands it on: read by the check as the member -
+   * or as `props` - in their project.
+   */
+  async function recordAsRead(data: {
     kind: RecordKind;
     currentStateId: ObjectID;
-    projectId?: ObjectID | undefined;
-  }): WorkspaceEventRecord {
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<WorkspaceEventRecord> {
+    const id: ObjectID = ObjectID.generate();
+    const checkSpy: AnySpy = jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreateAndRead")
+      .mockResolvedValue([
+        rowAsChecked({
+          kind: data.kind,
+          id: id,
+          currentStateId: data.currentStateId,
+        }) as never,
+      ]) as AnySpy;
+
+    const record: WorkspaceEventRecord = await WorkspaceMemberActions.authorize(
+      {
+        props: data.props || memberProps,
+        modelType: IncidentStateTimeline,
+        action: "change this",
+        event: { type: data.kind.type, id: id },
+      },
+    );
+
+    checkSpy.mockRestore();
+
+    return record;
+  }
+
+  // A record with everything a read one carries - the member's project too.
+  function recordBuiltByHand(kind: RecordKind): WorkspaceEventRecord {
     return {
-      type: data.kind.type,
+      type: kind.type,
       id: ObjectID.generate(),
-      projectId: data.projectId || projectId,
-      currentStateId: data.currentStateId,
+      projectId: projectId,
+      currentStateId: ObjectID.generate(),
       number: 7,
       numberWithPrefix: null,
     };
@@ -958,7 +1017,7 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
     async (kind: RecordKind): Promise<void> => {
       const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
       const createSpy: AnySpy = kind.stubCreate();
-      const record: WorkspaceEventRecord = recordAsRead({
+      const record: WorkspaceEventRecord = await recordAsRead({
         kind: kind,
         currentStateId: ObjectID.generate(),
       });
@@ -990,7 +1049,7 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
         const createSpy: AnySpy = kind.stubCreate();
 
         await WorkspaceMemberActions[move]({
-          event: recordAsRead({
+          event: await recordAsRead({
             kind: kind,
             currentStateId: states.created.id!,
           }),
@@ -1016,14 +1075,14 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
     const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
 
     await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
-      event: recordAsRead({
+      event: await recordAsRead({
         kind: RECORD_KINDS[4]!,
         currentStateId: states.scheduled.id!,
       }),
       props: memberProps,
     });
     await WorkspaceMemberActions.resolve({
-      event: recordAsRead({
+      event: await recordAsRead({
         kind: RECORD_KINDS[4]!,
         currentStateId: states.ongoing.id!,
       }),
@@ -1040,15 +1099,99 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
     ).toBe(states.completed.id!.toString());
   });
 
-  test("a record read in another project than the member's is read again, as the member, in theirs", async (): Promise<void> => {
+  test.each(RECORD_KINDS)(
+    "a record of $name built by hand is read again, as the member, before anything is written",
+    async (kind: RecordKind): Promise<void> => {
+      const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
+      const createSpy: AnySpy = kind.stubCreate();
+      const record: WorkspaceEventRecord = recordBuiltByHand(kind);
+
+      await WorkspaceMemberActions.changeState({
+        event: record,
+        stateId: ObjectID.generate(),
+        props: memberProps,
+      });
+
+      expect(readSpy).toHaveBeenCalledTimes(1);
+      expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
+      expect(readSpy.mock.calls[0]![0].query).toEqual({
+        _id: record.id.toString(),
+        projectId: projectId,
+      });
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each(RECORD_KINDS)(
+    "a record of $name built by hand that the member may not read is refused, and nothing is written",
+    async (kind: RecordKind): Promise<void> => {
+      kind.stubRead(null);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await expect(
+        WorkspaceMemberActions.changeState({
+          event: recordBuiltByHand(kind),
+          stateId: ObjectID.generate(),
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+        ),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a copy of a record read for the member is read again: only the record the read handed on counts", async (): Promise<void> => {
     const kind: RecordKind = RECORD_KINDS[0]!;
-    const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
-    const createSpy: AnySpy = kind.stubCreate();
-    const record: WorkspaceEventRecord = recordAsRead({
+    const record: WorkspaceEventRecord = await recordAsRead({
       kind: kind,
       currentStateId: ObjectID.generate(),
-      projectId: ObjectID.generate(),
     });
+    const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
+    kind.stubCreate();
+
+    await WorkspaceMemberActions.changeState({
+      event: { ...record },
+      stateId: ObjectID.generate(),
+      props: memberProps,
+    });
+
+    expect(readSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a record read for another member is read again, as this one", async (): Promise<void> => {
+    const kind: RecordKind = RECORD_KINDS[0]!;
+    const record: WorkspaceEventRecord = await recordAsRead({
+      kind: kind,
+      currentStateId: ObjectID.generate(),
+      props: { userId: ObjectID.generate(), tenantId: projectId },
+    });
+    const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
+    const createSpy: AnySpy = kind.stubCreate();
+
+    await WorkspaceMemberActions.changeState({
+      event: record,
+      stateId: ObjectID.generate(),
+      props: memberProps,
+    });
+
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
+    expect(createdRow(createSpy).props).toBe(memberProps);
+  });
+
+  test("a record read in another project than the member's is read again, as the member, in theirs", async (): Promise<void> => {
+    const kind: RecordKind = RECORD_KINDS[0]!;
+    const record: WorkspaceEventRecord = await recordAsRead({
+      kind: kind,
+      currentStateId: ObjectID.generate(),
+      props: { userId: userId, tenantId: ObjectID.generate() },
+    });
+    const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
+    const createSpy: AnySpy = kind.stubCreate();
 
     await WorkspaceMemberActions.changeState({
       event: record,
@@ -1074,21 +1217,14 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
         id: ObjectID.generate(),
       });
       const stateId: ObjectID = ObjectID.generate();
-      const read: Record<string, unknown> = {
-        _id: resource.id.toString(),
-        projectId: projectId,
-      };
+      const read: Record<string, unknown> = rowAsChecked({
+        kind: kind,
+        id: resource.id,
+        currentStateId: stateId,
+      });
 
       // The columns the check reads, named per kind.
-      const selected: Array<string> = Object.keys(resource.select || {});
-      expect(selected).toHaveLength(3);
-      for (const column of selected) {
-        read[column] = column.toLowerCase().includes("state")
-          ? stateId
-          : column.endsWith("WithPrefix")
-            ? "PFX-12"
-            : 12;
-      }
+      expect(Object.keys(resource.select || {})).toHaveLength(3);
 
       const checkSpy: AnySpy = jest
         .spyOn(WorkspaceActionAuthorization, "assertCanCreateAndRead")
@@ -1111,11 +1247,147 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
         id: resource.id,
         projectId: projectId,
         currentStateId: stateId,
-        number: 12,
-        numberWithPrefix: "PFX-12",
+        number: 7,
+        numberWithPrefix: "PFX-7",
       });
     },
   );
+
+  test.each([
+    { name: "no user", props: { tenantId: projectId } },
+    { name: "no project", props: { userId: userId } },
+  ])(
+    "authorize does not hand on a record for props with $name",
+    async ({
+      props,
+    }: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<void> => {
+      await expect(
+        recordAsRead({
+          kind: RECORD_KINDS[0]!,
+          currentStateId: ObjectID.generate(),
+          props: props,
+        }),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    },
+  );
+});
+
+/*
+ * A chat that shows the record before acting on it (Microsoft Teams' View
+ * and Mark as Ongoing on a scheduled maintenance event) reads it once, as the
+ * member, with what it shows and what the actions need.
+ */
+describe("WorkspaceMemberActions.findEventForMember", (): void => {
+  test("reads the record as the member, with the columns asked for and those the actions need, and the actions take it as read", async (): Promise<void> => {
+    const states: MaintenanceStates = maintenanceStates();
+    const readSpy: AnySpy = RECORD_KINDS[4]!.stubRead(states.scheduled.id!);
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+    const recordId: ObjectID = ObjectID.generate();
+
+    const found: {
+      record: ScheduledMaintenance;
+      event: WorkspaceEventRecord;
+    } | null =
+      await WorkspaceMemberActions.findEventForMember<ScheduledMaintenance>({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: recordId,
+        },
+        props: memberProps,
+        select: { title: true },
+      });
+
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
+    expect(readSpy.mock.calls[0]![0].query).toEqual({
+      _id: recordId.toString(),
+      projectId: projectId,
+    });
+    expect(readSpy.mock.calls[0]![0].select).toEqual({
+      title: true,
+      currentScheduledMaintenanceStateId: true,
+      scheduledMaintenanceNumber: true,
+      scheduledMaintenanceNumberWithPrefix: true,
+      _id: true,
+    });
+    expect(found?.event).toEqual({
+      type: WorkspaceEventType.ScheduledMaintenance,
+      id: recordId,
+      projectId: projectId,
+      currentStateId: states.scheduled.id!,
+      number: null,
+      numberWithPrefix: null,
+    });
+
+    await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+      event: found!.event,
+      props: memberProps,
+    });
+
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    expect(createdRow(createSpy).data["scheduledMaintenanceStateId"]).toBe(
+      states.ongoing.id!.toString(),
+    );
+  });
+
+  test.each(RECORD_KINDS)(
+    "$name the member may not read is none",
+    async (kind: RecordKind): Promise<void> => {
+      kind.stubRead(null);
+
+      await expect(
+        WorkspaceMemberActions.findEventForMember({
+          event: { type: kind.type, id: ObjectID.generate() },
+          props: memberProps,
+          select: {},
+        }),
+      ).resolves.toBeNull();
+    },
+  );
+
+  test("a read the member's permissions or plan refuse is none; another failure is not", async (): Promise<void> => {
+    const readSpy: AnySpy = RECORD_KINDS[0]!.stubRead(null);
+    const find: () => Promise<unknown> = (): Promise<unknown> => {
+      return WorkspaceMemberActions.findEventForMember({
+        event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+        props: memberProps,
+        select: {},
+      });
+    };
+
+    for (const refusal of [
+      new NotAuthorizedException("You do not have permissions to read."),
+      new PaymentRequiredException("Upgrade your plan."),
+    ]) {
+      readSpy.mockRejectedValueOnce(refusal);
+      await expect(find()).resolves.toBeNull();
+    }
+
+    readSpy.mockRejectedValueOnce(new Error("connect ECONNREFUSED"));
+    await expect(find()).rejects.toThrow("connect ECONNREFUSED");
+  });
+
+  test("props without a member are refused before anything is read", async (): Promise<void> => {
+    const readSpy: AnySpy = jest.spyOn(
+      ScheduledMaintenanceService,
+      "findOneBy",
+    ) as AnySpy;
+
+    await expect(
+      WorkspaceMemberActions.findEventForMember({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: ObjectID.generate(),
+        },
+        props: { isRoot: true },
+        select: {},
+      }),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+
+    expect(readSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe("WorkspaceMemberActions.getStanding", (): void => {

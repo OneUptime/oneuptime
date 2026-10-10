@@ -180,6 +180,22 @@ const EVENT_TYPES: Record<WorkspaceEventType, EventTypeDefinition> = {
   },
 };
 
+/*
+ * The records this class read as a member, each with whose read it was
+ * ("<user>:<project>"). Only these are taken as read: a record built by
+ * hand, or read for another member or in another project, is read again as
+ * the member before anything is said or written about it (getEventRecord).
+ */
+const MEMBER_READS: WeakMap<WorkspaceEventRecord, string> = new WeakMap();
+
+function readerOf(props: DatabaseCommonInteractionProps): string | null {
+  if (!props.userId || !props.tenantId) {
+    return null;
+  }
+
+  return `${props.userId.toString()}:${props.tenantId.toString()}`;
+}
+
 export default class WorkspaceMemberActions {
   public static getNoun(type: WorkspaceEventType): string {
     return EVENT_TYPES[type].noun;
@@ -290,19 +306,80 @@ export default class WorkspaceMemberActions {
         ],
       });
 
-    return this.toEventRecord({
+    return this.asMemberRead({
       event: data.event,
-      // The check refuses props without a project, so there is one here.
-      projectId: data.props.tenantId!,
+      props: data.props,
       record: records[0]!,
     });
+  }
+
+  /*
+   * The record read as the member - in their project, under their labels,
+   * owners and blocks - with `select`'s columns as well as those the actions
+   * need, for a chat that shows it before acting on it: one read for both.
+   * Null for a record they may not read, as for one that is not there.
+   */
+  @CaptureSpan()
+  public static async findEventForMember<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    select: Select<TBaseModel>;
+  }): Promise<{ record: TBaseModel; event: WorkspaceEventRecord } | null> {
+    const record: DatabaseBaseModel | null = await this.findAsMember({
+      event: data.event,
+      props: data.props,
+      select: data.select as Select<DatabaseBaseModel>,
+    });
+
+    if (!record) {
+      return null;
+    }
+
+    return {
+      record: record as TBaseModel,
+      event: this.asMemberRead({
+        event: data.event,
+        props: data.props,
+        record: record,
+      }),
+    };
+  }
+
+  /*
+   * The record as the member's read gave it, remembered as theirs, so the
+   * actions take it without reading it again (getEventRecord).
+   */
+  private static asMemberRead(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    record: DatabaseBaseModel;
+  }): WorkspaceEventRecord {
+    const reader: string | null = readerOf(data.props);
+
+    if (!reader) {
+      throw new NotAuthorizedException(
+        `You do not have permission to change this ${this.getNoun(data.event.type)}.`,
+      );
+    }
+
+    const event: WorkspaceEventRecord = this.toEventRecord({
+      event: data.event,
+      projectId: data.props.tenantId!,
+      record: data.record,
+    });
+
+    MEMBER_READS.set(event, reader);
+
+    return event;
   }
 
   /*
    * The record as read with getEventResource's columns, in `projectId` - the
    * member's project, which the read was held to.
    */
-  public static toEventRecord(data: {
+  private static toEventRecord(data: {
     event: WorkspaceEvent;
     projectId: ObjectID;
     record: DatabaseBaseModel;
@@ -575,7 +652,7 @@ export default class WorkspaceMemberActions {
   }): Promise<void> {
     if (data.event.type !== WorkspaceEventType.ScheduledMaintenance) {
       throw new BadDataException(
-        `A ${this.getNoun(data.event.type)} cannot be marked as ongoing.`,
+        `Only a scheduled maintenance event can be marked as ongoing, not this ${this.getNoun(data.event.type)}.`,
       );
     }
 
@@ -705,23 +782,20 @@ export default class WorkspaceMemberActions {
   }
 
   /*
-   * The record as its member reads it: the one handed in, read already in
-   * their project by the check that they may act on it (authorize), or read
-   * here when only its id was.
+   * The record as its member reads it: the one handed in when this class
+   * read it for this member in this project (authorize,
+   * findEventForMember), or read here - for a record handed in by id, built
+   * by hand, or read for someone else.
    */
   private static async getEventRecord(data: {
     event: WorkspaceEvent | WorkspaceEventRecord;
     props: DatabaseCommonInteractionProps;
   }): Promise<WorkspaceEventRecord> {
     const event: WorkspaceEvent | WorkspaceEventRecord = data.event;
+    const reader: string | null = readerOf(data.props);
 
-    if (
-      "projectId" in event &&
-      event.projectId instanceof ObjectID &&
-      data.props.tenantId &&
-      event.projectId.toString() === data.props.tenantId.toString()
-    ) {
-      return event;
+    if (reader && MEMBER_READS.get(event as WorkspaceEventRecord) === reader) {
+      return event as WorkspaceEventRecord;
     }
 
     return await this.readEvent({
@@ -739,6 +813,34 @@ export default class WorkspaceMemberActions {
     event: WorkspaceEvent;
     props: DatabaseCommonInteractionProps;
   }): Promise<WorkspaceEventRecord> {
+    const record: DatabaseBaseModel | null = await this.findAsMember({
+      event: data.event,
+      props: data.props,
+    });
+
+    if (!record) {
+      throw new NotAuthorizedException(
+        `The ${this.getNoun(data.event.type)} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
+      );
+    }
+
+    return this.asMemberRead({
+      event: data.event,
+      props: data.props,
+      record: record,
+    });
+  }
+
+  /*
+   * The member's read of the record, with getEventResource's columns and
+   * `select`'s: in their project, with their props. Null for a record they
+   * may not read, as for one that is not there.
+   */
+  private static async findAsMember(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    select?: Select<DatabaseBaseModel> | undefined;
+  }): Promise<DatabaseBaseModel | null> {
     const projectId: ObjectID | undefined = data.props.tenantId;
 
     if (!data.props.userId || !projectId) {
@@ -749,15 +851,14 @@ export default class WorkspaceMemberActions {
 
     const resource: WorkspaceActionResource = this.getEventResource(data.event);
 
-    let record: DatabaseBaseModel | null = null;
-
     try {
-      record = await resource.service.findOneBy({
+      return await resource.service.findOneBy({
         query: {
           _id: data.event.id.toString(),
           projectId: projectId,
         } as Query<DatabaseBaseModel>,
         select: {
+          ...(data.select || {}),
           ...(resource.select || {}),
           _id: true,
         } as Select<DatabaseBaseModel>,
@@ -769,17 +870,7 @@ export default class WorkspaceMemberActions {
       }
     }
 
-    if (!record) {
-      throw new NotAuthorizedException(
-        `The ${this.getNoun(data.event.type)} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-      );
-    }
-
-    return this.toEventRecord({
-      event: data.event,
-      projectId: projectId,
-      record: record,
-    });
+    return null;
   }
 
   // Where the record stands among the project's states (getStanding).
