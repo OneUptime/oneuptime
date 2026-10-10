@@ -394,7 +394,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     const jobs: Array<VMwareConnectionTestJob> = [];
 
-    for (const test of tests) {
+    // In the order they were claimed: the oldest first.
+    for (const test of VMwareProbeCollectionStore.inClaimOrder(
+      tests,
+      claimedIds,
+    )) {
       if (
         !test._id ||
         !test.vcenterUrl ||

@@ -207,7 +207,11 @@ export default class VMwareProbeCollectionStore {
 
     const jobs: Array<VMwareCollectionJob> = [];
 
-    for (const vcenter of vcenters) {
+    // In the order they were claimed: the longest overdue first.
+    for (const vcenter of VMwareProbeCollectionStore.inClaimOrder(
+      vcenters,
+      claimedIds,
+    )) {
       if (
         !vcenter._id ||
         !vcenter.vcenterUrl ||
@@ -395,6 +399,36 @@ export default class VMwareProbeCollectionStore {
       Math.max(Math.round(interval), MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES),
       MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
     );
+  }
+
+  /*
+   * Rows read back by id, in the order their ids were claimed (a read by
+   * id comes back in whatever order Postgres finds them). Rows whose id was
+   * not claimed are left out.
+   */
+  public static inClaimOrder<T extends { _id?: string | undefined }>(
+    rows: Array<T>,
+    claimedIds: Array<string>,
+  ): Array<T> {
+    const byId: Map<string, T> = new Map();
+
+    for (const row of rows) {
+      if (row._id) {
+        byId.set(row._id.toString().toLowerCase(), row);
+      }
+    }
+
+    const ordered: Array<T> = [];
+
+    for (const id of claimedIds) {
+      const row: T | undefined = byId.get(id.toLowerCase());
+
+      if (row) {
+        ordered.push(row);
+      }
+    }
+
+    return ordered;
   }
 
   /*

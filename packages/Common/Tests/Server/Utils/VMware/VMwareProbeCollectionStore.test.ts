@@ -622,6 +622,23 @@ describe("VMwareProbeCollectionStore sanitizers", () => {
     expect(VMwareProbeCollectionStore.getSafeInterval(600)).toBe(60);
   });
 
+  test("rows read back by id come out in the order they were claimed", () => {
+    const rows: Array<{ _id?: string | undefined; name: string }> = [
+      { _id: "B", name: "second" },
+      { name: "no id" },
+      { _id: "a", name: "first" },
+      { _id: "x", name: "never claimed" },
+    ];
+
+    expect(
+      VMwareProbeCollectionStore.inClaimOrder(rows, ["A", "b", "missing"]).map(
+        (row: { name: string }) => {
+          return row.name;
+        },
+      ),
+    ).toEqual(["first", "second"]);
+  });
+
   test("text is trimmed and bounded, and only text is text", () => {
     expect(VMwareProbeCollectionStore.boundText("  hello  ", 10)).toBe("hello");
     expect(VMwareProbeCollectionStore.boundText("abcdef", 4)).toBe("abc…");
