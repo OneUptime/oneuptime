@@ -1,0 +1,95 @@
+suite: pgbouncer gives up on a queued statement before the app does
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # pgbouncer does not cancel a statement still waiting in its queue for a
+  # server connection: at its own default (120 s) such a statement started
+  # long after the app had stopped waiting for it (DATABASE_QUERY_TIMEOUT_MS,
+  # 35 s by default) and reported it failed. 30 s keeps pgbouncer's refusal
+  # first, with room for its once-a-second check.
+  - it: refuses a statement that waited 30 seconds for a server connection
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      pgbouncer:
+        enabled: true
+    asserts:
+      - matchRegex:
+          path: data["pgbouncer.ini"]
+          pattern: '(?m)^query_wait_timeout = 30$'
+      # Said where an operator reading the rendered file looks for it.
+      - matchRegex:
+          path: data["pgbouncer.ini"]
+          pattern: 'below the app''s own wait \(DATABASE_QUERY_TIMEOUT_MS\)'
+
+  - it: takes the wait from pgbouncer.queryWaitTimeoutSeconds
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      pgbouncer:
+        enabled: true
+        queryWaitTimeoutSeconds: 55
+    asserts:
+      - matchRegex:
+          path: data["pgbouncer.ini"]
+          pattern: '(?m)^query_wait_timeout = 55$'
+      - notMatchRegex:
+          path: data["pgbouncer.ini"]
+          pattern: '(?m)^query_wait_timeout = 30$'
+
+  # 0 is pgbouncer's own "wait for ever", kept for an operator who wants it.
+  - it: passes 0 through as pgbouncer's own no-limit
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      pgbouncer:
+        enabled: true
+        queryWaitTimeoutSeconds: 0
+    asserts:
+      - matchRegex:
+          path: data["pgbouncer.ini"]
+          pattern: '(?m)^query_wait_timeout = 0$'
+
+  - it: refuses a negative wait
+    templates:
+      - templates/pgbouncer.yaml
+    set:
+      pgbouncer:
+        enabled: true
+        queryWaitTimeoutSeconds: -1
+    asserts:
+      - failedTemplate: {}
+
+  # The ini is a pod input: changing the wait must roll the pooler.
+  - it: rolls the pooler when the wait changes
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pgbouncer:
+        enabled: true
+        queryWaitTimeoutSeconds: 20
+    asserts:
+      - notEqual:
+          path: spec.template.metadata.annotations["checksum/config"]
+          value: ""
+
+  # Off by default: nothing is rendered without the pooler.
+  - it: renders nothing while pgbouncer is off
+    templates:
+      - templates/pgbouncer.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

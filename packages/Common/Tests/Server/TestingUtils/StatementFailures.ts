@@ -1,3 +1,4 @@
+import { StatementNotSentError } from "../../../Server/Infrastructure/Postgres/CancelOnTimeoutClient";
 import { DatabaseError } from "pg";
 import { QueryFailedError } from "typeorm";
 
@@ -8,8 +9,11 @@ import { QueryFailedError } from "typeorm";
  * decides whether the statement may still be applied.
  *
  *   - clientTimeout: the client stopped waiting for the answer
- *     (node-postgres' query_timeout, DATABASE_QUERY_TIMEOUT_MS);
+ *     (DATABASE_QUERY_TIMEOUT_MS) and no answer came to its cancel either -
+ *     the cancel could not reach the database (CancelOnTimeoutClient);
  *   - connectionLost: the connection ended while the statement ran;
+ *   - notSent: the client never sent it - refused on a connection being
+ *     closed, or out of time in its queue (StatementNotSentError);
  *   - databaseAnswer: the database's own answer - node-postgres'
  *     DatabaseError, with the severity and the SQLSTATE the server sent.
  *
@@ -34,6 +38,20 @@ export const clientTimeout: (statement?: string) => QueryFailedError = (
     statement || UPDATE_STATEMENT,
     [],
     new Error("Query read timeout"),
+  );
+};
+
+export const notSent: (
+  statement?: string,
+  message?: string,
+) => QueryFailedError = (
+  statement?: string,
+  message?: string,
+): QueryFailedError => {
+  return new QueryFailedError(
+    statement || UPDATE_STATEMENT,
+    [],
+    new StatementNotSentError(message),
   );
 };
 
@@ -73,3 +91,18 @@ export const cancelledByDatabase: () => QueryFailedError =
       message: "canceling statement due to statement timeout",
     });
   };
+
+/*
+ * The database cancelled the statement at the app's request - the cancel
+ * the client sends for a statement it stopped waiting for
+ * (CancelOnTimeoutClient) - and said so.
+ */
+export const cancelledAtAppRequest: (statement?: string) => QueryFailedError = (
+  statement?: string,
+): QueryFailedError => {
+  return databaseAnswer({
+    code: "57014",
+    message: "canceling statement due to user request",
+    statement,
+  });
+};

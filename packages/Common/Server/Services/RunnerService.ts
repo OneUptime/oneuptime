@@ -1,4 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import Exception from "../../Types/Exception/Exception";
@@ -478,10 +479,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBackAfterFailedUpdate(error, onUpdate);
+    await AiCommandCredentialReach.giveBackAfterFailedUpdate(
+      error,
+      onUpdate,
+      failedStatement,
+    );
 
-    return await super.onUpdateError(error, onUpdate);
+    return await super.onUpdateError(error, onUpdate, failedStatement);
   }
 
   /*

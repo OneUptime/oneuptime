@@ -369,17 +369,25 @@ export const PostgresMigrationWaitTimeoutMs: number =
   );
 
 /*
- * Node-postgres client-side query timeout (ms). Belt-and-braces for the
- * server-side statement_timeout — fires even if the connection has gone
- * silent or the server-side timeout doesn't kick in.
+ * The app's client-side query timeout (ms). Belt-and-braces for the
+ * server-side statement_timeout - fires even if the connection has gone
+ * silent or the server-side timeout doesn't kick in (behind a pooler that
+ * drops the statement_timeout the app asks for, with none set on the role).
+ * A statement still running when it fires is cancelled on the database, and
+ * its connection closed rather than handed to another request
+ * (Infrastructure/Postgres/CancelOnTimeoutClient); the caller then waits a
+ * little longer for the database's answer to the cancel
+ * (CANCEL_ANSWER_WAIT_IN_MS).
  *
  * Deliberately LONGER than statement_timeout. These two used to be equal, and
  * because the client timer starts before the packet even reaches the backend,
- * the client always won by a round trip — so the app never observed Postgres's
- * real SQLSTATE and, worse, the client-side timeout only ABANDONS the query:
- * the backend keeps running and keeps its place in the lock queue. Letting the
- * server win means contention is cancelled server-side instead of accumulating
- * invisibly behind a pooler.
+ * the client always won by a round trip - so the app never observed Postgres's
+ * real SQLSTATE, and node-postgres' own timeout only ABANDONED the query: the
+ * backend kept running and kept its place in the lock queue. Letting the
+ * server win means contention is cancelled server-side, with its own answer;
+ * the client's cancel is for where the server enforces no timeout. Keep
+ * PgBouncer's query_wait_timeout below it (HelmChart/Docs/Postgres.md): a
+ * statement still queued in the pooler cannot be cancelled.
  */
 export const PostgresQueryTimeoutMs: number = parseInt(
   process.env["DATABASE_QUERY_TIMEOUT_MS"] ||

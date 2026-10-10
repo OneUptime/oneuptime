@@ -1,4 +1,5 @@
 import ResellerPlan from "../../Models/DatabaseModels/ResellerPlan";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateProject,
@@ -855,10 +856,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     await SsoRequirementChanges.afterFailedProjectCreate(
       onCreate?.createBy,
       error,
+      failedStatement,
     );
 
     return error;
@@ -895,9 +898,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterFailedUpdate(onUpdate.updateBy, error);
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;

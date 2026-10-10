@@ -29,10 +29,15 @@ import AiCommandCredentialReach, {
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import {
+  StatementContext,
+  WriteStep,
+} from "../../../Server/Utils/Database/StatementOutcome";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import Exception from "../../../Types/Exception/Exception";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import InMemoryLocks from "../TestingUtils/InMemoryLocks";
+import { clientTimeout } from "../TestingUtils/StatementFailures";
 
 /*
  * TURNING ON "RUNS AI REMEDIATION COMMANDS" FOR A RUNNER THAT HOLDS SSH
@@ -86,8 +91,12 @@ interface RunnerHookAccess {
   onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Runner> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception>;
 }
+
+const RUNNER_UPDATE: string =
+  'UPDATE "Runner" SET "canRunAiCommands" = $1 WHERE "_id" = $2';
 
 const LOCK_NAMESPACE: string = "AiCommandCredentialReach";
 const LOCK_KEY: string = "cd000000-0000-4000-8000-000000000001";
@@ -685,6 +694,48 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       await expect(hooks.onUpdateError(error, undefined)).resolves.toBe(error);
       expect(locks.eventsOf("release")).toEqual([]);
     });
+
+    /*
+     * Which step of the update failed, as DatabaseService tells the hook:
+     * the Runner's UPDATE, committed on its own, may still land when its
+     * answer never came; a statement around it lands nothing of it.
+     */
+    it.each([
+      [
+        "its UPDATE, unanswered: it may still land, so the lock is left to run out",
+        { failedStep: WriteStep.Write, inOwnTransaction: false },
+        true,
+      ],
+      [
+        "a statement around the write, unanswered: nothing of it can land",
+        { failedStep: WriteStep.AroundWrite },
+        false,
+      ],
+    ])(
+      "an update that failed on %s",
+      async (
+        _label: string,
+        failedStatement: StatementContext,
+        isKept: boolean,
+      ) => {
+        credentials = [];
+
+        const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+          update({ canRunAiCommands: true }, RUNNER_EDITOR),
+        );
+
+        const error: Exception = clientTimeout(
+          RUNNER_UPDATE,
+        ) as unknown as Exception;
+
+        await expect(
+          hooks.onUpdateError(error, onUpdate, failedStatement),
+        ).resolves.toBe(error);
+
+        expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(isKept);
+        expect(locks.eventsOf("release")).toHaveLength(isKept ? 0 : 1);
+      },
+    );
 
     it("refuses the switch, to be saved again, when another change holds the lock for longer than a write waits", async () => {
       locks.busy.add(LOCK_KEY);
