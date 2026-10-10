@@ -1134,6 +1134,10 @@
                 "serverIdleTimeoutSeconds": {
                     "type": "integer"
                 },
+                "queryWaitTimeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 0
+                },
                 "ignoreStartupParameters": {
                     "type": "string"
                 },

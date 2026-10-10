@@ -860,6 +860,17 @@ pgbouncer:
   maxDbConnections: 450
   # Close server connections idle longer than this (seconds).
   serverIdleTimeoutSeconds: 600
+  # How long (seconds) a statement may wait in pgbouncer's queue for a free
+  # server connection before pgbouncer refuses it (query_wait_timeout). Kept
+  # below the app's own wait for a statement, DATABASE_QUERY_TIMEOUT_MS (35 s
+  # by default), so pgbouncer gives up on a queued statement before the app
+  # does: pgbouncer does not cancel a statement still in its queue, and at its
+  # own default (120 s) such a statement started long after the app had
+  # reported it failed. If you raise DATABASE_QUERY_TIMEOUT_MS, you may raise
+  # this with it - keep it a few seconds below. 0 lets a statement wait for
+  # ever. See HelmChart/Docs/Postgres.md ("Statement timeout behind the
+  # pooler").
+  queryWaitTimeoutSeconds: 30
   # Startup parameters the app sends that pgbouncer must accept (otherwise it
   # rejects the connection with a FATAL "unsupported startup parameter"). The
   # node-postgres driver sends statement_timeout and idle_in_transaction_session_timeout
