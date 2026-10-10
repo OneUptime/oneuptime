@@ -496,6 +496,16 @@ describe("DatabaseService.checkCallerMayCreate", () => {
       expected: "UnreadableParentException",
     },
     {
+      // The check before the hooks that refuses a pinned row id is the create's own.
+      name: "a project member who sends the row's own id",
+      permissions: [{ permission: Permission.ProjectMember }],
+      alertId: ALERT_A,
+      row: (row: AlertStateTimeline): void => {
+        row._id = ObjectID.generate().toString();
+      },
+      expected: "BadDataException",
+    },
+    {
       // A computed column is let through on create, by both.
       name: "a project member sending a column OneUptime computes (isOwnerNotified)",
       permissions: [{ permission: Permission.ProjectMember }],

@@ -20,7 +20,9 @@ import AlertStateTimelineService from "../../../../Server/Services/AlertStateTim
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
 import Query from "../../../../Server/Types/Database/Query";
-import AlertStateChangeAuthorization from "../../../../Server/Utils/Alert/AlertStateChangeAuthorization";
+import AlertStateChangeAuthorization, {
+  ALERTS_CHECKED_AT_ONCE,
+} from "../../../../Server/Utils/Alert/AlertStateChangeAuthorization";
 import { UnreadableParentException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
@@ -427,6 +429,8 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
         expect(row.projectId).toBe(projectId);
         expect(row.alertId).toBe(alertId);
         expect(row.alertStateId).toBe(acknowledgedStateId);
+        // When the change starts, as the page's create fills it in.
+        expect(row.startsAt).toBeInstanceOf(Date);
         // Asked as the caller, with their own props.
         expect(asked.props).toBe(props);
       }
@@ -456,10 +460,10 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
       );
     });
 
-    test("stops at the first alert the caller may not change, and answers in the create check's own words", async (): Promise<void> => {
+    test("refuses when one alert is refused, in the create check's own words", async (): Promise<void> => {
       const allowed: ObjectID = ObjectID.generate();
       const refused: ObjectID = ObjectID.generate();
-      const notReached: ObjectID = ObjectID.generate();
+      const alsoAllowed: ObjectID = ObjectID.generate();
       const refusal: CreateScopeException = new CreateScopeException(
         "Your access lets you create Alert State Timelines only for records with one of these labels: team-a.",
       );
@@ -474,14 +478,134 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
 
       const error: unknown = await rejectionOf(
         check({
-          alertIds: [allowed, refused, notReached],
+          alertIds: [allowed, refused, alsoAllowed],
           props: createDatabaseProps([{ permission: Permission.AlertMember }]),
         }),
       );
 
       expect(error).toBe(refusal);
-      expect(checkSpy).toHaveBeenCalledTimes(2);
       expectNoWrites(writeSpies);
+    });
+
+    test("a few at a time means a few: more than one, and never enough to take many connections at once", (): void => {
+      expect(ALERTS_CHECKED_AT_ONCE).toBeGreaterThan(1);
+      expect(ALERTS_CHECKED_AT_ONCE).toBeLessThanOrEqual(10);
+    });
+
+    test("asks the alerts a few at a time: once one of them is refused, the later ones are not asked", async (): Promise<void> => {
+      const alertIds: Array<ObjectID> = Array.from(
+        { length: ALERTS_CHECKED_AT_ONCE * 2 + 1 },
+        (): ObjectID => {
+          return ObjectID.generate();
+        },
+      );
+      const refusal: NotAuthorizedException = new NotAuthorizedException(
+        "Refused.",
+      );
+      let running: number = 0;
+      let mostAtOnce: number = 0;
+
+      checkSpy.mockImplementation(
+        async (data: Parameters<CheckCallerMayCreate>[0]): Promise<void> => {
+          running++;
+          mostAtOnce = Math.max(mostAtOnce, running);
+
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 5);
+          });
+
+          running--;
+
+          if (toKey(data.data.alertId!) === toKey(alertIds[1]!)) {
+            throw refusal;
+          }
+        },
+      );
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: alertIds,
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      );
+
+      expect(error).toBe(refusal);
+      // The first few were asked together, and none after them.
+      expect(mostAtOnce).toBe(ALERTS_CHECKED_AT_ONCE);
+      expect(checkSpy).toHaveBeenCalledTimes(ALERTS_CHECKED_AT_ONCE);
+      expect(
+        checkSpy.mock.calls.map(
+          (call: [Parameters<CheckCallerMayCreate>[0]]): string => {
+            return toKey(call[0].data.alertId!);
+          },
+        ),
+      ).toEqual(alertIds.slice(0, ALERTS_CHECKED_AT_ONCE).map(toKey));
+    });
+
+    test("every alert is asked when none is refused, never more than a few at once", async (): Promise<void> => {
+      const alertIds: Array<ObjectID> = Array.from(
+        { length: ALERTS_CHECKED_AT_ONCE * 2 + 3 },
+        (): ObjectID => {
+          return ObjectID.generate();
+        },
+      );
+      let running: number = 0;
+      let mostAtOnce: number = 0;
+
+      checkSpy.mockImplementation(async (): Promise<void> => {
+        running++;
+        mostAtOnce = Math.max(mostAtOnce, running);
+
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 2);
+        });
+
+        running--;
+      });
+
+      await expect(
+        check({
+          alertIds: alertIds,
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(checkSpy).toHaveBeenCalledTimes(alertIds.length);
+      expect(mostAtOnce).toBeLessThanOrEqual(ALERTS_CHECKED_AT_ONCE);
+    });
+
+    test("of several alerts refused together, the first in the order given answers", async (): Promise<void> => {
+      const first: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
+      const firstRefusal: NotAuthorizedException = new NotAuthorizedException(
+        "The first alert is refused.",
+      );
+      const secondRefusal: NotAuthorizedException = new NotAuthorizedException(
+        "The second alert is refused.",
+      );
+
+      checkSpy.mockImplementation(
+        async (data: Parameters<CheckCallerMayCreate>[0]): Promise<void> => {
+          if (toKey(data.data.alertId!) === toKey(first)) {
+            // Answers last.
+            await new Promise<void>((resolve: () => void): void => {
+              setTimeout(resolve, 10);
+            });
+            throw firstRefusal;
+          }
+
+          throw secondRefusal;
+        },
+      );
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [first, second],
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      );
+
+      expect(error).toBe(firstRefusal);
     });
 
     test("a root caller is let through without a check", async (): Promise<void> => {
@@ -1068,6 +1192,38 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
       expect(
         Object.getPrototypeOf(AlertStateTimelineService).checkCallerMayCreate,
       ).toBe(DatabaseService.prototype.checkCallerMayCreate);
+    });
+
+    /*
+     * The row asked about carries the project, the alert, the state and when
+     * it starts. The other columns the timeline's create hook fills in on
+     * the alert's page - why the state changed, when it ends - are creatable
+     * by exactly the table's create permissions, so asking about them would
+     * change nothing; the ones OneUptime computes are never the caller's.
+     * A column whose create permissions came to differ would make the row
+     * asked about too small: this fails first.
+     */
+    test("the columns the page's create hook fills in besides add nothing to the check", (): void => {
+      const timeline: AlertStateTimeline = new AlertStateTimeline();
+      const tableCreate: Array<Permission> = [
+        ...timeline.getCreatePermissions(),
+      ].sort();
+
+      for (const column of ["rootCause", "endsAt", "startsAt"]) {
+        expect([
+          column,
+          [
+            ...(timeline.getColumnAccessControlFor(column)?.create || []),
+          ].sort(),
+        ]).toEqual([column, tableCreate]);
+      }
+
+      for (const column of ["isOwnerNotified", "stateChangeLog"]) {
+        expect([
+          column,
+          Boolean(timeline.getTableColumnMetadata(column)?.computed),
+        ]).toEqual([column, true]);
+      }
     });
 
     test("Alert is the record a state timeline row is read through, so it is the parent each check reads", (): void => {

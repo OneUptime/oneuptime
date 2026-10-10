@@ -419,13 +419,19 @@ describe("DatabaseService checks the caller before any write hook", () => {
   /*
    * create() runs the create itself (_create) in one try, so that every
    * failure reaches onCreateError (CreateLockGivenBackGuard): the checks
-   * and the hooks are _create's.
+   * and the hooks are _create's. Its checks are two routines it shares with
+   * the check that asks without creating (checkCallerMayCreate): the ones
+   * before the hooks (checkCreateBeforeHooks) and the permission checks on
+   * the record as it will be written (checkCreatePermissionsOnRecord).
    */
   test("create asks before onBeforeCreate", () => {
     expectInOrder("_create", [
-      "this.checkCallerBeforeHooks(",
+      "this.checkCreateBeforeHooks(",
       "this._onBeforeCreate(",
     ]);
+    expect(bodyOf("checkCreateBeforeHooks")).toContain(
+      "this.checkCallerBeforeHooks(",
+    );
   });
 
   test("an update finds the rows the caller may write before onBeforeUpdate", () => {
@@ -448,13 +454,29 @@ describe("DatabaseService checks the caller before any write hook", () => {
 
   test("a create runs onCreatePermitted only once every permission check has passed, and before the write", () => {
     expectInOrder("_create", [
-      "this.checkCallerBeforeHooks(",
+      "this.checkCreateBeforeHooks(",
       "this._onBeforeCreate(",
-      "ModelPermission.checkCreatePermissions(",
+      "this.checkCreatePermissionsOnRecord(",
       "this.onBeforeCreateUniqueCheck(",
       "this.onCreatePermitted(",
       "this.getRepository().save(",
     ]);
+    expectInOrder("checkCreatePermissionsOnRecord", [
+      "ModelPermission.checkCreatePermissions(",
+      "this.checkCreateParents(",
+      "this.checkNamedLists(",
+      "this.checkCreateScope(",
+    ]);
+  });
+
+  test("the check that asks without creating asks the same two routines, and runs no hook", () => {
+    expectInOrder("checkCallerMayCreate", [
+      "this.checkCreateBeforeHooks(",
+      "this.checkCreatePermissionsOnRecord(",
+    ]);
+    expect(bodyOf("checkCallerMayCreate")).not.toMatch(
+      /this\.(_onBeforeCreate|onBeforeCreate|onCreatePermitted|onCreateSuccess|onCreateError)\(/,
+    );
   });
 
   test.each(["_deleteBy", "hardDeleteBy"])(

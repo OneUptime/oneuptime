@@ -433,23 +433,37 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
     expect(createItself).not.toMatch(/(^|[^.\w])onCreate\s*=[^=]/m);
   });
 
-  test("it holds the create as it is written before onCreatePermitted is handed it, and nothing points it elsewhere after", () => {
+  /*
+   * The same create wherever the create fails: pointed at the create as it
+   * is written the moment onBeforeCreate returns - after what the hook
+   * handed back is read - so onCreateError is never handed the hook's
+   * create for one failure and the caller's for another.
+   */
+  test("it holds the create as it is written from the moment onBeforeCreate returns, and nothing points it elsewhere after", () => {
+    const readAt: number = createItself.indexOf(
+      "let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;",
+    );
     const pointedAt: number = createItself.indexOf(
       "onCreate.createBy = createBy;",
     );
-    const permittedAt: number = createItself.search(
-      /this\.onCreatePermitted\(/,
-    );
 
-    expect(pointedAt).toBeGreaterThan(-1);
-    expect(pointedAt).toBeLessThan(permittedAt);
+    expect(readAt).toBeGreaterThan(-1);
+    expect(pointedAt).toBeGreaterThan(readAt);
+    // Before any other step of the create.
+    expect(
+      createItself
+        .slice(readAt, pointedAt)
+        .replace(
+          "let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;",
+          "",
+        )
+        .trim(),
+    ).toBe("");
     expect(
       (createItself.match(/onCreate\.createBy\s*=[^=]/g) || []).length,
     ).toBe(1);
-    // The create it holds is the one written: not handed back anew after it.
-    expect(createItself.slice(pointedAt)).not.toMatch(
-      /(^|[^.\w])createBy\s*=[^=]/m,
-    );
+    // The create it holds is the one written: no step hands back another in its place.
+    expect(createItself).not.toMatch(/(^|[^.\w])createBy\s*=[^=]/m);
   });
 
   test("the create itself calls no error hook of its own: every step is create's try", () => {

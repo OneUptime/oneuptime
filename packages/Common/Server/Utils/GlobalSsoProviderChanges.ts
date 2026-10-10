@@ -220,15 +220,17 @@ export function getGlobalChangeRefusalMessage(
 
 export default class GlobalSsoProviderChanges {
   /*
-   * The writes worked out before they run, for the hooks after them: keyed
-   * by the UpdateBy or DeleteBy the services hand back from their
-   * before-hooks, which DatabaseService passes on to the later ones, or by a
-   * create's one OnCreate (WriteKey). The
-   * services hand back the very object they were given, so the key the
-   * permitted hook is handed is the one the success and error hooks are -
-   * DatabaseService hands those the caller's object - and the suites that
-   * give the lock back after each write (GlobalSsoProviderChanges.test)
-   * fail if one ever does not.
+   * The writes worked out before they run, for the hooks after them (see
+   * WriteKey). An update or a delete is keyed by the UpdateBy or DeleteBy
+   * the services hand back from their before-hooks, which DatabaseService
+   * passes on to the later ones: the services hand back the very object
+   * they were given, so the key the permitted hook is handed is the one the
+   * success and error hooks are - DatabaseService hands those the caller's
+   * object - and the suites that give the lock back after each write
+   * (GlobalSsoProviderChanges.test) fail if one ever does not. A create is
+   * keyed by its one OnCreate, the very object DatabaseService hands
+   * onCreatePermitted, onCreateSuccess and onCreateError alike - never by
+   * the create it holds.
    */
   private static writes: WeakMap<WriteKey, GlobalSsoProviderWrite> =
     new WeakMap<WriteKey, GlobalSsoProviderWrite>();

@@ -2830,22 +2830,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * WHETHER A CALLER MAY CREATE A RECORD, ASKED WITHOUT CREATING IT: every
-   * permission check a create of `data` runs, in the order it runs them, on
-   * `data` as it would be written - the caller and the table
-   * (checkCallerBeforeHooks: a credential that may write, a sign-in where
-   * the table needs one, the plan, the table's create permission and its
-   * blocks), the parent the record goes under (checkCreateParents), the
-   * records it names (checkNamedLists), its columns
-   * (ModelPermission.checkCreatePermissions) and what the caller's create
-   * permission reaches (checkCreateScope: grants limited to labels or to
-   * owned records, blocks with labels) - without the service's hooks or the
-   * write. As a create that runs no hooks, it looks up the parent, and every
-   * record it holds to the caller's read, itself (referencesCheckedInProjectFor),
-   * in the project the record would be created in. What a service's hooks
-   * decide besides - that a state is one of the project's, the order of
-   * states, the permission of a note posted with a change - is theirs, and
-   * is not asked here.
+   * WHETHER A CALLER MAY CREATE A RECORD, ASKED WITHOUT CREATING IT: the very
+   * checks a create of `data` runs, in its order - those before its hooks
+   * (checkCreateBeforeHooks: the caller and the table, with a credential
+   * that may write, a sign-in where the table needs one, the plan, the
+   * table's create permission and its blocks; the parent the record goes
+   * under; the records it names) and the permission checks on the record as
+   * it will be written (checkCreatePermissionsOnRecord: its columns, what
+   * the caller's create permission reaches - grants limited to labels or to
+   * owned records, blocks with labels - and its files) - without the
+   * service's hooks or the write. As a create that runs no hooks, it looks
+   * up the parent, and every record it holds to the caller's read, itself,
+   * in the project the record would be created in. What the service's hooks
+   * add, and decide besides - that a state is one of the project's, the
+   * order of states, the permission of a note posted with a change - is not
+   * asked: hand it the record as the hooks would leave it.
    *
    * For a write OneUptime makes for a person once it has asked this, so the
    * person needs exactly what creating the record themselves would need:
@@ -2860,71 +2859,39 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: TBaseModel;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const record: TBaseModel = data.data;
+    /*
+     * A create that runs no hooks: no hook of the service holds the records
+     * it names to its project, so the checks look each one up themselves
+     * (referencesCheckedInProjectFor), as they do for any create that skips
+     * its hooks.
+     */
+    const createBy: CreateBy<TBaseModel> = {
+      data: data.data,
+      props: {
+        ...data.props,
+        ignoreHooks: true,
+      },
+    };
 
-    // Every switch as the database stores it, before anything reads one.
-    this.coerceBooleanColumns(record);
+    // What a create asks before its hooks. See the helper.
+    const checkedParentIds: Array<string> =
+      await this.checkCreateBeforeHooks(createBy);
 
-    const callerProps: DatabaseCommonInteractionProps =
-      await this.checkCallerBeforeHooks(
-        data.props,
-        DatabaseRequestType.Create,
-        record,
-      );
-
-    if (callerProps.isRoot || callerProps.isMasterAdmin) {
+    // OneUptime and a server admin are asked nothing further.
+    if (createBy.props.isRoot || createBy.props.isMasterAdmin) {
       return;
     }
 
-    /*
-     * No hook of the service runs, so none holds the records the create
-     * names to its project: the checks below look each one up themselves,
-     * as they do for a create that skips its hooks.
-     */
-    const props: DatabaseCommonInteractionProps = {
-      ...callerProps,
-      ignoreHooks: true,
-    };
+    // The project the create stamps its record with once its hooks have run.
+    this.stampTenantOnCreate(createBy.data, createBy.props);
+    this.enforceTenantRelationMatchesScalar(createBy.data, createBy.props);
 
-    // The record as the create shapes it before its first checks.
-    this.rejectQueryOperatorsInData(record);
-    this.refuseUnstorableBooleanValues(record);
-    this.decideUserAttributionOnCreate(record, props);
-    this.assertRelationNamesAgree(record, props);
-    this.fillIdColumnsFromRelations(record);
-    this.stampTenantOnCreate(record, props);
-
-    // Under a parent the caller may read. See the helper.
-    await this.checkCreateParents({
-      data: record,
-      props: props,
-    });
-
-    // Naming only records the caller may read. See the helper.
-    await this.checkNamedLists({
-      data: record,
-      props: props,
-      projectId: this.getRecordProjectId(record, props),
-    });
-
-    const propsWithPlan: DatabaseCommonInteractionProps =
-      await CallerPlan.withPlanFor({
-        props: props,
-        modelType: this.modelType,
-        type: DatabaseRequestType.Create,
-        data: record,
-      });
-
-    ModelPermission.checkCreatePermissions(
-      this.modelType,
-      record,
-      propsWithPlan,
-    );
-
-    // A record the caller's create permission reaches. See the helper.
-    await this.checkCreateScope({
-      data: record,
-      props: propsWithPlan,
+    // And what it asks of the record as it will be written. See the helper.
+    await this.checkCreatePermissionsOnRecord({
+      createBy: createBy,
+      record: createBy.data,
+      props: createBy.props,
+      checkedParentIds: checkedParentIds,
     });
   }
 
@@ -5031,11 +4998,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
-  private async _create(
+  /*
+   * THE CHECKS A CREATE MAKES BEFORE ITS HOOKS RUN, on what the caller sent:
+   * the caller and the table, with the project's plan where the create
+   * needs it (checkCallerBeforeHooks, which hands createBy its props); no row
+   * id pinned by a non-root caller; no query operator, and no switch the
+   * database would refuse, in the payload; who did what decided by
+   * OneUptime; one value for a reference, under its ID name too; the parent
+   * the record goes under (checkCreateParents) and the records it names
+   * (checkNamedLists), kept for the ask after the hooks. A create runs them
+   * (_create), and so does the check that asks without creating
+   * (checkCallerMayCreate), so the two never ask different questions.
+   * Returns the parent ids the create names.
+   */
+  private async checkCreateBeforeHooks(
     createBy: CreateBy<TBaseModel>,
-    // Given the create's one OnCreate once onBeforeCreate hands it back, for create to hand onCreateError.
-    handedBack: CreateHandedBack<TBaseModel>,
-  ): Promise<TBaseModel> {
+  ): Promise<Array<string>> {
     // Every switch as the database stores it, before anything reads one.
     this.coerceBooleanColumns(createBy.data);
 
@@ -5101,6 +5079,86 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }),
     );
 
+    return checkedParentIds;
+  }
+
+  /*
+   * THE PERMISSION CHECKS A CREATE MAKES ON THE RECORD AS IT WILL BE
+   * WRITTEN, once its hooks and defaults have had their turn: the project's
+   * plan for what they set (CallerPlan), the table and every column the
+   * record is written with (ModelPermission.checkCreatePermissions), the
+   * parent a hook named instead (checkCreateParents), the records a hook
+   * named besides what the caller sent (checkNamedLists, leaving out what
+   * was asked before the hooks), what the caller's create permission
+   * reaches (checkCreateScope) and only the record's own files
+   * (assertFileReferencesOwnedOnCreate). A create runs them (_create), and
+   * so does the check that asks without creating (checkCallerMayCreate).
+   * Returns the props the create goes on with: the caller's, with the
+   * project's plan where it is needed.
+   */
+  private async checkCreatePermissionsOnRecord(data: {
+    // The create as the caller made it: what was asked before its hooks is kept by it.
+    createBy: CreateBy<TBaseModel>;
+    // The record as it will be written.
+    record: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    checkedParentIds: Array<string>;
+  }): Promise<DatabaseCommonInteractionProps> {
+    /*
+     * What the hooks and the defaults wrote is checked too: a column a plan
+     * sells that they set is held to the project's plan, read now if what
+     * the caller sent did not need it (CallerPlan) - never refused as a plan
+     * nobody could confirm.
+     */
+    const props: DatabaseCommonInteractionProps = await CallerPlan.withPlanFor({
+      props: data.props,
+      modelType: this.modelType,
+      type: DatabaseRequestType.Create,
+      data: data.record,
+    });
+
+    ModelPermission.checkCreatePermissions(this.modelType, data.record, props);
+
+    // And under the parent the hooks left it with, should they name another.
+    await this.checkCreateParents({
+      data: data.record,
+      props: props,
+      checkedParentIds: data.checkedParentIds,
+    });
+
+    /*
+     * And the records the hooks named besides what the caller sent - an
+     * incident template's monitors and status pages - as if the caller had
+     * named them. See the helper.
+     */
+    await this.checkNamedLists({
+      data: data.record,
+      props: props,
+      projectId: this.getRecordProjectId(data.record, props),
+      askedIds: DatabaseService.namedIdsAskedOn.get(data.createBy) || {},
+    });
+
+    // A record the caller's create permission reaches. See the helper.
+    await this.checkCreateScope({
+      data: data.record,
+      props: props,
+    });
+
+    // Only the record's own files. See the helper.
+    await this.assertFileReferencesOwnedOnCreate(data.record);
+
+    return props;
+  }
+
+  private async _create(
+    createBy: CreateBy<TBaseModel>,
+    // Given the create's one OnCreate once onBeforeCreate hands it back, for create to hand onCreateError.
+    handedBack: CreateHandedBack<TBaseModel>,
+  ): Promise<TBaseModel> {
+    // Every check a create makes before its hooks. See the helper.
+    const checkedParentIds: Array<string> =
+      await this.checkCreateBeforeHooks(createBy);
+
     /*
      * The create's one OnCreate, from here to its end: the object
      * onBeforeCreate hands back is the very one onCreatePermitted,
@@ -5114,6 +5172,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     handedBack.onCreate = onCreate;
 
     let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
+
+    /*
+     * And it holds the create as it is written - the caller's, which takes
+     * the record the hook handed back (createBy.data, below) - from the
+     * moment onBeforeCreate returns: every later hook, onCreateError
+     * included wherever the create fails, is handed the same create, never
+     * one a hook handed back in its place.
+     */
+    onCreate.createBy = createBy;
 
     _createdBy = this.generateSlug(_createdBy);
 
@@ -5158,52 +5225,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // hash data
     data = await this.hash(data);
 
-    /*
-     * What the hooks and the defaults wrote is checked too: a column a plan
-     * sells that they set is held to the project's plan, read now if what
-     * the caller sent did not need it (CallerPlan) - never refused as a plan
-     * nobody could confirm.
-     */
-    _createdBy.props = await CallerPlan.withPlanFor({
-      props: _createdBy.props,
-      modelType: this.modelType,
-      type: DatabaseRequestType.Create,
-      data: data,
-    });
-
-    ModelPermission.checkCreatePermissions(
-      this.modelType,
-      data,
-      _createdBy.props,
-    );
-
-    // And under the parent the hooks left it with, should they name another.
-    await this.checkCreateParents({
-      data: data,
+    // Every permission check on the record as it will be written. See the helper.
+    _createdBy.props = await this.checkCreatePermissionsOnRecord({
+      createBy: createBy,
+      record: data,
       props: _createdBy.props,
       checkedParentIds: checkedParentIds,
     });
-
-    /*
-     * And the records the hooks named besides what the caller sent - an
-     * incident template's monitors and status pages - as if the caller had
-     * named them. See the helper.
-     */
-    await this.checkNamedLists({
-      data: data,
-      props: _createdBy.props,
-      projectId: this.getRecordProjectId(data, _createdBy.props),
-      askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},
-    });
-
-    // A record the caller's create permission reaches. See the helper.
-    await this.checkCreateScope({
-      data: data,
-      props: _createdBy.props,
-    });
-
-    // Only the record's own files. See the helper.
-    await this.assertFileReferencesOwnedOnCreate(data);
 
     /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
@@ -5222,19 +5250,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onBeforeCreateUniqueCheck(createBy);
     }
 
-    // check uniqueColumns by:
-    createBy = await this.checkUniqueColumnBy(createBy);
+    // check uniqueColumns by: it hands back the create it was given.
+    await this.checkUniqueColumnBy(createBy);
 
     await this.checkUniqueColumnsTogether(createBy.data);
-
-    /*
-     * From here on the create's OnCreate holds the create as it is written:
-     * the hooks after this one are handed the create they always were, in
-     * the one object onCreateError is handed too - so a create a hook handed
-     * back in its place, or anything keyed by the create a later hook is
-     * handed, is never lost on the way to onCreateError.
-     */
-    onCreate.createBy = createBy;
 
     // What OneUptime records about a create it has let through. See the hook.
     if (!createBy.props.ignoreHooks) {

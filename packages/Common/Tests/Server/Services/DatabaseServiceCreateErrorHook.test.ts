@@ -439,7 +439,7 @@ describe("a create's one OnCreate", () => {
     expect(service.seen[1]!.onCreate).toBe(service.handedBack[0]);
   });
 
-  test("from onCreatePermitted on, it holds the create as it is written: the caller's create, with the row the INSERT writes - even when onBeforeCreate handed back a create of its own", async () => {
+  test("it holds the create as it is written: the caller's create, with the row the INSERT writes - even when onBeforeCreate handed back a create of its own", async () => {
     service.handsBackNewCreate = true;
 
     const createBy: CreateBy<IncidentInternalNote> = {
@@ -455,6 +455,42 @@ describe("a create's one OnCreate", () => {
     expect(saved).toHaveLength(1);
     expect(saved[0]).toBe(createBy.data);
   });
+
+  /*
+   * The same create wherever the create fails: one refused between the hook
+   * and onCreatePermitted is handed it too - not the create the hook handed
+   * back for an early failure and the caller's for a late one.
+   */
+  test.each([
+    ["a unique-column check", "checkUniqueColumnBy"],
+    ["the clash check after the hook", "onBeforeCreateUniqueCheck"],
+  ])(
+    "a create refused by %s, before onCreatePermitted, hands onCreateError the same create a late failure does",
+    async (_what: string, method: string) => {
+      service.handsBackNewCreate = true;
+
+      jest
+        .spyOn(service as never, method as never)
+        .mockRejectedValue(
+          new BadDataException("This note clashes with another.") as never,
+        );
+
+      const createBy: CreateBy<IncidentInternalNote> = {
+        data: note(),
+        props: { isRoot: true },
+      };
+
+      await rejectionOf(service.create(createBy));
+
+      expect(
+        service.seen.map((seen: HookSeen): string => {
+          return seen.hook;
+        }),
+      ).toEqual(["error"]);
+      expect(service.seen[0]!.onCreate).toBe(service.handedBack[0]);
+      expect(service.seen[0]!.createBy).toBe(createBy);
+    },
+  );
 
   /*
    * Each step that can fail once onCreatePermitted has taken its locks: the
