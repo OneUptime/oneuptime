@@ -1,190 +1,232 @@
 # Monitor Docker
 
-Il monitoraggio Docker ti consente di monitorare lo stato e le prestazioni dei tuoi host Docker e dei container in esecuzione su di essi. OneUptime raccoglie metriche e log dei container tramite un OpenTelemetry Collector pre-configurato (l'**Agente Docker OneUptime**) e li valuta rispetto ai criteri configurati.
+Un monitor Docker sorveglia i container di un host Docker e vi avvisa quando un container si surriscalda, esaurisce la memoria o entra in un loop di riavvii. Legge le metriche che l'agente Docker di OneUptime invia dall'host, quindi niente viene sondato dall'esterno: installate l'agente, poi create il monitor da un modello o dalla vostra query.
 
-## Panoramica
+:::cards
+- [Creare il monitor](#creare-un-monitor-docker): Sei passaggi nella dashboard.
+- [Modelli](#modelli-di-avviso-pronti): Sei avvisi pronti, un incidente per container.
+- [Metriche](#metriche-raccolte): Cosa raccoglie l'agente e cosa significa ogni metrica.
+- [Log](#log-raccolti): I log dei container e il driver di log di cui hanno bisogno.
+:::
 
-I monitor Docker usano metriche e log dai tuoi host per fornire visibilità sui carichi di lavoro dei container. Questo ti consente di:
+## Come funziona
 
-- Monitorare lo stato dell'host Docker e dei singoli container
-- Monitorare CPU, memoria, rete, I/O a blocchi e conteggi di processi tra i container
-- Rilevare riavvii, crash e throttling CPU dei container
-- Trasmettere log strutturati dei container in formato nativo OpenTelemetry
-- Avvisare in caso di CPU elevata, memoria elevata, loop di riavvio e altro
+L'agente Docker di OneUptime viene eseguito come container sull'host. Ogni 30 secondi legge le statistiche dei container dall'API di Docker Engine, segue i file di log dei container e invia entrambi a OneUptime tramite OTLP. I primi dati di un host lo registrano in OneUptime.
 
-## Creazione di un Monitor Docker
+Un monitor Docker è legato a un host. Ogni minuto esegue la sua query sulle metriche dei container di quell'host e confronta il risultato con i suoi criteri.
 
-1. Vai su **Monitor** nella Dashboard di OneUptime
-2. Clicca su **Crea monitor**
-3. Seleziona **Docker** come tipo di monitor
-4. Seleziona l'host Docker e l'ambito delle risorse da monitorare
-5. Configura le query di metriche e l'aggregazione
-6. Configura i criteri di monitoraggio secondo necessità
+```mermaid title="Da un host Docker all'incidente"
+flowchart TB
+    subgraph host["Il vostro host Docker"]
+        direction LR
+        containers["Container"] --> agent["Agente Docker di OneUptime"]
+    end
+    agent -->|"metriche e log tramite OTLP"| oneuptime["OneUptime"]
+    oneuptime -->|"primi dati"| registered["Host Docker registrato"]
+    oneuptime --> monitor["Monitor Docker"]
+    monitor -->|"ogni minuto"| criteria{"Criteri soddisfatti?"}
+    criteria -->|"sì"| incident["Incidente o avviso"]
+    criteria -->|"no"| online["Monitor online"]
+```
 
-## Opzioni di Configurazione
+## Prima di iniziare
 
-### Host Docker
+- **Installate l'agente Docker** sull'host. La [guida all'agente Docker](/docs/telemetry/docker-host) spiega come installarlo, aggiornarlo e verificarlo.
+- **Verificate che l'host sia registrato.** Compare in **Prodotti → Infrastruttura → Docker → Tutti gli host**, con il nome del `DOCKER_HOST_NAME` dell'agente, appena arrivano i suoi primi dati.
+- **Per i log dei container**, eseguite i container con il driver di log `json-file` di Docker. Vedete [Requisito del driver di log](#requisito-del-driver-di-log).
 
-Seleziona l'host Docker da monitorare. Gli host vengono registrati automaticamente la prima volta che l'Agente Docker OneUptime invia telemetria da loro — non è necessario crearli manualmente.
+## Creare un monitor Docker
 
-### Ambito delle Risorse
+:::steps
+### Iniziare un nuovo monitor
 
-Scegli il livello al quale monitorare le risorse:
+Andate in **Monitor** e fate clic su **Crea monitor**.
 
-| Ambito    | Descrizione                                                   |
-| --------- | ------------------------------------------------------------- |
-| Host      | Monitora l'intero host Docker, aggregato su tutti i container |
-| Container | Monitora un container specifico per nome o immagine           |
+### Scegliere Docker Container
 
-### Query di Metriche
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Docker Container** in **Infrastruttura**, oppure digitate `docker` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
 
-Configura una o più query di metriche da valutare. Ogni query specifica:
+### Scegliere l'host
 
-- **Nome della metrica** — La metrica del container da interrogare
-- **Aggregazione** — Come aggregare i valori delle metriche (Media, Somma, Massimo, Minimo)
-- **Filtri** — Filtraggio aggiuntivo basato sugli attributi (es. per nome del container, immagine o host)
-- **Raggruppa per** — Facoltativamente raggruppa per `resource.container.name` in modo che ogni container sia valutato indipendentemente
+In **Configurazione monitor Docker**, scegliete l'host da **Host Docker**. Ogni host che ha inviato dati è nell'elenco.
 
-Puoi anche creare **formule** che combinano più query di metriche usando espressioni matematiche.
+### Scegliere cosa sorvegliare
 
-### Finestra Temporale Rolling
+Scegliete una delle tre schede:
 
-Seleziona la finestra temporale per la valutazione delle metriche:
+- **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** – scegliete una metrica da **Metrica Docker**, poi impostate **Aggregazione** e **Intervallo di tempo**. **Nome del container** e **Immagine del container** la restringono ad alcuni container.
+- **Avanzato** – costruite voi query e formule in **Seleziona metriche**. Usate **Group by** `resource.container.name` per giudicare ogni container separatamente.
 
-- Ultimo 1 Minuto
-- Ultimi 5 Minuti
-- Ultimi 10 Minuti
-- Ultimi 15 Minuti
-- Ultimi 30 Minuti
-- Ultimi 60 Minuti
+### Rivedere i criteri
 
-## Metriche Raccolte
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Threshold**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
 
-L'Agente Docker usa il receiver `docker_stats` di OpenTelemetry, che raccoglie dati dall'API Docker Engine a intervalli configurabili (predefinito ogni 30 secondi).
+### Creare il monitor
+
+Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta ogni minuto. Gli incidenti e gli avvisi che genera compaiono anche nelle pagine **Incidenti** e **Avvisi** dell'host.
+:::
+
+> [!TIP]
+> Per configurare più modelli alla volta, aprite l'host da **Prodotti → Infrastruttura → Docker** e andate in **Recommendations**. Scegliete i modelli che volete, scegliete chi viene avvisato, e OneUptime crea un monitor per modello.
+
+## Impostazioni del monitor
+
+| Campo | Scheda | Cosa fa |
+| --- | --- | --- |
+| **Host Docker** | Tutte | Obbligatorio. Limita ogni query al `resource.host.name` dell'host. OneUptime aggiunge anche `resource.container.runtime = docker` a ogni query. |
+| **Metrica Docker** | Custom Metric | Una metrica del catalogo dell'agente, raggruppata in CPU, memoria, rete, I/O a blocchi e container. |
+| **Nome del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.name`, per esempio `my-container`. |
+| **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.image.name`, per esempio `nginx:latest`. |
+| **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
+| **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
+| **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Group by**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+
+## Modelli di avviso pronti
+
+**Quick Setup** offre sei modelli. Ognuno costruisce un monitor completo: una query raggruppata per `resource.container.name`, un criterio che scatta e uno che ripristina. Ogni container viene giudicato separatamente, così un container occupato non ne nasconde un altro, e ogni container che supera la soglia riceve il proprio incidente e il proprio avviso. Le soglie sono punti di partenza modificabili.
+
+Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e si ripristina il 10% oltre la soglia, così un valore che oscila sul limite non cambia stato di continuo.
+
+| Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
+| --- | --- | --- | --- | --- |
+| High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
+| High Container Memory Usage | Warning | `container.memory.percent`, Max per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
+| Container Restart Loop | Critico | Crescita di `container.restarts` per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
+| Container CPU Throttling | Warning | Crescita di `container.cpu.throttling_data.throttled_time` in ms per container, ultimi 5 minuti | Più di 1000 ms nella finestra (Somma) | 900 ms o meno |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
+| Container Down (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Uguale a 0 | Sopra 0 |
+
+**Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
+
+> [!NOTE]
+> `container.cpu.utilization` è il numero stampato da `docker stats`: il 100% è un core di CPU intero, non l'intero host, quindi un container che usa due core segna 200. Su un host multicore la soglia di 80 è un budget di CPU, non una quota della macchina.
+
+> [!NOTE]
+> `container.memory.percent` divide per il limite di memoria del container quando è impostato, e altrimenti per la memoria totale **dell'host**. Verificate se il container è stato avviato con `--memory` prima di trattare un superamento come un'imminente terminazione per memoria esaurita.
+
+> [!WARNING]
+> `container.restarts` e `container.cpu.throttling_data.throttled_time` crescono soltanto, quindi quei due modelli avvisano in base a quanto sono cresciuti nella finestra: una query di Massimo e una di Minimo al minuto, sottratte da una formula e sommate. Con la raccolta dell'agente ogni 30 secondi, questo vede circa metà dell'attività reale, e le soglie ne tengono già conto. Se portate il `collection_interval` dell'agente a 60 secondi o più, ogni minuto contiene un solo campione ed entrambi i modelli smettono di avvisare.
+
+> [!CAUTION]
+> **Container Down (Low Uptime)** non può cogliere un container che si ferma e resta fermo. L'agente comunica solo i container in esecuzione, quindi un container fermo non invia alcun dato e il suo uptime non segna mai 0. Per un servizio che deve restare attivo, sorvegliate anche ciò che serve, per esempio con un [monitor API](/docs/monitor/api-monitor).
+
+## Metriche raccolte
+
+L'agente usa il receiver OpenTelemetry `docker_stats` sul socket di Docker, ogni 30 secondi. Le metriche di ogni container portano la sua identità come attributi di risorsa: `resource.container.name`, `resource.container.image.name`, `resource.container.id`, `resource.container.runtime` (`docker`) e `resource.host.name`.
 
 ### CPU
 
-| Metrica                                           | Descrizione                                            |
-| ------------------------------------------------- | ------------------------------------------------------ |
-| `container.cpu.utilization`                       | Utilizzo CPU come percentuale della CPU dell'host      |
-| `container.cpu.usage.total`                       | Tempo CPU cumulativo consumato dal container           |
-| `container.cpu.throttling_data.throttled_time`    | Tempo per cui il container è stato limitato dai cgroup |
-| `container.cpu.throttling_data.throttled_periods` | Numero di periodi di throttling                        |
+| Metrica | Descrizione |
+| --- | --- |
+| `container.cpu.utilization` | Utilizzo della CPU, dove il 100% è un core di CPU intero (la colonna CPU% di `docker stats`). |
+| `container.cpu.usage.total` | Tempo di CPU usato dall'avvio del container, in nanosecondi. Un contatore sull'intera vita. |
+| `container.cpu.throttling_data.throttled_time` | Nanosecondi in cui il container è stato limitato dal suo limite di CPU dall'avvio. Un contatore sull'intera vita. |
+| `container.cpu.throttling_data.throttled_periods` | Periodi di limitazione dall'avvio del container. Un contatore sull'intera vita. |
 
 ### Memoria
 
-| Metrica                        | Descrizione                                        |
-| ------------------------------ | -------------------------------------------------- |
-| `container.memory.usage.total` | Utilizzo corrente della memoria in byte            |
-| `container.memory.usage.limit` | Limite di memoria in byte                          |
-| `container.memory.percent`     | Utilizzo della memoria come percentuale del limite |
+| Metrica | Descrizione |
+| --- | --- |
+| `container.memory.usage.total` | Memoria in uso, in byte. |
+| `container.memory.usage.limit` | Limite di memoria, in byte. |
+| `container.memory.percent` | Utilizzo della memoria come percentuale del limite del container, o della memoria totale dell'host quando il container non ha limite. |
 
 ### Rete
 
-| Metrica                               | Descrizione           |
-| ------------------------------------- | --------------------- |
-| `container.network.io.usage.rx_bytes` | Byte totali ricevuti  |
-| `container.network.io.usage.tx_bytes` | Byte totali trasmessi |
+| Metrica | Descrizione |
+| --- | --- |
+| `container.network.io.usage.rx_bytes` | Byte ricevuti. Un contatore sull'intera vita. |
+| `container.network.io.usage.tx_bytes` | Byte inviati. Un contatore sull'intera vita. |
 
-### I/O a Blocchi
+### I/O a blocchi
 
-| Metrica                                              | Descrizione                            |
-| ---------------------------------------------------- | -------------------------------------- |
-| `container.blockio.io_service_bytes_recursive.read`  | Byte letti dai dispositivi a blocchi   |
-| `container.blockio.io_service_bytes_recursive.write` | Byte scritti sui dispositivi a blocchi |
+| Metrica | Descrizione |
+| --- | --- |
+| `container.blockio.io_service_bytes_recursive.read` | Byte letti dai dispositivi a blocchi. |
+| `container.blockio.io_service_bytes_recursive.write` | Byte scritti sui dispositivi a blocchi. |
 
-### Informazioni sul Container
+### Container
 
-| Metrica                | Descrizione                                        |
-| ---------------------- | -------------------------------------------------- |
-| `container.uptime`     | Uptime del container in secondi                    |
-| `container.restarts`   | Numero di volte che il container è stato riavviato |
-| `container.pids.count` | Numero di processi all'interno del container       |
+| Metrica | Descrizione |
+| --- | --- |
+| `container.uptime` | Secondi dall'avvio del container. La comunicano solo i container in esecuzione. |
+| `container.restarts` | Quante volte il container si è riavviato da quando è stato creato. Un contatore sull'intera vita. |
+| `container.pids.count` | Task nel container. Il controller pids del cgroup conta i thread oltre ai processi. |
 
-## Criteri di Monitoraggio
+L'elenco **Metrica Docker** offre anche `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` e i contatori dei pacchetti di rete. La configurazione dell'agente distribuita non li attiva, quindi controllate la pagina **Metriche** dell'host prima di basarvi su di essi. `container.cpu.throttling_data.throttled_periods` non è nell'elenco; interrogatela da **Avanzato**.
 
-### Tipi di Controllo Disponibili
+## Criteri di monitoraggio
 
-| Tipo di Controllo | Descrizione                                             |
-| ----------------- | ------------------------------------------------------- |
-| Metric Value      | Il valore della query di metriche o formula configurata |
+Un criterio confronta una delle query o formule del monitor con una soglia. I criteri di un monitor Docker non hanno un **Tipo di filtro**: ogni regola controlla il valore della metrica, con questi campi.
 
-### Tipi di Aggregazione
+| Campo | Cosa fa |
+| --- | --- |
+| **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
+| **Condizione** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** o **Equal To**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
+| **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
+| **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
+| **Se nessun dato** | In **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignore** (predefinito), **Treat As Zero** o **Trigger**. |
 
-| Aggregazione  | Descrizione                                |
-| ------------- | ------------------------------------------ |
-| Average       | Valore medio nella finestra temporale      |
-| Sum           | Somma di tutti i valori                    |
-| Maximum Value | Valore più alto nella finestra temporale   |
-| Minimum Value | Valore più basso nella finestra temporale  |
-| All Values    | Tutti i valori devono soddisfare i criteri |
-| Any Value     | Almeno un valore deve soddisfare i criteri |
+Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nella baseline. Restano in uno stato «Learning», e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico.
 
-### Tipi di Filtro
+Ogni criterio indica anche cosa fare quando corrisponde: cambiare lo stato del monitor, creare un avviso o dichiarare un incidente. I criteri vengono controllati dall'alto verso il basso, e decide il primo che corrisponde.
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+### Criteri predefiniti
 
-Rilevamento anomalie su baseline (nessuna soglia: il modulo mostra invece **Sensibilità** e **Finestra di baseline** e confronta ogni campione con la baseline della stessa ora della settimana):
+Un monitor che non create da un modello parte con due criteri:
 
-- **Anomalmente Alto** — Il valore sale sopra l'intervallo previsto
-- **Anomalmente Basso** — Il valore scende sotto l'intervallo previsto
-- **Anomalo** — Il valore esce dall'intervallo previsto in entrambe le direzioni
+| Ordine | Criterio | Corrisponde quando | Poi |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | Un valore qualsiasi della prima query è `0` | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor si riprende. |
+| 2 | Check if _monitor name_ is online | Un valore qualsiasi è sopra `0` | Segna il monitor come **Operativo**. |
 
-Le condizioni di anomalia non generano avvisi finché non esiste almeno la finestra di baseline configurata di storico (stato Learning).
+> [!IMPORTANT]
+> Il silenzio non corrisponde a nessuno dei due criteri: un host che smette di inviare dati lascia il monitor com'era. Per essere avvisati quando i dati si fermano, impostate **Se nessun dato** su **Trigger** in un criterio. Il tempo in cui OneUptime stesso non stava ricevendo non è mai assenza di dati: un controllo la cui finestra lo contiene attende invece, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
-## Template di Avvisi Pre-costruiti
+## Log raccolti
 
-OneUptime fornisce template per scenari comuni di monitoraggio Docker:
+L'agente segue anche il file `*-json.log` di ogni container e invia ogni riga come record di log OpenTelemetry con:
 
-| Template               | Descrizione                                  | Soglia | Aggregazione        |
-| ---------------------- | -------------------------------------------- | ------ | ------------------- |
-| High Container CPU     | Utilizzo CPU per container                   | > 90%  | Max (per container) |
-| High Container Memory  | Utilizzo memoria come percentuale del limite | > 85%  | Max (per container) |
-| High CPU Throttling    | Periodi di throttling CPU                    | > 0    | Max (per container) |
-| Container Restart Loop | Conteggio riavvii container                  | > 3    | Sum                 |
-| Container Down         | Uptime container azzerato                    | = 0    | Min                 |
+| Campo | Valore |
+| --- | --- |
+| `resource.host.name` | L'host, da `DOCKER_HOST_NAME`. |
+| `resource.container.id` | L'ID completo del container. |
+| `resource.container.runtime` | Sempre `docker`. |
+| `attributes["log.iostream"]` | `stdout` o `stderr`. |
+| `severityText` / `severityNumber` | Letti da una parola chiave di livello dove un livello compare nella riga (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Una riga senza livello ricade sul proprio stream: `stderr` è `ERROR`, `stdout` è `INFO`. |
+| `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
+| `time` | Il timestamp del demone Docker per la riga. |
 
-> Nota: I template di CPU, memoria e throttling usano l'aggregazione **Max** raggruppata per `resource.container.name`. Questo impedisce che il segnale di un singolo container intensivo venga diluito da molti container inattivi sullo stesso host.
+I log compaiono nella pagina **Registri** dell'host e nella pagina di ogni container.
 
-## Log Raccolti
+### Requisito del driver di log
 
-Oltre alle metriche, l'Agente Docker monitora il file `*-json.log` di ogni container tramite il receiver filelog di OpenTelemetry e trasmette i record di log nel formato nativo OTLP. Ogni record di log viene arricchito con:
+L'agente può leggere solo i log dei container che usano il driver di log `json-file` di Docker. È il predefinito di Docker, ma un container o l'intero demone possono usarne un altro:
 
-- `resource.host.name` — l'identificatore dell'host Docker
-- `resource.container.id` — l'ID completo del container
-- `resource.container.runtime` — sempre `docker`
-- `attributes["log.iostream"]` — `stdout` o `stderr`
-- `severityText` / `severityNumber` — letti da una parola chiave di livello nella riga (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); le righe senza un livello riconoscibile ricadono sullo stream: `stderr` → `ERROR`, `stdout` → `INFO`
-- `body` — la riga di log grezza emessa dal processo del container
-- `time` — il timestamp del daemon Docker per la riga
+| Driver | Cosa vede l'agente |
+| --- | --- |
+| `json-file` | Ogni riga. |
+| `local` | Niente: il file è binario e l'agente non può analizzarlo. |
+| `journald`, `syslog`, `fluentd`, `gelf`, `awslogs`, `splunk`, … | Niente: i log vanno altrove, quindi non c'è un file da seguire. |
+| `none` | Niente: i log vengono scartati. |
 
-I log appaiono nella scheda **Registri** dell'host Docker e nella pagina dei dettagli di ogni container.
-
-### Requisito del Driver di Log
-
-**L'Agente Docker acquisisce solo i log dai container che usano il driver di log `json-file` di Docker.** Questo è il driver predefinito di Docker, ma può essere sovrascritto per container o globalmente:
-
-- **Driver `local`** — scrive blocchi protobuf binari in `/var/lib/docker/containers/<id>/local-logs/container.log`. Il receiver filelog non può analizzare questo formato.
-- **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`**, ecc. — inviano i log a una destinazione remota; nessun file da monitorare.
-- **`none`** — scarta completamente i log.
-
-Se uno qualsiasi dei precedenti è in uso, vedrai le metriche nella pagina dell'host Docker ma la scheda **Registri** sarà vuota (o conterrà solo i log dell'Agente Docker stesso).
-
-**Controlla il driver di log di un container specifico:**
+Verificate il driver di un container, e quello predefinito del demone:
 
 ```bash
 docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
-```
-
-**Controlla il driver predefinito del daemon:**
-
-```bash
 docker info --format '{{.LoggingDriver}}'
 ```
 
-**Passa un servizio Docker Compose a `json-file` con rotazione appropriata:**
+Passate a `json-file`. Docker imposta il driver di log di un container quando il container viene creato, quindi ricreate ogni container dopo la modifica: un riavvio mantiene il vecchio driver.
 
-```yaml
+:::tabs
+@tab Docker Compose
+Impostate il driver su ogni servizio, con la rotazione:
+
+```yaml title="docker-compose.yml"
 services:
   my-app:
     image: my-app:latest
@@ -195,9 +237,15 @@ services:
         max-file: "5"
 ```
 
-**Cambia il driver predefinito del daemon** (si applica a ogni container creato successivamente) modificando `/etc/docker/daemon.json`:
+Poi ricreate il servizio:
 
-```json
+```bash
+docker compose up -d --force-recreate <service>
+```
+@tab Demone Docker
+Rendete `json-file` il predefinito per ogni container creato in seguito:
+
+```json title="/etc/docker/daemon.json"
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -207,45 +255,45 @@ services:
 }
 ```
 
-Poi riavvia il daemon Docker e **ricrea** i container interessati. Docker lega il driver di log al momento della creazione del container, quindi un container esistente mantiene il vecchio driver finché non viene rimosso e ricreato:
+Riavviate il demone Docker, poi rimuovete e ricreate ogni container:
 
 ```bash
-# Docker Compose
-docker compose up -d --force-recreate <service>
-
-# Docker semplice
 docker rm -f <container>
 docker run ... <image>
 ```
+:::
 
-## Requisiti di Configurazione
+## Risoluzione dei problemi
 
-Per usare il monitoraggio Docker, devi:
+:::details L'host non è nell'elenco Host Docker
+Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione e che l'host compaia in **Prodotti → Infrastruttura → Docker → Tutti gli host**. La [guida all'agente Docker](/docs/telemetry/docker-host) contiene i controlli da eseguire sull'host.
+:::
 
-1. Installare l'Agente Docker OneUptime su ogni host Docker che vuoi monitorare
-2. Passare `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` e `DOCKER_HOST_NAME` come variabili d'ambiente
-3. Assicurarti che i container che vuoi osservare usino il driver di log `json-file` (vedi sopra)
+:::details Le metriche arrivano ma la pagina Registri è vuota
+Quasi certamente i container non usano il driver di log `json-file`. Verificateli con i comandi di [Requisito del driver di log](#requisito-del-driver-di-log), cambiate quelli di cui volete i log e ricreateli.
+:::
 
-L'agente è pubblicato come `oneuptime/docker-agent:release` su Docker Hub. Vedi la [guida all'installazione dell'Agente Docker](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) per i completi esempi `docker run` e `docker compose`.
+:::details L'agente registra «no files match the configured criteria»
+L'agente cerca `/var/lib/docker/containers/*/*-json.log` e non ha trovato nulla. O nessun container sull'host usa `json-file`, o il mount `/var/lib/docker/containers` dell'agente (`-v /var/lib/docker/containers:/var/lib/docker/containers:ro`) manca o è vuoto, oppure l'agente gira su Docker Desktop per macOS, i cui file dei container si trovano nella sua VM Linux.
+:::
 
-## Risoluzione dei Problemi
+:::details I dati arrivano con il nome host sbagliato
+OneUptime identifica un host tramite `resource.host.name`, che l'agente prende da `DOCKER_HOST_NAME`. Cambiare `DOCKER_HOST_NAME` dopo i primi dati crea un secondo host invece di rinominare il primo, e un monitor resta legato al nome con cui è stato creato.
+:::
 
-### Le metriche appaiono ma la scheda Log è vuota
+:::details Un avviso sulla CPU non scatta mai
+Raggruppate la query per `resource.container.name` e aggregate con **Massimo**, come fa il modello **High Container CPU Usage**. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta.
+:::
 
-I tuoi container quasi certamente non usano il driver di log `json-file`. Esegui i comandi diagnostici nella sezione [Requisito del Driver di Log](#requisito-del-driver-di-log) sopra e cambia i container che necessitano di avere i loro log trasmessi.
+:::details Il modello per i loop di riavvio o per la limitazione ha smesso di avvisare
+Entrambi misurano di quanto è cresciuto un contatore tra due campioni dello stesso minuto. Se il `collection_interval` dell'agente è di 60 secondi o più, ogni minuto contiene un solo campione, la crescita vale sempre 0 e nessuno dei due modelli scatta. Mantenete il valore predefinito dell'agente, 30 secondi.
+:::
 
-### Il receiver filelog registra `no files match the configured criteria`
+## Passaggi successivi
 
-Questo significa che il glob `/var/lib/docker/containers/*/*-json.log` non ha trovato corrispondenze quando l'agente è partito. O:
-
-1. Nessun container su questo host usa `json-file`, o
-2. Il bind mount `-v /var/lib/docker/containers:/var/lib/docker/containers:ro` è mancante o punta a una directory vuota, o
-3. L'agente è in esecuzione su Docker Desktop per macOS senza la directory dei container della VM Linux esposta.
-
-### I log arrivano ma sono raggruppati sotto il nome host sbagliato
-
-OneUptime registra automaticamente gli host Docker per `resource.host.name`, che viene preso dalla variabile d'ambiente `DOCKER_HOST_NAME`. Cambiare `DOCKER_HOST_NAME` dopo il primo batch di telemetria creerà una seconda riga di host invece di rinominare quella esistente.
-
-### Gli incidenti non si attivano per "High CPU"
-
-Assicurati che l'aggregazione della query di metriche sia **Max** (non Avg) e che raggruppi per `resource.container.name`. Una media su tutti i container su un host occupato viene diluita dai container inattivi e raramente supera la soglia.
+:::cards
+- [Agent Docker](/docs/telemetry/docker-host): Installare, aggiornare e risolvere i problemi dell'agente che questo monitor legge.
+- [Monitor Podman](/docs/monitor/podman-monitor): Lo stesso monitor per gli host Podman.
+- [Monitor Docker Swarm](/docs/monitor/docker-swarm-monitor): Sorvegliare i task di un cluster Swarm.
+- [Panoramica degli incidenti](/docs/incidents/index): Cosa succede dopo che un criterio ha dichiarato un incidente.
+:::

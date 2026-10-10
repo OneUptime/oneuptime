@@ -27,7 +27,7 @@ sequenceDiagram
 
 1. When you create an Incoming Email monitor, OneUptime gives it a unique email address.
 2. Every email sent to that address is stored on the monitor and evaluated against its criteria, from the top; the first criteria that matches decides.
-3. A matching criteria can change the monitor's status, create an alert and declare an incident. An incident or alert whose **Auto Resolve** option is on is resolved when a different criteria matches later — the one that marks the monitor online, for example.
+3. A matching criteria can change the monitor's status, create an alert and declare an incident. An incident with **Auto Resolve Incident** on, or an alert with **Auto Resolve Alert** on, is resolved when a different criteria matches later — the one that marks the monitor online, for example.
 
 ## Creating an Incoming Email Monitor
 
@@ -261,15 +261,15 @@ The titles, descriptions and remediation notes of the alerts and incidents this 
 
 Once the monitor has received an email, the **Monitor Summary** card on its **Overview** page shows the newest one:
 
-- **Last Email Received At:** When the most recent email was received
-- **From:** The sender of the last email
-- **Subject:** The subject line of the last email
+- **Last Email Received At**: When the most recent email was received
+- **From**: The sender of the last email
+- **Subject**: The subject line of the last email
 
 Click **Show More Details** to see the rest of it:
 
-- **Email Headers:** Full headers of the last email
-- **Email Body (Text):** The plain text body
-- **Email Body (HTML):** The HTML body, shown as HTML source rather than rendered
+- **Email Headers**: Full headers of the last email
+- **Email Body (Text)**: The plain text body
+- **Email Body (HTML)**: The HTML body, shown as HTML source rather than rendered
 
 ### Earlier Emails
 
@@ -285,11 +285,11 @@ Until it is set up, the monitor's address card says that inbound email is not co
 
 ## Things to Consider
 
-- **Email Address Security:** The monitor email address works like a password: anyone who knows it can send email to the monitor. Don't share it publicly, and reset it from the monitor's **Settings** tab if it leaks.
-- **Email Size:** OneUptime accepts an inbound email of up to 50 MB, attachments included. Attachments are not stored — only their names, types and sizes.
-- **Processing Time:** Emails are processed asynchronously. There may be a few seconds delay between sending an email and alert creation.
-- **Case Insensitivity:** All string comparisons (Contains, Equal To, etc.) are case-insensitive.
-- **Plain Text:** Email body criteria read the email's plain text part. An email sent only as HTML has an empty body for criteria — so it does not contain `error`, and the default criteria mark the monitor online.
+- **Email Address Security**: The monitor email address works like a password: anyone who knows it can send email to the monitor. Don't share it publicly, and reset it from the monitor's **Settings** tab if it leaks.
+- **Email Size**: OneUptime accepts an inbound email of up to 50 MB, attachments included. Attachments are not stored — only their names, types and sizes.
+- **Processing Time**: Emails are processed asynchronously. There may be a few seconds delay between sending an email and alert creation.
+- **Case Insensitivity**: All string comparisons (Contains, Equal To, etc.) are case-insensitive.
+- **Plain Text**: Email body criteria read the email's plain text part. An email sent only as HTML has an empty body for criteria — so it does not contain `error`, and the default criteria mark the monitor online.
 
 ## Troubleshooting
 

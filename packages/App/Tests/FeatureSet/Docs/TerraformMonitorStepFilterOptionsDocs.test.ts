@@ -1,3 +1,4 @@
+import { DocsHeading, scanMarkdown } from "./DocsContentSupport";
 import { FILTER_JSON_OPTIONS } from "Common/Utils/DeveloperDocs/TerraformMonitorSteps";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -48,10 +49,7 @@ const HCL_ASSIGNMENT: RegExp = /^\s*([a-z_]+)\s+= (.+)$/;
 const GO_STRING_ITEM: RegExp = /^\s*"([^"]+)",$/;
 const GO_ATTR_TYPE: RegExp = /"([a-z_]+)":\s+types\.[A-Za-z0-9]+/g;
 const LINK: RegExp = /\]\((\/docs\/[^)#\s]+)(?:#([^)\s]+))?\)/g;
-const HEADING: RegExp = /^#{1,6}\s+(.+)$/gm;
 const TRAILING_PARENTHETICAL: RegExp = /\s*\([^)]*\)\s*$/;
-const NOT_SLUG_CHARACTERS: RegExp = /[^a-z0-9\s-]/g;
-const WHITESPACE: RegExp = /\s+/g;
 // The padding terraform fmt puts before `=` to line a block's attributes up.
 const ASSIGNMENT_PADDING: RegExp = /\s+=\s+/;
 
@@ -143,13 +141,9 @@ function filterLines(example: string): Array<string> {
   return lines.slice(start + 1, end);
 }
 
-// How the docs renderer (marked) turns a heading into its anchor, for plain ASCII headings.
-function slug(heading: string): string {
-  return heading
-    .toLowerCase()
-    .replace(NOT_SLUG_CHARACTERS, "")
-    .trim()
-    .replace(WHITESPACE, "-");
+// A page's headings, in order, as the docs renderer anchors them.
+function headings(relative: string, language: string): Array<DocsHeading> {
+  return scanMarkdown(readPage(relative, language)).headings;
 }
 
 function dashboardLabel(language: string, key: string): string {
@@ -326,17 +320,24 @@ describe("the Terraform monitor-steps page", () => {
     }
   });
 
+  /*
+   * The Custom Code page of the reader's language has the English page's
+   * headings in the English order, so the section is the heading in the
+   * English section's place, anchored as that language words it.
+   */
   it("links to the section that explains field paths and conditions", () => {
-    const heading: string = "Alerting on the returned data";
-    const englishHeadings: Array<string> = Array.from(
-      readPage(CUSTOM_CODE_PAGE, "en").matchAll(HEADING),
-    ).map((match: RegExpMatchArray): string => {
-      return (match[1] as string).trim();
+    const english: Array<DocsHeading> = headings(CUSTOM_CODE_PAGE, "en");
+    const place: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.text === "Alerting on the returned data";
     });
 
-    expect(englishHeadings).toContain(heading);
+    expect(place).toBeGreaterThan(-1);
 
     for (const language of LANGUAGES) {
+      const translated: Array<DocsHeading> = headings(
+        CUSTOM_CODE_PAGE,
+        language,
+      );
       const links: Array<string> = Array.from(
         readPage(PAGE, language).matchAll(LINK),
       )
@@ -347,15 +348,43 @@ describe("the Terraform monitor-steps page", () => {
           return match[2] || "";
         });
 
+      expect({ language, headings: translated.length }).toEqual({
+        language,
+        headings: english.length,
+      });
       expect({ language, links }).toEqual({
         language,
-        links: [slug(heading)],
+        links: [(translated[place] as DocsHeading).slug],
       });
-      expect(
-        fs.existsSync(
-          path.join(CONTENT_DIR, language, `${CUSTOM_CODE_PAGE}.md`),
-        ),
-      ).toBe(true);
+    }
+  });
+
+  it("is linked from the Custom Code page's field path list, at its own section", () => {
+    const english: Array<DocsHeading> = headings(PAGE, "en");
+    const place: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.text === "Comparing one field of a script's result";
+    });
+
+    expect(place).toBeGreaterThan(-1);
+
+    for (const language of LANGUAGES) {
+      const section: DocsHeading = headings(PAGE, language)[
+        place
+      ] as DocsHeading;
+      const links: Array<string> = Array.from(
+        readPage(CUSTOM_CODE_PAGE, language).matchAll(LINK),
+      )
+        .filter((match: RegExpMatchArray): boolean => {
+          return match[1] === `/docs/${PAGE}`;
+        })
+        .map((match: RegExpMatchArray): string => {
+          return match[2] || "";
+        });
+
+      expect({ language, links }).toEqual({
+        language,
+        links: [section.slug],
+      });
     }
   });
 });

@@ -178,7 +178,7 @@ A Custom Code monitor's criteria can check:
 | Filter type | What it checks | Filter conditions |
 | --- | --- | --- |
 | **Error** | The error the script threw, if any. | Contains, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | The `data` the script returned. Compared as a number when it is one. | The same, plus Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **Result Value** | The `data` the script returned. Compared as a number when it is one. | The same, plus Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, True and False |
 | **Execution Time (in ms)** | How long the script ran. | Numeric comparisons |
 
 The defaults mark the monitor online when **Error** is empty, and offline — with an incident that resolves itself when the script succeeds again — when it is not. In incident and alert templates, the run is available as `{{result}}`, `{{scriptError}}`, `{{logMessages}}` and `{{executionTimeInMs}}`: see [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating).
@@ -187,7 +187,7 @@ The defaults mark the monitor online when **Error** is empty, and offline — wi
 
 Whatever the script returns as `data` is the monitor's **Result Value**, and a criteria can compare it — for example _Result Value is Equal To `UP`_.
 
-When `data` is an object or an array, fill in **Field Path** on the Result Value filter to compare one field of it instead of the whole value. Use dots for nested fields and `[n]` for array items:
+When `data` is an object or an array, fill in **Field Path (Optional)** on the Result Value filter to compare one field of it instead of the whole value. Use dots for nested fields and `[n]` for array items:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");
@@ -211,10 +211,11 @@ return {
 
 Add one filter per field you want to check; each can have its own condition and value.
 
-- Leave **Field Path** empty to compare the whole value, as for a script that returns a single number or string.
+- Leave the field path empty to compare the whole value, as for a script that returns a single number or string.
 - Greater Than, Less Than and the other number conditions only match a number, so return a field as `42`, not `"42"`. True and False only match a boolean.
 - A field that is not in the returned data — a missing key, or an array index past the end — compares as empty: **Is Empty** matches it, and no other condition does.
 - A field whose name contains a dot cannot be addressed by a path.
+- In Terraform, the filter's `custom_code_monitor_options` sets the field path: see [Monitor Steps](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
 
 ## Modules available in the script
 

@@ -82,7 +82,7 @@ Le espressioni JavaScript sono offerte per i monitor di tipo Sito web, API, Inco
 
 ### Monitor delle email in arrivo
 
-Il filtro è offerto, ma nessun campo email gli è collegato: un'espressione non può leggere l'oggetto, il mittente, il corpo o il destinatario. Usate invece i tipi di filtro per le email — vedete [Monitor email in arrivo](/docs/monitor/incoming-email-monitor#campi-criteri-disponibili).
+Il filtro è offerto, ma nessun campo email gli è collegato: un'espressione non può leggere l'oggetto, il mittente, il corpo o il destinatario. Usate invece i tipi di filtro per le email — vedete [Monitor email in arrivo](/docs/monitor/incoming-email-monitor#tipi-di-filtro-disponibili).
 
 ## Esempi
 

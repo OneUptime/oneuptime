@@ -82,7 +82,7 @@ JavaScript-expressies worden aangeboden voor monitoren van het type Website, API
 
 ### Monitoren voor inkomende e-mail
 
-Het filter wordt aangeboden, maar er zijn geen e-mailvelden aan gekoppeld: een expressie kan het onderwerp, de afzender, de body of de ontvanger niet lezen. Gebruik in plaats daarvan de e-mailfiltertypen — zie [Inkomende-e-mail-monitor](/docs/monitor/incoming-email-monitor#beschikbare-criteriumvelden).
+Het filter wordt aangeboden, maar er zijn geen e-mailvelden aan gekoppeld: een expressie kan het onderwerp, de afzender, de body of de ontvanger niet lezen. Gebruik in plaats daarvan de e-mailfiltertypen — zie [Inkomende-e-mail-monitor](/docs/monitor/incoming-email-monitor#beschikbare-filtertypen).
 
 ## Voorbeelden
 
