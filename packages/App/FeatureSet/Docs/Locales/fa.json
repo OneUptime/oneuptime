@@ -308,6 +308,7 @@
     "Storage Array Agent": "عامل آرایه ذخیره‌سازی",
     "Docker Swarm Agent": "عامل Docker Swarm",
     "VMware Agent": "عامل VMware",
+    "VMware Without an Agent": "VMware بدون عامل",
     "Databases": "پایگاه‌های داده",
     "Queues": "صف‌ها",
     "Serverless Functions": "توابع بدون سرور",

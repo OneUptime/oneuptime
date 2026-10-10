@@ -308,6 +308,7 @@
     "Storage Array Agent": "存储阵列代理",
     "Docker Swarm Agent": "Docker Swarm 代理",
     "VMware Agent": "VMware 代理",
+    "VMware Without an Agent": "无需代理的 VMware",
     "Databases": "数据库",
     "Queues": "队列",
     "Serverless Functions": "无服务器函数",

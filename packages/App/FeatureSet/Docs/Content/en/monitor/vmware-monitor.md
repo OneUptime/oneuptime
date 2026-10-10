@@ -25,7 +25,7 @@ VMware monitors use metrics from your vCenter to provide visibility into your vi
 
 ### vCenter
 
-Select the vCenter to monitor. A vCenter is one vSphere endpoint the agent connects to — a vCenter Server or a standalone ESXi host — and it is auto-registered the first time the OneUptime VMware Agent ships telemetry from it (keyed by the `vmware.vcenter.name` resource attribute). You do not need to create it manually. Every query the monitor runs is automatically scoped with `resource.vmware.vcenter.name` equal to the selected vCenter's name.
+Select the vCenter to monitor. A vCenter is one vSphere endpoint the agent connects to — a vCenter Server or a standalone ESXi host — and it is auto-registered the first time the OneUptime VMware Agent ships telemetry from it (keyed by the `vmware.vcenter.name` resource attribute). You do not need to create it manually. A vCenter collected [without an agent](/docs/telemetry/vmware-agentless), by one of your probes, is listed from the moment you connect it. Every query the monitor runs is automatically scoped with `resource.vmware.vcenter.name` equal to the selected vCenter's name.
 
 ### Resource Filters
 
