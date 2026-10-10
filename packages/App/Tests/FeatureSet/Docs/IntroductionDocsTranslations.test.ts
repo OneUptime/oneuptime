@@ -114,6 +114,12 @@ const PROSE: Record<string, Array<string>> = {
     "Labels",
     "Owners",
   ],
+  /*
+   * "**Language**: the dashboard starts in your browser's language" - a list
+   * item's lead. The footer's language menu lists languages by their own
+   * names and shows no "Language" label.
+   */
+  [YOUR_ACCOUNT]: ["Language"],
 };
 
 /*
