@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import LlmConversationService, {
+  LlmAnswerCountQuery,
   LlmConversationDetailQuery,
   LlmConversationListQuery,
 } from "../../../Server/Services/LlmConversationService";
@@ -406,5 +407,155 @@ describe("reading rows back", () => {
     expect(call.kind).toBe(LlmCallKind.Tool);
     expect(call.content.input).toEqual([]);
     expect(call.issues).toEqual([]);
+  });
+});
+
+/*
+ * The AI / LLM monitor's one read: the answers of a window and how many
+ * were bad. The real-ClickHouse suite runs it; these pin its shape.
+ */
+describe("the answer count statement (the AI / LLM monitor)", () => {
+  function countQuery(
+    overrides: Partial<LlmAnswerCountQuery> = {},
+  ): LlmAnswerCountQuery {
+    return {
+      projectId: PROJECT,
+      startTime: new Date("2026-10-10T08:00:00.000Z"),
+      endTime: new Date("2026-10-10T08:15:00.000Z"),
+      issues: [LlmAnswerIssue.Refused, LlmAnswerIssue.CutOff],
+      slowAnswerMs: null,
+      ...overrides,
+    };
+  }
+
+  test("reads AI calls of the project, in the window, still retained", () => {
+    const sql: string =
+      LlmConversationService.buildAnswerCountStatement(countQuery()).query;
+
+    expect(sql).toContain("FROM SpanItemV3 WHERE projectId = ");
+    expect(sql).toContain("AND isLlmSpan = 1");
+    expect(sql).toContain("AND startTime >= ");
+    expect(sql).toContain("AND startTime <= ");
+    expect(sql).toContain("AND retentionDate >= now()");
+    expect(paramValues(
+      LlmConversationService.buildAnswerCountStatement(countQuery()),
+    )).toContain(PROJECT.toString());
+  });
+
+  test("only answers are counted: kind answer, or a pre-kind row with a model", () => {
+    const sql: string =
+      LlmConversationService.buildAnswerCountStatement(countQuery()).query;
+
+    expect(sql).toContain(
+      "countIf((llmCallKind = 'answer' OR (llmCallKind = '' AND llmRequestModel != ''))) AS answerCount",
+    );
+    // The bad count is a subset of the answers.
+    expect(sql).toContain(
+      "countIf((llmCallKind = 'answer' OR (llmCallKind = '' AND llmRequestModel != '')) AND (",
+    );
+  });
+
+  test("each problem it counts is one OR'd condition on llmIssues", () => {
+    const sql: string =
+      LlmConversationService.buildAnswerCountStatement(countQuery()).query;
+
+    expect(sql).toContain(
+      "AND (has(llmIssues, 'refused') OR has(llmIssues, 'cut_off'))) AS badAnswerCount",
+    );
+    expect(sql).not.toContain("has(llmIssues, 'empty')");
+  });
+
+  test("'failed' counts calls from before llmIssues by their status too", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({ issues: [LlmAnswerIssue.Failed] }),
+    ).query;
+
+    expect(sql).toContain(
+      "AND ((statusCode = 2 OR has(llmIssues, 'failed')))) AS badAnswerCount",
+    );
+  });
+
+  test("a slow-answer limit is a parameter in nanoseconds, never SQL text", () => {
+    const statement: Statement =
+      LlmConversationService.buildAnswerCountStatement(
+        countQuery({ issues: [], slowAnswerMs: 30_000 }),
+      );
+
+    expect(statement.query).toContain("durationUnixNano > {p");
+    expect(statement.query).toContain(":Int64}");
+    expect(paramValues(statement)).toContain(30_000_000_000);
+    expect(statement.query).not.toContain("30000000000");
+  });
+
+  test("problems and a slow limit together: either makes an answer bad", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({ issues: [LlmAnswerIssue.Flagged], slowAnswerMs: 2_500 }),
+    ).query;
+
+    expect(sql).toMatch(
+      /AND \(has\(llmIssues, 'flagged'\) OR durationUnixNano > \{p\d+:Int64\}\)\) AS badAnswerCount/,
+    );
+  });
+
+  test("nothing that makes an answer bad counts no answer as bad", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({ issues: [], slowAnswerMs: null }),
+    ).query;
+
+    expect(sql).toContain("toUInt64(0) AS badAnswerCount");
+  });
+
+  test("an unknown problem never reaches the SQL", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({
+        issues: ["bogus') OR 1=1 --" as unknown as LlmAnswerIssue],
+      }),
+    ).query;
+
+    expect(sql).not.toContain("bogus");
+    expect(sql).toContain("toUInt64(0) AS badAnswerCount");
+  });
+
+  test("a model narrows to the answers that asked for it or were served by it", () => {
+    const statement: Statement =
+      LlmConversationService.buildAnswerCountStatement(
+        countQuery({ model: "  gpt-4o'; --  " }),
+      );
+
+    expect(statement.query).toMatch(
+      /AND \(llmRequestModel = \{p\d+:String\} OR llmResponseModel = \{p\d+:String\}\)/,
+    );
+    expect(paramValues(statement)).toContain("gpt-4o'; --");
+    expect(statement.query).not.toContain("gpt-4o");
+  });
+
+  test("a blank model adds no condition", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({ model: "   " }),
+    ).query;
+
+    expect(sql).not.toContain("llmResponseModel");
+  });
+
+  test("the apps and the reader's scope are WHERE clauses", () => {
+    const sql: string = LlmConversationService.buildAnswerCountStatement(
+      countQuery({
+        serviceIds: [SERVICE_A],
+        excludedServiceIds: [SERVICE_B],
+      }),
+    ).query;
+
+    expect(sql).toContain("AND primaryEntityId IN (");
+    expect(sql).toContain("AND primaryEntityId NOT IN (");
+    expect(sql).not.toContain("GROUP BY");
+    expect(sql).not.toContain("HAVING");
+  });
+
+  test("a read cut short throws, it never answers an empty body", () => {
+    const sql: string =
+      LlmConversationService.buildAnswerCountStatement(countQuery()).query;
+
+    expect(sql).toContain("timeout_overflow_mode = 'throw'");
+    expect(sql).not.toContain("'break'");
   });
 });
