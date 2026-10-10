@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Primeros pasos",
+    "Quickstart": "Inicio rápido",
+    "Core Concepts": "Conceptos básicos",
+    "Home Page & Shortcuts": "Página de inicio y atajos",
+    "Your Account": "Su cuenta",
     "Moving from Opsgenie": "Migrar desde Opsgenie",
     "Moving from PagerDuty": "Migrar desde PagerDuty",
     "Moving from incident.io": "Migrar desde incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Monitor de salud de la base de datos",
     "Network Sites (Health Rollup & Uptime)": "Sitios de red (resumen de salud y tiempo de actividad)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Guías por fabricante de red (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Tráfico de red (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Monitor de hosts",
     "Podman Monitor": "Monitor de Podman",
     "Proxmox Monitor": "Monitor de Proxmox",

@@ -315,8 +315,8 @@ export {
 
 /*
  * The @clickhouse/client types live in Common's node_modules and are not
- * resolvable from App, so result sets are typed structurally here — the
- * same shape App/FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts uses.
+ * resolvable from App, so result sets are typed structurally here: the
+ * shape of the JSON a ClickHouse query answers with.
  */
 interface ClickhouseJsonResultSet {
   json: () => Promise<{ data: Array<JSONObject> }>;

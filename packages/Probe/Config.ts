@@ -21,6 +21,11 @@ import {
   PacketCaptureSettings,
   readPacketCaptureSettings,
 } from "./Utils/PacketCapture/PacketCaptureSettings";
+import {
+  DEFAULT_IPFIX_COLLECTOR_PORT,
+  DEFAULT_NETFLOW_COLLECTOR_PORT,
+  DEFAULT_SFLOW_COLLECTOR_PORT,
+} from "Common/Types/NetFlow/NetworkFlowCollectorPorts";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -533,20 +538,22 @@ export const PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE: number =
   });
 
 /*
- * NetFlow receiver. The probe listens for NetFlow v5 export datagrams on
- * the configured UDP port, parses the flow records, batches them, and
- * forwards them to the OneUptime instance, where they are correlated to
- * Network Devices by the exporter's source IP and written into the
- * ClickHouse network-flow table. Point your devices' NetFlow v5 export
- * destination at this probe.
+ * Flow collector. The probe listens for flow records - NetFlow v5, NetFlow
+ * v9, IPFIX and sFlow - on UDP 2055 (NetFlow), 4739 (IPFIX) and 6343
+ * (sFlow), decodes them into one shape, sums the records of a conversation
+ * that arrive together, and forwards them to the OneUptime instance, where
+ * they are matched to Network Devices by the exporter's address and written
+ * into the ClickHouse network-flow table. Each port reads every format (by
+ * its first bytes), so a device pointed at the "wrong" one still works.
  *
- * Off by default: opt in with PROBE_NETFLOW_RECEIVER_ENABLED=true. Port
- * 2055 is the conventional NetFlow collector port (above 1024, so no
- * privileges needed); a failed bind (port in use) logs an error and
- * leaves polling untouched.
+ * On by default, like the trap receiver: the ports are above 1024 (no
+ * privileges needed), inside a container they are unreachable until the
+ * operator publishes them, and a failed bind (port in use) is logged once
+ * and leaves polling untouched. Set PROBE_NETFLOW_RECEIVER_ENABLED=false to
+ * turn the collector off, or a port to 0 to close just that one.
  */
 export const PROBE_NETFLOW_RECEIVER_ENABLED: boolean =
-  process.env["PROBE_NETFLOW_RECEIVER_ENABLED"] === "true";
+  process.env["PROBE_NETFLOW_RECEIVER_ENABLED"] !== "false";
 
 /*
  * Packet captures started from the dashboard (Utils/PacketCapture). Off
@@ -562,18 +569,39 @@ export const PROBE_PACKET_CAPTURE_SETTINGS: PacketCaptureSettings =
 export const PROBE_NETFLOW_RECEIVER_PORT: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_NETFLOW_RECEIVER_PORT"],
-    defaultValue: 2055,
-    min: 1,
+    defaultValue: DEFAULT_NETFLOW_COLLECTOR_PORT,
+    min: 0,
+    max: 65535,
+  });
+
+export const PROBE_IPFIX_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_IPFIX_RECEIVER_PORT"],
+    defaultValue: DEFAULT_IPFIX_COLLECTOR_PORT,
+    min: 0,
+    max: 65535,
+  });
+
+export const PROBE_SFLOW_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SFLOW_RECEIVER_PORT"],
+    defaultValue: DEFAULT_SFLOW_COLLECTOR_PORT,
+    min: 0,
+    max: 65535,
   });
 
 /*
- * Safety valve: max NetFlow DATAGRAMS accepted per minute before dropping
- * (per probe). One datagram carries up to 30 flow records.
+ * Safety valve: flow DATAGRAMS accepted per minute before the collector
+ * drops the rest (per probe, across every exporter and port). A datagram
+ * carries up to ~30 flow records (a few sFlow samples), so the default -
+ * 100 a second - is a few thousand flows a second, which a busy router's
+ * export fits in. Dropped datagrams are traffic the Traffic pages will not
+ * show; the probe logs how many every minute it happens.
  */
 export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE"],
-    defaultValue: 300,
+    defaultValue: 6000,
     min: 1,
   });
 

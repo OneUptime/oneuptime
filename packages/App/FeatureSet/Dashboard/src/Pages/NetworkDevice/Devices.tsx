@@ -35,9 +35,11 @@ import {
   getProbeDropdownOptions,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
+  AddDevicePrefill,
   NetworkQuickAction,
   clearNetworkQuickAction,
   getNetworkQuickActionRoute,
+  getRequestedAddDevicePrefill,
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
@@ -275,6 +277,17 @@ const NetworkDevices: FunctionComponent<
   const [isAddDeviceRequested] = useState<boolean>((): boolean => {
     return isNetworkQuickActionRequested(NetworkQuickAction.AddDevice);
   });
+
+  /*
+   * What the link filled in: the address and probe of an exporter the
+   * Traffic page saw sending flows before it was a device. Read with the
+   * action, once.
+   */
+  const [addDevicePrefill] = useState<AddDevicePrefill>(
+    (): AddDevicePrefill => {
+      return isAddDeviceRequested ? getRequestedAddDevicePrefill() : {};
+    },
+  );
 
   useEffect(() => {
     if (isAddDeviceRequested) {
@@ -750,6 +763,32 @@ const NetworkDevices: FunctionComponent<
   }, [probes]);
 
   /*
+   * The prefilled address, and the probe it was received by when that is a
+   * probe the form offers (else the form's own default probe stands).
+   */
+  const addDeviceInitialValues: FormValues<NetworkDevice> | undefined =
+    useMemo(() => {
+      if (!addDevicePrefill.address) {
+        return undefined;
+      }
+
+      const values: FormValues<NetworkDevice> = {
+        hostname: addDevicePrefill.address,
+      } as FormValues<NetworkDevice>;
+
+      if (
+        addDevicePrefill.probeId &&
+        probeOptions.some((option: { value: string }): boolean => {
+          return option.value === addDevicePrefill.probeId;
+        })
+      ) {
+        (values as Record<string, unknown>)["probe"] = addDevicePrefill.probeId;
+      }
+
+      return values;
+    }, [addDevicePrefill, probeOptions]);
+
+  /*
    * What an empty list offers besides Add Device: the other way in, a scan
    * that finds the devices for you. Only when the list is truly empty - a
    * chip that hides every row gets "Clear Filters" instead, from the facet
@@ -956,6 +995,7 @@ const NetworkDevices: FunctionComponent<
         singularName={ADD_DEVICE_SINGULAR_NAME}
         pluralName={ADD_DEVICE_PLURAL_NAME}
         showCreateForm={isAddDeviceRequested}
+        createInitialValues={addDeviceInitialValues}
         showRefreshButton={true}
         /*
          * Bulk "Delete" is not listed here - ModelTable adds it to every table

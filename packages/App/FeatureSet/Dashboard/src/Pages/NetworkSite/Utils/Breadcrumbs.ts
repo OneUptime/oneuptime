@@ -35,6 +35,12 @@ export function getNetworkSiteBreadcrumbs(
       "View Site",
       "Endpoints",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_TRAFFIC, [
+      "Project",
+      "Network",
+      "View Site",
+      "Traffic",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE, [
       "Project",
       "Network",

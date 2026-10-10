@@ -108,7 +108,11 @@
     "Real User Monitoring": "真实用户监控"
   },
   "navLinks": {
-    "Getting Started": "快速开始",
+    "Getting Started": "入门指南",
+    "Quickstart": "快速开始",
+    "Core Concepts": "核心概念",
+    "Home Page & Shortcuts": "首页与快捷键",
+    "Your Account": "您的账户",
     "Moving from Opsgenie": "从 Opsgenie 迁移",
     "Moving from PagerDuty": "从 PagerDuty 迁移",
     "Moving from incident.io": "从 incident.io 迁移",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "数据库健康监控",
     "Network Sites (Health Rollup & Uptime)": "网络站点(健康汇总与正常运行时间)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "网络设备厂商指南(Sophos、Extreme、Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "网络流量（NetFlow、IPFIX、sFlow）",
     "Host Monitor": "主机监控",
     "Podman Monitor": "Podman 监控",
     "Proxmox Monitor": "Proxmox 监控",

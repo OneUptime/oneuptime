@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Aan de slag",
+    "Quickstart": "Snelstart",
+    "Core Concepts": "Kernbegrippen",
+    "Home Page & Shortcuts": "Startpagina en sneltoetsen",
+    "Your Account": "Uw account",
     "Moving from Opsgenie": "Overstappen van Opsgenie",
     "Moving from PagerDuty": "Overstappen van PagerDuty",
     "Moving from incident.io": "Overstappen van incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Databasegezondheid-monitor",
     "Network Sites (Health Rollup & Uptime)": "Netwerklocaties (gezondheidsoverzicht en uptime)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Handleidingen per netwerkleverancier (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Netwerkverkeer (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Host-monitor",
     "Podman Monitor": "Podman-monitor",
     "Proxmox Monitor": "Proxmox-monitor",

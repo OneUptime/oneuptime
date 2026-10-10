@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "시작하기",
+    "Quickstart": "빠른 시작",
+    "Core Concepts": "핵심 개념",
+    "Home Page & Shortcuts": "홈 화면과 단축키",
+    "Your Account": "내 계정",
     "Moving from Opsgenie": "Opsgenie에서 이전",
     "Moving from PagerDuty": "PagerDuty에서 이전",
     "Moving from incident.io": "incident.io에서 이전",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "데이터베이스 상태 모니터",
     "Network Sites (Health Rollup & Uptime)": "네트워크 사이트(상태 요약 및 가동 시간)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "네트워크 공급업체별 가이드(Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "네트워크 트래픽(NetFlow, IPFIX, sFlow)",
     "Host Monitor": "호스트 모니터",
     "Podman Monitor": "Podman 모니터",
     "Proxmox Monitor": "Proxmox 모니터",

@@ -507,6 +507,66 @@ export default class NetworkDevice extends BaseModel {
   public dnsName?: string = undefined;
 
   /*
+   * The other IP addresses this device sends from - a loopback, a
+   * management interface, the interface facing the probe.
+   *
+   * Traps, syslog and flow records are matched to a device by the address
+   * they come from, and a router often sends them from an address other
+   * than the one it is polled on (Cisco exports flows from the interface
+   * facing the collector unless told to use a loopback). Without a second
+   * address, such a device's flows landed nowhere and its traps matched
+   * nothing. The Traffic pages write here when someone says "these flows
+   * are this device's"; it can be edited on the device's settings too.
+   *
+   * Addresses only (no DNS names), separated by commas: saved canonical and
+   * without duplicates (NetworkDeviceOtherAddresses). `hostname` stays the
+   * address the probe polls.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Other Addresses",
+    description:
+      "Other IP addresses this device sends traps, syslog and flow records from - a loopback or another interface - separated by commas. Records from its hostname always match; these match too.",
+    example: "10.255.0.1, 192.168.1.1",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public otherAddresses?: string = undefined;
+
+  /*
    * The name discovery gave this device, and where it came from (OneUptime
    * issue #4518).
    *

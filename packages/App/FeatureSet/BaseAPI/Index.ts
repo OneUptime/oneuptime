@@ -123,7 +123,7 @@ import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
-import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
+import NetworkTrafficAPI from "./API/NetworkTraffic";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
@@ -6038,7 +6038,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new NetworkDeviceFlowAPI().getRouter(),
+      new NetworkTrafficAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

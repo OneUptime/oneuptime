@@ -189,7 +189,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       // Optional syslog receiver (PROBE_SYSLOG_RECEIVER_ENABLED).
       SyslogReceiver.start();
 
-      // Optional NetFlow v5 receiver (PROBE_NETFLOW_RECEIVER_ENABLED).
+      /*
+       * Flow collector: NetFlow v5/v9, IPFIX and sFlow on UDP 2055, 4739
+       * and 6343. On unless PROBE_NETFLOW_RECEIVER_ENABLED=false.
+       */
       NetFlowReceiver.start();
 
       await Register.reportIfOffline();

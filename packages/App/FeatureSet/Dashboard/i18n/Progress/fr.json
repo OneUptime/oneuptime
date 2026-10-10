@@ -67,6 +67,7 @@
     "Appliances",
     "Application",
     "Application / Service",
+    "Application {{application}}",
     "Architecture",
     "Aruba",
     "Audit",
@@ -361,6 +362,7 @@
     "{{count}} option",
     "{{count}} options",
     "{{count}} rotation",
-    "{{count}} rotations"
+    "{{count}} rotations",
+    "{{protocol}} port {{port}}"
   ]
 }

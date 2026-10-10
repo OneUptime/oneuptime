@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Kom i gang",
+    "Quickstart": "Hurtigstart",
+    "Core Concepts": "Grunnbegreper",
+    "Home Page & Shortcuts": "Startside og snarveier",
+    "Your Account": "Kontoen din",
     "Moving from Opsgenie": "Bytt fra Opsgenie",
     "Moving from PagerDuty": "Bytt fra PagerDuty",
     "Moving from incident.io": "Bytt fra incident.io",
@@ -279,6 +283,7 @@
     "Database Health Monitor": "Databasehelse-overvåking",
     "Network Sites (Health Rollup & Uptime)": "Nettverkslokasjoner (samlet helsestatus og oppetid)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Guider per nettverksleverandør (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Nettverkstrafikk (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Verts-overvåking",
     "Podman Monitor": "Podman-overvåking",
     "Proxmox Monitor": "Proxmox-overvåking",

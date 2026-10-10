@@ -67,6 +67,22 @@ const DocsNav: NavGroup[] = [
         title: "Getting Started",
         url: "/docs/introduction/getting-started",
       },
+      {
+        title: "Quickstart",
+        url: "/docs/introduction/quickstart",
+      },
+      {
+        title: "Core Concepts",
+        url: "/docs/introduction/core-concepts",
+      },
+      {
+        title: "Home Page & Shortcuts",
+        url: "/docs/introduction/home",
+      },
+      {
+        title: "Your Account",
+        url: "/docs/introduction/your-account",
+      },
     ],
   },
   /*
@@ -250,6 +266,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Network Vendor Guides (Sophos, Extreme, Cambium)",
         url: "/docs/monitor/network-vendor-guides",
+      },
+      {
+        title: "Network Traffic (NetFlow, IPFIX, sFlow)",
+        url: "/docs/monitor/network-traffic",
       },
       {
         title: "Kubernetes Monitor",
