@@ -27791,5 +27791,8 @@
   "Send your AI calls": "अपनी AI कॉल भेजें",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "हर AI कॉल पर {{conversationId}} (या {{sessionId}}) को अपनी चैट की ID पर सेट करें, तो हर चैट एक बातचीत के रूप में दिखेगी जिसे आप फिर से चला सकते हैं। बिना ID वाली कॉल एक बार में एक अनुरोध के रूप में दिखती हैं।",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "{{userId}} या {{userEmail}} सेट करें ताकि दिखे कि हर बातचीत किसके साथ थी, और व्यक्ति के हिसाब से खोज सकें।",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "जब भेजने वाले ने कोई पहचान एट्रिब्यूट (उदाहरण के लिए {{userEmail}} या {{teamId}}) नहीं भेजा, तो कॉल {{unattributed}} के अंतर्गत दिखती हैं। इन्हें यहाँ फिर भी गिना जाता है, इसलिए इन कुल योग में हर कॉल शामिल है।"
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "जब भेजने वाले ने कोई पहचान एट्रिब्यूट (उदाहरण के लिए {{userEmail}} या {{teamId}}) नहीं भेजा, तो कॉल {{unattributed}} के अंतर्गत दिखती हैं। इन्हें यहाँ फिर भी गिना जाता है, इसलिए इन कुल योग में हर कॉल शामिल है।",
+  "AI Answers": "AI के जवाब",
+  "Bad AI Answers": "AI के खराब जवाब",
+  "Bad AI Answers (in %)": "AI के खराब जवाब (%)"
 }

@@ -27791,5 +27791,8 @@
   "Send your AI calls": "傳送 AI 呼叫",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "在每個 AI 呼叫上將 {{conversationId}}（或 {{sessionId}}）設為聊天的 ID，每個聊天就會顯示為一個可重新播放的對話。沒有此 ID 的呼叫會逐一依要求顯示。",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "設定 {{userId}} 或 {{userEmail}}，即可查看每個對話的對象，並依使用者搜尋。",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "當傳送端未傳送身分屬性（例如 {{userEmail}} 或 {{teamId}}）時，呼叫會顯示在 {{unattributed}} 下。這些呼叫仍會計入此處，因此總數包含所有呼叫。"
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "當傳送端未傳送身分屬性（例如 {{userEmail}} 或 {{teamId}}）時，呼叫會顯示在 {{unattributed}} 下。這些呼叫仍會計入此處，因此總數包含所有呼叫。",
+  "AI Answers": "AI 回答",
+  "Bad AI Answers": "不佳的 AI 回答",
+  "Bad AI Answers (in %)": "不佳的 AI 回答 (%)"
 }

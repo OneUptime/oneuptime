@@ -27791,5 +27791,8 @@
   "Send your AI calls": "فراخوانی‌های هوش مصنوعی خود را بفرستید",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "در هر فراخوانی هوش مصنوعی، {{conversationId}} (یا {{sessionId}}) را برابر شناسه گفتگوی خود قرار دهید تا هر گفتگو به‌صورت یک گفتگوی قابل بازپخش نمایش داده شود. فراخوانی‌های بدون شناسه، درخواست به درخواست نمایش داده می‌شوند.",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "{{userId}} یا {{userEmail}} را تنظیم کنید تا ببینید هر گفتگو با چه کسی بوده و بتوانید بر اساس شخص جستجو کنید.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "وقتی فرستنده ویژگی هویتی (برای مثال {{userEmail}} یا {{teamId}}) نفرستاده باشد، فراخوانی‌ها زیر {{unattributed}} نمایش داده می‌شوند. آن‌ها همچنان اینجا شمرده می‌شوند، بنابراین این مجموع‌ها همه فراخوانی‌ها را در بر می‌گیرند."
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "وقتی فرستنده ویژگی هویتی (برای مثال {{userEmail}} یا {{teamId}}) نفرستاده باشد، فراخوانی‌ها زیر {{unattributed}} نمایش داده می‌شوند. آن‌ها همچنان اینجا شمرده می‌شوند، بنابراین این مجموع‌ها همه فراخوانی‌ها را در بر می‌گیرند.",
+  "AI Answers": "پاسخ‌های هوش مصنوعی",
+  "Bad AI Answers": "پاسخ‌های بد هوش مصنوعی",
+  "Bad AI Answers (in %)": "پاسخ‌های بد هوش مصنوعی (٪)"
 }

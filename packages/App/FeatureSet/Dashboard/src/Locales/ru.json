@@ -27791,5 +27791,8 @@
   "Send your AI calls": "Отправляйте вызовы ИИ",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "Задавайте {{conversationId}} (или {{sessionId}}) равным ID вашего чата в каждом вызове ИИ, и каждый чат будет показан как один разговор, который можно воспроизвести. Вызовы без него показываются по одному запросу.",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "Задайте {{userId}} или {{userEmail}}, чтобы видеть, с кем был каждый разговор, и искать по человеку.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Вызовы попадают в {{unattributed}}, когда отправитель не передал атрибут идентичности (например, {{userEmail}} или {{teamId}}). Они всё равно учитываются здесь, поэтому эти итоги включают все вызовы."
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Вызовы попадают в {{unattributed}}, когда отправитель не передал атрибут идентичности (например, {{userEmail}} или {{teamId}}). Они всё равно учитываются здесь, поэтому эти итоги включают все вызовы.",
+  "AI Answers": "Ответы ИИ",
+  "Bad AI Answers": "Плохие ответы ИИ",
+  "Bad AI Answers (in %)": "Плохие ответы ИИ (в %)"
 }

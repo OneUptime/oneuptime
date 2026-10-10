@@ -27791,5 +27791,8 @@
   "Send your AI calls": "Skicka dina AI-anrop",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "Sätt {{conversationId}} (eller {{sessionId}}) till chattens ID på varje AI-anrop, så visas varje chatt som en konversation som du kan spela upp igen. Anrop utan ID visas en begäran i taget.",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "Sätt {{userId}} eller {{userEmail}} för att se vem varje konversation var med och för att söka efter person.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Anrop visas under {{unattributed}} när avsändaren inte skickade något identitetsattribut (till exempel {{userEmail}} eller {{teamId}}). De räknas ändå här, så summorna omfattar alla anrop."
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Anrop visas under {{unattributed}} när avsändaren inte skickade något identitetsattribut (till exempel {{userEmail}} eller {{teamId}}). De räknas ändå här, så summorna omfattar alla anrop.",
+  "AI Answers": "AI-svar",
+  "Bad AI Answers": "Dåliga AI-svar",
+  "Bad AI Answers (in %)": "Dåliga AI-svar (i %)"
 }

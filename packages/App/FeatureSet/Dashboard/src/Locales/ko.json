@@ -27791,5 +27791,8 @@
   "Send your AI calls": "AI 호출 보내기",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "모든 AI 호출에서 {{conversationId}}(또는 {{sessionId}})를 채팅 ID로 설정하면 채팅마다 다시 재생할 수 있는 대화 하나로 표시됩니다. ID가 없는 호출은 요청별로 표시됩니다.",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "{{userId}} 또는 {{userEmail}}을(를) 설정하면 각 대화의 상대를 확인하고 사람으로 검색할 수 있습니다.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "보낸 쪽이 ID 속성(예: {{userEmail}} 또는 {{teamId}})을 보내지 않은 호출은 {{unattributed}} 아래에 표시됩니다. 이 호출도 여기서 집계되므로 합계에는 모든 호출이 포함됩니다."
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "보낸 쪽이 ID 속성(예: {{userEmail}} 또는 {{teamId}})을 보내지 않은 호출은 {{unattributed}} 아래에 표시됩니다. 이 호출도 여기서 집계되므로 합계에는 모든 호출이 포함됩니다.",
+  "AI Answers": "AI 답변",
+  "Bad AI Answers": "나쁜 AI 답변",
+  "Bad AI Answers (in %)": "나쁜 AI 답변 (%)"
 }

@@ -27791,5 +27791,8 @@
   "Send your AI calls": "AI 呼び出しを送信する",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "すべての AI 呼び出しで {{conversationId}}（または {{sessionId}}）にチャットの ID を設定すると、チャットごとに 1 つの会話として表示され、再生できます。ID のない呼び出しはリクエストごとに表示されます。",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "{{userId}} または {{userEmail}} を設定すると、各会話の相手がわかり、人で検索できます。",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "送信元が識別属性（例: {{userEmail}} や {{teamId}}）を送信しなかった呼び出しは、{{unattributed}} の下に表示されます。これらもここで集計されるため、合計にはすべての呼び出しが含まれます。"
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "送信元が識別属性（例: {{userEmail}} や {{teamId}}）を送信しなかった呼び出しは、{{unattributed}} の下に表示されます。これらもここで集計されるため、合計にはすべての呼び出しが含まれます。",
+  "AI Answers": "AI の回答",
+  "Bad AI Answers": "不適切な AI の回答",
+  "Bad AI Answers (in %)": "不適切な AI の回答（%）"
 }

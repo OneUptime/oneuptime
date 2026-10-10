@@ -27791,5 +27791,8 @@
   "Send your AI calls": "Enviar tus llamadas a la IA",
   "Set {{conversationId}} (or {{sessionId}}) to your chat's id on every AI call, and each chat shows as one conversation you can replay. Calls without one show one request at a time.": "Establece {{conversationId}} (o {{sessionId}}) con el ID de tu chat en cada llamada a la IA, y cada chat se muestra como una conversación que puedes reproducir. Las llamadas sin él se muestran solicitud por solicitud.",
   "Set {{userId}} or {{userEmail}} to see who each conversation was with, and to search by person.": "Establece {{userId}} o {{userEmail}} para ver con quién fue cada conversación y buscar por persona.",
-  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Las llamadas aparecen en {{unattributed}} cuando el emisor no envió un atributo de identidad (por ejemplo {{userEmail}} o {{teamId}}). Aun así se cuentan aquí, así que estos totales incluyen todas las llamadas."
+  "Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call.": "Las llamadas aparecen en {{unattributed}} cuando el emisor no envió un atributo de identidad (por ejemplo {{userEmail}} o {{teamId}}). Aun así se cuentan aquí, así que estos totales incluyen todas las llamadas.",
+  "AI Answers": "Respuestas de la IA",
+  "Bad AI Answers": "Respuestas malas de la IA",
+  "Bad AI Answers (in %)": "Respuestas malas de la IA (en %)"
 }

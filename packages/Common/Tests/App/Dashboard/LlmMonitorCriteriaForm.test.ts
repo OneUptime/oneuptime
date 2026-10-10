@@ -1,5 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
-import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import fs from "fs";
+import path from "path";
+import CriteriaFilterUtil, {
+  LLM_CHECK_ON_LABELS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import { CheckOn, CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import LlmMonitorTemplates, {
   LlmMonitorTemplate,
@@ -166,6 +170,82 @@ describe("every criteria the product ships draws in the form", () => {
         filter,
         renderable: isRenderable(filter as LlmMonitorTemplateFilter),
       }).toEqual({ filter, renderable: true });
+    }
+  });
+});
+
+/*
+ * The dropdown draws each option's label (its CheckOn value) in the
+ * reader's language, so the three numbers an AI / LLM monitor compares
+ * read in German for a German reader only when every locale has them.
+ */
+describe("the numbers it compares, in every language", () => {
+  const LOCALES_DIR: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const LOCALES: Array<string> = [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ];
+
+  function readLocale(locale: string): Record<string, unknown> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
+    ) as Record<string, unknown>;
+  }
+
+  test("the labels spelled out for the locale files are the options' labels, in order", () => {
+    expect([...LLM_CHECK_ON_LABELS]).toEqual(LLM_CHECKS);
+    expect(
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Llm).map(
+        (option: DropdownOption): unknown => {
+          return option.label;
+        },
+      ),
+    ).toEqual([...LLM_CHECK_ON_LABELS]);
+  });
+
+  test("English ships each label as a key", () => {
+    const english: Record<string, unknown> = readLocale("en");
+
+    for (const label of LLM_CHECK_ON_LABELS) {
+      expect({ label, value: english[label] }).toEqual({ label, value: label });
+    }
+  });
+
+  test.each(LOCALES)("%s has its own words for each", (locale: string) => {
+    const translations: Record<string, unknown> = readLocale(locale);
+
+    for (const label of LLM_CHECK_ON_LABELS) {
+      const value: unknown = translations[label];
+
+      expect({ label, translated: typeof value === "string" && value.trim() !== "" && value !== label }).toEqual({
+        label,
+        translated: true,
+      });
+    }
+  });
+
+  test("the share keeps its percent sign in every language", () => {
+    for (const locale of LOCALES) {
+      const value: string = readLocale(locale)["Bad AI Answers (in %)"] as string;
+
+      expect({ locale, percent: /[%٪]/.test(value) }).toEqual({ locale, percent: true });
     }
   });
 });

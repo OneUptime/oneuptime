@@ -24,7 +24,22 @@ import {
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { translatePlural } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatePlural,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The labels of the numbers an AI / LLM monitor's criteria compare: the
+ * CheckOn values getCheckOnOptionsByMonitorType offers for MonitorType.Llm,
+ * in that order. The dropdown draws each option's label in the reader's
+ * language; spelling them out here is what puts them in the locale files.
+ */
+export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Bad AI Answers (in %)"),
+  translationKey("Bad AI Answers"),
+  translationKey("AI Answers"),
+];
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
