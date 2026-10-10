@@ -194,29 +194,43 @@ function storageMaps(): Array<{
     .join("if (input.monitor.monitorType === ")
     .split("if (input.monitor.monitorType === ")
     .slice(1)
-    .map((chunk: string): { monitorTypes: Array<string>; variables: Array<string> } => {
-      const condition: string = chunk.slice(0, chunk.indexOf(") {"));
-      const map: string = sourceBetween(chunk, "storageMap = {", "\n        };");
+    .map(
+      (
+        chunk: string,
+      ): { monitorTypes: Array<string>; variables: Array<string> } => {
+        const condition: string = chunk.slice(0, chunk.indexOf(") {"));
+        const map: string = sourceBetween(
+          chunk,
+          "storageMap = {",
+          "\n        };",
+        );
 
-      return {
-        monitorTypes: [
-          (chunk.match(new RegExp("^MonitorType\\.(\\w+)")) as RegExpMatchArray)[1] as string,
-          ...Array.from(condition.matchAll(MONITOR_TYPE_NAME))
+        return {
+          monitorTypes: [
+            (
+              chunk.match(
+                new RegExp("^MonitorType\\.(\\w+)"),
+              ) as RegExpMatchArray
+            )[1] as string,
+            ...Array.from(condition.matchAll(MONITOR_TYPE_NAME))
+              .map((match: RegExpMatchArray): string => {
+                return match[1] as string;
+              })
+              .slice(1),
+          ],
+          variables: Array.from(map.matchAll(STORAGE_KEY))
             .map((match: RegExpMatchArray): string => {
               return match[1] as string;
             })
-            .slice(1),
-        ],
-        variables: Array.from(map.matchAll(STORAGE_KEY))
-          .map((match: RegExpMatchArray): string => {
-            return match[1] as string;
-          })
-          .filter((key: string): boolean => {
-            // Keys of a nested object literal (a mapped group's fields).
-            return !["group", "reason", "message", "remediation"].includes(key);
-          }),
-      };
-    });
+            .filter((key: string): boolean => {
+              // Keys of a nested object literal (a mapped group's fields).
+              return !["group", "reason", "message", "remediation"].includes(
+                key,
+              );
+            }),
+        };
+      },
+    );
 }
 
 // What the evaluator does to an expression: substitute it as text, then run it.
@@ -231,9 +245,12 @@ function judge(storageMap: JSONObject, expression: string): boolean {
   return Boolean(new Function(`return Boolean(${substituted});`)());
 }
 
+// The page's one JSON block: the response body its examples are written for.
+const JSON_FENCE: RegExp = /```json\n([\s\S]*?)\n```/;
+
 // The sample check result the page's examples are written for.
 const SAMPLE_RESPONSE_BODY: JSONObject = JSON.parse(
-  (/```json\n([\s\S]*?)\n```/.exec(section("## Examples")) as RegExpExecArray)[1] as string,
+  (JSON_FENCE.exec(section("## Examples")) as RegExpExecArray)[1] as string,
 ) as JSONObject;
 
 const WEBSITE_CHECK: JSONObject = {
@@ -282,7 +299,9 @@ describe("where the filter is offered", () => {
     const link: string =
       "Read documentation for using JavaScript expressions here.";
 
-    expect(form).toContain('to={Route.fromString("/docs/monitor/javascript-expression")}');
+    expect(form).toContain(
+      'to={Route.fromString("/docs/monitor/javascript-expression")}',
+    );
     expect(form).toContain(`"${link}"`);
     expect(boldItems(page)).toContain(link);
   });
@@ -292,14 +311,19 @@ describe("where the filter is offered", () => {
       "open **Configuration → Criteria** and click **Edit Monitoring Criteria**, or use the **Criteria** step of **Create Monitor**",
     );
     expect(
-      readRepoFile("App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx"),
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx",
+      ),
     ).toContain('editButtonText="Edit Monitoring Criteria"');
   });
 });
 
 describe("the variables of each monitor type", () => {
   const SECTIONS: Array<{ heading: string; monitorTypes: Array<string> }> = [
-    { heading: "### Website and API monitors", monitorTypes: ["API", "Website"] },
+    {
+      heading: "### Website and API monitors",
+      monitorTypes: ["API", "Website"],
+    },
     {
       heading: "### Incoming Request monitors",
       monitorTypes: ["IncomingRequest"],
@@ -347,7 +371,9 @@ describe("the variables of each monitor type", () => {
 
   it("binds no email fields for Incoming Email monitors", () => {
     const offered: Array<DropdownOption> =
-      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.IncomingEmail);
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
+        MonitorType.IncomingEmail,
+      );
 
     expect(
       offered.some((option: DropdownOption): boolean => {
@@ -380,7 +406,9 @@ describe("the examples, run the way the evaluator runs them", () => {
     expect(evaluator).toContain(
       "expression = VMUtil.replaceValueInPlace(storageMap, expression, false);",
     );
-    expect(evaluator).toContain("const code: string = `return Boolean(${expression});`;");
+    expect(evaluator).toContain(
+      "const code: string = `return Boolean(${expression});`;",
+    );
   });
 
   it("matches every expression in the table against the sample response", () => {
@@ -391,10 +419,12 @@ describe("the examples, run the way the evaluator runs them", () => {
     for (const row of rows) {
       const expression: string = codeItems(row[0] as string)[0] as string;
 
-      expect({ expression, matches: judge(WEBSITE_CHECK, expression) }).toEqual({
-        expression,
-        matches: true,
-      });
+      expect({ expression, matches: judge(WEBSITE_CHECK, expression) }).toEqual(
+        {
+          expression,
+          matches: true,
+        },
+      );
     }
   });
 
@@ -416,29 +446,38 @@ describe("the examples, run the way the evaluator runs them", () => {
     // The incoming request the page describes.
     expect(
       judge(
-        { requestBody: { status: "degraded", region: "eu" }, requestHeaders: {} },
+        {
+          requestBody: { status: "degraded", region: "eu" },
+          requestHeaders: {},
+        },
         blocks[1] as string,
       ),
     ).toBe(true);
     expect(page).toContain('receives `{"status": "degraded", "region": "eu"}`');
 
     // A high count, or a slow query.
-    expect(judge({ scalarValue: 75, executionTimeInMs: 300 }, blocks[2] as string)).toBe(
-      true,
-    );
-    expect(judge({ scalarValue: 10, executionTimeInMs: 300 }, blocks[2] as string)).toBe(
-      false,
-    );
+    expect(
+      judge({ scalarValue: 75, executionTimeInMs: 300 }, blocks[2] as string),
+    ).toBe(true);
+    expect(
+      judge({ scalarValue: 10, executionTimeInMs: 300 }, blocks[2] as string),
+    ).toBe(false);
 
     // One metric, read by indexing the whole metrics object.
-    const metric: string = "oneuptime.monitor.database.connections.used.percent";
+    const metric: string =
+      "oneuptime.monitor.database.connections.used.percent";
 
-    expect(judge({ metrics: { [metric]: 95 } }, blocks[3] as string)).toBe(true);
-    expect(judge({ metrics: { [metric]: 40 } }, blocks[3] as string)).toBe(false);
+    expect(judge({ metrics: { [metric]: 95 } }, blocks[3] as string)).toBe(
+      true,
+    );
+    expect(judge({ metrics: { [metric]: 40 } }, blocks[3] as string)).toBe(
+      false,
+    );
   });
 
   it("cannot put a dotted series name inside the braces", () => {
-    const metric: string = "oneuptime.monitor.database.connections.used.percent";
+    const metric: string =
+      "oneuptime.monitor.database.connections.used.percent";
     const substituted: string = VMUtil.replaceValueInPlace(
       { metrics: { [metric]: 95 } },
       `{{metrics.${metric}}} > 90`,
@@ -509,9 +548,9 @@ describe("the quoting rules", () => {
   });
 
   it("an object is written as JSON, ready to be indexed", () => {
-    expect(judge(WEBSITE_CHECK, "{{responseHeaders}}['content-type'] !== undefined")).toBe(
-      true,
-    );
+    expect(
+      judge(WEBSITE_CHECK, "{{responseHeaders}}['content-type'] !== undefined"),
+    ).toBe(true);
   });
 });
 
@@ -528,7 +567,9 @@ describe("the limits", () => {
     expect(readRepoFile(VM_RUNNER_FILE)).toContain(
       "const timeout: number = options.timeout || 5000;",
     );
-    expect(evaluator).toContain("if (result.scriptError) {\n        logger.error(result.scriptError,");
+    expect(evaluator).toContain(
+      "if (result.scriptError) {\n        logger.error(result.scriptError,",
+    );
     expect(section("## Limits")).toContain(
       "An expression has 5 seconds to run. One that takes longer, or throws an error, does not match, and the error is written to the OneUptime server log.",
     );

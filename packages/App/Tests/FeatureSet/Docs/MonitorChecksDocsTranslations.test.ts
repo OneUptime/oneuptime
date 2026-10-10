@@ -752,7 +752,10 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("find asterisks the renderer leaves when a bold span runs into a letter", async () => {
     expect(
-      await strayMarkers("# Title\n\n**タイムアウト（ミリ秒）**を設定します。", "ja"),
+      await strayMarkers(
+        "# Title\n\n**タイムアウト（ミリ秒）**を設定します。",
+        "ja",
+      ),
     ).toHaveLength(1);
     expect(
       await strayMarkers(
@@ -768,7 +771,10 @@ describe("the helpers, on these pages' shapes", () => {
     ).toHaveLength(1);
     // The quoted titles' italic name closes before a space.
     expect(
-      await strayMarkers("# Title\n\n名为“_monitor name_ is offline”的事件。", "zh-CN"),
+      await strayMarkers(
+        "# Title\n\n名为“_monitor name_ is offline”的事件。",
+        "zh-CN",
+      ),
     ).toEqual([]);
     // Underscores in code and in link targets are not emphasis.
     expect(

@@ -79,7 +79,8 @@ const FORM_VALIDATION_FILE: string = "Common/UI/Components/Forms/Validation.ts";
 const PAGE: string = "monitor/monitor-secrets";
 
 const MONITOR_TYPE_NAME: RegExp = /MonitorType\.(\w+)/g;
-const FILLED_FIELD: RegExp = /populateSecretsIn:\s*monitorStep\.data\.([\w.]+)/g;
+const FILLED_FIELD: RegExp =
+  /populateSecretsIn:\s*monitorStep\.data\.([\w.]+)/g;
 const FIELD_LIST: RegExp = /SecretFields:[^=]*=\s*\[([^\]]*)\]/;
 const FIELD_LIST_OWNER: RegExp = /monitorStep\.data\.(\w+)\[field\]/;
 const QUOTED: RegExp = /"(\w+)"/g;
@@ -177,7 +178,9 @@ function fieldsFilledByType(): Map<MonitorType, Set<string>> {
     const list: RegExpExecArray | null = FIELD_LIST.exec(block);
 
     if (list) {
-      const owner: string = (FIELD_LIST_OWNER.exec(block) as RegExpExecArray)[1] as string;
+      const owner: string = (
+        FIELD_LIST_OWNER.exec(block) as RegExpExecArray
+      )[1] as string;
 
       for (const match of Array.from((list[1] as string).matchAll(QUOTED))) {
         fields.push(`${owner}.${match[1] as string}`);
@@ -300,7 +303,9 @@ function monitorTypeTitled(title: string): MonitorType | undefined {
 }
 
 describe("the fields that take a secret", () => {
-  const rows: Array<Array<string>> = lastTableRows(section("### Using a secret"));
+  const rows: Array<Array<string>> = lastTableRows(
+    section("### Using a secret"),
+  );
 
   it("are the table the page shows", () => {
     expect(
@@ -309,7 +314,10 @@ describe("the fields that take a secret", () => {
       }),
     ).toEqual(
       DOCUMENTED_ROWS.map(
-        (row: { types: string; fields: string }): { types: string; fields: string } => {
+        (row: {
+          types: string;
+          fields: string;
+        }): { types: string; fields: string } => {
           return { types: row.types, fields: row.fields };
         },
       ),
@@ -333,7 +341,9 @@ describe("the fields that take a secret", () => {
 
     for (const row of DOCUMENTED_ROWS) {
       for (const title of row.types.split(", ")) {
-        const monitorType: MonitorType = monitorTypeTitled(title) as MonitorType;
+        const monitorType: MonitorType = monitorTypeTitled(
+          title,
+        ) as MonitorType;
         const fields: Array<string> = Array.from(filled.get(monitorType) || [])
           .map((field: string): string => {
             // DNSSEC's and Domain's own domain name field: "domainName".
@@ -357,7 +367,9 @@ describe("the fields that take a secret", () => {
     const ingest: string = readRepoFile(PROBE_INGEST_FILE);
 
     expect(ingest).toContain("MonitorUtil.populateSecrets(");
-    expect(ingest).toContain("MonitorUtil.populateSecretsOnMonitorTest(monitorTest)");
+    expect(ingest).toContain(
+      "MonitorUtil.populateSecretsOnMonitorTest(monitorTest)",
+    );
     expect(page).toContain(
       "Before OneUptime hands a monitor to a probe, it replaces each reference the monitor may use with the decrypted value",
     );
@@ -405,7 +417,11 @@ describe("adding a secret", () => {
 
   it("starts under Monitors → Settings → Secrets", () => {
     const menu: string = readRepoFile(MONITORS_MENU_FILE);
-    const settings: string = sourceBetween(menu, 'title: "Settings",', "title: \"Advanced\"");
+    const settings: string = sourceBetween(
+      menu,
+      'title: "Settings",',
+      'title: "Advanced"',
+    );
 
     expect(settings).toContain('title: "Secrets",');
     expect(settings).toContain("PageMap.MONITORS_SETTINGS_SECRETS");
@@ -423,8 +439,12 @@ describe("adding a secret", () => {
       `formSteps={[\n          { title: "Secret", id: "secret" },\n          { title: "Access", id: MONITOR_SECRET_ACCESS_STEP_ID },\n        ]}`,
     );
     expect(MONITOR_SECRET_ACCESS_STEP_ID).toBe("access");
-    expect(secretsPage).toContain('title: "Name",\n            stepId: "secret",');
-    expect(secretsPage).toContain('title: "Secret Value",\n            stepId: "secret",');
+    expect(secretsPage).toContain(
+      'title: "Name",\n            stepId: "secret",',
+    );
+    expect(secretsPage).toContain(
+      'title: "Secret Value",\n            stepId: "secret",',
+    );
     expect(adding).toContain("Enter a **Name** and the **Secret Value**.");
     expect(adding).toContain(
       "On the **Access** step, choose which monitors can use it (see the next section), then click **Create Monitor Secret**.",

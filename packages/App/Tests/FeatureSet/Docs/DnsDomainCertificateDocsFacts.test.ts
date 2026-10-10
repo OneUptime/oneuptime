@@ -73,10 +73,12 @@ import path from "path";
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
-const PROBE_DNS_FILE: string = "Probe/Utils/Monitors/MonitorTypes/DnsMonitor.ts";
+const PROBE_DNS_FILE: string =
+  "Probe/Utils/Monitors/MonitorTypes/DnsMonitor.ts";
 const PROBE_DNSSEC_FILE: string =
   "Probe/Utils/Monitors/MonitorTypes/DnssecMonitor.ts";
-const PROBE_SSL_FILE: string = "Probe/Utils/Monitors/MonitorTypes/SslMonitor.ts";
+const PROBE_SSL_FILE: string =
+  "Probe/Utils/Monitors/MonitorTypes/SslMonitor.ts";
 const PROBE_DOMAIN_FILE: string =
   "Probe/Utils/Monitors/MonitorTypes/DomainMonitor.ts";
 const PROBE_MONITOR_FILE: string = "Probe/Utils/Monitors/Monitor.ts";
@@ -454,12 +456,13 @@ describe.each(CHECK_PAGES)("$page", (checkPage: CheckPage) => {
         label,
         offered: true,
       });
-      expect({ label, conditions: sorted(boldItems(row[1] as string)) }).toEqual(
-        {
-          label,
-          conditions: sorted(conditionsOf(filter!.value as CheckOn)),
-        },
-      );
+      expect({
+        label,
+        conditions: sorted(boldItems(row[1] as string)),
+      }).toEqual({
+        label,
+        conditions: sorted(conditionsOf(filter!.value as CheckOn)),
+      });
     }
   });
 
@@ -485,9 +488,9 @@ describe.each(CHECK_PAGES)("$page", (checkPage: CheckPage) => {
   });
 
   it("names every condition it bolds as the criteria form's dropdown draws it", () => {
-    const conditionNames: Array<string> = Object.values(FilterType) as Array<
-      string
-    >;
+    const conditionNames: Array<string> = Object.values(
+      FilterType,
+    ) as Array<string>;
     // A condition written in another case is not on the screen.
     const miscased: Array<string> = boldItems(page).filter(
       (span: string): boolean => {
@@ -548,7 +551,9 @@ describe.each(BULLETED_DEFAULTS)(
         return match[1] as string;
       });
 
-      expect(items).toHaveLength(defaultCriteriaFor(checkPage.monitorType).length);
+      expect(items).toHaveLength(
+        defaultCriteriaFor(checkPage.monitorType).length,
+      );
     });
 
     it("names the incident the offline criteria declares, exactly as it is created", () => {
@@ -596,7 +601,8 @@ describe.each(BULLETED_DEFAULTS)(
 
 describe("DNS monitor", () => {
   const page: string = englishPage(DNS);
-  const defaults: MonitorStepDnsMonitor = MonitorStepDnsMonitorUtil.getDefault();
+  const defaults: MonitorStepDnsMonitor =
+    MonitorStepDnsMonitorUtil.getDefault();
   const probe: string = readRepoFile(PROBE_DNS_FILE);
 
   it("names the form's fields as it draws them, and folds the same ones", () => {
@@ -634,14 +640,19 @@ describe("DNS monitor", () => {
 
     expect(defaults.queryName).toBe("");
     expect(byTitle("Domain Name").defaultValue).toBe("None");
-    expect(byTitle("Record Type").defaultValue).toBe(asCode(defaults.recordType));
+    expect(byTitle("Record Type").defaultValue).toBe(
+      asCode(defaults.recordType),
+    );
     expect(defaults.hostname).toBe("");
     expect(byTitle("DNS Server (Optional)").defaultValue).toBe(
       "The probe's resolver",
     );
 
     for (const spec of DNS_MONITOR_MORE_FIELDS) {
-      expect({ title: spec.title, defaultValue: byTitle(spec.title).defaultValue }).toEqual({
+      expect({
+        title: spec.title,
+        defaultValue: byTitle(spec.title).defaultValue,
+      }).toEqual({
         title: spec.title,
         defaultValue: asCode(spec.defaultValue as number),
       });
@@ -715,7 +726,9 @@ describe("DNS monitor", () => {
     // The resolver those queries go through asks the server, on its port.
     expect(probe).toContain("? `${config.hostname}:${config.port}`");
     expect(probe).toContain("resolver.setServers([server]);");
-    expect(page).toContain("Every record type, `CAA` included, is asked of it.");
+    expect(page).toContain(
+      "Every record type, `CAA` included, is asked of it.",
+    );
   });
 
   it("checks DNSSEC with the chosen server on its port, or with Google Public DNS", () => {
@@ -820,7 +833,9 @@ describe("DNS monitor", () => {
       return !onlineAggregates.includes(type);
     });
 
-    expect(sorted(boldItems(rows[0]![0] as string))).toEqual(sorted(numericOnly));
+    expect(sorted(boldItems(rows[0]![0] as string))).toEqual(
+      sorted(numericOnly),
+    );
     expect(rows[0]![1]).toContain(`**${CheckOn.DnsResponseTime}** only.`);
   });
 
@@ -903,7 +918,10 @@ describe("DNSSEC monitor", () => {
     expect(byTitle("Check Nameserver Consistency").defaultValue).toBe("On");
 
     for (const spec of DNSSEC_MONITOR_MORE_FIELDS) {
-      expect({ title: spec.title, defaultValue: byTitle(spec.title).defaultValue }).toEqual({
+      expect({
+        title: spec.title,
+        defaultValue: byTitle(spec.title).defaultValue,
+      }).toEqual({
         title: spec.title,
         defaultValue: asCode(spec.defaultValue as number),
       });
@@ -937,10 +955,18 @@ describe("DNSSEC monitor", () => {
       'const defaultResolver: string = config.resolvers[0] || "1.1.1.1";',
     );
     expect(
-      sourceBetween(probe, "private static async fetchDnskeys(", "private static async fetchParentDs("),
+      sourceBetween(
+        probe,
+        "private static async fetchDnskeys(",
+        "private static async fetchParentDs(",
+      ),
     ).toContain('"DNSKEY",');
     expect(
-      sourceBetween(probe, "private static async fetchParentDs(", "private static async fetchRrsigs("),
+      sourceBetween(
+        probe,
+        "private static async fetchParentDs(",
+        "private static async fetchRrsigs(",
+      ),
     ).toContain('await DnssecMonitorUtil.dig(domainName, "DS", {');
 
     // Signatures come with the SOA answer, read for their RRSIG lines.
@@ -950,7 +976,9 @@ describe("DNSSEC monitor", () => {
       "private static parseDigTimestamp(",
     );
 
-    expect(rrsigs).toContain('await DnssecMonitorUtil.dig(domainName, "SOA", {');
+    expect(rrsigs).toContain(
+      'await DnssecMonitorUtil.dig(domainName, "SOA", {',
+    );
     expect(rrsigs).toContain('digFlags: ["+dnssec"],');
     expect(rrsigs).toContain('if (recordType !== "RRSIG") {');
     expect(rows[2]![2]).toContain("the `RRSIG` that signs its `SOA` record");
@@ -998,7 +1026,9 @@ describe("DNSSEC monitor", () => {
     expect(probe).toContain(
       "? Math.floor(\n            (earliestExpiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24),",
     );
-    expect(page).toContain('rrsig["Signatures present,<br/>a day or more left"]');
+    expect(page).toContain(
+      'rrsig["Signatures present,<br/>a day or more left"]',
+    );
     expect(page).toContain(
       "signatures present with a day or more left, and the AD flag from every resolver",
     );
@@ -1038,20 +1068,27 @@ describe("DNSSEC monitor", () => {
       "return serials.size <= 1;",
     );
 
-    expect(consistent).toContain("if (checks.length === 0) {\n      return true;");
+    expect(consistent).toContain(
+      "if (checks.length === 0) {\n      return true;",
+    );
     expect(
       rowFor(
         tableRows(section(page, "## Monitoring Criteria")),
         CheckOn.DnssecNameserverConsistent,
       )![2],
-    ).toContain("Always **True** while **Check Nameserver Consistency** is off.");
+    ).toContain(
+      "Always **True** while **Check Nameserver Consistency** is off.",
+    );
   });
 
   it("names the summary's tables as the monitor's page draws them", () => {
     const view: string = readRepoFile(DNSSEC_VIEW_FILE);
 
     for (const table of ["Resolver Checks", "Nameserver Consistency"]) {
-      expect({ table, drawn: view.includes(`translateText("${table}")`) }).toEqual({
+      expect({
+        table,
+        drawn: view.includes(`translateText("${table}")`),
+      }).toEqual({
         table,
         drawn: true,
       });
@@ -1101,14 +1138,19 @@ describe("SSL Certificate monitor", () => {
       rows,
       "Request Timeout (seconds)",
     );
-    const retries: Array<string> | undefined = rowFor(rows, "Retries on Failure");
+    const retries: Array<string> | undefined = rowFor(
+      rows,
+      "Retries on Failure",
+    );
     const probeDefault: RegExpMatchArray | null = sourceBetween(
       readRepoFile(PROBE_CONFIG_FILE),
       "export const PROBE_MONITOR_RETRY_LIMIT",
       "});",
     ).match(new RegExp("defaultValue: (\\d+)"));
 
-    expect(timeout![1]).toBe(asCode(DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS / 1000));
+    expect(timeout![1]).toBe(
+      asCode(DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS / 1000),
+    );
     expect(timeout![2]).toContain(
       `The maximum is ${MAX_MONITOR_REQUEST_TIMEOUT_IN_MS / 1000} seconds.`,
     );
@@ -1117,7 +1159,9 @@ describe("SSL Certificate monitor", () => {
   });
 
   it("checks port 443 unless the URL names another, and pauses a second between attempts", () => {
-    expect(probe).toContain("const port: number = target.port?.toNumber() || 443;");
+    expect(probe).toContain(
+      "const port: number = target.port?.toNumber() || 443;",
+    );
     expect(page).toContain("port `443` unless the URL names another");
     expect(probe).toContain("await Sleep.sleep(1000);");
     expect(page).toContain("with a one-second pause between attempts");
@@ -1220,7 +1264,10 @@ describe("Domain monitor", () => {
     );
 
     for (const spec of DOMAIN_MONITOR_MORE_FIELDS) {
-      expect({ title: spec.title, defaultValue: byTitle(spec.title).defaultValue }).toEqual({
+      expect({
+        title: spec.title,
+        defaultValue: byTitle(spec.title).defaultValue,
+      }).toEqual({
         title: spec.title,
         defaultValue: asCode(spec.defaultValue as number),
       });
@@ -1258,9 +1305,9 @@ describe("Domain monitor", () => {
       24 * 60 * 60 * 1000,
     );
     expect(page).toContain("Fetched once and cached for 24 hours.");
-    expect(numericConstant(bootstrap, "BOOTSTRAP_FAILURE_CACHE_TTL_IN_MS")).toBe(
-      5 * 60 * 1000,
-    );
+    expect(
+      numericConstant(bootstrap, "BOOTSTRAP_FAILURE_CACHE_TTL_IN_MS"),
+    ).toBe(5 * 60 * 1000);
     expect(page).toContain(
       "**Auto** falls back to WHOIS and tries IANA again after five minutes",
     );
@@ -1275,7 +1322,10 @@ describe("Domain monitor", () => {
     expect(readRepoFile(WHOIS_LOOKUP_FILE)).not.toContain("ProxyConfig");
 
     for (const variable of ["HTTP_PROXY_URL", "HTTPS_PROXY_URL", "NO_PROXY"]) {
-      expect({ variable, read: config.includes(`process.env["${variable}"]`) }).toEqual({
+      expect({
+        variable,
+        read: config.includes(`process.env["${variable}"]`),
+      }).toEqual({
         variable,
         read: true,
       });
@@ -1287,7 +1337,9 @@ describe("Domain monitor", () => {
     expect(readRepoFile(RDAP_LOOKUP_FILE)).toContain(
       "`No RDAP service is published for .",
     );
-    expect(page).toContain(':::details The check fails with "No RDAP service is published"');
+    expect(page).toContain(
+      ':::details The check fails with "No RDAP service is published"',
+    );
 
     expect(readRepoFile(WHOIS_LOOKUP_FILE)).toContain(
       "answered without any registration data.",
@@ -1312,7 +1364,9 @@ describe("Domain monitor", () => {
       "private static combineAutoFailures(",
     );
 
-    expect(auto).toContain("if (err instanceof DomainNotFoundError) {\n        throw err;");
+    expect(auto).toContain(
+      "if (err instanceof DomainNotFoundError) {\n        throw err;",
+    );
     expect(auto).toContain("await WhoisLookup.lookup(domainName, {");
     expect(page).toContain(
       "When the TLD's RDAP server says the domain is not registered, **Auto** takes that as the answer and does not ask WHOIS.",
@@ -1334,7 +1388,9 @@ describe("Domain monitor", () => {
     const domainName: string = readRepoFile(DOMAIN_NAME_FILE);
 
     expect(domainToASCII("münchen.de")).toBe("xn--mnchen-3ya.de");
-    expect(domainName).toContain("return domainToASCII(normalized) || normalized;");
+    expect(domainName).toContain(
+      "return domainToASCII(normalized) || normalized;",
+    );
     expect(page).toContain(
       "`münchen.de` is converted to its A-label (`xn--mnchen-3ya.de`)",
     );
@@ -1343,7 +1399,9 @@ describe("Domain monitor", () => {
     expect(domainName).toContain(
       'normalized = normalized.replace(/^[a-z][a-z0-9+.-]*:\\/\\//, "");',
     );
-    expect(domainName).toContain('normalized = normalized.split("/")[0] || "";');
+    expect(domainName).toContain(
+      'normalized = normalized.split("/")[0] || "";',
+    );
     expect(page).toContain(
       "A pasted address works too: `https://example.com/pricing` is read as `example.com`.",
     );
@@ -1361,7 +1419,9 @@ describe("Domain monitor", () => {
         CheckOn.DomainExpiresDaysIn,
       )![2],
     ).toContain("rounded up to a whole day");
-    expect(criteria).toContain("if (!domainResponse?.expiresDate) {\n        return null;");
+    expect(criteria).toContain(
+      "if (!domainResponse?.expiresDate) {\n        return null;",
+    );
     expect(page).toContain(
       "Expiry criteria cannot decide without a date, so they stay quiet.",
     );
@@ -1373,7 +1433,9 @@ describe("Domain monitor", () => {
     expect(criteria).toContain(
       "for (const nameServer of domainResponse.nameServers) {",
     );
-    expect(criteria).toContain("for (const status of domainResponse.domainStatus) {");
+    expect(criteria).toContain(
+      "for (const status of domainResponse.domainStatus) {",
+    );
     expect(page).toContain(
       "**Domain Name Server** and **Domain Status Code** match when _any_ one value matches",
     );
@@ -1413,12 +1475,17 @@ describe("Domain monitor", () => {
     )[0]!;
 
     expect(
-      offline.data!.filters.some((filter: { checkOn: CheckOn; filterType?: FilterType | undefined }): boolean => {
-        return (
-          filter.checkOn === CheckOn.IsOnline &&
-          filter.filterType === FilterType.False
-        );
-      }),
+      offline.data!.filters.some(
+        (filter: {
+          checkOn: CheckOn;
+          filterType?: FilterType | undefined;
+        }): boolean => {
+          return (
+            filter.checkOn === CheckOn.IsOnline &&
+            filter.filterType === FilterType.False
+          );
+        },
+      ),
     ).toBe(true);
     expect(section(page, "## Best Practices")).toContain(
       "New monitors have it in their default criteria",
@@ -1431,15 +1498,22 @@ describe("the labels the pages name exist where the pages say", () => {
     const monitor: string = readRepoFile(PROBE_MONITOR_FILE);
 
     expect(monitor).toContain("monitorConfigTimeoutInMs: dnsConfig.timeout,");
-    expect(monitor).toContain("monitorConfigTimeoutInMs: dnssecConfig.timeout,");
-    expect(monitor).toContain("monitorConfigTimeoutInMs: domainConfig.timeout,");
+    expect(monitor).toContain(
+      "monitorConfigTimeoutInMs: dnssecConfig.timeout,",
+    );
+    expect(monitor).toContain(
+      "monitorConfigTimeoutInMs: domainConfig.timeout,",
+    );
   });
 
   it("the folded sections are the forms' More fields", () => {
     expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
 
     for (const file of [DNS_FORM_FILE, DNSSEC_FORM_FILE, DOMAIN_FORM_FILE]) {
-      expect({ file, folds: readRepoFile(file).includes("title={MORE_FIELDS_SECTION_TITLE}") }).toEqual({
+      expect({
+        file,
+        folds: readRepoFile(file).includes("title={MORE_FIELDS_SECTION_TITLE}"),
+      }).toEqual({
         file,
         folds: true,
       });

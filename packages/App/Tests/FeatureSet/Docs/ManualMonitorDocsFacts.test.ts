@@ -43,7 +43,8 @@ const MODEL_TABLE_FILE: string =
   "Common/UI/Components/ModelTable/BaseModelTable.tsx";
 const TIMELINE_SERVICE_FILE: string =
   "Common/Server/Services/MonitorStatusTimelineService.ts";
-const INCIDENT_SERVICE_FILE: string = "Common/Server/Services/IncidentService.ts";
+const INCIDENT_SERVICE_FILE: string =
+  "Common/Server/Services/IncidentService.ts";
 const INCIDENT_STATE_TIMELINE_SERVICE_FILE: string =
   "Common/Server/Services/IncidentStateTimelineService.ts";
 const ACTIVE_MONITORING_PLAN_FILE: string =
@@ -105,13 +106,13 @@ describe("creating a manual monitor", () => {
   });
 
   it("has no monitoring interval, probes or criteria", () => {
-    expect(MonitorTypeHelper.doesMonitorTypeHaveInterval(MonitorType.Manual)).toBe(
-      false,
-    );
+    expect(
+      MonitorTypeHelper.doesMonitorTypeHaveInterval(MonitorType.Manual),
+    ).toBe(false);
     expect(MonitorTypeHelper.isProbableMonitor(MonitorType.Manual)).toBe(false);
-    expect(MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.Manual)).toBe(
-      false,
-    );
+    expect(
+      MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.Manual),
+    ).toBe(false);
     expect(page).toContain(
       "A manual monitor has no monitoring interval, probes or criteria.",
     );
@@ -127,7 +128,9 @@ describe("creating a manual monitor", () => {
       'title: "Criteria",\n                  id: "criteria",\n                  showIf: (values: FormValues<Monitor>) => {\n                    return values.monitorType !== MonitorType.Manual;',
     );
     expect(steps).toContain('title: "Probes & Interval"');
-    expect(steps).toContain("return MonitorTypeHelper.doesMonitorTypeHaveInterval(");
+    expect(steps).toContain(
+      "return MonitorTypeHelper.doesMonitorTypeHaveInterval(",
+    );
 
     const description: string = sourceBetween(
       create,
@@ -135,7 +138,9 @@ describe("creating a manual monitor", () => {
       "},\n                /*",
     );
 
-    expect(description).toContain("collapsibleSection: MONITOR_INFO_MORE_FIELDS,");
+    expect(description).toContain(
+      "collapsibleSection: MONITOR_INFO_MORE_FIELDS,",
+    );
     expect(create).toContain(
       "const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =\n  getAdvancedFormSection<Monitor>();",
     );
@@ -279,7 +284,9 @@ describe("changing its status through the API", () => {
     expect(service).toContain(
       "if (!createBy.data.startsAt) {\n      createBy.data.startsAt = OneUptimeDate.getCurrentDate();",
     );
-    expect(api).toContain("`startsAt` is optional. Left out, the change starts now.");
+    expect(api).toContain(
+      "`startsAt` is optional. Left out, the change starts now.",
+    );
   });
 
   it("quotes the refusal of a status the monitor already has", () => {
@@ -299,7 +306,9 @@ describe("changing its status through the API", () => {
     expect(readRepoFile(MONITOR_STATUS_SETTINGS_FILE)).toContain(
       "showViewIdButton={true}",
     );
-    expect(readRepoFile(MONITORS_MENU_FILE)).toContain('title: "Monitor Status",');
+    expect(readRepoFile(MONITORS_MENU_FILE)).toContain(
+      'title: "Monitor Status",',
+    );
     expect(readRepoFile(MODEL_TABLE_FILE)).toContain('title: tx("Show ID"),');
     expect(api).toContain(
       "on **Monitors → Settings → Monitor Status**, pick **Show ID** in that status's row.",
@@ -318,7 +327,9 @@ describe("incidents on a manual monitor", () => {
       "protected override async onBeforeDelete(",
     );
 
-    expect(resolve).toContain("await IncidentService.markMonitorsActiveForMonitoring(");
+    expect(resolve).toContain(
+      "await IncidentService.markMonitorsActiveForMonitoring(",
+    );
     expect(giveBack).toContain("isOperationalState: true,");
     expect(giveBack).toContain("await this.doesMonitorHaveActiveIncidents(");
     expect(incidents).toContain(
