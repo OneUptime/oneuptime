@@ -1270,20 +1270,25 @@ describe("the server acknowledging the alerts an incident is declared from", () 
       ),
     ).toBe(true);
 
-    // Each alert once...
-    const loopAt: number = check.indexOf("for(constalertIdofdata.alertIds){");
-    // ...as the row its change would be: the project, the alert, the state it moves to...
-    const rowAt: number = check.indexOf(
-      "conststateChange:AlertStateTimeline=newAlertStateTimeline();stateChange.projectId=data.projectId;stateChange.alertId=alertId;stateChange.alertStateId=data.alertStateId;",
-    );
-    // ...asked of the timeline service's own create check, as the caller.
+    // Each alert once, a few at a time...
+    const batchAt: number = check.indexOf("start+=ALERTS_CHECKED_AT_ONCE");
+    // ...asked of the timeline service's own create check, as the caller, on the row its change would be...
     const askedAt: number = check.indexOf(
-      "awaitAlertStateTimelineService.checkCallerMayCreate({data:stateChange,props:data.props,});",
+      "returnAlertStateTimelineService.checkCallerMayCreate({data:AlertStateChangeAuthorization.getStateChange({projectId:data.projectId,alertId:alertId,alertStateId:data.alertStateId,}),props:data.props,});",
+    );
+    // ...and the first alert refused, in the order given, answers.
+    const refusedAt: number = check.indexOf(
+      'for(constoutcomeofoutcomes){if(outcome.status==="rejected"){throwoutcome.reason;}}',
     );
 
-    expect(loopAt).toBeGreaterThan(-1);
-    expect(rowAt).toBeGreaterThan(loopAt);
-    expect(askedAt).toBeGreaterThan(rowAt);
+    expect(batchAt).toBeGreaterThan(-1);
+    expect(askedAt).toBeGreaterThan(batchAt);
+    expect(refusedAt).toBeGreaterThan(askedAt);
+
+    // The row: the project, the alert, the state it moves to, and when it starts.
+    expect(code).toContain(
+      "publicstaticgetStateChange(data:{projectId:ObjectID;alertId:ObjectID;alertStateId:ObjectID;}):AlertStateTimeline{conststateChange:AlertStateTimeline=newAlertStateTimeline();stateChange.projectId=data.projectId;stateChange.alertId=data.alertId;stateChange.alertStateId=data.alertStateId;stateChange.startsAt=OneUptimeDate.getCurrentDate();returnstateChange;}",
+    );
 
     // Nothing of an Alert update: no update permission, no scoped read of its own.
     for (const gone of [
