@@ -783,7 +783,8 @@ export class Service extends ProjectReferencesService<Model> {
    * PERMISSIONS), and binding a credential additionally takes the read of
    * runbook credentials - the one rule every use of a runbook credential
    * asks, people and workflow steps alike (RunbookCredentialReaders), which
-   * the dashboard's picker applies too, enforced where it cannot be skipped. The column ACLs stay open to every cluster
+   * the dashboard's picker applies too, enforced where it cannot be skipped.
+   * The column ACLs stay open to every cluster
    * editor on purpose: a column ACL cannot say "tightening is free", and
    * turning AI remediation off must never need more than editing the
    * cluster.
