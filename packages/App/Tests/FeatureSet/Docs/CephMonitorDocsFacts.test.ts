@@ -18,7 +18,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import { MonitorStepCephMonitor } from "Common/Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepCephMonitor from "Common/Types/Monitor/MonitorStepCephMonitor";
 import {
   DefaultRecoveryMarginFraction,
   SustainedEvaluation,
