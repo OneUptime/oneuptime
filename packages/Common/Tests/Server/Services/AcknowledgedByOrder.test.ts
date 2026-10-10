@@ -464,7 +464,11 @@ describe("acknowledging a record that is acknowledged already is refused, and mo
       subject: "Incident",
       serveIn: serveIncidentIn,
       acknowledge: () => {
-        return IncidentService.acknowledgeIncident(INCIDENT_ID, USER_ID);
+        return IncidentService.acknowledgeIncident({
+          incidentId: INCIDENT_ID,
+          acknowledgedByUserId: USER_ID,
+          props: { isRoot: true },
+        });
       },
       moved: () => {
         return moves.incident;
@@ -475,7 +479,11 @@ describe("acknowledging a record that is acknowledged already is refused, and mo
       subject: "Alert",
       serveIn: serveAlertIn,
       acknowledge: () => {
-        return AlertService.acknowledgeAlert(ALERT_ID, USER_ID);
+        return AlertService.acknowledgeAlert({
+          alertId: ALERT_ID,
+          acknowledgedByUserId: USER_ID,
+          props: { isRoot: true },
+        });
       },
       moved: () => {
         return moves.alert;

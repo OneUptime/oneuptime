@@ -8,7 +8,14 @@ import {
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import AlertService from "../../../../Server/Services/AlertService";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventType,
+} from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -17,9 +24,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * acknowledge_alert / resolve_alert move an alert's state from the AI copilot.
  * They are mutations, so what matters is not the prose they hand the model but
  * the contract around the write: the alert must be visible to the requesting
- * user under their own RBAC before anything changes, the acting user comes
- * from ctx.props and never from a tool argument, and a missing id or a missing
- * user fails loudly instead of writing.
+ * user under their own RBAC before anything changes, the change is the one the
+ * dashboard's state panel makes, made with ctx.props (WorkspaceMemberActions)
+ * and never with a tool argument, and a missing id or a missing user fails
+ * loudly instead of writing.
  */
 
 const USER_ID: ObjectID = ObjectID.generate();
@@ -45,7 +53,7 @@ afterEach(() => {
 type StateCase = {
   label: string;
   tool: ObservabilityTool;
-  serviceMethod: "acknowledgeAlert" | "resolveAlert";
+  memberAction: "acknowledge" | "resolve";
   newStateName: string;
   actionTitlePrefix: string;
 };
@@ -54,28 +62,33 @@ const cases: Array<StateCase> = [
   {
     label: "acknowledge_alert",
     tool: AcknowledgeAlertTool,
-    serviceMethod: "acknowledgeAlert",
+    memberAction: "acknowledge",
     newStateName: "Acknowledged",
     actionTitlePrefix: "Acknowledge alert",
   },
   {
     label: "resolve_alert",
     tool: ResolveAlertTool,
-    serviceMethod: "resolveAlert",
+    memberAction: "resolve",
     newStateName: "Resolved",
     actionTitlePrefix: "Resolve alert",
   },
 ];
 
+interface MemberActionCall {
+  event: WorkspaceEvent;
+  props: unknown;
+}
+
 describe.each(cases)(
   "$label",
-  ({ tool, serviceMethod, newStateName, actionTitlePrefix }: StateCase) => {
-    test("changes the state as ctx's user and cites the alert", async () => {
+  ({ tool, memberAction, newStateName, actionTitlePrefix }: StateCase) => {
+    test("changes the state as ctx's user, as the dashboard's state panel does, and cites the alert", async () => {
       jest
         .spyOn(AlertService, "findOneById")
         .mockResolvedValue(buildAlert() as never);
       const changeSpy: jest.SpyInstance = jest
-        .spyOn(AlertService, serviceMethod)
+        .spyOn(WorkspaceMemberActions, memberAction)
         .mockResolvedValue(undefined as never);
 
       const result: ToolExecutionResult = await tool.execute(
@@ -84,12 +97,12 @@ describe.each(cases)(
       );
 
       expect(changeSpy).toHaveBeenCalledTimes(1);
-      const [calledAlertId, calledUserId] = changeSpy.mock.calls[0] as [
-        ObjectID,
-        ObjectID,
-      ];
-      expect(calledAlertId.toString()).toBe(ALERT_ID.toString());
-      expect(calledUserId).toBe(USER_ID);
+      const call: MemberActionCall = changeSpy.mock
+        .calls[0]?.[0] as MemberActionCall;
+      expect(call.event.type).toBe(WorkspaceEventType.Alert);
+      expect(call.event.id.toString()).toBe(ALERT_ID.toString());
+      // The very props the request carried: the change is the person's own.
+      expect(call.props).toBe(ctx.props);
 
       expect(result.rowCount).toBe(1);
       expect(result.isTruncated).toBe(false);
@@ -108,7 +121,7 @@ describe.each(cases)(
         .spyOn(AlertService, "findOneById")
         .mockResolvedValue(buildAlert() as never);
       jest
-        .spyOn(AlertService, serviceMethod)
+        .spyOn(WorkspaceMemberActions, memberAction)
         .mockResolvedValue(undefined as never);
 
       await tool.execute({ alertId: ALERT_ID.toString() }, ctx);
@@ -124,7 +137,7 @@ describe.each(cases)(
         .spyOn(AlertService, "findOneById")
         .mockResolvedValue(buildAlert() as never);
       const changeSpy: jest.SpyInstance = jest
-        .spyOn(AlertService, serviceMethod)
+        .spyOn(WorkspaceMemberActions, memberAction)
         .mockResolvedValue(undefined as never);
 
       await tool.execute(
@@ -137,20 +150,42 @@ describe.each(cases)(
         ctx,
       );
 
-      expect(changeSpy.mock.calls[0]?.[1]).toBe(USER_ID);
+      const call: MemberActionCall = changeSpy.mock
+        .calls[0]?.[0] as MemberActionCall;
+      expect(call.props).toBe(ctx.props);
+      expect(Object.keys(call).sort()).toEqual(["event", "props"]);
     });
 
     test("refuses to write when the alert is not visible to the user", async () => {
       jest.spyOn(AlertService, "findOneById").mockResolvedValue(null as never);
       const changeSpy: jest.SpyInstance = jest.spyOn(
-        AlertService,
-        serviceMethod,
+        WorkspaceMemberActions,
+        memberAction,
       );
 
       await expect(
         tool.execute({ alertId: ALERT_ID.toString() }, ctx),
       ).rejects.toThrow("Alert not found");
       expect(changeSpy).not.toHaveBeenCalled();
+    });
+
+    test("a change the person may not make is refused with its own reason", async () => {
+      jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(buildAlert() as never);
+      jest
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockRejectedValue(
+          new NotAuthorizedException(
+            "You do not have permissions to create Alert State Timeline.",
+          ) as never,
+        );
+
+      await expect(
+        tool.execute({ alertId: ALERT_ID.toString() }, ctx),
+      ).rejects.toThrow(
+        "You do not have permissions to create Alert State Timeline.",
+      );
     });
 
     test("missing alertId is a loud BadData error and reads nothing", async () => {
@@ -168,12 +203,17 @@ describe.each(cases)(
         props: { isRoot: true },
       };
       const findSpy: jest.SpyInstance = jest.spyOn(AlertService, "findOneById");
+      const changeSpy: jest.SpyInstance = jest.spyOn(
+        WorkspaceMemberActions,
+        memberAction,
+      );
 
       await expect(
         tool.execute({ alertId: ALERT_ID.toString() }, anonymousCtx),
       ).rejects.toThrow("No authenticated user");
       // The user check comes before the read, so nothing is touched at all.
       expect(findSpy).not.toHaveBeenCalled();
+      expect(changeSpy).not.toHaveBeenCalled();
     });
 
     test("carries a resource card widget that deep-links to the alert", async () => {
@@ -181,7 +221,7 @@ describe.each(cases)(
         .spyOn(AlertService, "findOneById")
         .mockResolvedValue(buildAlert() as never);
       jest
-        .spyOn(AlertService, serviceMethod)
+        .spyOn(WorkspaceMemberActions, memberAction)
         .mockResolvedValue(undefined as never);
 
       const result: ToolExecutionResult = await tool.execute(
@@ -214,12 +254,16 @@ describe.each(cases)(
       expect(tool.buildActionTitle!({})).toBe(actionTitlePrefix);
     });
 
-    test("is a mutation whose permissions derive from the Alert model's update ACL", () => {
+    test("is a mutation that needs what the dashboard's state panel needs: to change the alert's state", () => {
       expect(tool.isMutation).toBe(true);
       expect(tool.requiredPermissions).toEqual(
-        new Alert().getUpdatePermissions(),
+        new AlertStateTimeline().getCreatePermissions(),
       );
-      expect(tool.requiredPermissions.length).toBeGreaterThan(0);
+      expect(tool.requiredPermissions).toContain(
+        Permission.CreateAlertStateTimeline,
+      );
+      // Editing the alert is not changing its state.
+      expect(tool.requiredPermissions).not.toContain(Permission.EditAlert);
       // Resolved lazily, but the same list every time it is asked for.
       expect(tool.requiredPermissions).toEqual(tool.requiredPermissions);
     });
@@ -237,10 +281,10 @@ describe("the alert write tools as a pair", () => {
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(buildAlert() as never);
     const acknowledgeSpy: jest.SpyInstance = jest
-      .spyOn(AlertService, "acknowledgeAlert")
+      .spyOn(WorkspaceMemberActions, "acknowledge")
       .mockResolvedValue(undefined as never);
     const resolveSpy: jest.SpyInstance = jest
-      .spyOn(AlertService, "resolveAlert")
+      .spyOn(WorkspaceMemberActions, "resolve")
       .mockResolvedValue(undefined as never);
 
     await ResolveAlertTool.execute({ alertId: ALERT_ID.toString() }, ctx);
