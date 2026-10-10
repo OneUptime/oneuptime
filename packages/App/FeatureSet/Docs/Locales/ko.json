@@ -312,6 +312,7 @@
     "Storage Array Agent": "스토리지 어레이 에이전트",
     "Docker Swarm Agent": "Docker Swarm 에이전트",
     "VMware Agent": "VMware 에이전트",
+    "VMware Without an Agent": "에이전트 없는 VMware",
     "Databases": "데이터베이스",
     "Queues": "큐",
     "Serverless Functions": "서버리스 함수",

@@ -288,6 +288,8 @@ import "./Jobs/Proxmox/CleanupStaleResources";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";
+// vCenter connection tests no probe will answer: failed, password wiped.
+import "./Jobs/VMware/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";

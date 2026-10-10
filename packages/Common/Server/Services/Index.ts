@@ -111,6 +111,7 @@ import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
+import VMwareVCenterConnectionTestService from "./VMwareVCenterConnectionTestService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
 import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
@@ -616,6 +617,7 @@ const services: Array<BaseService> = [
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
+  VMwareVCenterConnectionTestService,
   DatabaseServerService,
   DatabaseServerEndpointService,
   DatabaseServerLabelRuleService,

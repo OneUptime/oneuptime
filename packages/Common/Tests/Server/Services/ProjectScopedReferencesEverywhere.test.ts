@@ -180,6 +180,10 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":
     "the invited user is not a member until the row exists (TeamMemberService.test.ts)",
+  "VMwareVCenterService.ts":
+    "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
+  "VMwareVCenterConnectionTestService.ts":
+    "VMwareVCenterConnectionTestService.test.ts (the probe as a vCenter's collection probe; the vCenter read within the test's project, a foreign and a missing one answered alike)",
 };
 
 /*

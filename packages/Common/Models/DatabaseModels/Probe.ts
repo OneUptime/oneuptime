@@ -56,7 +56,8 @@ const PROBE_READERS: Array<Permission> = [
  * Who picks a probe, or reads a page that names one: the probe readers, and
  * whoever may create, edit or read monitors (the operational resource
  * wildcards included), a monitor's probes, network devices, their discovery
- * scans or network sites. They read what tells a project's probes apart in a
+ * scans, network sites or vCenters (the probe that collects one). They read
+ * what tells a project's probes apart in a
  * picker - its name, description, icon, status and whether new monitors start
  * with it - and never its key, its version, its labels or what it reports
  * about the host it runs on.
@@ -81,6 +82,9 @@ const PROBE_PICKER_READERS: Array<Permission> = [
   Permission.CreateNetworkSite,
   Permission.EditNetworkSite,
   Permission.ReadNetworkSite,
+  Permission.CreateVMwareVCenter,
+  Permission.EditVMwareVCenter,
+  Permission.ReadVMwareVCenter,
 ];
 
 export enum ProbeConnectionStatus {
