@@ -177,9 +177,11 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
        */
       const runnerVersion: string =
         language === "fa"
-          ? (JSON.parse(
-              fs.readFileSync(path.join(LOCALES_DIR, "fa.json"), "utf8"),
-            ) as Record<string, string>)["Runner Version"] || "Runner Version"
+          ? (
+              JSON.parse(
+                fs.readFileSync(path.join(LOCALES_DIR, "fa.json"), "utf8"),
+              ) as Record<string, string>
+            )["Runner Version"] || "Runner Version"
           : labelIn(language, "Runner Version");
       expect(note).toContain(`**${runnerVersion}**`);
       expect(guide).toContain(
