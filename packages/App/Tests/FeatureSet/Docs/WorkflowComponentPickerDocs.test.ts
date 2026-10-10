@@ -160,7 +160,10 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     (language: string) => {
       const line: string = lineWith(
         readPage(language, "workflows/triggers.md"),
-        [drawn(language, "Add Trigger"), drawn(language, "Browse all resources")],
+        [
+          drawn(language, "Add Trigger"),
+          drawn(language, "Browse all resources"),
+        ],
       );
 
       expect(line).toContain(

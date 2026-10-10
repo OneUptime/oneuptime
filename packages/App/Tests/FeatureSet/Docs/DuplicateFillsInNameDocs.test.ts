@@ -70,7 +70,8 @@ function duplicateWorkflowBullet(language: string): string {
       .split("\n")
       .find((line: string): boolean => {
         return (
-          line.startsWith("- ") && line.includes(duplicateWorkflowLabel(language))
+          line.startsWith("- ") &&
+          line.includes(duplicateWorkflowLabel(language))
         );
       }) || ""
   );

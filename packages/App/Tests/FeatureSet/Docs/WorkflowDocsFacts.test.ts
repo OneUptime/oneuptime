@@ -476,7 +476,9 @@ describe("the overview", () => {
       "Request Headers",
     ]);
     expect(outputTitles(post)).toEqual(["Success", "Error"]);
-    expect(example).toContain("Put your endpoint in **URL**. In **Request Body**");
+    expect(example).toContain(
+      "Put your endpoint in **URL**. In **Request Body**",
+    );
     expect(example).toContain(
       `{{local.components.${firstBlockId(post.id)}.returnValues.${returnValueId(post, "Error")}}}`,
     );
@@ -703,9 +705,11 @@ describe("the components page", () => {
       expect(outputTitles(block)).toEqual(["Success", "Error"]);
 
       for (const name of settingNames(block)) {
-        expect({ heading, name, named: page.includes(`**${name}**`) }).toEqual(
-          { heading, name, named: true },
-        );
+        expect({ heading, name, named: page.includes(`**${name}**`) }).toEqual({
+          heading,
+          name,
+          named: true,
+        });
       }
     }
 
@@ -881,7 +885,9 @@ describe("the variables page", () => {
 
   it("lists every status the Access Token card can show", () => {
     expect(
-      [...tableRowLabels(section(VARIABLES, "### The Access Token card"))].sort(),
+      [
+        ...tableRowLabels(section(VARIABLES, "### The Access Token card")),
+      ].sort(),
     ).toEqual(Object.values(OAuth2TokenStatus).sort());
   });
 

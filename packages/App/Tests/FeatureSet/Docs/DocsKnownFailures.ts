@@ -200,9 +200,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "integrations/crowdstrike-falcon": {
     translated: EVERY_TRANSLATION,
   },
-  "integrations/datadog": {
-    pageLinks: ["fa"],
-  },
   "integrations/elastic-security": {
     translated: EVERY_TRANSLATION,
   },
@@ -214,14 +211,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     pageLinks: EVERY_TRANSLATION,
   },
   "integrations/jira": {
-    pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION,
   },
   "integrations/microsoft-defender-xdr": {
     translated: EVERY_TRANSLATION,
   },
   "integrations/microsoft-dynamics-365": {
-    pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION,
   },
   "integrations/microsoft-sentinel": {
@@ -231,7 +226,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "integrations/prometheus-alertmanager": {
-    pageLinks: ["fa"],
     codeLanguage: EN,
   },
   "integrations/splunk": {

@@ -397,7 +397,8 @@ describe("the lists this test keeps", () => {
         expect({
           page,
           name,
-          why: steps.has(name) || isPermissionOrRole(name) || PLANS.includes(name),
+          why:
+            steps.has(name) || isPermissionOrRole(name) || PLANS.includes(name),
         }).toEqual({ page, name, why: true });
       }
     }
