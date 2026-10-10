@@ -152,7 +152,22 @@ function sectionLines(markdown: string, headingIndex: number): Array<string> {
 }
 
 // The h2 sections of the page, by position: translations keep the order.
-const SECTION: Record<string, number> = {
+interface Sections {
+  howItWorks: number;
+  beforeYouBegin: number;
+  setUp: number;
+  connect: number;
+  baseUrlFormats: number;
+  selfHosted: number;
+  network: number;
+  dataProcessed: number;
+  example: number;
+  entra: number;
+  troubleshooting: number;
+  nextSteps: number;
+}
+
+const SECTION: Sections = {
   howItWorks: 0,
   beforeYouBegin: 1,
   setUp: 2,
@@ -167,11 +182,14 @@ const SECTION: Record<string, number> = {
   nextSteps: 11,
 };
 
+// A table's rule under its header: "| --- | --- |".
+const TABLE_RULE: RegExp = /^\|\s*-/;
+
 // The rows of every table in some lines, each as its cells.
 function tableRows(lines: Array<string>): Array<Array<string>> {
   return lines
     .filter((line: string): boolean => {
-      return line.startsWith("|") && !/^\|\s*-/.test(line);
+      return line.startsWith("|") && !TABLE_RULE.test(line);
     })
     .map((line: string): Array<string> => {
       return line
@@ -343,7 +361,10 @@ describe("the Microsoft Foundry page is in every language, under AI", () => {
       expect(fs.existsSync(path.join(CONTENT_DIR, language, PAGE))).toBe(true);
 
       const locale: { navLinks: Record<string, string> } = JSON.parse(
-        fs.readFileSync(path.join(DOCS_LOCALES_DIR, `${language}.json`), "utf8"),
+        fs.readFileSync(
+          path.join(DOCS_LOCALES_DIR, `${language}.json`),
+          "utf8",
+        ),
       );
 
       expect(locale.navLinks["Microsoft Foundry"]).toBe("Microsoft Foundry");
@@ -424,13 +445,15 @@ describe("the page's table of APIs is what one provider type calls", () => {
         "https://contoso-ai.services.ai.azure.com/openai/v1",
         CLAUDE_BASE_URL,
       ]);
-      expect(LlmProviderEndpoint.resolveAzureOpenAI(baseUrls[0]!).usesV1Api).toBe(
+      expect(
+        LlmProviderEndpoint.resolveAzureOpenAI(baseUrls[0]!).usesV1Api,
+      ).toBe(true);
+      expect(
+        LlmProviderEndpoint.resolveAzureOpenAI(baseUrls[1]!).usesV1Api,
+      ).toBe(true);
+      expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(baseUrls[2]!)).toBe(
         true,
       );
-      expect(LlmProviderEndpoint.resolveAzureOpenAI(baseUrls[1]!).usesV1Api).toBe(
-        true,
-      );
-      expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(baseUrls[2]!)).toBe(true);
     },
   );
 
@@ -524,9 +547,11 @@ describe("the page names the forms as the Dashboard draws them", () => {
       for (const english of LABELS) {
         const label: string = drawnDashboardLabel(language, english);
 
-        expect({ english, label, named: markdown.includes(`**${label}**`) }).toEqual(
-          { english, label, named: true },
-        );
+        expect({
+          english,
+          label,
+          named: markdown.includes(`**${label}**`),
+        }).toEqual({ english, label, named: true });
       }
 
       const way: string = ["Project Settings", "AI", "LLM Providers"]
@@ -760,9 +785,7 @@ describe("the self-hosted variables are the startup sync's", () => {
     const command: string =
       "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)";
 
-    expect(readPage("en", "installation/docker-compose.md")).toContain(
-      command,
-    );
+    expect(readPage("en", "installation/docker-compose.md")).toContain(command);
 
     for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
       expect({ language, has: readPage(language).includes(command) }).toEqual({
@@ -866,9 +889,14 @@ describe("the example request and response are LLMService's", () => {
     expect(curls[1]!.url).toBe(request.url);
     expect(curls[1]!.headers).toEqual(
       Object.fromEntries(
-        Object.entries(request.headers).map(([name, value]: [string, string]) => {
-          return [name.toLowerCase(), name === "x-api-key" ? "$AZURE_API_KEY" : value];
-        }),
+        Object.entries(request.headers).map(
+          ([name, value]: [string, string]) => {
+            return [
+              name.toLowerCase(),
+              name === "x-api-key" ? "$AZURE_API_KEY" : value,
+            ];
+          },
+        ),
       ),
     );
     expect(request.data["model"]).toBe(curls[1]!.body["model"]);
@@ -892,7 +920,10 @@ describe("the troubleshooting quotes what OneUptime says", () => {
     "o3-mini",
   );
 
-  function azureError(statusCode: number, error: JSONObject): HTTPErrorResponse {
+  function azureError(
+    statusCode: number,
+    error: JSONObject,
+  ): HTTPErrorResponse {
     return new HTTPErrorResponse(statusCode, { error: error }, {});
   }
 
@@ -913,7 +944,10 @@ describe("the troubleshooting quotes what OneUptime says", () => {
   // What OneUptime says for each quote, worked out by making it say it.
   const SAYS: Record<string, () => Promise<string>> = {
     "Azure did not accept the API key": (): Promise<string> => {
-      return failureOf(V1, azureError(401, { code: "401", message: "Access denied" }));
+      return failureOf(
+        V1,
+        azureError(401, { code: "401", message: "Access denied" }),
+      );
     },
     "Key-based authentication is turned off for this resource":
       (): Promise<string> => {
@@ -944,7 +978,10 @@ describe("the troubleshooting quotes what OneUptime says", () => {
       );
     },
     "Azure found nothing at this address": (): Promise<string> => {
-      return failureOf(V1, azureError(404, { code: "404", message: "Resource not found" }));
+      return failureOf(
+        V1,
+        azureError(404, { code: "404", message: "Resource not found" }),
+      );
     },
     "This model needs api-version ... or later": (): Promise<string> => {
       return failureOf(
@@ -959,7 +996,10 @@ describe("the troubleshooting quotes what OneUptime says", () => {
     "Azure's v1 API takes no dated api-version": (): Promise<string> => {
       return failureOf(
         foundry(`${V1_BASE_URL}?api-version=2024-10-21`),
-        azureError(400, { code: "BadRequest", message: "API version not supported" }),
+        azureError(400, {
+          code: "BadRequest",
+          message: "API version not supported",
+        }),
       );
     },
     "...could not be reached": (): Promise<string> => {
@@ -1008,9 +1048,11 @@ describe("the troubleshooting quotes what OneUptime says", () => {
 
       const message: string = await SAYS[quote]!();
 
-      expect({ quote, said: quotePattern(quote).test(message), message }).toEqual(
-        { quote, said: true, message },
-      );
+      expect({
+        quote,
+        said: quotePattern(quote).test(message),
+        message,
+      }).toEqual({ quote, said: true, message });
     }
   });
 
@@ -1026,7 +1068,9 @@ describe("the troubleshooting quotes what OneUptime says", () => {
 
       expect(translated).toEqual(
         english.map((quote: string): string => {
-          return quote === lengthMessage("en") ? lengthMessage(language) : quote;
+          return quote === lengthMessage("en")
+            ? lengthMessage(language)
+            : quote;
         }),
       );
     },
@@ -1059,7 +1103,9 @@ describe("the page's account of the network is the egress guard's", () => {
   test("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES is the switch the guard reads", () => {
     expect(
       readSource("Common/Server/Utils/DataSource/EgressGuard.ts"),
-    ).toContain('process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] === "true"');
+    ).toContain(
+      'process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] === "true"',
+    );
 
     for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
       expect({

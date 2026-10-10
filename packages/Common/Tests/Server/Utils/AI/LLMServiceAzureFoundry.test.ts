@@ -107,10 +107,7 @@ function success(body: JSONObject): HTTPResponse<JSONObject> {
   return { jsonData: body } as unknown as HTTPResponse<JSONObject>;
 }
 
-function azureError(
-  statusCode: number,
-  error: JSONObject,
-): HTTPErrorResponse {
+function azureError(statusCode: number, error: JSONObject): HTTPErrorResponse {
   return new HTTPErrorResponse(statusCode, { error: error }, {});
 }
 
@@ -550,7 +547,10 @@ describe("Azure's refusals lead the error with what to change", () => {
         "https://contoso.openai.azure.com/openai/v1?api-version=2024-10-21",
         "gpt-5-1-prod",
       ),
-      azureError(400, { code: "BadRequest", message: "API version not supported" }),
+      azureError(400, {
+        code: "BadRequest",
+        message: "API version not supported",
+      }),
     );
 
     expect(message).toContain(
@@ -580,7 +580,8 @@ describe("Azure's refusals lead the error with what to change", () => {
       V1,
       azureError(400, {
         code: "content_filter",
-        message: "The response was filtered due to the prompt triggering Azure OpenAI's content management policy.",
+        message:
+          "The response was filtered due to the prompt triggering Azure OpenAI's content management policy.",
       }),
     );
 
@@ -651,21 +652,18 @@ describe("Claude in Microsoft Foundry, on the Anthropic wire", () => {
     "https://contoso.services.ai.azure.com/anthropic/v1",
     "https://contoso.services.ai.azure.com/anthropic/v1/messages",
     "https://contoso.services.ai.azure.com",
-  ])(
-    "%s reaches the deployment's Target URI",
-    async (baseUrl: string) => {
-      const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));
+  ])("%s reaches the deployment's Target URI", async (baseUrl: string) => {
+    const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));
 
-      const response: LLMCompletionResponse = await complete(
-        claudeConfig(baseUrl),
-      );
+    const response: LLMCompletionResponse = await complete(
+      claudeConfig(baseUrl),
+    );
 
-      expect(sent(spy).url).toBe(
-        "https://contoso.services.ai.azure.com/anthropic/v1/messages",
-      );
-      expect(response.content).toBe("Two incidents are active.");
-    },
-  );
+    expect(sent(spy).url).toBe(
+      "https://contoso.services.ai.azure.com/anthropic/v1/messages",
+    );
+    expect(response.content).toBe("Two incidents are active.");
+  });
 
   test("sends the key in x-api-key with anthropic-version 2023-06-01, as Foundry takes them", async () => {
     const spy: PostSpy = mockReplies(success(ANTHROPIC_SUCCESS_BODY));

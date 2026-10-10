@@ -151,9 +151,7 @@ const FORMS: Array<ProviderForm> = [
   {
     name: "Project Settings > AI > LLM Providers (create)",
     fields: (): Array<Field> => {
-      render(
-        <LlmProvidersPage {...({} as unknown as PageComponentProps)} />,
-      );
+      render(<LlmProvidersPage {...({} as unknown as PageComponentProps)} />);
 
       return tableFields("project-llms-table");
     },
@@ -256,7 +254,8 @@ describe.each(FORMS)("$name", (form: ProviderForm) => {
 
     // The first goes to the v1 API, the second to Claude's Messages API.
     expect(LlmProviderEndpoint.resolveAzureOpenAI(suggested[0]!)).toEqual({
-      requestUrl: "https://contoso-ai.openai.azure.com/openai/v1/chat/completions",
+      requestUrl:
+        "https://contoso-ai.openai.azure.com/openai/v1/chat/completions",
       usesV1Api: true,
     });
     expect(LlmProviderEndpoint.isAnthropicApiBaseUrl(suggested[1]!)).toBe(true);
@@ -344,9 +343,9 @@ describe("what a person sees at the Base URL field", () => {
     });
 
     await userEvent.setup({ delay: null }).type(input, value);
-    await userEvent.setup({ delay: null }).click(
-      screen.getByRole("button", { name: "Save" }),
-    );
+    await userEvent
+      .setup({ delay: null })
+      .click(screen.getByRole("button", { name: "Save" }));
 
     return onSubmit;
   }

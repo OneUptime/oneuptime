@@ -219,9 +219,9 @@ describe("an Azure OpenAI Base URL is read the way it is typed", () => {
   });
 
   test("an empty query is not sent", () => {
-    expect(azure("https://contoso.openai.azure.com/openai/v1?").requestUrl).toBe(
-      "https://contoso.openai.azure.com/openai/v1/chat/completions",
-    );
+    expect(
+      azure("https://contoso.openai.azure.com/openai/v1?").requestUrl,
+    ).toBe("https://contoso.openai.azure.com/openai/v1/chat/completions");
   });
 });
 
