@@ -715,24 +715,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "workflows/authoring": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
-  "workflows/components": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
-  "workflows/configuration": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
-  "workflows/runs-and-logs": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
-  "workflows/triggers": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
-  "workflows/variables": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
-  },
   "workspace-connections/microsoft-teams": {
     headingLevels: EN,
     sameShape: EVERY_TRANSLATION,
