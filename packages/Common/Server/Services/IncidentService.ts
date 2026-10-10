@@ -5955,11 +5955,10 @@ ${incidentSeverity.name}
       deleteBy.props,
     );
 
-    const incidents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The incidents the delete removes, and the delete held to them.
+    const incidents: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitors: {
@@ -5967,10 +5966,7 @@ ${incidentSeverity.name}
         },
         holdsMonitors: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,

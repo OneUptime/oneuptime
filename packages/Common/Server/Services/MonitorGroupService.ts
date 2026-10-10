@@ -28,12 +28,21 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<MonitorGroup>,
   ): Promise<OnDelete<MonitorGroup>> {
-    if (deleteBy.query._id) {
-      // delete all the status page resource for this monitor.
+    // The groups the delete removes, and the delete held to them.
+    const groups: Array<MonitorGroup> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true },
+    );
 
+    for (const group of groups) {
+      if (!group.id) {
+        continue;
+      }
+
+      // Every status page resource that shows the group goes with it.
       await StatusPageResourceService.deleteBy({
         query: {
-          monitorGroupId: new ObjectID(deleteBy.query._id as string),
+          monitorGroupId: group.id,
         },
         limit: LIMIT_MAX,
         skip: 0,

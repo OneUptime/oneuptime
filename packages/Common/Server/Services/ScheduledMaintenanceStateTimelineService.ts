@@ -1791,19 +1791,36 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves, so entries go one at a time.
+     */
+    const toBeDeleted: {
+      row: ScheduledMaintenanceStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      scheduledMaintenanceId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      throw new BadDataException(
+        "Delete one scheduled maintenance state timeline entry at a time.",
+      );
+    }
+
+    if (toBeDeleted.row) {
       const scheduledMaintenanceStateTimelineToBeDeleted: ScheduledMaintenanceStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            scheduledMaintenanceId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const scheduledMaintenanceId: ObjectID | undefined =
         scheduledMaintenanceStateTimelineToBeDeleted?.scheduledMaintenanceId;
@@ -1841,7 +1858,9 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
           await this.findOneBy({
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                scheduledMaintenanceStateTimelineToBeDeleted.id!.toString(),
+              ),
               scheduledMaintenanceId: scheduledMaintenanceId,
               startsAt: QueryHelper.lessThanEqualTo(
                 scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,

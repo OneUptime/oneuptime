@@ -1593,21 +1593,15 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The events the delete removes, and the delete held to them.
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
         monitors: {
           _id: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     return {
       carryForward: {

@@ -7,7 +7,7 @@ import ServiceLevelObjectiveOwnerUser from "../../Models/DatabaseModels/ServiceL
 import User from "../../Models/DatabaseModels/User";
 import URL from "../../Types/API/URL";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -594,23 +594,14 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The SLOs the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
 

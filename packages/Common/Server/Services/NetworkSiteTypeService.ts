@@ -1201,25 +1201,12 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const deleteLimit: number =
-      deleteBy.limit instanceof PositiveNumber
-        ? deleteBy.limit.toNumber()
-        : deleteBy.limit || LIMIT_MAX;
-    const deleteSkip: number =
-      deleteBy.skip instanceof PositiveNumber
-        ? deleteBy.skip.toNumber()
-        : deleteBy.skip || 0;
-
-    const networkSiteTypesBeingDeleted: Array<Model> = await this.findBy({
-      query: this.scopeDeleteQueryToCallerTenant(
-        deleteBy.query,
-        deleteBy.props,
-      ),
-      select: { _id: true, projectId: true },
-      limit: deleteLimit,
-      skip: deleteSkip,
-      props: { isRoot: true },
-    });
+    // The types the delete removes, and the delete held to them.
+    const networkSiteTypesBeingDeleted: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
     const ids: Array<ObjectID> = networkSiteTypesBeingDeleted
       .map((networkSiteType: Model) => {

@@ -265,13 +265,11 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const items: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { isSystemDefined: true, name: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    // Every measurement the delete removes, and the delete held to them.
+    const items: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { isSystemDefined: true, name: true },
+    );
 
     for (const item of items) {
       if (item.isSystemDefined) {

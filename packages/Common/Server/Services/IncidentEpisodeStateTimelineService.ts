@@ -551,19 +551,36 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<IncidentEpisodeStateTimeline>,
   ): Promise<OnDelete<IncidentEpisodeStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves, so entries go one at a time.
+     */
+    const toBeDeleted: {
+      row: IncidentEpisodeStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      incidentEpisodeId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      throw new BadDataException(
+        "Delete one episode state timeline entry at a time.",
+      );
+    }
+
+    if (toBeDeleted.row) {
       const episodeStateTimelineToBeDeleted: IncidentEpisodeStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            incidentEpisodeId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const episodeId: ObjectID | undefined =
         episodeStateTimelineToBeDeleted?.incidentEpisodeId;
@@ -592,7 +609,9 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         const stateBeforeThis: IncidentEpisodeStateTimeline | null =
           await this.findOneBy({
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                episodeStateTimelineToBeDeleted.id!.toString(),
+              ),
               incidentEpisodeId: episodeId,
               startsAt: QueryHelper.lessThanEqualTo(
                 episodeStateTimelineToBeDeleted.startsAt!,

@@ -25,8 +25,6 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
-import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
@@ -722,41 +720,26 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicy>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
-    if (deleteBy.query._id) {
-      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
-        deleteBy.query.projectId || deleteBy.props.tenantId;
+    /*
+     * The policies the delete removes, and the delete held to them: only
+     * their channels are archived.
+     */
+    const policies: Array<OnCallDutyPolicy> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
-      if (!projectId) {
-        // fetch this onCallDutyPolicy from the database to get the projectId.
-        const onCallDutyPolicy: OnCallDutyPolicy | null =
-          await this.findOneById({
-            id: new ObjectID(deleteBy.query._id as string) as ObjectID,
-            select: {
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (!onCallDutyPolicy) {
-          throw new BadDataException("OnCallDutyPolicy not found.");
-        }
-
-        if (!onCallDutyPolicy.id) {
-          throw new BadDataException("OnCallDutyPolicy id not found.");
-        }
-
-        projectId = onCallDutyPolicy.projectId!;
+    for (const policy of policies) {
+      if (!policy.id || !policy.projectId) {
+        continue;
       }
 
       try {
         await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: projectId as ObjectID,
+          projectId: policy.projectId,
           notificationFor: {
-            onCallDutyPolicyId: new ObjectID(
-              deleteBy.query._id as string,
-            ) as ObjectID,
+            onCallDutyPolicyId: policy.id,
           },
           sendMessageBeforeArchiving: {
             _type: "WorkspacePayloadMarkdown",
@@ -765,8 +748,8 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         });
       } catch (error) {
         logger.error(
-          `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`,
-          { projectId: (projectId as ObjectID)?.toString() } as LogAttributes,
+          `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
+          { projectId: policy.projectId.toString() } as LogAttributes,
         );
       }
     }

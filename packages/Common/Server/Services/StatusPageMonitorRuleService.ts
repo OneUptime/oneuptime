@@ -272,17 +272,15 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     const monitorIdsByRuleId: Record<string, Array<string>> = {};
 
-    try {
-      const rules: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: deleteBy.props,
-      });
+    // The rules the delete removes, and the delete held to them.
+    const rules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+      },
+    );
 
+    try {
       for (const rule of rules) {
         if (!rule.id) {
           continue;

@@ -1920,32 +1920,16 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const deleteLimit: number =
-      deleteBy.limit instanceof PositiveNumber
-        ? deleteBy.limit.toNumber()
-        : deleteBy.limit || LIMIT_MAX;
-    const deleteSkip: number =
-      deleteBy.skip instanceof PositiveNumber
-        ? deleteBy.skip.toNumber()
-        : deleteBy.skip || 0;
-
-    const sitesToDelete: Array<Model> = await this.findBy({
-      query: this.scopeDeleteQueryToCallerTenant(
-        deleteBy.query,
-        deleteBy.props,
-      ),
-      select: {
+    // The sites the delete removes, and the delete held to them.
+    const sitesToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         parentSiteId: true,
         materializedPath: true,
       },
-      limit: deleteLimit,
-      skip: deleteSkip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const deletingSiteIds: Set<string> = new Set(
       sitesToDelete

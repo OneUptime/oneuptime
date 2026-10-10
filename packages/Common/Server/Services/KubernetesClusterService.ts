@@ -559,20 +559,13 @@ export class Service extends ProjectReferencesService<Model> {
     let inFlightRounds: Array<AutoRemediationSuggestion> = [];
     const clusterNames: Record<string, string> = {};
 
-    try {
-      const clusters: Array<Model> = await this.findBy({
-        query: {
-          ...deleteBy.query,
-          ...(deleteBy.props.tenantId
-            ? { projectId: deleteBy.props.tenantId }
-            : {}),
-        },
-        select: { _id: true, name: true, clusterIdentifier: true },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // The clusters the delete removes, and the delete held to them.
+    const clusters: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, name: true, clusterIdentifier: true },
+    );
 
+    try {
       const clusterIds: Array<ObjectID> = [];
 
       for (const cluster of clusters) {

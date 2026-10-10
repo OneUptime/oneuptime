@@ -17,7 +17,6 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Query from "../Types/Database/Query";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -894,23 +893,18 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const authorizedQuery: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const policies: Array<Model> = await this.findBy({
-      query: authorizedQuery,
-      select: {
+    /*
+     * The policies the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them, so the monitors
+     * removed below are those of the policies that go.
+     */
+    const policies: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: { isRoot: true },
-    });
+    );
 
     for (const policy of policies) {
       if (!policy.id || !policy.projectId) {

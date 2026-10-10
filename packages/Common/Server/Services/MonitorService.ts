@@ -549,16 +549,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const monitorsPendingDeletion: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    /*
+     * The monitors the delete removes, and the delete held to them: only
+     * their status page resources go and only their channels are archived.
+     */
+    const monitorsPendingDeletion: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      props: deleteBy.props,
-    });
+      });
 
     for (const monitor of monitorsPendingDeletion) {
       if (!monitor.id) {

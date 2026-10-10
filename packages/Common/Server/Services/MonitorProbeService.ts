@@ -551,17 +551,11 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<MonitorProbe>,
   ): Promise<OnDelete<MonitorProbe>> {
-    const itemsToDelete: Array<MonitorProbe> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      select: {
+    // The rows the delete removes, and the delete held to them.
+    const itemsToDelete: Array<MonitorProbe> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         monitorId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     return {
       deleteBy,

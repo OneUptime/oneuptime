@@ -616,16 +616,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
+    // The rules the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         serviceLevelObjectiveId: true,
@@ -635,10 +629,7 @@ export class Service extends ProjectReferencesService<Model> {
         longWindowInMinutes: true,
         shortWindowInMinutes: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
