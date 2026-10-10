@@ -275,9 +275,10 @@ describe("Database Health docs: anchors", () => {
     expect(TRANSLATIONS.length).toBeGreaterThan(0);
 
     for (const language of TRANSLATIONS) {
-      expect({ language, exists: fs.existsSync(pagePath(language)) }).toEqual(
-        { language, exists: true },
-      );
+      expect({ language, exists: fs.existsSync(pagePath(language)) }).toEqual({
+        language,
+        exists: true,
+      });
     }
   });
 
@@ -316,9 +317,7 @@ describe("Database Health docs: the translations", () => {
   test("the English page has the SQL blocks the translations are held to", () => {
     // PostgreSQL, MySQL, SQL Server, two Azure blocks and the JS example.
     expect(codeBlocks(readPage(EN_PAGE)).length).toBeGreaterThanOrEqual(5);
-    expect(codeBlocks(readPage(EN_PAGE)).join("\n")).not.toContain(
-      "flowchart",
-    );
+    expect(codeBlocks(readPage(EN_PAGE)).join("\n")).not.toContain("flowchart");
   });
 
   describe.each(TRANSLATIONS)("%s", (language: string) => {
@@ -341,9 +340,7 @@ describe("Database Health docs: the translations", () => {
       const page: string = translatedPage();
 
       expect(page).toContain(asDocumented(SQL_SERVER_MONITORING_GRANT));
-      expect(page).toContain(
-        asDocumented(AZURE_SQL_DATABASE_MONITORING_GRANT),
-      );
+      expect(page).toContain(asDocumented(AZURE_SQL_DATABASE_MONITORING_GRANT));
       expect(page).toContain(
         asDocumented(AZURE_SQL_DATABASE_SERVER_STATE_READER_GRANT),
       );

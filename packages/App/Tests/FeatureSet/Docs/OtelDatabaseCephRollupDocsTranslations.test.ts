@@ -77,11 +77,9 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: "emails/notification-rollup", navTitle: "Notification Rollup" },
 ];
 
-const PAGE_NAMES: Array<string> = PAGES.map(
-  (entry: TranslatedPage): string => {
-    return entry.page;
-  },
-);
+const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
+  return entry.page;
+});
 
 const DATABASE_PAGE: string = "monitor/database-health-monitor";
 const CEPH_PAGE: string = "monitor/ceph-monitor";
@@ -174,6 +172,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
 const PATH_SEPARATOR: string = " → ";
 
 const TABLE_ROW: RegExp = /^\|(.*)\|\s*$/;
+const TABLE_DELIMITER_CELL: RegExp = /^:?-+:?$/;
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -221,7 +220,7 @@ function tableRows(markdown: string): Array<Array<string>> {
     })
     .filter((cells: Array<string>): boolean => {
       return !cells.every((cell: string): boolean => {
-        return /^:?-+:?$/.test(cell);
+        return TABLE_DELIMITER_CELL.test(cell);
       });
     });
 }
@@ -333,21 +332,18 @@ describe("the lists this test keeps", () => {
         page: page,
         enough: true,
       });
-      expect({ page: page, paths: menuPaths(englishPage(page)).length > 0 })
-        .toEqual({ page: page, paths: true });
+      expect({
+        page: page,
+        paths: menuPaths(englishPage(page)).length > 0,
+      }).toEqual({ page: page, paths: true });
     }
   });
 });
 
 describe("the English pages", () => {
-  it.each(PAGES)(
-    "$page is titled as its nav link",
-    (entry: TranslatedPage) => {
-      expect(englishPage(entry.page).split("\n")[0]).toBe(
-        `# ${entry.navTitle}`,
-      );
-    },
-  );
+  it.each(PAGES)("$page is titled as its nav link", (entry: TranslatedPage) => {
+    expect(englishPage(entry.page).split("\n")[0]).toBe(`# ${entry.navTitle}`);
+  });
 
   it.each(PAGES)(
     "$page ends on a Next steps section of cards",
@@ -481,8 +477,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       ];
 
       for (const name of names) {
-        expect({ name: name, kept: translated.includes(`**${name}**`) })
-          .toEqual({ name: name, kept: true });
+        expect({
+          name: name,
+          kept: translated.includes(`**${name}**`),
+        }).toEqual({ name: name, kept: true });
       }
     });
   });
@@ -522,9 +520,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           },
         );
 
-        expect({ template: template.name, listed: row !== undefined }).toEqual(
-          { template: template.name, listed: true },
-        );
+        expect({ template: template.name, listed: row !== undefined }).toEqual({
+          template: template.name,
+          listed: true,
+        });
         expect({ template: template.name, severity: row?.[1] }).toEqual({
           template: template.name,
           severity: drawnDashboardLabel(language, template.severity),
