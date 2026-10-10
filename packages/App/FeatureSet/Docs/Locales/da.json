@@ -279,6 +279,7 @@
     "Database Health Monitor": "Databasetilstands-monitor",
     "Network Sites (Health Rollup & Uptime)": "Netværkslokationer (tilstandsoversigt og oppetid)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Vejledninger pr. netværksleverandør (Sophos, Extreme, Cambium)",
+    "Network Traffic (NetFlow, IPFIX, sFlow)": "Netværkstrafik (NetFlow, IPFIX, sFlow)",
     "Host Monitor": "Værts-monitor",
     "Podman Monitor": "Podman-monitor",
     "Proxmox Monitor": "Proxmox-monitor",
