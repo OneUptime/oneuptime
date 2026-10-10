@@ -184,7 +184,7 @@ Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Regi
 
 | Stato | Che cosa è successo |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | La chiamata è ancora in corso: è arrivata, un telefono sta squillando o è passata a una regola successiva. |
+| **Initiated**, **Escalated** | La chiamata è ancora in corso: è arrivata e un telefono sta squillando, o è passata a una regola successiva. |
 | **Completato** | Qualcuno ha risposto e chi chiamava è stato messo in contatto. |
 | **Nessuna risposta** | Sono state provate tutte le regole di escalation e nessuno ha risposto. Chi chiamava ha sentito il tuo **Messaggio di mancata risposta**. |
 | **Caller Hung Up** | Chi chiamava ha riagganciato mentre il telefono di una persona squillava. |

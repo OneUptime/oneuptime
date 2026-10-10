@@ -184,7 +184,7 @@ Hvert opkald står på politikkens side **Opkaldslogs** under **Protokoller** i 
 
 | Status | Hvad der skete |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | Opkaldet er stadig i gang: det kom ind, en telefon ringer, eller det gik videre til en senere regel. |
+| **Initiated**, **Escalated** | Opkaldet er stadig i gang: det kom ind, og en telefon ringer, eller det gik videre til en senere regel. |
 | **Fuldført** | Nogen svarede, og opkalderen blev stillet igennem. |
 | **Intet svar** | Alle eskaleringsregler blev prøvet, og ingen svarede. Opkalderen hørte din **Besked ved intet svar**. |
 | **Caller Hung Up** | Opkalderen lagde på, mens en ingeniørs telefon ringede. |

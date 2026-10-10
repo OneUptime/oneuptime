@@ -184,7 +184,7 @@ Toda chamada aparece na página **Registros de chamadas** da política, em **Reg
 
 | Status | O que aconteceu |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | A chamada ainda está em andamento: chegou, um telefone está tocando ou passou para uma regra seguinte. |
+| **Initiated**, **Escalated** | A chamada ainda está em andamento: chegou e um telefone está tocando, ou passou para uma regra seguinte. |
 | **Concluído** | Alguém atendeu, e a chamada foi transferida. |
 | **Sem Resposta** | Todas as regras de escalonamento foram tentadas e ninguém atendeu. Quem ligou ouviu a sua **Mensagem de Sem Resposta**. |
 | **Caller Hung Up** | Quem ligou desligou enquanto o telefone de uma pessoa tocava. |

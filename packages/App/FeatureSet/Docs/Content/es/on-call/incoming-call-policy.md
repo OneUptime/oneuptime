@@ -184,7 +184,7 @@ Cada llamada aparece en la página **Registros de llamadas** de la política, en
 
 | Estado | Qué pasó |
 | --- | --- |
-| **Iniciado**, **Sonando**, **Escalado** | La llamada sigue en curso: entró, está sonando un teléfono o pasó a una regla posterior. |
+| **Iniciado**, **Escalado** | La llamada sigue en curso: entró y está sonando un teléfono, o pasó a una regla posterior. |
 | **Completado** | Alguien contestó y se pasó la llamada. |
 | **Sin respuesta** | Se probaron todas las reglas de escalado y nadie contestó. Quien llamó oyó tu **Mensaje de sin respuesta**. |
 | **El llamante colgó** | Quien llamaba colgó mientras sonaba el teléfono de una persona. |

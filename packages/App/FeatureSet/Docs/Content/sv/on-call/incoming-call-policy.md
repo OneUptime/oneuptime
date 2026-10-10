@@ -184,7 +184,7 @@ Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess 
 
 | Status | Vad som hände |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | Samtalet pågår fortfarande: det kom in, en telefon ringer, eller det gick vidare till en senare regel. |
+| **Initiated**, **Escalated** | Samtalet pågår fortfarande: det kom in och en telefon ringer, eller det gick vidare till en senare regel. |
 | **Slutförd** | Någon svarade, och uppringaren kopplades fram. |
 | **Inget svar** | Alla eskaleringsregler provades och ingen svarade. Uppringaren hörde ditt **Meddelande vid inget svar**. |
 | **Caller Hung Up** | Uppringaren lade på medan en teknikers telefon ringde. |

@@ -184,7 +184,7 @@ Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Prot
 
 | Status | Was passiert ist |
 | --- | --- |
-| **Eingeleitet**, **Klingelt**, **Eskaliert** | Der Anruf läuft noch: Er ist eingegangen, ein Telefon klingelt, oder er ist zu einer späteren Regel weitergegangen. |
+| **Eingeleitet**, **Eskaliert** | Der Anruf läuft noch: Er ist eingegangen und ein Telefon klingelt, oder er ist zu einer späteren Regel weitergegangen. |
 | **Abgeschlossen** | Jemand hat abgenommen, und der Anrufer wurde durchgestellt. |
 | **Keine Antwort** | Jede Eskalationsregel wurde versucht, und niemand hat abgenommen. Der Anrufer hat Ihre **Keine-Antwort-Nachricht** gehört. |
 | **Anrufer hat aufgelegt** | Der Anrufer hat aufgelegt, während das Telefon einer Person klingelte. |

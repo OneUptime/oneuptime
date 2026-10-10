@@ -184,7 +184,7 @@ Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Jo
 
 | Statut | Ce qui s'est passé |
 | --- | --- |
-| **Initié**, **Ringing**, **Escaladé** | L'appel est en cours : il est arrivé, un téléphone sonne, ou il est passé à une règle suivante. |
+| **Initié**, **Escaladé** | L'appel est en cours : il est arrivé et un téléphone sonne, ou il est passé à une règle suivante. |
 | **Achevé** | Quelqu'un a décroché, et l'appelant a été mis en relation. |
 | **Pas de réponse** | Toutes les règles d'escalade ont été essayées et personne n'a décroché. L'appelant a entendu votre **Message en cas de non-réponse**. |
 | **L'appelant a raccroché** | L'appelant a raccroché pendant que le téléphone d'une personne sonnait. |

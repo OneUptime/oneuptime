@@ -184,7 +184,7 @@ Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Logboeken
 
 | Status | Wat er gebeurde |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | Het gesprek loopt nog: het kwam binnen, een telefoon gaat over, of het ging naar een latere regel. |
+| **Initiated**, **Escalated** | Het gesprek loopt nog: het kwam binnen en een telefoon gaat over, of het ging naar een latere regel. |
 | **Voltooid** | Iemand nam op, en de beller werd doorverbonden. |
 | **Geen antwoord** | Elke escalatieregel is geprobeerd en niemand nam op. De beller hoorde uw **Bericht bij geen antwoord**. |
 | **Caller Hung Up** | De beller hing op terwijl de telefoon van een engineer overging. |

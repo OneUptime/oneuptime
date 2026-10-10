@@ -184,7 +184,7 @@ Every call is listed on the policy's **Call Logs** page, under **Logs** in its s
 
 | Status | What happened |
 | --- | --- |
-| **Initiated**, **Ringing**, **Escalated** | The call is still going: it came in, a phone is ringing, or it moved on to a later rule. |
+| **Initiated**, **Escalated** | The call is still going: it came in and a phone is ringing, or it moved on to a later rule. |
 | **Completed** | Somebody answered, and the caller was put through. |
 | **No Answer** | Every escalation rule was tried and nobody answered. The caller heard your **No Answer Message**. |
 | **Caller Hung Up** | The caller hung up while an engineer's phone was ringing. |
