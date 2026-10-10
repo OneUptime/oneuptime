@@ -258,6 +258,44 @@ describe("run_runbook asks what the dashboard's Run Runbook asks", () => {
     expect(result.citationLabel).not.toContain("Restart checkout");
   });
 
+  test("a runbook name that cannot be read never stops a run the person may start", async () => {
+    const calls: Array<string> = [];
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockImplementation((async (findOneById: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Runbook> => {
+        if (findOneById.props.isRoot) {
+          return buildRunbook();
+        }
+
+        calls.push("name");
+        throw new Error("The database went away.");
+      }) as never);
+    jest
+      .spyOn(RunbookRunAccess, "assertMayStart")
+      .mockResolvedValue(undefined as never);
+    const execution: RunbookExecution = new RunbookExecution();
+    execution._id = ObjectID.generate().toString();
+    jest
+      .spyOn(RunbookRuleEngineService, "startRunbookFor")
+      .mockImplementation((async (): Promise<RunbookExecution> => {
+        calls.push("start");
+        return execution;
+      }) as never);
+
+    const result: ToolExecutionResult = await RunRunbookTool.execute(
+      { runbookId: runbookId.toString() },
+      contextFor([Permission.RunbookMember]),
+    );
+
+    // The name is looked up for the answer, once the run has started.
+    expect(calls).toEqual(["start", "name"]);
+    expect(result.dataForLlm).toContain(
+      `Started runbook ${runbookId.toString()}.`,
+    );
+  });
+
   test("an incident the person may not read is not linked, and nothing starts", async () => {
     jest
       .spyOn(RunbookService, "findOneById")

@@ -25,6 +25,7 @@ import RunbookService from "../../../Services/RunbookService";
 import RunbookRuleEngineService from "../../../Services/RunbookRuleEngineService";
 import { assertCanExecuteRunbooks } from "../../Runbook/RunbookExecutePermission";
 import RunbookRunAccess from "../../Runbook/RunbookRunAccess";
+import logger from "../../Logger";
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../Workspace/WorkspaceMemberActions";
@@ -229,9 +230,10 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
 };
 
 /*
- * A runbook's name as the person reads it, or undefined when they may not
- * read it: a granular permission to start runs reaches runbooks it does not
- * show.
+ * A runbook's name as the person reads it, for the answer, or undefined
+ * when they may not read it - a granular permission to start runs reaches
+ * runbooks it does not show - or it cannot be read: the name only labels
+ * the answer, so it never stands in the way of a run.
  */
 async function readableRunbookName(data: {
   runbookId: ObjectID;
@@ -246,11 +248,13 @@ async function readableRunbookName(data: {
 
     return runbook?.name || undefined;
   } catch (error) {
-    if (error instanceof NotAuthorizedException) {
-      return undefined;
+    if (!(error instanceof NotAuthorizedException)) {
+      logger.debug(
+        `run_runbook: the runbook's name could not be read for the answer: ${error}`,
+      );
     }
 
-    throw error;
+    return undefined;
   }
 }
 
@@ -262,7 +266,7 @@ async function readableRunbookName(data: {
 export const RunRunbookTool: ObservabilityTool = {
   name: "run_runbook",
   description:
-    "Start (execute) a runbook by its id, optionally linked to an incident. Use this to run a predefined remediation or diagnostic automation. Find the runbook id (and read its steps) with query_runbooks first.",
+    "Start (execute) a runbook by its id, optionally linked to an incident. Use this to run a predefined remediation or diagnostic automation. Use the runbook id the user gives, or find it (and read its steps) with query_runbooks first.",
   inputSchema: {
     type: "object",
     properties: {
@@ -348,15 +352,6 @@ export const RunRunbookTool: ObservabilityTool = {
       runbookId: runbookId,
     });
 
-    // The runbook's name, for the answer, only when the person may read it.
-    const runbookName: string | undefined = await readableRunbookName({
-      runbookId: runbookId,
-      props: ctx.props,
-    });
-    const runbookLabel: string = runbookName
-      ? `runbook "${runbookName}"`
-      : `runbook ${runbookId.toString()}`;
-
     /*
      * Only link an incident the caller can actually read in this project.
      * Looking it up under the user's RBAC (not isRoot) rejects both a
@@ -385,6 +380,15 @@ export const RunRunbookTool: ObservabilityTool = {
         linkage: incidentId ? { incidentId: incidentId } : {},
         triggeredByUserId: userId,
       });
+
+    // The runbook's name, for the answer, only when the person may read it.
+    const runbookName: string | undefined = await readableRunbookName({
+      runbookId: runbookId,
+      props: ctx.props,
+    });
+    const runbookLabel: string = runbookName
+      ? `runbook "${runbookName}"`
+      : `runbook ${runbookId.toString()}`;
 
     if (!execution) {
       throw new BadDataException(

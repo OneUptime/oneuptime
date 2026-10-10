@@ -347,9 +347,17 @@ export default class AIToolbox {
      * it changes nothing.
      */
     if (tool.isMutation && !this.isPersonContext(data.ctx)) {
+      if (this.hasPerson(data.ctx)) {
+        return {
+          success: false,
+          textForLlm: `Error: ${data.name} changes the project, and only runs inside the project the request is for. Answer with the data you already have.`,
+          errorMessage: `Permission denied for tool: ${data.name} (the request is not for this project)`,
+        };
+      }
+
       return {
         success: false,
-        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it, in the project their request is for. Answer with the data you already have.`,
+        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
         errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
       };
     }
@@ -420,11 +428,16 @@ export default class AIToolbox {
    */
   public static isPersonContext(ctx: ToolContext): boolean {
     return (
-      Boolean(ctx.props.userId) &&
-      !ctx.props.isRoot &&
+      this.hasPerson(ctx) &&
       Boolean(ctx.props.tenantId) &&
+      Boolean(ctx.projectId) &&
       ctx.props.tenantId!.toString() === ctx.projectId.toString()
     );
+  }
+
+  // Whether the request is a user's, not OneUptime's own.
+  private static hasPerson(ctx: ToolContext): boolean {
+    return Boolean(ctx.props.userId) && !ctx.props.isRoot;
   }
 
   /*
@@ -476,6 +489,6 @@ export default class AIToolbox {
       },
     );
 
-    return `${refused}, and tell the user why: they hold a permission it needs, but a team they belong to blocks ${PermissionHelper.getPermissionTitles(blocked).join(", ")}${blockedOnSomeLabelsOnly ? " on some labels, and a block on some labels refuses this tool everywhere" : ""}.`;
+    return `${refused}, and tell the user why: they hold a permission it needs, but a team they belong to blocks ${PermissionHelper.getPermissionTitles(blocked).join(", ")}${blockedOnSomeLabelsOnly ? " on some labels" : ""}, and a block on any permission this tool accepts refuses it${blockedOnSomeLabelsOnly ? " everywhere" : ""}.`;
   }
 }

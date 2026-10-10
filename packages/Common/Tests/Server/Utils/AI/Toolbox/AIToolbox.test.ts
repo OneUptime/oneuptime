@@ -669,7 +669,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
       expect(outcome.success).toBe(false);
       expect(outcome.result).toBeUndefined();
       expect(outcome.textForLlm).toBe(
-        "Error: acknowledge_incident changes the project, and only runs for a signed-in person who asked for it, in the project their request is for. Answer with the data you already have.",
+        "Error: acknowledge_incident changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.",
       );
       expect(outcome.errorMessage).toContain("no signed-in person to act as");
     },
@@ -713,7 +713,12 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
     expect(executeSpy).not.toHaveBeenCalled();
     expect(outcome.success).toBe(false);
-    expect(outcome.errorMessage).toContain("no signed-in person to act as");
+    expect(outcome.textForLlm).toBe(
+      "Error: acknowledge_incident changes the project, and only runs inside the project the request is for. Answer with the data you already have.",
+    );
+    expect(outcome.errorMessage).toContain(
+      "the request is not for this project",
+    );
   });
 
   test("runs a tool that changes the project for a signed-in person who holds its permission", async () => {
@@ -793,7 +798,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain(
-      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Member on some labels, and a block on some labels refuses this tool everywhere.",
+      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Member on some labels, and a block on any permission this tool accepts refuses it everywhere.",
     );
     expect(outcome.textForLlm).not.toContain(
       "It needs one of these permissions",
@@ -813,7 +818,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain(
-      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Owner.",
+      "tell the user why: they hold a permission it needs, but a team they belong to blocks Project Owner, and a block on any permission this tool accepts refuses it.",
     );
     expect(outcome.textForLlm).not.toContain("on some labels");
     expect(outcome.textForLlm).not.toContain(
