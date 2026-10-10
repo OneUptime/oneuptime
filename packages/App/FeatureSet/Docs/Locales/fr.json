@@ -108,7 +108,11 @@
     "Real User Monitoring": "Surveillance des utilisateurs réels"
   },
   "navLinks": {
-    "Getting Started": "Démarrage rapide",
+    "Getting Started": "Premiers pas",
+    "Quickstart": "Démarrage rapide",
+    "Core Concepts": "Concepts clés",
+    "Home Page & Shortcuts": "Page d'accueil et raccourcis",
+    "Your Account": "Votre compte",
     "Moving from Opsgenie": "Quitter Opsgenie",
     "Moving from PagerDuty": "Quitter PagerDuty",
     "Moving from incident.io": "Quitter incident.io",

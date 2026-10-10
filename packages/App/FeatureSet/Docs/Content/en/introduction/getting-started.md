@@ -1,63 +1,163 @@
-### OneUptime: The Complete Open-Source Observability Platform
+# Getting Started
 
-OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors.
+OneUptime is an open-source observability platform. It checks that your websites, APIs and servers work, collects the logs, metrics and traces your apps send, pages whoever is on call when something breaks, and tells your customers on a status page. It all happens in one product, so the tool that notices a problem is the one that pages your team. Use it on OneUptime Cloud, or run it on your own servers.
 
-OneUptime replaces multiple tools with one integrated platform:
+Start here:
 
-## Uptime Monitoring
+:::cards
+- [Quickstart](/docs/introduction/quickstart): Monitor a website, get paged when it fails and publish a status page.
+- [Core Concepts](/docs/introduction/core-concepts): The handful of ideas everything else builds on, and how they connect.
+- [Home Page & Shortcuts](/docs/introduction/home): Find your way around the dashboard, and the keys that save you clicks.
+- [Your Account](/docs/introduction/your-account): Your profile, password, passkeys and two-factor authentication.
+:::
 
-Monitor the availability and response time of your online services from multiple locations around the world. Get notified via email, SMS, Slack, or other channels when something goes wrong. Replace tools like Pingdom.
+## How OneUptime fits together
 
-## Status Pages
+Everything starts with something you watch. A monitor checks it on a schedule, or reads the telemetry it sends. When the monitor's criteria match, OneUptime declares an incident or creates an alert, pages whoever is on call, and puts the incident on your status page if you want it there.
 
-Communicate with your customers and stakeholders during downtime or maintenance. Create a custom-branded status page that shows the current status and history of your services. Replace tools like StatusPage.io.
+```mermaid title="From a failed check to a paged team and an updated status page"
+flowchart TB
+    subgraph watch["What you watch"]
+        direction LR
+        site["Websites and APIs"]
+        infra["Servers and Kubernetes"]
+        apps["Apps with OpenTelemetry"]
+    end
+    site --> probes["Probes"]
+    infra --> agents["Agents"]
+    apps --> telemetry["Logs, metrics, traces"]
+    agents --> telemetry
+    probes --> monitors["Monitors"]
+    telemetry --> monitors
+    monitors -->|"criteria met"| incidents["Incidents"]
+    monitors -->|"criteria met"| alerts["Alerts"]
+    incidents --> oncall["On-call policies"]
+    alerts --> oncall
+    oncall --> people["Email, SMS, call, push, Slack, Teams"]
+    incidents --> status["Status pages"]
+    status --> subscribers["Subscribers"]
+```
 
-## Incident Management
+- An **incident** is a problem that affects your users. It pages on-call and can show on your status page.
+- An **alert** is a problem for your team to look into before users notice. It can page on-call too, but never shows on a status page.
 
-Manage incidents from start to finish with a collaborative workflow. Create incident reports, assign tasks, update stakeholders, and document resolutions. Replace tools like Incident.io.
+[Core Concepts](/docs/introduction/core-concepts) explains each piece in a few sentences.
 
-## On Call and Alerts
+## Explore the docs
 
-Schedule on-call shifts for your team and define escalation policies. Ensure that the right person is notified at the right time when an incident occurs. Replace tools like PagerDuty.
+The docs are organized like the sidebar, in nine sections. Pick the part you need.
 
-## Logs Management
+### Monitoring
 
-Collect, store, and analyze logs from your online services. Search, filter, and visualize log data to gain insights and troubleshoot issues. Replace tools like Loggly.
+:::cards
+- [Monitors](/docs/monitor/create-monitor): Check websites, APIs, ports, DNS, NTP servers, certificates and more from probes around the world.
+- [Infrastructure monitors](/docs/monitor/server-monitor): Watch servers, Kubernetes, Docker, VMware, network devices and storage.
+- [Telemetry monitors](/docs/monitor/logs-monitor): Alert on the logs, metrics, traces, exceptions and profiles you send.
+- [SLOs](/docs/slo/introduction): Track reliability targets, error budgets and burn rates.
+- [Probes](/docs/probe/custom-probe): Run checks from inside your own network.
+- [When OneUptime is not receiving data](/docs/monitor/when-oneuptime-is-not-receiving): Why a gap on OneUptime's side never counts as your downtime.
+:::
 
-## Workflows
+### Incident Response
 
-Integrate OneUptime with your existing tools and automate your workflows. Integrate with tools like Slack, Jira, GitHub, and 5000+ more.
+:::cards
+- [Incidents](/docs/incidents/index): Declare, coordinate and resolve incidents, with a full timeline.
+- [On-call](/docs/on-call/schedules): Rotations, escalation rules and who gets paged when.
+- [Status pages](/docs/status-pages/index): Keep customers informed on public or private status pages.
+- [Workspace connections](/docs/workspace-connections/slack): Work on incidents from Slack and Microsoft Teams.
+:::
 
-## Application Performance Monitoring
+### Observability
 
-Measure and optimize the performance of your online apps and services. Track key metrics such as traces, response time, throughput, error rate, and user satisfaction. Replace tools like NewRelic and DataDog.
+:::cards
+- [Telemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces with OpenTelemetry, and search them.
+- [Infrastructure agents](/docs/telemetry/kubernetes-agent): Install the agents for Kubernetes, hosts, Docker, Proxmox, VMware and more.
+- [Cloud](/docs/telemetry/cloud-environments): Observe ECS, Cloud Run, Azure Container Apps and other managed platforms.
+- [AI observability](/docs/telemetry/ai-llm-observability): Follow your AI's conversations, and get told when it answers badly.
+- [Security](/docs/telemetry/security-events): Collect security events and threat intelligence.
+- [Real user monitoring](/docs/rum/index): Measure what real users experience, with Core Web Vitals and session replay.
+- [Dashboards](/docs/dashboards/index): Build dashboards from your metrics, logs and monitors.
+- [Inventory](/docs/inventory/overview): See every service, host and device OneUptime knows about.
+:::
 
-## Error Tracking
+### Automation & AI
 
-Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
+:::cards
+- [Runbooks](/docs/runbooks/index): Turn response procedures into steps your team can run.
+- [Forms](/docs/forms/index): Let anyone report a problem through a form that opens an incident.
+- [Workflows](/docs/workflows/index): Automate actions when something happens in OneUptime.
+- [AI](/docs/ai/ai-sre): Let OneUptime AI investigate incidents and alerts, and ask it about your systems.
+:::
 
-## Finding your way around
+### Integrations
 
-Everything in OneUptime is under **Products** in the top bar. The menu lists its groups as the rows of one list, and always opens with the first of them, the essentials, open: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, AI, Code, Resources, Infrastructure, Dashboards & Automation and Settings) is folded into a row of the same list. Each row names the products the group holds and says how many. Click a row to open it or fold it, or move to it with the arrow keys and press **Enter**.
+:::cards
+- [Integrations](/docs/integrations/index): Connect Jira, ServiceNow, Grafana, Datadog, Huntress, SIEM tools, Discord, Telegram, IRC and more.
+:::
 
-- **Search finds everything.** Type in the menu's search box to find any product by its name, by what it does, or by a familiar word such as `k8s` or `RUM`. Search looks inside the folded groups too.
-- **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
-- **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded. The essentials are open again each time you open the menu, even if you folded them.
-- **On a phone**, the menu button lists the products the same way: the essentials open at the top, and every other group as one row that opens on a tap.
+### Developers
 
-## Searching for a page, a setting or an action
+:::cards
+- [API reference](/docs/api-reference/api-reference): Automate OneUptime with its REST API.
+- [CLI](/docs/cli/index): Manage OneUptime from your terminal and your CI.
+- [Terraform provider](/docs/terraform/index): Manage monitors, status pages and on-call as code.
+:::
 
-Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search icon in the top bar, and start typing. Search finds:
+### Administration
 
-- **Every page in the menus**, by the name the menu gives it: API Keys, Danger Zone, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
-- **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
-- **Your monitors, incidents, alerts, status pages and on-call policies**, by name.
+:::cards
+- [Users and permissions](/docs/permissions/index): Invite people, organize teams and control what they can do.
+- [Identity](/docs/identity/sso): Sign in with SAML or OIDC single sign-on, and provision users with SCIM.
+- [Configuration](/docs/configuration/label-and-owner-rules): Label resources and assign owners automatically.
+- [Emails](/docs/emails/smtp): Send OneUptime's email through your own SMTP server.
+- [Mobile and desktop apps](/docs/mobile-desktop-apps/index): Get paged and respond on iOS, Android, macOS, Windows and Linux.
+:::
 
-Search reads what you type the way you mean it:
+### Self-Hosting
 
-- Case, accents, spaces and hyphens do not matter: *on-call*, *on call* and *oncall* find the same pages, and words can come in any order.
-- It knows other words for many pages: *pager* or *escalation* for On-Call Policies, *rota* for On-Call Schedules, *2fa* for two-factor authentication, *delete project* for the Danger Zone.
-- Add the product's name to narrow a search down: *incident custom fields* finds the Custom Fields page of Incidents.
-- A small typo, such as *incidnet*, still finds what you meant when nothing matches as typed.
+:::cards
+- [Installation](/docs/installation/docker-compose): Install, size and upgrade your own OneUptime.
+- [Self-hosted setup](/docs/self-hosted/architecture): Architecture, integrations and Enterprise features for your own install.
+:::
 
-With the search box empty, Search lists the pages you opened recently, the actions, and the products.
+## Coming from another tool
+
+### Bring your setup with you
+
+**Project Settings → Import from another tool** reads your account in another tool, shows you what it found, and creates what you tick. Nothing in the other tool changes, and running an import again never creates anything twice.
+
+| Coming from | What OneUptime reads |
+| --- | --- |
+| [Opsgenie](/docs/moving-to-oneuptime/opsgenie) | Users, teams, schedules, escalations and services |
+| [PagerDuty](/docs/moving-to-oneuptime/pagerduty) | Users, teams, schedules, escalation policies and services |
+| [incident.io](/docs/moving-to-oneuptime/incident-io) | Users, teams, schedules, escalation paths, services and incident settings |
+| [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) | Users, teams, rotations and escalation policies |
+| [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall) | Users, teams, schedules and escalation chains |
+| [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot) | Monitors and public status pages |
+| [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage) | Pages, their components and groups, and email subscribers |
+| [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitors, heartbeats, status pages and email subscribers |
+| [Pingdom](/docs/moving-to-oneuptime/pingdom) | Uptime checks |
+| [StatusCake](/docs/moving-to-oneuptime/statuscake) | Uptime, SSL and heartbeat checks |
+| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitors, from a backup or the metrics page |
+
+### What OneUptime replaces
+
+| Capability | What it does | Replaces tools like |
+| --- | --- | --- |
+| Uptime monitoring | Checks availability and response time from locations around the world. | Pingdom, UptimeRobot |
+| Status pages | Shows customers the current status and history of your services. | Atlassian Statuspage |
+| Incident management | Runs incidents from start to finish, with notes, owners and a timeline. | incident.io |
+| On-call and alerts | Schedules on-call shifts and escalates until someone responds. | PagerDuty, Opsgenie |
+| Logs management | Collects, searches and visualizes logs. | Loggly |
+| Workflows | Automates actions and connects OneUptime to the tools you already use. | Zapier |
+| Application performance monitoring | Tracks traces, response times, throughput and error rates. | New Relic, Datadog |
+| Error tracking | Groups exceptions with stack traces and context. | Sentry |
+
+## Next steps
+
+:::cards
+- [Quickstart](/docs/introduction/quickstart): Set up your first monitor, on-call policy and status page.
+- [Core Concepts](/docs/introduction/core-concepts): Learn the words every other page uses.
+- [Home Page & Shortcuts](/docs/introduction/home): Find any page, setting or action in the dashboard.
+- [Docker Compose](/docs/installation/docker-compose): Run OneUptime on your own server.
+:::

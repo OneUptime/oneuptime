@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "Primeros pasos",
+    "Quickstart": "Inicio rápido",
+    "Core Concepts": "Conceptos básicos",
+    "Home Page & Shortcuts": "Página de inicio y atajos",
+    "Your Account": "Su cuenta",
     "Moving from Opsgenie": "Migrar desde Opsgenie",
     "Moving from PagerDuty": "Migrar desde PagerDuty",
     "Moving from incident.io": "Migrar desde incident.io",

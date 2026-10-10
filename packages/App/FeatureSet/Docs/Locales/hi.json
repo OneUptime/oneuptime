@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "शुरू करना",
+    "Quickstart": "त्वरित शुरुआत",
+    "Core Concepts": "मुख्य अवधारणाएँ",
+    "Home Page & Shortcuts": "मुख्य पृष्ठ और शॉर्टकट",
+    "Your Account": "आपका खाता",
     "Moving from Opsgenie": "Opsgenie से आना",
     "Moving from PagerDuty": "PagerDuty से आना",
     "Moving from incident.io": "incident.io से आना",

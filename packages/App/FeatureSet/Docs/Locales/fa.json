@@ -109,6 +109,10 @@
   },
   "navLinks": {
     "Getting Started": "شروع به کار",
+    "Quickstart": "شروع سریع",
+    "Core Concepts": "مفاهیم اصلی",
+    "Home Page & Shortcuts": "صفحه اصلی و میان‌برها",
+    "Your Account": "حساب کاربری شما",
     "Moving from Opsgenie": "انتقال از Opsgenie",
     "Moving from PagerDuty": "انتقال از PagerDuty",
     "Moving from incident.io": "انتقال از incident.io",
