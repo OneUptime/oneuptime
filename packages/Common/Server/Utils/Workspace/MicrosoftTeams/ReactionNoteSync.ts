@@ -23,6 +23,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
+import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -306,7 +307,9 @@ export default class MicrosoftTeamsReactionNoteSync {
    * The resources of a kind still open in the project. Incidents, alerts
    * and their episodes are open above the project's resolved state - one in
    * a state placed after Resolved is over (Common/Utils/ResolvedState). A
-   * scheduled maintenance event is open until it is completed.
+   * scheduled maintenance event is open until it is completed - in the
+   * completed state or a state of the project's own after it, such as
+   * "Archived" (Common/Utils/ScheduledMaintenanceStart.isComplete).
    */
   public static async getOpenResourceQuery(data: {
     resourceType: WorkspaceNoteResourceType;
@@ -330,7 +333,13 @@ export default class MicrosoftTeamsReactionNoteSync {
           ),
         };
       case WorkspaceNoteResourceType.ScheduledMaintenance:
-        return { currentScheduledMaintenanceState: { isResolvedState: false } };
+        return {
+          currentScheduledMaintenanceStateId: QueryHelper.any(
+            await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+              data.projectId,
+            ),
+          ),
+        };
     }
   }
 

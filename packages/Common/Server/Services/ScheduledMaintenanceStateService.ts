@@ -84,55 +84,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     return { updateBy, carryForward: null };
   }
 
-  /*
-   * Where Mark as Complete moves an event, among its project's states as
-   * getAllScheduledMaintenanceStates reads them (top first): the first
-   * state flagged completed. Null when the list has none.
-   */
-  public getCompletedStateAmong(
-    states: Array<ScheduledMaintenanceState>,
-  ): ScheduledMaintenanceState | null {
-    return (
-      states.find((state: ScheduledMaintenanceState): boolean => {
-        return Boolean(state?.isResolvedState);
-      }) || null
-    );
-  }
-
-  /*
-   * Whether an event in `stateId` is complete, among its project's states:
-   * in the completed state or one placed after it. The one rule, read by
-   * ScheduledMaintenanceService.isScheduledMaintenanceCompleted off an event
-   * it reads itself, and by the chats' Mark as Complete and Mark as Ongoing
-   * off the event they read already (WorkspaceMemberActions.getStanding).
-   * False for a state that is none of the project's, and in a project with
-   * no completed state.
-   */
-  public isCompleteAmong(data: {
-    states: Array<ScheduledMaintenanceState>;
-    stateId: ObjectID | undefined;
-  }): boolean {
-    const completedState: ScheduledMaintenanceState | null =
-      this.getCompletedStateAmong(data.states);
-
-    const currentState: ScheduledMaintenanceState | undefined = data.stateId
-      ? data.states.find((state: ScheduledMaintenanceState): boolean => {
-          return state.id?.toString() === data.stateId!.toString();
-        })
-      : undefined;
-
-    if (
-      completedState?.order === undefined ||
-      completedState.order === null ||
-      currentState?.order === undefined ||
-      currentState.order === null
-    ) {
-      return false;
-    }
-
-    return currentState.order >= completedState.order;
-  }
-
   @CaptureSpan()
   public async getAllScheduledMaintenanceStates(data: {
     projectId: ObjectID;
@@ -179,33 +130,154 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     projectId: ObjectID,
   ): Promise<Array<ObjectID>> {
     return ScheduledMaintenanceStartUtil.getInProgressStateIds({
-      states: await this.getAllScheduledMaintenanceStates({
-        projectId: projectId,
-        props: {
-          isRoot: true,
-        },
-      }),
+      states: await this.getProjectStatesAsRoot(projectId),
     });
   }
 
   /*
-   * The same rule for every project at once, as the queries for the events
-   * it holds: for the jobs that act on every event in progress, such as the
-   * end at an event's end time (ChangeStateToEnded). Each project's ongoing
-   * state is asked for by its flag - reading every project's states to name
-   * them would cost a row per project on every run - and the states projects
-   * added themselves between Ongoing and Ended by their ids. Those are few:
-   * the states that are none of the four kinds are read, and then the lists
-   * of just the projects that have any, to place them.
+   * The ids of the project's states an event waits for its Starts At in:
+   * its scheduled state, and every state of the project's own placed after
+   * Scheduled and before Ongoing, such as "Confirmed" - never one placed
+   * before Scheduled, a draft or an approval step
+   * (ScheduledMaintenanceStartUtil.isWaitingToStart). What the upcoming
+   * events on a status page and in the Microsoft Teams app ask for. One read
+   * of the project's states.
+   */
+  @CaptureSpan()
+  public async getWaitingToStartScheduledMaintenanceStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return ScheduledMaintenanceStartUtil.getWaitingToStartStateIds({
+      states: await this.getProjectStatesAsRoot(projectId),
+    });
+  }
+
+  /*
+   * The ids of the project's states an event is not complete in yet: every
+   * state but the completed state and the states of the project's own
+   * placed after it, such as "Archived"
+   * (ScheduledMaintenanceStartUtil.isComplete). What a read of the events
+   * still open until they are completed asks for - the reminders a rule
+   * change plans again, the Microsoft Teams channels whose reactions become
+   * notes. One read of the project's states.
+   */
+  @CaptureSpan()
+  public async getIncompleteScheduledMaintenanceStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    const states: Array<ScheduledMaintenanceState> =
+      await this.getProjectStatesAsRoot(projectId);
+
+    return states
+      .filter((state: ScheduledMaintenanceState): boolean => {
+        return (
+          Boolean(state.id) &&
+          !ScheduledMaintenanceStartUtil.isComplete({
+            states: states,
+            state: state,
+          })
+        );
+      })
+      .map((state: ScheduledMaintenanceState): ObjectID => {
+        return state.id!;
+      });
+  }
+
+  /*
+   * A query on an event's state for the states it may be in progress in:
+   * all but the built-in scheduled, ended and completed states, where it
+   * never is. The ongoing state is in progress; a state of a project's own,
+   * only its place can tell (ScheduledMaintenanceStartUtil.isInProgress). For
+   * a read that leaves out, in the database, the events that cannot be
+   * holding their monitors, before placing the rest.
+   */
+  public getMayBeInProgressStateQuery(): Query<ScheduledMaintenanceState> {
+    return {
+      isScheduledState: false,
+      isEndedState: false,
+      isResolvedState: false,
+    };
+  }
+
+  /*
+   * The in-progress rule for every project at once, as the queries for the
+   * events it holds: for the jobs that act on every event in progress, such
+   * as the end at an event's end time (ChangeStateToEnded). Every project's
+   * ongoing state by its flag, and the states projects added themselves
+   * between Ongoing and Ended by their ids (getEventQueriesOfEveryProject).
    */
   @CaptureSpan()
   public async getInProgressEventQueriesOfEveryProject(): Promise<
     Array<Query<ScheduledMaintenance>>
   > {
-    const ongoingStateQuery: Query<ScheduledMaintenance> = {
-      currentScheduledMaintenanceState: {
+    return await this.getEventQueriesOfEveryProject({
+      builtInStateQuery: {
         isOngoingState: true,
-      } as Query<ScheduledMaintenanceState>,
+      },
+      isInPhase: (data: {
+        states: Array<ScheduledMaintenanceState>;
+        state: ScheduledMaintenanceState;
+      }): boolean => {
+        return ScheduledMaintenanceStartUtil.isInProgress(data);
+      },
+    });
+  }
+
+  /*
+   * The events waiting for their Starts At, in every project at once: for
+   * the start at an event's time (ChangeStateToOngoing). Every project's
+   * scheduled state by its flag, and the states projects added themselves
+   * after Scheduled and before Ongoing, such as "Confirmed", by their ids. A
+   * state placed before Scheduled - a draft or an approval step - is left to
+   * a person (ScheduledMaintenanceStartUtil.isWaitingToStart).
+   */
+  @CaptureSpan()
+  public async getWaitingToStartEventQueriesOfEveryProject(): Promise<
+    Array<Query<ScheduledMaintenance>>
+  > {
+    return await this.getEventQueriesOfEveryProject({
+      builtInStateQuery: {
+        isScheduledState: true,
+      },
+      isInPhase: (data: {
+        states: Array<ScheduledMaintenanceState>;
+        state: ScheduledMaintenanceState;
+      }): boolean => {
+        return ScheduledMaintenanceStartUtil.isWaitingToStart(data);
+      },
+    });
+  }
+
+  // The project's states, with their place and every flag, read as root.
+  private async getProjectStatesAsRoot(
+    projectId: ObjectID,
+  ): Promise<Array<ScheduledMaintenanceState>> {
+    return await this.getAllScheduledMaintenanceStates({
+      projectId: projectId,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * A rule for every project at once, as the queries for the events it
+   * holds. The built-in state it holds for is asked for by its flag -
+   * reading every project's states to name them would cost a row per
+   * project on every run - and the states projects added themselves by
+   * their ids, where the rule holds for their place. Those are few: the
+   * states that are none of the four kinds are read, and then the lists of
+   * just the projects that have any, to place them.
+   */
+  private async getEventQueriesOfEveryProject(data: {
+    builtInStateQuery: Query<ScheduledMaintenanceState>;
+    isInPhase: (data: {
+      states: Array<ScheduledMaintenanceState>;
+      state: ScheduledMaintenanceState;
+    }) => boolean;
+  }): Promise<Array<Query<ScheduledMaintenance>>> {
+    const builtInStateQuery: Query<ScheduledMaintenance> = {
+      currentScheduledMaintenanceState: data.builtInStateQuery,
     } as Query<ScheduledMaintenance>;
 
     const statesOfTheirOwn: Array<ScheduledMaintenanceState> =
@@ -234,7 +306,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     }
 
     if (projectIds.size === 0) {
-      return [ongoingStateQuery];
+      return [builtInStateQuery];
     }
 
     const statesOfThoseProjects: Array<ScheduledMaintenanceState> =
@@ -271,38 +343,29 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
       statesByProjectId.get(projectKey)!.push(state);
     }
 
-    const inProgressStateIdsOfTheirOwn: Array<ObjectID> = [];
+    const stateIdsOfTheirOwn: Array<ObjectID> = [];
 
     for (const projectStates of statesByProjectId.values()) {
-      for (const stateId of ScheduledMaintenanceStartUtil.getInProgressStateIds(
-        { states: projectStates },
-      )) {
-        const state: ScheduledMaintenanceState | undefined = projectStates.find(
-          (candidate: ScheduledMaintenanceState): boolean => {
-            return candidate.id?.toString() === stateId.toString();
-          },
-        );
-
-        // The ongoing states are asked for by their flag already.
+      for (const state of projectStates) {
+        // The built-in state is asked for by its flag already.
         if (
-          state &&
-          ScheduledMaintenanceStartUtil.isInProgressByFlags(state) === null
+          state.id &&
+          ScheduledMaintenanceStartUtil.isStateOfItsOwn(state) &&
+          data.isInPhase({ states: projectStates, state: state })
         ) {
-          inProgressStateIdsOfTheirOwn.push(stateId);
+          stateIdsOfTheirOwn.push(state.id);
         }
       }
     }
 
-    if (inProgressStateIdsOfTheirOwn.length === 0) {
-      return [ongoingStateQuery];
+    if (stateIdsOfTheirOwn.length === 0) {
+      return [builtInStateQuery];
     }
 
     return [
-      ongoingStateQuery,
+      builtInStateQuery,
       {
-        currentScheduledMaintenanceStateId: QueryHelper.any(
-          inProgressStateIdsOfTheirOwn,
-        ),
+        currentScheduledMaintenanceStateId: QueryHelper.any(stateIdsOfTheirOwn),
       } as Query<ScheduledMaintenance>,
     ];
   }

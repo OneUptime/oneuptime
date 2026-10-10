@@ -78,6 +78,13 @@ import {
   mockProjectStates,
   openStateIds,
 } from "../../TestingUtils/Services/ProjectStatesHelper";
+import {
+  PROGRESS_STATE_KEYS,
+  ProgressStateKey,
+  makeProgressStates,
+  mockProgressStateReads,
+  progressStateId,
+} from "../../TestingUtils/ScheduledMaintenanceProgressWorld";
 
 const projectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
@@ -1204,6 +1211,11 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
   beforeEach((): void => {
     // Open: in a state above the project's resolved state.
     mockProjectStates();
+    /*
+     * A scheduled maintenance event is open until it is complete: every
+     * state but Completed and the project's own states after it.
+     */
+    mockProgressStateReads(makeProgressStates(projectId));
   });
 
   test("collects the Teams channels of open and recently changed resources", async () => {
@@ -1376,15 +1388,36 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
     },
   );
 
-  test("open scheduled maintenance query", async () => {
-    await expect(
-      MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
+  /*
+   * A scheduled maintenance event is open until it is complete
+   * (ScheduledMaintenanceStartUtil.isComplete): asked for by the states it
+   * is not complete in - every state but Completed and the project's own
+   * states after it ("Archived"). The completed flag alone counted an
+   * event moved on to "Archived" as open, and kept its channels watched.
+   */
+  test("open scheduled maintenance query: the project's states it is not complete in", async () => {
+    const query: JSONObject =
+      await MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
         resourceType: WorkspaceNoteResourceType.ScheduledMaintenance,
         projectId: projectId,
-      }),
-    ).resolves.toEqual({
-      currentScheduledMaintenanceState: { isResolvedState: false },
-    });
+      });
+
+    expect(Object.keys(query)).toEqual(["currentScheduledMaintenanceStateId"]);
+    expect(
+      idsOfAnyFilter(query["currentScheduledMaintenanceStateId"])
+        .map((id: string): string => {
+          return id.toLowerCase();
+        })
+        .sort(),
+    ).toEqual(
+      PROGRESS_STATE_KEYS.filter((key: ProgressStateKey): boolean => {
+        return key !== "completed" && key !== "archived";
+      })
+        .map((key: ProgressStateKey): string => {
+          return progressStateId(key).toString().toLowerCase();
+        })
+        .sort(),
+    );
   });
 });
 

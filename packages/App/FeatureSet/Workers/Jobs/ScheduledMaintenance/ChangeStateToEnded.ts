@@ -7,10 +7,13 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Query from "Common/Server/Types/Database/Query";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
 
 /*
  * Ends every event in progress whose end time has passed: moves it into its
- * project's ended state. In progress is the one rule
+ * project's ended state - the first from the top flagged ended
+ * (ScheduledMaintenanceStartUtil.getEndedState), read once per project on
+ * each run. In progress is the one rule
  * (Common/Utils/ScheduledMaintenanceStart): in the project's ongoing state,
  * or in a state of the project's own placed between Ongoing and Ended, such
  * as "Verifying" - an event moved on to one of those is ended at its end
@@ -67,20 +70,31 @@ RunCron(
 
     // change their state to Ended.
 
+    const endedStateByProjectId: Map<string, ScheduledMaintenanceState | null> =
+      new Map<string, ScheduledMaintenanceState | null>();
+
     for (const event of events) {
+      const projectKey: string = event.projectId?.toString() || "";
+
+      if (!endedStateByProjectId.has(projectKey)) {
+        endedStateByProjectId.set(
+          projectKey,
+          ScheduledMaintenanceStartUtil.getEndedState({
+            states:
+              await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+                {
+                  projectId: event.projectId!,
+                  props: {
+                    isRoot: true,
+                  },
+                },
+              ),
+          }),
+        );
+      }
+
       const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-        await ScheduledMaintenanceStateService.findOneBy({
-          query: {
-            projectId: event.projectId!,
-            isEndedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        endedStateByProjectId.get(projectKey) || null;
 
       if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
         continue;

@@ -123,9 +123,9 @@ export interface WorkspaceEventRecord extends WorkspaceEvent {
  * (Common/Utils/AcknowledgedState), and resolved in its resolved state or
  * after it (Common/Utils/ResolvedState). A scheduled maintenance event has
  * started once it is ongoing or anything after it
- * (ScheduledMaintenanceStartUtil), and is complete in its completed state or
- * after it (ScheduledMaintenanceStateService.isCompleteAmong). What does not
- * apply to a kind is false.
+ * (ScheduledMaintenanceStartUtil.hasStarted), and is complete in its
+ * completed state or after it (ScheduledMaintenanceStartUtil.isComplete).
+ * What does not apply to a kind is false.
  */
 export interface WorkspaceEventStanding {
   isAcknowledged: boolean;
@@ -586,9 +586,9 @@ export default class WorkspaceMemberActions {
 
     if (event.type === WorkspaceEventType.ScheduledMaintenance) {
       const completedState: ScheduledMaintenanceState | null =
-        ScheduledMaintenanceStateService.getCompletedStateAmong(
-          states as Array<ScheduledMaintenanceState>,
-        );
+        ScheduledMaintenanceStartUtil.getCompletedState({
+          states: states as Array<ScheduledMaintenanceState>,
+        });
 
       if (!completedState || !completedState.id) {
         throw new BadDataException(
@@ -903,9 +903,9 @@ export default class WorkspaceMemberActions {
             },
           ),
         }),
-        isComplete: ScheduledMaintenanceStateService.isCompleteAmong({
+        isComplete: ScheduledMaintenanceStartUtil.isComplete({
           states: maintenanceStates,
-          stateId: event.currentStateId,
+          state: { _id: event.currentStateId },
         }),
       };
     }
