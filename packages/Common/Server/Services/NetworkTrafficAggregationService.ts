@@ -563,11 +563,16 @@ export default class NetworkTrafficAggregationService {
       -NETWORK_TRAFFIC_SOURCES_LOOKBACK_MINUTES,
     );
 
+    /*
+     * The newest format a row recorded: rows from a probe older than formats
+     * carry none (''), and one of those - written later, or in the same
+     * batch - must not hide it. probeId needs no guard: argMax skips NULLs.
+     */
     const statement: Statement = SQL`
       SELECT
         networkDeviceId,
         exporterIp,
-        argMax(flowFormat, ingestedAt) AS latestFormat,
+        argMaxIf(flowFormat, ingestedAt, flowFormat != '') AS latestFormat,
         max(greatest(samplingRate, 1)) AS maxSamplingRate,
         argMax(probeId, ingestedAt) AS latestProbeId,
         max(ingestedAt) AS lastFlowAt,

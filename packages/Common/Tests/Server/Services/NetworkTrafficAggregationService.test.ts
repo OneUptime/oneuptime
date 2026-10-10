@@ -180,6 +180,19 @@ describe("every page read is bounded in time and memory", () => {
     expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
   });
 
+  test("the sources list takes the newest format a row recorded, never an older probe's empty one", () => {
+    const statement: Statement =
+      NetworkTrafficAggregationService.buildSourcesStatement({
+        projectId: PROJECT,
+        devices: { serviceIds: [READABLE] },
+        now: new Date("2026-09-01T12:00:00.000Z"),
+      });
+
+    expect(statement.query).toContain(
+      "argMaxIf(flowFormat, ingestedAt, flowFormat != '') AS latestFormat",
+    );
+  });
+
   test("a device's newest flow reads one row, backwards along the sort key", () => {
     const statement: Statement =
       NetworkTrafficAggregationService.buildLastFlowStatement({

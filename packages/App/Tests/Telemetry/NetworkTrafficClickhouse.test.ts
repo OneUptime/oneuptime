@@ -715,6 +715,69 @@ integration("network traffic reads against ClickHouse", () => {
     expect(byExporter.get("10.0.0.1")!.lastFlowAt).toBeTruthy();
   });
 
+  test("a row an older probe writes later never hides the format and probe a newer one recorded", async () => {
+    // A project of its own, so no other read here counts these rows.
+    const project: ObjectID = ObjectID.generate();
+    const device: ObjectID = ObjectID.generate();
+    const recordedAt: Date = OneUptimeDate.getCurrentDate();
+
+    const row: (values: JSONObject) => JSONObject = (
+      values: JSONObject,
+    ): JSONObject => {
+      return {
+        _id: ObjectID.generateTimeOrdered().toString(),
+        createdAt: OneUptimeDate.toClickhouseDateTime(recordedAt),
+        projectId: project.toString(),
+        networkDeviceId: device.toString(),
+        exporterIp: "10.0.0.1",
+        srcIp: "10.0.0.7",
+        dstIp: "10.0.0.8",
+        srcPort: 0,
+        dstPort: 22,
+        protocol: 6,
+        inputInterfaceIndex: 0,
+        outputInterfaceIndex: 0,
+        octets: 1_000,
+        packets: 10,
+        flowStartAt: OneUptimeDate.toClickhouseDateTime64(at(40)),
+        flowEndAt: OneUptimeDate.toClickhouseDateTime64(at(40)),
+        ...values,
+      };
+    };
+
+    await NetworkFlowService.insertJsonRows([
+      // What an up-to-date probe writes.
+      row({
+        flowFormat: NetworkFlowFormat.Ipfix,
+        samplingRate: 1,
+        flowCount: 1,
+        probeId: PROBE.toString(),
+        ingestedAt: OneUptimeDate.toClickhouseDateTime64(recordedAt),
+      }),
+      // Thirty seconds later, the same exporter through a probe older than formats.
+      row({
+        ingestedAt: OneUptimeDate.toClickhouseDateTime64(
+          OneUptimeDate.addRemoveSeconds(recordedAt, 30),
+        ),
+      }),
+    ]);
+
+    const sources: Array<NetworkTrafficSource> =
+      await NetworkTrafficAggregationService.getSources({
+        projectId: project,
+        devices: EVERY_DEVICE,
+        now: WINDOW_END,
+      });
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0]).toMatchObject({
+      networkDeviceId: device.toString(),
+      flowFormat: NetworkFlowFormat.Ipfix,
+      probeId: PROBE.toString(),
+      flows: 1 + 1,
+    });
+  });
+
   test("a device's newest flow is found reading the sort key backwards", async () => {
     const newest: string | null =
       await NetworkTrafficAggregationService.getLastFlowAt({
