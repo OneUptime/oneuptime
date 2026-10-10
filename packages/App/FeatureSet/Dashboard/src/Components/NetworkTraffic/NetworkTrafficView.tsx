@@ -179,11 +179,11 @@ function toDate(value: string): Date {
 /*
  * Nothing in a window that was zoomed into: the way back is where the
  * pointer already is (a double-click here, like on the chart), or Reset
- * zoom beside the picker.
+ * zoom beside the picker. The sentences name no device: the page says whose
+ * traffic it is, and a whole sentence translates where a pasted-in noun
+ * would not.
  */
-const ZoomedEmptyState: FunctionComponent<{
-  noun: string;
-}> = (props: { noun: string }): ReactElement => {
+const ZoomedEmptyState: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
   const rangeBeforeZoom: RangeStartAndEndDateTime | null =
@@ -204,22 +204,17 @@ const ZoomedEmptyState: FunctionComponent<{
         {zoom?.onTimeRangeReset
           ? rangeBeforeZoom && rangeBeforeZoom.range !== TimeRange.CUSTOM
             ? translator.translateTemplate(
-                "No flow records from {{noun}} in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.",
+                "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.",
                 {
-                  noun: props.noun,
                   range: translatableTerm(rangeBeforeZoom.range, {
                     inSentence: true,
                   }),
                 },
               )
-            : translator.translateTemplate(
-                "No flow records from {{noun}} in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.",
-                { noun: props.noun },
+            : translator.translateText(
+                "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.",
               )
-          : translator.translateTemplate(
-              "No flow records from {{noun}} in this time range.",
-              { noun: props.noun },
-            )}
+          : translator.translateText("No flow records in this time range.")}
       </p>
     </div>
   );
@@ -344,13 +339,6 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   const isFiltered: boolean = NetworkTrafficFiltersUtil.isFiltered(
     view.filters,
   );
-
-  const noun: string =
-    (scope.kind === "device"
-      ? translator.translateText("this device")
-      : scope.kind === "site"
-        ? translator.translateText("this site's devices")
-        : translator.translateText("your devices")) || "";
 
   // ---- Click to filter ---------------------------------------------------
 
@@ -1038,7 +1026,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                       </div>
                     </div>
                   ) : (
-                    <ZoomedEmptyState noun={noun} />
+                    <ZoomedEmptyState />
                   )}
                 </Fragment>
               )}

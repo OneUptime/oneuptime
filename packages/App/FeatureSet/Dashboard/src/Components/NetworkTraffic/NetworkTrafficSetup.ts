@@ -42,8 +42,11 @@ export enum TrafficSetupVendor {
 
 export interface TrafficSetupGuide {
   vendor: TrafficSetupVendor;
-  // The tab's name: a product name, the same in every language.
-  label: string;
+  /*
+   * The tab's name: a product name, the same in every language - except
+   * "Other devices" (OTHER_DEVICES_NAME), which is translated.
+   */
+  name: string;
   // What the device sends, and to which port.
   format: string;
   port: number;
@@ -65,6 +68,10 @@ export const COLLECTOR_PORTS: {
   ipfix: DEFAULT_IPFIX_COLLECTOR_PORT,
   sFlow: DEFAULT_SFLOW_COLLECTOR_PORT,
 };
+
+export const OTHER_DEVICES_NAME: string = translationKey("Other devices");
+// What the other devices send: any of the three (the tab says no port).
+const OTHER_DEVICES_FORMAT: string = translationKey("NetFlow, IPFIX or sFlow");
 
 const STEP_PASTE_CONFIGURATION: string = translationKey(
   "Paste this into the device's configuration, with your probe's IP address in place of <probe-address>.",
@@ -104,7 +111,7 @@ export function getTrafficSetupGuides(): Array<TrafficSetupGuide> {
   return [
     {
       vendor: TrafficSetupVendor.CiscoIosXe,
-      label: "Cisco IOS XE",
+      name: "Cisco IOS XE",
       format: "IPFIX",
       port: COLLECTOR_PORTS.ipfix,
       configuration: [
@@ -129,7 +136,7 @@ export function getTrafficSetupGuides(): Array<TrafficSetupGuide> {
     },
     {
       vendor: TrafficSetupVendor.CiscoIos,
-      label: "Cisco IOS",
+      name: "Cisco IOS",
       format: "NetFlow v9",
       port: COLLECTOR_PORTS.netFlow,
       configuration: [
@@ -146,7 +153,7 @@ export function getTrafficSetupGuides(): Array<TrafficSetupGuide> {
     },
     {
       vendor: TrafficSetupVendor.Arista,
-      label: "Arista EOS",
+      name: "Arista EOS",
       format: "sFlow",
       port: COLLECTOR_PORTS.sFlow,
       configuration: [
@@ -159,7 +166,7 @@ export function getTrafficSetupGuides(): Array<TrafficSetupGuide> {
     },
     {
       vendor: TrafficSetupVendor.Meraki,
-      label: "Cisco Meraki MX / Z",
+      name: "Cisco Meraki MX / Z",
       format: "NetFlow v9",
       port: COLLECTOR_PORTS.netFlow,
       configuration: null,
@@ -172,8 +179,8 @@ export function getTrafficSetupGuides(): Array<TrafficSetupGuide> {
     },
     {
       vendor: TrafficSetupVendor.Other,
-      label: "Other devices",
-      format: "NetFlow, IPFIX or sFlow",
+      name: OTHER_DEVICES_NAME,
+      format: OTHER_DEVICES_FORMAT,
       port: COLLECTOR_PORTS.netFlow,
       configuration: null,
       steps: [STEP_OTHER_FORMATS, STEP_OTHER_TIMEOUTS, STEP_OTHER_DOCS],

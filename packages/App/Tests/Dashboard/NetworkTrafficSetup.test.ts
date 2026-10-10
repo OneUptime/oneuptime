@@ -86,7 +86,7 @@ describe("the vendor guides", () => {
   test("cover Cisco IOS XE, Cisco IOS, Arista, Cisco Meraki MX / Z and everything else, in that order", () => {
     expect(
       getTrafficSetupGuides().map((guide: TrafficSetupGuide): string => {
-        return guide.label;
+        return guide.name;
       }),
     ).toEqual([
       "Cisco IOS XE",

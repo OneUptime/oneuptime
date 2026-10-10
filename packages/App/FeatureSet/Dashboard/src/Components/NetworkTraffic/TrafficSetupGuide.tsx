@@ -201,8 +201,8 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
                     data-testid={`traffic-setup-vendor-${candidate.vendor}`}
                   >
                     {candidate.vendor === TrafficSetupVendor.Other
-                      ? translator.translateText(candidate.label)
-                      : candidate.label}
+                      ? translator.translateText(candidate.name)
+                      : candidate.name}
                   </button>
                 );
               })}

@@ -584,7 +584,7 @@ describe("Traffic page: an empty window after a zoom is not an onboarding screen
     const empty: HTMLElement = await screen.findByTestId("traffic-no-data");
     expect(empty).toHaveTextContent("No traffic in the selected time range.");
     expect(empty).toHaveTextContent(
-      "No flow records from this device in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the past 1 hour.",
+      "No flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the past 1 hour.",
     );
     expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
     // It takes the double-click, so a double-click must not select a word.
@@ -631,7 +631,7 @@ describe("Traffic page: an empty window after a zoom is not an onboarding screen
       "No flow records in the last hour.",
     );
     expect(screen.getByTestId("traffic-no-data")).toHaveTextContent(
-      "No flow records from this device in this time range.",
+      "No flow records in this time range.",
     );
     expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
   });
@@ -664,7 +664,7 @@ describe("Traffic page: an empty window after a zoom is not an onboarding screen
     ]).toEqual([CUSTOM_START.toISOString(), CUSTOM_END.toISOString()]);
     expect(empty).toHaveTextContent("No traffic in the selected time range.");
     expect(empty).toHaveTextContent(
-      "No flow records from this device in this time range.",
+      "No flow records in this time range.",
     );
     expect(empty).not.toHaveTextContent("Double-click");
     expect(screen.queryByTestId("traffic-setup-guide")).not.toBeInTheDocument();
