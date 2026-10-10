@@ -90,6 +90,23 @@ import Span from "../../Models/AnalyticsModels/Span";
 import Metric from "../../Models/AnalyticsModels/Metric";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import LlmConversationService, {
+  LlmConversationDetail,
+} from "../Services/LlmConversationService";
+import {
+  LLM_CONVERSATIONS_ROUTE,
+  LLM_CONVERSATION_DEFAULT_LOOKBACK_MS,
+  LLM_CONVERSATION_HINT_PADDING_MS,
+  LLM_CONVERSATION_MAX_PAGE_SIZE,
+  LLM_CONVERSATION_PAGE_SIZE,
+  LLM_CONVERSATION_ROUTE,
+  LlmConversationKey,
+  LlmConversationKeyUtil,
+  LlmConversationListResponse,
+  readConversationIssueFilter,
+  readConversationSort,
+  readFilterText,
+} from "../../Types/Telemetry/LlmConversationApi";
 import PromiseCache from "../Utils/PromiseCache";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
@@ -1678,6 +1695,234 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         data: data as unknown as JSONObject,
       });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- AI / LLM Conversations ---
+
+/*
+ * A date from a request body, or the fallback when it is missing or not a
+ * date. Never throws: a bad date is the caller's to fix, and the route
+ * answers with the window it used.
+ */
+function readBodyDate(value: unknown, fallback: Date): Date {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return fallback;
+  }
+
+  const parsed: Date = new Date(value);
+
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+function readBodyServiceIds(value: unknown): Array<ObjectID> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const ids: Array<ObjectID> = value
+    .filter((id: unknown): id is string => {
+      return typeof id === "string" && ObjectID.isValidUUID(id);
+    })
+    .map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
+
+  return ids.length > 0 ? ids : undefined;
+}
+
+function clampInteger(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const parsed: number = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
+/*
+ * The AI conversations of a time range: calls grouped by conversation id
+ * (or by trace when none was sent), one row each, with the summary and the
+ * per-issue counts the page shows above them. Same read access as the
+ * traces the calls are; the caller's service scope narrows the read.
+ */
+router.post(
+  LLM_CONVERSATIONS_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const endTime: Date = readBodyDate(
+        body["endTime"],
+        OneUptimeDate.getCurrentDate(),
+      );
+      const startTime: Date = readBodyDate(
+        body["startTime"],
+        OneUptimeDate.addRemoveDays(endTime, -7),
+      );
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+          requested: readBodyServiceIds(body["serviceIds"]),
+        });
+
+      const result: LlmConversationListResponse =
+        await LlmConversationService.listConversations({
+          projectId: databaseProps.tenantId,
+          startTime: startTime,
+          endTime: endTime,
+          serviceIds: serviceFilter.serviceIds,
+          excludedServiceIds: serviceFilter.excludedServiceIds,
+          model: readFilterText(body["model"]),
+          person: readFilterText(body["person"]),
+          search: readFilterText(body["search"]),
+          issue: readConversationIssueFilter(body["issue"]),
+          sort: readConversationSort(body["sort"]),
+          limit: clampInteger(
+            body["limit"],
+            LLM_CONVERSATION_PAGE_SIZE,
+            1,
+            LLM_CONVERSATION_MAX_PAGE_SIZE,
+          ),
+          skip: clampInteger(body["skip"], 0, 0, 100_000),
+          includeSummary: body["includeSummary"] === true,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * One conversation as a transcript. The time hint (the list row's first and
+ * last call) keeps the read on the partitions that hold it; without one the
+ * last 30 days are read.
+ */
+router.post(
+  LLM_CONVERSATION_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const key: LlmConversationKey | null = LlmConversationKeyUtil.decode(
+        body["key"],
+      );
+
+      if (!key) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("This is not a conversation."),
+        );
+      }
+
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const hintStart: Date | null =
+        typeof body["startTime"] === "string"
+          ? readBodyDate(body["startTime"], now)
+          : null;
+      const hintEnd: Date | null =
+        typeof body["endTime"] === "string"
+          ? readBodyDate(body["endTime"], now)
+          : null;
+
+      const startTime: Date = hintStart
+        ? new Date(hintStart.getTime() - LLM_CONVERSATION_HINT_PADDING_MS)
+        : new Date(now.getTime() - LLM_CONVERSATION_DEFAULT_LOOKBACK_MS);
+      const endTime: Date = hintEnd
+        ? new Date(
+            Math.min(
+              hintEnd.getTime() + LLM_CONVERSATION_HINT_PADDING_MS,
+              now.getTime() + LLM_CONVERSATION_HINT_PADDING_MS,
+            ),
+          )
+        : now;
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+        });
+
+      const detail: LlmConversationDetail =
+        await LlmConversationService.getConversation({
+          projectId: databaseProps.tenantId,
+          key: key,
+          startTime: startTime,
+          endTime: endTime,
+          serviceIds: serviceFilter.serviceIds,
+          excludedServiceIds: serviceFilter.excludedServiceIds,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        detail as unknown as JSONObject,
+      );
     } catch (err: unknown) {
       next(err);
     }
