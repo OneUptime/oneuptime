@@ -315,8 +315,7 @@ class WriteQueryReader {
       isWrite =
         namesWriteType(declaration.type, this.scan) ||
         Boolean(
-          declaration.initializer &&
-            this.copiesWrite(declaration.initializer),
+          declaration.initializer && this.copiesWrite(declaration.initializer),
         );
     } else if (ts.isBindingElement(declaration)) {
       const taken: string | null = propertyNameText(

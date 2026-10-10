@@ -289,8 +289,7 @@ beforeEach(() => {
     rowReads.push({ findBy: findBy });
 
     return storedAnnouncements.map((id: string): StatusPageAnnouncement => {
-      const announcement: StatusPageAnnouncement =
-        new StatusPageAnnouncement();
+      const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
       announcement._id = id;
       announcement.projectId = PROJECT_ID;
       announcement.statusPages = asStatusPages(storedPages);
@@ -648,14 +647,16 @@ describe("an update that gives a record a parent it does not have", () => {
  * was not read has the rows read again.
  */
 describe("a hook that holds an update to the rows it reads", () => {
-  const UNREAD_ANNOUNCEMENT_ID: string =
-    "0193c0de-ffff-4aaa-8bbb-00000000c003";
+  const UNREAD_ANNOUNCEMENT_ID: string = "0193c0de-ffff-4aaa-8bbb-00000000c003";
 
   // An update of every announcement named Launch: two of them.
-  const updateLaunches: (data: Record<string, unknown>) => Promise<number> =
-    async (data: Record<string, unknown>): Promise<number> => {
-      return await updateAnnouncementsWhere({ title: "Launch" }, data);
-    };
+  const updateLaunches: (
+    data: Record<string, unknown>,
+  ) => Promise<number> = async (
+    data: Record<string, unknown>,
+  ): Promise<number> => {
+    return await updateAnnouncementsWhere({ title: "Launch" }, data);
+  };
 
   test("an update of several rows reads them with their pages once, and asks about the page it adds once", async () => {
     service.holdsUpdateInHook = true;

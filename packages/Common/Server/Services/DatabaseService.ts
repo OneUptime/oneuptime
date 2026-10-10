@@ -218,17 +218,23 @@ const idConditionsNamingRows: WeakMap<
 
 /*
  * The query each update was left with once it passed its permission check
- * (ModelPermission.checkUpdateQueryPermissions): one that names only rows
- * its caller may write. A hook that runs after that check
- * (onBeforeUpdateUniqueCheck, onUpdatePermitted) and asks for the rows the
- * update writes (findRowsAndHoldUpdateToThem) has them read with this query,
- * in the update's window, while the update still holds it - the read the
- * update itself makes - with no second check and no second read.
+ * (ModelPermission.checkUpdateQueryPermissions) - one that names only rows
+ * its caller may write - with its entries as that check left them. A hook
+ * that runs after that check (onBeforeUpdateUniqueCheck, onUpdatePermitted)
+ * and asks for the rows the update writes (findRowsAndHoldUpdateToThem) has
+ * them read with this query, in the update's window, while the update still
+ * holds it as it was - the read the update itself makes - with no second
+ * check and no second read. A hook that put another query in its place, or
+ * changed this one in place, has the rows its caller may write read first,
+ * as a hook before the checks has.
  */
-const queriesPermittedForUpdate: WeakMap<WriteOfRows, unknown> = new WeakMap<
-  WriteOfRows,
-  unknown
->();
+interface PermittedUpdateQuery {
+  query: unknown;
+  entries: Array<[string, unknown]>;
+}
+
+const queriesPermittedForUpdate: WeakMap<WriteOfRows, PermittedUpdateQuery> =
+  new WeakMap<WriteOfRows, PermittedUpdateQuery>();
 
 /*
  * A switch an update turns, and the who and when columns the server stamped
@@ -3017,27 +3023,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
-    if (
-      readBy.query !== updateBy.query ||
-      readBy.skip !== updateBy.skip ||
-      readBy.limit !== updateBy.limit
-    ) {
-      return false;
-    }
+    return (
+      readBy.query === updateBy.query &&
+      readBy.skip === updateBy.skip &&
+      readBy.limit === updateBy.limit &&
+      DatabaseService.hasSameEntries(updateBy.query, readBy.queryEntries)
+    );
+  }
 
-    const entries: Array<[string, unknown]> = Object.entries(updateBy.query);
+  /*
+   * Whether `query` still holds exactly `entries` - the same keys, in the
+   * same order, each with the very same value: nothing was put in it, taken
+   * off it or changed since they were taken (isReadBySameUpdate,
+   * isPermittedUpdateQuery).
+   */
+  private static hasSameEntries(
+    query: unknown,
+    entries: Array<[string, unknown]>,
+  ): boolean {
+    const now: Array<[string, unknown]> = Object.entries(
+      (query || {}) as Dictionary<unknown>,
+    );
 
     return (
-      entries.length === readBy.queryEntries.length &&
-      entries.every((entry: [string, unknown], index: number): boolean => {
-        const readEntry: [string, unknown] | undefined =
-          readBy.queryEntries[index];
+      now.length === entries.length &&
+      now.every((entry: [string, unknown], index: number): boolean => {
+        const then: [string, unknown] | undefined = entries[index];
 
-        return (
-          Boolean(readEntry) &&
-          entry[0] === readEntry![0] &&
-          entry[1] === readEntry![1]
-        );
+        return Boolean(then) && entry[0] === then![0] && entry[1] === then![1];
       })
     );
   }
@@ -7087,9 +7100,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const withDeleted: boolean =
       type === DatabaseRequestType.Delete && hardDeletes.has(write);
 
-    const isCallerLimited: boolean = !DatabaseService.writesAnyRow(
-      write.props,
-    );
+    const isCallerLimited: boolean = !DatabaseService.writesAnyRow(write.props);
 
     /*
      * The rows the read keeps to: the rows the caller may write, read before
@@ -7179,19 +7190,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * Whether `write` is an update that has passed its permission check and
-   * still holds the query that check left it with (queriesPermittedForUpdate)
-   * - asked by a hook that runs after the check - with no rows of it read
-   * before (rowsTheCallerMayWrite), which a read would keep to. Its query
-   * names none but rows its caller may write.
+   * still holds the query that check left it with, as it left it
+   * (queriesPermittedForUpdate) - asked by a hook that runs after the check
+   * - with no rows of it read before (rowsTheCallerMayWrite), which a read
+   * would keep to. Its query names none but rows its caller may write.
    */
   private isPermittedUpdateQuery(
     write: WriteInWindow<TBaseModel>,
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
   ): boolean {
+    if (
+      type !== DatabaseRequestType.Update ||
+      rowsTheCallerMayWrite.has(write)
+    ) {
+      return false;
+    }
+
+    const permitted: PermittedUpdateQuery | undefined =
+      queriesPermittedForUpdate.get(write);
+
     return (
-      type === DatabaseRequestType.Update &&
-      !rowsTheCallerMayWrite.has(write) &&
-      queriesPermittedForUpdate.get(write) === write.query
+      Boolean(permitted) &&
+      permitted!.query === write.query &&
+      DatabaseService.hasSameEntries(write.query, permitted!.entries)
     );
   }
 
@@ -8316,7 +8337,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       // What the hooks below read the rows it writes by. See the map.
-      queriesPermittedForUpdate.set(beforeUpdateBy, beforeUpdateBy.query);
+      queriesPermittedForUpdate.set(beforeUpdateBy, {
+        query: beforeUpdateBy.query,
+        entries: Object.entries(beforeUpdateBy.query as Dictionary<unknown>),
+      });
 
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {

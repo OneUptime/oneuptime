@@ -1763,7 +1763,7 @@ const watchProviderReads: (
   const asked: Array<{ query: Record<string, unknown> }> = [];
   let reads: number = 0;
 
-  for (const method of ["findBy", "findByWithDeleted"]) {
+  const watch: (method: string) => void = (method: string): void => {
     const service: Record<
       string,
       (...args: Array<unknown>) => Promise<unknown>
@@ -1771,8 +1771,9 @@ const watchProviderReads: (
       string,
       (...args: Array<unknown>) => Promise<unknown>
     >;
-    const read: (...args: Array<unknown>) => Promise<unknown> =
-      service[method]!.bind(kind.service);
+    const read: (...args: Array<unknown>) => Promise<unknown> = service[
+      method
+    ]!.bind(kind.service);
 
     getJestSpyOn(kind.service, method as never).mockImplementation((async (
       ...args: Array<unknown>
@@ -1797,7 +1798,10 @@ const watchProviderReads: (
 
       return answer;
     }) as never);
-  }
+  };
+
+  watch("findBy");
+  watch("findByWithDeleted");
 
   return asked;
 };

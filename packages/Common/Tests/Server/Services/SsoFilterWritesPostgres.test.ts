@@ -246,10 +246,11 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
   ): void => {
     let hasLanded: boolean = false;
 
-    for (const method of [
-      "findRowsAndHoldUpdateToThem",
-      "findRowsAndHoldDeleteToThem",
-    ] as const) {
+    const watch: (
+      method: "findRowsAndHoldUpdateToThem" | "findRowsAndHoldDeleteToThem",
+    ) => void = (
+      method: "findRowsAndHoldUpdateToThem" | "findRowsAndHoldDeleteToThem",
+    ): void => {
       const readAndHold: (...args: Array<unknown>) => Promise<unknown> = (
         service[method] as unknown as (
           ...args: Array<unknown>
@@ -268,7 +269,10 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
 
         return answer;
       }) as never);
-    }
+    };
+
+    watch("findRowsAndHoldUpdateToThem");
+    watch("findRowsAndHoldDeleteToThem");
   };
 
   const refusalOf: (write: Promise<unknown>) => Promise<unknown> = async (

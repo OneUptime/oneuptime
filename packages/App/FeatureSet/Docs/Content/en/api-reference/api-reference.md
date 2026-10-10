@@ -151,6 +151,16 @@ A delete that reached nothing used to answer `200`. Updates and deletes by query
 
 Telemetry follows the same rule. A delete of logs, traces, metrics, exceptions, profiles or session replays reaches the rows of the resources - services, hosts, clusters and the like - whose telemetry you may both read and delete, and is made in one project at a time: a request across all of your projects is refused. A delete of one row by its ID that reaches nothing answers `404` or `422` as above.
 
+### Changes are made in one project at a time
+
+An update or a delete of a project's records is made in the project the request names: the `tenantid` header, or, for an API key, the key's own project. A signed-in user's update or delete that names no project, or that asks across all of their projects with the `is-multi-tenant-query` header, is refused with `400`:
+
+```text
+Changes to incidents are made in one project at a time. Please pass the project ID in the 'tenantid' header.
+```
+
+Such a request used to fail with `500`. Reads may still ask across all of your projects.
+
 ### Reading one record by its ID
 
 A read of one record by its ID - `POST /api/<resource>/<id>/get-item` - answers `404` when the record does not exist, is in another project, or is one you may not read, the same answer for each:

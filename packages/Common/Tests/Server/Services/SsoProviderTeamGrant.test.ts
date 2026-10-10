@@ -459,33 +459,31 @@ function stubProviderReads(
   const reads: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
     service,
     "findBy",
-  ).mockImplementation(
-    async (findBy: unknown): Promise<Array<BaseModel>> => {
-      const query: Record<string, unknown> = (
-        findBy as { query: Record<string, unknown> }
-      ).query;
-      const ids: Array<string> | null = idsIn(query["_id"]);
+  ).mockImplementation(async (findBy: unknown): Promise<Array<BaseModel>> => {
+    const query: Record<string, unknown> = (
+      findBy as { query: Record<string, unknown> }
+    ).query;
+    const ids: Array<string> | null = idsIn(query["_id"]);
 
-      return providers
-        .filter((provider: FakeProvider): boolean => {
-          return (
-            (!ids || ids.includes(provider.id.toString().toLowerCase())) &&
-            (query["projectId"] === undefined ||
-              sameId(query["projectId"], provider.projectId))
-          );
-        })
-        .map((provider: FakeProvider): BaseModel => {
-          const model: BaseModel = new modelType();
-          Object.assign(model, provider.fields || {});
-          model.id = provider.id;
-          (model as unknown as Record<string, unknown>)["projectId"] =
-            provider.projectId;
-          (model as unknown as Record<string, unknown>)["teams"] =
-            provider.teams.map(toTeamModel);
-          return model;
-        });
-    },
-  );
+    return providers
+      .filter((provider: FakeProvider): boolean => {
+        return (
+          (!ids || ids.includes(provider.id.toString().toLowerCase())) &&
+          (query["projectId"] === undefined ||
+            sameId(query["projectId"], provider.projectId))
+        );
+      })
+      .map((provider: FakeProvider): BaseModel => {
+        const model: BaseModel = new modelType();
+        Object.assign(model, provider.fields || {});
+        model.id = provider.id;
+        (model as unknown as Record<string, unknown>)["projectId"] =
+          provider.projectId;
+        (model as unknown as Record<string, unknown>)["teams"] =
+          provider.teams.map(toTeamModel);
+        return model;
+      });
+  });
 
   stubRowsCallerMayWriteLikeFindBy(service as never, reads);
 
@@ -1212,9 +1210,9 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
 
       // Found by the query, its id alone...
       expect(reads).toHaveLength(2);
-      expect((reads[0]![0] as { select: Record<string, unknown> }).select).toEqual(
-        { _id: true },
-      );
+      expect(
+        (reads[0]![0] as { select: Record<string, unknown> }).select,
+      ).toEqual({ _id: true });
       // ...then its teams, by that id alone: the filter on teams is not in this read.
       expect(
         (reads[1]![0] as { query: Record<string, unknown> }).query,
@@ -1640,9 +1638,9 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
 
       expect(database.permissionReads).not.toHaveBeenCalled();
       // Held to no row.
-      expect(
-        (result.updateBy.query as Record<string, unknown>)["_id"],
-      ).toEqual({ anyOf: [] });
+      expect((result.updateBy.query as Record<string, unknown>)["_id"]).toEqual(
+        { anyOf: [] },
+      );
     });
   });
 });

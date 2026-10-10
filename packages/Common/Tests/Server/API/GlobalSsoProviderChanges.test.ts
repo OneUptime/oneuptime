@@ -646,13 +646,11 @@ const onHoldReads: (
   answer: (read: () => Promise<unknown>) => Promise<unknown>,
 ): void => {
   for (const method of ["findBy", "findByWithDeleted"]) {
-    const reads: Record<
-      string,
-      (...args: Array<unknown>) => Promise<unknown>
-    > = service as unknown as Record<
-      string,
-      (...args: Array<unknown>) => Promise<unknown>
-    >;
+    const reads: Record<string, (...args: Array<unknown>) => Promise<unknown>> =
+      service as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >;
     const read: (...args: Array<unknown>) => Promise<unknown> =
       reads[method]!.bind(service);
 

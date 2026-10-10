@@ -1047,7 +1047,6 @@ describe("a write the database may still apply keeps its locks until the databas
   });
 });
 
-
 /*
  * A sign-in change that names its rows by a filter reads them - and holds its
  * write to them - with the helper every check of a write's rows uses
