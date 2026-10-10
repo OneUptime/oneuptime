@@ -868,8 +868,7 @@ pgbouncer:
   # own default (120 s) such a statement started long after the app had
   # reported it failed. If you raise DATABASE_QUERY_TIMEOUT_MS, you may raise
   # this with it - keep it a few seconds below. 0 lets a statement wait for
-  # ever. See HelmChart/Docs/Postgres.md ("Statement timeout behind the
-  # pooler").
+  # ever. See HelmChart/Docs/Postgres.md ("Statements queued in the pooler").
   queryWaitTimeoutSeconds: 30
   # Startup parameters the app sends that pgbouncer must accept (otherwise it
   # rejects the connection with a FATAL "unsupported startup parameter"). The
@@ -880,10 +879,14 @@ pgbouncer:
   # so those server-side GUCs are not applied through the pooler.
   #
   # The app's client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) is NOT a
-  # substitute: it ABANDONS the query rather than cancelling it. The backend
-  # keeps executing and keeps its place in the lock queue, which is how killed
-  # and scaled-down workers left orphaned statements holding a queue through
-  # the pooler during the row-lock convoy incident.
+  # substitute. The app cancels a statement it stops waiting for, and closes
+  # its connection - pgbouncer passes the cancel on to the server connection
+  # the statement runs on - but a cancel cannot reach a backend whose
+  # connection is lost, nor a statement still in pgbouncer's queue
+  # (queryWaitTimeoutSeconds above). It used to cancel nothing at all: the
+  # backend kept executing and kept its place in the lock queue, which is how
+  # killed and scaled-down workers left orphaned statements holding a queue
+  # through the pooler during the row-lock convoy incident.
   # Server-side enforcement must therefore be set on the BACKEND — the chart
   # now ships lock_timeout in both postgresql.primary.configuration and
   # postgresOperator.cnpg.parameters. For an externalPostgres, set it yourself
