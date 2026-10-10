@@ -958,7 +958,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                           aria-label={translator.translateText(
                             "Find an IP address",
                           )}
-                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
+                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
                         />
                         {addressError ? (
                           <p className="mt-1 text-xs text-red-600">
