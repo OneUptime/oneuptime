@@ -28,6 +28,10 @@ import {
   prose,
   tableShape,
 } from "./DocsTranslationChecks";
+import {
+  CUSTOM_DOMAIN_STATUS,
+  CustomDomainCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -368,6 +372,24 @@ const MESSAGES: Record<string, Array<MessageLabel>> = {
     },
   ],
 };
+
+/*
+ * Sentences the Branding page quotes in plain text, which the Dashboard
+ * translates: what DNS Setup says once the record is found, what the folded
+ * More fields of a new domain says about its certificate, and the empty
+ * Footer Links table. A translation quotes each as its language's Dashboard
+ * words it.
+ */
+const QUOTED_SENTENCES: Record<string, Array<string>> = {
+  [BRANDING_AND_DOMAINS]: [
+    CustomDomainCopy.dnsSetupVerified,
+    CustomDomainCopy.advancedSummaryFreeCertificate,
+    "No status footer link for this status page.",
+  ],
+};
+
+// The Branding page's table of what the domain Status column says.
+const STATUS_COLUMN_SECTION: string = "Reading the domain Status column";
 
 /*
  * The Traces page's trace-pipeline recipe: a menu path written with ">" and
@@ -757,6 +779,42 @@ function anchorInLanguage(
 }
 
 /*
+ * What the Branding page's Status column table lists, in a language: the
+ * first cell of each row of the first table under the heading that sits
+ * where the English page's "Reading the domain Status column" sits.
+ */
+function statusColumnStates(language: string): Array<string> {
+  const index: number = sections(englishPage(BRANDING_AND_DOMAINS)).findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === STATUS_COLUMN_SECTION;
+    },
+  );
+  const markdown: string = readPage(language, BRANDING_AND_DOMAINS);
+  const heading: DocsHeading | undefined = sections(markdown)[index];
+
+  if (index < 0 || !heading) {
+    return [];
+  }
+
+  const below: Array<string> = markdown.split("\n").slice(heading.line);
+  const start: number = below.findIndex((line: string): boolean => {
+    return line.startsWith("|");
+  });
+  const states: Array<string> = [];
+
+  // Past the header row and the delimiter row, to the end of the table.
+  for (const line of below.slice(start + 2)) {
+    if (!line.startsWith("|")) {
+      break;
+    }
+
+    states.push((line.split("|")[1] || "").trim());
+  }
+
+  return states;
+}
+
+/*
  * The links of a page that name a heading of this page or of another page
  * in this group, in order, as "page#anchor". The anchors of another group's
  * page are that page's business: anchorProblems checks they land.
@@ -1020,6 +1078,23 @@ describe("the lists this test keeps", () => {
         heading: anchorInLanguage("en", link.to, link.anchor) === link.anchor,
       });
     }
+  });
+
+  it("quote sentences the English Branding page really quotes, and the Status column's every state", () => {
+    for (const page of Object.keys(QUOTED_SENTENCES)) {
+      for (const sentence of QUOTED_SENTENCES[page] as Array<string>) {
+        expect({ page, sentence, quoted: true, key: sentence }).toEqual({
+          page,
+          sentence,
+          quoted: englishPage(page).includes(sentence),
+          key: dashboardLocale("en")[sentence],
+        });
+      }
+    }
+
+    expect([...statusColumnStates("en")].sort()).toEqual(
+      Object.values(CUSTOM_DOMAIN_STATUS).sort(),
+    );
   });
 
   it("has the trace-pipeline recipe the Traces page bolds", () => {
@@ -1330,6 +1405,33 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
   });
 
+  describe("the custom domain Status column and the sentences the Branding page quotes", () => {
+    it("names every state of the Status column as this language's Dashboard draws it, in the English order", () => {
+      expect(statusColumnStates(language)).toEqual(
+        statusColumnStates("en").map((state: string): string => {
+          return flatLabel(language, state);
+        }),
+      );
+    });
+
+    it("quotes each sentence as this language's Dashboard words it", () => {
+      for (const page of Object.keys(QUOTED_SENTENCES)) {
+        const translated: string = readPage(language, page);
+        const missing: Array<string> = (
+          QUOTED_SENTENCES[page] as Array<string>
+        )
+          .map((sentence: string): string => {
+            return flatLabel(language, sentence);
+          })
+          .filter((drawn: string): boolean => {
+            return !translated.includes(drawn);
+          });
+
+        expect({ page, missing }).toEqual({ page, missing: [] });
+      }
+    });
+  });
+
   describe("the trace-pipeline recipe", () => {
     it("names its menu path and its filter as this language's Dashboard draws them", () => {
       const translated: string = readPage(language, TRACES_MONITOR);
@@ -1455,6 +1557,33 @@ describe("the helpers, on these pages' shapes", () => {
       "monitor/logs-monitor#criteria",
       "monitor/metrics-monitor#per-series-alerting-group-by",
     ]);
+  });
+
+  it("leave a diagram's words alone: an underscore in a node is not emphasis", async () => {
+    const diagram: string = [
+      "# Title",
+      "",
+      '```mermaid title="Without and with Group By"',
+      "flowchart TB",
+      '    subgraph With["Group by con_name"]',
+      "    end",
+      "```",
+    ].join("\n");
+
+    expect(await strayMarkers(diagram, "de")).toEqual([]);
+    // The same words in the text would show their underscore.
+    expect(
+      await strayMarkers("# Title\n\nGroup by con_name.", "de"),
+    ).toHaveLength(1);
+  });
+
+  it("read the Status column of the English page as the Dashboard's states", () => {
+    expect(statusColumnStates("en")).toContain(
+      "Waiting for DNS: add the CNAME record.",
+    );
+    expect(statusColumnStates("en")).toHaveLength(
+      Object.keys(CUSTOM_DOMAIN_STATUS).length,
+    );
   });
 
   it("find asterisks the renderer leaves when a bold span ends in punctuation and runs into a letter", async () => {
