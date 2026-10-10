@@ -1,9 +1,11 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 
 /*
  * The toolbox is the authorization gate for everything the AI can do with a
@@ -609,4 +611,199 @@ describe("AIToolbox.executeTool", () => {
     expect(outcome.success).toBe(false);
     expect(outcome.errorMessage).toBe("just a string");
   });
+});
+
+/*
+ * A tool that changes the project writes as the person who asked for it,
+ * with their own props, so a run that is no person - a system run as
+ * OneUptime, an autonomous investigation - has nobody to write as and
+ * changes nothing. And a change the person may not make is no mistake in
+ * the arguments: the model is told it was refused, why, and not to retry.
+ */
+describe("AIToolbox.executeTool and the person a change is made as", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function mutationTool(): ObservabilityTool {
+    const tool: ObservabilityTool | undefined =
+      AIToolbox.getToolByName("acknowledge_incident");
+    expect(tool?.isMutation).toBe(true);
+    return tool!;
+  }
+
+  test.each([
+    ["a system run as OneUptime", false],
+    ["a system run that also names a user", true],
+  ])(
+    "refuses a tool that changes the project for %s, without running it",
+    async (_name: string, namesUser: boolean) => {
+      const tool: ObservabilityTool = mutationTool();
+      const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest
+        .spyOn(tool, "execute")
+        .mockResolvedValue({
+          dataForLlm: "changed",
+          rowCount: 1,
+          citationLabel: "Changed",
+          redactionCount: 0,
+          isTruncated: false,
+        });
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: tool.name,
+        args: { incidentId: ObjectID.generate().toString() },
+        ctx: {
+          projectId: projectId,
+          props: {
+            isRoot: true,
+            ...(namesUser
+              ? { userId: ObjectID.generate(), tenantId: projectId }
+              : {}),
+          },
+        },
+      });
+
+      expect(executeSpy).not.toHaveBeenCalled();
+      expect(outcome.success).toBe(false);
+      expect(outcome.result).toBeUndefined();
+      expect(outcome.textForLlm).toBe(
+        "Error: acknowledge_incident changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.",
+      );
+      expect(outcome.errorMessage).toContain("no signed-in person to act as");
+    },
+  );
+
+  test("refuses a tool that changes the project when the request names no user, without running it", async () => {
+    const tool: ObservabilityTool = mutationTool();
+    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest.spyOn(
+      tool,
+      "execute",
+    );
+    const ctx: ToolContext = contextFor({ allow: [Permission.ProjectOwner] });
+    delete ctx.props.userId;
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: tool.name,
+      args: { incidentId: ObjectID.generate().toString() },
+      ctx: ctx,
+    });
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    expect(outcome.success).toBe(false);
+    expect(outcome.errorMessage).toContain("no signed-in person to act as");
+  });
+
+  test("runs a tool that changes the project for a signed-in person who holds its permission", async () => {
+    const tool: ObservabilityTool = mutationTool();
+    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest
+      .spyOn(tool, "execute")
+      .mockResolvedValue({
+        dataForLlm: "Incident #42 is now Acknowledged.",
+        rowCount: 1,
+        citationLabel: "Acknowledged incident #42",
+        redactionCount: 0,
+        isTruncated: false,
+      });
+    const ctx: ToolContext = contextFor({ allow: [Permission.ProjectMember] });
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: tool.name,
+      args: { incidentId: ObjectID.generate().toString() },
+      ctx: ctx,
+    });
+
+    expect(outcome.success).toBe(true);
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    // The tool is handed the person's own props, as they arrived.
+    expect(executeSpy.mock.calls[0]![1].props).toBe(ctx.props);
+  });
+
+  test("still runs a tool that only reads for a system run", async () => {
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      return {
+        dataForLlm: "services: checkout",
+        rowCount: 1,
+        citationLabel: "Services",
+        redactionCount: 0,
+        isTruncated: false,
+      };
+    };
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: { projectId: projectId, props: { isRoot: true } },
+    });
+
+    expect(outcome.success).toBe(true);
+  });
+
+  test("tells the model which permissions a refused tool needs", async () => {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: contextFor({ allow: [Permission.ReadStatusPageSSO] }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "It needs one of these permissions: Project Owner, Project Member.",
+    );
+  });
+
+  test("a person who may edit incidents but not change their state is not let through", async () => {
+    const tool: ObservabilityTool = mutationTool();
+    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest.spyOn(
+      tool,
+      "execute",
+    );
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: tool.name,
+      args: { incidentId: ObjectID.generate().toString() },
+      ctx: contextFor({ allow: [Permission.EditProjectIncident] }),
+    });
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    expect(outcome.success).toBe(false);
+    expect(outcome.errorMessage).toContain("Permission denied");
+    expect(outcome.textForLlm).toContain("Create Incident State Timeline");
+  });
+
+  test.each([
+    [
+      "the person may not make it",
+      new NotAuthorizedException(
+        "You do not have permissions to create Incident State Timeline.",
+      ),
+    ],
+    [
+      "the project's plan does not include it",
+      new PaymentRequiredException(
+        "Please upgrade your plan to Growth to make this change.",
+      ),
+    ],
+  ])(
+    "a change refused because %s is answered plainly, without asking for a retry",
+    async (_name: string, refusal: Error) => {
+      lookupBehaviour = async (): Promise<JSONObject> => {
+        throw refusal;
+      };
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: "lookup_context",
+        args: { type: "services" },
+        ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.errorMessage).toBe(refusal.message);
+      expect(outcome.textForLlm).toBe(
+        "Refused: lookup_context was not allowed for the current user. " +
+          refusal.message +
+          " Do not retry it. Tell the user plainly that it was not done, and why.",
+      );
+      expect(outcome.textForLlm).not.toContain("Adjust the arguments");
+    },
+  );
 });
