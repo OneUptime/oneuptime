@@ -202,17 +202,9 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<StatusPageDomain>,
   ): Promise<OnDelete<StatusPageDomain>> {
-    const domains: Array<StatusPageDomain> = await this.findBy({
-      query: {
-        ...deleteBy.query,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      select: { fullDomain: true },
-      props: {
-        isRoot: true,
-      },
-    });
+    // The domains the delete removes, and the delete held to them.
+    const domains: Array<StatusPageDomain> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, { fullDomain: true });
 
     return { deleteBy, carryForward: domains };
   }

@@ -475,18 +475,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicySchedule>,
   ): Promise<OnDelete<OnCallDutyPolicySchedule>> {
-    const callSchedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The schedules the delete removes, and the delete held to them.
+    const callSchedules: Array<OnCallDutyPolicySchedule> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const schedule of callSchedules) {
       OnCallDutyPolicyTimeLogService.endTimeForSchedule({

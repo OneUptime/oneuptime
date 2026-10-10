@@ -13,6 +13,10 @@ import {
   jest,
 } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/2899
@@ -57,7 +61,7 @@ type MakeRowFunction = (monitorId: ObjectID | undefined) => MonitorProbe;
 const makeRow: MakeRowFunction = (
   monitorId: ObjectID | undefined,
 ): MonitorProbe => {
-  const monitorProbe: MonitorProbe = new MonitorProbe();
+  const monitorProbe: MonitorProbe = new MonitorProbe(ObjectID.generate());
 
   if (monitorId) {
     monitorProbe.monitorId = monitorId;
@@ -106,6 +110,10 @@ describe("MonitorProbeService delete hooks", () => {
         return rowsToReturn;
       },
     );
+    // The rows the caller may delete: the ones the delete matches.
+    stubRowsCallerMayDelete(MonitorProbeService, () => {
+      return rowsToReturn;
+    });
 
     getJestSpyOn(
       MonitorService,
@@ -136,27 +144,36 @@ describe("MonitorProbeService delete hooks", () => {
       ).toEqual([MONITOR_ID.toString()]);
     });
 
-    it("looks the rows up with the caller's own delete query", async () => {
+    it("reads the rows the caller may delete, then the delete's own among them", async () => {
+      const row: MonitorProbe = makeRow(MONITOR_ID);
+      rowsToReturn = [row];
       const query: Record<string, unknown> = { monitorId: MONITOR_ID };
 
       await callOnBeforeDelete(makeDeleteBy(query));
 
+      // The rows the caller may delete, read with the delete's own query.
+      expect(readsOfRowsCallerMayWrite(MonitorProbeService)[0]!.query).toEqual(
+        query,
+      );
+
+      // The delete's rows among them.
       expect(findByCalls).toHaveLength(1);
-      expect(findByCalls[0].query).toEqual(query);
-      expect(findByCalls[0].select).toEqual({ monitorId: true });
+      expect(findByCalls[0].query).toEqual({
+        monitorId: MONITOR_ID,
+        _id: row._id,
+      });
+      expect(findByCalls[0].select).toEqual({ monitorId: true, _id: true });
     });
 
-    it("reads as root, because the caller's scope has not been applied yet", async () => {
-      /*
-       * DatabaseService narrows the query for permissions *after* this hook
-       * runs, so the hook has to be able to see the rows it is asked about.
-       */
+    it("reads the delete's rows as root, among those the caller may delete", async () => {
+      rowsToReturn = [makeRow(MONITOR_ID)];
+
       await callOnBeforeDelete(makeDeleteBy({ monitorId: MONITOR_ID }));
 
       expect(findByCalls[0].props.isRoot).toBe(true);
     });
 
-    it("passes the delete's own limit and skip so a bulk delete is covered", async () => {
+    it("reads the rows the caller may delete in the delete's own window, so a bulk delete is covered", async () => {
       const deleteBy: DeleteBy<MonitorProbe> = makeDeleteBy({
         monitorId: MONITOR_ID,
       });
@@ -165,11 +182,15 @@ describe("MonitorProbeService delete hooks", () => {
 
       await callOnBeforeDelete(deleteBy);
 
-      expect(findByCalls[0].limit).toBe(250);
-      expect(findByCalls[0].skip).toBe(10);
+      const read: { limit: number; skip: number } =
+        readsOfRowsCallerMayWrite(MonitorProbeService)[0]!;
+      expect(read.limit).toBe(250);
+      expect(read.skip).toBe(10);
     });
 
-    it("returns the deleteBy unchanged, so it does not narrow the delete", async () => {
+    it("holds the delete to the rows it read, so it removes no row it did not see", async () => {
+      const row: MonitorProbe = makeRow(MONITOR_ID);
+      rowsToReturn = [row];
       const deleteBy: DeleteBy<MonitorProbe> = makeDeleteBy({
         monitorId: MONITOR_ID,
       });
@@ -178,6 +199,9 @@ describe("MonitorProbeService delete hooks", () => {
         await callOnBeforeDelete(deleteBy);
 
       expect(onDelete.deleteBy).toBe(deleteBy);
+      expect((deleteBy.query as Record<string, unknown>)["_id"]).toBe(row._id);
+      expect(deleteBy.limit).toBe(1);
+      expect(deleteBy.skip).toBe(0);
     });
 
     it("drops rows with no monitorId rather than carrying an undefined forward", async () => {
@@ -198,6 +222,8 @@ describe("MonitorProbeService delete hooks", () => {
       );
 
       expect(onDelete.carryForward.monitorIds).toEqual([]);
+      // Nothing the caller may delete: nothing is read again.
+      expect(findByCalls).toHaveLength(0);
     });
   });
 

@@ -80,36 +80,19 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here. The read only feeds the feed, so a
-     * failure must not block the delete itself. It runs before permissions
-     * are applied, hence the tenant pin (see SloFeedUtil).
+     * to be built from what was read here: the owner teams the delete
+     * removes, and the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    let itemsToDelete: Array<Model> = [];
-
-    try {
-      itemsToDelete = await this.findBy({
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: deleteBy.query,
-          tenantId: deleteBy.props.tenantId,
-        }),
-        limit: deleteBy.limit,
-        skip: deleteBy.skip,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          // Matched against the ids the delete really removed.
-          _id: true,
-          serviceLevelObjectiveId: true,
-          projectId: true,
-          teamId: true,
-        },
-      });
-    } catch (err) {
-      logger.error(
-        `Error reading SLO owner teams before delete for the SLO feed: ${err}`,
-      );
-    }
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        // Matched against the ids the delete really removed.
+        _id: true,
+        serviceLevelObjectiveId: true,
+        projectId: true,
+        teamId: true,
+      },
+    );
 
     return {
       carryForward: {

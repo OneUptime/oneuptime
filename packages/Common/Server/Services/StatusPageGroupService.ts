@@ -142,17 +142,22 @@ export class Service extends ProjectReferencesService<Model> {
     let group: Model | null = null;
 
     if (!deleteBy.props.isRoot) {
-      group = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+      /*
+       * The one group the delete removes, and the delete held to it:
+       * the groups after it move up a place once it is gone.
+       */
+      const found: { row: Model | null; deletesMore: boolean } =
+        await this.findOneRowAndHoldDeleteToIt(deleteBy, {
           order: true,
           statusPageId: true,
           projectId: true,
-        },
-      });
+        });
+
+      if (found.deletesMore) {
+        throw new BadDataException("Delete one status page group at a time.");
+      }
+
+      group = found.row;
     }
 
     return {

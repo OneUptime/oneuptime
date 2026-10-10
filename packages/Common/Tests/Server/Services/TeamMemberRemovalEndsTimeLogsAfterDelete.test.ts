@@ -6,6 +6,8 @@ import UserNotificationSettingService from "../../../Server/Services/UserNotific
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import Errors from "../../../Server/Utils/Errors";
+import { stubRowsCallerMayDeleteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -85,6 +87,14 @@ afterEach(() => {
 });
 
 describe("onBeforeDelete", () => {
+  beforeEach(() => {
+    // The caller may remove the memberships the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(
+      TeamMemberService,
+      getJestSpyOn(TeamMemberService, "findBy"),
+    );
+  });
+
   test("a removal refused because the team must keep a member closes no time log", async () => {
     getJestSpyOn(TeamMemberService, "findBy").mockResolvedValue([
       membership(ALICE_MEMBERSHIP_ID, ALICE_ID, true),
@@ -99,7 +109,7 @@ describe("onBeforeDelete", () => {
         query: { _id: ALICE_MEMBERSHIP_ID.toString() },
         props: { tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(Errors.TeamMemberService.ONE_MEMBER_REQUIRED);
 
     expect(endTimeForUser).not.toHaveBeenCalled();
   });

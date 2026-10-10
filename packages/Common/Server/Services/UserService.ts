@@ -600,16 +600,13 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    // Check if the user is a member of any project
-    const users: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // Every user the delete removes - and the delete held to them - may be a member of no project.
+    const users: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
       },
-      props: deleteBy.props,
-      limit: LIMIT_MAX,
-      skip: 0,
-    });
+    );
 
     for (const user of users) {
       const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({

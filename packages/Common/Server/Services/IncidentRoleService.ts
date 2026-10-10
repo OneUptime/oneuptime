@@ -5,7 +5,6 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/IncidentRole";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -57,16 +56,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const roles: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // Every role the delete removes, and the delete held to them.
+    const roles: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         name: true,
         isDeleteable: true,
       },
-      props: deleteBy.props,
-    });
+    );
 
     for (const role of roles) {
       if (role.isDeleteable === false) {

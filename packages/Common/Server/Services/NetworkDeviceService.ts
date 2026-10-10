@@ -1005,23 +1005,18 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const authorizedQuery: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const devices: Array<Model> = await this.findBy({
-      query: authorizedQuery,
-      select: {
+    /*
+     * The devices the delete removes - the ones the caller may delete, in the
+     * delete's own window - and the delete held to them, so the monitors
+     * cleaned up below are those of the devices that go.
+     */
+    const devices: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: { isRoot: true },
-    });
+    );
 
     const countAutomaticMonitors: (
       query: Query<Monitor>,
@@ -1164,18 +1159,9 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    // Held to the devices read above (findRowsAndHoldDeleteToThem).
     return {
-      deleteBy: {
-        ...deleteBy,
-        query: {
-          _id: QueryHelper.any(
-            devices.flatMap((device: Model): Array<ObjectID> => {
-              return device.id ? [device.id] : [];
-            }),
-          ),
-        },
-        skip: 0,
-      },
+      deleteBy: deleteBy,
       carryForward: null,
     };
   }

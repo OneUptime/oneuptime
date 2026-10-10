@@ -491,13 +491,13 @@ export class Service extends ProjectReferencesService<Model> {
       ])
     ) {
       /*
-       * Root/API updates do not always carry a tenantId, so fall back to
-       * the project of each cluster the query actually matches — a Runner
-       * must belong to every one of them.
+       * The project of every cluster the update writes - the request's
+       * project for a teammate, whose update is kept to it, and each
+       * cluster's own project for OneUptime and a master admin
+       * (findProjectsToCheckUpdateIn): a Runner must belong to every one.
        */
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+      const projectIds: Array<ObjectID> =
+        await this.findProjectsToCheckUpdateIn(updateBy);
 
       const loaded: AiAccessBindingRows = {
         runners: new Map<string, Runner>(),
@@ -559,20 +559,13 @@ export class Service extends ProjectReferencesService<Model> {
     let inFlightRounds: Array<AutoRemediationSuggestion> = [];
     const clusterNames: Record<string, string> = {};
 
-    try {
-      const clusters: Array<Model> = await this.findBy({
-        query: {
-          ...deleteBy.query,
-          ...(deleteBy.props.tenantId
-            ? { projectId: deleteBy.props.tenantId }
-            : {}),
-        },
-        select: { _id: true, name: true, clusterIdentifier: true },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // The clusters the delete removes, and the delete held to them.
+    const clusters: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, name: true, clusterIdentifier: true },
+    );
 
+    try {
       const clusterIds: Array<ObjectID> = [];
 
       for (const cluster of clusters) {

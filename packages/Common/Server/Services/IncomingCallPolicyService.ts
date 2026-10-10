@@ -13,7 +13,6 @@ import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingC
 import BadDataException from "../../Types/Exception/BadDataException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ObjectID from "../../Types/ObjectID";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import IncomingCallPolicyOwnerTeamService from "./IncomingCallPolicyOwnerTeamService";
 import IncomingCallPolicyOwnerUserService from "./IncomingCallPolicyOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
@@ -207,55 +206,21 @@ export class Service extends ProjectReferencesService<IncomingCallPolicy> {
     deleteBy: DeleteBy<IncomingCallPolicy>,
   ): Promise<OnDelete<IncomingCallPolicy>> {
     /*
-     * The delete hook performs provider side effects before DatabaseService's
-     * normal delete permission check. Apply that exact scope first so a
-     * denied delete cannot release phone numbers belonging to another tenant
-     * or access-control scope.
-     */
-    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
-      IncomingCallPolicy,
-      deleteBy.query,
-      deleteBy.props,
-    );
-
-    /*
      * Release any provisioned numbers before the policy rows are removed so we
      * don't leave paid, orphaned numbers on the provider that can never be
-     * released again (the policy — and its SID — would be gone).
+     * released again (the policy — and its SID — would be gone). Only the
+     * policies the delete removes - the ones the caller may delete, in the
+     * delete's own window - are read, and the delete is held to exactly them
+     * before any provider call, so a window that shifts while the provider
+     * answers cannot change which rows go. DatabaseService asks the caller's
+     * permission once more right before deleting.
      */
-    const policies: Array<IncomingCallPolicy> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    const policies: Array<IncomingCallPolicy> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         callProviderPhoneNumberId: true,
         projectCallSMSConfigId: true,
-      },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const policyIds: Array<ObjectID> = policies
-      .map((policy: IncomingCallPolicy): ObjectID | null => {
-        return policy.id;
-      })
-      .filter((policyId: ObjectID | null): policyId is ObjectID => {
-        return Boolean(policyId);
       });
-
-    /*
-     * Provider calls can take long enough for the original offset/limit window
-     * to shift. Pin the final database delete to this exact snapshot before
-     * making any external calls. DatabaseService re-applies permissions to
-     * this id query immediately before deleting.
-     */
-    deleteBy.query = {
-      _id: QueryHelper.any(policyIds),
-    };
-    deleteBy.skip = 0;
-    deleteBy.limit = policyIds.length;
 
     for (const policy of policies) {
       if (!policy.id) {
