@@ -51,10 +51,8 @@ import {
   KubernetesAiRemediationMode,
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import path from "path";
@@ -856,9 +854,10 @@ describe("the AI SRE page's cluster-access section", () => {
       });
     }
 
-    // The permission only credential binding adds.
-    const credentialOnly: Array<Permission> =
-      KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS.filter(
+    // The permission only credential binding adds: the read of runbook credentials.
+    const credentialOnly: Array<Permission> = new RunbookCredential()
+      .getReadPermissions()
+      .filter(
         (permission: Permission): boolean => {
           return !KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS.includes(permission);
         },
