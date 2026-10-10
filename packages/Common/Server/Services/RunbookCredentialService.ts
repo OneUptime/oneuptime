@@ -139,7 +139,8 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     try {
       await Service.assertMayAssignToRunners({
         props: createBy.props,
-        assigned: [{ projectId: projectId!, runnerIds: runnerIds }],
+        projectId: projectId!,
+        runnerIds: runnerIds,
       });
     } catch (error) {
       await AiCommandCredentialReach.giveBack(hold);
@@ -246,35 +247,28 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
    * OneUptime AI's commands. Asked only for a caller who may not read
    * runbook credentials - the create hook lets one who may through before
    * it takes the lock - so it asks nothing more of who the caller is.
-   * `assigned` names, per project, the Runners the create assigns the
+   * `runnerIds` are the Runners of `projectId` the create assigns the
    * credential to. Read under the project's lock (AiCommandCredentialReach).
    */
   public static async assertMayAssignToRunners(data: {
     props: DatabaseCommonInteractionProps;
-    assigned: Array<{ projectId: ObjectID; runnerIds: Array<ObjectID> }>;
+    projectId: ObjectID;
+    runnerIds: Array<ObjectID>;
   }): Promise<void> {
-    const asked: Array<{ projectId: ObjectID; runnerIds: Array<ObjectID> }> =
-      data.assigned.filter(
-        (entry: {
-          projectId: ObjectID;
-          runnerIds: Array<ObjectID>;
-        }): boolean => {
-          return entry.runnerIds.length > 0;
-        },
+    if (data.runnerIds.length === 0) {
+      return;
+    }
+
+    const runners: Array<Runner> =
+      await RunnerService.findRunnersRunningAiCommands({
+        runnerIds: data.runnerIds,
+        projectId: data.projectId,
+      });
+
+    if (runners.length > 0) {
+      throw new NotAuthorizedException(
+        Service.getAiCommandRunnerRefusal(runners[0]!, data.props),
       );
-
-    for (const entry of asked) {
-      const runners: Array<Runner> =
-        await RunnerService.findRunnersRunningAiCommands({
-          runnerIds: entry.runnerIds,
-          projectId: entry.projectId,
-        });
-
-      if (runners.length > 0) {
-        throw new NotAuthorizedException(
-          Service.getAiCommandRunnerRefusal(runners[0]!, data.props),
-        );
-      }
     }
   }
 

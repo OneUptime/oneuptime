@@ -76,10 +76,10 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * read the table may name any of the project's records of it, and a caller
  * who may not - who holds none of its read permissions, or whose block with
  * no labels takes them away - names none of them. A workflow's step is lent
- * no read of them by acting as a Project Admin (getTableRead): whoever may
- * edit a workflow decides what its steps name, so a step names none of them,
- * and is told a person who may read them has to make the change
- * (getWorkflowCredentialSettingRefusal). By table name.
+ * no read of them by acting as a Project Admin (isReadWithheldFromWorkflow):
+ * whoever may edit a workflow decides what its steps name, so a step names
+ * none of them, and is told a person who may read them has to make the
+ * change (getWorkflowCredentialSettingRefusal). By table name.
  */
 const CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKey",
@@ -331,12 +331,13 @@ export default class RelationListPermission {
    * Whether `props` may read `modelType`'s table at all, as a write that
    * names a setting that holds credentials asks it (isHeldToTableRead):
    * OneUptime and master admins may; a workflow's step may not read a
-   * setting that holds credentials (getTableRead); anyone else holds one of
-   * the table's read permissions, or its read wildcard, and no block with no
-   * labels takes any of them away. For a service that reads such a reference
-   * from a column no metadata describes (a runbook's steps name the
-   * credentials they run with), and for the read of runbook credentials
-   * that lets OneUptime AI's commands use them (RunbookCredentialReaders).
+   * setting that holds credentials (isReadWithheldFromWorkflow); anyone else
+   * holds one of the table's read permissions, or its read wildcard, and no
+   * block with no labels takes any of them away. Asked in the props' own
+   * project (tenantId). For a service that reads such a reference from a
+   * column no metadata describes (a runbook's steps name the credentials
+   * they run with), and for the read of runbook credentials that lets
+   * OneUptime AI's commands use them (RunbookCredentialReaders).
    */
   public static mayReadTable(
     modelType: DatabaseBaseModelType,
@@ -355,9 +356,8 @@ export default class RelationListPermission {
    * blocked, when a block with no labels takes every one of its read
    * permissions away; a reader, when it holds one of them or the table's
    * read wildcard and is not blocked; or neither. A workflow's step is no
-   * reader of a setting that holds credentials (CREDENTIAL_SETTINGS), though
-   * it acts as a Project Admin, who is: the read is not lent to it. OneUptime
-   * and master admins are the callers' to answer before asking.
+   * reader of a setting that holds credentials (isReadWithheldFromWorkflow).
+   * OneUptime and master admins are the callers' to answer before asking.
    */
   private static getTableRead(
     modelType: DatabaseBaseModelType,
@@ -372,10 +372,7 @@ export default class RelationListPermission {
       return { isBlocked: true, isReader: false };
     }
 
-    if (
-      WorkflowPrincipal.isWorkflow(props) &&
-      RelationListPermission.isHeldToTableRead(modelType)
-    ) {
+    if (RelationListPermission.isReadWithheldFromWorkflow(modelType, props)) {
       return { isBlocked: false, isReader: false };
     }
 
@@ -388,6 +385,26 @@ export default class RelationListPermission {
         ),
       }),
     };
+  }
+
+  /*
+   * Whether `props` is a workflow's step and `modelType` a setting that
+   * holds credentials (CREDENTIAL_SETTINGS) - the one place that decides a
+   * step is not lent the read of one. A step acts as a Project Admin
+   * (WorkflowPrincipal), who may read them, but whoever may edit a workflow
+   * decides what its steps do, so a step reads none: getTableRead answers it
+   * no reader, a write that names one is refused saying a person has to
+   * make the change (checkNamedLists), and a refusal of the read of runbook
+   * credentials says so too (RunbookCredentialReaders.getWorkflowNote).
+   */
+  public static isReadWithheldFromWorkflow(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      WorkflowPrincipal.isWorkflow(props) &&
+      RelationListPermission.isHeldToTableRead(modelType)
+    );
   }
 
   /*
@@ -615,16 +632,6 @@ export default class RelationListPermission {
         continue;
       }
 
-      // A workflow's step names no setting that holds credentials (getTableRead).
-      if (
-        WorkflowPrincipal.isWorkflow(data.props) &&
-        RelationListPermission.isHeldToTableRead(relation.listedModelType)
-      ) {
-        throw new NotAuthorizedException(
-          RelationListPermission.getWorkflowCredentialSettingRefusal(relation),
-        );
-      }
-
       const readIds: Set<string> | null =
         await RelationListPermission.findReachableIds({
           list: relation,
@@ -640,10 +647,25 @@ export default class RelationListPermission {
         continue;
       }
 
-      for (const id of newIds) {
-        if (!readIds.has(normalizeReferenceId(id))) {
-          refused.push(`${relation.title} "${id}"`);
-        }
+      const unread: Array<string> = newIds.filter((id: string): boolean => {
+        return !readIds.has(normalizeReferenceId(id));
+      });
+
+      // A workflow's step names none of a setting that holds credentials: it is told why.
+      if (
+        unread.length > 0 &&
+        RelationListPermission.isReadWithheldFromWorkflow(
+          relation.listedModelType,
+          data.props,
+        )
+      ) {
+        throw new NotAuthorizedException(
+          RelationListPermission.getWorkflowCredentialSettingRefusal(relation),
+        );
+      }
+
+      for (const id of unread) {
+        refused.push(`${relation.title} "${id}"`);
       }
     }
 

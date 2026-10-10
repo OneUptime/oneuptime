@@ -250,8 +250,8 @@ export class Service extends ProjectReferencesService<Model> {
    *     form opened before someone turned it off cannot turn it back on, and
    *     nothing it writes can put a credential within anyone's reach: it
    *     takes no lock, and is saved whether or not Valkey can be reached;
-   *   - a save that turns it on - or posts nothing but the switch, on
-   *     already, which dropping it would leave with nothing to write - holds
+   *   - a save that turns it on - or gives no column but the switch a value,
+   *     on already, which dropping it would leave with nothing to write - holds
    *     the project's lock that every checked write putting an SSH
    *     credential within reach of OneUptime AI's commands holds
    *     (AiCommandCredentialReach), from before whether the Runner's switch
@@ -427,10 +427,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Whether an update by someone who may not read runbook credentials that
    * posts "Runs AI Remediation Commands" on can leave it out: every Runner
    * it writes (`runners`, as the update's hook read them) has it on already,
-   * and the update writes something else besides - the Runner form posts
-   * every field. Left out, the switch keeps whatever it holds when the
-   * update lands: a form opened before someone turned it off does not turn
-   * it back on, and nothing the update writes needs a lock.
+   * and the update writes something else besides - a column it gives a
+   * value, not one left undefined, so the write is never left empty; the
+   * Runner form posts every field. Left out, the switch keeps whatever it
+   * holds when the update lands: a form opened before someone turned it off
+   * does not turn it back on, and nothing the update writes needs a lock.
    */
   public static postsAiCommandsAsStored(
     data: JSONObject,
@@ -443,7 +444,7 @@ export class Service extends ProjectReferencesService<Model> {
         return runner.canRunAiCommands === true;
       }) &&
       Object.keys(data).some((column: string): boolean => {
-        return column !== "canRunAiCommands";
+        return column !== "canRunAiCommands" && data[column] !== undefined;
       })
     );
   }

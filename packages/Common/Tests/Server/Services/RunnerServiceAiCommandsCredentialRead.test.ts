@@ -601,6 +601,26 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
     });
 
+    it("is taken by a save whose every other column is left undefined: it writes nothing but the switch either", async () => {
+      runners = [runner(OFFICE_RUNNER, "office-runner", true)];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update(
+          { canRunAiCommands: true, description: undefined },
+          RUNNER_EDITOR,
+        ),
+      );
+
+      // The switch stays in the write, so the write is never left empty.
+      expect(
+        (onUpdate.updateBy.data as unknown as JSONObject)["canRunAiCommands"],
+      ).toBe(true);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
     it("is not taken when the switch is not written on, or by OneUptime", async () => {
       for (const data of [
         { canRunAiCommands: false },
@@ -873,6 +893,30 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
           on,
         ]),
       ).toBe(false);
+    });
+
+    it("counts only the columns the save gives a value: one left undefined writes nothing", () => {
+      expect(
+        RunnerServiceClass.postsAiCommandsAsStored(
+          { canRunAiCommands: true, description: undefined },
+          [on],
+        ),
+      ).toBe(false);
+
+      expect(
+        RunnerServiceClass.postsAiCommandsAsStored(
+          { canRunAiCommands: true, description: undefined, name: "office" },
+          [on],
+        ),
+      ).toBe(true);
+
+      // Clearing a column is a write.
+      expect(
+        RunnerServiceClass.postsAiCommandsAsStored(
+          { canRunAiCommands: true, description: null },
+          [on],
+        ),
+      ).toBe(true);
     });
 
     it("is false when the switch is not posted on, or no Runner is written", () => {

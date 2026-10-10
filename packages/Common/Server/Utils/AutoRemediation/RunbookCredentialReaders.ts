@@ -1,8 +1,8 @@
 import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
-import WorkflowPrincipal from "../Workflow/WorkflowPrincipal";
 
 /*
  * WHO MAY LET A COMMAND RUN WITH A RUNBOOK CREDENTIAL: WHOEVER MAY READ
@@ -23,16 +23,28 @@ import WorkflowPrincipal from "../Workflow/WorkflowPrincipal";
  * credentials - but whoever may edit a workflow decides what its steps do,
  * and whatever its variables, webhooks and runs hand them. So the read of a
  * setting that holds credentials is not lent to a step
- * (RelationListPermission.mayReadTable answers no for one), and a change
- * that takes it has to be made by a person who has it (getWorkflowNote).
+ * (RelationListPermission.isReadWithheldFromWorkflow, so mayReadTable
+ * answers no for one), and a change that takes it has to be made by a
+ * person who has it (getWorkflowNote).
  * No workflow step writes a Runner, a runbook credential, an auto
  * remediation rule, a runbook or a cluster today; the rule holds for any
  * that ever does.
  */
 export default class RunbookCredentialReaders {
-  // Whether `props` may read runbook credentials, so let commands use them.
-  public static mayRead(props: DatabaseCommonInteractionProps): boolean {
-    return RelationListPermission.mayReadTable(RunbookCredential, props);
+  /*
+   * Whether `props` may read runbook credentials, so let commands use them:
+   * in `projectId` when it is given - a check of a record whose project is
+   * known asks about that project - and in the props' own project
+   * (tenantId) otherwise.
+   */
+  public static mayRead(
+    props: DatabaseCommonInteractionProps,
+    projectId?: ObjectID | undefined,
+  ): boolean {
+    return RelationListPermission.mayReadTable(
+      RunbookCredential,
+      projectId ? { ...props, tenantId: projectId } : props,
+    );
   }
 
   // The permissions that read runbook credentials: RunbookCredential's read list.
@@ -53,7 +65,12 @@ export default class RunbookCredentialReaders {
    * else.
    */
   public static getWorkflowNote(props: DatabaseCommonInteractionProps): string {
-    if (!WorkflowPrincipal.isWorkflow(props)) {
+    if (
+      !RelationListPermission.isReadWithheldFromWorkflow(
+        RunbookCredential,
+        props,
+      )
+    ) {
       return "";
     }
 

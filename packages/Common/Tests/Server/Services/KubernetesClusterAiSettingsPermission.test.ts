@@ -1084,6 +1084,75 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ).rejects.toThrow(NotAuthorizedException);
     });
+
+    /*
+     * The credential read is asked in the project of the cluster the write
+     * binds it on - the project the admin check two lines above asks about
+     * - not in whichever project the request named, or none.
+     */
+    describe("the credential read", () => {
+      function holding(
+        tenantId: ObjectID | null,
+        rows: Array<[ObjectID, Array<Permission>]>,
+      ): DatabaseCommonInteractionProps {
+        const access: Record<string, UserTenantAccessPermission> = {};
+
+        for (const [projectId, permissions] of rows) {
+          access[projectId.toString()] = {
+            _type: "UserTenantAccessPermission",
+            projectId: projectId,
+            permissions: permissions.map((permission: Permission) => {
+              return permissionRow(permission);
+            }),
+          };
+        }
+
+        return {
+          userId: ObjectID.generate(),
+          ...(tenantId ? { tenantId } : {}),
+          userTenantAccessPermission: access,
+        } as DatabaseCommonInteractionProps;
+      }
+
+      beforeEach(() => {
+        clusterLookup.mockResolvedValue([
+          cluster({ projectId: OTHER_PROJECT_ID }),
+        ]);
+      });
+
+      it("is the cluster's project's, when the request names no project", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(null, [
+                [
+                  OTHER_PROJECT_ID,
+                  [
+                    Permission.EditAutoRemediationRule,
+                    Permission.ReadRunbookCredential,
+                  ],
+                ],
+              ]),
+            ),
+          ),
+        ).resolves.toBeDefined();
+      });
+
+      it("is not one held in the project the request names, when the cluster is another's", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(PROJECT_ID, [
+                [OTHER_PROJECT_ID, [Permission.EditAutoRemediationRule]],
+                [PROJECT_ID, [Permission.ReadRunbookCredential]],
+              ]),
+            ),
+          ),
+        ).rejects.toThrow(getAiAccessCredentialRefusal());
+      });
+    });
   });
 
   describe("callers the check does not apply to", () => {

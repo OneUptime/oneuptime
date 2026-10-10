@@ -23,7 +23,6 @@ import DatabaseService from "./DatabaseService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
-import WorkflowPrincipal from "../Utils/Workflow/WorkflowPrincipal";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 // The steps that run with a credential: SSH and Kubernetes.
@@ -160,9 +159,13 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    if (props && WorkflowPrincipal.isWorkflow(props)) {
+    const workflowNote: string = props
+      ? RunbookCredentialReaders.getWorkflowNote(props)
+      : "";
+
+    if (workflowNote) {
       throw new NotAuthorizedException(
-        `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`,
+        `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${workflowNote}`,
       );
     }
 

@@ -44,6 +44,36 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "c1000000-0000-4000-8000-000000000002",
 );
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "c1000000-0000-4000-8000-000000000003",
+);
+
+// A person whose request names PROJECT_ID, holding `permissions` in `holdsIn`.
+function memberOf(
+  holdsIn: ObjectID,
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
+  return {
+    tenantId: PROJECT_ID,
+    userId: ObjectID.generate(),
+    userType: UserType.User,
+    userTenantAccessPermission: {
+      [holdsIn.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: holdsIn,
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+            };
+          },
+        ),
+      },
+    },
+  } as unknown as DatabaseCommonInteractionProps;
+}
 
 function person(data: {
   permissions: Array<Permission>;
@@ -161,6 +191,38 @@ describe("RunbookCredentialReaders", () => {
         ),
       ).toBe("");
     });
+
+    /*
+     * A check of a record whose project is known (a cluster's) asks about
+     * that project, as the check of the rest of the write does - not about
+     * whichever project the request named.
+     */
+    it("asks about the project it is given, and the caller's own when none is", () => {
+      const readsInOther: DatabaseCommonInteractionProps = memberOf(
+        OTHER_PROJECT_ID,
+        [Permission.ReadRunbookCredential],
+      );
+
+      expect(RunbookCredentialReaders.mayRead(readsInOther)).toBe(false);
+      expect(
+        RunbookCredentialReaders.mayRead(readsInOther, OTHER_PROJECT_ID),
+      ).toBe(true);
+
+      const readsInOwn: DatabaseCommonInteractionProps = memberOf(PROJECT_ID, [
+        Permission.ReadRunbookCredential,
+      ]);
+
+      expect(RunbookCredentialReaders.mayRead(readsInOwn)).toBe(true);
+      expect(RunbookCredentialReaders.mayRead(readsInOwn, PROJECT_ID)).toBe(
+        true,
+      );
+      expect(
+        RunbookCredentialReaders.mayRead(readsInOwn, OTHER_PROJECT_ID),
+      ).toBe(false);
+
+      // The caller's props are read, never changed.
+      expect(readsInOther.tenantId!.toString()).toBe(PROJECT_ID.toString());
+    });
   });
 
   describe("for a workflow's step", () => {
@@ -206,11 +268,15 @@ describe("RunbookCredentialReaders", () => {
       expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
     });
 
-    it("is answered without a project, too", () => {
+    it("is answered without a project, too, and in any project it is given", () => {
       const props: DatabaseCommonInteractionProps = step();
       delete props.tenantId;
 
       expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
+      expect(RunbookCredentialReaders.mayRead(step(), PROJECT_ID)).toBe(false);
+      expect(RunbookCredentialReaders.mayRead(step(), OTHER_PROJECT_ID)).toBe(
+        false,
+      );
     });
 
     it("says in a refusal that no step has the permission, so a person has to make the change", () => {
@@ -226,6 +292,39 @@ describe("RunbookCredentialReaders", () => {
       expect(
         RelationListPermission.mayReadTable(RunbookCredential, step()),
       ).toBe(false);
+    });
+
+    /*
+     * One place decides that a step is not lent the read of a setting that
+     * holds credentials (RelationListPermission.isReadWithheldFromWorkflow):
+     * the read, the refusal of a write that names one, and the note a
+     * refusal adds all ask it.
+     */
+    it("is decided in one place, for every setting that holds credentials and nothing else", () => {
+      for (const modelType of AllModelTypes as Array<{
+        new (): BaseModel;
+      }>) {
+        const isCredentialSetting: boolean =
+          RelationListPermission.isHeldToTableRead(modelType);
+
+        expect(
+          RelationListPermission.isReadWithheldFromWorkflow(modelType, step()),
+        ).toBe(isCredentialSetting);
+
+        expect(
+          RelationListPermission.isReadWithheldFromWorkflow(
+            modelType,
+            person({ permissions: [Permission.ProjectAdmin] }),
+          ),
+        ).toBe(false);
+      }
+
+      expect(
+        RelationListPermission.isReadWithheldFromWorkflow(
+          RunbookCredential,
+          step(),
+        ),
+      ).toBe(true);
     });
   });
 

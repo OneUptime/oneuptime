@@ -15,7 +15,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * never ran them runs all three, in order, and ends where every other does.
  *
  * Dropping a column and a constraint changes no row and scans nothing.
- * `down` puts the column back empty, as it was added.
+ * Both drops say IF EXISTS, so an install whose foreign key or column is
+ * gone already - dropped by hand - is not stopped at start. `down` puts the
+ * column back empty, as it was added.
  */
 export class DropWorkflowLastSavedBy1801200000000
   implements MigrationInterface
@@ -24,10 +26,10 @@ export class DropWorkflowLastSavedBy1801200000000
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "Workflow" DROP CONSTRAINT "FK_cfb3d733c4f4b78897f3339187b"`,
+      `ALTER TABLE "Workflow" DROP CONSTRAINT IF EXISTS "FK_cfb3d733c4f4b78897f3339187b"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "Workflow" DROP COLUMN "lastSavedByUserId"`,
+      `ALTER TABLE "Workflow" DROP COLUMN IF EXISTS "lastSavedByUserId"`,
     );
   }
 

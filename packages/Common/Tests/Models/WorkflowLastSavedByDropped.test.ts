@@ -139,12 +139,26 @@ describe("the migration that drops it", () => {
     await migration.up(runner);
 
     expect(statements).toEqual([
-      `ALTER TABLE "Workflow" DROP CONSTRAINT "FK_cfb3d733c4f4b78897f3339187b"`,
-      `ALTER TABLE "Workflow" DROP COLUMN "lastSavedByUserId"`,
+      `ALTER TABLE "Workflow" DROP CONSTRAINT IF EXISTS "FK_cfb3d733c4f4b78897f3339187b"`,
+      `ALTER TABLE "Workflow" DROP COLUMN IF EXISTS "lastSavedByUserId"`,
     ]);
 
-    // The very constraint the foreign key migration adds, and drops on its way down.
-    expect(added.statements).toEqual([statements[0]]);
+    /*
+     * The very constraint the foreign key migration adds, and drops on its
+     * way down - here only if it is there still.
+     */
+    expect(added.statements).toEqual([
+      statements[0]!.replace("DROP CONSTRAINT IF EXISTS", "DROP CONSTRAINT"),
+    ]);
+  });
+
+  test("starts on an install whose foreign key and column are gone already", async () => {
+    const { runner, statements } = makeQueryRunner();
+    await migration.up(runner);
+
+    for (const statement of statements) {
+      expect(statement).toContain(" IF EXISTS ");
+    }
   });
 
   test("puts the column back empty on the way down, with its foreign key", async () => {

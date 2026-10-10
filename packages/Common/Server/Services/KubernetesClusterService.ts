@@ -827,7 +827,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         loosening.bindsCredential &&
-        !RunbookCredentialReaders.mayRead(data.props)
+        !RunbookCredentialReaders.mayRead(data.props, baseline.projectId)
       ) {
         throw new NotAuthorizedException(
           getAiAccessCredentialRefusal(data.props),
