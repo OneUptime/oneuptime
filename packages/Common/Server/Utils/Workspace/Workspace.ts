@@ -47,10 +47,11 @@ export default class WorkspaceUtil {
       [];
 
     for (const workspaceType of workspaceTypes) {
-      let userStringToAppend: string = "";
+      // Markdown: the author's name is placed as text (getUserStringForWorkspace).
+      let authorMarkdown: string = "";
 
       if (data.userId) {
-        userStringToAppend = await this.getUserStringForWorkspace({
+        authorMarkdown = await this.getUserStringForWorkspace({
           userId: data.userId,
           projectId: data.projectId,
           workspaceType: workspaceType,
@@ -62,7 +63,7 @@ export default class WorkspaceUtil {
         messageBlocks: [
           {
             _type: "WorkspacePayloadMarkdown",
-            text: userStringToAppend + data.markdown,
+            text: authorMarkdown + data.markdown,
           } as WorkspacePayloadMarkdown,
         ],
       });

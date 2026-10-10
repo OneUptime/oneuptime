@@ -94,6 +94,9 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: packages/Common/package-lock.json
+      # Before test-setup.sh pulls postgres and valkey: through mirror.gcr.io,
+      # not anonymously from Docker Hub (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
       - name: Set up test services
         working-directory: packages/Common
         run: bash test-setup.sh

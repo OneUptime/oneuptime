@@ -46,7 +46,9 @@ import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPub
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SlackActionAuthorization from "./Authorization";
+import SlackActionAuthorization, {
+  SlackAuthorizedEvent,
+} from "./Authorization";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackIncidentActions {
@@ -621,33 +623,27 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      /*
+       * The incident is read once, as the member, by the check - and that
+       * read answers "already acknowledged" below and goes to the write.
+       */
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: IncidentStateTimeline,
           action: "acknowledge this incident",
-          resources: [{ service: IncidentService, id: incidentId }],
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyAcknowledged: boolean =
-        await IncidentService.isIncidentAcknowledged({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyAcknowledged) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
+      if ((await WorkspaceMemberActions.getStanding(incident)).isAcknowledged) {
         const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
+          incident.numberWithPrefix || "#" + incident.number;
 
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
@@ -674,10 +670,7 @@ export default class SlackIncidentActions {
           action: "acknowledge the incident",
           run: async (): Promise<boolean> => {
             await WorkspaceMemberActions.acknowledge({
-              event: {
-                type: WorkspaceEventType.Incident,
-                id: incidentId,
-              },
+              event: incident,
               props: props,
             });
             return true;
@@ -787,33 +780,24 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      // Read once, by the check; that read answers "already resolved".
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: IncidentStateTimeline,
           action: "resolve this incident",
-          resources: [{ service: IncidentService, id: incidentId }],
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean =
-        await IncidentService.isIncidentResolved({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyResolved) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
         const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
+          incident.numberWithPrefix || "#" + incident.number;
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -835,10 +819,7 @@ export default class SlackIncidentActions {
         action: "resolve the incident",
         run: async (): Promise<void> => {
           await WorkspaceMemberActions.resolve({
-            event: {
-              type: WorkspaceEventType.Incident,
-              id: incidentId,
-            },
+            event: incident,
             props: props,
           });
         },
@@ -1102,21 +1083,22 @@ export default class SlackIncidentActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: IncidentStateTimeline,
         action: SlackIncidentActions.CHANGE_STATE_ACTION,
-        resources: [{ service: IncidentService, id: incidentId }],
+        event: { type: WorkspaceEventType.Incident, id: incidentId },
       });
 
-    if (!props) {
+    if (!authorized) {
       return;
     }
 
     /*
      * The state change the dashboard makes: a row in the incident's state
-     * timeline, created by the member (WorkspaceMemberActions).
+     * timeline, created by the member (WorkspaceMemberActions), from the
+     * incident as the check read it.
      */
     const isStateChanged: boolean | null =
       await SlackActionAuthorization.runForRequester({
@@ -1124,12 +1106,9 @@ export default class SlackIncidentActions {
         action: "change the state of the incident",
         run: async (): Promise<boolean> => {
           await WorkspaceMemberActions.changeState({
-            event: {
-              type: WorkspaceEventType.Incident,
-              id: incidentId,
-            },
+            event: authorized.event,
             stateId: stateId,
-            props: props,
+            props: authorized.props,
           });
           return true;
         },
@@ -1247,36 +1226,24 @@ export default class SlackIncidentActions {
       // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
-      const props: DatabaseCommonInteractionProps | null =
-        await SlackActionAuthorization.authorize({
+      const authorized: SlackAuthorizedEvent | null =
+        await SlackActionAuthorization.authorizeEvent({
           requester: slackRequest,
           modelType: OnCallDutyPolicyExecutionLog,
           action: "execute an on-call policy for this incident",
-          resources: [
-            { service: IncidentService, id: incidentId },
-            { service: OnCallDutyPolicyService, id: onCallPolicyId },
-          ],
+          event: { type: WorkspaceEventType.Incident, id: incidentId },
+          resources: [{ service: OnCallDutyPolicyService, id: onCallPolicyId }],
         });
 
-      if (!props) {
+      if (!authorized) {
         return;
       }
 
-      const isAlreadyResolved: boolean =
-        await IncidentService.isIncidentResolved({
-          incidentId: incidentId,
-        });
+      const { props, event: incident } = authorized;
 
-      if (isAlreadyResolved) {
-        const incidentNumberResult: {
-          number: number | null;
-          numberWithPrefix: string | null;
-        } = await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
         const incidentNumberDisplay: string =
-          incidentNumberResult.numberWithPrefix ||
-          "#" + incidentNumberResult.number;
+          incident.numberWithPrefix || "#" + incident.number;
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -1301,10 +1268,7 @@ export default class SlackIncidentActions {
         action: "execute the on-call policy",
         run: async (): Promise<void> => {
           await WorkspaceMemberActions.executeOnCallPolicy({
-            event: {
-              type: WorkspaceEventType.Incident,
-              id: incidentId,
-            },
+            event: incident,
             onCallDutyPolicyId: onCallPolicyId,
             props: props,
           });

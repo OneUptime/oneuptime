@@ -34,6 +34,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
 } from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -786,62 +787,51 @@ describe("WorkspaceReactionNote.getResourceDisplay", () => {
 });
 
 describe("WorkspaceReactionNote.getConfirmationMessage", () => {
-  const slack: {
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  } = {
-    formatLink: (url: string, text: string): string => {
-      return `<${url}|${text}>`;
-    },
-    formatBold: (text: string): string => {
-      return `*${text}*`;
-    },
-  };
-
-  const teams: {
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  } = {
-    formatLink: (url: string, text: string): string => {
-      return `[${text}](${url})`;
-    },
-    formatBold: (text: string): string => {
-      return `**${text}**`;
-    },
-  };
-
-  test("Slack private note keeps the wording Slack users know", () => {
-    expect(
-      WorkspaceReactionNote.getConfirmationMessage({
-        noteType: WorkspaceNoteType.Private,
-        resourceLabel: "Incident #7",
-        resourceLink: "https://x/7",
-        ...slack,
-      }),
-    ).toBe("✅ Message saved as *private note* to <https://x/7|Incident #7>.");
-  });
-
-  test("Slack public note mentions the status page", () => {
-    expect(
-      WorkspaceReactionNote.getConfirmationMessage({
-        noteType: WorkspaceNoteType.Public,
-        resourceLabel: "Incident #7",
-        resourceLink: "https://x/7",
-        ...slack,
-      }),
-    ).toBe(
-      "✅ Message saved as *public note* to <https://x/7|Incident #7>. This note will be visible on the status page.",
-    );
-  });
-
-  test("Teams uses markdown links and bold", () => {
+  test("a private note's confirmation links the record by its label", () => {
     expect(
       WorkspaceReactionNote.getConfirmationMessage({
         noteType: WorkspaceNoteType.Private,
         resourceLabel: "Alert #3",
         resourceLink: "https://x/3",
-        ...teams,
-      }),
+      }).toString(),
     ).toBe("✅ Message saved as **private note** to [Alert #3](https://x/3).");
+  });
+
+  test("a public note's confirmation mentions the status page", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Public,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+      }).toString(),
+    ).toBe(
+      "✅ Message saved as **public note** to [Incident #7](https://x/7). This note will be visible on the status page.",
+    );
+  });
+
+  test("Slack posts the same confirmation as mrkdwn: bold, and the label in the link", () => {
+    const text: string = SlackUtil.slackify(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        resourceLabel: "Incident #7",
+        resourceLink: "https://x/7",
+      }).toString(),
+    ).trim();
+
+    expect(text).toContain("*private note*");
+    expect(text).toContain("<https://x/7|Incident #7>");
+  });
+
+  test("a label with Markdown in it is the link's text, never a link or styling of its own", () => {
+    const markdown: string = WorkspaceReactionNote.getConfirmationMessage({
+      noteType: WorkspaceNoteType.Private,
+      resourceLabel: "Incident **x** [docs](https://example.com) <!channel>",
+      resourceLink: "https://x/7",
+    }).toString();
+
+    expect(markdown).toContain("\\*\\*x\\*\\*");
+    expect(markdown).toContain("\\[docs\\]\\(https://example.com\\)");
+    expect(markdown).not.toContain("<!channel>");
+    expect(markdown.endsWith("](https://x/7).")).toBe(true);
   });
 });

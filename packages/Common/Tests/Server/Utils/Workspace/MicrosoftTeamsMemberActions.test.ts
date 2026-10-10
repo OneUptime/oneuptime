@@ -681,7 +681,7 @@ describe.each(TEAMS_KINDS)(
             kind.role,
           ]);
           const states: ProjectStates = kind.stubStates();
-          stubRecord({
+          const readSpy: AnySpy = stubRecord({
             service: kind.recordService,
             makeRecord: kind.makeRecord,
             stateColumn: kind.recordStateColumn,
@@ -707,6 +707,10 @@ describe.each(TEAMS_KINDS)(
             states[target].toString(),
           );
           expect(repliesText(turn)).toEqual([move.confirmation]);
+
+          // One read of the record, as the member: the check's, which the write acts on.
+          expect(readSpy).toHaveBeenCalledTimes(1);
+          expect(readSpy.mock.calls[0]![0].props).toBe(props);
         });
 
         test("only the dashboard's permission is needed: the state timeline's create and the record's read", async (): Promise<void> => {
@@ -847,7 +851,7 @@ describe.each(TEAMS_KINDS)(
     describe("Change State", (): void => {
       test("a member who holds the permission moves it into the state they picked, as themselves", async (): Promise<void> => {
         const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
-        stubRecord({
+        const readSpy: AnySpy = stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
           stateColumn: kind.recordStateColumn,
@@ -872,6 +876,7 @@ describe.each(TEAMS_KINDS)(
         );
         expect(String(data[kind.timelineStateColumn])).toBe(picked.toString());
         expect(repliesText(turn)).toEqual([kind.changeState.confirmation]);
+        expect(readSpy).toHaveBeenCalledTimes(1);
       });
 
       test("a member who may only read is refused, and nothing is written", async (): Promise<void> => {
@@ -1038,7 +1043,7 @@ describe.each(TEAMS_KINDS)(
           kind.role,
           Permission.OnCallMember,
         ]);
-        stubRecord({
+        const readSpy: AnySpy = stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
           stateColumn: kind.recordStateColumn,
@@ -1072,6 +1077,8 @@ describe.each(TEAMS_KINDS)(
         expect(policyRead.mock.calls[0]![0].query).toMatchObject({
           projectId: projectId,
         });
+        // The record once, by the check, which the execution acts on.
+        expect(readSpy).toHaveBeenCalledTimes(1);
       });
 
       test("a member who may not execute on-call policies is refused, and no one is paged", async (): Promise<void> => {
@@ -1176,42 +1183,64 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   interface MaintenanceStates {
     scheduled: ObjectID;
     ongoing: ObjectID;
+    ended: ObjectID;
     completed: ObjectID;
   }
 
-  function stubMaintenance(readable: boolean): {
+  /*
+   * The event, read as the member, in `current` - one of the project's four
+   * states, in their order - and the project's states as the moves read
+   * them (getAllScheduledMaintenanceStates, as OneUptime).
+   */
+  function stubMaintenance(
+    readable: boolean,
+    current: keyof MaintenanceStates = "scheduled",
+  ): {
     readSpy: AnySpy;
     states: MaintenanceStates;
   } {
     const states: MaintenanceStates = {
       scheduled: ObjectID.generate(),
       ongoing: ObjectID.generate(),
+      ended: ObjectID.generate(),
       completed: ObjectID.generate(),
     };
-    const ongoing: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-    ongoing.id = states.ongoing;
-    const completed: ScheduledMaintenanceState =
-      new ScheduledMaintenanceState();
-    completed.id = states.completed;
+
+    const makeState: (
+      id: ObjectID,
+      order: number,
+      flag:
+        | "isScheduledState"
+        | "isOngoingState"
+        | "isEndedState"
+        | "isResolvedState",
+    ) => ScheduledMaintenanceState = (
+      id: ObjectID,
+      order: number,
+      flag:
+        | "isScheduledState"
+        | "isOngoingState"
+        | "isEndedState"
+        | "isResolvedState",
+    ): ScheduledMaintenanceState => {
+      const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+      state.id = id;
+      state.order = order;
+      state[flag] = true;
+      return state;
+    };
 
     jest
       .spyOn(
         ScheduledMaintenanceStateService,
-        "getOngoingScheduledMaintenanceState",
+        "getAllScheduledMaintenanceStates",
       )
-      .mockResolvedValue(ongoing);
-    jest
-      .spyOn(
-        ScheduledMaintenanceStateService,
-        "getCompletedScheduledMaintenanceState",
-      )
-      .mockResolvedValue(completed);
-    jest
-      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
-      .mockResolvedValue(false);
-    jest
-      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
-      .mockResolvedValue(false);
+      .mockResolvedValue([
+        makeState(states.scheduled, 1, "isScheduledState"),
+        makeState(states.ongoing, 2, "isOngoingState"),
+        makeState(states.ended, 3, "isEndedState"),
+        makeState(states.completed, 4, "isResolvedState"),
+      ]);
 
     return {
       readSpy: stubRecord({
@@ -1220,7 +1249,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
           return new ScheduledMaintenance();
         },
         stateColumn: "currentScheduledMaintenanceStateId",
-        currentStateId: readable ? states.scheduled : null,
+        currentStateId: readable ? states[current] : null,
       }),
       states: states,
     };
@@ -1290,6 +1319,8 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       expect(String(data["scheduledMaintenanceStateId"])).toBe(
         states[target].toString(),
       );
+      // The press reads the event once, as the member, and acts on that read.
+      expect(readSpy).toHaveBeenCalledTimes(1);
       expect(readSpy.mock.calls[0]![0].props).toBe(props);
       expect(repliesText(turn)).toEqual([confirmation]);
     },
@@ -1348,10 +1379,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   });
 
   test("a refusal from the write itself is told to the member", async (): Promise<void> => {
-    stubMaintenance(true);
-    jest
-      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
-      .mockResolvedValue(true);
+    stubMaintenance(true, "completed");
     const createSpy: AnySpy = stubCreate(
       ScheduledMaintenanceStateTimelineService,
     );
@@ -1368,33 +1396,46 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     ]);
   });
 
+  test("a refusal naming something with Markdown in it is told as text", async (): Promise<void> => {
+    stubMaintenance(true);
+    stubCreate(ScheduledMaintenanceStateTimelineService).mockRejectedValue(
+      new BadDataException(
+        'The label "**Prod** [docs](https://example.com)" is not in this project.',
+      ),
+    );
+
+    const turn: FakeTurn = await press({
+      actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
+      payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+      props: memberProps([Permission.ScheduledMaintenanceMember]),
+    });
+
+    expect(repliesText(turn)).toEqual([
+      'Sorry, that action failed: The label "\\*\\*Prod\\*\\* \\[docs\\](https://example.com)" is not in this project.',
+    ]);
+  });
+
   test.each([
     {
       label: "ongoing",
-      isCompleted: false,
+      current: "ongoing" as const,
       answer: "Scheduled maintenance event is already ongoing.",
     },
     {
       label: "over",
-      isCompleted: true,
+      current: "completed" as const,
       answer: "Scheduled maintenance event is already complete.",
     },
   ])(
     "Mark as Ongoing on an event that is $label is refused with what it is",
     async ({
-      isCompleted,
+      current,
       answer,
     }: {
-      isCompleted: boolean;
+      current: "ongoing" | "completed";
       answer: string;
     }): Promise<void> => {
-      stubMaintenance(true);
-      jest
-        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
-        .mockResolvedValue(true);
-      jest
-        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
-        .mockResolvedValue(isCompleted);
+      stubMaintenance(true, current);
       const createSpy: AnySpy = stubCreate(
         ScheduledMaintenanceStateTimelineService,
       );
@@ -1678,7 +1719,7 @@ describe("Microsoft Teams Escalate", (): void => {
         escalation.role,
         Permission.OnCallMember,
       ]);
-      stubRecord({
+      const recordRead: AnySpy = stubRecord({
         service: escalation.recordService,
         makeRecord: escalation.makeRecord,
         stateColumn: "currentIncidentStateId",
@@ -1711,6 +1752,10 @@ describe("Microsoft Teams Escalate", (): void => {
       expect(repliesText(turn)).toEqual([
         "On-call policy escalated successfully",
       ]);
+
+      // The card's record is read once, as the member, and paged for as read.
+      expect(recordRead).toHaveBeenCalledTimes(1);
+      expect(recordRead.mock.calls[0]![0].props).toBe(props);
     },
   );
 

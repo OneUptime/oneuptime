@@ -38,7 +38,10 @@ jobs:
       DATABASE_NAME: oneuptimedb
     services:
       postgres:
-        image: postgres:15
+        # Docker Hub's postgres, from mirror.gcr.io: the runner starts service
+        # containers before any step, so a daemon mirror cannot apply
+        # (.github/actions/docker-hub-mirror).
+        image: mirror.gcr.io/library/postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

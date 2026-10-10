@@ -1,8 +1,4 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsAlertActionType } from "./ActionTypes";
-import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
@@ -15,6 +11,7 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEventRecord,
   WorkspaceEventStateOption,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
@@ -52,45 +49,6 @@ export default class MicrosoftTeamsAlertActions {
   }
 
   @CaptureSpan()
-  public static async handleAlertAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { teamsRequest, action } = data;
-
-    logger.debug("Handling Microsoft Teams alert action:", {
-      projectId: teamsRequest.projectId.toString(),
-      actionType: action.actionType,
-    });
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsAlertActionType.ViewAlert:
-          // This is handled by opening the URL directly
-          break;
-
-        default:
-          logger.debug("Unhandled alert action: " + action.actionType, {
-            projectId: teamsRequest.projectId.toString(),
-            actionType: action.actionType,
-          });
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams alert action:", {
-        projectId: teamsRequest.projectId.toString(),
-        actionType: action.actionType,
-      });
-      logger.error(error);
-    }
-
-    Response.sendTextResponse(data.req, data.res, "");
-  }
-
-  @CaptureSpan()
   public static async handleBotAlertAction(data: {
     actionType: string;
     actionValue: string;
@@ -119,12 +77,13 @@ export default class MicrosoftTeamsAlertActions {
 
       const alertId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: AlertStateTimeline,
-        action: "acknowledge this alert",
-        resources: [{ service: AlertService, id: alertId }],
-      });
+      const alert: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertStateTimeline,
+          action: "acknowledge this alert",
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+        });
 
       /*
        * Acknowledged by the member, as the dashboard acknowledges it for
@@ -132,10 +91,7 @@ export default class MicrosoftTeamsAlertActions {
        * handleBotInvokeActivity tells them.
        */
       await WorkspaceMemberActions.acknowledge({
-        event: {
-          type: WorkspaceEventType.Alert,
-          id: alertId,
-        },
+        event: alert,
         props: databaseProps,
       });
 
@@ -151,19 +107,17 @@ export default class MicrosoftTeamsAlertActions {
 
       const alertId: ObjectID = new ObjectID(actionValue);
 
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: AlertStateTimeline,
-        action: "resolve this alert",
-        resources: [{ service: AlertService, id: alertId }],
-      });
+      const alert: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertStateTimeline,
+          action: "resolve this alert",
+          event: { type: WorkspaceEventType.Alert, id: alertId },
+        });
 
       // Resolved by the member, as the dashboard resolves it for them.
       await WorkspaceMemberActions.resolve({
-        event: {
-          type: WorkspaceEventType.Alert,
-          id: alertId,
-        },
+        event: alert,
         props: databaseProps,
       });
 
@@ -344,25 +298,21 @@ export default class MicrosoftTeamsAlertActions {
         const alertId: ObjectID = new ObjectID(actionValue);
         const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await WorkspaceActionAuthorization.assertCanCreate({
-          props: databaseProps,
-          modelType: OnCallDutyPolicyExecutionLog,
-          action: "execute an on-call policy for this alert",
-          resources: [
-            { service: AlertService, id: alertId },
-            { service: OnCallDutyPolicyService, id: policyId },
-          ],
-        });
+        const alert: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: OnCallDutyPolicyExecutionLog,
+            action: "execute an on-call policy for this alert",
+            event: { type: WorkspaceEventType.Alert, id: alertId },
+            resources: [{ service: OnCallDutyPolicyService, id: policyId }],
+          });
 
         /*
          * Executed by the member, as the dashboard's Execute On-Call Policy
          * executes it for them: an execution log triggered by the alert.
          */
         await WorkspaceMemberActions.executeOnCallPolicy({
-          event: {
-            type: WorkspaceEventType.Alert,
-            id: alertId,
-          },
+          event: alert,
           onCallDutyPolicyId: policyId,
           props: databaseProps,
         });
@@ -447,22 +397,20 @@ export default class MicrosoftTeamsAlertActions {
         // Update the state
         const alertId: ObjectID = new ObjectID(actionValue);
 
-        await WorkspaceActionAuthorization.assertCanCreate({
-          props: databaseProps,
-          modelType: AlertStateTimeline,
-          action: "change the state of this alert",
-          resources: [{ service: AlertService, id: alertId }],
-        });
+        const alert: WorkspaceEventRecord =
+          await WorkspaceMemberActions.authorize({
+            props: databaseProps,
+            modelType: AlertStateTimeline,
+            action: "change the state of this alert",
+            event: { type: WorkspaceEventType.Alert, id: alertId },
+          });
 
         /*
          * The state change the dashboard makes: a row in the alert's state
          * timeline, created by the member (WorkspaceMemberActions).
          */
         await WorkspaceMemberActions.changeState({
-          event: {
-            type: WorkspaceEventType.Alert,
-            id: alertId,
-          },
+          event: alert,
           stateId: new ObjectID(alertStateId.toString()),
           props: databaseProps,
         });
@@ -489,11 +437,12 @@ export default class MicrosoftTeamsAlertActions {
       return;
     }
 
-    // Default fallback for unimplemented actions
+    /*
+     * Default fallback for unimplemented actions
+     * The action's name is placed as text: it comes from the card.
+     */
     await turnContext.sendActivity(
-      "Sorry, but the action " +
-        actionType +
-        " you requested is not implemented yet.",
+      mdText`Sorry, but the action ${actionType} you requested is not implemented yet.`.toString(),
     );
   }
 

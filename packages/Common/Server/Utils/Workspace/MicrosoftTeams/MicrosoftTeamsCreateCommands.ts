@@ -123,11 +123,11 @@ export default class MicrosoftTeamsCreateCommands {
 
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
+        mdText`An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
           severitySettingsUrl
             ? mdText`[Incidents → Settings → Incident Severity](${severitySettingsUrl})`
             : "Incidents → Settings → Incident Severity"
-        }, then try again.`,
+        }, then try again.`.toString(),
       );
       return;
     }
@@ -259,7 +259,7 @@ export default class MicrosoftTeamsCreateCommands {
       );
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `Sorry, I couldn't tell who sent this message, so I can't open the form to create ${form.what}. Please try again.`,
+        mdText`Sorry, I couldn't tell who sent this message, so I can't open the form to create ${form.what}. Please try again.`.toString(),
       );
       return null;
     }
@@ -296,8 +296,12 @@ export default class MicrosoftTeamsCreateCommands {
         return null;
       }
 
+      // Placed as text: a refusal can name a label, a record or a person.
       if (error instanceof NotAuthorizedException) {
-        await MicrosoftTeamsReplies.sendBestEffort(turnContext, error.message);
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          mdText`${error.message}`.toString(),
+        );
         return null;
       }
 
@@ -310,7 +314,7 @@ export default class MicrosoftTeamsCreateCommands {
       );
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `Sorry, I couldn't open the form to create ${form.what} because OneUptime could not check your account just now. Please try again in a minute.`,
+        mdText`Sorry, I couldn't open the form to create ${form.what} because OneUptime could not check your account just now. Please try again in a minute.`.toString(),
       );
       return null;
     }
@@ -370,10 +374,10 @@ export default class MicrosoftTeamsCreateCommands {
 
     await MicrosoftTeamsReplies.sendBestEffort(
       data.turnContext,
-      `Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not load the lists it needs just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
+      mdText`Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not load the lists it needs just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
         createInOneUptimeUrl,
         "or create it",
-      )}`,
+      )}`.toString(),
     );
   }
 
@@ -388,7 +392,7 @@ export default class MicrosoftTeamsCreateCommands {
     );
 
     if (MicrosoftTeamsMessageSize.isMessageTooLargeError(data.error)) {
-      return `Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams refused it as too large, even without the lists of ${data.form.lists}. ${createInOneUptime}`;
+      return mdText`Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams refused it as too large, even without the lists of ${data.form.lists}. ${createInOneUptime}`.toString();
     }
 
     const statusCode: number | undefined =
@@ -402,9 +406,9 @@ export default class MicrosoftTeamsCreateCommands {
       })
       .join(" ");
 
-    return `Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams did not accept it${
-      teamsReason ? ` (${teamsReason})` : ""
-    }. ${createInOneUptime}`;
+    return mdText`Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams did not accept it${
+      teamsReason ? mdText` (${teamsReason})` : ""
+    }. ${createInOneUptime}`.toString();
   }
 
   private static getCreateInOneUptimeHint(

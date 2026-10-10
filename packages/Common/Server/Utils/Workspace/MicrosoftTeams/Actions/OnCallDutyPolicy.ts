@@ -1,6 +1,3 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsOnCallDutyActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
@@ -12,19 +9,12 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
-import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
+  WorkspaceEventRecord,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
-import DatabaseService from "../../../../Services/DatabaseService";
-import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import IncidentService from "../../../../Services/IncidentService";
-import AlertService from "../../../../Services/AlertService";
-import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService";
-import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
-import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -37,26 +27,6 @@ const ESCALATION_RECORD_KEYS: ReadonlyArray<[string, WorkspaceEventType]> = [
   ["alertEpisodeId", WorkspaceEventType.AlertEpisode],
 ];
 
-// The service that reads an Escalate card's record, as its member.
-const getEscalationRecordService: (
-  type: WorkspaceEventType,
-) => DatabaseService<DatabaseBaseModel> = (
-  type: WorkspaceEventType,
-): DatabaseService<DatabaseBaseModel> => {
-  switch (type) {
-    case WorkspaceEventType.Incident:
-      return IncidentService as unknown as DatabaseService<DatabaseBaseModel>;
-    case WorkspaceEventType.Alert:
-      return AlertService as unknown as DatabaseService<DatabaseBaseModel>;
-    case WorkspaceEventType.IncidentEpisode:
-      return IncidentEpisodeService as unknown as DatabaseService<DatabaseBaseModel>;
-    case WorkspaceEventType.AlertEpisode:
-      return AlertEpisodeService as unknown as DatabaseService<DatabaseBaseModel>;
-    case WorkspaceEventType.ScheduledMaintenance:
-      return ScheduledMaintenanceService as unknown as DatabaseService<DatabaseBaseModel>;
-  }
-};
-
 export default class MicrosoftTeamsOnCallDutyActions {
   @CaptureSpan()
   public static isOnCallDutyAction(data: { actionType: string }): boolean {
@@ -64,45 +34,6 @@ export default class MicrosoftTeamsOnCallDutyActions {
       data.actionType === MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty ||
       data.actionType === MicrosoftTeamsOnCallDutyActionType.EscalateOnCall
     );
-  }
-
-  @CaptureSpan()
-  public static async handleOnCallDutyAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { action } = data;
-
-    logger.debug("Handling Microsoft Teams on-call duty action:", {
-      projectId: data.teamsRequest.projectId.toString(),
-      actionType: action.actionType,
-    });
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty:
-          // This is handled by opening the URL directly
-          break;
-
-        default:
-          logger.debug("Unhandled on-call duty action: " + action.actionType, {
-            projectId: data.teamsRequest.projectId.toString(),
-            actionType: action.actionType,
-          });
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams on-call duty action:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        actionType: action.actionType,
-      });
-      logger.error(error);
-    }
-
-    Response.sendTextResponse(data.req, data.res, "");
   }
 
   /*
@@ -175,27 +106,26 @@ export default class MicrosoftTeamsOnCallDutyActions {
         policyIdValue.toString(),
       );
 
-      let escalationRecord: WorkspaceEvent | null = null;
+      // The card's record, as the check below read it for the member.
+      let escalationRecord: WorkspaceEventRecord | null = null;
 
       if (actionType === MicrosoftTeamsOnCallDutyActionType.EscalateOnCall) {
-        escalationRecord = this.getEscalationRecord(actionPayload);
+        const cardRecord: WorkspaceEvent | null =
+          this.getEscalationRecord(actionPayload);
 
-        if (!escalationRecord) {
+        if (!cardRecord) {
           await turnContext.sendActivity(
             MicrosoftTeamsOnCallDutyActions.ESCALATE_NEEDS_RECORD_MESSAGE,
           );
           return;
         }
 
-        await WorkspaceActionAuthorization.assertCanCreate({
+        escalationRecord = await WorkspaceMemberActions.authorize({
           props: databaseProps,
           modelType: OnCallDutyPolicyExecutionLog,
-          action: `execute this on-call policy for this ${WorkspaceMemberActions.getNoun(escalationRecord.type)}`,
+          action: `execute this on-call policy for this ${WorkspaceMemberActions.getNoun(cardRecord.type)}`,
+          event: cardRecord,
           resources: [
-            {
-              service: getEscalationRecordService(escalationRecord.type),
-              id: escalationRecord.id,
-            },
             { service: OnCallDutyPolicyService, id: onCallDutyPolicyId },
           ],
         });

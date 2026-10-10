@@ -2,7 +2,6 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import Query from "../../../Server/Types/Database/Query";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   IN_PROGRESS_KEYS,
@@ -30,9 +29,10 @@ import type { SpyInstance } from "jest-mock";
  *   - getInProgressScheduledMaintenanceStateIds: one project's ids;
  *   - getInProgressEventQueriesOfEveryProject: every project at once, for
  *     the jobs (the end at an event's end time) - the ongoing states by
- *     their flag, the states of a project's own by their ids;
- *   - getOngoingScheduledMaintenanceState: THE ongoing state, the one a
- *     start moves an event into.
+ *     their flag, the states of a project's own by their ids.
+ *
+ * (THE ongoing state, the one a start moves an event into, is
+ * ScheduledMaintenanceStartUtil.getOngoingState, tested with the rule.)
  */
 
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
@@ -349,48 +349,6 @@ describe("ScheduledMaintenanceStateService: the states an event is in progress i
         isResolvedState: false,
       });
       expect(firstRead.props).toEqual({ isRoot: true });
-    });
-  });
-
-  describe("getOngoingScheduledMaintenanceState", () => {
-    test("is the ongoing state itself, not a state of the project's own after it", async () => {
-      mockProgressStateReads();
-
-      const state: ScheduledMaintenanceState =
-        await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-          { projectId: PROGRESS_PROJECT_ID, props: { isRoot: true } },
-        );
-
-      expect(state._id?.toString()).toBe(progressStateId("ongoing").toString());
-    });
-
-    test("is the first from the top flagged ongoing, whatever order the rows come in", async () => {
-      const secondOngoing: ScheduledMaintenanceState =
-        makeProgressState("ongoing");
-      secondOngoing._id = "5a000000-0000-4000-8000-0000000000b3";
-      secondOngoing.order = 9;
-
-      mockProgressStateReads([secondOngoing, ...makeProgressStates()]);
-
-      const state: ScheduledMaintenanceState =
-        await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-          { projectId: PROGRESS_PROJECT_ID, props: { isRoot: true } },
-        );
-
-      expect(state._id?.toString()).toBe(progressStateId("ongoing").toString());
-    });
-
-    test("a project without one is refused", async () => {
-      mockProgressStateReads(
-        statesOf(OTHER_PROJECT_ID, ["scheduled", "ended", "completed"]),
-      );
-
-      await expect(
-        ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState({
-          projectId: OTHER_PROJECT_ID,
-          props: { isRoot: true },
-        }),
-      ).rejects.toThrow(BadDataException);
     });
   });
 });

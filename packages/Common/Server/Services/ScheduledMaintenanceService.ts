@@ -3660,6 +3660,12 @@ ${FeedMarkdown.join(
     });
   }
 
+  /*
+   * Whether the event is complete: in its project's completed state or one
+   * placed after it (ScheduledMaintenanceStateService.isCompleteAmong, the
+   * rule the chats' buttons read off an event they read already). What
+   * stops its owners' reminders.
+   */
   @CaptureSpan()
   public async isScheduledMaintenanceCompleted(data: {
     scheduledMaintenanceId: ObjectID;
@@ -3670,9 +3676,7 @@ ${FeedMarkdown.join(
       },
       select: {
         projectId: true,
-        currentScheduledMaintenanceState: {
-          order: true,
-        },
+        currentScheduledMaintenanceStateId: true,
       },
       props: {
         isRoot: true,
@@ -3684,32 +3688,21 @@ ${FeedMarkdown.join(
     }
 
     if (!scheduledMaintenance.projectId) {
-      throw new BadDataException("Incident Project ID not found");
+      throw new BadDataException("Scheduled maintenance project ID not found");
     }
 
-    const resolvedScheduledMaintenanceState: ScheduledMaintenanceState =
-      await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
-        {
-          projectId: scheduledMaintenance.projectId,
-          props: {
-            isRoot: true,
+    return ScheduledMaintenanceStateService.isCompleteAmong({
+      states:
+        await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: scheduledMaintenance.projectId,
+            props: {
+              isRoot: true,
+            },
           },
-        },
-      );
-
-    const currentScheduledMaintenanceStateOrder: number =
-      scheduledMaintenance.currentScheduledMaintenanceState!.order!;
-    const resolvedScheduledMaintenanceStateOrder: number =
-      resolvedScheduledMaintenanceState.order!;
-
-    if (
-      currentScheduledMaintenanceStateOrder >=
-      resolvedScheduledMaintenanceStateOrder
-    ) {
-      return true;
-    }
-
-    return false;
+        ),
+      stateId: scheduledMaintenance.currentScheduledMaintenanceStateId,
+    });
   }
 
   @CaptureSpan()
@@ -3747,9 +3740,9 @@ ${FeedMarkdown.join(
    * Whether the event has started (ScheduledMaintenanceStartUtil): it is in
    * its project's ongoing state or any state after it - a state of the
    * project's own placed after Ongoing ("Verifying") as much as Ended. What
-   * stops the reminders of a rule set to stop once the event is ongoing, and
-   * what Slack's and Teams' Mark as Ongoing refuse ("already in ongoing
-   * state", or "already complete" once isScheduledMaintenanceCompleted).
+   * stops the reminders of a rule set to stop once the event is ongoing.
+   * (Slack's and Teams' Mark as Ongoing read the same rule off the event
+   * they read already: WorkspaceMemberActions.getStanding.)
    */
   @CaptureSpan()
   public async isScheduledMaintenanceOngoing(data: {
