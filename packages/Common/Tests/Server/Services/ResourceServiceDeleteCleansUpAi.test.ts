@@ -21,6 +21,11 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { getJestSpyOn } from "../../Spy";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -180,14 +185,28 @@ describe("resource services' delete hooks clean up OneUptime AI state", () => {
       loggedError = jest.spyOn(logger, "error").mockImplementation((): void => {
         return undefined;
       });
-      resourceFind = getJestSpyOn(wiring.service, "findBy").mockResolvedValue([
+      // The resources as the database answers a read: by the ids it names.
+      const resources: Array<Record<string, unknown>> = [
         { id: RESOURCE_ID, _id: RESOURCE_ID.toString(), name: "web-1" },
         {
           id: OTHER_RESOURCE_ID,
           _id: OTHER_RESOURCE_ID.toString(),
           name: "web-2",
         },
-      ]);
+      ];
+      resourceFind = getJestSpyOn(wiring.service, "findBy").mockImplementation(
+        (async (read: {
+          query: Record<string, unknown>;
+        }): Promise<Array<unknown>> => {
+          const named: unknown = read.query["_id"];
+
+          return resources.filter((resource: Record<string, unknown>) => {
+            return named === undefined || meetsCondition(named, resource["_id"]);
+          });
+        }) as never,
+      );
+      // The teammate may delete the resources their read reaches.
+      stubRowsCallerMayDeleteLikeFindBy(wiring.service, resourceFind);
       suggestionFind = jest
         .spyOn(AutoRemediationSuggestionService, "findBy")
         .mockResolvedValue([
@@ -229,19 +248,24 @@ describe("resource services' delete hooks clean up OneUptime AI state", () => {
       ).toBe(true);
     });
 
-    it("reads the in-flight rounds of its own type before the delete, scoped to the caller's project", async () => {
+    it("reads the in-flight rounds of its own type before the delete, for the resources the delete removes in the caller's project", async () => {
       const onDelete: OnDelete<BaseModel> = await hooksOf(
         wiring.service,
       ).onBeforeDelete(deleteBy());
 
-      // The delete itself is passed on untouched.
+      // The delete names the one resource read.
       expect(onDelete.deleteBy.query).toEqual({ _id: RESOURCE_ID.toString() });
+      expect(onDelete.deleteBy.limit).toBe(1);
+
+      // The resources the caller may delete, read in the caller's project.
+      expect(
+        readsOfRowsCallerMayWrite(wiring.service)[0]!.query["projectId"],
+      ).toBe(PROJECT_ID);
 
       const resourceQuery: Record<string, unknown> = (
         resourceFind.mock.calls[0]![0] as { query: Record<string, unknown> }
       ).query;
       expect(resourceQuery["_id"]).toBe(RESOURCE_ID.toString());
-      expect(resourceQuery["projectId"]).toBe(PROJECT_ID);
 
       const suggestionQuery: Record<string, unknown> = (
         suggestionFind.mock.calls[0]![0] as { query: Record<string, unknown> }
@@ -282,7 +306,7 @@ describe("resource services' delete hooks clean up OneUptime AI state", () => {
         resourceIds: [RESOURCE_ID],
       });
 
-      // The hook hands the delete back as it got it.
+      // The hook hands the delete back held to the one resource it read.
       expect(onDelete.deleteBy.query).toEqual({ _id: RESOURCE_ID.toString() });
     });
 
