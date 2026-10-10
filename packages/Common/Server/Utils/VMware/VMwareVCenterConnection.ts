@@ -211,7 +211,7 @@ export default class VMwareVCenterConnection {
       isPasswordSet: true,
       isSwitchedToAgent: false,
       feedLines: [
-        mdText`It is collected by a OneUptime probe from ${FeedMarkdown.code(
+        mdText`A probe collects it from ${FeedMarkdown.code(
           data["vcenterUrl"] as string,
         )}, as ${FeedMarkdown.code(data["vcenterUsername"] as string)}.`,
       ],
@@ -309,7 +309,7 @@ export default class VMwareVCenterConnection {
         change.isPasswordSet = false;
         change.isCredentialChanged = true;
         change.feedLines.push(
-          mdText`Its data now comes from the VMware agent. OneUptime forgot the saved vCenter password, and its probe stopped collecting.`,
+          mdText`Its data now comes from the VMware agent. The saved vCenter password was deleted, and its probe stopped collecting.`,
         );
         change.feedColor = Yellow500;
       }
@@ -413,7 +413,7 @@ export default class VMwareVCenterConnection {
 
     if (isMethodSwitched) {
       change.feedLines.push(
-        mdText`It is now collected by a OneUptime probe from ${FeedMarkdown.code(
+        mdText`A probe now collects it from ${FeedMarkdown.code(
           next["vcenterUrl"] as string,
         )}, instead of the VMware agent. Stop the agent once the first collection succeeds, or every metric arrives twice.`,
       );

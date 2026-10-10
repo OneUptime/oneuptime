@@ -78,7 +78,9 @@ const INVALID_ADDRESS_MESSAGE: string =
   "Enter vCenter's address as you open it in a browser, such as https://vcsa.example.com.";
 
 export default class VMwareVCenterAddress {
-  public static normalize(input: string | null | undefined): VCenterAddressResult {
+  public static normalize(
+    input: string | null | undefined,
+  ): VCenterAddressResult {
     const raw: string = (input || "").trim();
 
     if (!raw) {
@@ -130,7 +132,9 @@ export default class VMwareVCenterAddress {
       return { error: INVALID_ADDRESS_MESSAGE };
     }
 
-    const path: string = parsed.pathname.replace(TRAILING_SLASHES_PATTERN, "").toLowerCase();
+    const path: string = parsed.pathname
+      .replace(TRAILING_SLASHES_PATTERN, "")
+      .toLowerCase();
 
     if (path && !ACCEPTED_PATHS.includes(path)) {
       return {
@@ -157,7 +161,7 @@ export default class VMwareVCenterAddress {
     if (VMwareVCenterAddress.isForbiddenHost(host)) {
       return {
         error:
-          "OneUptime does not connect to loopback, link-local or cloud metadata addresses. Enter vCenter's own host name or IP address.",
+          "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
       };
     }
 
@@ -165,8 +169,7 @@ export default class VMwareVCenterAddress {
       ? Number.parseInt(parsed.port, 10)
       : DEFAULT_VCENTER_HTTPS_PORT;
 
-    const isIpAddress: boolean =
-      IPV4_PATTERN.test(host) || host.includes(":");
+    const isIpAddress: boolean = IPV4_PATTERN.test(host) || host.includes(":");
     const hostForUrl: string = host.includes(":") ? `[${host}]` : host;
 
     return {

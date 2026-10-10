@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import ProbeService from "../../../Server/Services/ProbeService";
-import { Service as VMwareVCenterConnectionTestServiceType } from "../../../Server/Services/VMwareVCenterConnectionTestService";
+import {
+  Service as VMwareVCenterConnectionTestServiceType,
+  VMWARE_TEST_NOT_PICKED_UP_MESSAGE,
+  VMWARE_TEST_NOT_REPORTED_MESSAGE,
+} from "../../../Server/Services/VMwareVCenterConnectionTestService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
@@ -22,6 +26,10 @@ import {
   VMwareConnectionTestJob,
   VMwareConnectionTestReport,
 } from "../../../Types/VMware/VMwareProbeCollection";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { EntityManager } from "typeorm";
 
@@ -299,7 +307,7 @@ describe("onBeforeCreate: a test is checked like the connection it is about to b
 
     if (IsBillingEnabled) {
       expect(await refusal(internals.onBeforeCreate(newTest()))).toBe(
-        "Pick a probe of your own. OneUptime's shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.",
+        "Pick a probe of your own. Shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.",
       );
     } else {
       await internals.onBeforeCreate(newTest());
@@ -737,7 +745,7 @@ describe("expireStaleTests: a person is never left waiting on a test nobody will
     expect(pickup!.params.slice(0, 3)).toEqual([
       VMwareConnectionTestStatus.Failed,
       VMwareCollectionErrorCode.ProbeNotAvailable,
-      "The probe did not pick up the test. It may be offline, or run a OneUptime version older than VMware collection - update it, or pick another probe.",
+      "The probe did not pick up the test. It may be offline, or run a version of OneUptime older than VMware collection - update it, or pick another probe.",
     ]);
     expect(pickup!.params[4]).toBe(VMwareConnectionTestStatus.Pending);
     expect(
@@ -755,5 +763,41 @@ describe("expireStaleTests: a person is never left waiting on a test nobody will
     expect(
       (run!.params[3] as Date).getTime() - (run!.params[5] as Date).getTime(),
     ).toBe(VMWARE_CONNECTION_TEST_RUN_TIMEOUT_IN_SECONDS * 1000);
+  });
+
+  test("an installation with its own name reads that name in the reason that names the product", async () => {
+    installFakeEnterpriseModule({ productBranding: { productName: "Acme" } });
+
+    try {
+      const { service } = buildService();
+      const statements: Array<RecordedStatement> = [];
+
+      jest.spyOn(service, "getRepository").mockReturnValue({
+        manager: {
+          query: async (
+            sql: string,
+            params: Array<unknown>,
+          ): Promise<unknown> => {
+            statements.push({ sql, params });
+            return [];
+          },
+        },
+      } as never);
+
+      await service.expireStaleTests();
+
+      expect(statements[0]!.params[2]).toBe(
+        "The probe did not pick up the test. It may be offline, or run a version of Acme older than VMware collection - update it, or pick another probe.",
+      );
+      // The other never names the product.
+      expect(statements[1]!.params[2]).toBe(VMWARE_TEST_NOT_REPORTED_MESSAGE);
+    } finally {
+      uninstallEnterpriseModule();
+    }
+
+    // Without a name of its own, the sentence is OneUptime's.
+    expect(VMWARE_TEST_NOT_PICKED_UP_MESSAGE).toContain(
+      "a version of OneUptime",
+    );
   });
 });

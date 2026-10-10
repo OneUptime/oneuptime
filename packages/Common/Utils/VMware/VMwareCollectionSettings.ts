@@ -77,7 +77,7 @@ export default class VMwareCollectionSettings {
 
     if (isGlobal) {
       if (data.isBillingEnabled) {
-        return "Pick a probe of your own. OneUptime's shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.";
+        return "Pick a probe of your own. Shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.";
       }
 
       return null;

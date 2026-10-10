@@ -8,6 +8,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import VMwareProbeCollectionStore from "../Utils/VMware/VMwareProbeCollectionStore";
 import VMwareVCenterConnection from "../Utils/VMware/VMwareVCenterConnection";
@@ -41,6 +42,17 @@ import VMwareVCenterAddress, {
 
 const PROBE_KEYS: Array<string> = ["probeId", "probe"];
 const VCENTER_KEYS: Array<string> = ["vmwareVCenterId", "vmwareVCenter"];
+
+/*
+ * Why a test no probe picked up failed. It names the product, so the sweep
+ * writes it through ProductBrandingText: an installation with its own name
+ * reads that name.
+ */
+export const VMWARE_TEST_NOT_PICKED_UP_MESSAGE: string =
+  "The probe did not pick up the test. It may be offline, or run a version of OneUptime older than VMware collection - update it, or pick another probe.";
+
+export const VMWARE_TEST_NOT_REPORTED_MESSAGE: string =
+  "The probe did not report back in time.";
 
 /*
  * "Test connection" for a vCenter (VMwareVCenterConnectionTest): checked
@@ -520,7 +532,7 @@ export class Service extends ProjectReferencesService<Model> {
       [
         VMwareConnectionTestStatus.Failed,
         VMwareCollectionErrorCode.ProbeNotAvailable,
-        "The probe did not pick up the test. It may be offline, or run a OneUptime version older than VMware collection - update it, or pick another probe.",
+        ProductBrandingText.brandText(VMWARE_TEST_NOT_PICKED_UP_MESSAGE),
         now,
         VMwareConnectionTestStatus.Pending,
         OneUptimeDate.addRemoveSeconds(
@@ -537,7 +549,7 @@ export class Service extends ProjectReferencesService<Model> {
       [
         VMwareConnectionTestStatus.Failed,
         VMwareCollectionErrorCode.TimedOut,
-        "The probe did not report back in time.",
+        VMWARE_TEST_NOT_REPORTED_MESSAGE,
         now,
         VMwareConnectionTestStatus.Running,
         OneUptimeDate.addRemoveSeconds(

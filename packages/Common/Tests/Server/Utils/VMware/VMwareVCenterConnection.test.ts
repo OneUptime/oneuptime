@@ -278,7 +278,7 @@ describe("VMwareVCenterConnection.prepareCreate", () => {
       feedColor: Blue500,
     });
     expect(change!.feedLines.map(String)).toEqual([
-      "It is collected by a OneUptime probe from `https://vcsa.example.com`, as `oneuptime@vsphere.local`.",
+      "A probe collects it from `https://vcsa.example.com`, as `oneuptime@vsphere.local`.",
     ]);
   });
 
@@ -326,7 +326,7 @@ describe("VMwareVCenterConnection.prepareCreate", () => {
     [
       "the cloud metadata address",
       { vcenterUrl: "https://169.254.169.254" } as DataRecord,
-      "OneUptime does not connect to loopback, link-local or cloud metadata addresses. Enter vCenter's own host name or IP address.",
+      "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
     ],
     [
       "a user name over 256 characters",
@@ -399,7 +399,7 @@ describe("VMwareVCenterConnection.prepareCreate", () => {
 
     if (IsBillingEnabled) {
       await expect(attempt).rejects.toThrow(
-        "Pick a probe of your own. OneUptime's shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.",
+        "Pick a probe of your own. Shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.",
       );
     } else {
       await expect(attempt).resolves.toMatchObject({ isPasswordSet: true });
@@ -469,7 +469,7 @@ describe("VMwareVCenterConnection.prepareUpdate", () => {
       feedColor: Blue500,
     });
     expect(change.feedLines.map(String)).toEqual([
-      "It is now collected by a OneUptime probe from `https://vcsa.example.com`, instead of the VMware agent. Stop the agent once the first collection succeeds, or every metric arrives twice.",
+      "A probe now collects it from `https://vcsa.example.com`, instead of the VMware agent. Stop the agent once the first collection succeeds, or every metric arrives twice.",
     ]);
   });
 
@@ -487,7 +487,7 @@ describe("VMwareVCenterConnection.prepareUpdate", () => {
       feedColor: Yellow500,
     });
     expect(change.feedLines.map(String)).toEqual([
-      "Its data now comes from the VMware agent. OneUptime forgot the saved vCenter password, and its probe stopped collecting.",
+      "Its data now comes from the VMware agent. The saved vCenter password was deleted, and its probe stopped collecting.",
     ]);
   });
 

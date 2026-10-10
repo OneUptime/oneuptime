@@ -72,7 +72,7 @@ describe("VMwareCollectionSettings.getProbeRefusal", () => {
 
   test("OneUptime Cloud's shared probes never receive a vCenter password", () => {
     const refusal: string =
-      "Pick a probe of your own. OneUptime's shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.";
+      "Pick a probe of your own. Shared probes never receive vCenter passwords - add a probe in vCenter's network and pick it here.";
 
     expect(
       VMwareCollectionSettings.getProbeRefusal({

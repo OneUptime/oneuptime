@@ -117,7 +117,7 @@ describe("VMwareVCenterAddress.normalize", () => {
     "[::ffff:a9fe:a9fe]",
   ])("%s is never connected to", (input: string) => {
     expect(errorOf(input)).toBe(
-      "OneUptime does not connect to loopback, link-local or cloud metadata addresses. Enter vCenter's own host name or IP address.",
+      "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
     );
   });
 

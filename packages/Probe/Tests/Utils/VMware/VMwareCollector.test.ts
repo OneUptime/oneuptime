@@ -807,7 +807,7 @@ describe("VMwareCollector.test", () => {
     expect(invalid).toMatchObject({
       errorCode: VMwareCollectionErrorCode.InvalidAddress,
       errorMessage:
-        "OneUptime does not connect to loopback, link-local or cloud metadata addresses. Enter vCenter's own host name or IP address.",
+        "Loopback, link-local and cloud metadata addresses are never used. Enter vCenter's own host name or IP address.",
     });
   });
 
