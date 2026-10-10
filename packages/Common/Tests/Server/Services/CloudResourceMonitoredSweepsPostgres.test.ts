@@ -3,6 +3,7 @@ import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import logger from "../../../Server/Utils/Logger";
+import ReceivingCoverage from "../../../Server/Utils/Telemetry/ReceivingCoverage";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -24,9 +25,13 @@ import { DataSource } from "typeorm";
  *
  * Opt in with RUN_POSTGRES_CLOUD_RESOURCE_SWEEP_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
- * workflow's database right after its drift check. The CloudResource
- * STRUCTURE is cloned into a unique schema (search_path holds only that
- * schema) that is dropped afterwards. Credentials from DATABASE_USERNAME /
+ * workflow's database right after its drift check. The STRUCTURE of every
+ * table the sweeps read is cloned into a unique schema (search_path holds
+ * only that schema) that is dropped afterwards: CloudResource, and
+ * InstanceReceivingPeriod, the receiving ledger the "Not reporting" and
+ * auto-archive cutoffs count silence against (ReceivingCoverage). The
+ * ledger is left empty - no gaps, OneUptime receiving throughout - so
+ * silence here is plain wall-clock time. Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from CLOUD_RESOURCE_SWEEP_TEST_DATABASE_NAME
  * or DATABASE_NAME, endpoint from CLOUD_RESOURCE_SWEEP_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400).
@@ -118,6 +123,9 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
         );
       }
     }
+    await database.query(
+      `CREATE TABLE "${schema}"."InstanceReceivingPeriod" (LIKE public."InstanceReceivingPeriod" INCLUDING ALL)`,
+    );
     expect(
       (await database.query("SELECT current_schema()"))[0].current_schema,
     ).toBe(schema);
@@ -143,6 +151,8 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
     });
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+    // Every test reads the (empty) ledger itself, not an answer cached by the last.
+    ReceivingCoverage.clearCache();
     await database.query(`DELETE FROM "${schema}"."CloudResource"`);
   });
 
