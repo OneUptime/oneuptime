@@ -6,9 +6,15 @@
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
+    "Agent",
     "Alarm",
+    "App",
+    "Apps",
+    "Budget",
     "Capture",
     "CloudWatch Metric Streams",
+    "Details",
+    "Embedding",
     "Filter:",
     "Filter: {{expression}}",
     "In Huntress",
@@ -16,11 +22,18 @@
     "Interface",
     "Interface {{index}}",
     "Label: {{name}}",
+    "Model",
     "Offline",
     "Protocol",
+    "Provider",
     "Runbook: {{name}}",
     "Runner",
+    "Service",
+    "Service:",
+    "Status",
     "Stratum",
+    "Team",
+    "Tool",
     "Transceivers",
     "VMware vCenter",
     "Website",
@@ -35,6 +48,7 @@
     "{{count}} MB",
     "{{count}} alarm",
     "{{count}} product",
-    "{{field}} is {{value}}"
+    "{{field}} is {{value}}",
+    "{{tokens}} tokens"
   ]
 }

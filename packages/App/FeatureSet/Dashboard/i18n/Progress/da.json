@@ -5,18 +5,27 @@
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "Agent",
     "Alarm",
+    "App",
+    "Apps",
+    "Budget",
     "CloudWatch Metric Streams",
+    "Embedding",
     "Filter:",
     "Filter: {{expression}}",
     "Interface",
+    "Model",
     "Offline",
+    "Pause",
     "Reference",
     "Revision",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
+    "Status",
     "Stratum",
+    "Team",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "teams",
@@ -25,6 +34,7 @@
     "{{count}} MB",
     "{{count}} alarm",
     "{{count}} match",
-    "{{count}} rotation"
+    "{{count}} rotation",
+    "{{tokens}} tokens"
   ]
 }

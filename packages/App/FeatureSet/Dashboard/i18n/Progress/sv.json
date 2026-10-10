@@ -5,7 +5,11 @@
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "Agent",
+    "App",
+    "Budget",
     "CloudWatch Metric Streams",
+    "Embedding",
     "Filter:",
     "Filter: {{expression}}",
     "Incident {{number}}: {{title}}",
@@ -14,7 +18,9 @@
     "Revision",
     "Runbook: {{name}}",
     "Runner",
+    "Status",
     "Stratum",
+    "Team",
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
@@ -22,6 +28,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} process",
-    "{{count}} rotation"
+    "{{count}} rotation",
+    "{{tokens}} tokens"
   ]
 }
