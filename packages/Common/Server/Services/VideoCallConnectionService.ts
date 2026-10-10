@@ -626,24 +626,24 @@ export class Service extends ProjectReferencesService<Model> {
     const onDelete: OnDelete<Model> = await super.onBeforeDelete(deleteBy);
     const signIns: Array<DeletedSignIn> = [];
 
-    try {
-      const connections: Array<Model> = await this.findBy({
-        query: {
-          ...deleteBy.query,
-          authMethod: VideoCallAuthMethod.OAuth,
-        },
-        select: {
-          _id: true,
-          provider: true,
-          secrets: true,
-          connectedAccountId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // The connections the delete removes, and the delete held to them.
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        authMethod: true,
+        provider: true,
+        secrets: true,
+        connectedAccountId: true,
+      },
+    );
 
+    try {
       for (const connection of connections) {
+        if (connection.authMethod !== VideoCallAuthMethod.OAuth) {
+          continue;
+        }
+
         const secrets: VideoCallOAuthSecrets | null =
           VideoCallOAuthUtil.readSecrets(
             VideoCallConnectionSettingsUtil.parseJsonObject(

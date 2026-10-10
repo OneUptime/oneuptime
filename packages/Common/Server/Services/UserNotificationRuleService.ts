@@ -1,11 +1,8 @@
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import EmailColorUtil from "../../Utils/Email/EmailColorUtil";
 import CallService from "./CallService";
@@ -54,7 +51,7 @@ import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CallRequest from "../../Types/Call/CallRequest";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Sort from "../Types/Database/Sort";
 import Dictionary from "../../Types/Dictionary";
@@ -5547,85 +5544,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /**
-   * Narrow a caller-supplied delete query to the rows that caller is actually
-   * entitled to delete, for onBeforeDelete. (An update's hook reads the rows
-   * the update writes with findRowsAndHoldUpdateToThem instead.)
-   *
-   * WHY THIS EXISTS AT ALL. _deleteBy calls onBeforeDelete and only then
-   * ModelPermission.checkDeleteQueryPermission. So the hook, reading
-   * `deleteBy.query`, reads the RAW request — no tenant predicate, no
-   * ownership predicate — and reads it with `isRoot` props on top, because the
-   * question it asks is a question about the database's state rather than
-   * about the caller's visibility. Left there, a caller could point the guard
-   * at rows in another project entirely: the audit trail would name their
-   * owners, and the delete itself would touch a completely different set.
-   *
-   * WHY NOT JUST CALL ModelPermission. That is the obvious fix and it is the
-   * wrong one. checkDeleteQueryPermission does two jobs — it narrows the query
-   * AND it authorises the request — and running it here would run the second
-   * job twice, moving every table-level rejection into the hook and
-   * duplicating the team lookups behind the tenant scope on every delete. The
-   * hook does not need to authorise anything; _deleteBy authorises it a few
-   * lines later and is the authority. What the hook needs is only that the row
-   * set it reasons about is no wider than the row set the write can reach.
-   *
-   * WHAT IS REPRODUCED, AND WHY THAT IS THE WHOLE OF IT. For this model the
-   * narrowing is exactly two predicates: the tenant column
-   * (TenantPermission.addTenantScopeToQuery for a member,
-   * PermissionUtil.addTenantScopeToQueryAsRoot on the delete path for root) and,
-   * when Permission.CurrentUser is the ONLY thing letting the caller through,
-   * the ownership column. Nothing else applies: UserNotificationRule declares no
-   * access-control column, is not an operational resource and has no
-   * @OwnedThrough, so addAccessControlIdsToQuery and addOwnedScopeToQuery are
-   * both no-ops on it. IF ANY OF THAT CHANGES ON THE MODEL, THIS MUST CHANGE
-   * WITH IT — a narrowing the permission layer applies and this does not is a
-   * guard validating rows the write never touches.
-   *
-   * Root and master-admin queries are returned untouched. They are entitled to
-   * every row, and narrowing them would make the guard read FEWER rows than the
-   * write reaches, which is the one direction it must never be wrong in.
-   */
-  private narrowQueryToCallerEntitlement(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-    requestType: DatabaseRequestType,
-  ): Query<Model> {
-    if (props.isRoot || props.isMasterAdmin) {
-      return query;
-    }
-
-    const scopedQuery: Query<Model> = { ...query };
-
-    const tenantColumn: string | null = this.getModel().getTenantColumn();
-
-    if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
-      (scopedQuery as Dictionary<unknown>)[tenantColumn] = props.tenantId;
-    }
-
-    const userColumn: string | null = this.getModel().getUserColumn();
-
-    if (
-      userColumn &&
-      props.userId &&
-      TenantPermission.isAccessGrantedOnlyByCurrentUser(
-        this.modelType,
-        props,
-        requestType,
-      )
-    ) {
-      /*
-       * Set rather than merged. A CurrentUser-only caller whose query names
-       * somebody else is rejected outright by addCurrentUserScopeToQuery a
-       * moment from now, so the only thing that matters here is that the guard
-       * never reads rows that rejection would have protected.
-       */
-      (scopedQuery as Dictionary<unknown>)[userColumn] = props.userId;
-    }
-
-    return scopedQuery;
-  }
-
-  /**
    * The update-path half of R3, plus the read that R6 needs.
    *
    * The rule's owner is re-read FROM THE DATABASE here and never taken from
@@ -5917,13 +5835,10 @@ export class Service extends ProjectReferencesService<Model> {
    * reason: _deleteBy hands the success hook only the ids it deleted, and by
    * then the rows are gone.
    *
-   * The query is narrowed first. onBeforeDelete runs BEFORE
-   * ModelPermission.checkDeleteQueryPermission, so the raw query carries
-   * neither the tenant predicate nor the ownership predicate — see
-   * narrowQueryToCallerEntitlement.
-   * Without it, a member could point this read at another project's rules and
-   * have their owners written into the audit trail and mailed a warning about a
-   * deletion that never touched them.
+   * The rows read are exactly the rows the delete removes, and the delete is
+   * held to them (findRowsAndHoldDeleteToThem): the rules of the caller's own
+   * project they may delete, in the delete's own window. So the audit trail
+   * and the warning name only owners whose rules this delete removed.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -5942,13 +5857,9 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    const deletedRules: Array<Model> = await this.findBy({
-      query: this.narrowQueryToCallerEntitlement(
-        deleteBy.query,
-        deleteBy.props,
-        DatabaseRequestType.Delete,
-      ),
-      select: {
+    const deletedRules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         userId: true,
         projectId: true,
@@ -5967,13 +5878,7 @@ export class Service extends ProjectReferencesService<Model> {
         userPushId: true,
         userWebhookId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -6015,10 +5920,10 @@ export class Service extends ProjectReferencesService<Model> {
       action: AuditLogAction.Delete,
       actorUserId: actorUserId,
       /*
-       * Only rows the delete actually removed. The hook read every row the
-       * narrowed query matched; _deleteBy then applied the caller's own
-       * skip/limit on top, so the two sets are not always the same and a
-       * warning about a rule that still exists is a false alarm.
+       * Only rows the delete actually removed. The hook held the delete to the
+       * rows it read, but the delete asks the caller's permission once more and
+       * may find fewer of them - a rule removed in between - and a warning
+       * about a rule that still exists is a false alarm.
        */
       rules: deletedRules.filter((rule: Model): boolean => {
         return Boolean(rule.id && deletedIds.has(rule.id.toString()));

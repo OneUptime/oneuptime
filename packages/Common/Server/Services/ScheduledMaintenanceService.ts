@@ -1520,12 +1520,13 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each event the query actually matches.
+     * The project of every event the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * event's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
@@ -1593,21 +1594,15 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The events the delete removes, and the delete held to them.
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
         monitors: {
           _id: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     return {
       carryForward: {
@@ -1620,11 +1615,14 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _deletedItemIds: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward?.scheduledMaintenanceEvents) {
-      for (const scheduledMaintenanceEvent of onDelete?.carryForward
-        ?.scheduledMaintenanceEvents || []) {
+      // The events the delete removed, of those onBeforeDelete read.
+      for (const scheduledMaintenanceEvent of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.scheduledMaintenanceEvents,
+        deletedIds: deletedIds,
+      })) {
         await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
           scheduledMaintenanceEvent,
         );

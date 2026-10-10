@@ -17,6 +17,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { ComplianceSeverityKind } from "../../../Types/Team/ComplianceRule";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubRowsCallerMayDeleteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Deleting an incident or alert severity must not silently widen a team
@@ -158,6 +159,8 @@ describe.each(CASES)(
       findBy = jest
         .spyOn(service, "findBy")
         .mockResolvedValue([testCase.row()] as never);
+      // The severities a signed-in caller may delete: those the read reaches.
+      stubRowsCallerMayDeleteLikeFindBy(service, findBy);
 
       getRulesScopedToAnyOf = jest
         .spyOn(TeamComplianceSettingService, "getRulesScopedToAnyOf")
@@ -189,7 +192,7 @@ describe.each(CASES)(
       });
       expect(read["limit"]).toBe(1);
       expect(read["skip"]).toBe(0);
-      expect(read["props"]).toEqual({ isRoot: true });
+      expect(read["props"]).toEqual({ isRoot: true, ignoreHooks: true });
 
       expect(getRulesScopedToAnyOf).toHaveBeenCalledTimes(1);
 
@@ -399,11 +402,13 @@ describe.each(CASES)(
       service = testCase.build();
       internals = service as unknown as SeverityServiceInternals;
 
-      jest.spyOn(service, "findBy").mockImplementation(((findBy: {
-        query: JSONObject;
-      }) => {
-        return Promise.resolve([severityRow(String(findBy.query["_id"]))]);
-      }) as never);
+      const findBy: jest.SpyInstance = jest
+        .spyOn(service, "findBy")
+        .mockImplementation(((read: { query: JSONObject }) => {
+          return Promise.resolve([severityRow(String(read.query["_id"]))]);
+        }) as never);
+      // The severities a signed-in caller may delete: those the read reaches.
+      stubRowsCallerMayDeleteLikeFindBy(service, findBy);
 
       jest
         .spyOn(TeamComplianceSettingService, "findBy")

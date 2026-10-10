@@ -701,6 +701,26 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
       runBeforeUpdate({ monitors: [MONITOR_A2] }, { isRoot: true }),
     ).resolves.toEqual({ monitors: [MONITOR_A2] });
   });
+
+  /*
+   * OneUptime's update reaches any secret its query names, whatever project
+   * the request is made in: what it writes is checked in the project of the
+   * secret it writes, not the request's.
+   */
+  test("a server-side update made in another project is checked in the secret's own project", async () => {
+    const rootInOtherProject: DatabaseCommonInteractionProps = {
+      isRoot: true,
+      tenantId: new ObjectID(PROJECT_B),
+    };
+
+    await expect(
+      runBeforeUpdate({ monitors: [MONITOR_B1] }, rootInOtherProject),
+    ).rejects.toThrow(/not in this project/);
+
+    await expect(
+      runBeforeUpdate({ monitors: [MONITOR_A2] }, rootInOtherProject),
+    ).resolves.toEqual({ monitors: [MONITOR_A2] });
+  });
 });
 
 describe("MonitorSecretService.getSecretsForMonitors", () => {

@@ -85,18 +85,13 @@ export class Service extends ProjectReferencesService<IncomingCallPolicyEscalati
     }
 
     if (!deleteBy.props.isRoot) {
-      const resource: IncomingCallPolicyEscalationRule | null =
-        await this.findOneBy({
-          query: deleteBy.query,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-          },
+      // The rules the delete removes, and the delete held to them.
+      const rules: Array<IncomingCallPolicyEscalationRule> =
+        await this.findRowsAndHoldDeleteToThem(deleteBy, {
+          _id: true,
         });
 
-      if (!resource) {
+      if (rules.length === 0) {
         throw new BadDataException(
           "IncomingCallPolicyEscalationRule with this id not found",
         );

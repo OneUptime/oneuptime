@@ -37,21 +37,57 @@ export function stubRowsCallerMayWrite<TModel extends DatabaseBaseModel>(
     read: RowsCallerMayWriteRead,
   ) => Array<unknown> | Promise<Array<unknown>>,
 ): jest.SpyInstance {
-  // As a project-wide editor's is narrowed: to the request's project.
-  jest.spyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
-    modelType: new () => DatabaseBaseModel,
-    query: JSONObject,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<unknown> => {
-    const tenantColumn: string | null = new modelType().getTenantColumn();
+  jest
+    .spyOn(ModelPermission, "getUpdatableQuery")
+    .mockImplementation(narrowToRequestProject as never);
 
-    if (!tenantColumn || !props.tenantId || props.isMultiTenantRequest) {
-      return query;
-    }
+  return answerReadsOfRowsCallerMayWrite(service, rows);
+}
 
-    return { ...query, [tenantColumn]: props.tenantId };
-  }) as never);
+/*
+ * The same for a delete: answers the read of the rows a teammate's delete
+ * may remove, as the delete path makes it before the hooks
+ * (DatabaseService.keepRowsCallerMayWrite) - or as a hook that checks the
+ * rows a delete removes makes it itself when a suite calls the service's
+ * onBeforeDelete directly (findRowsAndHoldDeleteToThem). The read is
+ * narrowed to the request's project, and the caller may delete every row
+ * `rows()` gives, in the delete's window. The read is not a findBy call, so
+ * the suite's findBy stub sees only the hook's own read.
+ */
+export function stubRowsCallerMayDelete<TModel extends DatabaseBaseModel>(
+  service: DatabaseService<TModel>,
+  rows: (
+    read: RowsCallerMayWriteRead,
+  ) => Array<unknown> | Promise<Array<unknown>>,
+): jest.SpyInstance {
+  jest
+    .spyOn(ModelPermission, "checkDeleteQueryPermission")
+    .mockImplementation(narrowToRequestProject as never);
 
+  return answerReadsOfRowsCallerMayWrite(service, rows);
+}
+
+// As a project-wide editor's write is narrowed: to the request's project.
+async function narrowToRequestProject(
+  modelType: new () => DatabaseBaseModel,
+  query: JSONObject,
+  props: DatabaseCommonInteractionProps,
+): Promise<unknown> {
+  const tenantColumn: string | null = new modelType().getTenantColumn();
+
+  if (!tenantColumn || !props.tenantId || props.isMultiTenantRequest) {
+    return query;
+  }
+
+  return { ...query, [tenantColumn]: props.tenantId };
+}
+
+function answerReadsOfRowsCallerMayWrite<TModel extends DatabaseBaseModel>(
+  service: DatabaseService<TModel>,
+  rows: (
+    read: RowsCallerMayWriteRead,
+  ) => Array<unknown> | Promise<Array<unknown>>,
+): jest.SpyInstance {
   return jest
     .spyOn(service as unknown as { _findBy: () => unknown }, "_findBy")
     .mockImplementation((async (
@@ -82,39 +118,69 @@ export function stubRowsCallerMayWriteLikeFindBy<
   service: DatabaseService<TModel>,
   findBy: AnswersLikeFindBy,
 ): jest.SpyInstance {
+  return stubRowsCallerMayWrite(service, answerLikeFindBy(service, findBy));
+}
+
+// stubRowsCallerMayDelete, answered as stubRowsCallerMayWriteLikeFindBy answers.
+export function stubRowsCallerMayDeleteLikeFindBy<
+  TModel extends DatabaseBaseModel,
+>(
+  service: DatabaseService<TModel>,
+  findBy: AnswersLikeFindBy,
+): jest.SpyInstance {
+  return stubRowsCallerMayDelete(service, answerLikeFindBy(service, findBy));
+}
+
+/*
+ * Answers the read of the rows a caller may write or delete the way the
+ * suite's findBy stub answers the same read, and leaves the permission check
+ * that narrows that read to run for real: for a suite that keeps the actual
+ * permission checker in the path.
+ */
+export function answerRowsCallerMayWriteLikeFindBy<
+  TModel extends DatabaseBaseModel,
+>(
+  service: DatabaseService<TModel>,
+  findBy: AnswersLikeFindBy,
+): jest.SpyInstance {
+  return answerReadsOfRowsCallerMayWrite(
+    service,
+    answerLikeFindBy(service, findBy),
+  );
+}
+
+function answerLikeFindBy<TModel extends DatabaseBaseModel>(
+  service: DatabaseService<TModel>,
+  findBy: AnswersLikeFindBy,
+): (read: RowsCallerMayWriteRead) => Promise<Array<unknown>> {
   let answering: boolean = false;
 
-  return stubRowsCallerMayWrite(
-    service,
-    async (read: RowsCallerMayWriteRead): Promise<Array<unknown>> => {
-      let answer: unknown = findBy.getMockImplementation();
+  return async (read: RowsCallerMayWriteRead): Promise<Array<unknown>> => {
+    let answer: unknown = findBy.getMockImplementation();
 
-      /*
-       * A mock function handed in as the implementation answers through its
-       * own implementation, so the read is not counted as a call of it.
-       */
-      while (answer && jest.isMockFunction(answer)) {
-        answer = (
-          answer as unknown as AnswersLikeFindBy
-        ).getMockImplementation();
-      }
+    /*
+     * A mock function handed in as the implementation answers through its
+     * own implementation, so the read is not counted as a call of it.
+     */
+    while (answer && jest.isMockFunction(answer)) {
+      answer = (answer as unknown as AnswersLikeFindBy).getMockImplementation();
+    }
 
-      if (typeof answer !== "function" || answering) {
-        return [];
-      }
+    if (typeof answer !== "function" || answering) {
+      return [];
+    }
 
-      answering = true;
+    answering = true;
 
-      try {
-        return (await (answer as (...args: Array<unknown>) => unknown).call(
-          service,
-          read,
-        )) as Array<unknown>;
-      } finally {
-        answering = false;
-      }
-    },
-  );
+    try {
+      return (await (answer as (...args: Array<unknown>) => unknown).call(
+        service,
+        read,
+      )) as Array<unknown>;
+    } finally {
+      answering = false;
+    }
+  };
 }
 
 // The reads of the rows a caller's update may write, as the stub was given them.

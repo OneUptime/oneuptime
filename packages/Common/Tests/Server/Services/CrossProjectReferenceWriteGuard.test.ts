@@ -36,6 +36,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
@@ -859,6 +860,32 @@ describe("cross-project reference guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow("not in this project");
+    });
+
+    test("OneUptime's update of the status and a linked resource reads the projects it checks them in once", async () => {
+      spyOnValidator();
+      const findProjects: SpyInstance<
+        typeof MonitorService.findProjectsToCheckUpdateIn
+      > = jest
+        .spyOn(MonitorService, "findProjectsToCheckUpdateIn")
+        .mockResolvedValue([PROJECT_ID]);
+
+      await callHook(MonitorService, "onBeforeUpdate", {
+        data: {
+          currentMonitorStatusId: MONITOR_STATUS_ID,
+          hosts: [new ObjectID("4c7cbc1a-3a4e-4d0e-9a51-1f1d0f2c3b4d")],
+        },
+        query: {},
+        props: { isRoot: true },
+      });
+
+      // Read once, and both checks made in the project it answered.
+      expect(findProjects).toHaveBeenCalledTimes(1);
+      expect(
+        validatorCalls.map((call: ValidatorCall): string => {
+          return String(call.projectId);
+        }),
+      ).toEqual([PROJECT_ID.toString(), PROJECT_ID.toString()]);
     });
 
     test("update looks nothing up when neither monitorSteps nor the status is written", async () => {

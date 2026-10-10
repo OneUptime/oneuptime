@@ -50,6 +50,10 @@ import PacketCaptureStatus from "../../../Types/PacketCapture/PacketCaptureStatu
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
+import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
@@ -1733,6 +1737,10 @@ describe("deleting a capture deletes its file", () => {
     const find: Spy = jest
       .spyOn(service, "findBy")
       .mockResolvedValue([capture, noFile] as never) as unknown as Spy;
+    // The capture the caller may delete, in the request's project.
+    stubRowsCallerMayDelete(service, () => {
+      return [capture];
+    });
 
     const deleteBy: DeleteBy<PacketCapture> = {
       query: { _id: CAPTURE_ID.toString() },
@@ -1742,12 +1750,20 @@ describe("deleting a capture deletes its file", () => {
     const result: OnDelete<PacketCapture> =
       await internals.onBeforeDelete(deleteBy);
 
+    // The captures the caller may delete are read in the request's project.
+    const callerMayDelete: JSONObject = readsOfRowsCallerMayWrite(service)[0]!
+      .query as unknown as JSONObject;
+    expect(callerMayDelete["_id"]).toBe(CAPTURE_ID.toString());
+    expect(callerMayDelete["projectId"]?.toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+
+    // The delete's captures among them; a row outside them is never used.
     const findBy: FindBy<PacketCapture> = find.mock
       .calls[0]![0] as FindBy<PacketCapture>;
     const query: JSONObject = findBy.query as unknown as JSONObject;
 
     expect(query["_id"]).toBe(CAPTURE_ID.toString());
-    expect(query["projectId"]?.toString()).toBe(PROJECT_ID.toString());
     expect(result.carryForward).toEqual([
       { captureId: CAPTURE_ID.toString(), fileId: FILE_ID },
     ]);

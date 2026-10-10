@@ -22,6 +22,7 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import PermissionUtil from "../Types/Database/Permissions/PermissionsUtil";
 import CreatePermission, {
   CreateParent,
   ReadableParentIdsFinder,
@@ -179,10 +180,11 @@ interface WriteOfRows {
 /*
  * The rows of an update or delete its caller may write, as
  * keepRowsCallerMayWrite read them before the hooks: the very write objects,
- * for as long as they live. A hook that checks the rows an update writes
- * reads these (findRowsAndHoldUpdateToThem), so it is never answered about
- * a row the caller cannot reach. No entry for OneUptime, a master admin or
- * a hook-free write: they write any row.
+ * for as long as they live. A hook that checks the rows an update writes or
+ * a delete removes reads these (findRowsAndHoldUpdateToThem,
+ * findRowsAndHoldDeleteToThem), so it is never answered about a row the
+ * caller cannot reach. No entry for OneUptime, a master admin or a
+ * hook-free write: they write any row.
  */
 const rowsTheCallerMayWrite: WeakMap<WriteOfRows, Array<string>> = new WeakMap<
   WriteOfRows,
@@ -190,8 +192,15 @@ const rowsTheCallerMayWrite: WeakMap<WriteOfRows, Array<string>> = new WeakMap<
 >();
 
 /*
+ * The deletes that are hard deletes (hardDeleteBy): they purge rows deleted
+ * before as well, so a hook's read of the rows one removes reads those too
+ * (findRowsAndHoldDeleteToThem).
+ */
+const hardDeletes: WeakSet<WriteOfRows> = new WeakSet<WriteOfRows>();
+
+/*
  * The conditions on _id the update path names a write's rows by
- * (pinQueryToRows, holdUpdateToRows), each with the condition it kept from
+ * (pinQueryToRows, holdWriteToRows), each with the condition it kept from
  * the query it replaced - null when it kept none. A later hold of the same
  * update replaces one of these, and keeps what it kept, rather than adding
  * one more list of ids to it.
@@ -244,13 +253,27 @@ interface PinnedQuery<TBaseModel extends BaseModel> {
 }
 
 /*
- * The rows of an update read for a check (findRowsAndHoldUpdateToThem), and
- * the rows the caller may write they were read among - null when the caller
- * writes any row.
+ * The rows of an update or a delete read for a check
+ * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), and the rows
+ * the caller may write they were read among - null when the caller writes
+ * any row.
  */
-interface RowsOfUpdate<TBaseModel extends BaseModel> {
+interface RowsOfWrite<TBaseModel extends BaseModel> {
   rows: Array<TBaseModel>;
   callerMayWrite: Array<string> | null;
+}
+
+/*
+ * An update or a delete, as the helpers that read its rows and hold it to
+ * them see it: its query, its window and who makes it - and, for an update,
+ * what it writes, for its plan check (BillingPermission).
+ */
+interface WriteInWindow<TBaseModel extends BaseModel> {
+  query: Query<TBaseModel>;
+  skip: PositiveNumber | number;
+  limit: PositiveNumber | number;
+  props: DatabaseCommonInteractionProps;
+  data?: unknown;
 }
 
 /*
@@ -6397,6 +6420,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // What onBeforeDelete handed back, for onDeleteError.
     let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
 
+    // A hook's read of the rows it removes reads rows deleted before too.
+    hardDeletes.add(deleteBy);
+
     try {
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
@@ -6888,13 +6914,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     updateBy: UpdateBy<TBaseModel>,
     select: Select<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
-    const rowsRead: RowsOfUpdate<TBaseModel> = await this.readRowsOfUpdate(
+    return await this.findRowsAndHoldWriteToThem(
       updateBy,
+      DatabaseRequestType.Update,
+      select,
+    );
+  }
+
+  /*
+   * The rows a delete is about to remove, read as OneUptime with `select`,
+   * for a check a hook makes of them or for what it does with them - the
+   * feed line that says who was removed, the provider number it releases,
+   * the rows it cleans up first - and the delete held to those very rows,
+   * so it never removes a row the hook did not see.
+   *
+   * They are read as findRowsAndHoldUpdateToThem reads an update's rows.
+   * For a teammate: the rows the caller may delete - read before the hooks
+   * with the caller's delete permission, in the delete's own window
+   * (keepRowsCallerMayWrite) - that the delete's query, as the hooks have
+   * narrowed it, still names, both asked in the same read. For OneUptime
+   * and a master admin: the delete's own query, in its own window, kept to
+   * the request's project when it names one, as the delete itself is
+   * (DeletePermission). A hard delete reads the rows deleted before too, as
+   * it purges them.
+   *
+   * The delete then names exactly the rows read, in a window that covers
+   * just them: a bulk delete over more rows than one read window, or one a
+   * teammate's labels or ownership cover only in part, removes only rows
+   * the hook saw. With no rows read it removes none.
+   *
+   * Every hook that judges a delete by the rows it removes reads them here
+   * (DeleteChecksReadHeldRows, Common Tests, holds every hook to this).
+   */
+  public async findRowsAndHoldDeleteToThem(
+    deleteBy: DeleteBy<TBaseModel>,
+    select: Select<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    return await this.findRowsAndHoldWriteToThem(
+      deleteBy,
+      DatabaseRequestType.Delete,
+      select,
+    );
+  }
+
+  /*
+   * The read and the hold of findRowsAndHoldUpdateToThem and
+   * findRowsAndHoldDeleteToThem: one for both, so an update and a delete are
+   * held to their rows the same way.
+   */
+  private async findRowsAndHoldWriteToThem(
+    write: WriteInWindow<TBaseModel>,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    select: Select<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    const rowsRead: RowsOfWrite<TBaseModel> = await this.readRowsOfWrite(
+      write,
+      type,
       select,
       null,
     );
 
-    this.holdUpdateToRowsRead(updateBy, rowsRead);
+    this.holdWriteToRowsRead(write, rowsRead);
 
     return rowsRead.rows;
   }
@@ -6911,8 +6991,45 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     updateBy: UpdateBy<TBaseModel>,
     select: Select<TBaseModel>,
   ): Promise<{ row: TBaseModel | null; writesMore: boolean }> {
-    const rowsRead: RowsOfUpdate<TBaseModel> = await this.readRowsOfUpdate(
+    return await this.findOneRowAndHoldWriteToIt(
       updateBy,
+      DatabaseRequestType.Update,
+      select,
+    );
+  }
+
+  /*
+   * The same for a hook that acts on the one row a delete removes - a state
+   * timeline entry whose neighbours close the gap it leaves, an entry of an
+   * ordered list whose followers move up a place: the row the delete
+   * removes, read as findRowsAndHoldDeleteToThem reads its rows, with the
+   * delete held to it - or no row, and the delete held to none. A delete of
+   * more than one row answers `deletesMore` and no row, and is left as it
+   * is, for the hook to refuse it or let it be.
+   */
+  public async findOneRowAndHoldDeleteToIt(
+    deleteBy: DeleteBy<TBaseModel>,
+    select: Select<TBaseModel>,
+  ): Promise<{ row: TBaseModel | null; deletesMore: boolean }> {
+    const found: { row: TBaseModel | null; writesMore: boolean } =
+      await this.findOneRowAndHoldWriteToIt(
+        deleteBy,
+        DatabaseRequestType.Delete,
+        select,
+      );
+
+    return { row: found.row, deletesMore: found.writesMore };
+  }
+
+  // The read and the hold of the two above.
+  private async findOneRowAndHoldWriteToIt(
+    write: WriteInWindow<TBaseModel>,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    select: Select<TBaseModel>,
+  ): Promise<{ row: TBaseModel | null; writesMore: boolean }> {
+    const rowsRead: RowsOfWrite<TBaseModel> = await this.readRowsOfWrite(
+      write,
+      type,
       select,
       2,
     );
@@ -6921,45 +7038,49 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return { row: null, writesMore: true };
     }
 
-    this.holdUpdateToRowsRead(updateBy, rowsRead);
+    this.holdWriteToRowsRead(write, rowsRead);
 
     return { row: rowsRead.rows[0] || null, writesMore: false };
   }
 
   /*
-   * The read findRowsAndHoldUpdateToThem and findOneRowAndHoldUpdateToIt
-   * make of an update's rows - at most `atMost` of them, when that is given
-   * - and the rows the caller may write they were read among: null for
-   * OneUptime and a master admin, who write any row.
+   * The read the helpers above make of the rows of an update or a delete -
+   * at most `atMost` of them, when that is given - and the rows the caller
+   * may write they were read among: null for OneUptime and a master admin,
+   * who write any row.
    */
-  private async readRowsOfUpdate(
-    updateBy: UpdateBy<TBaseModel>,
+  private async readRowsOfWrite(
+    write: WriteInWindow<TBaseModel>,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
     select: Select<TBaseModel>,
     atMost: number | null,
-  ): Promise<RowsOfUpdate<TBaseModel>> {
+  ): Promise<RowsOfWrite<TBaseModel>> {
+    // A hard delete purges the rows deleted before as well: they are read too.
+    const withDeleted: boolean =
+      type === DatabaseRequestType.Delete && hardDeletes.has(write);
+
     // Who writes decides which rows: any, or the ones the caller may write.
     let callerMayWrite: Array<string> | null = null;
 
-    if (!DatabaseService.writesAnyRow(updateBy.props)) {
-      if (!rowsTheCallerMayWrite.has(updateBy)) {
-        await this.readRowsCallerMayWrite(
-          updateBy,
-          DatabaseRequestType.Update,
-          { leaveQuery: true },
-        );
+    if (!DatabaseService.writesAnyRow(write.props)) {
+      if (!rowsTheCallerMayWrite.has(write)) {
+        await this.readRowsCallerMayWrite(write, type, {
+          leaveQuery: true,
+          withDeleted: withDeleted,
+        });
       }
 
-      callerMayWrite = rowsTheCallerMayWrite.get(updateBy) || [];
+      callerMayWrite = rowsTheCallerMayWrite.get(write) || [];
     }
 
     /*
-     * The rows: the update's own query in its window, or that query kept to
+     * The rows: the write's own query in its window, or that query kept to
      * the rows the caller may write. None when the caller may write none.
      */
     const rowsQuery: Query<TBaseModel> | null = !callerMayWrite
-      ? updateBy.query
+      ? await this.getQueryOfWriteOfAnyRow(write, type)
       : callerMayWrite.length > 0
-        ? this.queryWithinRows(updateBy.query, callerMayWrite)
+        ? this.queryWithinRows(write.query, callerMayWrite)
         : null;
 
     if (!rowsQuery) {
@@ -6974,20 +7095,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const limit: number = callerMayWrite
       ? callerMayWrite.length
-      : this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX;
+      : this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX;
 
-    let rows: Array<TBaseModel> = await this.findBy({
-      query: rowsQuery,
-      select: {
-        ...(readsRelations ? {} : select),
-        _id: true,
-      } as Select<TBaseModel>,
-      skip: callerMayWrite
-        ? 0
-        : this.normalizePositiveNumber(updateBy.skip) ?? 0,
-      limit: atMost === null ? limit : Math.min(atMost, limit),
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    let rows: Array<TBaseModel> = await this.readRowsOfWriteBy(
+      {
+        query: rowsQuery,
+        select: {
+          ...(readsRelations ? {} : select),
+          _id: true,
+        } as Select<TBaseModel>,
+        skip: callerMayWrite
+          ? 0
+          : this.normalizePositiveNumber(write.skip) ?? 0,
+        limit: atMost === null ? limit : Math.min(atMost, limit),
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      withDeleted,
+    );
 
     if (callerMayWrite) {
       // Never a row the caller may not write, whatever the query names.
@@ -6997,43 +7121,80 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (readsRelations && rows.length > 0) {
       const readIds: Array<string> = DatabaseService.getRowIds(rows);
 
-      rows = await this.findBy({
-        query: {
-          _id: DatabaseService.idsCondition(readIds),
-        } as Query<TBaseModel>,
-        select: { ...select, _id: true } as Select<TBaseModel>,
-        skip: 0,
-        limit: readIds.length,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      rows = await this.readRowsOfWriteBy(
+        {
+          query: {
+            _id: DatabaseService.idsCondition(readIds),
+          } as Query<TBaseModel>,
+          select: { ...select, _id: true } as Select<TBaseModel>,
+          skip: 0,
+          limit: readIds.length,
+          props: { isRoot: true, ignoreHooks: true },
+        },
+        withDeleted,
+      );
     }
 
     return { rows: rows, callerMayWrite: callerMayWrite };
   }
 
-  // Holds an update to the rows readRowsOfUpdate read of it.
-  private holdUpdateToRowsRead(
-    updateBy: UpdateBy<TBaseModel>,
-    rowsRead: RowsOfUpdate<TBaseModel>,
+  /*
+   * The query a write of OneUptime or a master admin reaches its rows by:
+   * an update's own query, which nothing narrows for them, and a delete's
+   * kept to the request's project when it names one - as DeletePermission
+   * keeps the delete itself - so the rows read are the rows it removes.
+   */
+  private async getQueryOfWriteOfAnyRow(
+    write: WriteInWindow<TBaseModel>,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): Promise<Query<TBaseModel>> {
+    if (type === DatabaseRequestType.Update || Array.isArray(write.query)) {
+      return write.query;
+    }
+
+    return await PermissionUtil.addTenantScopeToQueryAsRoot(
+      this.modelType,
+      { ...write.query } as Query<TBaseModel>,
+      write.props,
+    );
+  }
+
+  /*
+   * One read of a write's rows (readRowsOfWrite), with the rows deleted
+   * before when it is a hard delete's.
+   */
+  private async readRowsOfWriteBy(
+    findBy: FindBy<TBaseModel>,
+    withDeleted: boolean,
+  ): Promise<Array<TBaseModel>> {
+    return withDeleted
+      ? await this.findByWithDeleted(findBy)
+      : await this.findBy(findBy);
+  }
+
+  // Holds an update or a delete to the rows readRowsOfWrite read of it.
+  private holdWriteToRowsRead(
+    write: WriteInWindow<TBaseModel>,
+    rowsRead: RowsOfWrite<TBaseModel>,
   ): void {
     const rowIds: Array<string> = DatabaseService.getRowIds(rowsRead.rows);
 
-    this.holdUpdateToRows(updateBy, rowIds, {
+    this.holdWriteToRows(write, rowIds, {
       keepIdCondition: rowsRead.callerMayWrite !== null,
     });
 
     if (rowsRead.callerMayWrite) {
-      // What a later call for this update reads within.
-      rowsTheCallerMayWrite.set(updateBy, rowIds);
+      // What a later call for this write reads within.
+      rowsTheCallerMayWrite.set(write, rowIds);
     }
   }
 
   /*
    * The projects of the rows an update writes, each once - for a check an
-   * update makes once per project when its request names no project
-   * (OneUptime's own update, or a master admin's) - with the update held to
-   * those rows (findRowsAndHoldUpdateToThem). None for a model with no
-   * project.
+   * update makes once per project when it is not kept to the request's
+   * project (OneUptime's own update, or a master admin's, with or without a
+   * project on the request) - with the update held to those rows
+   * (findRowsAndHoldUpdateToThem). None for a model with no project.
    */
   public async findProjectsOfRowsAndHoldUpdateToThem(
     updateBy: UpdateBy<TBaseModel>,
@@ -7069,6 +7230,93 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return Array.from(projectIds.values());
+  }
+
+  /*
+   * The projects an update's references are checked against, each once.
+   * A teammate's update is kept to the request's project by its permission
+   * check, so it is checked against that project, with nothing read.
+   * OneUptime and a master admin write any row their update's query names,
+   * whatever project the request is made in: theirs is checked against the
+   * project of each row it writes, with the update held to those rows
+   * (findProjectsOfRowsAndHoldUpdateToThem).
+   */
+  public async findProjectsToCheckUpdateIn(
+    updateBy: UpdateBy<TBaseModel>,
+  ): Promise<Array<ObjectID>> {
+    const requestProjectId: ObjectID | null =
+      DatabaseService.getProjectWriteIsHeldTo(updateBy.props);
+
+    if (requestProjectId) {
+      return [requestProjectId];
+    }
+
+    return await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+  }
+
+  /*
+   * The project a write is kept to by its permission check: a teammate's
+   * request's project. Null for OneUptime and a master admin, whose writes
+   * reach any row their query names, the request's project or not, and for
+   * a request across projects or with no project.
+   */
+  public static getProjectWriteIsHeldTo(
+    props: DatabaseCommonInteractionProps,
+  ): ObjectID | null {
+    if (
+      !props.tenantId ||
+      props.isMultiTenantRequest ||
+      DatabaseService.writesAnyRow(props)
+    ) {
+      return null;
+    }
+
+    return props.tenantId;
+  }
+
+  /*
+   * The project a reference one row of a write names is checked in: the
+   * project the write is kept to (getProjectWriteIsHeldTo), a teammate's
+   * request's project; for OneUptime and a master admin, whose writes reach
+   * any row their query names, the row's own project - or the request's,
+   * for a row that names none.
+   */
+  public static getProjectToCheckRowIn(
+    props: DatabaseCommonInteractionProps,
+    rowProjectId: ObjectID | null | undefined,
+  ): ObjectID | undefined {
+    return (
+      DatabaseService.getProjectWriteIsHeldTo(props) ||
+      rowProjectId ||
+      props.tenantId ||
+      undefined
+    );
+  }
+
+  /*
+   * The rows a delete hook read (findRowsAndHoldDeleteToThem), narrowed to
+   * the ones the delete removed: the ids DatabaseService hands
+   * onDeleteSuccess. The delete is held to the rows read, but it asks the
+   * caller's permission once more and finds no row that is gone by then. A
+   * success hook that acts on the rows - a feed line, a tombstone, monitors
+   * given back - acts on these alone.
+   */
+  public static getRowsDeleted<TRow extends BaseModel>(data: {
+    rows: Array<TRow>;
+    deletedIds: Array<ObjectID>;
+  }): Array<TRow> {
+    // Postgres renders uuids lower-case whatever case a caller wrote them in.
+    const deletedIds: Set<string> = new Set<string>(
+      data.deletedIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+
+    return data.rows.filter((row: TRow): boolean => {
+      const id: string | undefined = row.id?.toString().toLowerCase();
+
+      return id !== undefined && deletedIds.has(id);
+    });
   }
 
   /*
@@ -7124,28 +7372,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Holds an update to `rowIds` (findRowsAndHoldUpdateToThem): its query
-   * names them - in the shapes its hooks already read (pinQueryToRows), and
-   * by their ids where those leave a query over several rows without one -
-   * in a window that covers just them. With `keepIdCondition`, a condition
-   * the query set on _id other than a plain id - the permission check's, a
-   * privacy filter's - stays beside the ids, so the write asks it again;
-   * one the update path set itself to name rows is replaced, keeping what
-   * that one kept. With no rows, the update names none.
+   * Holds an update or a delete to `rowIds` (findRowsAndHoldUpdateToThem,
+   * findRowsAndHoldDeleteToThem): its query names them - in the shapes its
+   * hooks already read (pinQueryToRows), and by their ids where those leave
+   * a query over several rows without one - in a window that covers just
+   * them. With `keepIdCondition`, a condition the query set on _id other
+   * than a plain id - the permission check's, a privacy filter's - stays
+   * beside the ids, so the write asks it again; one the write path set
+   * itself to name rows is replaced, keeping what that one kept. With no
+   * rows, the write names none.
    */
-  private holdUpdateToRows(
-    updateBy: UpdateBy<TBaseModel>,
+  private holdWriteToRows(
+    write: WriteInWindow<TBaseModel>,
     rowIds: Array<string>,
     options: { keepIdCondition: boolean },
   ): void {
-    const query: Dictionary<unknown> = Array.isArray(updateBy.query)
+    const query: Dictionary<unknown> = Array.isArray(write.query)
       ? {}
-      : (updateBy.query as Dictionary<unknown>);
+      : (write.query as Dictionary<unknown>);
 
-    updateBy.skip = 0;
+    write.skip = 0;
 
     if (rowIds.length === 0) {
-      updateBy.query = {
+      write.query = {
         ...query,
         _id: DatabaseService.idsCondition([]),
       } as Query<TBaseModel>;
@@ -7153,14 +7402,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return;
     }
 
-    updateBy.limit = rowIds.length;
+    write.limit = rowIds.length;
 
     const kept: FindOperator<unknown> | null = options.keepIdCondition
       ? this.getIdConditionToKeep(query["_id"])
       : null;
 
     if (kept) {
-      updateBy.query = {
+      write.query = {
         ...query,
         _id: DatabaseService.idConditionNamingRows(rowIds, kept),
       } as Query<TBaseModel>;
@@ -7169,12 +7418,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
-      updateBy.query,
+      write.query,
       rowIds,
-      updateBy.props,
+      write.props,
     );
 
-    updateBy.query =
+    write.query =
       pinned && pinned.namesTheRows
         ? pinned.query
         : ({
@@ -7185,7 +7434,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The condition on _id a hold keeps beside the ids it names
-   * (holdUpdateToRows): none for no condition, or for a plain id, which the
+   * (holdWriteToRows): none for no condition, or for a plain id, which the
    * ids name as it does; for a condition the update path set itself to name
    * rows, what that one kept; otherwise the condition, as a read runs it.
    */
@@ -7352,6 +7601,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
+  }
+
+  /*
+   * findBy, reading rows deleted before too: the rows a hard delete removes
+   * (hardDeleteBy), for a service that reads them before one runs - the
+   * projects the delete locks, say.
+   */
+  protected async findByWithDeleted(
+    findBy: FindBy<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    return await this._findBy(findBy, true);
   }
 
   /*

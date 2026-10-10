@@ -6,7 +6,6 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PcapFile, { PcapInspection } from "../Utils/PacketCapture/PcapFile";
@@ -469,19 +468,11 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const query: Query<Model> = { ...deleteBy.query };
-
-    if (deleteBy.props.tenantId) {
-      query.projectId = deleteBy.props.tenantId;
-    }
-
-    const rows: Array<Model> = await this.findBy({
-      query: query,
-      select: { _id: true, fileId: true },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    // The captures the delete removes, and the delete held to them.
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, fileId: true },
+    );
 
     const files: Array<DeletedCaptureFile> = [];
 

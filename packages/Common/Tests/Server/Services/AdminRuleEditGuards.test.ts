@@ -1989,19 +1989,32 @@ describe("Administrative notification rule edit guards", () => {
     });
 
     test("the same narrowing is applied on the delete path", async () => {
-      await ruleService().onBeforeDelete(
-        deletePayload({
-          query: {
-            _id: RULE_ID.toString(),
-            projectId: OTHER_PROJECT_ID.toString(),
-          },
-        }),
+      const payload: DeleteBy<UserNotificationRule> = deletePayload({
+        query: {
+          _id: RULE_ID.toString(),
+          projectId: OTHER_PROJECT_ID.toString(),
+        },
+      });
+
+      await ruleService().onBeforeDelete(payload);
+
+      // The rows the caller may delete: their own, in the session's project.
+      const query: Record<string, unknown> = writableRowsQuery();
+
+      expect(meetsCondition(query["projectId"], PROJECT_ID)).toBe(true);
+      expect(meetsCondition(query["projectId"], OTHER_PROJECT_ID)).toBe(false);
+      expect(meetsCondition(query["userId"], ADMIN_USER_ID)).toBe(true);
+      expect(meetsCondition(query["userId"], VICTIM_USER_ID)).toBe(false);
+
+      /*
+       * The guard reads the delete's rules among those alone, and the delete
+       * removes exactly the rules it read.
+       */
+      expect(String(guardReadQuery(stubs.ruleFindBy)["_id"])).toBe(
+        RULE_ID.toString(),
       );
-
-      const query: Record<string, unknown> = guardReadQuery(stubs.ruleFindBy);
-
-      expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(query["userId"]).toBe(ADMIN_USER_ID);
+      expect(payload.limit).toBe(1);
+      expect(payload.skip).toBe(0);
     });
 
     test("narrowing does not mutate the caller's query - the permission layer must still see what was actually asked for", async () => {

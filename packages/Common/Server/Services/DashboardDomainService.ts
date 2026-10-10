@@ -189,17 +189,9 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<DashboardDomain>,
   ): Promise<OnDelete<DashboardDomain>> {
-    const domains: Array<DashboardDomain> = await this.findBy({
-      query: {
-        ...deleteBy.query,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      select: { fullDomain: true },
-      props: {
-        isRoot: true,
-      },
-    });
+    // The domains the delete removes, and the delete held to them.
+    const domains: Array<DashboardDomain> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, { fullDomain: true });
 
     return { deleteBy, carryForward: domains };
   }

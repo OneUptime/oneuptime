@@ -12,6 +12,7 @@ import OnCallShiftChangeListeners, {
   OnCallShiftChangeReason,
 } from "../../../Server/Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../../../Server/Utils/Logger";
+import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -754,16 +755,20 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
   });
 
   test("onBeforeDelete captures projectId; onDeleteSuccess re-sequences, refreshes, then propagates", async () => {
-    jest
-      .spyOn(OnCallDutyPolicyScheduleLayerService, "findOneBy")
-      .mockResolvedValue({
-        id: LAYER_1,
-        order: 2,
-        onCallDutyPolicyScheduleId: SCHEDULE_1,
-        projectId: PROJECT_ID,
-      } as never);
+    const layer: Record<string, unknown> = {
+      id: LAYER_1,
+      order: 2,
+      onCallDutyPolicyScheduleId: SCHEDULE_1,
+      projectId: PROJECT_ID,
+    };
+    // The layer the caller may delete.
+    stubRowsCallerMayDelete(OnCallDutyPolicyScheduleLayerService, () => {
+      return [layer];
+    });
+    // The layer the delete removes, then the layers left in its schedule.
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
+      .mockResolvedValueOnce([layer] as never)
       .mockResolvedValue([] as never);
 
     const deleteBy: any = { query: { _id: LAYER_1 }, props: {} };
@@ -912,18 +917,22 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
   });
 
   test("onBeforeDelete captures user + project; onDeleteSuccess propagates with the removed user", async () => {
-    jest
-      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findOneBy")
-      .mockResolvedValue({
-        id: ROW_ID,
-        order: 1,
-        onCallDutyPolicyScheduleLayerId: LAYER_1,
-        onCallDutyPolicyScheduleId: SCHEDULE_1,
-        projectId: PROJECT_ID,
-        userId: USER_C,
-      } as never);
+    const layerUser: Record<string, unknown> = {
+      id: ROW_ID,
+      order: 1,
+      onCallDutyPolicyScheduleLayerId: LAYER_1,
+      onCallDutyPolicyScheduleId: SCHEDULE_1,
+      projectId: PROJECT_ID,
+      userId: USER_C,
+    };
+    // The layer user the caller may delete.
+    stubRowsCallerMayDelete(OnCallDutyPolicyScheduleLayerUserService, () => {
+      return [layerUser];
+    });
+    // The layer user the delete removes, then the ones left in its layer.
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
+      .mockResolvedValueOnce([layerUser] as never)
       .mockResolvedValue([] as never);
 
     const onDelete: any = await (

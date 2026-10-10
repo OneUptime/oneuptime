@@ -693,36 +693,22 @@ export class Service extends ProjectReferencesService<Model> {
     this.clearCache();
 
     if (!deleteBy.props.isRoot && !deleteBy.props.isMasterAdmin) {
-      // Hooks run before DatabaseService applies the delete ACL and tenant.
-      deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-      const selectedPermissions: Array<Model> = await this.findAllBy({
-        query: deleteBy.query,
-        select: { _id: true },
-        skip: deleteBy.skip,
-        limit: deleteBy.limit,
-        props: { isRoot: true },
-      });
-      const selectedIds: Array<ObjectID> = selectedPermissions.map(
-        (row: Model) => {
-          return row.id!;
-        },
-      );
-      // A relation filter may select a row, but must not trim its saved labels.
-      const permissions: Array<Model> = await this.findAllBy({
-        query: { _id: QueryHelper.any(selectedIds) },
-        select: {
+      /*
+       * The permissions the delete removes - the ones the caller may delete,
+       * in the delete's own window - and the delete held to them. A relation
+       * filter may select a row, but does not trim its saved labels: those
+       * are read by the rows' ids alone.
+       */
+      const permissions: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
           _id: true,
           projectId: true,
           permission: true,
           labels: { _id: true },
           isBlockPermission: true,
         },
-        props: { isRoot: true },
-      });
+      );
 
       for (const permission of permissions) {
         /*
@@ -748,16 +734,6 @@ export class Service extends ProjectReferencesService<Model> {
           });
         }
       }
-
-      /*
-       * Delete exactly the checked page, even when the query matches more
-       * than one batch. The original offset has already been applied.
-       */
-      deleteBy.query = {
-        ...deleteBy.query,
-        _id: QueryHelper.any(selectedIds),
-      };
-      deleteBy.skip = 0;
     }
     return { deleteBy, carryForward: null };
   }

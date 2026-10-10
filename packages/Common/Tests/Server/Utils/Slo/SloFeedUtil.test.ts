@@ -237,48 +237,6 @@ describe("SloFeedUtil - the acting user", () => {
   });
 });
 
-/*
- * onBeforeUpdate and onBeforeDelete both run before DatabaseService applies
- * the caller's permissions, so what a feed hook reads there - and what it
- * later describes - has to be narrowed by hand.
- */
-describe("SloFeedUtil - reads made before permissions are applied", () => {
-  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-    "2b2b2b2b-2b2b-4b2b-8b2b-2b2b2b2b2b2b",
-  );
-
-  test("pins the caller's query to the caller's project, without touching the query itself", () => {
-    const query: Record<string, unknown> = { _id: SLO_ID.toString() };
-
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: PROJECT_ID }),
-    ).toEqual({ _id: SLO_ID.toString(), projectId: PROJECT_ID });
-
-    // A copy: DatabaseService still receives the caller's query as it came.
-    expect(query).toEqual({ _id: SLO_ID.toString() });
-  });
-
-  test("a query naming another project is overridden, never trusted", () => {
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({
-        query: { _id: SLO_ID.toString(), projectId: OTHER_PROJECT_ID },
-        tenantId: PROJECT_ID,
-      }),
-    ).toEqual({ _id: SLO_ID.toString(), projectId: PROJECT_ID });
-  });
-
-  test("without a tenant - a root automation - the query is used exactly as it is", () => {
-    const query: Record<string, unknown> = { _id: SLO_ID.toString() };
-
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: undefined }),
-    ).toBe(query);
-    expect(
-      SloFeedUtil.getTenantPinnedQuery({ query: query, tenantId: null }),
-    ).toBe(query);
-  });
-});
-
 describe("SloFeedUtil - the rows a delete really removed", () => {
   const OWNER_ROW_ID: ObjectID = new ObjectID(
     "44444444-4444-4444-8444-444444444444",

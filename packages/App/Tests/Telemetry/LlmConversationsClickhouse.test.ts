@@ -83,6 +83,8 @@ const database: string = `llm_conversations_test_${process.pid}_${Date.now()}`;
 
 const projectId: ObjectID = new ObjectID("8800000000000000000000a1");
 const otherProjectId: ObjectID = new ObjectID("8800000000000000000000a2");
+// Two quick calls of one conversation, both inside one whole second.
+const quickProjectId: ObjectID = new ObjectID("8800000000000000000000a3");
 const supportBotId: ObjectID = new ObjectID("8800000000000000000000b1");
 const internalToolId: ObjectID = new ObjectID("8800000000000000000000b2");
 
@@ -100,6 +102,16 @@ const TRACE_REQUEST: string = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb03";
 const TRACE_FAILED: string = "cccccccccccccccccccccccccccccc04";
 const TRACE_INTERNAL: string = "dddddddddddddddddddddddddddddd05";
 const TRACE_OTHER: string = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeee06";
+/*
+ * The second quick call's trace sorts BEFORE the first one's, so the table
+ * (sorted by projectId, startTime, primaryEntityId, traceId) stores it first
+ * among rows that share a whole-second startTime.
+ */
+const TRACE_QUICK_FIRST: string = "ffffffffffffffffffffffffffffff08";
+const TRACE_QUICK_SECOND: string = "ffffffffffffffffffffffffffffff07";
+
+// A whole second two minutes ago; the quick calls start 100 ms and 300 ms in.
+const quickSecond: number = Math.floor((now - 2 * 60 * 1000) / 1000) * 1000;
 
 interface CallFixture {
   projectId?: ObjectID;
@@ -108,7 +120,9 @@ interface CallFixture {
   spanId: string;
   parentSpanId?: string;
   conversationId?: string;
-  minutesAgo: number;
+  minutesAgo?: number;
+  // When the call started (epoch ms), instead of minutesAgo.
+  startMs?: number;
   durationMs: number;
   isLlm?: boolean;
   kind?: string;
@@ -294,10 +308,57 @@ const calls: Array<CallFixture> = [
     isLlm: false,
     statusCode: 2,
   },
+
+  /*
+   * conv-quick: a 5 ms answer and, 200 ms later, a 40 ms one - all inside
+   * one whole second, in a project of its own.
+   */
+  {
+    projectId: quickProjectId,
+    traceId: TRACE_QUICK_FIRST,
+    spanId: "f000000000000001",
+    conversationId: "conv-quick",
+    startMs: quickSecond + 100,
+    durationMs: 5,
+    model: "gpt-4o",
+    email: "erin@example.com",
+    preview: "Where should I travel in May?",
+    attributes: {
+      "gen_ai.input.messages": messages([
+        { role: "user", content: "Where should I travel in May?" },
+      ]),
+      "gen_ai.output.messages": messages([
+        { role: "assistant", content: "Lisbon is lovely in May." },
+      ]),
+    },
+  },
+  {
+    projectId: quickProjectId,
+    traceId: TRACE_QUICK_SECOND,
+    spanId: "f000000000000002",
+    conversationId: "conv-quick",
+    startMs: quickSecond + 300,
+    durationMs: 40,
+    model: "gpt-4o",
+    email: "erin@example.com",
+    preview: "And in June?",
+    attributes: {
+      "gen_ai.input.messages": messages([
+        { role: "user", content: "Where should I travel in May?" },
+        { role: "assistant", content: "Lisbon is lovely in May." },
+        { role: "user", content: "And in June?" },
+      ]),
+      "gen_ai.output.messages": messages([
+        { role: "assistant", content: "Porto in June." },
+      ]),
+    },
+  },
 ];
 
 function callRow(fixture: CallFixture): JSONObject {
-  const start: Date = new Date(now - fixture.minutesAgo * 60 * 1000);
+  const start: Date = new Date(
+    fixture.startMs ?? now - (fixture.minutesAgo ?? 0) * 60 * 1000,
+  );
   const end: Date = new Date(start.getTime() + fixture.durationMs);
   const isLlm: boolean = fixture.isLlm !== false;
   const attributes: Record<string, string> = fixture.attributes || {};
@@ -308,8 +369,13 @@ function callRow(fixture: CallFixture): JSONObject {
     projectId: (fixture.projectId || projectId).toString(),
     primaryEntityId: (fixture.serviceId || supportBotId).toString(),
     primaryEntityType: "Service",
-    startTime: OneUptimeDate.toClickhouseDateTime64(start),
-    endTime: OneUptimeDate.toClickhouseDateTime64(end),
+    /*
+     * As trace ingest (OtelTracesIngestService) stores a span: startTime
+     * and endTime to the whole second, the exact times only in the
+     * UnixNano columns.
+     */
+    startTime: OneUptimeDate.toClickhouseDateTime(start),
+    endTime: OneUptimeDate.toClickhouseDateTime(end),
     startTimeUnixNano: String(start.getTime() * 1000000),
     endTimeUnixNano: String(end.getTime() * 1000000),
     durationUnixNano: String(fixture.durationMs * 1000000),
@@ -780,6 +846,80 @@ integration("AI conversations against ClickHouse", () => {
 
     expect(detail.transcript.callCount).toBe(1);
     expect(detail.transcript.costUsd).toBe(99);
+  });
+
+  /*
+   * conv-quick's two calls start 200 ms apart inside one whole second, and
+   * ingest stores startTime and endTime to the second. Read from those
+   * columns, the 5 ms answer would last 0 ms - arriving with its question,
+   * so a replay could never show the question alone - and the two calls
+   * would come back in the table's order, the second one first.
+   */
+  function quickConversation(): Promise<LlmConversationDetail> {
+    return LlmConversationService.getConversation({
+      projectId: quickProjectId,
+      key: { kind: LlmConversationKeyKind.Conversation, value: "conv-quick" },
+      startTime: windowStart,
+      endTime: windowEnd,
+    });
+  }
+
+  test("a call shorter than a second keeps its exact start and end", async () => {
+    const detail: LlmConversationDetail = await quickConversation();
+
+    const question: LlmTranscriptStep = detail.transcript.steps.find(
+      (step: LlmTranscriptStep): boolean => {
+        return step.text === "Where should I travel in May?";
+      },
+    )!;
+    const answer: LlmTranscriptStep = detail.transcript.steps.find(
+      (step: LlmTranscriptStep): boolean => {
+        return step.text === "Lisbon is lovely in May.";
+      },
+    )!;
+
+    expect(answer.type).toBe(LlmTranscriptStepType.AssistantMessage);
+    expect(answer.call.startMs).toBe(quickSecond + 100);
+    expect(answer.call.endMs).toBe(quickSecond + 105);
+    expect(answer.call.durationMs).toBe(5);
+    // The answer arrives after its question.
+    expect(question.atMs).toBe(quickSecond + 100);
+    expect(answer.atMs).toBe(quickSecond + 105);
+  });
+
+  test("calls made within one second read in the order they were made", async () => {
+    const detail: LlmConversationDetail = await quickConversation();
+
+    expect(
+      detail.transcript.steps.map((step: LlmTranscriptStep): string => {
+        return `${step.type}:${step.text}`;
+      }),
+    ).toEqual([
+      "user:Where should I travel in May?",
+      "assistant:Lisbon is lovely in May.",
+      "user:And in June?",
+      "assistant:Porto in June.",
+    ]);
+    expect(detail.transcript.startMs).toBe(quickSecond + 100);
+    expect(detail.transcript.endMs).toBe(quickSecond + 340);
+  });
+
+  test("the list row starts at the first call and ends at the last, to the millisecond", async () => {
+    const response: LlmConversationListResponse =
+      await LlmConversationService.listConversations(
+        listQuery({ projectId: quickProjectId }),
+      );
+
+    expect(keysOf(response)).toEqual(["c:conv-quick"]);
+
+    const quick: LlmConversationListItem = response.conversations[0]!;
+
+    // The FIRST thing asked, from the call that started first.
+    expect(quick.title).toBe("Where should I travel in May?");
+    expect(quick.traceId).toBe(TRACE_QUICK_FIRST);
+    expect(quick.startedAt).toBe(new Date(quickSecond + 100).toISOString());
+    expect(quick.endedAt).toBe(new Date(quickSecond + 340).toISOString());
+    expect(quick.durationMs).toBe(240);
   });
 });
 

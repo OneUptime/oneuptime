@@ -256,19 +256,26 @@ export class Service extends ProjectReferencesService<Model> {
     let resource: Model | null = null;
 
     if (!deleteBy.props.isRoot) {
-      resource = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+      /*
+       * The one layer user the delete removes, and the delete held to
+       * it: the users after it move up a place once it is gone.
+       */
+      const found: { row: Model | null; deletesMore: boolean } =
+        await this.findOneRowAndHoldDeleteToIt(deleteBy, {
           order: true,
           onCallDutyPolicyScheduleLayerId: true,
           onCallDutyPolicyScheduleId: true,
           projectId: true,
           userId: true,
-        },
-      });
+        });
+
+      if (found.deletesMore) {
+        throw new BadDataException(
+          "Remove one person from a schedule layer at a time.",
+        );
+      }
+
+      resource = found.row;
     }
 
     return {

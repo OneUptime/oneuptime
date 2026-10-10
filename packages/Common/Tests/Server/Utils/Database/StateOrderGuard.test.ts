@@ -54,6 +54,11 @@ interface FakeService {
     updateBy: UpdateBy<BaseModel>;
     select: Record<string, unknown>;
   }>;
+  // The reads of the rows a delete removes, each holding the delete to them.
+  deleteHolds: Array<{
+    deleteBy: DeleteBy<BaseModel>;
+    select: Record<string, unknown>;
+  }>;
   service: never;
 }
 
@@ -70,6 +75,7 @@ const fakeService: (
     findAllBySelects: [],
     findByQueries: [],
     holds: [],
+    deleteHolds: [],
     service: undefined as never,
   };
 
@@ -124,6 +130,28 @@ const fakeService: (
         .filter((row: FakeRow) => {
           return (
             inProject(row, updateBy.props.tenantId) &&
+            (query["_id"] === undefined || row._id === query["_id"]?.toString())
+          );
+        })
+        .map(toModel);
+    },
+    /*
+     * The rows the delete removes: those it names that the caller may
+     * delete, which for a teammate are in their own project.
+     */
+    findRowsAndHoldDeleteToThem: async (
+      deleteBy: DeleteBy<BaseModel>,
+      select: Record<string, unknown>,
+    ): Promise<Array<BaseModel>> => {
+      fake.deleteHolds.push({ deleteBy, select });
+      const query: Record<string, unknown> = deleteBy.query as Record<
+        string,
+        unknown
+      >;
+      return fake.rows
+        .filter((row: FakeRow) => {
+          return (
+            inProject(row, deleteBy.props.tenantId) &&
             (query["_id"] === undefined || row._id === query["_id"]?.toString())
           );
         })
@@ -689,16 +717,31 @@ describe("StateOrderGuard.beforeDelete", () => {
       remove(fake, INCIDENT, { _id: id(4) }, { isRoot: true }),
     ).resolves.toBeUndefined();
     expect(fake.findByQueries).toHaveLength(0);
+    expect(fake.deleteHolds).toHaveLength(0);
   });
 
-  test("the rows to delete are read in the caller's project only", async () => {
+  test("the rows checked are the rows the delete removes, read with the delete held to them", async () => {
     await expect(remove(fake, INCIDENT, { _id: id(2) })).resolves.toBe(
       undefined,
     );
 
-    expect(fake.findByQueries[0]!["projectId"]?.toString()).toBe(
-      PROJECT_ID.toString(),
-    );
+    expect(fake.deleteHolds).toHaveLength(1);
+    expect(fake.deleteHolds[0]!.deleteBy.query).toEqual({ _id: id(2) });
+    expect(fake.deleteHolds[0]!.select).toEqual({
+      _id: true,
+      projectId: true,
+    });
+    // Nothing else read by the delete's own query.
+    expect(
+      fake.findByQueries.filter((query: Record<string, unknown>) => {
+        return query["_id"] !== undefined;
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("a delete that reaches several states is judged on all of them together", async () => {
+    // Every state of the project in one delete: the built-ins with them.
+    await expect(remove(fake, INCIDENT, {})).rejects.toThrow("is the");
   });
 
   test("a severity has no built-ins: any can go, with no read", async () => {
@@ -712,6 +755,7 @@ describe("StateOrderGuard.beforeDelete", () => {
       }),
     ).resolves.toBeUndefined();
     expect(severities.findByQueries).toHaveLength(0);
+    expect(severities.deleteHolds).toHaveLength(0);
   });
 
   test("the only operational status cannot be deleted; a second one can", async () => {
