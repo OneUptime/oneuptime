@@ -95,7 +95,7 @@ beforeEach(() => {
   }) as never);
 
   // The rows a write targets.
-  const findBy: SpyInstance = jest
+  const findBy: SpyInstance<typeof MonitorStatusService.findBy> = jest
     .spyOn(MonitorStatusService, "findBy")
     .mockImplementation(((
     findBy: FindBy<MonitorStatus>,

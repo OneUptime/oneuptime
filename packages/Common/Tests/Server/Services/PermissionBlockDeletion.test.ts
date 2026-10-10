@@ -1,4 +1,5 @@
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
@@ -6,6 +7,7 @@ import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
@@ -87,6 +89,13 @@ interface PermissionServiceCase {
   service: typeof ApiKeyPermissionService | typeof TeamPermissionService;
   editor: Permission;
   isTeam: boolean;
+}
+
+// The case's service, as the testing helpers take a service of any model.
+function serviceOf(
+  serviceCase: PermissionServiceCase,
+): DatabaseService<DatabaseBaseModel> {
+  return serviceCase.service as unknown as DatabaseService<DatabaseBaseModel>;
 }
 
 interface RowOptions {
@@ -295,7 +304,7 @@ describe.each(serviceCases)(
        * The rows the caller may delete: the permission checker narrows the
        * read for real, and the same rows answer it.
        */
-      answerRowsCallerMayWriteLikeFindBy(serviceCase.service, findPermissions);
+      answerRowsCallerMayWriteLikeFindBy(serviceOf(serviceCase), findPermissions);
       getJestSpyOn(serviceCase.service, "findOneBy").mockResolvedValue(null);
       getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
         _id: targetId.toString(),
@@ -532,7 +541,7 @@ describe.each(serviceCases)(
         expect(selectedIds(result.deleteBy.query._id)).toEqual([]);
         // The rows the caller may delete are read in the caller's project.
         expect(
-          readsOfRowsCallerMayWrite(serviceCase.service)[0]!.query[
+          readsOfRowsCallerMayWrite(serviceOf(serviceCase))[0]!.query[
             "projectId"
           ],
         ).toEqual(projectId);
@@ -574,7 +583,7 @@ describe.each(serviceCases)(
         deleteAs(editorProps(), { limit: LIMIT_MAX + 1 }),
       ).rejects.toBeInstanceOf(NotAuthorizedException);
       // Every row of the delete's window is read, and checked, before any goes.
-      expect(readsOfRowsCallerMayWrite(serviceCase.service)[0]!.limit).toBe(
+      expect(readsOfRowsCallerMayWrite(serviceOf(serviceCase))[0]!.limit).toBe(
         LIMIT_MAX + 1,
       );
       expect(findPermissions).toHaveBeenCalledWith(
