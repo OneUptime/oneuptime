@@ -252,11 +252,13 @@ export default class CancelOnTimeoutClient extends Client {
       return Promise.resolve(CancelRequestOutcome.NoKey);
     }
 
-    const request: Buffer = Buffer.alloc(16);
-    request.writeInt32BE(16, 0);
-    request.writeInt32BE(CANCEL_REQUEST_CODE, 4);
-    request.writeInt32BE(processID, 8);
-    request.writeInt32BE(secretKey, 12);
+    // Length, code, and the connection's key: four big-endian 32-bit numbers.
+    const request: Uint8Array = new Uint8Array(16);
+    const fields: DataView = new DataView(request.buffer);
+    fields.setInt32(0, 16);
+    fields.setInt32(4, CANCEL_REQUEST_CODE);
+    fields.setInt32(8, processID);
+    fields.setInt32(12, secretKey);
 
     return new Promise<CancelRequestOutcome>(
       (resolve: (outcome: CancelRequestOutcome) => void): void => {
