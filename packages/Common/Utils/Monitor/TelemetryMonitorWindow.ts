@@ -39,6 +39,8 @@ export default class TelemetryMonitorWindow {
         return this.fromSeconds(
           step?.securityEventsMonitor?.lastXSecondsOfEvents,
         );
+      case MonitorType.Llm:
+        return this.fromSeconds(step?.llmMonitor?.lastXSecondsOfCalls);
       case MonitorType.Metrics:
         return this.fromRollingTime(step?.metricMonitor?.rollingTime);
       case MonitorType.Kubernetes:

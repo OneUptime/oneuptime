@@ -205,6 +205,7 @@ export default class MonitorTemplateSyncFieldUtil {
         "Security event query configuration",
       ],
       [MonitorType.Traces]: ["traceMonitor", "Trace query configuration"],
+      [MonitorType.Llm]: ["llmMonitor", "AI / LLM answer configuration"],
       [MonitorType.Metrics]: ["metricMonitor", "Metric query configuration"],
       [MonitorType.Exceptions]: [
         "exceptionMonitor",

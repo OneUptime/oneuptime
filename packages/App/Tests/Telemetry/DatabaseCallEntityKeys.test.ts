@@ -134,6 +134,9 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "llmUserId",
   "llmUserEmail",
   "llmTeam",
+  // What the AI call did and what went wrong with its answer.
+  "llmCallKind",
+  "llmIssues",
   "retentionDate",
 ];
 

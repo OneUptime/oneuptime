@@ -223,7 +223,7 @@ Delta is the default and most fleets should leave it alone. Just be consistent �
 
 ## What OneUptime shows you
 
-Open **AI / LLM** in the navigation bar (under Observability). The **Usage** tab ranks employees, teams, models, providers and services by spend, and Claude Code's `claude_code.cost.usage` feeds the employee, team and model breakdowns directly — no mapping step, no separate coding-agent section. `claude_code.token.usage` feeds the Overview page's token tiles the same way.
+Open **AI / LLM** in the navigation bar (under Observability). The **Usage** tab ranks employees, teams, models, providers and services by spend, and Claude Code's `claude_code.cost.usage` feeds the employee, team and model breakdowns directly — no mapping step, no separate coding-agent section. `claude_code.token.usage` feeds the Usage tab's token totals the same way.
 
 Read the next two paragraphs before you build a report on this, because both are load-bearing.
 

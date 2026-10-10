@@ -42,6 +42,7 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
 }> = [
   { attributeName: "log_monitor", apiKey: "logMonitor" },
   { attributeName: "trace_monitor", apiKey: "traceMonitor" },
+  { attributeName: "llm_monitor", apiKey: "llmMonitor" },
   { attributeName: "metric_monitor", apiKey: "metricMonitor" },
   { attributeName: "exception_monitor", apiKey: "exceptionMonitor" },
   { attributeName: "profile_monitor", apiKey: "profileMonitor" },

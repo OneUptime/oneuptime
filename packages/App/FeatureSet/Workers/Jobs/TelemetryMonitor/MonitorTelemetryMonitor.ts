@@ -53,6 +53,16 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import DatabaseQueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ObjectID from "Common/Types/ObjectID";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import LlmMonitorResponse, {
+  LlmMonitorResponseUtil,
+} from "Common/Types/Monitor/LlmMonitor/LlmMonitorResponse";
+import MonitorStepLlmMonitor, {
+  LlmBadAnswerRule,
+  MonitorStepLlmMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLlmMonitor";
+import LlmConversationService, {
+  LlmAnswerCounts,
+} from "Common/Server/Services/LlmConversationService";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
@@ -156,6 +166,7 @@ import TelemetryQueueService, {
 type TelemetryMonitorResponse =
   | LogMonitorResponse
   | SecurityEventsMonitorResponse
+  | LlmMonitorResponse
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
@@ -174,6 +185,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
         monitorType: DatabaseQueryHelper.any([
           MonitorType.Logs,
           MonitorType.SecurityEvents,
+          MonitorType.Llm,
           MonitorType.Traces,
           MonitorType.Metrics,
           MonitorType.Exceptions,
@@ -1270,14 +1282,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorId: ObjectID;
   projectId: ObjectID;
   evaluateUntil?: Date | undefined;
-}): Promise<
-  | LogMonitorResponse
-  | SecurityEventsMonitorResponse
-  | TraceMonitorResponse
-  | MetricMonitorResponse
-  | ExceptionMonitorResponse
-  | ProfileMonitorResponse
-> => {
+}): Promise<TelemetryMonitorResponse> => {
   const { monitorStep, monitorType, monitorId, projectId, evaluateUntil } =
     data;
 
@@ -1292,6 +1297,15 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.SecurityEvents) {
     return monitorSecurityEvents({
+      monitorStep,
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+  }
+
+  if (monitorType === MonitorType.Llm) {
+    return monitorLlm({
       monitorStep,
       monitorId,
       projectId,
@@ -1426,6 +1440,72 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   }
 
   throw new BadDataException("Monitor type is not supported");
+};
+
+type MonitorLlmFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}) => Promise<LlmMonitorResponse>;
+
+/*
+ * One check of an AI / LLM monitor: the answers the project's AI gave in
+ * the step's window, in the apps it watches, and how many were bad.
+ * Counted in one ClickHouse read (LlmConversationService.countAnswers) as
+ * root - the monitor's own scope is the step's apps, not a member's.
+ */
+export const monitorLlm: MonitorLlmFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}): Promise<LlmMonitorResponse> => {
+  /*
+   * A step saved without its config still runs, on the defaults (every
+   * problem counts, the last 15 minutes, every app), rather than throwing
+   * every cycle and leaving the monitor inert.
+   */
+  const config: MonitorStepLlmMonitor = MonitorStepLlmMonitorUtil.fromJSON(
+    (data.monitorStep.data?.llmMonitor ||
+      MonitorStepLlmMonitorUtil.getDefault()) as unknown as JSONObject,
+  );
+
+  const rule: LlmBadAnswerRule =
+    MonitorStepLlmMonitorUtil.getBadAnswerRule(config);
+  const window: InBetween<Date> = MonitorStepLlmMonitorUtil.getWindow(
+    config,
+    data.evaluateUntil,
+  );
+
+  const counts: LlmAnswerCounts = await LlmConversationService.countAnswers({
+    projectId: data.projectId,
+    startTime: window.startValue,
+    endTime: window.endValue,
+    serviceIds:
+      config.telemetryServiceIds.length > 0
+        ? config.telemetryServiceIds
+        : undefined,
+    issues: rule.issues,
+    slowAnswerMs: rule.slowAnswerMs,
+    model: config.model || undefined,
+  });
+
+  return {
+    projectId: data.projectId,
+    llmAnswerCount: counts.answerCount,
+    llmBadAnswerCount: counts.badAnswerCount,
+    llmBadAnswerPercent: LlmMonitorResponseUtil.getBadAnswerPercent(counts),
+    /*
+     * Kept as a query object, like the trace monitor's spanQuery: the
+     * incident or alert it is saved with serializes it.
+     */
+    llmSpanQuery: MonitorStepLlmMonitorUtil.toSpanQuery(
+      config,
+      data.evaluateUntil,
+    ),
+    monitorId: data.monitorId,
+  };
 };
 
 type MonitorTraceFunction = (data: {

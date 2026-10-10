@@ -170,7 +170,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 Two things decide what the Usage tab can actually show for Gemini CLI:
 
 - **With `traces` off (the default), Gemini CLI still exports spans, but they carry no model or token attributes** — so OneUptime cannot price them, and in practice the project sees Gemini CLI as a metrics-only source for spend. GenAI spans are authoritative and metrics are a fallback consulted only when the span stream reported nothing — the two are never summed. So if this project already has GenAI spans reporting the same figure, Gemini CLI's metric contribution will not appear; give the fleet its own project if you need them to stand alone. Turning `traces` on removes the problem entirely, because then Gemini CLI's spans carry the model and token counts that make them priceable GenAI spans.
-- **On the metrics-only path, the Employee, Team and Model breakdowns work; Provider and Application / Service do not**, and a metric-sourced row carries cost only — its Calls and token columns render as `—`. Full detail in [AI / LLM Observability](/docs/telemetry/ai-llm-observability). Note that Gemini CLI emits no cost metric at all, so on the metrics-only path the Usage table has no spend to rank; its tokens still reach the Overview page's token tiles. Running `traces` is what gets you costed Gemini CLI calls, priced at ingest from the model and token counts.
+- **On the metrics-only path, the Employee, Team and Model breakdowns work; Provider and Application / Service do not**, and a metric-sourced row carries cost only — its Calls and token columns render as `—`. Full detail in [AI / LLM Observability](/docs/telemetry/ai-llm-observability). Note that Gemini CLI emits no cost metric at all, so on the metrics-only path the Usage table has no spend to rank; its tokens still reach the Usage tab's token totals. Running `traces` is what gets you costed Gemini CLI calls, priced at ingest from the model and token counts.
 
 ## GitHub Copilot
 
@@ -315,7 +315,7 @@ Two things to know before you build anything against those APIs yourself:
 
 Run a prompt through each tool, wait a few seconds, then open **AI / LLM** in the navigation (under Observability):
 
-- **LLM Calls** should list the calls. Copilot's arrive as `invoke_agent` / `chat` / `execute_tool` spans; Gemini CLI's arrive under the service name you configured — and only if you turned its `traces` signal on.
+- **Calls** should list the calls. Copilot's arrive as `invoke_agent` / `chat` / `execute_tool` spans; Gemini CLI's arrive under the service name you configured — and only if you turned its `traces` signal on.
 - The **Usage** tab ranks employees, teams, models, providers and services by spend. Both tools appear here through their spans, so both are ranked by a cost computed at ingest from the model and token counts. Gemini CLI users should appear by email immediately. If Copilot rows show no employee, the resource attributes did not reach the exporter — check that the identity is set in the same place as the rest of the export configuration.
 - Nothing at all? A wrong `x-oneuptime-token` is rejected at ingest, and for Gemini CLI the most common cause is `otlpProtocol` left at its `grpc` default while exporting straight to OneUptime.
 

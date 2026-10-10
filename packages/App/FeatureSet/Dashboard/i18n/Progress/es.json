@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 3373
+    "keys": 27758,
+    "untranslated": 3387
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -127,6 +127,7 @@
     "ERR",
     "Ecuador",
     "El Salvador",
+    "Embedding",
     "Endpoint",
     "Endpoints",
     "Enterprise Edition",
@@ -478,6 +479,7 @@
     "{{count}} tokens",
     "{{in}} in",
     "{{time}} (UTC)",
+    "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "μs",
     "≤ 1000 ms",

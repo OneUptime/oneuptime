@@ -24,7 +24,22 @@ import {
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { translatePlural } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatePlural,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The labels of the numbers an AI / LLM monitor's criteria compare: the
+ * CheckOn values getCheckOnOptionsByMonitorType offers for MonitorType.Llm,
+ * in that order. The dropdown draws each option's label in the reader's
+ * language; spelling them out here is what puts them in the locale files.
+ */
+export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Bad AI Answers (in %)"),
+  translationKey("Bad AI Answers"),
+  translationKey("AI Answers"),
+];
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
@@ -60,7 +75,8 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
-      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
+      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
@@ -438,6 +454,21 @@ export default class CriteriaFilterUtil {
     }
 
     /*
+     * AI / LLM monitors compare their answers: the share that was bad
+     * first, since that is what most alerts on an AI want, then the count
+     * of bad answers and the count of answers ("the AI stopped answering").
+     */
+    if (monitorType === MonitorType.Llm) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.LlmBadAnswerPercent ||
+          i.value === CheckOn.LlmBadAnswerCount ||
+          i.value === CheckOn.LlmAnswerCount
+        );
+      });
+    }
+
+    /*
      * Every monitor type whose criteria the server hands to
      * MetricMonitorCriteria: the metric-only types this form already pins
      * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
@@ -666,6 +697,40 @@ export default class CriteriaFilterUtil {
             i.value === FilterType.Anomalous);
         return baseStatic || baseAnomaly;
       });
+    }
+
+    /*
+     * The AI / LLM numbers are compared by LlmMonitorCriteria with
+     * CompareCriteria.compareCriteriaNumbers: these six conditions, and no
+     * anomaly baseline behind any of them. Greater Than leads, so a new
+     * filter reads "more than 5% of answers were bad" rather than "exactly
+     * 5%".
+     */
+    if (
+      checkOn === CheckOn.LlmBadAnswerPercent ||
+      checkOn === CheckOn.LlmBadAnswerCount ||
+      checkOn === CheckOn.LlmAnswerCount
+    ) {
+      const llmComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ];
+
+      options = llmComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
     }
 
     if (
@@ -1614,6 +1679,18 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SecurityEventCount) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerPercent) {
+      return "5";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerCount) {
+      return "3";
+    }
+
+    if (checkOn === CheckOn.LlmAnswerCount) {
+      return "0";
     }
 
     if (checkOn === CheckOn.ServerProcessCommand) {
