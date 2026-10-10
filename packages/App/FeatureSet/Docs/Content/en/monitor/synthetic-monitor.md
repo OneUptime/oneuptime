@@ -128,7 +128,7 @@ Data returned from the script is serialized to JSON before it is stored: in plai
 
 ### Alerting on the returned data
 
-Whatever the script returns as `data` is the monitor's **Result Value**, which a criteria can compare. When `data` is an object or an array, fill in **Field Path** on the Result Value filter to compare one field of it — for example `status`, `timings.loadTime` or `errors[0].message`. The filter is checked against the data from every browser and screen size the monitor runs on, and matches when any of them does. See [Alerting on the returned data](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) for how paths and conditions work.
+Whatever the script returns as `data` is the monitor's **Result Value**, which a criteria can compare. When `data` is an object or an array, fill in **Field Path (Optional)** on the Result Value filter to compare one field of it — for example `status`, `timings.loadTime` or `errors[0].message`. The filter is checked against the data from every browser and screen size the monitor runs on, and matches when any of them does. See [Alerting on the returned data](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) for how paths and conditions work.
 
 ## Screenshots
 
@@ -225,7 +225,7 @@ return {
 
 Once captured, these metrics appear in the Metric Explorer under names like `custom.monitor.dashboard.load.time`, and on the monitor's **Metrics** page under **Custom Metrics**. OneUptime adds the monitor and the probe to every datapoint; to filter by browser or screen size, pass them as attributes, as the example does.
 
-A script can capture at most 100 metrics per execution, with numeric values only. As for a Custom Code monitor, some attribute names are [reserved](/docs/monitor/custom-code-monitor#reserved-attribute-keys) and dropped if a script sets them.
+A run can capture at most 100 metrics, with numeric values only, and OneUptime keeps at most 100 per check across all of its runs. As for a Custom Code monitor, some attribute names are [reserved](/docs/monitor/custom-code-monitor#reserved-attribute-keys) and dropped if a script sets them.
 
 ## Criteria
 

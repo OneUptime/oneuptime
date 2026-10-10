@@ -2214,11 +2214,12 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
         return Number(rows[0]!.count);
       }
 
-      // The member's own right to change these alerts' states, on its own.
+      // The member's own right to acknowledge these alerts, on its own.
       function checkMayChange(alertIds: Array<ObjectID>): Promise<void> {
         return AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
           projectId: projectId,
           alertIds: alertIds,
+          alertStateId: alertStates.acknowledged,
           props: member,
         });
       }
@@ -2441,6 +2442,227 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
           alertStates.resolved.toString(),
         );
         expect(stateChangeFeedItems()).toEqual([]);
+      });
+    });
+
+    /*
+     * Acknowledging the alerts as an incident is declared takes what
+     * acknowledging each of them on its own page takes: creating its state
+     * timeline row as the declarer - Create Alert State Timeline, narrowed by
+     * labels and owners through the alert - and no Edit Alert.
+     */
+    describe("the declare form asks what an alert's own page asks", () => {
+      const DECLARED_CAUSE: string =
+        "Acknowledged because Incident #1 was declared from this alert.";
+
+      let userId: ObjectID;
+      let labelA: ObjectID;
+      let labelB: ObjectID;
+
+      beforeEach(async () => {
+        userId = await seedUser();
+        labelA = await seedLabel("Payments");
+        labelB = await seedLabel("Search");
+      });
+
+      // A responder who reads every alert and declares incidents, with these rows besides.
+      function responder(
+        rows: Array<UserPermission>,
+      ): DatabaseCommonInteractionProps {
+        const props: DatabaseCommonInteractionProps = userProps(userId, [
+          Permission.Viewer,
+          Permission.IncidentMember,
+        ]);
+
+        props.userTenantAccessPermission![
+          projectId.toString()
+        ]!.permissions.push(...rows);
+
+        return props;
+      }
+
+      function allow(
+        permission: Permission,
+        labelIds: Array<ObjectID> = [],
+      ): UserPermission {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: labelIds,
+          isBlockPermission: false,
+          scope:
+            labelIds.length > 0 ? PermissionScope.Labels : PermissionScope.All,
+        };
+      }
+
+      function block(permission: Permission): UserPermission {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: true,
+        };
+      }
+
+      async function expectAcknowledgedAsResponder(
+        alertId: ObjectID,
+      ): Promise<void> {
+        await waitForAlertState(alertId, alertStates.acknowledged);
+
+        const timeline: Array<TimelineRow> = await timelineOf(alertId);
+
+        expect(
+          timeline.map((row: TimelineRow): string => {
+            return row.alertStateId;
+          }),
+        ).toEqual([
+          alertStates.created.toString(),
+          alertStates.acknowledged.toString(),
+        ]);
+        expect(timeline[1]).toMatchObject({
+          createdByUserId: userId.toString(),
+          rootCause: DECLARED_CAUSE,
+        });
+      }
+
+      test("a custom role with Create Alert State Timeline but not Edit Alert declares, and the alert is acknowledged as them", async () => {
+        const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+        const member: DatabaseCommonInteractionProps = responder([
+          allow(Permission.CreateAlertStateTimeline),
+        ]);
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertId], true),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        await expectAcknowledgedAsResponder(alertId);
+
+        const result: AcknowledgeDeclaredAlertsResult = await acknowledgement();
+
+        expect(ids(result.acknowledgedAlertIds)).toEqual([alertId.toString()]);
+        expect(result.failed).toEqual([]);
+      });
+
+      test("a team's block on Edit Alert does not stop a Project Member from acknowledging", async () => {
+        const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+        const member: DatabaseCommonInteractionProps = userProps(userId, [
+          Permission.ProjectMember,
+        ]);
+        member.userTenantAccessPermission![
+          projectId.toString()
+        ]!.permissions.push(block(Permission.EditAlert));
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertId], true),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        await expectAcknowledgedAsResponder(alertId);
+      });
+
+      test("a team's block on Create Alert State Timeline refuses the declaration before the incident, its number or its links exist; declaring without acknowledging goes through", async () => {
+        const alertId: ObjectID = await seedAlertThrough([alertStates.created]);
+        const member: () => DatabaseCommonInteractionProps =
+          (): DatabaseCommonInteractionProps => {
+            const props: DatabaseCommonInteractionProps = userProps(userId, [
+              Permission.ProjectMember,
+            ]);
+            props.userTenantAccessPermission![
+              projectId.toString()
+            ]!.permissions.push(block(Permission.CreateAlertStateTimeline));
+            return props;
+          };
+
+        const refusal: unknown = await failureOf(() => {
+          return IncidentService.create({
+            data: newIncident(),
+            miscDataProps: declaredFrom([alertId], true),
+            props: member(),
+          });
+        });
+
+        expect(refusal).toBeInstanceOf(BadDataException);
+        expect((refusal as Error).message).toBe(
+          NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+        );
+        expect(await incidentRows()).toEqual([]);
+        expect(await incidentCounter()).toBe(0);
+        expect(await linkCount()).toBe(0);
+        expect(acknowledge).not.toHaveBeenCalled();
+        expect(await timelineOf(alertId)).toHaveLength(1);
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertId]),
+          props: member(),
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        expect(await linkCount()).toBe(1);
+        expect(acknowledge).not.toHaveBeenCalled();
+        expect(await currentAlertStateOf(alertId)).toBe(
+          alertStates.created.toString(),
+        );
+      });
+
+      test("Create Alert State Timeline limited to label A: an open alert carrying B refuses the declaration, and an alert carrying A is acknowledged", async () => {
+        const alertA: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created]),
+          labelA,
+        );
+        const alertB: ObjectID = await labelAlert(
+          await seedAlertThrough([alertStates.created]),
+          labelB,
+        );
+        const member: DatabaseCommonInteractionProps = responder([
+          allow(Permission.CreateAlertStateTimeline, [labelA]),
+        ]);
+
+        const refusal: unknown = await failureOf(() => {
+          return IncidentService.create({
+            data: newIncident(),
+            miscDataProps: declaredFrom([alertA, alertB], true),
+            props: member,
+          });
+        });
+
+        expect((refusal as Error).message).toBe(
+          NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE,
+        );
+        expect(await incidentRows()).toEqual([]);
+        expect(await linkCount()).toBe(0);
+
+        // The refusal, in the words acknowledging alert B on its own page gets.
+        const onItsOwnPage: unknown = await failureOf(() => {
+          return AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+            projectId: projectId,
+            alertIds: [alertB],
+            alertStateId: alertStates.acknowledged,
+            props: member,
+          });
+        });
+
+        expect(onItsOwnPage).toBeInstanceOf(NotAuthorizedException);
+        expect((onItsOwnPage as Error).message).toBe(
+          "Your access lets you create Alert State Timelines only for records with one of these labels: Payments.",
+        );
+
+        const incident: Incident = await IncidentService.create({
+          data: newIncident(),
+          miscDataProps: declaredFrom([alertA], true),
+          props: member,
+        });
+
+        expect(incident.incidentNumber).toBe(1);
+        await expectAcknowledgedAsResponder(alertA);
+        expect(await currentAlertStateOf(alertB)).toBe(
+          alertStates.created.toString(),
+        );
       });
     });
 

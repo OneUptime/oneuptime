@@ -82,7 +82,7 @@ JavaScript-uttrykk tilbys for monitorer av typen Website, API, Incoming Request,
 
 ### Monitorer for innkommende e-post
 
-Filteret tilbys, men ingen e-postfelt er knyttet til det: et uttrykk kan ikke lese emnet, avsenderen, brødteksten eller mottakeren. Bruk e-postfiltertypene i stedet — se [Innkommende e-post-overvåking](/docs/monitor/incoming-email-monitor#tilgjengelige-kriteriefelt).
+Filteret tilbys, men ingen e-postfelt er knyttet til det: et uttrykk kan ikke lese emnet, avsenderen, brødteksten eller mottakeren. Bruk e-postfiltertypene i stedet — se [Innkommende e-post-overvåking](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
 
 ## Eksempler
 

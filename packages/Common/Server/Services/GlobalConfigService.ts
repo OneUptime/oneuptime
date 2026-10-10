@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/GlobalConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ObjectID from "../../Types/ObjectID";
@@ -593,9 +594,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterFailedUpdate(onUpdate.updateBy, error);
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;

@@ -1028,6 +1028,20 @@ API, SSO, or the Slack and Microsoft Teams apps.
   ahead at once, where it used to wait about ten seconds and then go ahead
   without the lock that keeps two changes from crossing. See
   [Changing a state](/docs/permissions/index#changing-a-state).
+- **Acknowledging alerts as you declare an incident takes what acknowledging
+  them takes anywhere else.** Declaring an incident from alerts with the box
+  to acknowledge them ticked - `acknowledgeAlertsToLink` in the API - used to
+  take **Edit Alert** as well as **Create Alert State Timeline** for each
+  alert it acknowledged, more than acknowledging the same alerts one by one
+  on their own pages. It now takes **Create Alert State Timeline** alone,
+  narrowed by your labels, owners and each alert's privacy as it is on the
+  alert's page, so a custom role with that permission but without
+  **Edit Alert** - or a team with a block on **Edit Alert** - acknowledges
+  the alerts as it declares. A block on **Create Alert State Timeline**
+  still keeps a team from it, and the built-in roles see no change. The
+  dashboard's box asks for the same, and Terraform does not declare
+  incidents from alerts, so nothing changes there. See
+  [Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).
 - **An incoming call policy's phone numbers follow the policy's roles.**
   Looking numbers up - `POST /api/notification/phone-number/search` and
   `/list-owned` - needs permission to read incoming call policies and to
@@ -1167,6 +1181,25 @@ API, SSO, or the Slack and Microsoft Teams apps.
   their own project, and the Dashboard and the mobile app always send the
   project with a change, so neither is affected. See
   [Changes are made in one project at a time](/docs/api-reference/api-reference#changes-are-made-in-one-project-at-a-time).
+- **A database statement the app stops waiting for is cancelled.** When a
+  statement runs past `DATABASE_QUERY_TIMEOUT_MS` (35 seconds by default),
+  the app now cancels it on the database and closes the connection it ran
+  on, instead of only giving up on it. Behind PgBouncer such a statement
+  used to keep running, and a create it was part of could be committed by
+  the next request to use that connection, after the first had been told it
+  failed. A request whose statement runs that long now waits up to 5
+  seconds more, for the database to confirm the cancel, and then fails as
+  before. The chart's PgBouncer now refuses a statement that waited 30
+  seconds in its queue for a free server connection
+  (`pgbouncer.queryWaitTimeoutSeconds`; PgBouncer's own default is 120
+  seconds), so it never starts after the app gave up on it. If you run your
+  own PgBouncer or a managed pooled endpoint, set its `query_wait_timeout`
+  below `DATABASE_QUERY_TIMEOUT_MS`, and keep `statement_timeout` set on the
+  app's database role: it still ends a statement whose cancel cannot reach
+  the database. A change to SSO sign-in settings, or to the Runners and
+  credentials OneUptime AI may use, whose write was cancelled now gives its
+  lock back at once instead of holding other such changes for up to a
+  minute.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -19,7 +19,9 @@ export const INCIDENT_ALERT_IDS_TO_LINK_KEY: string = "alertIdsToLink";
  * INCIDENT_ALERT_IDS_TO_LINK_KEY also acknowledges them, as the declaring
  * user, once they are linked - which is what stops their on-call escalation.
  * Alerts already acknowledged (or past it) are left as they are, and the
- * caller must be allowed to change the state of every alert that is not.
+ * caller must be allowed to acknowledge every alert that is not, by what
+ * acknowledging it on its own page takes: the alert state timeline's create
+ * permission, narrowed through the alert, and no permission to edit it.
  * Off unless asked for.
  *
  * One exception: when the incident is declared straight into an

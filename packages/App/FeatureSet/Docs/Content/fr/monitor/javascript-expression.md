@@ -82,7 +82,7 @@ Les expressions JavaScript sont proposées pour les moniteurs de type Site web, 
 
 ### Moniteurs d'e-mails entrants
 
-Le filtre est proposé, mais aucun champ d'e-mail ne lui est lié : une expression ne peut lire ni l'objet, ni l'expéditeur, ni le corps, ni le destinataire. Utilisez plutôt les types de filtres d'e-mail — voir [Surveillance des e-mails entrants](/docs/monitor/incoming-email-monitor#champs-de-critères-disponibles).
+Le filtre est proposé, mais aucun champ d'e-mail ne lui est lié : une expression ne peut lire ni l'objet, ni l'expéditeur, ni le corps, ni le destinataire. Utilisez plutôt les types de filtres d'e-mail — voir [Surveillance des e-mails entrants](/docs/monitor/incoming-email-monitor#types-de-filtre-disponibles).
 
 ## Exemples
 

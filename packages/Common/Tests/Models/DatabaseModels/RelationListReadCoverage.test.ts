@@ -229,16 +229,23 @@ describe("the shared paths ask it", () => {
 
   test("a create asks before its hooks", () => {
     const create: string = bodyOf(
-      "public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {",
+      "private async _create(\n    createBy: CreateBy<TBaseModel>,",
     );
 
-    const lists: number = create.indexOf("await this.checkNamedLists({");
+    const checks: number = create.indexOf(
+      "await this.checkCreateBeforeHooks(createBy)",
+    );
     const hooks: number = create.indexOf(
       "await this._onBeforeCreate(createBy)",
     );
 
-    expect(lists).toBeGreaterThan(-1);
-    expect(hooks).toBeGreaterThan(lists);
+    expect(checks).toBeGreaterThan(-1);
+    expect(hooks).toBeGreaterThan(checks);
+
+    // The checks before the hooks, shared with checkCallerMayCreate.
+    const beforeHooks: string = bodyOf("private async checkCreateBeforeHooks(");
+
+    expect(beforeHooks).toContain("await this.checkNamedLists({");
   });
 
   test("an update asks before its hooks, with what each row lists already", () => {
@@ -709,24 +716,35 @@ describe("the records a hook names are asked about too", () => {
   test("a create asks after its hooks about what they named besides, before its scope and its save", () => {
     const create: string = bodyOf(
       databaseService,
-      "public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {",
+      "private async _create(\n    createBy: CreateBy<TBaseModel>,",
     );
 
     const hooks: number = create.indexOf(
       "await this._onBeforeCreate(createBy)",
     );
-    const after: number = create.indexOf(
-      "askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},",
+    const onRecord: number = create.indexOf(
+      "await this.checkCreatePermissionsOnRecord({",
     );
-    const scope: number = create.indexOf("await this.checkCreateScope({");
     const save: number = create.indexOf(
       "await this.getRepository().save(createBy.data)",
     );
 
     expect(hooks).toBeGreaterThan(-1);
-    expect(after).toBeGreaterThan(hooks);
+    expect(onRecord).toBeGreaterThan(hooks);
+    expect(save).toBeGreaterThan(onRecord);
+
+    // The permission checks on the record as written, shared with checkCallerMayCreate.
+    const permissions: string = bodyOf(
+      databaseService,
+      "private async checkCreatePermissionsOnRecord(",
+    );
+    const after: number = permissions.indexOf(
+      "askedIds: DatabaseService.namedIdsAskedOn.get(data.createBy) || {},",
+    );
+    const scope: number = permissions.indexOf("await this.checkCreateScope({");
+
+    expect(after).toBeGreaterThan(-1);
     expect(scope).toBeGreaterThan(after);
-    expect(save).toBeGreaterThan(scope);
   });
 
   test("an update asks after its hooks, before it writes", () => {

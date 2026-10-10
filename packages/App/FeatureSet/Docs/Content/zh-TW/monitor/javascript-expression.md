@@ -82,7 +82,7 @@ JavaScript 運算式適用於 Website、API、Incoming Request、Incoming Email�
 
 ### 傳入郵件監測器
 
-該篩選器可用，但沒有繫結任何郵件欄位：運算式無法讀取主旨、寄件者、內文或收件者。請改用郵件篩選器類型——請參閱 [傳入郵件監控](/docs/monitor/incoming-email-monitor#可用的條件欄位)。
+該篩選器可用，但沒有繫結任何郵件欄位：運算式無法讀取主旨、寄件者、內文或收件者。請改用郵件篩選器類型——請參閱 [傳入郵件監控](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
 
 ## 範例
 

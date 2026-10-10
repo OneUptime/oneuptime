@@ -5,6 +5,7 @@ import {
 import { OnCreate, OnUpdate } from "../../Types/Database/Hooks";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { getLongestStatementWaitInMs } from "../../Infrastructure/Postgres/CancelOnTimeoutClient";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import StatementOutcome, {
   StatementContext,
@@ -100,9 +101,10 @@ export const ABANDONED_WRITE_MARGIN_IN_MS: number = 10_000;
  * How long a lock lasts from when it was taken, or last kept - right before
  * the write. As long as:
  *
- *   - the client waits for any one statement (DATABASE_QUERY_TIMEOUT_MS),
- *     with time to spare for the steps around it, so a write that is still
- *     being written holds it to the end;
+ *   - the client waits for any one statement (DATABASE_QUERY_TIMEOUT_MS,
+ *     and then the database's answer to the cancel it sends:
+ *     getLongestStatementWaitInMs), with time to spare for the steps around
+ *     it, so a write that is still being written holds it to the end;
  *   - the database may still run a statement whose client stopped waiting
  *     for it (DATABASE_STATEMENT_TIMEOUT_MS, and a margin), so a write left
  *     to land after it was reported as failed (giveBackAfterFailedWrite)
@@ -139,7 +141,7 @@ export const getLockTimeoutInMs: (
 };
 
 export const LOCK_TIMEOUT_IN_MS: number = getLockTimeoutInMs(
-  PostgresQueryTimeoutMs,
+  getLongestStatementWaitInMs(PostgresQueryTimeoutMs),
   PostgresStatementTimeoutMs,
 );
 
@@ -416,8 +418,9 @@ export default class AiCommandCredentialReach {
    * onUpdateSuccess / onCreateSuccess: the write is done, its lock is given
    * back. onUpdateError / onCreateError: the write failed after its check,
    * its lock is given back unless the write may still land
-   * (giveBackAfterFailedWrite). A create is written in a transaction of its
-   * own (TypeORM's save()).
+   * (giveBackAfterFailedWrite) - told by what failed, and by which step of
+   * the write (DatabaseService's `failedStatement`). A create is written in
+   * a transaction of its own (TypeORM's save()).
    */
   public static async keepForUpdate<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
@@ -438,10 +441,12 @@ export default class AiCommandCredentialReach {
   public static async giveBackAfterFailedUpdate<TModel extends BaseModel>(
     error: unknown,
     onUpdate: OnUpdate<TModel> | null | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await AiCommandCredentialReach.giveBackAfterFailedWrite(
       AiCommandCredentialReach.holdOfUpdate(onUpdate),
       error,
+      failedStatement,
     );
   }
 
@@ -464,11 +469,12 @@ export default class AiCommandCredentialReach {
   public static async giveBackAfterFailedCreate<TModel extends BaseModel>(
     error: unknown,
     onCreate: OnCreate<TModel> | null | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await AiCommandCredentialReach.giveBackAfterFailedWrite(
       AiCommandCredentialReach.carriedForward(onCreate?.carryForward),
       error,
-      { inOwnTransaction: true },
+      StatementOutcome.ofCreate(failedStatement),
     );
   }
 }

@@ -649,7 +649,11 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     );
   });
 
-  test("gates the box on writing the state timeline first, then updating the alert, worded as acknowledging an alert", () => {
+  /*
+   * Acknowledging an alert on its own page is a new state timeline row, and
+   * no permission to edit the alert: the box asks the same.
+   */
+  test("gates the box on writing the state timeline alone, worded as acknowledging an alert", () => {
     const code: string = dense(ACKNOWLEDGE_ON_DECLARE);
     const gate: string = bodyOf(code, "exportconstgetAcknowledgeAlertsGate:");
 
@@ -657,18 +661,11 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
       'constACKNOWLEDGE_GATE_OPTIONS:PermissionGateOptions={verb:"acknowledge",singularName:"alert",};',
     );
 
-    const timelineCheck: string =
-      "consttimelineGate:PermissionGateResult=PermissionGate.check(newAlertStateTimeline(),ModelAction.Create,ACKNOWLEDGE_GATE_OPTIONS,);";
-    const earlyReturn: string =
-      "if(!timelineGate.isAllowed){returntimelineGate;}";
-    const alertCheck: string =
-      "returnPermissionGate.check(newAlert(),ModelAction.Update,ACKNOWLEDGE_GATE_OPTIONS,);";
-
-    expect(gate.indexOf(timelineCheck)).toBe(0);
-    expect(gate.indexOf(earlyReturn)).toBeGreaterThan(
-      gate.indexOf(timelineCheck),
+    expect(gate).toBe(
+      "returnPermissionGate.check(newAlertStateTimeline(),ModelAction.Create,ACKNOWLEDGE_GATE_OPTIONS,);",
     );
-    expect(gate.indexOf(alertCheck)).toBeGreaterThan(gate.indexOf(earlyReturn));
+    expect(code).not.toContain("ModelAction.Update");
+    expect(code).not.toContain("newAlert()");
   });
 
   test("reads alert states and existing links alongside the alerts, before the loader comes down", () => {
@@ -1035,8 +1032,9 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const subsetAt: number = validate.indexOf(
       "constalertIdsToAcknowledge:Array<ObjectID>=data.alertIds.filter((alertId:ObjectID):boolean=>{constkey:string=normalizeId(alertId);if(!stateOrderByAlertId.has(key)){returnfalse;}constorder:number|undefined=stateOrderByAlertId.get(key);returnorder===undefined||order<acknowledgedOrder;},);",
     );
+    // Into the project's Acknowledged state: the change each alert's own page makes.
     const authorizationAt: number = validate.indexOf(
-      "if(alertIdsToAcknowledge.length>0&&!data.props.isRoot&&!data.props.isMasterAdmin){try{awaitAlertStateChangeAuthorization.assertCanChangeStateOfAlerts({projectId:projectId,alertIds:alertIdsToAcknowledge,props:data.props,});}catch(error){",
+      "if(alertIdsToAcknowledge.length>0&&!data.props.isRoot&&!data.props.isMasterAdmin){try{awaitAlertStateChangeAuthorization.assertCanChangeStateOfAlerts({projectId:projectId,alertIds:alertIdsToAcknowledge,alertStateId:newObjectID(acknowledgedState._id.toString()),props:data.props,});}catch(error){",
     );
     const returned: string =
       "return{acknowledgedAlertStateId:newObjectID(acknowledgedState._id.toString()),alertIdsToAcknowledge:alertIdsToAcknowledge,};";
@@ -1254,27 +1252,16 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     expect(writeAt).toBeGreaterThan(creditAt);
   });
 
-  test("the authorization checks both halves of an acknowledgement for every alert", () => {
+  /*
+   * What acknowledging one alert on its own page takes is creating its state
+   * timeline row as the person: the authorization asks that very create's
+   * checks, for every alert, and nothing of the alert's own update.
+   */
+  test("the authorization asks the alert state timeline's own create check for every alert, and no Alert update", () => {
     const code: string = denseCommon(STATE_CHANGE_AUTHORIZATION);
     const check: string = methodBody(
       code,
       "publicstaticasyncassertCanChangeStateOfAlerts(",
-    );
-
-    const timelineAt: number = check.indexOf(
-      "ModelPermission.checkCreatePermissions(AlertStateTimeline,probe,data.props,);",
-    );
-    const perAlertAt: number = check.indexOf(
-      "for(constalertofalerts){awaitModelPermission.checkUpdatePermissionByModel({modelType:Alert,",
-    );
-    const scopeAt: number = check.indexOf(
-      "awaitModelPermission.checkUpdateQueryPermissions(Alert,alertQuery,{currentAlertStateId:ObjectID.getZeroObjectID(),},data.props,);",
-    );
-    const privacyAt: number = check.indexOf(
-      "query:applyAlertSelfPrivacyFilter(permittedQuery,data.props),",
-    );
-    const refuseAt: number = check.indexOf(
-      "if(!allPermitted){thrownewNotAuthorizedException(",
     );
 
     expect(
@@ -1282,13 +1269,36 @@ describe("the server acknowledging the alerts an incident is declared from", () 
         "if(data.props.isRoot||data.alertIds.length===0){return;}",
       ),
     ).toBe(true);
-    expect(timelineAt).toBeGreaterThan(-1);
-    expect(perAlertAt).toBeGreaterThan(timelineAt);
-    expect(scopeAt).toBeGreaterThan(perAlertAt);
-    expect(privacyAt).toBeGreaterThan(scopeAt);
-    expect(refuseAt).toBeGreaterThan(privacyAt);
-    expect(check).toContain(
-      "constallPermitted:boolean=data.alertIds.every((alertId:ObjectID):boolean=>{returnpermittedIds.has(alertId.toString().toLowerCase());},);",
+
+    // Each alert once, a few at a time...
+    const batchAt: number = check.indexOf("start+=ALERTS_CHECKED_AT_ONCE");
+    // ...asked of the timeline service's own create check, as the caller, on the row its change would be...
+    const askedAt: number = check.indexOf(
+      "returnAlertStateTimelineService.checkCallerMayCreate({data:AlertStateChangeAuthorization.getStateChange({projectId:data.projectId,alertId:alertId,alertStateId:data.alertStateId,}),props:data.props,});",
     );
+    // ...and the first alert refused, in the order given, answers.
+    const refusedAt: number = check.indexOf(
+      'for(constoutcomeofoutcomes){if(outcome.status==="rejected"){throwoutcome.reason;}}',
+    );
+
+    expect(batchAt).toBeGreaterThan(-1);
+    expect(askedAt).toBeGreaterThan(batchAt);
+    expect(refusedAt).toBeGreaterThan(askedAt);
+
+    // The row: the project, the alert, the state it moves to, and when it starts.
+    expect(code).toContain(
+      "publicstaticgetStateChange(data:{projectId:ObjectID;alertId:ObjectID;alertStateId:ObjectID;}):AlertStateTimeline{conststateChange:AlertStateTimeline=newAlertStateTimeline();stateChange.projectId=data.projectId;stateChange.alertId=data.alertId;stateChange.alertStateId=data.alertStateId;stateChange.startsAt=OneUptimeDate.getCurrentDate();returnstateChange;}",
+    );
+
+    // Nothing of an Alert update: no update permission, no scoped read of its own.
+    for (const gone of [
+      "checkUpdatePermissionByModel",
+      "checkUpdateQueryPermissions",
+      "AlertService.findBy",
+      "ModelPermission",
+      "isRoot:true",
+    ]) {
+      expect([gone, code.includes(gone)]).toEqual([gone, false]);
+    }
   });
 });

@@ -191,7 +191,7 @@ Selecione as **Sondas** que conseguem alcançar o banco de dados e um **Interval
 | **Host** | O host do banco de dados acessível pela sonda (por exemplo `db.internal`). |
 | **Porta** | A porta do banco de dados. |
 | **Nome do Banco de Dados** | O banco de dados ao qual se conectar. Métricas de escopo de banco de dados (tamanho, taxa de acerto do cache, uso de arquivos temporários) são informadas para este banco de dados; métricas de escopo de servidor (conexões, tempo de atividade, replicação), para o servidor inteiro — exceto no Azure SQL Database, onde as conexões são contadas só para o banco de dados monitorado. |
-| **Use Windows Integrated Authentication** | Só Microsoft SQL Server. Autentica com a identidade do processo da sonda em vez de nome de usuário e senha. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor) na página do monitor SQL Query — a configuração é idêntica. |
+| **Use Windows Integrated Authentication** | Só Microsoft SQL Server. Autentica com a identidade do processo da sonda em vez de nome de usuário e senha. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor#autenticação-integrada-do-windows) na página do monitor SQL Query — a configuração é idêntica. |
 | **Nome de usuário** | O usuário de monitoramento. Obrigatório, a menos que você use a autenticação integrada do Windows. |
 | **Senha** | A senha. Referencie um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitá-la em texto puro (veja [Usar um segredo do monitor](#usar-um-segredo-do-monitor-para-a-senha)). |
 | **Use SSL/TLS** | Conectar via TLS. Quando ativado, você pode desligar **Verify server certificate** para um certificado autoassinado. |

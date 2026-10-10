@@ -9,13 +9,16 @@ import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import DatabaseService from "../Services/DatabaseService";
 import GlobalOidcService from "../Services/GlobalOidcService";
 import GlobalSsoService from "../Services/GlobalSsoService";
-import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
+import StatementOutcome, {
+  StatementContext,
+} from "./Database/StatementOutcome";
 import logger from "./Logger";
 import ProjectSsoProviderChanges, {
   SignInChangeFailure,
@@ -152,14 +155,17 @@ interface AttachmentRow {
 }
 
 /*
- * What a write is known by between its hooks: the UpdateBy, DeleteBy or
- * CreateBy the service hands back from its before-hook, which
- * DatabaseService passes on to the later ones.
+ * What a write is known by between its hooks: the UpdateBy or DeleteBy the
+ * service hands back from its before-hook, which DatabaseService passes on
+ * to the later ones - or, for a create, the create's one OnCreate, the very
+ * object DatabaseService hands onCreatePermitted, onCreateSuccess and
+ * onCreateError alike (never the create it holds, which onBeforeCreate may
+ * hand back anew).
  */
-type WriteKey = UpdateBy<BaseModel> | DeleteBy<BaseModel> | CreateBy<BaseModel>;
+type WriteKey = UpdateBy<BaseModel> | DeleteBy<BaseModel> | OnCreate<BaseModel>;
 
 function keyOf<TModel extends BaseModel>(
-  write: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+  write: UpdateBy<TModel> | DeleteBy<TModel> | OnCreate<TModel>,
 ): WriteKey {
   return write as unknown as WriteKey;
 }
@@ -214,14 +220,17 @@ export function getGlobalChangeRefusalMessage(
 
 export default class GlobalSsoProviderChanges {
   /*
-   * The writes worked out before they run, for the hooks after them: keyed
-   * by the UpdateBy, DeleteBy or CreateBy the services hand back from their
-   * before-hooks, which DatabaseService passes on to the later ones. The
-   * services hand back the very object they were given, so the key the
-   * permitted hook is handed is the one the success and error hooks are -
-   * DatabaseService hands those the caller's object - and the suites that
-   * give the lock back after each write (GlobalSsoProviderChanges.test)
-   * fail if one ever does not.
+   * The writes worked out before they run, for the hooks after them (see
+   * WriteKey). An update or a delete is keyed by the UpdateBy or DeleteBy
+   * the services hand back from their before-hooks, which DatabaseService
+   * passes on to the later ones: the services hand back the very object
+   * they were given, so the key the permitted hook is handed is the one the
+   * success and error hooks are - DatabaseService hands those the caller's
+   * object - and the suites that give the lock back after each write
+   * (GlobalSsoProviderChanges.test) fail if one ever does not. A create is
+   * keyed by its one OnCreate, the very object DatabaseService hands
+   * onCreatePermitted, onCreateSuccess and onCreateError alike - never by
+   * the create it holds.
    */
   private static writes: WeakMap<WriteKey, GlobalSsoProviderWrite> =
     new WeakMap<WriteKey, GlobalSsoProviderWrite>();
@@ -424,9 +433,10 @@ export default class GlobalSsoProviderChanges {
    */
   public static async beforeAttachmentCreate(data: {
     providerType: GlobalSsoProviderType;
-    createBy: CreateBy<BaseModel>;
+    // The create's one OnCreate (onCreatePermitted's): what the lock is kept by.
+    create: OnCreate<BaseModel>;
   }): Promise<GlobalSsoProviderWrite | null> {
-    const record: Record<string, unknown> = data.createBy
+    const record: Record<string, unknown> = data.create.createBy
       .data as unknown as Record<string, unknown>;
 
     let providerId: string | null = null;
@@ -459,7 +469,7 @@ export default class GlobalSsoProviderChanges {
     };
 
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: keyOf(data.createBy),
+      key: keyOf(data.create),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         return {
           reachChanges:
@@ -664,7 +674,7 @@ export default class GlobalSsoProviderChanges {
    * throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel> | OnCreate<TModel>,
   ): Promise<boolean> {
     const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
@@ -709,32 +719,37 @@ export default class GlobalSsoProviderChanges {
 
   /*
    * Once an update or a delete has failed (the error hooks, with what
-   * failed): its lock is given back, once - unless the database may still
-   * apply the write, when it is kept until the database would have
-   * cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
+   * failed, and which step of the write it was - DatabaseService's
+   * `failedStatement`): its lock is given back, once - unless the database
+   * may still apply the write, when it is kept until the database would
+   * have cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
    * Nobody is told: nothing was written. Never throws.
    */
   public static async afterFailedWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
     await GlobalSsoProviderChanges.giveBackAfterFailure(written, {
       error,
+      context: failedStatement,
     });
   }
 
   /*
-   * The same once a create - an attachment - has failed (onCreateError):
-   * written by save(), in a transaction of its own, it can still land only
-   * when its COMMIT went unanswered. Never throws.
+   * The same once a create - an attachment - has failed (onCreateError,
+   * with the create's one OnCreate, the very object beforeAttachmentCreate
+   * was handed): written by save(), in a transaction of its own, it can
+   * still land only when its COMMIT went unanswered. Never throws.
    */
   public static async afterFailedCreate<TModel extends BaseModel>(
-    createBy: CreateBy<TModel>,
+    create: OnCreate<TModel>,
     error: unknown,
+    failedStatement?: StatementContext | undefined,
   ): Promise<void> {
-    await GlobalSsoProviderChanges.giveBackAfterFailure(createBy, {
+    await GlobalSsoProviderChanges.giveBackAfterFailure(create, {
       error,
-      context: { inOwnTransaction: true },
+      context: StatementOutcome.ofCreate(failedStatement),
     });
   }
 
@@ -765,7 +780,7 @@ export default class GlobalSsoProviderChanges {
 
   // A failed write's lock, given back once - or kept while the write may still land.
   private static async giveBackAfterFailure<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel> | OnCreate<TModel>,
     failure: SignInChangeFailure,
   ): Promise<void> {
     const key: WriteKey = keyOf(written);
@@ -795,7 +810,7 @@ export default class GlobalSsoProviderChanges {
    * it that could. A write that holds no lock goes on.
    */
   public static async holdForWrite<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel> | OnCreate<TModel>,
   ): Promise<void> {
     const write: GlobalSsoProviderWrite | undefined =
       GlobalSsoProviderChanges.writes.get(keyOf(written));
@@ -814,7 +829,7 @@ export default class GlobalSsoProviderChanges {
 
   // The write a before-hook worked out, for tests and the success hooks.
   public static getWrite<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel> | OnCreate<TModel>,
   ): GlobalSsoProviderWrite | undefined {
     return GlobalSsoProviderChanges.writes.get(keyOf(written));
   }
