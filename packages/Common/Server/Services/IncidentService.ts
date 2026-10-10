@@ -5980,10 +5980,14 @@ ${incidentSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
-      for (const incident of onDelete.carryForward.incidents) {
+      // The incidents the delete removed, of those onBeforeDelete read.
+      for (const incident of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.incidents,
+        deletedIds: deletedIds,
+      })) {
         /*
          * Deleting an incident gives back the monitors it holds - and those
          * of an incident from before that was recorded, which is how

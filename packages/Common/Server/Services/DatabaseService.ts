@@ -7168,7 +7168,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     withDeleted: boolean,
   ): Promise<Array<TBaseModel>> {
     return withDeleted
-      ? await this._findBy(findBy, true)
+      ? await this.findByWithDeleted(findBy)
       : await this.findBy(findBy);
   }
 
@@ -7291,6 +7291,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props.tenantId ||
       undefined
     );
+  }
+
+  /*
+   * The rows a delete hook read (findRowsAndHoldDeleteToThem), narrowed to
+   * the ones the delete removed: the ids DatabaseService hands
+   * onDeleteSuccess. The delete is held to the rows read, but it asks the
+   * caller's permission once more and finds no row that is gone by then. A
+   * success hook that acts on the rows - a feed line, a tombstone, monitors
+   * given back - acts on these alone.
+   */
+  public static getRowsDeleted<TRow extends BaseModel>(data: {
+    rows: Array<TRow>;
+    deletedIds: Array<ObjectID>;
+  }): Array<TRow> {
+    // Postgres renders uuids lower-case whatever case a caller wrote them in.
+    const deletedIds: Set<string> = new Set<string>(
+      data.deletedIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+
+    return data.rows.filter((row: TRow): boolean => {
+      const id: string | undefined = row.id?.toString().toLowerCase();
+
+      return id !== undefined && deletedIds.has(id);
+    });
   }
 
   /*
@@ -7575,6 +7601,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
+  }
+
+  /*
+   * findBy, reading rows deleted before too: the rows a hard delete removes
+   * (hardDeleteBy), for a service that reads them before one runs - the
+   * projects the delete locks, say.
+   */
+  protected async findByWithDeleted(
+    findBy: FindBy<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    return await this._findBy(findBy, true);
   }
 
   /*

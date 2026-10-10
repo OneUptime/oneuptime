@@ -2341,10 +2341,14 @@ ${alertSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.alerts) {
-      for (const alert of onDelete.carryForward.alerts) {
+      // The alerts the delete removed, of those onBeforeDelete read.
+      for (const alert of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.alerts,
+        deletedIds: deletedIds,
+      })) {
         if (alert.projectId && alert.id) {
           const metricRetentionDays: number =
             await this.getMetricRetentionDays();

@@ -561,7 +561,9 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
 
     /*
      * The one entry the delete removes, and the delete held to it: its
-     * neighbours close the gap it leaves, so entries go one at a time.
+     * neighbours close the gap it leaves. A delete of several entries - a
+     * workflow's delete of many, say - has no one gap to close: it is left
+     * as it is, and moves no neighbour.
      */
     const toBeDeleted: {
       row: IncidentEpisodeStateTimeline | null;
@@ -573,9 +575,7 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     });
 
     if (toBeDeleted.deletesMore) {
-      throw new BadDataException(
-        "Delete one episode state timeline entry at a time.",
-      );
+      return { deleteBy, carryForward: null };
     }
 
     if (toBeDeleted.row) {

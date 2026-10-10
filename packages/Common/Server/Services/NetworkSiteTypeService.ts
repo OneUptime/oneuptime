@@ -2,6 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
+import FindBy from "../Types/Database/FindBy";
 import Select from "../Types/Database/Select";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
@@ -251,6 +252,7 @@ export class Service extends ProjectReferencesService<Model> {
         limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
         skip: this.positiveNumberValue(deleteBy.skip, 0),
         isDelete: true,
+        withDeleted: true,
       });
 
     return await NetworkSiteHierarchyLock.runExclusive({
@@ -448,6 +450,8 @@ export class Service extends ProjectReferencesService<Model> {
     limit: number;
     skip: number;
     isDelete: boolean;
+    // A hard delete's read: rows deleted before count too.
+    withDeleted?: boolean | undefined;
   }): Promise<Array<ObjectID | string>> {
     NetworkSiteHierarchyLock.assertSafeRootMutationScope({
       query: data.query as unknown as Record<string, unknown>,
@@ -455,7 +459,7 @@ export class Service extends ProjectReferencesService<Model> {
       tenantScopeIsClosed: data.isDelete,
     });
 
-    const networkSiteTypes: Array<Model> = await this.findBy({
+    const findBy: FindBy<Model> = {
       query: data.isDelete
         ? this.scopeDeleteQueryToCallerTenant(data.query, data.props)
         : this.scopeQueryToCallerTenant(data.query, data.props),
@@ -463,7 +467,16 @@ export class Service extends ProjectReferencesService<Model> {
       limit: data.limit,
       skip: data.skip,
       props: { isRoot: true },
-    });
+    };
+
+    /*
+     * A hard delete removes rows deleted before too, and its hook reads
+     * them (findRowsAndHoldDeleteToThem): the projects it locks are read
+     * the same way, so they are the projects of the rows it removes.
+     */
+    const networkSiteTypes: Array<Model> = data.withDeleted
+      ? await this.findByWithDeleted(findBy)
+      : await this.findBy(findBy);
 
     const projectIds: Array<ObjectID | string> = networkSiteTypes
       .map((networkSiteType: Model): ObjectID | undefined => {

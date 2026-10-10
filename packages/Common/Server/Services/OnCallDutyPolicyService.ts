@@ -721,37 +721,47 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     deleteBy: DeleteBy<OnCallDutyPolicy>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
     /*
-     * The policies the delete removes, and the delete held to them: only
-     * their channels are archived.
+     * A delete that names one policy by its id - the policy's own Delete -
+     * archives the policy's workspace channels. A delete that names no
+     * single policy, such as a cleanup of several, archives none, and is
+     * left as it is.
      */
-    const policies: Array<OnCallDutyPolicy> =
-      await this.findRowsAndHoldDeleteToThem(deleteBy, {
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The policy, and the delete held to it. Its channels are found through
+     * it, so they are archived before it is gone.
+     */
+    const found: { row: OnCallDutyPolicy | null; deletesMore: boolean } =
+      await this.findOneRowAndHoldDeleteToIt(deleteBy, {
         _id: true,
         projectId: true,
       });
 
-    for (const policy of policies) {
-      if (!policy.id || !policy.projectId) {
-        continue;
-      }
+    const policy: OnCallDutyPolicy | null = found.row;
 
-      try {
-        await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: policy.projectId,
-          notificationFor: {
-            onCallDutyPolicyId: policy.id,
-          },
-          sendMessageBeforeArchiving: {
-            _type: "WorkspacePayloadMarkdown",
-            text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
-          },
-        });
-      } catch (error) {
-        logger.error(
-          `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
-          { projectId: policy.projectId.toString() } as LogAttributes,
-        );
-      }
+    if (!policy || !policy.id || !policy.projectId) {
+      return { deleteBy, carryForward: null };
+    }
+
+    try {
+      await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: policy.projectId,
+        notificationFor: {
+          onCallDutyPolicyId: policy.id,
+        },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
+        { projectId: policy.projectId.toString() } as LogAttributes,
+      );
     }
 
     return { deleteBy, carryForward: null };

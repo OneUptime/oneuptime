@@ -3868,6 +3868,46 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
     );
   });
 
+  it("locks a hard delete in the project of the row it removes, a row deleted before included", async () => {
+    const runExclusiveSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    // No live site matches: the site the hard delete removes was deleted before.
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+    const readWithDeletedSpy: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteService as unknown as {
+          _findBy: () => Promise<Array<NetworkSite>>;
+        },
+        "_findBy",
+      )
+      .mockResolvedValue([fakeSite({ projectId: OTHER_PROJECT_ID })] as never);
+    const superHardDeleteSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "hardDeleteBy")
+      .mockResolvedValue(1);
+
+    await expect(
+      NetworkSiteService.hardDeleteBy({
+        query: { _id: SITE_ID.toString() },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      } as DeleteBy<NetworkSite>),
+    ).resolves.toBe(1);
+
+    expect(findBySpy).not.toHaveBeenCalled();
+    expect(readWithDeletedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { projectId: true } }),
+      true,
+    );
+    expect(runExclusiveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ projectIds: [OTHER_PROJECT_ID] }),
+    );
+    expect(superHardDeleteSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("bypasses the lock for rollup-only and ignoreHooks updates", async () => {
     const runExclusiveSpy: jest.SpyInstance = jest.spyOn(
       NetworkSiteHierarchyLock,

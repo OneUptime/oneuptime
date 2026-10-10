@@ -627,6 +627,52 @@ describe("TeamMemberService: one delete of several members is held to the rule s
     ).rejects.toThrow();
   });
 
+  it("asks once per project whether SCIM manages its teams, however many teams the delete removes members of", async () => {
+    const service: DatabaseService<DatabaseBaseModel> =
+      asService(TeamMemberService);
+
+    const scimManages: jest.SpyInstance = jest
+      .spyOn(
+        TeamMemberService as unknown as {
+          isSCIMPushGroupsEnabled: () => Promise<boolean>;
+        },
+        "isSCIMPushGroupsEnabled",
+      )
+      .mockResolvedValue(false as never);
+    jest
+      .spyOn(TeamMemberService, "countBy")
+      .mockResolvedValue(new PositiveNumber(5) as never);
+
+    const memberOf: (teamId: ObjectID) => JSONObject = (
+      teamId: ObjectID,
+    ): JSONObject => {
+      return {
+        teamId: teamId,
+        hasAcceptedInvitation: true,
+        team: { _id: teamId.toString(), shouldHaveAtLeastOneMember: true },
+      };
+    };
+    const members: Array<DatabaseBaseModel> = [
+      rowOf(service, ROW_A, memberOf(TEAM_ID)),
+      rowOf(service, ROW_B, memberOf(OTHER_TEAM_ID)),
+    ];
+
+    stubRowsCallerMayDelete(service, () => {
+      return members;
+    });
+    stubReads(service, members);
+
+    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(TEAMMATE, {
+      skip: 0,
+      limit: 100,
+    });
+
+    await runHook(service, deleteBy);
+
+    expect(scimManages).toHaveBeenCalledTimes(1);
+    expect(idsDeleted(deleteBy)).toEqual([ROW_A, ROW_B].sort());
+  });
+
   it("lets a teammate remove the member within their reach while the team keeps another", async () => {
     const service: DatabaseService<DatabaseBaseModel> =
       asService(TeamMemberService);

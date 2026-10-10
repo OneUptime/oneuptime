@@ -1113,7 +1113,7 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
     },
   );
 
-  it.each(["deleteOneBy", "deleteBy", "hardDeleteBy"])(
+  it.each(["deleteOneBy", "deleteBy"])(
     "locks %s and resolves all affected projects first",
     async (method: string) => {
       const runExclusiveSpy: jest.SpyInstance = jest
@@ -1150,6 +1150,51 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
       expect(superMethodSpy).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("locks a hard delete in the projects of the rows it removes, rows deleted before included", async () => {
+    const runExclusiveSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    // No live type matches: the types the hard delete removes were deleted before.
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteTypeService, "findBy")
+      .mockResolvedValue([]);
+    const readWithDeletedSpy: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteTypeService as unknown as {
+          _findBy: () => Promise<Array<NetworkSiteType>>;
+        },
+        "_findBy",
+      )
+      .mockResolvedValue([
+        makeType({ index: 2, projectId: OTHER_PROJECT_ID }),
+        makeType({ index: 3, projectId: PROJECT_ID }),
+      ] as never);
+    const superHardDeleteSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "hardDeleteBy")
+      .mockResolvedValue(2);
+
+    await expect(
+      NetworkSiteTypeService.hardDeleteBy({
+        query: { projectId: PROJECT_ID },
+        limit: new PositiveNumber(2),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      } as DeleteBy<NetworkSiteType>),
+    ).resolves.toBe(2);
+
+    expect(findBySpy).not.toHaveBeenCalled();
+    expect(readWithDeletedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { projectId: true } }),
+      true,
+    );
+    expect(runExclusiveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectIds: [OTHER_PROJECT_ID, PROJECT_ID],
+      }),
+    );
+    expect(superHardDeleteSpy).toHaveBeenCalledTimes(1);
+  });
 
   it("bypasses locking for unrelated updates and trusted ignoreHooks writes", async () => {
     const runExclusiveSpy: jest.SpyInstance = jest.spyOn(

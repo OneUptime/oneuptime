@@ -966,6 +966,22 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       }
     }
 
+    // Whether SCIM Push Groups manages a project's teams, asked once each.
+    const pushGroupsManaged: Map<string, boolean> = new Map<string, boolean>();
+    const isPushGroupsManaged: (
+      projectId: ObjectID,
+    ) => Promise<boolean> = async (projectId: ObjectID): Promise<boolean> => {
+      const key: string = projectId.toString().toLowerCase();
+      let managed: boolean | undefined = pushGroupsManaged.get(key);
+
+      if (managed === undefined) {
+        managed = await this.isSCIMPushGroupsEnabled(projectId);
+        pushGroupsManaged.set(key, managed);
+      }
+
+      return managed;
+    };
+
     /*
      * While SCIM Push Groups manages a project's teams, their members are
      * managed from the identity provider: asked of every project the delete
@@ -973,7 +989,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      */
     if (!deleteBy.props.isRoot) {
       for (const projectId of projectIds.values()) {
-        if (await this.isSCIMPushGroupsEnabled(projectId)) {
+        if (await isPushGroupsManaged(projectId)) {
           throw new BadDataException(
             "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
           );
@@ -1033,12 +1049,12 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       });
 
       // Skip the one-member guard when SCIM manages membership for the project.
-      const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
+      const managedBySCIM: boolean = await isPushGroupsManaged(
         removedOfTeam.projectId,
       );
 
       if (
-        !isPushGroupsManaged &&
+        !managedBySCIM &&
         membersInTeam.toNumber() - removedOfTeam.removed < 1
       ) {
         throw new BadDataException(

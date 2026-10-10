@@ -1615,11 +1615,14 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _deletedItemIds: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward?.scheduledMaintenanceEvents) {
-      for (const scheduledMaintenanceEvent of onDelete?.carryForward
-        ?.scheduledMaintenanceEvents || []) {
+      // The events the delete removed, of those onBeforeDelete read.
+      for (const scheduledMaintenanceEvent of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.scheduledMaintenanceEvents,
+        deletedIds: deletedIds,
+      })) {
         await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
           scheduledMaintenanceEvent,
         );

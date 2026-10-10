@@ -2,6 +2,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import DatabaseService from "../../Services/DatabaseService";
 import UserService from "../../Services/UserService";
 import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 
@@ -82,18 +83,7 @@ export default class SloFeedUtil {
     rows: Array<TModel>;
     deletedIds: Array<ObjectID>;
   }): Array<TModel> {
-    // Postgres renders uuids lower-case whatever case a caller wrote them in.
-    const deletedIds: Set<string> = new Set<string>(
-      data.deletedIds.map((id: ObjectID): string => {
-        return id.toString().toLowerCase();
-      }),
-    );
-
-    return data.rows.filter((row: TModel): boolean => {
-      const id: string | undefined = row.id?.toString().toLowerCase();
-
-      return id !== undefined && deletedIds.has(id);
-    });
+    return DatabaseService.getRowsDeleted(data);
   }
 
   /*

@@ -878,9 +878,24 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * The projects the update's references are checked in
+     * (findProjectsToCheckUpdateIn), read once for every check below that
+     * needs them.
+     */
+    let projectsToCheckIn: Array<ObjectID> | null = null;
+    const getProjectsToCheckIn: () => Promise<
+      Array<ObjectID>
+    > = async (): Promise<Array<ObjectID>> => {
+      if (!projectsToCheckIn) {
+        projectsToCheckIn = await this.findProjectsToCheckUpdateIn(updateBy);
+      }
+
+      return projectsToCheckIn;
+    };
+
     if (currentMonitorStatusReferences.length > 0) {
-      const projectIds: Array<ObjectID> =
-        await this.findProjectsToCheckUpdateIn(updateBy);
+      const projectIds: Array<ObjectID> = await getProjectsToCheckIn();
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
@@ -895,9 +910,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateLinkedResourcesBelongToProject({
       payload: updateBy.data,
-      getProjectIds: async (): Promise<Array<ObjectID>> => {
-        return await this.findProjectsToCheckUpdateIn(updateBy);
-      },
+      getProjectIds: getProjectsToCheckIn,
     });
 
     if (
