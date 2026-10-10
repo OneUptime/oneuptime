@@ -382,12 +382,6 @@ export default class RunWorkflow {
   private workflowId: ObjectID | null = null;
   // For the audit trail of what the run's steps change (WorkflowPrincipal).
   private workflowName: string | null = null;
-  /*
-   * Who last saved the workflow's steps, read with the steps this run runs: the
-   * person whose read of runbook credentials its steps are held to
-   * (WorkflowPrincipal).
-   */
-  private workflowSavedByUserId: ObjectID | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
@@ -503,7 +497,6 @@ export default class RunWorkflow {
           isEnabled: true,
           isArchived: true,
           name: true,
-          lastSavedByUserId: true,
         },
         props: {
           isRoot: true,
@@ -515,7 +508,6 @@ export default class RunWorkflow {
       }
 
       this.workflowName = workflow.name || null;
-      this.workflowSavedByUserId = workflow.lastSavedByUserId || null;
 
       if (!workflow.graph) {
         throw new BadDataException("Workflow graph not found");
@@ -1744,7 +1736,6 @@ export default class RunWorkflow {
         },
         workflowId: this.workflowId!,
         workflowName: this.workflowName || undefined,
-        workflowSavedByUserId: this.workflowSavedByUserId || undefined,
         workflowLogId: this.workflowLogId!,
         projectId: callingProjectId,
         getRemainingExecutionTimeInMs: (): number => {

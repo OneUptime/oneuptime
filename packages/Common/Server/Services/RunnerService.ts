@@ -241,22 +241,32 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
    * credentials takes the read of runbook credentials (see
-   * assertNoCredentialsForAiCommands). Writing it on - by someone who may
-   * not read runbook credentials, whether or not it is on already - holds
-   * the project's lock that every checked write putting an SSH credential
-   * within reach of OneUptime AI's commands holds (AiCommandCredentialReach),
-   * from before whether each Runner's switch is on and which SSH credentials
-   * it holds are read until the update is written: an SSH credential
-   * assigned to one of them at the same moment is either seen by this check,
-   * or sees the switch on in its own.
+   * assertNoCredentialsForAiCommands). For someone who may not read runbook
+   * credentials:
+   *
+   *   - a save that posts the switch on while it is on already - every save
+   *     of the Runner form, which posts every field back - leaves it out of
+   *     the write (postsAiCommandsAsStored). The switch is not written, so a
+   *     form opened before someone turned it off cannot turn it back on, and
+   *     nothing it writes can put a credential within anyone's reach: it
+   *     takes no lock, and is saved whether or not Valkey can be reached;
+   *   - a save that turns it on - or posts nothing but the switch, on
+   *     already, which dropping it would leave with nothing to write - holds
+   *     the project's lock that every checked write putting an SSH
+   *     credential within reach of OneUptime AI's commands holds
+   *     (AiCommandCredentialReach), from before whether the Runner's switch
+   *     is on and which SSH credentials it holds are read until the update
+   *     is written: an SSH credential assigned to it at the same moment is
+   *     either seen by this check, or sees the switch on in its own.
    *
    * Root writes (registration, heartbeats, sign-off) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
    * unchanged name and a capability posted as false always pass: editing an
    * agent row's description or labels must still save. The Runners checked
    * are the ones the update writes - the ones its caller may write - read
-   * once for the name and capability checks, and again under the lock for
-   * the switch, and the update is held to them (findRowsAndHoldUpdateToThem).
+   * once for the name, capability and switch checks, and again under the
+   * lock for a switch turned on, and the update is held to them
+   * (findRowsAndHoldUpdateToThem).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -355,18 +365,24 @@ export class Service extends ProjectReferencesService<Model> {
      * the Runners hold: nothing the update reads decides, so it takes no
      * lock (see AiCommandCredentialReach).
      */
-    if (await RunbookCredentialReaders.mayRead(updateBy.props)) {
+    if (RunbookCredentialReaders.mayRead(updateBy.props)) {
+      return { updateBy, carryForward: null };
+    }
+
+    // The switch posted as it is stored: left out of the write, with no lock.
+    if (Service.postsAiCommandsAsStored(data, written)) {
+      delete data["canRunAiCommands"];
+
       return { updateBy, carryForward: null };
     }
 
     /*
      * Anyone else's update that writes the switch on holds the projects'
-     * lock until it is written, whether or not the switch is on now: it is
-     * the lock's to decide which Runners the update turns it on for.
-     * Whether each one's switch is on is read again under the lock - as it
-     * is now, not as it was before the lock was taken: another update may
-     * have turned it off since, and an SSH credential been assigned to the
-     * Runner while it was off.
+     * lock until it is written: it is the lock's to decide which Runners
+     * the update turns it on for. Whether each one's switch is on is read
+     * again under the lock - as it is now, not as it was before the lock
+     * was taken: another update may have turned it off since, and an SSH
+     * credential been assigned to the Runner while it was off.
      */
     const hold: CredentialReachHold = await AiCommandCredentialReach.take(
       written.map((runner: Model): ObjectID | undefined => {
@@ -405,6 +421,31 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return AiCommandCredentialReach.heldUpdate(updateBy, hold);
+  }
+
+  /*
+   * Whether an update by someone who may not read runbook credentials that
+   * posts "Runs AI Remediation Commands" on can leave it out: every Runner
+   * it writes (`runners`, as the update's hook read them) has it on already,
+   * and the update writes something else besides - the Runner form posts
+   * every field. Left out, the switch keeps whatever it holds when the
+   * update lands: a form opened before someone turned it off does not turn
+   * it back on, and nothing the update writes needs a lock.
+   */
+  public static postsAiCommandsAsStored(
+    data: JSONObject,
+    runners: Array<Model>,
+  ): boolean {
+    return (
+      data["canRunAiCommands"] === true &&
+      runners.length > 0 &&
+      runners.every((runner: Model): boolean => {
+        return runner.canRunAiCommands === true;
+      }) &&
+      Object.keys(data).some((column: string): boolean => {
+        return column !== "canRunAiCommands";
+      })
+    );
   }
 
   // Right before the write: the lock its check was made under is still the update's.

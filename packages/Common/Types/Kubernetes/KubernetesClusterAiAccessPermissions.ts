@@ -22,22 +22,17 @@ import Permission, { PermissionHelper } from "../Permission";
  * binding of a cluster with no AI agent) stays open to anyone who may edit
  * the cluster: making AI do less never needs more privilege than the
  * cluster itself.
+ *
+ * Binding a Kubernetes credential additionally needs the read of runbook
+ * credentials - RunbookCredential's own read list, which the dashboard's
+ * credential picker applies too (KubernetesClusterService asks
+ * RunbookCredentialReaders) - so a credential id copied from somewhere else
+ * cannot be bound blind.
  */
 export const KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditAutoRemediationRule,
-];
-
-/*
- * Binding a Kubernetes credential additionally needs permission to read
- * credentials — the same rule the dashboard's credential picker applies —
- * so a credential id copied from somewhere else cannot be bound blind.
- */
-export const KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ReadRunbookCredential,
 ];
 
 /*

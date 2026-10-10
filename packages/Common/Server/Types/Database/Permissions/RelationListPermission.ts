@@ -28,6 +28,8 @@ import {
 } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
 import RelationIdUtil from "../../../Utils/Database/RelationIdUtil";
 import RelationNames from "../../../Utils/Database/RelationNames";
+import WorkflowPrincipal from "../../../Utils/Workflow/WorkflowPrincipal";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -73,7 +75,11 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * permission to read that table, not to the project alone: a caller who may
  * read the table may name any of the project's records of it, and a caller
  * who may not - who holds none of its read permissions, or whose block with
- * no labels takes them away - names none of them. By table name.
+ * no labels takes them away - names none of them. A workflow's step is lent
+ * no read of them by acting as a Project Admin (getTableRead): whoever may
+ * edit a workflow decides what its steps name, so a step names none of them,
+ * and is told a person who may read them has to make the change
+ * (getWorkflowCredentialSettingRefusal). By table name.
  */
 const CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKey",
@@ -123,7 +129,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
  * credentials, video call providers, API keys) are read as a whole table
  * too, and a write names one only when its caller may read that table
- * (CREDENTIAL_SETTINGS, isHeldToTableRead).
+ * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's
+ * step, which holds no read of them.
  * The parent a model is read through, even when it is a list (an
  * announcement's status pages), is the parent rule's
  * (CreatePermission.checkParentPermission,
@@ -323,11 +330,13 @@ export default class RelationListPermission {
   /*
    * Whether `props` may read `modelType`'s table at all, as a write that
    * names a setting that holds credentials asks it (isHeldToTableRead):
-   * OneUptime and master admins may; anyone else holds one of the table's
-   * read permissions, or its read wildcard, and no block with no labels
-   * takes any of them away. For a service that reads such a reference from
-   * a column no metadata describes (a runbook's steps name the credentials
-   * they run with).
+   * OneUptime and master admins may; a workflow's step may not read a
+   * setting that holds credentials (getTableRead); anyone else holds one of
+   * the table's read permissions, or its read wildcard, and no block with no
+   * labels takes any of them away. For a service that reads such a reference
+   * from a column no metadata describes (a runbook's steps name the
+   * credentials they run with), and for the read of runbook credentials
+   * that lets OneUptime AI's commands use them (RunbookCredentialReaders).
    */
   public static mayReadTable(
     modelType: DatabaseBaseModelType,
@@ -345,8 +354,10 @@ export default class RelationListPermission {
    * mayReadTable and the records a write names (findReachableIds) are given:
    * blocked, when a block with no labels takes every one of its read
    * permissions away; a reader, when it holds one of them or the table's
-   * read wildcard and is not blocked; or neither. OneUptime and master
-   * admins are the callers' to answer before asking.
+   * read wildcard and is not blocked; or neither. A workflow's step is no
+   * reader of a setting that holds credentials (CREDENTIAL_SETTINGS), though
+   * it acts as a Project Admin, who is: the read is not lent to it. OneUptime
+   * and master admins are the callers' to answer before asking.
    */
   private static getTableRead(
     modelType: DatabaseBaseModelType,
@@ -359,6 +370,13 @@ export default class RelationListPermission {
 
     if (HeldPermissionsUtil.isBlockedFromAny(held, readPermissions)) {
       return { isBlocked: true, isReader: false };
+    }
+
+    if (
+      WorkflowPrincipal.isWorkflow(props) &&
+      RelationListPermission.isHeldToTableRead(modelType)
+    ) {
+      return { isBlocked: false, isReader: false };
     }
 
     return {
@@ -597,6 +615,16 @@ export default class RelationListPermission {
         continue;
       }
 
+      // A workflow's step names no setting that holds credentials (getTableRead).
+      if (
+        WorkflowPrincipal.isWorkflow(data.props) &&
+        RelationListPermission.isHeldToTableRead(relation.listedModelType)
+      ) {
+        throw new NotAuthorizedException(
+          RelationListPermission.getWorkflowCredentialSettingRefusal(relation),
+        );
+      }
+
       const readIds: Set<string> | null =
         await RelationListPermission.findReachableIds({
           list: relation,
@@ -629,6 +657,21 @@ export default class RelationListPermission {
         }),
       );
     }
+  }
+
+  /*
+   * Why a workflow's step cannot name a setting that holds credentials in
+   * `relation`: no step is lent the read of one, so a person who may read
+   * them has to make the change.
+   */
+  public static getWorkflowCredentialSettingRefusal(
+    relation: CheckedRelationList,
+  ): string {
+    const settings: string = (
+      new relation.listedModelType().pluralName || relation.title
+    ).toLowerCase();
+
+    return `Workflow steps cannot set ${relation.title}: a setting that holds credentials is chosen only by a person who may read ${settings}. Ask someone who may read them to make this change.`;
   }
 
   /*
