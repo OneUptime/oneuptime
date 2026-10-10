@@ -674,6 +674,28 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
     });
 
     /*
+     * OneUptime's update reaches any form its query names, whatever project
+     * the request is made in: each file is checked against the project of
+     * the form it is written to, not the request's.
+     */
+    test("a server-side update made in one project is checked against the form's own project", async () => {
+      storedForms = [storedRow({ projectId: OTHER_PROJECT_ID })];
+
+      const rootInProject: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        tenantId: PROJECT_ID,
+      };
+
+      await expect(
+        update({ logoFileId: OTHER_PROJECT_FILE_ID }, rootInProject),
+      ).resolves.toBeDefined();
+      expect(
+        (await refusal(update({ logoFileId: LOGO_FILE_ID }, rootInProject)))
+          ?.message,
+      ).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
+    });
+
+    /*
      * Hooks run before the permission layer narrows an update to the
      * request's project, so an update can be aimed at another project's
      * form. It must learn nothing there: the form's own file, a file it

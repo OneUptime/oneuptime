@@ -25,8 +25,6 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
-import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
@@ -722,53 +720,48 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicy>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
-    if (deleteBy.query._id) {
-      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
-        deleteBy.query.projectId || deleteBy.props.tenantId;
+    /*
+     * A delete that names one policy by its id - the policy's own Delete -
+     * archives the policy's workspace channels. A delete that names no
+     * single policy, such as a cleanup of several, archives none, and is
+     * left as it is.
+     */
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
 
-      if (!projectId) {
-        // fetch this onCallDutyPolicy from the database to get the projectId.
-        const onCallDutyPolicy: OnCallDutyPolicy | null =
-          await this.findOneById({
-            id: new ObjectID(deleteBy.query._id as string) as ObjectID,
-            select: {
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+    /*
+     * The policy, and the delete held to it. Its channels are found through
+     * it, so they are archived before it is gone.
+     */
+    const found: { row: OnCallDutyPolicy | null; deletesMore: boolean } =
+      await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
-        if (!onCallDutyPolicy) {
-          throw new BadDataException("OnCallDutyPolicy not found.");
-        }
+    const policy: OnCallDutyPolicy | null = found.row;
 
-        if (!onCallDutyPolicy.id) {
-          throw new BadDataException("OnCallDutyPolicy id not found.");
-        }
+    if (!policy || !policy.id || !policy.projectId) {
+      return { deleteBy, carryForward: null };
+    }
 
-        projectId = onCallDutyPolicy.projectId!;
-      }
-
-      try {
-        await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: projectId as ObjectID,
-          notificationFor: {
-            onCallDutyPolicyId: new ObjectID(
-              deleteBy.query._id as string,
-            ) as ObjectID,
-          },
-          sendMessageBeforeArchiving: {
-            _type: "WorkspacePayloadMarkdown",
-            text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
-          },
-        });
-      } catch (error) {
-        logger.error(
-          `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`,
-          { projectId: (projectId as ObjectID)?.toString() } as LogAttributes,
-        );
-      }
+    try {
+      await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: policy.projectId,
+        notificationFor: {
+          onCallDutyPolicyId: policy.id,
+        },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
+        { projectId: policy.projectId.toString() } as LogAttributes,
+      );
     }
 
     return { deleteBy, carryForward: null };

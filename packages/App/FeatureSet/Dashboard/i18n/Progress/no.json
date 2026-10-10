@@ -1,23 +1,31 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 17018
+    "keys": 27758,
+    "untranslated": 16937
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "AI / LLM",
+    "Agent",
     "Alarm",
+    "App",
     "CloudWatch Metric Streams",
+    "Embedding",
     "Filter:",
     "Filter: {{expression}}",
+    "Pause",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
+    "Status",
     "Stratum",
+    "Team",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
-    "{{count}} alarm"
+    "{{count}} alarm",
+    "{{tokens}} tokens"
   ]
 }

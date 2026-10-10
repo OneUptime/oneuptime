@@ -120,12 +120,14 @@ test.describe("Telemetry Ingestion", () => {
   });
 
   /*
-   * Issue #4615: Show ID on a row of Recent LLM Calls (AI / LLM > Overview)
-   * threw minified React error #31 and replaced the page with the error
-   * screen. An LLM call is an analytics row, whose ID is an ObjectID rather
-   * than a string, and the dialog put the object on the page.
+   * Issue #4615: Show ID on a row of the LLM calls table threw minified React
+   * error #31 and replaced the page with the error screen. An LLM call is an
+   * analytics row, whose ID is an ObjectID rather than a string, and the
+   * dialog put the object on the page. The table was the Overview's Recent
+   * LLM Calls; the Overview folded into Conversations and the table lives on
+   * AI / LLM > Calls.
    */
-  test("should show an LLM call's ID from Recent LLM Calls instead of crashing", async ({
+  test("should show an LLM call's ID from the AI / LLM calls instead of crashing", async ({
     page,
   }: {
     page: Page;
@@ -148,15 +150,15 @@ test.describe("Telemetry Ingestion", () => {
 
     await postOtlpLlmCall({ page, ingestionKey, serviceName, model });
 
-    const llmOverviewUrl: string = URL.fromString(BASE_URL.toString())
-      .addRoute(`/dashboard/${projectId}/llm/overview`)
+    const llmCallsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/calls`)
       .toString();
 
     await waitForTelemetryText({
       page,
       projectId,
-      url: llmOverviewUrl,
-      ready: page.getByRole("heading", { name: "Recent LLM Calls" }),
+      url: llmCallsUrl,
+      ready: page.getByRole("heading", { name: "AI / LLM Calls" }),
       text: model,
     });
 
@@ -201,9 +203,88 @@ test.describe("Telemetry Ingestion", () => {
     await modal.getByTestId("modal-footer-close-button").click();
     await expect(modal).toBeHidden();
     await expect(
-      page.getByRole("heading", { name: "Recent LLM Calls" }),
+      page.getByRole("heading", { name: "AI / LLM Calls" }),
     ).toBeVisible();
     await expect(page.getByText(model).first()).toBeVisible();
+  });
+
+  /*
+   * An AI call that carries its conversation id and what was said shows as
+   * a conversation: listed under the person's question, opened to read the
+   * question and the answer, and replayed message by message.
+   */
+  test("should list an AI conversation and open it to read and replay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "E2E LLM Conversation Project",
+    });
+
+    const ingestionKey: string = await createTelemetryIngestionKey({
+      page,
+      projectId,
+      keyName: "E2E LLM Conversation Key " + Faker.generateName().toString(),
+    });
+
+    const suffix: string = Faker.generateName().toString().toLowerCase();
+    const question: string = `Where should I travel in May, ${suffix}?`;
+    const answer: string = `Lisbon is lovely in May, ${suffix}.`;
+
+    await postOtlpLlmCall({
+      page,
+      ingestionKey,
+      serviceName: "e2e-llm-chat-" + suffix,
+      model: "e2e-model-" + suffix,
+      conversation: {
+        conversationId: "e2e-chat-" + suffix,
+        question: question,
+        answer: answer,
+        userEmail: "ada@example.com",
+      },
+    });
+
+    const conversationsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/conversations`)
+      .toString();
+
+    await waitForTelemetryText({
+      page,
+      projectId,
+      url: conversationsUrl,
+      ready: page.getByTestId("llm-conversations-search"),
+      text: question,
+    });
+
+    // The row says who asked; opening it shows what was said.
+    const row: Locator = page
+      .getByTestId("llm-conversation-row")
+      .filter({ hasText: question });
+    await expect(row).toContainText("ada@example.com");
+    await row.click();
+
+    await expect(page).toHaveURL(/\/llm\/conversations\/c%3Ae2e-chat-/);
+    await expect(page.getByTestId("llm-conversation-title")).toHaveText(
+      question,
+    );
+
+    const transcript: Locator = page.getByTestId("llm-transcript");
+    await expect(transcript).toContainText(question);
+    await expect(transcript).toContainText(answer);
+
+    // A step back in the replay hides the answer and says it is to come.
+    await page.keyboard.press("j");
+    await expect(transcript).not.toContainText(answer);
+    await expect(page.getByTestId("llm-replay-hidden-note")).toContainText(
+      "1 more message to come in the replay",
+    );
+    await expect(page).toHaveURL(/[?&]step=0/);
+
+    await page.getByTestId("llm-replay-show-all").click();
+    await expect(transcript).toContainText(answer);
+    await expect(page.getByTestId("llm-replay-play")).toHaveText(/Replay/);
   });
 
   test("should ingest OTLP metrics and show them on the Metrics dashboard", async ({

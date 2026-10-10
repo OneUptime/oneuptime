@@ -616,16 +616,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
+    // The rules the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         serviceLevelObjectiveId: true,
@@ -635,10 +629,7 @@ export class Service extends ProjectReferencesService<Model> {
         longWindowInMinutes: true,
         shortWindowInMinutes: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -1421,9 +1412,8 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     for (const projectId of projectIds) {
       await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
@@ -1455,9 +1445,8 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     for (const projectId of projectIds) {
       await this.validateSeverityReferences({
@@ -1632,10 +1621,17 @@ export class Service extends ProjectReferencesService<Model> {
       select as unknown as Select<Model>,
     );
 
+    /*
+     * The request's project for a teammate, whose update is kept to it; the
+     * project of each rule written for OneUptime and a master admin.
+     */
     const projectIds: Dictionary<ObjectID> = {};
+    const requestProjectId: ObjectID | null = Service.getProjectWriteIsHeldTo(
+      updateBy.props,
+    );
 
-    if (updateBy.props.tenantId) {
-      projectIds[updateBy.props.tenantId.toString()] = updateBy.props.tenantId;
+    if (requestProjectId) {
+      projectIds[requestProjectId.toString()] = requestProjectId;
     } else {
       for (const rule of rules) {
         if (rule.projectId) {

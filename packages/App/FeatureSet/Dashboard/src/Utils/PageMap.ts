@@ -1316,7 +1316,11 @@ enum PageMap {
   // AI / LLM observability
   LLM_ROOT = "LLM_ROOT",
   LLM = "LLM",
+  // Kept so old links to the retired Overview land on Conversations.
   LLM_OVERVIEW = "LLM_OVERVIEW",
+  LLM_CONVERSATIONS = "LLM_CONVERSATIONS",
+  LLM_CONVERSATION_VIEW = "LLM_CONVERSATION_VIEW",
+  LLM_ALERTS = "LLM_ALERTS",
   LLM_USAGE = "LLM_USAGE",
   LLM_CALLS = "LLM_CALLS",
   LLM_BUDGETS = "LLM_BUDGETS",

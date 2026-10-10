@@ -1,9 +1,14 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import LlmOverview from "../../Components/AI/LlmOverview";
+import LlmConversationView from "../../Components/LlmConversations/LlmConversationView";
 
-const LlmOverviewPage: FunctionComponent<PageComponentProps> = (
+/*
+ * One conversation, to read or to replay. The conversation is named by the
+ * page's own path (see LlmConversationRoutes), not a router param: its id is
+ * the app's own string and travels as one encoded path segment.
+ */
+const LlmConversationViewPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const disableTelemetryForThisProject: boolean =
@@ -15,7 +20,7 @@ const LlmOverviewPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <LlmOverview />;
+  return <LlmConversationView />;
 };
 
-export default LlmOverviewPage;
+export default LlmConversationViewPage;

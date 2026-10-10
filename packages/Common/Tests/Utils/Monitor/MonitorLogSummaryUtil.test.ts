@@ -115,6 +115,8 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.SecurityEvents]: Slot.Telemetry,
   [MonitorType.Metrics]: Slot.Telemetry,
   [MonitorType.Traces]: Slot.Telemetry,
+  // Its check counts the AI answers in its window of spans.
+  [MonitorType.Llm]: Slot.Telemetry,
   [MonitorType.Exceptions]: Slot.Telemetry,
   [MonitorType.Profiles]: Slot.Telemetry,
   [MonitorType.Kubernetes]: Slot.Telemetry,

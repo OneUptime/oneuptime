@@ -5,11 +5,26 @@ import Link from "Common/Types/Link";
 
 export function getLlmBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.LLM, ["Project", "AI / LLM"]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_OVERVIEW, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM, [
       "Project",
       "AI / LLM",
-      "Overview",
+      "Conversations",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_CONVERSATIONS, [
+      "Project",
+      "AI / LLM",
+      "Conversations",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_CONVERSATION_VIEW, [
+      "Project",
+      "AI / LLM",
+      "Conversations",
+      "Conversation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_ALERTS, [
+      "Project",
+      "AI / LLM",
+      "Alerts",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.LLM_USAGE, [
       "Project",
@@ -19,7 +34,7 @@ export function getLlmBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.LLM_CALLS, [
       "Project",
       "AI / LLM",
-      "LLM Calls",
+      "Calls",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.LLM_BUDGETS, [
       "Project",

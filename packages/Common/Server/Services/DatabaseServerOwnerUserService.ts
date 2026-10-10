@@ -57,21 +57,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     /*
      * The rows are gone by the time onDeleteSuccess runs, so the feed item has
-     * to be built from what was read here.
+     * to be built from what was read here: the rows the delete removes, and
+     * the delete held to them (findRowsAndHoldDeleteToThem).
      */
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         databaseServerId: true,
         projectId: true,
         userId: true,
       },
-    });
+    );
 
     return {
       carryForward: {

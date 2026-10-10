@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 27406,
-    "untranslated": 4687
+    "keys": 27758,
+    "untranslated": 4700
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -63,6 +63,7 @@
     "App Store",
     "Appliance",
     "Appliances",
+    "Apps",
     "Aruba",
     "Audit",
     "Auth, No Priv",
@@ -162,6 +163,7 @@
     "Ecuador",
     "El Salvador",
     "Element",
+    "Embedding",
     "Engine",
     "Engine (db.system.name)",
     "Enter",

@@ -42,17 +42,22 @@ import {
   jest,
 } from "@jest/globals";
 import {
+  stubRowsCallerMayDeleteLikeFindBy,
   stubRowsCallerMayWriteLikeFindBy,
   readsOfRowsCallerMayWrite,
 } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
- * The read of the rows a caller's update may write, which the update path
- * makes before the hooks: what the suite's read of them answers
- * (stubRowsCallerMayWriteLikeFindBy).
+ * The read of the rows a caller's update may write, or a delete may remove,
+ * which the write path makes before the hooks: what the suite's read of them
+ * answers (stubRowsCallerMayWriteLikeFindBy, stubRowsCallerMayDeleteLikeFindBy).
  */
 beforeEach(() => {
   stubRowsCallerMayWriteLikeFindBy(
+    StatusPageMonitorRuleService,
+    jest.spyOn(StatusPageMonitorRuleService, "findBy"),
+  );
+  stubRowsCallerMayDeleteLikeFindBy(
     StatusPageMonitorRuleService,
     jest.spyOn(StatusPageMonitorRuleService, "findBy"),
   );
@@ -981,9 +986,10 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
    * status page resources just by naming that project's rule id - the
    * permission check would then reject the rule delete, far too late.
    *
-   * onBeforeDelete may therefore only READ, and only through the caller's own
-   * props. onDeleteSuccess is handed the ids that survived the permission
-   * check, which is where anything destructive belongs.
+   * onBeforeDelete may therefore only READ: the rules the delete removes,
+   * among the ones the caller may delete, with the delete held to them.
+   * onDeleteSuccess is handed the ids that survived the permission check,
+   * which is where anything destructive belongs.
    */
   it("destroys nothing from onBeforeDelete, which runs before the permission check", async () => {
     jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([]);
@@ -997,21 +1003,52 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
     expect(resourceDeleteSpy).not.toHaveBeenCalled();
   });
 
-  it("reads the doomed rules through the caller's own props, never as root", async () => {
+  it("reads the rules the caller may delete in the caller's project, and holds the delete to them", async () => {
     jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([]);
 
-    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
+    const deleteBy: DeleteBy<StatusPageMonitorRule> = {
       query: { _id: RULE_ID.toString() },
       props: { isRoot: false, tenantId: PROJECT_ID },
-    } as unknown as DeleteBy<StatusPageMonitorRule>);
+    } as unknown as DeleteBy<StatusPageMonitorRule>;
 
-    const call: { props: { isRoot?: boolean; tenantId?: ObjectID } } =
-      ruleFindBySpy.mock.calls[0]![0] as {
-        props: { isRoot?: boolean; tenantId?: ObjectID };
-      };
+    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", deleteBy);
 
-    expect(call.props.isRoot).toBe(false);
-    expect(call.props.tenantId).toEqual(PROJECT_ID);
+    // The rules the caller may delete, read with the caller's permission.
+    expect(
+      readsOfRowsCallerMayWrite(StatusPageMonitorRuleService)[0]!.query[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+
+    // The delete's rules among them, read as OneUptime.
+    const call: {
+      query: Record<string, unknown>;
+      props: { isRoot?: boolean };
+    } = ruleFindBySpy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: { isRoot?: boolean };
+    };
+
+    expect(call.query).toEqual({ _id: RULE_ID.toString() });
+    expect(call.props.isRoot).toBe(true);
+
+    // The delete removes exactly the rule read.
+    expect(deleteBy.query).toEqual({ _id: RULE_ID.toString() });
+    expect(deleteBy.limit).toBe(1);
+  });
+
+  it("refuses the delete when the rules it removes cannot be read", async () => {
+    ruleFindBySpy.mockRejectedValue(new Error("db down"));
+
+    await expect(
+      callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
+        query: { _id: RULE_ID.toString() },
+        props: { isRoot: false, tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<StatusPageMonitorRule>),
+    ).rejects.toThrow("db down");
+
+    expect(removeResourcesSpy).not.toHaveBeenCalled();
+    expect(resourceDeleteSpy).not.toHaveBeenCalled();
   });
 
   /*
@@ -1133,7 +1170,9 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
   });
 
   it("still deletes the rule when noting the monitors down fails", async () => {
-    ruleFindBySpy.mockRejectedValue(new Error("db down"));
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockRejectedValue(new Error("db down"));
 
     const onDelete: OnDelete<StatusPageMonitorRule> = (await callHook(
       StatusPageMonitorRuleService,

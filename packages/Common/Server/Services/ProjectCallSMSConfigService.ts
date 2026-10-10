@@ -15,7 +15,6 @@ import releaseIncomingCallPhoneNumber from "../Utils/IncomingCallPhoneNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import PositiveNumber from "../../Types/PositiveNumber";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 
@@ -119,52 +118,22 @@ export class Service extends DatabaseService<Model> {
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     /*
-     * This hook releases provider resources before DatabaseService reaches its
-     * usual delete permission check. Scope the query first so a denied config
-     * delete cannot release or clear another tenant's phone numbers.
-     */
-    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
-      Model,
-      deleteBy.query,
-      deleteBy.props,
-    );
-
-    /*
      * When a Call/SMS config is deleted, release any incoming-call numbers
      * provisioned through it (so they don't keep billing on the provider) and
      * clear the now-dangling number fields on those policies. The config still
      * exists at this point, so the provider can be built to release the numbers.
+     *
+     * Only the configs the delete removes - the ones the caller may delete, in
+     * the delete's own window - are read, and the delete is held to exactly
+     * them before any provider call, so a window that shifts while the
+     * provider answers cannot change which rows go.
      */
-    const configs: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    const configs: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const configIds: Array<ObjectID> = configs
-      .map((config: Model): ObjectID | null => {
-        return config.id;
-      })
-      .filter((configId: ObjectID | null): configId is ObjectID => {
-        return Boolean(configId);
-      });
-
-    /*
-     * Freeze the caller's offset/limit window before provider side effects.
-     * The original window could otherwise select different rows when
-     * DatabaseService evaluates it again after the releases complete.
-     */
-    deleteBy.query = {
-      _id: QueryHelper.any(configIds),
-    };
-    deleteBy.skip = 0;
-    deleteBy.limit = configIds.length;
+    );
 
     for (const config of configs) {
       if (!config.id) {

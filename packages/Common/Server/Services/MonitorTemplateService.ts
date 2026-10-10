@@ -237,11 +237,16 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
           storedMonitorSteps:
             templates.length === 1 ? templates[0]!.monitorSteps : undefined,
+          /*
+           * The templates' own project. Templates of more than one project -
+           * a write of OneUptime's or a master admin's - share none.
+           */
           projectId:
-            updateBy.props.tenantId ||
-            (projectIds.size === 1
+            projectIds.size === 1
               ? new ObjectID(Array.from(projectIds)[0]!)
-              : undefined),
+              : projectIds.size === 0
+                ? updateBy.props.tenantId
+                : undefined,
         });
     }
 
@@ -258,7 +263,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-        projectId: updateBy.props.tenantId || template.projectId,
+        projectId: Service.getProjectToCheckRowIn(
+          updateBy.props,
+          template.projectId,
+        ),
         alreadyStoredMonitorSteps: template.monitorSteps,
       });
     }
@@ -292,24 +300,17 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const templatesToDelete: Array<Model> = await this.findBy({
-      /*
-       * This hook runs BEFORE DatabaseService permission-checks the query, so
-       * a raw isRoot read of deleteBy.query would hand back other tenants'
-       * templates — and their policy names in the refusal message with them.
-       */
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
-      select: {
+    /*
+     * The templates the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them: a refusal names
+     * only policies and rules of the caller's own templates.
+     */
+    const templatesToDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         templateName: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const template of templatesToDelete) {
       if (!template.id || !template.projectId) {
@@ -385,25 +386,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { deleteBy, carryForward: null };
-  }
-
-  /*
-   * See NetworkSiteService for the full explanation: hooks run before
-   * ModelPermission scopes the caller's query, so anything a hook reads with
-   * isRoot has to be re-scoped by hand or it spans projects.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 
   /*

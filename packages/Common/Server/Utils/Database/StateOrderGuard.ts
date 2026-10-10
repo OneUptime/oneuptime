@@ -9,7 +9,6 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import {
   StateListBuiltIn,
   StateListDefinition,
@@ -285,13 +284,12 @@ export default class StateOrderGuard {
       return;
     }
 
-    const targets: Array<TBaseModel> = await StateOrderGuard.findTargets({
-      service: data.service,
-      query: data.deleteBy.query,
-      tenantId: data.deleteBy.props.tenantId,
-      limit: data.deleteBy.limit,
-      skip: data.deleteBy.skip,
-    });
+    // The rows the delete removes, and the delete held to them.
+    const targets: Array<TBaseModel> =
+      await data.service.findRowsAndHoldDeleteToThem(data.deleteBy, {
+        _id: true,
+        projectId: true,
+      } as Select<TBaseModel>);
 
     for (const [projectKey, projectTargets] of StateOrderGuard.byProject(
       targets,
@@ -316,40 +314,6 @@ export default class StateOrderGuard {
         );
       }
     }
-  }
-
-  /*
-   * The rows a write is about to touch, read the way the write will find
-   * them - and never outside the caller's project, so a refusal can only
-   * ever name rows the caller could see.
-   */
-  private static async findTargets<TBaseModel extends BaseModel>(data: {
-    service: ServiceOf<TBaseModel>;
-    query: Query<TBaseModel>;
-    tenantId?: ObjectID | undefined;
-    limit?: PositiveNumber | number | undefined;
-    skip?: PositiveNumber | number | undefined;
-  }): Promise<Array<TBaseModel>> {
-    const query: Record<string, unknown> = {
-      ...(data.query as Record<string, unknown>),
-    };
-
-    if (data.tenantId) {
-      query["projectId"] = data.tenantId;
-    }
-
-    return await data.service.findBy({
-      query: query as Query<TBaseModel>,
-      select: {
-        _id: true,
-        projectId: true,
-      } as Select<TBaseModel>,
-      limit: data.limit ?? 1,
-      skip: data.skip ?? 0,
-      props: {
-        isRoot: true,
-      },
-    });
   }
 
   private static byProject<TBaseModel extends BaseModel>(

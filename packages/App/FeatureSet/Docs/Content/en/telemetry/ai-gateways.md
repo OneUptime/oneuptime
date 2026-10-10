@@ -171,9 +171,9 @@ One honest caveat: client-side spans describe the call _as your app made it_ —
 
 Send a test request through the gateway, wait a few seconds, then open **AI / LLM** in OneUptime's navigation (under Observability):
 
-1. **LLM Calls** should list the call — provider, model, and token counts filled in. LiteLLM spans are named `litellm_request`; Portkey's enterprise export names them `chat <model>`.
+1. **Calls** should list the call — provider, model, and token counts filled in. LiteLLM spans are named `litellm_request`; Portkey's enterprise export names them `chat <model>`.
 2. Click the call to open the trace, and check the span's **AI / LLM panel**: model, input/output tokens, request parameters, and (unless you disabled content capture) the prompt and completion.
-3. **Overview** should show the call in the totals; cost appears too — reported by the gateway where available, otherwise [computed at ingest](/docs/telemetry/ai-llm-observability) from token counts for known models.
+3. **Usage** should count the call in its totals; cost appears too — reported by the gateway where available, otherwise [computed at ingest](/docs/telemetry/ai-llm-observability) from token counts for known models.
 
 Nothing showing up?
 

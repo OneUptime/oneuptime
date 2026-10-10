@@ -4,12 +4,9 @@ import NetworkSiteService from "./NetworkSiteService";
 import Model from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -99,25 +96,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const profilesToDelete: Array<Model> = await this.findBy({
-      /*
-       * This hook runs BEFORE DatabaseService permission-checks the query, so
-       * a raw isRoot read of deleteBy.query would hand back other tenants'
-       * profiles. Re-apply the caller's tenant, exactly as NetworkSiteService
-       * and NetworkDeviceOidTemplateService do for the same reason.
-       */
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
-      select: {
+    /*
+     * The profiles the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them.
+     */
+    const profilesToDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         name: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const profile of profilesToDelete) {
       if (!profile.id || !profile.projectId) {
@@ -192,25 +180,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     return count.toNumber();
-  }
-
-  /*
-   * See NetworkSiteService for the full explanation: hooks run before
-   * ModelPermission scopes the caller's query, so anything a hook reads with
-   * isRoot has to be re-scoped by hand or it spans projects.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 
   /*

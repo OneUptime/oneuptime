@@ -359,31 +359,16 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    let rulesToDelete: Array<Model> = [];
-
-    try {
-      rulesToDelete = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-          serviceLevelObjectiveId: true,
-          name: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: deleteBy.props,
-      });
-    } catch (error) {
-      /*
-       * Best effort. Failing to note the rules down must not block the
-       * delete; the worst case is that their monitors stay attached until the
-       * next edit to a rule on that SLO, or the next change to the monitor.
-       */
-      logger.error(
-        `Error collecting SLO monitor rules before delete: ${error}`,
-      );
-    }
+    // The rules the delete removes, and the delete held to them.
+    const rulesToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+        serviceLevelObjectiveId: true,
+        name: true,
+      },
+    );
 
     const carryForward: RuleDeleteCarryForward = {
       rulesToDelete: rulesToDelete,

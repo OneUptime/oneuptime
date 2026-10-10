@@ -3415,14 +3415,9 @@ These are no longer recorded against the project and have to be cancelled by han
      * The extra columns beyond the billing ones are the snapshot that goes
      * into DeletedProject for customer outreach.
      */
-    const projects: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
@@ -3447,7 +3442,7 @@ These are no longer recorded against the project and have to be cancelled by han
           jobRole: true,
         },
       },
-    });
+    );
 
     return { deleteBy, carryForward: projects };
   }

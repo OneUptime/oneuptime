@@ -276,7 +276,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
       ),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM] as Route),
-      activeRoute: RouteMap[PageMap.LLM],
+      // Every AI / LLM tab, not only the one the product opens on.
+      activeRoute: new Route(`/dashboard/${RouteParams.ProjectID}/llm`),
       icon: IconProp.Sparkles,
       iconColor: "violet",
       category: observabilityCategory,

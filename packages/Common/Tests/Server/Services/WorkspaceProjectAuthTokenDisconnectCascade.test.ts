@@ -5,6 +5,10 @@ import ObjectID from "../../../Types/ObjectID";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The PROJECT-level half of the workspace disconnect cascade.
@@ -77,6 +81,12 @@ describe("WorkspaceProjectAuthTokenService.onBeforeDelete - workspace disconnect
     deleteUserTokens = jest
       .spyOn(WorkspaceUserAuthTokenService, "deleteBy")
       .mockResolvedValue([] as never);
+
+    // The tokens a teammate may delete: those the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(
+      WorkspaceProjectAuthTokenService,
+      findTokens,
+    );
   });
 
   afterEach(() => {
@@ -174,10 +184,53 @@ describe("WorkspaceProjectAuthTokenService.onBeforeDelete - workspace disconnect
     expect(projectIds).toContain(OTHER_PROJECT_ID.toString());
   });
 
-  test("the tokens are re-read with the RAW delete query, as root", async () => {
-    await callOnBeforeDelete({
+  test("a teammate's tokens are read among those they may delete, as root, and only those cascade", async () => {
+    findTokens.mockResolvedValue([
+      projectTokenRow(WorkspaceType.Slack),
+    ] as never);
+
+    const deleteBy: {
+      query: Record<string, unknown>;
+      props: { isRoot: boolean };
+    } = {
       query: { projectId: PROJECT_ID },
       props: { isRoot: false },
+    };
+
+    await callOnBeforeDelete(deleteBy);
+
+    // The tokens the caller may delete, read with the caller's permission.
+    expect(
+      readsOfRowsCallerMayWrite(WorkspaceProjectAuthTokenService)[0]!.query[
+        "projectId"
+      ],
+    ).toBe(PROJECT_ID);
+
+    // The delete's tokens among them, as OneUptime.
+    expect(findTokens).toHaveBeenCalledTimes(1);
+    const arg: {
+      query: Record<string, unknown>;
+      props: { isRoot: boolean };
+      limit: number;
+    } = findTokens.mock.calls[0][0] as {
+      query: Record<string, unknown>;
+      props: { isRoot: boolean };
+      limit: number;
+    };
+    expect(arg.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(arg.query["_id"])).toBe(TOKEN_ID.toString());
+    expect(arg.props.isRoot).toBe(true);
+    expect(arg.limit).toBe(1);
+
+    // The delete removes exactly that token, and its cascade ran once.
+    expect(String(deleteBy.query["_id"])).toBe(TOKEN_ID.toString());
+    expect(deleteUserTokens).toHaveBeenCalledTimes(1);
+  });
+
+  test("OneUptime's tokens are read with the delete's own query, in its window", async () => {
+    await callOnBeforeDelete({
+      query: { projectId: PROJECT_ID },
+      props: { isRoot: true },
     });
 
     expect(findTokens).toHaveBeenCalledTimes(1);
@@ -190,9 +243,22 @@ describe("WorkspaceProjectAuthTokenService.onBeforeDelete - workspace disconnect
       props: { isRoot: boolean };
       limit: number;
     };
-    expect(arg.query["projectId"]).toBe(PROJECT_ID);
+    expect(arg.query).toEqual({ projectId: PROJECT_ID });
     expect(arg.props.isRoot).toBe(true);
     expect(arg.limit).toBe(LIMIT_MAX);
+  });
+
+  test("a teammate who may delete none of the tokens cascades nothing", async () => {
+    // The read of the tokens the caller may delete answers none.
+    findTokens.mockResolvedValue([] as never);
+
+    await callOnBeforeDelete({
+      query: { projectId: PROJECT_ID },
+      props: { isRoot: false },
+    });
+
+    expect(findTokens).not.toHaveBeenCalled();
+    expect(deleteUserTokens).not.toHaveBeenCalled();
   });
 
   test("a token row missing its project or workspace type is skipped rather than issuing an unscoped delete", async () => {

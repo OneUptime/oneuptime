@@ -4,6 +4,7 @@ import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMo
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
@@ -71,6 +72,19 @@ export default class MonitorCriteriaDataExtractor {
       undefined
     ) {
       return dataToProcess as SecurityEventsMonitorResponse;
+    }
+
+    return null;
+  }
+
+  public static getLlmMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): LlmMonitorResponse | null {
+    if (
+      dataToProcess &&
+      typeof (dataToProcess as LlmMonitorResponse).llmAnswerCount === "number"
+    ) {
+      return dataToProcess as LlmMonitorResponse;
     }
 
     return null;

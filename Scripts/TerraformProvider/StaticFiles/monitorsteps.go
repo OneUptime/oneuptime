@@ -156,6 +156,9 @@ var monitorStepsCheckOnValues = []string{
 	"Log Count",
 	"Security Event Count",
 	"Span Count",
+	"Bad AI Answers (in %)",
+	"Bad AI Answers",
+	"AI Answers",
 	"Exception Count",
 	"Profile Count",
 	"Metric Value",
@@ -280,6 +283,7 @@ type monitorStepsSubConfig struct {
 var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"log_monitor", "logMonitor"},
 	{"trace_monitor", "traceMonitor"},
+	{"llm_monitor", "llmMonitor"},
 	{"metric_monitor", "metricMonitor"},
 	{"exception_monitor", "exceptionMonitor"},
 	{"profile_monitor", "profileMonitor"},
@@ -951,6 +955,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 	subDescriptions := map[string]string{
 		"log_monitor":                  "Raw JSON escape hatch for the Logs monitor query config (attributes, body, severityTexts, telemetryServiceIds, lastXSecondsOfLogs).",
 		"trace_monitor":                "Raw JSON escape hatch for the Traces monitor query config.",
+		"llm_monitor":                  "Raw JSON escape hatch for the AI / LLM monitor config (issues, slowAnswerSeconds, model, telemetryServiceIds, lastXSecondsOfCalls).",
 		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift.",
 		"exception_monitor":            "Raw JSON escape hatch for the Exceptions monitor query config.",
 		"profile_monitor":              "Raw JSON escape hatch for the Profiles monitor query config.",

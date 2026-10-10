@@ -514,19 +514,36 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<AlertEpisodeStateTimeline>,
   ): Promise<OnDelete<AlertEpisodeStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves. A delete of several entries - a
+     * workflow's delete of many, say - has no one gap to close: it is left
+     * as it is, and moves no neighbour.
+     */
+    const toBeDeleted: {
+      row: AlertEpisodeStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      alertEpisodeId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      return { deleteBy, carryForward: null };
+    }
+
+    if (toBeDeleted.row) {
       const episodeStateTimelineToBeDeleted: AlertEpisodeStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            alertEpisodeId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const episodeId: ObjectID | undefined =
         episodeStateTimelineToBeDeleted?.alertEpisodeId;
@@ -555,7 +572,9 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         const stateBeforeThis: AlertEpisodeStateTimeline | null =
           await this.findOneBy({
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                episodeStateTimelineToBeDeleted.id!.toString(),
+              ),
               alertEpisodeId: episodeId,
               startsAt: QueryHelper.lessThanEqualTo(
                 episodeStateTimelineToBeDeleted.startsAt!,

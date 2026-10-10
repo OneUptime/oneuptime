@@ -21,6 +21,10 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * An episode's member rows show their incident (or alert) and their episode
@@ -237,9 +241,16 @@ describe.each(KINDS)(
     });
 
     test("delete, including the members it carries forward", async () => {
+      const member: DatabaseBaseModel = {
+        _id: ObjectID.generate().toString(),
+      } as unknown as DatabaseBaseModel;
       const findBy: jest.SpyInstance = jest
         .spyOn(kind.service, "findBy")
-        .mockResolvedValue([]);
+        .mockResolvedValue([member]);
+      // The member rows the caller may delete.
+      stubRowsCallerMayDelete(kind.service, () => {
+        return [member];
+      });
 
       const result: OnDelete<DatabaseBaseModel> = await callHook<
         OnDelete<DatabaseBaseModel>
@@ -250,11 +261,22 @@ describe.each(KINDS)(
         skip: 0,
       } as DeleteBy<DatabaseBaseModel>);
 
+      // The delete stays narrowed, and removes only the member read.
       expectNarrowed(kind, result.deleteBy.query);
+      expect((result.deleteBy.query as Record<string, unknown>)["_id"]).toBe(
+        member._id,
+      );
+      expect(result.carryForward).toEqual([member]);
+
+      // The rows the caller may delete are read among the visible ones too.
+      expectNarrowed(kind, readsOfRowsCallerMayWrite(kind.service)[0]!.query);
 
       // The carried members are read as root, but only among the visible ones.
       expect(findBy).toHaveBeenCalledTimes(1);
-      expect(findBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+      expect(findBy.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+        ignoreHooks: true,
+      });
       expectNarrowed(kind, findBy.mock.calls[0]![0].query);
     });
 
