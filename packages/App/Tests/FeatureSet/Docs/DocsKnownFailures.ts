@@ -716,22 +716,22 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "workflows/authoring": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workflows/components": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workflows/configuration": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workflows/runs-and-logs": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workflows/triggers": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workflows/variables": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it"),
   },
   "workspace-connections/microsoft-teams": {
     headingLevels: EN,
