@@ -191,6 +191,28 @@ function asNumber(value: number | PositiveNumber): number {
 }
 
 function selectedIds(value: unknown): Array<string> | undefined {
+  // Every condition of an And holds: the ids each names, together.
+  if (value instanceof FindOperator && value.type === "and") {
+    let ids: Array<string> | undefined = undefined;
+
+    for (const part of value.value as unknown as Array<unknown>) {
+      const named: Array<string> | undefined = selectedIds(part);
+
+      if (named === undefined) {
+        continue;
+      }
+
+      ids =
+        ids === undefined
+          ? named
+          : ids.filter((id: string): boolean => {
+              return named.includes(id);
+            });
+    }
+
+    return ids;
+  }
+
   if (value instanceof FindOperator) {
     const parameters: Record<
       string,

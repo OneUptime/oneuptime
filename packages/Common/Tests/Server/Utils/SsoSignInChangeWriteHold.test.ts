@@ -64,9 +64,11 @@ import timers from "timers";
  *     once, unless the database never answered its statement, which may
  *     still land: they are then kept until the database would have
  *     cancelled it (ABANDONED_WRITE_HOLD_IN_MS), and left to run out;
- *   - writeOnlyTheRowsRead holds a write that names its rows by a filter to
- *     the rows its check read: by their ids, or - for a delete that read
- *     none - to rows deleted before, which only a hard delete reaches.
+ *   - a write that names its rows by a filter goes to the rows its check
+ *     read: read, and held to them, by the helper every check of a write's
+ *     rows uses (DatabaseService.findRowsAndHoldUpdateToThem and
+ *     findRowsAndHoldDeleteToThem); a hard delete reads the rows deleted
+ *     before too, and is held to those it read.
  *
  * Valkey is a stub here; the Valkey suites (SsoProviderChangesValkey) keep
  * real locks, and the Postgres suite (SsoFilterWritesPostgres) runs the
@@ -1045,9 +1047,14 @@ describe("a write the database may still apply keeps its locks until the databas
   });
 });
 
+
 /*
- * writeOnlyTheRowsRead, as the database is asked: the narrowed query is run
- * through the same matcher the in-memory tables use (InMemoryRepository).
+ * A sign-in change that names its rows by a filter reads them - and holds its
+ * write to them - with the helper every check of a write's rows uses
+ * (DatabaseService.findRowsAndHoldUpdateToThem and
+ * findRowsAndHoldDeleteToThem), here as OneUptime writes them. The query it
+ * leaves the write with is run through the same matcher the in-memory tables
+ * use (InMemoryRepository): the rows it reaches are the rows read.
  */
 describe("a write that names its rows by a filter writes only the rows its check read", () => {
   const id: (n: number) => string = (n: number): string => {
@@ -1063,11 +1070,11 @@ describe("a write that names its rows by a filter writes only the rows its check
   const DELETED_LAST_WEEK: string = id(15);
   const OTHER_PROJECTS_DELETED: string = id(16);
 
-  const rows: () => Array<StoredRow> = (): Array<StoredRow> => {
+  // The table, as it is when the change reads it.
+  const rowsWhenRead: () => Array<StoredRow> = (): Array<StoredRow> => {
     return [
       { _id: READ_ONE, projectId: PROJECT, isEnabled: true },
       { _id: READ_TWO, projectId: PROJECT, isEnabled: true },
-      { _id: CREATED_LATER, projectId: PROJECT, isEnabled: true },
       {
         _id: DELETED_LONG_AGO,
         projectId: PROJECT,
@@ -1089,20 +1096,70 @@ describe("a write that names its rows by a filter writes only the rows its check
     ];
   };
 
+  // And once it has: a provider that comes to match the filter is there too.
+  const rowsAfterwards: () => Array<StoredRow> = (): Array<StoredRow> => {
+    return [
+      ...rowsWhenRead(),
+      { _id: CREATED_LATER, projectId: PROJECT, isEnabled: true },
+    ];
+  };
+
   const service: DatabaseService<ProjectSso> =
     ProjectSsoService as unknown as DatabaseService<ProjectSso>;
 
-  // The rows the narrowed write reaches - deleted ones included, as a hard delete reads them.
+  /*
+   * The table's reads, answered from rowsWhenRead: findBy finds no row
+   * deleted before, findByWithDeleted - a hard delete's read - finds those
+   * too. Each in the window it asks for.
+   */
+  const answerReads: () => void = (): void => {
+    for (const [method, withDeleted] of [
+      ["findBy", false],
+      ["findByWithDeleted", true],
+    ] as Array<[string, boolean]>) {
+      getJestSpyOn(service, method as never).mockImplementation((async (read: {
+        query: unknown;
+        skip: number;
+        limit: number;
+      }): Promise<Array<ProjectSso>> => {
+        return rowsWhenRead()
+          .filter((row: StoredRow): boolean => {
+            return (
+              (withDeleted || !row["deletedAt"]) &&
+              rowMatchesWhere(row, read.query)
+            );
+          })
+          .slice(read.skip, read.skip + read.limit)
+          .map((row: StoredRow): ProjectSso => {
+            const model: ProjectSso = new ProjectSso();
+            Object.assign(model, row);
+            return model;
+          });
+      }) as never);
+    }
+  };
+
+  /*
+   * The rows the held write reaches once the provider created afterwards is
+   * there - rows deleted before included, as a hard delete reaches them.
+   */
   const reached: (query: Query<ProjectSso>) => Array<string> = (
     query: Query<ProjectSso>,
   ): Array<string> => {
-    return rows()
+    return rowsAfterwards()
       .filter((row: StoredRow): boolean => {
         return rowMatchesWhere(row, query);
       })
       .map((row: StoredRow): string => {
         return String(row["_id"]);
       });
+  };
+
+  const SELECT: Record<string, boolean> = {
+    _id: true,
+    projectId: true,
+    isEnabled: true,
+    deletedAt: true,
   };
 
   const update: (query: unknown) => UpdateBy<ProjectSso> = (
@@ -1112,7 +1169,7 @@ describe("a write that names its rows by a filter writes only the rows its check
       query: query as Query<ProjectSso>,
       data: { isEnabled: false } as never,
       limit: LIMIT_MAX,
-      skip: 5,
+      skip: 0,
       props: { isRoot: true },
     };
   };
@@ -1123,178 +1180,149 @@ describe("a write that names its rows by a filter writes only the rows its check
     return {
       query: query as Query<ProjectSso>,
       limit: new PositiveNumber(LIMIT_MAX),
-      skip: new PositiveNumber(5),
+      skip: new PositiveNumber(0),
       props: { isRoot: true },
     };
   };
 
-  test("an update goes to exactly the rows read: not one that comes to match its filter afterwards", () => {
+  beforeEach(() => {
+    answerReads();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an update goes to exactly the rows read: not one that comes to match its filter afterwards", async () => {
     const write: UpdateBy<ProjectSso> = update({
       projectId: new ObjectID(PROJECT),
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
+    const read: Array<ProjectSso> = await service.findRowsAndHoldUpdateToThem(
       write,
-      rowIds: [READ_ONE, READ_TWO],
-      isDelete: false,
-    });
+      SELECT as never,
+    );
 
+    expect(
+      read.map((row: ProjectSso): string => {
+        return row._id!;
+      }),
+    ).toEqual([READ_ONE, READ_TWO]);
     expect(reached(write.query)).toEqual([READ_ONE, READ_TWO]);
     // Its window is those rows.
     expect(write.skip).toBe(0);
     expect(write.limit).toBe(2);
   });
 
-  test("the ids of the rows read are what a write is held to", () => {
-    expect(
-      ProjectSsoProviderChanges.idsOf([{ id: READ_ONE }, { id: READ_TWO }]),
-    ).toEqual([READ_ONE, READ_TWO]);
-  });
-
-  test("an update that read no row writes none", () => {
-    const write: UpdateBy<ProjectSso> = update({
-      projectId: new ObjectID(PROJECT),
-    });
-
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [],
-      isDelete: false,
-    });
-
-    expect(reached(write.query)).toEqual([]);
-  });
-
-  test("the write's own filter still holds: a row read that no longer matches it is left alone", () => {
+  test("an update that read no row writes none", async () => {
     const write: UpdateBy<ProjectSso> = update({
       projectId: new ObjectID(OTHER_PROJECT),
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [READ_ONE],
-      isDelete: false,
-    });
+    await expect(
+      service.findRowsAndHoldUpdateToThem(write, SELECT as never),
+    ).resolves.toEqual([]);
 
     expect(reached(write.query)).toEqual([]);
   });
 
-  test("a write that named its row by id stays on it", () => {
+  test("read again under the lock, the rows are read among the ones the first read held the write to", async () => {
+    const write: UpdateBy<ProjectSso> = update({
+      projectId: new ObjectID(PROJECT),
+    });
+
+    await service.findRowsAndHoldUpdateToThem(write, SELECT as never);
+    await service.findRowsAndHoldUpdateToThem(write, SELECT as never);
+
+    expect(reached(write.query)).toEqual([READ_ONE, READ_TWO]);
+    expect(write.limit).toBe(2);
+  });
+
+  test("the write's own filter still holds: a row read that no longer matches it is left alone", async () => {
+    const write: UpdateBy<ProjectSso> = update({
+      projectId: new ObjectID(PROJECT),
+    });
+
+    await service.findRowsAndHoldUpdateToThem(write, SELECT as never);
+
+    // The filter as the write runs it, once READ_ONE has moved out of it.
+    const moved: Array<StoredRow> = rowsAfterwards().map(
+      (row: StoredRow): StoredRow => {
+        return row["_id"] === READ_ONE
+          ? { ...row, projectId: OTHER_PROJECT }
+          : row;
+      },
+    );
+
+    expect(
+      moved
+        .filter((row: StoredRow): boolean => {
+          return rowMatchesWhere(row, write.query);
+        })
+        .map((row: StoredRow): string => {
+          return String(row["_id"]);
+        }),
+    ).toEqual([READ_TWO]);
+  });
+
+  test("a write that named its row by id stays on it", async () => {
     const write: UpdateBy<ProjectSso> = update({
       _id: READ_ONE,
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [READ_ONE],
-      isDelete: false,
-    });
+    await service.findRowsAndHoldUpdateToThem(write, SELECT as never);
 
     expect(reached(write.query)).toEqual([READ_ONE]);
+    expect((write.query as unknown as Record<string, unknown>)["_id"]).toBe(
+      READ_ONE,
+    );
   });
 
-  test("a query per project is held branch by branch", () => {
-    const write: UpdateBy<ProjectSso> = update([
-      { projectId: new ObjectID(PROJECT) },
-      { projectId: new ObjectID(OTHER_PROJECT) },
-    ]);
-
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [READ_TWO],
-      isDelete: false,
-    });
-
-    expect(Array.isArray(write.query)).toBe(true);
-    expect(reached(write.query)).toEqual([READ_TWO]);
-  });
-
-  test("a delete that read rows deletes exactly those: not one created afterwards, and no row deleted before", () => {
+  test("a delete that read rows deletes exactly those: not one created afterwards, and no row deleted before", async () => {
     const write: DeleteBy<ProjectSso> = deletion({
       projectId: new ObjectID(PROJECT),
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [READ_ONE],
-      isDelete: true,
-    });
+    await service.findRowsAndHoldDeleteToThem(write, SELECT as never);
 
-    expect(reached(write.query)).toEqual([READ_ONE]);
+    expect(reached(write.query)).toEqual([READ_ONE, READ_TWO]);
     expect(write.skip).toBe(0);
-    expect(write.limit).toBe(1);
+    expect(write.limit).toBe(2);
   });
 
-  test("a delete that read no row reaches only rows deleted before - which a hard delete purges - within its own filter", () => {
+  test("a delete that read no row deletes none: not even a row deleted before", async () => {
     const write: DeleteBy<ProjectSso> = deletion({
-      projectId: new ObjectID(PROJECT),
+      projectId: new ObjectID(OTHER_PROJECT),
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [],
-      isDelete: true,
-    });
+    await service.findRowsAndHoldDeleteToThem(write, SELECT as never);
 
-    expect(reached(write.query)).toEqual([DELETED_LONG_AGO, DELETED_LAST_WEEK]);
-    // Its window is left as it asked.
-    expect((write.skip as PositiveNumber).toNumber()).toBe(5);
+    expect(reached(write.query)).toEqual([]);
   });
 
-  test("the retention job's purge keeps what it asks of deletedAt: rows deleted more than a month ago, and no other", () => {
+  test("the retention job's purge reads the rows deleted more than a month ago, and is held to them - never a provider that is there", async () => {
     const write: DeleteBy<ProjectSso> = deletion({
       deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
     });
 
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [],
-      isDelete: true,
-    });
+    /*
+     * As hardDeleteBy runs it, its reads find the rows deleted before too
+     * (findByWithDeleted): answered so here, as the purge is not run.
+     */
+    getJestSpyOn(service, "findBy").mockImplementation((async (
+      read: unknown,
+    ): Promise<unknown> => {
+      return await (
+        service as unknown as {
+          findByWithDeleted: (read: unknown) => Promise<unknown>;
+        }
+      ).findByWithDeleted(read);
+    }) as never);
 
-    expect(reached(write.query)).toEqual([
-      DELETED_LONG_AGO,
-      OTHER_PROJECTS_DELETED,
-    ]);
-  });
+    await service.findRowsAndHoldDeleteToThem(write, SELECT as never);
 
-  test("a delete that read none and asks for one time of deletion reaches only rows deleted then", () => {
-    // The clock stands still here, so this is the time the row was deleted at.
-    const write: DeleteBy<ProjectSso> = deletion({
-      deletedAt: OneUptimeDate.getSomeDaysAgo(7),
-    });
-
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [],
-      isDelete: true,
-    });
-
-    expect(reached(write.query)).toEqual([DELETED_LAST_WEEK]);
-  });
-
-  test("a delete that read none and asks for rows that are there reaches none", () => {
-    const write: DeleteBy<ProjectSso> = deletion({
-      projectId: new ObjectID(PROJECT),
-      deletedAt: QueryHelper.isNull(),
-    });
-
-    ProjectSsoProviderChanges.writeOnlyTheRowsRead({
-      service,
-      write,
-      rowIds: [],
-      isDelete: true,
-    });
-
-    expect(reached(write.query)).toEqual([]);
+    expect(reached(write.query).sort()).toEqual(
+      [DELETED_LONG_AGO, OTHER_PROJECTS_DELETED].sort(),
+    );
   });
 });

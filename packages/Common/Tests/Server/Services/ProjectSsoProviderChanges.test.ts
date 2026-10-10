@@ -1744,6 +1744,64 @@ describe("the check and the write hold the project's lock", () => {
   );
 });
 
+/*
+ * The hooks' reads of the providers a write names - each holding the write to
+ * the rows it read (DatabaseService.findRowsAndHoldUpdateToThem and
+ * findRowsAndHoldDeleteToThem, read with findBy, or findByWithDeleted for a
+ * hard delete) - recorded as "read" next to the locks, in order; `after`
+ * runs once the read with that number has been answered, as another
+ * server's write landing then would. Answers the reads, as the hooks asked
+ * them.
+ */
+const watchProviderReads: (
+  kind: ProviderKind,
+  after?: Record<number, () => void>,
+) => Array<{ query: Record<string, unknown> }> = (
+  kind: ProviderKind,
+  after?: Record<number, () => void>,
+): Array<{ query: Record<string, unknown> }> => {
+  const asked: Array<{ query: Record<string, unknown> }> = [];
+  let reads: number = 0;
+
+  for (const method of ["findBy", "findByWithDeleted"]) {
+    const service: Record<
+      string,
+      (...args: Array<unknown>) => Promise<unknown>
+    > = kind.service as unknown as Record<
+      string,
+      (...args: Array<unknown>) => Promise<unknown>
+    >;
+    const read: (...args: Array<unknown>) => Promise<unknown> =
+      service[method]!.bind(kind.service);
+
+    getJestSpyOn(kind.service, method as never).mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<unknown> => {
+      const findBy: {
+        query: Record<string, unknown>;
+        select?: Record<string, unknown>;
+      } = args[0] as {
+        query: Record<string, unknown>;
+        select?: Record<string, unknown>;
+      };
+      const select: Record<string, unknown> = findBy.select || {};
+      const answer: unknown = await read(...args);
+
+      // What the hooks read the providers by: their project, switch and deletion.
+      if (select["projectId"] && select["isEnabled"] && select["deletedAt"]) {
+        reads++;
+        asked.push({ query: findBy.query });
+        events.push("read");
+        after?.[reads]?.();
+      }
+
+      return answer;
+    }) as never);
+  }
+
+  return asked;
+};
+
 describe("the rows a write names are read under the lock", () => {
   test.each(KINDS)(
     "%s: turning a provider off reads its rows to learn the project, locks it, and reads them again before the check",
@@ -1751,26 +1809,7 @@ describe("the rows a write names are read under the lock", () => {
       // Its last own provider: the check reads the server's rules, under their lock too.
       rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
 
-      const service: {
-        findAllBy: (...args: Array<unknown>) => Promise<unknown>;
-      } = kind.service as unknown as {
-        findAllBy: (...args: Array<unknown>) => Promise<unknown>;
-      };
-      const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
-        service.findAllBy.bind(kind.service);
-
-      getJestSpyOn(kind.service, "findAllBy").mockImplementation(((
-        ...args: Array<unknown>
-      ): Promise<unknown> => {
-        const select: Record<string, unknown> =
-          (args[0] as { select?: Record<string, unknown> }).select || {};
-
-        if (select["projectId"] && select["isEnabled"]) {
-          events.push("read");
-        }
-
-        return findAllBy(...args);
-      }) as never);
+      watchProviderReads(kind);
 
       await expect(turnOff(kind)).resolves.toBe(1);
 
@@ -1787,16 +1826,26 @@ describe("the rows a write names are read under the lock", () => {
     },
   );
 
+  /*
+   * The first read holds the write to the providers it read, so the read
+   * under the lock is among them, in the project locked: a provider that
+   * comes to match the filter in another project while the write waits for
+   * the lock was never read, and is left alone - the write is not refused
+   * for it.
+   */
   test.each(KINDS)(
-    "%s: a write that names its rows by a filter, and reaches a project it did not lock once they are read again under the lock, is refused, writes nothing and gives the lock back",
+    "%s: a provider that comes to match the filter in another project while the write waits for its lock is left alone, and the write goes to the provider it read",
     async (_label: string, kind: ProviderKind) => {
       const name: string = String(rowOf(kind)!["name"]);
+      const laterId: ObjectID = new ObjectID(
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      );
 
       // While the write waits for its project's lock, another project gets a provider of that name.
       whileWaitingForLock = (): void => {
         kind.rows().push(
           row({
-            id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            id: laterId,
             projectId: OTHER_PROJECT_ID,
             columns: { name: name },
           }),
@@ -1804,22 +1853,28 @@ describe("the rows a write names are read under the lock", () => {
       };
 
       await expect(
-        refusalOf(
-          kind.service.updateBy({
-            query: { name: name },
-            data: { isEnabled: false } as never,
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: ROOT,
-          }),
-        ),
-      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+        kind.service.updateBy({
+          query: { name: name },
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
 
-      expect(kind.writes()).toEqual([]);
-      expect(events).toEqual([
-        `lock:${PROJECT_ID.toString()}`,
-        `release:${PROJECT_ID.toString()}`,
-      ]);
+      expect(
+        kind.writes().map((write: Write): string => {
+          return write.id;
+        }),
+      ).toEqual([kind.id.toString()]);
+      expect(rowOf(kind, laterId)!.isEnabled).toBe(true);
+      // Only the project of the provider read is locked.
+      expect(
+        lockCalls.map((call: LockCall): string => {
+          return call.key;
+        }),
+      ).toEqual([PROJECT_ID.toString()]);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
     },
   );
 
@@ -1883,12 +1938,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
     "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
   );
 
-  /*
-   * The rows each read of the hooks returns (projectId and isEnabled
-   * selected), in order, recorded as "read" next to the locks; `after`
-   * runs once the read with that number has been answered, as another
-   * server's write landing then would.
-   */
+  // The hooks' reads of the providers (watchProviderReads).
   const watchReads: (
     kind: ProviderKind,
     after?: Record<number, () => void>,
@@ -1896,30 +1946,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
     kind: ProviderKind,
     after?: Record<number, () => void>,
   ): void => {
-    const service: {
-      findAllBy: (...args: Array<unknown>) => Promise<unknown>;
-    } = kind.service as unknown as {
-      findAllBy: (...args: Array<unknown>) => Promise<unknown>;
-    };
-    const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
-      service.findAllBy.bind(kind.service);
-    let reads: number = 0;
-
-    getJestSpyOn(kind.service, "findAllBy").mockImplementation((async (
-      ...args: Array<unknown>
-    ): Promise<unknown> => {
-      const select: Record<string, unknown> =
-        (args[0] as { select?: Record<string, unknown> }).select || {};
-      const answer: unknown = await findAllBy(...args);
-
-      if (select["projectId"] && select["isEnabled"]) {
-        reads++;
-        events.push("read");
-        after?.[reads]?.();
-      }
-
-      return answer;
-    }) as never);
+    watchProviderReads(kind, after);
   };
 
   test.each(KINDS)(
@@ -1971,7 +1998,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
   );
 
   test.each(KINDS)(
-    "%s: a filter that names two projects locks the one it found providers in; a provider that comes to match it in the other between the reads refuses the write, to be saved again",
+    "%s: a filter that names two projects locks the one it found providers in; a provider that comes to match it in the other between the reads is left alone, unlocked and unwritten",
     async (_label: string, kind: ProviderKind) => {
       const name: string = String(rowOf(kind)!["name"]);
 
@@ -1986,25 +2013,32 @@ describe("a write by filter reads under its locks, and writes only the rows it r
         );
       };
 
-      await expect(
-        refusalOf(
-          kind.service.updateBy({
-            query: {
-              projectId: new Includes([PROJECT_ID, OTHER_PROJECT_ID]),
-              name: name,
-            } as never,
-            data: { isEnabled: false } as never,
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: ROOT,
-          }),
-        ),
-      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+      watchReads(kind);
 
-      expect(kind.writes()).toEqual([]);
+      await expect(
+        kind.service.updateBy({
+          query: {
+            projectId: new Includes([PROJECT_ID, OTHER_PROJECT_ID]),
+            name: name,
+          } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(
+        kind.writes().map((write: Write): string => {
+          return write.id;
+        }),
+      ).toEqual([kind.id.toString()]);
       expect(rowOf(kind, LATER_ID)!.isEnabled).toBe(true);
       expect(events).toEqual([
+        "read",
         `lock:${PROJECT_ID.toString()}`,
+        "read",
+        `write:${kind.id.toString()}`,
         `release:${PROJECT_ID.toString()}`,
       ]);
     },
@@ -2163,7 +2197,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
   );
 
   test.each(KINDS)(
-    "%s: a hard delete of a provider deleted before still removes it: the check never reads rows deleted before, and they sign nobody in",
+    "%s: a hard delete of a provider deleted before still removes it: read with the rest, it signs nobody in, so nothing is locked, checked or told",
     async (_label: string, kind: ProviderKind) => {
       rowOf(kind)!["deletedAt"] = new Date("2026-08-01T00:00:00.000Z");
 
@@ -2231,7 +2265,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
   };
 
   test.each(KINDS)(
-    "%s: a hard delete by a filter that read no provider purges the rows deleted before that it matches, and leaves one created a moment later",
+    "%s: a hard delete by a filter that read no provider that is there purges the rows deleted before that it read, and leaves one created a moment later",
     async (_label: string, kind: ProviderKind) => {
       deletedBefore(kind, {
         name: "Retired",
@@ -2330,7 +2364,7 @@ describe("a write by filter reads under its locks, and writes only the rows it r
   );
 
   test.each(KINDS)(
-    "%s: a hard delete that read providers under its lock deletes exactly those - not one that comes to match afterwards - and the rows deleted before that it matched go on its next pass",
+    "%s: a hard delete that read providers under its lock deletes exactly those, and the rows deleted before that it read with them - not one that comes to match afterwards",
     async (_label: string, kind: ProviderKind) => {
       const name: string = String(rowOf(kind)!["name"]);
       deletedBefore(kind, {
@@ -2345,23 +2379,19 @@ describe("a write by filter reads under its locks, and writes only the rows it r
         },
       });
 
-      await expect(hardDeleteNamed(kind, name)).resolves.toBe(1);
+      await expect(hardDeleteNamed(kind, name)).resolves.toBe(2);
 
-      expect(deleted).toEqual([kind.id.toString()]);
+      expect([...deleted].sort()).toEqual(
+        [kind.id.toString(), DELETED_BEFORE_ID.toString()].sort(),
+      );
       expect(rowOf(kind, LATER_ID)).toBeDefined();
+      // Only the provider that was on is told of: the row deleted before signed nobody in.
       expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
-
-      // Its next pass reads no provider that is there - the new one aside - ...
-      rowOf(kind, LATER_ID)!["name"] = "Created a moment later";
-
-      await expect(hardDeleteNamed(kind, name)).resolves.toBe(1);
-
-      // ... and purges the row deleted before.
-      expect(deleted).toEqual([
-        kind.id.toString(),
-        DELETED_BEFORE_ID.toString(),
-      ]);
-      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(
+        lockCalls.map((call: LockCall): string => {
+          return call.key;
+        }),
+      ).toEqual([PROJECT_ID.toString()]);
     },
   );
 
