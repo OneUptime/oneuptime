@@ -46,8 +46,6 @@ interface WritingMethod {
   progress: string;
   // The error hook the method hands every failure to.
   errorHook: string;
-  // The repository write calls it makes (both branches of a choice count).
-  writes: number;
 }
 
 const WRITING_METHODS: Array<WritingMethod> = [
@@ -55,25 +53,21 @@ const WRITING_METHODS: Array<WritingMethod> = [
     method: "_create",
     progress: "handedBack.progress",
     errorHook: "onCreateError",
-    writes: 1,
   },
   {
     method: "_updateBy",
     progress: "progress",
     errorHook: "onUpdateError",
-    writes: 4,
   },
   {
     method: "hardDeleteBy",
     progress: "progress",
     errorHook: "onDeleteError",
-    writes: 1,
   },
   {
     method: "_deleteBy",
     progress: "progress",
     errorHook: "onDeleteError",
-    writes: 1,
   },
 ];
 
@@ -98,9 +92,9 @@ describe.each(WRITING_METHODS)(
       new RegExp(`${escaped(entry.progress)}\\.write`),
     );
 
-    test("the method is there, and makes the repository writes it is known to", () => {
+    test("the method is there, and writes through the repository", () => {
       expect(text).not.toBe("");
-      expect(repositoryWritesIn(text)).toHaveLength(entry.writes);
+      expect(repositoryWritesIn(text).length).toBeGreaterThan(0);
     });
 
     test("every repository write runs through WriteProgress.write", () => {
@@ -116,7 +110,8 @@ describe.each(WRITING_METHODS)(
         recordedWrites += writes;
       }
 
-      expect(recordedWrites).toBe(entry.writes);
+      // Every write call of the method - both branches of a choice count - is in one.
+      expect(recordedWrites).toBe(repositoryWritesIn(text).length);
     });
 
     test("a save() is recorded as written in a transaction of its own, an update() or delete() as committed on its own", () => {

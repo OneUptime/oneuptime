@@ -163,9 +163,18 @@ class FakeConnection extends EventEmitter {
   }
 }
 
-// A client whose wait for the answer to a cancel is short, for these tests.
+/*
+ * How long a client in these tests waits for the answer to its cancel. A
+ * test that answers the cancel itself has the long wait, so a busy machine
+ * cannot run it out before the answer comes; a test that waits for it to
+ * run out has the short one.
+ */
+const ANSWER_WAIT_IN_MS: number = 2000;
+const SHORT_ANSWER_WAIT_IN_MS: number = 300;
+
+// A client whose wait for the answer to a cancel is shorter, for these tests.
 class QuickCancelClient extends CancelOnTimeoutClient {
-  public static answerWaitInMs: number = 300;
+  public static answerWaitInMs: number = ANSWER_WAIT_IN_MS;
 
   public cancelOutcomes: Array<CancelRequestOutcome> = [];
 
@@ -315,7 +324,7 @@ describe("CancelOnTimeoutClient", () => {
   };
 
   beforeEach(async () => {
-    QuickCancelClient.answerWaitInMs = 300;
+    QuickCancelClient.answerWaitInMs = ANSWER_WAIT_IN_MS;
     listener = await listenForCancels();
     connection = new FakeConnection();
 
@@ -477,6 +486,14 @@ describe("CancelOnTimeoutClient", () => {
       );
       await running;
 
+      /*
+       * The caller is handed the database's answer as it comes; the cancel's
+       * own connection is closed by the other end after reading it, which
+       * may be noticed a moment later: delivered.
+       */
+      await eventually(() => {
+        return client.cancelOutcomes.length === 1;
+      });
       expect(client.cancelOutcomes).toEqual([CancelRequestOutcome.Delivered]);
     });
 
@@ -519,6 +536,7 @@ describe("CancelOnTimeoutClient", () => {
     });
 
     test("with no answer in time the caller is told the read timed out, and the connection is cut", async () => {
+      QuickCancelClient.answerWaitInMs = SHORT_ANSWER_WAIT_IN_MS;
       const client: QuickCancelClient = await connectedClient();
       const startedAt: number = Date.now();
 
@@ -532,10 +550,14 @@ describe("CancelOnTimeoutClient", () => {
       );
       // Still running: the connection is cut, not ended politely.
       expect(connection.closedBy).toBe("destroy");
-      expect(listener.requests).toHaveLength(1);
+      // The cancel was sent all the same.
+      await eventually(() => {
+        return listener.requests.length === 1;
+      });
     });
 
     test("an answer that comes after the wait reaches nobody", async () => {
+      QuickCancelClient.answerWaitInMs = SHORT_ANSWER_WAIT_IN_MS;
       const client: QuickCancelClient = await connectedClient();
 
       const failure: unknown = await failureOf(client.query("UPDATE silent"));
@@ -613,6 +635,7 @@ describe("CancelOnTimeoutClient", () => {
     });
 
     test("a connection that never told its key sends no cancel, and is still closed", async () => {
+      QuickCancelClient.answerWaitInMs = SHORT_ANSWER_WAIT_IN_MS;
       connection.backendKey = null;
       const client: QuickCancelClient = await connectedClient();
 
@@ -782,10 +805,12 @@ describe("CancelOnTimeoutClient", () => {
           port: silent.port,
         });
 
-        expect(await client.sendCancel(100)).toBe(
+        expect(await client.sendCancel(500)).toBe(
           CancelRequestOutcome.TimedOut,
         );
-        expect(silent.requests).toHaveLength(1);
+        await eventually(() => {
+          return silent.requests.length === 1;
+        });
       } finally {
         await silent.close();
       }
