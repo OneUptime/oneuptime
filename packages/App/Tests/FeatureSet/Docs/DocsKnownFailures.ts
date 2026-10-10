@@ -625,10 +625,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/log-recording-rules": {
     translated: EVERY_TRANSLATION,
   },
-  "telemetry/open-telemetry": {
-    headingLevels: EN,
-    sameShape: except(EVERY_TRANSLATION, "zh-TW", "fa"),
-  },
   "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
