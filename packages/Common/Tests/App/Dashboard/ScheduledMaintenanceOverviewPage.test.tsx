@@ -1439,6 +1439,68 @@ describe("Scheduled maintenance overview page", () => {
       },
     );
 
+    /*
+     * Over is the one rule (ScheduledMaintenanceStartUtil.hasEnded), as the
+     * header and the server read it: Ended, Completed, or a state of the
+     * project's own placed after Ended. The card used to be told by the
+     * ended and completed flags alone, so an event moved on to "Reviewing"
+     * read as still running there, its measurements' clocks still going.
+     */
+    const REVIEWING_STATE: StateRecord = {
+      id: "99999999-9999-4999-8999-000000000007",
+      name: "Reviewing",
+      order: 6,
+    };
+    const LAST_COMPLETED_STATE: StateRecord = { ...COMPLETED_STATE, order: 7 };
+
+    test.each([
+      [
+        "Preparing, a state of the project's own before Ongoing",
+        PREPARING_STATE,
+        false,
+      ],
+      ["Verifying, between Ongoing and Ended", VERIFYING_STATE, false],
+      ["Ended", ENDED_STATE, true],
+      [
+        "Reviewing, a state of the project's own after Ended",
+        REVIEWING_STATE,
+        true,
+      ],
+      ["Completed", LAST_COMPLETED_STATE, true],
+    ] as Array<[string, StateRecord, boolean]>)(
+      "tells the card whether the event is over by its state's place: %s",
+      async (_label: string, record: StateRecord, isOver: boolean) => {
+        getListMock.mockImplementation((async () => {
+          const data: Array<ScheduledMaintenanceState> = [
+            SCHEDULED_STATE,
+            PREPARING_STATE,
+            ONGOING_STATE,
+            VERIFYING_STATE,
+            ENDED_STATE,
+            REVIEWING_STATE,
+            LAST_COMPLETED_STATE,
+          ].map(stateOf);
+          return {
+            data,
+            count: data.length,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+          };
+        }) as never);
+
+        const event: ScheduledMaintenance = makeEvent();
+        event.currentScheduledMaintenanceState = stateOf(record);
+        getItemMock.mockResolvedValue(event as never);
+
+        await renderPage();
+
+        expect(
+          lastProps<MeasurementsCardProps>(measurementsCardRenderMock)
+            .isEventOver,
+        ).toBe(isOver);
+      },
+    );
+
     test("reads again when the event moves to another state, and follows it once it is completed", async () => {
       getItemMock
         .mockResolvedValueOnce(
