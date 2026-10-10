@@ -214,6 +214,28 @@ describe("the Overview's data collection card", () => {
     ).toBeInTheDocument();
   });
 
+  test("a probe the reader cannot see, collecting every minute: 'its probe', and the count named", async () => {
+    stored = {
+      ...PROBE_COLLECTED,
+      collectionProbe: undefined,
+      collectionIntervalInMinutes: 1,
+      collectionStatus: VMwareCollectionStatus.Succeeded,
+    };
+
+    render(<VMwareCollectionStatusCard modelId={new ObjectID(VCENTER_ID)} />);
+    await flush();
+
+    /*
+     * The one form names the count: it is also Russian's form for 21, 31,
+     * 41 and 51 minutes.
+     */
+    expect(
+      screen.getByText(
+        "Collected by its probe from https://vcsa.example.com, every 1 minute. No agent runs for it.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("not collecting: why, what to do, and the certificate - trusted in one click", async () => {
     stored = {
       ...PROBE_COLLECTED,

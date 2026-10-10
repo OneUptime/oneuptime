@@ -14,7 +14,11 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValue,
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -145,9 +149,9 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
     { modelId: props.modelId },
   );
 
-  const probeName: string =
-    vcenter.collectionProbe?.name ||
-    (translator.translateText("its probe") as string);
+  // Translated along with the sentence it goes into, never on its own.
+  const probeName: TemplateValue =
+    vcenter.collectionProbe?.name || translatableTerm("its probe");
 
   const trustCertificate: (fingerprint: string) => Promise<void> = async (
     fingerprint: string,
@@ -181,7 +185,12 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
       title="Data Collection"
       description={translator.translatePlural(
         {
-          one: "Collected by {{probe}} from {{address}}, every minute. No agent runs for it.",
+          /*
+           * The one form names the count too: Russian's "one" is 1, 21, 31,
+           * 41 and 51 as well, and a vCenter may be collected every 21
+           * minutes.
+           */
+          one: "Collected by {{probe}} from {{address}}, every {{count}} minute. No agent runs for it.",
           other:
             "Collected by {{probe}} from {{address}}, every {{count}} minutes. No agent runs for it.",
         },
