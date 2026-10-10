@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -640,7 +641,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
     "refuses a tool that changes the project for %s, without running it",
     async (_name: string, namesUser: boolean) => {
       const tool: ObservabilityTool = mutationTool();
-      const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest
+      const executeSpy: SpyInstance<typeof tool.execute> = jest
         .spyOn(tool, "execute")
         .mockResolvedValue({
           dataForLlm: "changed",
@@ -676,7 +677,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
   test("refuses a tool that changes the project when the request names no user, without running it", async () => {
     const tool: ObservabilityTool = mutationTool();
-    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest.spyOn(
+    const executeSpy: SpyInstance<typeof tool.execute> = jest.spyOn(
       tool,
       "execute",
     );
@@ -696,7 +697,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
   test("runs a tool that changes the project for a signed-in person who holds its permission", async () => {
     const tool: ObservabilityTool = mutationTool();
-    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest
+    const executeSpy: SpyInstance<typeof tool.execute> = jest
       .spyOn(tool, "execute")
       .mockResolvedValue({
         dataForLlm: "Incident #42 is now Acknowledged.",
@@ -754,7 +755,7 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
 
   test("a person who may edit incidents but not change their state is not let through", async () => {
     const tool: ObservabilityTool = mutationTool();
-    const executeSpy: jest.SpiedFunction<typeof tool.execute> = jest.spyOn(
+    const executeSpy: SpyInstance<typeof tool.execute> = jest.spyOn(
       tool,
       "execute",
     );

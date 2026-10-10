@@ -94,8 +94,11 @@ const TOOL_EXECUTION_TIMEOUT_MS: number = 45 * 1000;
  * The curated tool belt for AI features (chat today, the Investigation Engine
  * later). Read tools wrap an existing deterministic query; write tools mutate
  * the project (create/acknowledge/resolve). Every tool executes under the
- * requesting user's permission props, and write tools are additionally gated by
- * the conversation's permission mode (see ChatAgentRunner).
+ * requesting user's permission props. A write tool makes the change the
+ * dashboard makes for the same action, with those props, and runs only for a
+ * signed-in person (executeTool; ToolboxWritesAsThePersonGuard holds every
+ * write to it); write tools are additionally gated by the conversation's
+ * permission mode (see ChatAgentRunner).
  */
 export default class AIToolbox {
   private static readonly tools: Array<ObservabilityTool> = [
