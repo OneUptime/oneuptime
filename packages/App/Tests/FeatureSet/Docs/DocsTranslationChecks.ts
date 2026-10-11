@@ -1,3 +1,5 @@
+import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
+import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DocsFence,
   DocsLink,
@@ -9,6 +11,7 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
+import { stripHtmlTags } from "./DocsHtmlText";
 import fs from "fs";
 import path from "path";
 
@@ -16,11 +19,15 @@ import path from "path";
  * What a translated docs page must keep of its English page, as functions
  * the per-group translation suites share (IncidentDocsTranslations,
  * OnCallDocsTranslations): the code exactly, the diagrams by how they are
- * built, the inline code, the shape of the tables and lists, the cards, and
- * links that land on a heading of the page they open.
+ * built, the inline code, the shape of the tables and lists, the cards,
+ * links that land on a heading of the page they open, and no emphasis
+ * marker left on the page as the reader sees it (strayMarkers).
  *
  * Each is a plain function of the Markdown, so the suites can also show that
- * it catches the break it is there for.
+ * it catches the break it is there for. Suites import these rather than
+ * copy them: DocsTagStripGuard fails on a suite that writes its own
+ * strayMarkers, or takes tags out of HTML any way but stripHtmlTags
+ * (DocsHtmlText).
  */
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
@@ -241,4 +248,51 @@ export function anchorProblems(language: string, page: string): Array<string> {
   }
 
   return problems;
+}
+
+/*
+ * What Markdown never reads, in rendered HTML: code samples, inline code and
+ * a diagram's source (its caption is text, and stays). An underscore there
+ * is code or a diagram's words ("con_name" in a node), not emphasis.
+ */
+const NOT_MARKDOWN: RegExp =
+  /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>|<div class="mermaid">[\s\S]*?<\/div>/g;
+
+/*
+ * A name written with underscores outside code, as a metric is in a details
+ * title ("pve_network_receive_bytes"): CommonMark never reads an underscore
+ * between two letters or digits as emphasis, so it is the name, not a
+ * marker left over.
+ */
+const UNDERSCORED_NAME: RegExp = /[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g;
+
+/*
+ * A page as the docs route draws it, without its title line, and the
+ * emphasis markers left in its text: a bold or italic span CommonMark did
+ * not close. A bold span that ends in punctuation and runs straight into a
+ * letter, as in "**リクエストタイムアウト（秒）**を", is not closed, and its
+ * asterisks show. An underscore never closes inside a word, so "_之后_的"
+ * shows both underscores.
+ *
+ * What it returns are the lines of the drawn page, as text, that show "**"
+ * or an underscore (the renderer draws a run of paragraphs on one line); a
+ * page that draws every span it opens returns none. Code and diagram source
+ * are left out first, then the tags (stripHtmlTags), so an underscore in an
+ * attribute - a link's address, an image's file name - is no marker either.
+ */
+export async function strayMarkers(
+  markdown: string,
+  language: string,
+): Promise<Array<string>> {
+  const html: string = await DocsRender.render(
+    DocsPlaceholders.render(markdown.split("\n").slice(1).join("\n"), language),
+  );
+
+  return stripHtmlTags(html.replace(NOT_MARKDOWN, ""))
+    .split("\n")
+    .filter((line: string): boolean => {
+      return (
+        line.includes("**") || line.replace(UNDERSCORED_NAME, "").includes("_")
+      );
+    });
 }

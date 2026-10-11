@@ -69,6 +69,11 @@ import StartingStageUtil, {
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import Alert from "../../Models/DatabaseModels/Alert";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
 
 /*
  * The two names of an episode's state, ID column first. A write may name it
@@ -160,6 +165,33 @@ export class Service extends ProjectReferencesService<Model> {
           service: AlertSeverityService,
         },
       ],
+    });
+
+    /*
+     * An update that writes the episode's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of alert states. Refused before anything
+     * is written, with the timeline's own sentence - the state the update
+     * writes is recorded on the timeline in onUpdateSuccess, and a write
+     * the timeline then refused used to leave the episode in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.AlertEpisode,
+      updateBy: updateBy,
+      stateKeys: ALERT_STATE_KEYS,
+      stateModelName: "Alert State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (projectId: ObjectID): Promise<Array<AlertState>> => {
+        return AlertStateService.getAllAlertStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
     });
 
     return { updateBy, carryForward: null };
@@ -712,6 +744,13 @@ export class Service extends ProjectReferencesService<Model> {
     rootCause: string | undefined;
     props: DatabaseCommonInteractionProps;
     cascadeToAlerts?: boolean;
+    /*
+     * OneUptime's reopen of a recently resolved episode for its grouping
+     * rule's reopen window (reopenEpisode): the one move back up the list of
+     * states the state move rule allows, written through the timeline's own
+     * reopen (AlertEpisodeStateTimelineService.createReopen).
+     */
+    isGroupingRuleReopen?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -721,6 +760,7 @@ export class Service extends ProjectReferencesService<Model> {
       rootCause,
       props,
       cascadeToAlerts,
+      isGroupingRuleReopen,
     } = data;
 
     // Get last episode state timeline
@@ -763,10 +803,17 @@ export class Service extends ProjectReferencesService<Model> {
       stateTimeline.rootCause = rootCause;
     }
 
-    await AlertEpisodeStateTimelineService.create({
-      data: stateTimeline,
-      props: props || {},
-    });
+    if (isGroupingRuleReopen) {
+      await AlertEpisodeStateTimelineService.createReopen({
+        data: stateTimeline,
+        props: props || {},
+      });
+    } else {
+      await AlertEpisodeStateTimelineService.create({
+        data: stateTimeline,
+        props: props || {},
+      });
+    }
 
     /*
      * Note: resolvedAt is updated by AlertEpisodeStateTimelineService.onCreateSuccess()
@@ -784,6 +831,16 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Moves the episode's alerts into the state the episode moved into, each
+   * by the rule its own state timeline holds it to (Common/Utils/StateMove):
+   * an alert in that state already, or past it in the project's list of
+   * alert states - one resolved on its own, or a resolved alert of an
+   * episode its grouping rule reopened - is left where it is, rather than
+   * sent a move its timeline would refuse. An episode never reopens its
+   * alerts. Each move that is made is a row of the alert's timeline, written
+   * with `props`; one that still fails is logged, and the others go on.
+   */
   @CaptureSpan()
   public async cascadeStateToMemberAlerts(data: {
     projectId: ObjectID;
@@ -814,11 +871,71 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    // Update state for each member alert
-    for (const member of members) {
-      if (!member.alertId) {
+    const memberAlertIds: Array<ObjectID> = members
+      .map((member: AlertEpisodeMember): ObjectID | undefined => {
+        return member.alertId;
+      })
+      .filter((alertId: ObjectID | undefined): alertId is ObjectID => {
+        return Boolean(alertId);
+      });
+
+    if (memberAlertIds.length === 0) {
+      return;
+    }
+
+    // Where each alert is now, and the project's list it walks down.
+    const [memberAlerts, alertStates] = await Promise.all([
+      AlertService.findBy({
+        query: {
+          _id: QueryHelper.any(memberAlertIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          currentAlertStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+      AlertStateService.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    // Update state for each member alert its own rule lets move there.
+    for (const memberAlert of memberAlerts as Array<Alert>) {
+      if (!memberAlert.id) {
         continue;
       }
+
+      if (
+        !StateMoveUtil.isMoveAllowed({
+          list: StateMoveUtil.getList(StateMoveRecord.Alert),
+          states: alertStates,
+          fromStateId: memberAlert.currentAlertStateId,
+          toStateId: alertStateId,
+        })
+      ) {
+        logger.debug(
+          `Alert ${memberAlert.id.toString()} of episode ${episodeId.toString()} is in that state or past it already, so the episode leaves it where it is.`,
+          {
+            projectId: projectId.toString(),
+            alertEpisodeId: episodeId.toString(),
+            alertId: memberAlert.id.toString(),
+          } as LogAttributes,
+        );
+        continue;
+      }
+
+      const member: { alertId: ObjectID } = {
+        alertId: memberAlert.id,
+      };
 
       try {
         await AlertService.changeAlertState({
@@ -1238,6 +1355,7 @@ export class Service extends ProjectReferencesService<Model> {
         isRoot: true,
         userId: reopenedByUserId,
       },
+      isGroupingRuleReopen: true,
     });
 
     // Clear resolved timestamp and allAlertsResolvedAt

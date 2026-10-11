@@ -38,6 +38,7 @@ import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -921,41 +922,47 @@ export default class SlackScheduledMaintenanceActions {
 
     /*
      * Asked as the submit asks it, before the form is shown: someone who may
-     * not change the state of this event is told so now. The form then
-     * offers the states they may read, read with their own permissions, as
-     * the dashboard's state panel lists them for them.
+     * not change the state of this event is told so now. The event is read
+     * as the submit reads it, with the state it is in, and the form offers
+     * the states they may read that it may move into next - by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove) - so it
+     * never offers a move the timeline would refuse.
      */
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: ScheduledMaintenanceStateTimeline,
         action: SlackScheduledMaintenanceActions.CHANGE_STATE_ACTION,
-        resources: [
-          {
-            service: ScheduledMaintenanceService,
-            id: new ObjectID(actionValue),
-          },
-        ],
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: new ObjectID(actionValue),
+        },
       });
 
-    if (!props) {
+    if (!authorized) {
+      return;
+    }
+
+    const stateOptions: WorkspaceEventStateOptions =
+      await WorkspaceMemberActions.findStateOptions({
+        event: authorized.event,
+        props: authorized.props,
+      });
+
+    if (stateOptions.options.length === 0) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: stateOptions.hasNoLaterState
+          ? WorkspaceMemberActions.getNoLaterStateMessage(
+              WorkspaceEventType.ScheduledMaintenance,
+            )
+          : SlackScheduledMaintenanceActions.NO_STATES_MESSAGE,
+      });
       return;
     }
 
     const scheduledMaintenanceStates: Array<WorkspaceEventStateOption> =
-      await WorkspaceMemberActions.findStateOptions({
-        type: WorkspaceEventType.ScheduledMaintenance,
-        projectId: data.slackRequest.projectId!,
-        props: props,
-      });
-
-    if (scheduledMaintenanceStates.length === 0) {
-      await SlackActionAuthorization.sendRefusal({
-        requester: data.slackRequest,
-        message: SlackScheduledMaintenanceActions.NO_STATES_MESSAGE,
-      });
-      return;
-    }
+      stateOptions.options;
 
     const dropdownOptions: Array<DropdownOption> =
       scheduledMaintenanceStates.map((state: WorkspaceEventStateOption) => {

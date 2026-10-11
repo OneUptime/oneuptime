@@ -1,159 +1,297 @@
-# Ressurser og grupper
+# Statusside – ressurser og grupper
 
-En ressurs er én rad på statussiden din — en overvåking (eller en overvåkingsgruppe) med et navn de besøkende forstår, en gjeldende status og eventuelt et oppetidstall og et historikkdiagram. En gruppe er en seksjon som rommer ressurser, slik at en side med førti overvåkinger leses som «API», «Nettapp» og «Datapipeline» i stedet for én endeløs liste.
+En ressurs er én rad på statussiden din: en monitor eller en monitorgruppe, med et navn kundene dine forstår, gjeldende status og, hvis du vil, oppetid og historikk. Grupper er seksjoner som inneholder ressurser, slik at en side med førti monitorer leses som «API», «Webapp» og «Datapipeline» i stedet for én endeløs liste. Du bygger begge på én skjerm: åpne en statusside og velg **Ressurser** i sidemenyen.
 
-Du bygger begge deler på ett og samme skjermbilde. Åpne en statusside og velg **Ressurser** i sidemenyen (elementet leser **Monitorer** i prosjekter som ikke har overvåkingsgrupper aktivert). Grupper hadde en gang sin egen side; det har de ikke lenger, og den gamle `/groups`-URL-en viderekobler bare hit.
+:::cards
+- [Legg til en monitor](#legg-til-en-monitor): Sett en monitor på siden, med navnet besøkende leser.
+- [Grupper](#grupper): Del siden opp i seksjoner, og nøst dem.
+- [Monitorregler](#legg-til-monitorer-automatisk-med-monitorregler): La en regel legge til alle samsvarende monitorer for deg.
+- [Importer grupper fra CSV](#import-av-grupper-fra-csv): Bygg et dypt hierarki på én gang.
+:::
 
-Får du denne delen riktig, er resten av statussiden pynt. De besøkende avgjør «er det meg eller er det dem?» ut fra disse radene, så navngi dem slik kundene snakker om produktet ditt — **Checkout API**, ikke `prod-checkout-lb-healthcheck-us-east-1`.
+Besøkende avgjør ut fra disse radene om «det er meg eller dem», så gi dem navnene kundene bruker om produktet ditt: **Checkout API**, ikke `prod-checkout-lb-healthcheck-us-east-1`.
 
-## Skjermbildet Ressurser
+## Slik beveger en status seg opp siden
 
-Skjermbildet er delt i to. Til venstre ligger en navigator som lister hver gruppe på siden; til høyre ligger innholdet i gruppen du valgte.
+Hver rad viser gjeldende status for monitoren sin. Hvert nivå over den viser den verste statusen for alt under, der den verste statusen er den med høyest prioritet blant monitorstatusene i prosjektet ditt.
 
-- **Gruppenavigatoren (til venstre)** — et tre av grupper, med et søkefelt (**Search groups...**) over og en løpende telling under, som `3 groups · 12 resources`. Har en side flere grupper enn det er plass til, avdekker en knapp **Show N more of M** resten.
-- **Top of page** — den første raden i navigatoren. Den rommer ressurser som ikke ligger i noen gruppe, og verktøytipset sier nøyaktig hva det betyr: de besøkende ser disse først, over hver gruppe. Har siden ingen grupper i det hele tatt, heter høyre rute **Alle ressurser** i stedet.
-- **Ressursruten (til høyre)** — navngitt etter gruppen du valgte. Toppen bærer **Edit Group**, primærknappen **Legg til monitor** og en overflytsmeny **More actions**.
+```mermaid title="Slik når en monitors status toppen av siden"
+flowchart TB
+    subgraph Rows["Ressursrader"]
+        direction LR
+        M["Monitor:<br/>sin egen status"]
+        MG["Monitorgruppe:<br/>den verste av monitorene"]
+    end
+    Rows --> G["Gruppeoverskrift:<br/>verste status under"]
+    G --> P["Overordnet gruppe:<br/>verste status under"]
+    Rows --> O["Banner med samlet status:<br/>verste status på siden"]
+```
 
-To knapper ligger i selve korttoppen: **New Group**, og en trepunktsmeny som rommer **Import groups from CSV** og **Oppdater**.
+En ressurs avgjør mer enn fargen på raden sin:
 
-Kortets beskrivelse endrer seg med formen på siden din. Med grupper leser den at dette er alt de besøkende ser, og at du skal velge en gruppe til venstre for å redigere hva som ligger i den. Uten grupper ennå dytter den deg mot å opprette én for å dele en lengre side i seksjoner.
+- **Arkiverte monitorer vises ikke.** En arkivert monitor sjekkes ikke lenger, så den siste statusen er frosset; siden utelater raden (og utelater den fra statusen til en monitorgruppe) i stedet for å vise den frosne statusen som om den var gjeldende. Raden beholdes, så når monitoren tas ut av arkivet, kommer den rett tilbake.
+- **Ressurser avgjør hvilke hendelser siden viser.** En hendelse vises her, og sidens abonnenter får høre om den, når en av hendelsens monitorer er en ressurs på siden, direkte eller via en monitorgruppe. Sett den samme monitoren på flere sider, og hendelsene når alle, med mindre en hendelse er begrenset til noen av de sidene. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
+- **En rad for en monitorgruppe står for alle monitorene i den, også for abonnenter.** På en side som lar abonnenter velge ressurser, får den som abonnerer på en monitorgruppe, høre om hendelser, planlagt vedlikehold og kunngjøringer for alle monitorer i gruppen, som om vedkommende hadde valgt den monitoren. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#la-abonnentene-velge-ressurser-og-hendelsestyper).
 
-**Tomtilstandene forteller deg hva du skal gjøre.** En tom gruppe viser **No monitors here yet** med **Legg til monitor**, **Add Multiple** og — bare når statussiden ikke har noen grupper i det hele tatt — **Create a Group**. Et søk uten treff viser **No resources match your search**. En tom navigator forteller at grupper deler en lengre statusside i seksjoner, og at de kan nestes.
+## Skjermen Ressurser
 
-## Å legge til en overvåking
+Elementet heter **Ressurser** i prosjekter der monitorgrupper er slått på, og **Monitorer** i de andre; det er den samme skjermen. Grupper hadde tidligere en egen side, og den gamle adressen `/groups` åpner nå denne skjermen.
 
-Velg gruppen ressursen skal havne i (eller **Top of page** for en rad uten gruppe), og klikk så **Legg til monitor**. Dialogen heter **Add a monitor to {group}**, og den er én side som bare spør om én ting — overvåkingen:
+Skjermen er delt i to:
 
-- **Overvåking** — nedtrekkslisten over overvåkinger i prosjektet ditt, plassholder **Velg overvåking**. Påkrevd.
-- **Visningsnavn** — teksten de besøkende leser. Den fylles ut med overvåkingens navn når du velger den, og følger med når du velger en annen overvåking, helt til du skriver et navn selv. Den lagres atskilt fra overvåkingens eget navn, så du kan gi den nytt navn her uten å røre overvåkingen.
-- **Flere felt** — slått sammen. Den rommer **Beskrivelse** (valgfri markdown som vises under raden, fint til én setning om hva tjenesten faktisk gjør) og [visningsvalgene](#visningsvalg-på-en-ressurs). Lar du den være lukket, får ressursen standardverdiene deres.
+| Del | Hva den inneholder |
+| ---- | ------------- |
+| **Gruppenavigator** (til venstre) | Alle gruppene på siden som et tre, med feltet **Search groups...** over og en telling under, som `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
+| **Top of page** | Navigatorens første rad: ressurser uten gruppe, som besøkende ser først, over alle grupper. På en side uten grupper heter det høyre panelet i stedet **All resources**. |
+| **Ressurspanel** (til høyre) | Ressursene i den valgte gruppen. Overskriften inneholder **Edit Group**, hovedknappen **Legg til monitor** og menyen **More actions**. |
+| Kortets overskrift | **New Group** og en meny med tre prikker med **Import groups from CSV** og **Oppdater**. |
 
-Velg en overvåking, klikk **Legg til monitor**, og raden er på siden. I en rutenettgruppe spør dialogen også om raden og kolonnen overvåkingen skal stå i, over **Flere felt** — se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett).
+**Tomme tilstander forteller deg hva du skal gjøre.** En tom gruppe viser **No monitors here yet** med **Legg til monitor**, **Add Multiple** og, bare så lenge siden ikke har noen grupper, **Create a Group**. Et søk uten treff viser **No resources match your search**.
 
-Har prosjektet ditt overvåkingsgrupper aktivert, ligger det en lenke under nedtrekkslisten som leser **Add a Monitor Group instead.** — klikk den, så byttes nedtrekkslisten **Overvåking** ut med en nedtrekksliste **Monitor Gruppe** (**Velg overvåkingsgruppe**). Lenken snur seg da til **Add a Monitor instead.** så du kan gå tilbake. Bruk en overvåkingsgruppe når du vil at én rad på siden skal representere flere sjekker rullet sammen.
+## Legg til en monitor
 
-### Å legge til flere om gangen
+:::steps
+### Velg hvor raden skal stå
 
-**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: et flervalg **Monitorer** i stedet for én nedtrekksliste, og under det den samme sammenslåtte **Flere felt**-seksjonen, der visningsvalgene gjelder hver eneste overvåking du plukket. Hver ressurs får visningsnavnet og beskrivelsen fra sin overvåking, og **Add Monitors** legger dem til — det finnes ingen trinn å gå gjennom. Dette er den raskeste måten å så en ny side på.
+Velg i gruppenavigatoren gruppen ressursen hører til i, eller **Top of page** for en rad uten gruppe.
 
-## Visningsvalg på en ressurs
+### Klikk på Legg til monitor
 
-Seksjonen **Flere felt** er den samme i enkeltskjemaet og i bulkmodalen. Den starter sammenslått begge steder, og også i **Rediger ressurs**, der den sammenslåtte overskriften viser hva i den som ikke står på standardverdien. Alt her gjelder per ressurs — to rader i samme gruppe kan settes opp helt ulikt.
+Dialogen **Add a monitor to {group}** åpnes. Den består av én side.
 
-| Felt                                                     | Formål                                                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Verktøytips** (`displayTooltip`)                       | Ekstra tekst som vises ved siden av ressursen på statussiden. Bruk den til rekkevidde: «Kunder i USA og EU». |
-| **Vis gjeldende ressursstatus** (`showCurrentStatus`)    | På som standard. Viser sanntidsstatusen — i drift, redusert, nede — ved siden av raden.                     |
-| **Vis oppetid %** (`showUptimePercent`)                  | Av som standard. Viser en oppetidsprosent ved siden av ressursen.                                           |
-| **Velg presisjon for oppetid** (`uptimePercentPrecision`) | Dukker først opp når **Vis oppetid %** er på. Påkrevd, med én desimal som standard.                        |
-| **Vis statushistorikkdiagram** (`showStatusHistoryChart`) | På som standard. Viser stolpediagrammet med oppetidshistorikk dag for dag for ressursen.                    |
+### Velg monitoren
 
-**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) er også rene visningsfelt — de endrer aldri selve overvåkingen.
+Velg den i **Overvåking** (plassholder **Velg overvåking**). **Visningsnavn**, teksten besøkende leser, fylles ut med monitorens navn og følger med når du velger en annen monitor, til du skriver et eget navn. Det lagres atskilt fra monitorens eget navn, så å endre det her endrer ingenting i overvåkingen.
+
+### Angi visningsalternativene, hvis du vil
+
+**Flere felt** er slått sammen. Det inneholder **Beskrivelse** (valgfri markdown vist under raden, fin for en setning som forklarer hva tjenesten faktisk gjør; et bilde i den vises til alle besøkende) og [visningsalternativene](#visningsalternativer-for-en-ressurs). La det være lukket, så får ressursen standardverdiene deres.
+
+### Lagre ressursen
+
+Klikk på **Legg til monitor**. Raden vises i gruppen og på statussiden.
+:::
+
+I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå i, over **Flere felt**; se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett).
+
+> [!TIP]
+> For å vise flere sjekker som én rad legger du til en monitorgruppe. Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Add a Monitor Group instead.** Klikk på den, så blir **Overvåking** til **Monitor Gruppe** (**Velg overvåkingsgruppe**); **Add a Monitor instead.** bytter tilbake.
+
+### Legg til flere på én gang
+
+**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Add Monitors** legger til alle. Det er den raskeste måten å fylle en ny side på.
+
+Flervalgslisten har fanen **Etiketter**: klikk på en etikett, så velges alle monitorer med den på én gang.
+
+### Det er trygt å legge til etter etikett to ganger
+
+En statusside viser en monitor én gang. Tillegg er idempotent, så når du velger den samme etiketten igjen etter å ha gitt noen nye monitorer den, legges bare de nye til: monitorene som allerede er på siden, forblir nøyaktig som de er, med visningsnavnet og alternativene du ga dem.
+
+Sammendraget etter tillegget av flere sier det samme: monitorer som ble lagt til, står under **Lagt til**, og de som allerede var der, under **Already Added**. Ingenting rapporteres som en feil, og ingenting skrives for dem.
+
+Den samme regelen gjelder overalt ellers der en ressurs opprettes. Å legge til en monitor som allerede er på siden, fra skjemaet for én monitor, eller å la en eksisterende ressurs peke på den fra redigeringsskjemaet, avvises med *"This monitor is already added to this status page"*, også når den eksisterende ressursen står i en annen gruppe, for en besøkende ville fortsatt sett monitoren to ganger. For å vise en monitor i en annen gruppe sletter du ressursen den allerede har, og legger den til der du vil ha den.
+
+## Visningsalternativer for en ressurs
+
+Seksjonen **Flere felt** er den samme i skjemaet for én monitor og i dialogen for flere. Den starter sammenslått i begge, og også i **Rediger ressurs**, der den sammenslåtte overskriften viser hva i den som ikke står på standardverdien. Alt her gjelder per ressurs: to rader i samme gruppe kan være satt opp ulikt.
+
+| Felt | Standard | Hva det gjør |
+| ----- | ------- | ------------ |
+| **Verktøytips** (`displayTooltip`) | Tom | Vises som verktøytips ved siden av ressursen på statussiden din. Bruk det for omfanget: «Kunder i USA og EU». |
+| **Vis gjeldende ressursstatus** (`showCurrentStatus`) | På | Viser gjeldende status, som i drift, redusert eller frakoblet, ved siden av raden. |
+| **Vis oppetid %** (`showUptimePercent`) | Av | Viser en oppetidsprosent ved siden av ressursen. |
+| **Velg presisjon for oppetid** (`uptimePercentPrecision`) | Én desimal | Vises når **Vis oppetid %** er slått på, og er da påkrevd. |
+| **Vis statushistorikkdiagram** (`showStatusHistoryChart`) | På | Viser ressursens daglige søyler med oppetidshistorikk. |
+
+**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) er også bare for visning: de endrer aldri selve monitoren.
 
 ## Oppetidsprosenter og historikkdiagrammer
 
-Både **Vis oppetid %** og **Vis statushistorikkdiagram** avhenger av en innstilling som bor et annet sted. Vinduet de dekker, er **Oppetidshistorikk** i kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger**. Det tar imot 1 til 90 dager og er 90 som standard.
+**Vis oppetid %** og **Vis statushistorikkdiagram** leser begge én innstilling for hele siden: hvor mange dager de dekker. Det er **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger**. Den godtar 1 til 90 dager og er 90 som standard. Slå altså på bryterne per ressurs, og angi vinduet én gang for hele siden.
 
-Rekkefølgen er altså: slå på bryterne per ressurs, og sett så vinduet én gang for hele siden.
+**Presisjon er et skjønnsspørsmål.** **Velg presisjon for oppetid** tilbyr `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` og `99.999% (Three Decimal)`. Flere desimaler ser presise ut og inviterer til diskusjoner om den tredje; publiserer du en SLA på tre niere, så samsvar med den og ikke mer.
 
-**Presisjon er en vurderingssak.** Nedtrekkslisten **Velg presisjon for oppetid** tilbyr `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` og `99.999% (Three Decimal)`. Flere desimaler ser presise ut og inviterer til krangel om den tredje; publiserer du en SLA på tre nier, treff den og ikke mer.
+Grupper har sine egne utgaver av disse bryterne (se nedenfor), så en gruppe kan vise en samlet prosent mens monitorene i den holder seg stille, eller omvendt.
 
-Grupper har sine egne utgaver av disse bryterne — se nedenfor — så en gruppe kan vise en oppsummert prosent mens de enkelte overvåkingene inni holder seg stille, eller omvendt.
-
-Fargene på stolpene i historikkdiagrammet, og hvilke overvåkingsstatuser som teller som «nede», settes på merkevareskjermbildet **Oversiktsside**, som er dekket i [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains).
+Fargene på historikkdiagrammets søyler angis under **Flere innstillinger** på siden **Merkevare**, og hvilke monitorstatuser som teller som «nede» under **Teller som nedetid** på kortet **Hva statussiden din viser** under **Avanserte innstillinger**; begge deler er beskrevet i [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains).
 
 ## Grupper
 
-Klikk **New Group** for å åpne **Create New Status Page Group**. Skjemaet er én side: to felt, og under dem to sammenslåtte seksjoner.
+De fleste grupper trenger bare et navn.
 
-- **Gruppenavn** (`name`) — påkrevd. Dette er seksjonsoverskriften de besøkende ser.
-- **Parent Group** (`parentStatusPageGroupId`) — valgfritt. La den stå på **No parent group (top level)** for å holde gruppen på øverste nivå. **Add a sub group** fyller den ut for deg.
-- **Oppsett** — slått sammen, og overskriften sier **List** eller **Grid**. Den rommer **Visningsmodus** og aksene til et rutenett (se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
-- **Flere felt** — slått sammen. Den rommer resten og speiler ressursvalgene på gruppenivå:
-  - **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
-  - **Utvid på statusside som standard** (`isExpandedByDefault`) — på som standard: om seksjonen starter åpen eller sammenslått for de besøkende.
-  - **Vis gjeldende gruppestatus** (`showCurrentStatus`) — på som standard. Viser en status ved siden av gruppeoverskriften.
-  - **Vis oppetid %** (`showUptimePercent`) — av som standard, med **Velg presisjon for oppetid** som dukker opp så snart den er på.
+:::steps
+### Klikk på New Group
 
-De fleste grupper trenger bare et navn: skriv det, og klikk **Create Status Page Group**.
+**Create New Status Page Group** åpnes: to felt og deretter to sammenslåtte seksjoner.
 
-Redigering fungerer likedan: **Edit Group** i rutetoppen, eller **Edit group** i radmenyen i navigatoren, åpner **Edit Status Page Group** med en knapp **Lagre endringer**.
+### Gi gruppen et navn
 
-Rutetoppen viser brikker for innstillingene som er på akkurat nå — **Grid**, **Collapsed by default**, **Uptime %** — så du kan se hvordan en gruppe er satt opp uten å åpne skjemaet.
+Skriv **Gruppenavn**: seksjonsoverskriften besøkende ser.
 
-### Å administrere en gruppe
+### Nøst den, hvis den hører til i en annen gruppe
 
-Radmenyen i navigatoren rommer **Edit group**, **Move up**, **Move down**, **Vis ID** og **Slett gruppe**. Overflytsmenyen **More actions** i ruten har de lengre variantene — **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Oppdater** og **Delete this group**. En gruppe som lagres uten navn, vises som **Untitled group**, noe som er et godt tegn på at du mente å skrive noe.
+Velg en **Parent Group**, eller la den stå på **No parent group (top level)**. **Add a sub group** i en gruppes menyer fyller ut dette for deg.
 
-## Å neste grupper
+### Opprett gruppen
 
-Grupper kan nestes: sett **Parent Group** på barnet, eller bruk navigatorens handling **Add a sub group inside this group**. Skjemaets egen hjelpetekst beskriver formen den er bygget for — noe i retning av Corporate Units › Region › Market — og nevner at hvert nivå viser den oppsummerte statusen og oppetiden til alt under seg.
+Klikk på **Create Status Page Group**. Gruppen vises i navigatoren, klar for monitorer.
+:::
 
-Når en gruppe har barn, viser ressursruten en brikkerad **Sub groups** som lenker rett inn i hvert barn, så du kan gå gjennom hierarkiet uten å hoppe tilbake til navigatoren.
+De to feltene er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenslåtte seksjonene inneholder resten:
 
-Nesting gjør nytte for seg på store sider: en hostingleverandør med regioner inni produkter, eller en varehandelskjede med markeder inni forretningsområder. På en side med tolv overvåkinger er ett flatt nivå vennligere.
+- **Oppsett**: den sammenslåtte overskriften sier **List** eller **Grid**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
+- **Flere felt**: gruppenivåets utgaver av ressursalternativene:
+  - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et bilde i den vises til alle besøkende.
+  - **Utvid på statusside som standard** (`isExpandedByDefault`): på som standard; avgjør om seksjonen starter åpen eller sammenslått for besøkende.
+  - **Vis gjeldende gruppestatus** (`showCurrentStatus`): på som standard. Viser en status ved siden av gruppeoverskriften.
+  - **Vis oppetid %** (`showUptimePercent`): av som standard, med **Velg presisjon for oppetid** når den er slått på.
 
-## Listeoppsett mot rutenettoppsett
+For å endre en gruppe bruker du **Edit Group** i panelets overskrift, eller **Edit group** i navigatorens radmeny: **Edit Status Page Group** åpnes med knappen **Lagre endringer**. Panelets overskrift viser merker for innstillingene som er slått på (**Grid**, **Collapsed by default**, **Uptime %**), så du ser hvordan en gruppe er satt opp uten å åpne skjemaet.
 
-Seksjonen **Oppsett** i gruppeskjemaet setter **Visningsmodus** (`viewMode`) for gruppen, og det endrer hvordan gruppen vises offentlig.
+### Administrer en gruppe
 
-| Hvis du vil …                                                          | Velg                    |
-| ----------------------------------------------------------------------- | ---------------------- |
-| Vise en enkel loddrett liste over tjenester, én per rad                | **List** (standarden)  |
-| Vise den samme tjenesten på tvers av flere regioner eller tenanter som en matrise | **Grid**     |
+| Hvor | Handlinger |
+| ----- | ------- |
+| Navigatorens radmeny | **Edit group**, **Move up**, **Move down**, **Vis ID**, **Delete group** |
+| Panelets meny **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Oppdater**, **Delete this group** |
 
-Velger du **Grid**, dukker fire felt til opp:
+En gruppe som er lagret uten navn, vises som **Untitled group**, et godt tegn på at du mente å skrive noe.
 
-- **Etikett for radakse** — navnet på raddimensjonen, plassholder `Service`.
-- **Verdier for radakse** — selve radene, lagt til én om gangen med **Add Row** (plassholder `e.g. Auth`).
-- **Kolonneakseetikett** — kolonnedimensjonen, plassholder `Region`.
-- **Kolonneakseverdier** — lagt til med **Add Column** (plassholder `e.g. US-East`).
+## Nøsting av grupper
 
-Hver overvåking i en rutenettgruppe plasseres så i en celle, så **Legg til monitor** og bulkmodalen spør om raden og kolonnen ved siden av overvåkingen, med dine egne akseetiketter.
+Grupper kan nøstes: angi **Parent Group** på undergruppen, eller bruk **Add a sub group inside this group** i navigatoren. Skjemaets hjelpetekst beskriver formen det er laget for (noe i retning av Forretningsenheter › Region › Marked), og hvert nivå viser samlet status og oppetid for alt under.
 
-**Sett opp aksene før du legger til overvåkinger.** En rutenettgruppe uten rader eller kolonner viser en gul melding om at det ikke finnes noe sted å plassere en overvåking før aksene finnes, med en knapp **Set up the grid** som åpner gruppens skjema på seksjonen **Oppsett** — og knappen **Legg til monitor** er trukket tilbake til du gjør det.
+Når en gruppe har undergrupper, viser ressurspanelet en rad med merker **Sub groups** som lenker rett til hver undergruppe, så du kan gå gjennom hierarkiet uten å gå tilbake til navigatoren.
 
-## Å bestemme rekkefølgen de besøkende ser
+Nøsting lønner seg på store sider: en vertsleverandør med regioner inne i produkter, eller en forhandler med markeder inne i forretningsenheter. På en side med tolv monitorer er ett flatt nivå vennligere.
 
-Rekkefølgen er eksplisitt, ikke alfabetisk, og den settes tre steder:
+## Listeoppsett eller rutenettoppsett
 
-- **Ressurser inni en gruppe** — dra en rad. Ruten sier det selv: **Drag a row to change the order visitors see**.
-- **Grupper i forhold til hverandre** — **Move up** / **Move down** i radmenyen i navigatoren, eller **Move group up** / **Move group down** i rutens overflytsmeny.
-- **Ressurser uten gruppe** — de bor i **Top of page** og vises alltid over hver gruppe, så legg den ene tingen alle sjekker først, dit.
+Seksjonen **Oppsett** i gruppeskjemaet angir gruppens **Visningsmodus** (`viewMode`), som endrer hvordan gruppen vises på statussiden.
 
-**To tilfeller der dragingen er av.** Filtrerer du ruten med feltet **Search in {group}...**, slås omorganisering av — ruten forteller deg `N of M shown · drag to reorder is off while filtering`, så tøm søket først. Og rutenettgrupper støtter aldri dragerekkefølge, fordi posisjonen kommer fra rad- og kolonneaksene i stedet.
+| Hvis du vil… | Velg |
+| --------------- | ---- |
+| Vise en enkel loddrett liste over tjenester, én per rad | **List** (standard) |
+| Vise den samme tjenesten i flere regioner eller leietakere som en matrise | **Grid** |
 
-Legg tjenesten folk spør mest om, øverst. Besøkende som kom til siden under et driftsavbrudd, slutter som regel å lese etter første skjermbilde.
+Velg **Grid**, så vises fire felt til:
 
-## Å importere grupper fra CSV
+| Felt | Hva du skal skrive inn |
+| ----- | ------------- |
+| **Etikett for radakse** | Navnet på raddimensjonen, plassholder `Service`. |
+| **Verdier for radakse** | Radene, lagt til én om gangen med **Add Row** (plassholder `e.g. Auth`). |
+| **Kolonneakseetikett** | Kolonnedimensjonen, plassholder `Region`. |
+| **Kolonneakseverdier** | Kolonnene, lagt til med **Add Column** (plassholder `e.g. US-East`). |
 
-Å bygge et dypt hierarki for hånd er tungt arbeid. Trepunktsmenyen i korttoppen har **Import groups from CSV**, som åpner modalen **Import Groups from CSV**.
+Hver monitor i en rutenettgruppe står i en celle, så **Legg til monitor** og dialogen for flere ber om raden og kolonnen sammen med monitoren, med dine egne akseetiketter.
 
-Flyten er: **Download CSV Template** for å hente `status-page-groups-template.csv`, fyll den ut, **Choose CSV File**, og så **Preview Import** for å se hva som blir opprettet før noe skrives. Deretter viser en **Import results**-tabell hver rad som **Created**, **Failed** eller **Skipped** sammen med årsaken, så en dårlig rad forsvinner ikke i stillhet.
+> [!IMPORTANT]
+> Sett opp aksene før du legger til monitorer. En rutenettgruppe uten rader eller kolonner viser en melding om at det ennå ikke finnes noe sted å sette en monitor, med knappen **Set up the grid** som åpner gruppens skjema på seksjonen **Oppsett**, og gruppens knapp **Legg til monitor** er borte til du har gjort det.
 
-Bare `name` er påkrevd. De godtatte kolonnene er:
+## Rekkefølgen på det besøkende ser
 
-| Kolonne                  | Hva den setter                                          |
-| ------------------------ | ---------------------------------------------------- |
-| `name`                   | Gruppenavnet. Påkrevd.                                  |
-| `parentName`             | Navnet på gruppen denne skal ligge inni.                |
-| `description`            | Gruppebeskrivelsen.                                     |
-| `isExpandedByDefault`    | Om seksjonen starter åpen for de besøkende.             |
-| `showCurrentStatus`      | Om en status vises ved siden av gruppeoverskriften.     |
-| `showUptimePercent`      | Om en oppetidsprosent vises ved siden av gruppen.       |
-| `uptimePercentPrecision` | Hvor mange desimaler den prosenten bruker.              |
-| `viewMode`               | `List` eller `Grid`.                                    |
-| `rowAxisLabel`           | Navn på raddimensjonen for en rutenettgruppe.           |
-| `rowAxisValues`          | Radverdiene for en rutenettgruppe.                      |
-| `columnAxisLabel`        | Navn på kolonnedimensjonen for en rutenettgruppe.       |
-| `columnAxisValues`       | Kolonneverdiene for en rutenettgruppe.                  |
+Rekkefølgen bestemmer du selv, ikke alfabetet:
 
-Importen oppretter grupper, ikke ressurser — legg til overvåkinger etterpå med **Legg til monitor** eller **Add Multiple**.
+| Hva | Slik endrer du rekkefølgen |
+| ---- | ----------------- |
+| Ressurser i en gruppe | Dra en rad. Panelet sier det: **Drag a row to change the order visitors see**. |
+| Grupper i forhold til hverandre | **Move up** / **Move down** i navigatorens radmeny, eller **Move group up** / **Move group down** i **More actions**. |
+| Ressurser uten gruppe | De står i **Top of page** og vises alltid over alle grupper, så legg det alle sjekker først, der. |
 
-## Hvor du leser videre
+**To tilfeller der dra er slått av.** Et søk i feltet **Search in {group}...** slår av omorganisering (panelet sier `N of M shown · drag to reorder is off while filtering`), så tøm søket først. Og rutenettgrupper omorganiseres aldri ved å dra, fordi plassen til en monitor kommer fra raden og kolonnen.
 
-- [Statussider – Oversikt](/docs/status-pages/index) — hva en statusside er og hvordan delene henger sammen.
-- [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) — logo, favicon, diagramfarger og å legge siden på ditt eget domene.
-- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers) — hvem som får beskjed når disse ressursene endrer seg.
-- [Offentlig API](/docs/status-pages/public-api) — å lese statussidedata programmatisk.
-- [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — hva som får en hendelse til å vises på, og forsvinne fra, siden.
+Legg tjenesten folk spør mest om, øverst. Besøkende som kommer til siden under et avbrudd, slutter som regel å lese etter første skjermbilde.
+
+## Legg til monitorer automatisk med monitorregler
+
+En monitorregel legger til monitorer på siden for deg: beskriv monitorene én gang, så havner hver monitor som samsvarer, i gruppen du valgte. Regler finnes under **Ressurser → Monitor Rules**, ved siden av skjermen Ressurser.
+
+:::steps
+### Åpne Monitor Rules
+
+Åpne statussiden, velg **Monitor Rules** i seksjonen **Ressurser** i sidemenyen, og klikk på **Opprett Status Page Monitor Rule**.
+
+### Gi regelen et navn
+
+Skriv inn et **Navn** under **Grunnleggende informasjon**. **Aktivert** er slått på som standard.
+
+### Angi hvilke monitorer den samsvarer med
+
+Under **Treffkriterier** fyller du ut minst ett av **Overvåkingsetiketter** (en monitor med en hvilken som helst av dem samsvarer), **Overvåkingsnavn** og **Overvåkingsbeskrivelse**. En monitor må oppfylle hvert kriterium du fyller ut. De to mønstrene godtar et regulært uttrykk uten forskjell på store og små bokstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` samsvarer med alle monitorer.
+
+### Velg gruppen
+
+Under **Gruppe** velger du **Add Monitors To Group**, eller du lar det stå tomt for å legge til monitorene uten gruppe. Deretter følger de samme visningsalternativene som for en ressurs; på en regel starter **Vis oppetid %** slått på.
+
+### Lagre regelen
+
+Regelen kjøres med en gang mot alle monitorer som allerede finnes, og listen viser under **Adds Monitors To** gruppen den legger til monitorer i.
+:::
+
+Etter det kjøres en regel på nytt for en monitor hver gang en opprettes, eller når etikettene, navnet eller beskrivelsen endres. En regel fjerner bare ressursene den selv har lagt til: å slå den av eller slette den fjerner dem fra siden, og en monitor du har lagt til for hånd, røres aldri. En monitor som allerede er på siden, legges aldri til to ganger.
+
+## Import av grupper fra CSV
+
+Det er tungvint å bygge et dypt hierarki for hånd. **Import groups from CSV** i kortoverskriftens meny med tre prikker åpner dialogen **Import Groups from CSV**.
+
+:::steps
+### Last ned malen
+
+Klikk på **Download CSV Template** for å hente `status-page-groups-template.csv`.
+
+### Fyll den ut
+
+Én rad per gruppe. Bare `name` er påkrevd; kolonnene står nedenfor.
+
+### Last opp og forhåndsvis
+
+Klikk på **Choose CSV File**, velg filen din, og deretter **Preview Import** for å sjekke hva som blir opprettet før noe skrives.
+
+### Importer
+
+Kjør importen. Tabellen **Import results** viser hver rad som **Opprettet**, **Mislyktes** eller **Hoppet over**, med årsaken, så en feil rad aldri forsvinner i stillhet.
+:::
+
+| Kolonne | Hva den angir |
+| ------ | ------------ |
+| `name` | Gruppens navn. Påkrevd. |
+| `parentName` | Navnet på gruppen denne er nøstet i. |
+| `description` | Gruppens beskrivelse. |
+| `isExpandedByDefault` | Om seksjonen starter åpen for besøkende. |
+| `showCurrentStatus` | Om en status vises ved siden av gruppeoverskriften. |
+| `showUptimePercent` | Om en oppetidsprosent vises ved siden av gruppen. |
+| `uptimePercentPrecision` | Hvor mange desimaler prosenten bruker. |
+| `viewMode` | `List` eller `Grid`. |
+| `rowAxisLabel` | Navnet på raddimensjonen, for en rutenettgruppe. |
+| `rowAxisValues` | Radverdiene, for en rutenettgruppe. |
+| `columnAxisLabel` | Navnet på kolonnedimensjonen, for en rutenettgruppe. |
+| `columnAxisValues` | Kolonneverdiene, for en rutenettgruppe. |
+
+Importen oppretter grupper, ikke ressurser: legg til monitorer etterpå med **Legg til monitor**, **Add Multiple** eller en monitorregel.
+
+## Feilsøking
+
+:::details "This monitor is already added to this status page"
+En side viser hver monitor én gang, også på tvers av grupper. Monitoren har allerede en ressurs, kanskje i en annen gruppe eller lagt til av en monitorregel. Søk etter den i navigatoren, slett den ressursen, og legg til monitoren der du vil ha den.
+:::
+
+:::details En monitor jeg la til, vises ikke på statussiden
+Sjekk om monitoren er arkivert: raden til en arkivert monitor utelates til du tar den ut av arkivet. Sjekk også gruppen: en gruppe som er satt til å starte sammenslått (**Utvid på statusside som standard** slått av), skjuler radene sine til en besøkende åpner den.
+:::
+
+:::details Det finnes ingen knapp Legg til monitor i en rutenettgruppe
+Rutenettet har ennå ingen rader eller kolonner. Klikk på **Set up the grid**, legg til akseverdiene i seksjonen **Oppsett**, så kommer **Legg til monitor** tilbake.
+:::
+
+:::details Jeg kan ikke dra rader
+Tøm feltet **Search in {group}...**: omorganisering er slått av mens panelet er filtrert. Rutenettgrupper omorganiseres aldri ved å dra.
+:::
+
+## Neste steg
+
+:::cards
+- [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains): Logo, favicon, historikkdiagrammets farger og ditt eget domene.
+- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Hvem som får beskjed når disse ressursene endrer seg.
+- [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience): Den samme monitoren på mange sider, og en hendelse som bare når noen av dem.
+- [Offentlig API](/docs/status-pages/public-api): Les ressurser, grupper og oppetid som JSON.
+:::

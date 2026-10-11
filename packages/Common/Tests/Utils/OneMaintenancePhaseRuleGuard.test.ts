@@ -83,13 +83,6 @@ const MAINTENANCE_STATES: RegExp =
 const ALLOWED_ORDER_COMPARISONS: Record<string, string> = {
   // The state lists' own rule, shared by every kind - what the helper reads.
   "packages/Common/Utils/StateOrder.ts": "the state lists' own rule",
-
-  /*
-   * A new entry of an event's timeline only moves it forward
-   * (onBeforeCreate): no phase is decided there.
-   */
-  "packages/Common/Server/Services/ScheduledMaintenanceStateTimelineService.ts":
-    "a new timeline entry only moves the event forward",
 };
 
 function unexpectedIn(

@@ -33,12 +33,44 @@ import { JSONObject } from "../../Types/JSON";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
+  /*
+   * The creates that reopen a recently resolved episode for its grouping
+   * rule's reopen window (createReopen): OneUptime's own move, and the one
+   * move back up the project's list of states the state move rule allows
+   * (Common/Utils/StateMove). Only createReopen adds to it, so nothing a
+   * person sends - from the dashboard, a chat or the API - can ask for it.
+   */
+  private readonly groupingRuleReopens: WeakSet<
+    CreateBy<IncidentEpisodeStateTimeline>
+  > = new WeakSet<CreateBy<IncidentEpisodeStateTimeline>>();
+
   public constructor() {
     super(IncidentEpisodeStateTimeline);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  /*
+   * Reopens a recently resolved episode for its grouping rule's reopen
+   * window: the row that moves it back into an open state, written as any
+   * other state change but allowed back up the list. Used by the episode
+   * service's reopenEpisode alone.
+   */
+  @CaptureSpan()
+  public async createReopen(
+    createBy: CreateBy<IncidentEpisodeStateTimeline>,
+  ): Promise<IncidentEpisodeStateTimeline> {
+    this.groupingRuleReopens.add(createBy);
+
+    try {
+      return await this.create(createBy);
+    } finally {
+      this.groupingRuleReopens.delete(createBy);
     }
   }
 
@@ -154,22 +186,6 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         createBy.data.isOwnerNotified = true;
       }
 
-      // Check if this new state and the previous state are same.
-      if (
-        stateBeforeThis &&
-        stateBeforeThis.incidentStateId &&
-        incidentStateId
-      ) {
-        if (
-          stateBeforeThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Episode state cannot be same as previous state.",
-          );
-        }
-      }
-
       const stateAfterThis: IncidentEpisodeStateTimeline | null =
         await this.findOneBy({
           query: {
@@ -189,21 +205,45 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
           },
         });
 
+      /*
+       * Where the episode may move, by the rule its incidents move by - the
+       * one every state timeline asks (Common/Utils/StateMove): not into the
+       * state it is in, not back up the project's list of incident states,
+       * and not into the state of the row after a back-dated one. The one
+       * move back up is OneUptime's reopen for a grouping rule's reopen
+       * window (createReopen).
+       */
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.IncidentEpisode,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.incidentStateId,
+              name: stateBeforeThis.incidentState?.name,
+              order: stateBeforeThis.incidentState?.order,
+            }
+          : null,
+        newStateId: incidentStateId,
+        nextStateId: stateAfterThis?.incidentStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await IncidentStateService.findOneBy({
+            query: {
+              _id: incidentStateId,
+            },
+            select: {
+              order: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        },
+        isGroupingRuleReopen: this.groupingRuleReopens.has(createBy),
+      });
+
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      // Check if this new state and the next state are same.
-      if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
-        if (
-          stateAfterThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Episode state cannot be same as next state.",
-          );
-        }
       }
 
       logger.debug("State After this", {
@@ -726,18 +766,66 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
           },
           select: {
             _id: true,
+            projectId: true,
             incidentStateId: true,
+            startsAt: true,
           },
         });
 
-      if (episodeStateTimeline && episodeStateTimeline.incidentStateId) {
+      if (
+        episodeStateTimeline &&
+        episodeStateTimeline.incidentStateId &&
+        episodeStateTimeline.projectId
+      ) {
+        /*
+         * Deleting a row of a timeline is how a state set by mistake is put
+         * right, for an episode as for an incident or an alert: the episode
+         * is where its latest row now puts it. Deleting the row that
+         * resolved it reopens it, so resolvedAt - what the unresolved
+         * episode lists, grouping and auto-resolve read - is cleared, as
+         * any move out of a resolved state clears it (the one rule,
+         * Common/Utils/ResolvedState). One still resolved keeps the time it
+         * was resolved at; one resolved again by the delete (its reopen
+         * undone) takes the time its latest row started.
+         */
+        const isResolved: boolean =
+          await IncidentStateService.isResolvedIncidentState({
+            projectId: episodeStateTimeline.projectId,
+            incidentStateId: episodeStateTimeline.incidentStateId,
+          });
+
+        const updateData: {
+          currentIncidentStateId: ObjectID;
+          resolvedAt?: Date | null;
+        } = {
+          currentIncidentStateId: episodeStateTimeline.incidentStateId,
+        };
+
+        if (!isResolved) {
+          updateData.resolvedAt = null;
+        } else {
+          const episode: IncidentEpisode | null =
+            await IncidentEpisodeService.findOneById({
+              id: episodeId,
+              select: {
+                resolvedAt: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!episode?.resolvedAt) {
+            updateData.resolvedAt =
+              episodeStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
+          }
+        }
+
         await IncidentEpisodeService.updateOneBy({
           query: {
             _id: episodeId.toString(),
           },
-          data: {
-            currentIncidentStateId: episodeStateTimeline.incidentStateId,
-          },
+          data: updateData,
           props: {
             isRoot: true,
           },

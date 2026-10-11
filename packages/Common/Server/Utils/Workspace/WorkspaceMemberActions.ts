@@ -27,7 +27,12 @@ import ResolvedStateUtil, {
   ResolvedStateList,
 } from "../../../Utils/ResolvedState";
 import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
+import StateMoveUtil, {
+  StateMoveList,
+  StateMoveRecord,
+} from "../../../Utils/StateMove";
 import { StateListType } from "../../../Utils/StateOrder";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertEpisodeStateTimelineService from "../../Services/AlertEpisodeStateTimelineService";
 import AlertService from "../../Services/AlertService";
@@ -140,6 +145,19 @@ export interface WorkspaceEventStateOption {
   name: string;
 }
 
+// What a chat's change-state form offers its member (findStateOptions).
+export interface WorkspaceEventStateOptions {
+  // The states it offers, in the project's order.
+  options: Array<WorkspaceEventStateOption>;
+  /*
+   * The member may read states of the record's kind, and none of them is
+   * one the record may move into next: it is in the last state it can
+   * reach (Common/Utils/StateMove). The chat says so
+   * (getNoLaterStateMessage) instead of showing an empty form.
+   */
+  hasNoLaterState: boolean;
+}
+
 // A state of the record's list, with what decides where it sits.
 type ProjectState = IncidentState | AlertState | ScheduledMaintenanceState;
 
@@ -150,6 +168,8 @@ interface EventTypeDefinition {
   subject: string;
   // The state list Acknowledge and Resolve read; none for maintenance.
   stateList: ResolvedStateList | null;
+  // Which record the state move rule holds its moves to.
+  moveRecord: StateMoveRecord;
 }
 
 const EVENT_TYPES: Record<WorkspaceEventType, EventTypeDefinition> = {
@@ -157,26 +177,31 @@ const EVENT_TYPES: Record<WorkspaceEventType, EventTypeDefinition> = {
     noun: "incident",
     subject: "Incident",
     stateList: StateListType.IncidentState,
+    moveRecord: StateMoveRecord.Incident,
   },
   [WorkspaceEventType.Alert]: {
     noun: "alert",
     subject: "Alert",
     stateList: StateListType.AlertState,
+    moveRecord: StateMoveRecord.Alert,
   },
   [WorkspaceEventType.IncidentEpisode]: {
     noun: "incident episode",
     subject: "Episode",
     stateList: StateListType.IncidentState,
+    moveRecord: StateMoveRecord.IncidentEpisode,
   },
   [WorkspaceEventType.AlertEpisode]: {
     noun: "alert episode",
     subject: "Episode",
     stateList: StateListType.AlertState,
+    moveRecord: StateMoveRecord.AlertEpisode,
   },
   [WorkspaceEventType.ScheduledMaintenance]: {
     noun: "scheduled maintenance event",
     subject: "Scheduled maintenance event",
     stateList: null,
+    moveRecord: StateMoveRecord.ScheduledMaintenance,
   },
 };
 
@@ -477,11 +502,13 @@ export default class WorkspaceMemberActions {
   /*
    * Moves the record into `stateId`, as the member: the state timeline row
    * the dashboard's state panel creates for the same change, so it is
-   * refused where the dashboard's would be. Every timeline service refuses a
-   * state of another project and the state the record is in already; those
-   * of incidents, alerts and scheduled maintenance events also refuse a move
-   * up the project's list of states, while an episode's takes any other
-   * state, from chat as from the dashboard.
+   * refused where the dashboard's would be. Every timeline holds the row to
+   * the one state move rule (Common/Utils/StateMove): not a state of
+   * another project, not the state the record is in already, and not a
+   * state back up the project's list of states - for an episode as for an
+   * incident, an alert or a scheduled maintenance event, from chat as from
+   * the dashboard. The form that asks for the state offers only the ones
+   * the rule allows (findStateOptions).
    */
   @CaptureSpan()
   public static async changeState(data: {
@@ -703,30 +730,80 @@ export default class WorkspaceMemberActions {
 
   /*
    * The states a change-state form offers its member: the project's states
-   * of the record's kind that they may read, in the project's order, as the
-   * dashboard's state panel lists them for them. None when they may read
-   * none - the chat then says so instead of showing an empty form.
+   * of the record's kind that they may read and that the record may move
+   * into next - by the rule its state timeline holds every move to
+   * (Common/Utils/StateMove), none at or above the state it is in - in the
+   * project's order, as the dashboard's state panel offers them. So no form
+   * offers a move the timeline would refuse. The places come from the
+   * project's whole list, read as the moves read it, so a state the member
+   * may not read still holds its place; a state the list does not hold has
+   * none, and is compared by its id alone, as the rule compares it. None
+   * when they may read none, or when none of those they may read comes
+   * after the state the record is in: the chat says which instead of
+   * showing an empty form.
    */
   @CaptureSpan()
   public static async findStateOptions(data: {
-    type: WorkspaceEventType;
-    projectId: ObjectID;
+    event: WorkspaceEvent | WorkspaceEventRecord;
     props: DatabaseCommonInteractionProps;
-  }): Promise<Array<WorkspaceEventStateOption>> {
-    const states: Array<ProjectState> = await this.findReadableStates(data);
+  }): Promise<WorkspaceEventStateOptions> {
+    const event: WorkspaceEventRecord = await this.getEventRecord({
+      event: data.event,
+      props: data.props,
+    });
+
+    const readableStates: Array<ProjectState> = (
+      await this.findReadableStates({
+        type: event.type,
+        projectId: event.projectId,
+        props: data.props,
+      })
+    ).filter((state: ProjectState): boolean => {
+      return Boolean(state.id && state.name);
+    });
+
+    if (readableStates.length === 0) {
+      return { options: [], hasNoLaterState: false };
+    }
+
+    const list: StateMoveList = StateMoveUtil.getList(
+      EVENT_TYPES[event.type].moveRecord,
+    );
+
+    const projectStates: Array<ProjectState> = await this.getProjectStates({
+      type: event.type,
+      projectId: event.projectId,
+    });
 
     const options: Array<WorkspaceEventStateOption> = [];
 
-    for (const state of states) {
-      if (state.id && state.name) {
+    for (const state of readableStates) {
+      if (
+        StateMoveUtil.isMoveAllowed({
+          list: list,
+          states: projectStates,
+          fromStateId: event.currentStateId,
+          toStateId: state.id,
+        })
+      ) {
         options.push({
-          id: state.id,
-          name: state.name,
+          id: state.id!,
+          name: state.name!,
         });
       }
     }
 
-    return options;
+    return { options: options, hasNoLaterState: options.length === 0 };
+  }
+
+  /*
+   * What a chat says instead of a change-state form with nothing to offer,
+   * for a record its member may change but that is in the last state it can
+   * move into (findStateOptions). A reply both bots post, so it is mdText
+   * like every other.
+   */
+  public static getNoLaterStateMessage(type: WorkspaceEventType): string {
+    return mdText`There is no later state to move this ${this.getNoun(type)} to.`.toString();
   }
 
   /*

@@ -62,6 +62,15 @@ beforeEach(() => {
     MonitorService,
     jest.spyOn(MonitorService, "findBy"),
   );
+  // An episode update that writes a state reads the rows it moves.
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentEpisodeService,
+    jest.spyOn(IncidentEpisodeService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertEpisodeService,
+    jest.spyOn(AlertEpisodeService, "findBy"),
+  );
 });
 
 /*
@@ -739,6 +748,13 @@ describe("cross-project reference guard on write", () => {
 
     test("incident episode update checks state and severity", async () => {
       spyOnValidator();
+      /*
+       * No episode is in the update's window, so the state move rule
+       * (StateMoveCheck) has no move to hold it to.
+       */
+      jest
+        .spyOn(IncidentEpisodeService, "findBy")
+        .mockResolvedValue([] as never);
 
       await callHook(IncidentEpisodeService, "onBeforeUpdate", {
         data: {
@@ -767,6 +783,8 @@ describe("cross-project reference guard on write", () => {
 
     test("alert episode update checks state and severity", async () => {
       spyOnValidator();
+      // As above: no episode to move, so no move to hold to the rule.
+      jest.spyOn(AlertEpisodeService, "findBy").mockResolvedValue([] as never);
 
       await callHook(AlertEpisodeService, "onBeforeUpdate", {
         data: {

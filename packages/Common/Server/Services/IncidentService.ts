@@ -99,6 +99,8 @@ import Model from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -901,6 +903,35 @@ export class Service extends ProjectReferencesService<Model> {
       this.isCreatedNotificationResendRequested(updateBy);
 
     await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * An update that writes the incident's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of incident states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.Incident,
+      updateBy: updateBy,
+      stateKeys: CURRENT_STATE_KEYS,
+      stateModelName: "Incident State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<IncidentState>> => {
+        return IncidentStateService.getAllIncidentStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
 
     const carryForward: UpdateCarryForward = {};
 

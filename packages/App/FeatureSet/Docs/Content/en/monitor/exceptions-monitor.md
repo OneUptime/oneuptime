@@ -101,6 +101,7 @@ When creating the monitor through the API, set `environments` on the step's `exc
 - **Occurrences, not exception types.** The monitor counts every time a matching exception occurred within **Monitor exceptions for (time)**. One exception thrown 40 times counts 40.
 - **Resolved and archived exceptions are left out.** Unless you turn on **Include Resolved Exceptions** or **Include Archived Exceptions**, the occurrences of an exception you marked resolved or archived do not count. Marking an exception resolved can therefore close the incident it opened. When a resolved exception occurs again, it is un-resolved automatically and counted again.
 - **No exceptions is a count of 0.**
+- **OneUptime's own downtime is not silence.** While the time window holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first.
 
 Each status change, with the reason for it, is recorded on the monitor's **Status Timeline**.
