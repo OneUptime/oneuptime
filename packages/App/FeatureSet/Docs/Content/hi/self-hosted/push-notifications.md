@@ -1,69 +1,206 @@
-# Push Notifications
+# पुश सूचनाएँ
 
-Native push notifications (iOS/Android) **Expo Push** इस्तेमाल करती हैं। Self-hosted instances डिफ़ॉल्ट रूप से OneUptime push relay का उपयोग करते हैं और उन्हें उस तक outbound network पहुँच चाहिए।
+OneUptime लोगों को फ़ोन पर **OneUptime On-Call** मोबाइल ऐप के ज़रिए, और ब्राउज़र में Web Push के ज़रिए पेज करता है। मोबाइल पुश **Expo Push** से चलते हैं: सेल्फ-होस्टेड इंस्टेंस डिफ़ॉल्ट रूप से उन्हें OneUptime के पुश रिले के ज़रिए भेजता है, इसलिए उसे रिले तक बाहर जाने वाली नेटवर्क पहुँच चाहिए और Expo, Apple या Google के अपने किसी क्रेडेंशियल की ज़रूरत नहीं होती।
+
+:::cards
+- [चुनें कि पुश कैसे भेजे जाएँ](#सेल्फ-होस्टेड-सेटअप): पुश रिले, या आपका अपना Expo एक्सेस टोकन।
+- [फ़ायरवॉल खोलें](#नेटवर्क-पहुँच): वे पते जिन तक आपका सर्वर और आपके लोगों के डिवाइस पहुँचते हैं।
+- [साइलेंट मोड के पार बजाएँ](#गंभीर-ऑन-कॉल-अलर्ट-साइलेंट-मोड-को-ओवरराइड-करना): म्यूट फ़ोन पर भी ऑन-कॉल पेज बजने दें।
+- [कभी न पहुँचने वाले पुश ठीक करें](#समस्या-निवारण): Expo की हर त्रुटि का क्या अर्थ है।
+:::
 
 ## यह कैसे काम करता है
 
-OneUptime mobile app backend में Expo Push Token register करती है। Backend OneUptime relay से notifications भेजता है; `EXPO_ACCESS_TOKEN` सेट होने पर सीधे Expo को भेजता है। Expo उन्हें Apple APNs या Google FCM तक भेजता है, जहाँ से वे device पर पहुँचती हैं।
+```mermaid title="पुश किसी फ़ोन या ब्राउज़र तक कैसे पहुँचता है"
+flowchart TB
+    Server["आपका OneUptime सर्वर"]
+    Relay["OneUptime पुश रिले"]
+    Expo["Expo Push"]
+    APNs["Apple APNs"]
+    FCM["Google FCM"]
+    Phone["OneUptime On-Call ऐप"]
+    PushService["ब्राउज़र की<br/>पुश सेवा"]
+    Browser["ब्राउज़र"]
+    Server -->|"EXPO_ACCESS_TOKEN नहीं"| Relay
+    Server -->|"EXPO_ACCESS_TOKEN सेट"| Expo
+    Relay --> Expo
+    Expo --> APNs
+    Expo --> FCM
+    APNs --> Phone
+    FCM --> Phone
+    Server -->|"Web Push (VAPID)"| PushService
+    PushService --> Browser
+```
 
-Web push notifications VAPID keys और Web Push protocol उपयोग करना जारी रखती हैं।
+OneUptime मोबाइल ऐप बैकएंड के पास एक Expo Push टोकन पंजीकृत करता है। बैकएंड सूचनाएँ OneUptime के पुश रिले के ज़रिए भेजता है, या `EXPO_ACCESS_TOKEN` कॉन्फ़िगर होने पर सीधे Expo को। Expo संदेशों को डिवाइस तक पहुँचाने के लिए Apple APNs या Google FCM को आगे भेजता है।
 
-## Self-Hosted Setup
+वेब पुश सूचनाएँ अब भी VAPID कुंजियों और Web Push प्रोटोकॉल का उपयोग करती हैं।
 
-Official mobile app और default relay के लिए server पर Expo credentials आवश्यक नहीं हैं। Direct delivery के लिए `EXPO_ACCESS_TOKEN` में अपने app के Expo project के उपयुक्त credentials सेट करें। Web push के लिए `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` और `VAPID_SUBJECT` चाहिए।
+## सेल्फ-होस्टेड सेटअप
+
+आधिकारिक मोबाइल ऐप और डिफ़ॉल्ट रिले के साथ सर्वर पर Expo क्रेडेंशियल की ज़रूरत नहीं होती। सीधे Expo से डिलीवरी के लिए, `EXPO_ACCESS_TOKEN` को अपने ऐप के Expo प्रोजेक्ट के उपयुक्त क्रेडेंशियल से कॉन्फ़िगर करें। Web Push के लिए `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` और `VAPID_SUBJECT` चाहिए।
+
+| वेरिएबल | Helm मान | डिफ़ॉल्ट | यह क्या करता है |
+| --- | --- | --- | --- |
+| `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | जब तक `EXPO_ACCESS_TOKEN` सेट नहीं है, मोबाइल पुश कहाँ जाते हैं। |
+| `EXPO_ACCESS_TOKEN` | `expo.accessToken` | खाली | आपके Expo प्रोजेक्ट के टोकन से मोबाइल पुश सीधे Expo को भेजता है। |
+| `VAPID_PUBLIC_KEY` | `vapid.publicKey` | खाली | कुंजी जोड़ी का सार्वजनिक आधा हिस्सा, जिससे ब्राउज़र सब्सक्राइब करते हैं। |
+| `VAPID_PRIVATE_KEY` | `vapid.privateKey` | खाली | निजी आधा हिस्सा, जो हर वेब पुश पर हस्ताक्षर करता है। |
+| `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | एक संपर्क पता जिस पर ब्राउज़र की पुश सेवाएँ आपसे संपर्क कर सकें। |
+
+`npx web-push generate-vapid-keys` से एक बार VAPID कुंजी जोड़ी बनाएँ, और उसे सँभालकर रखें: जिन ब्राउज़रों ने किसी कुंजी जोड़ी से सब्सक्राइब किया है, वे उसके बदलने पर पुश पाना बंद कर देते हैं।
+
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
+VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+VAPID_SUBJECT=mailto:oncall@example.com
+# Leave unset to send mobile pushes through the push relay.
+EXPO_ACCESS_TOKEN=
+```
+@tab Kubernetes
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  privateKey: your-private-key
+  subject: mailto:oncall@example.com
+# Leave empty to send mobile pushes through the push relay.
+expo:
+  accessToken:
+```
+:::
 
 ## नेटवर्क पहुँच
 
-| दिशा | गंतव्य | Protocol / port | कब जरूरी है |
+| दिशा | गंतव्य | प्रोटोकॉल / पोर्ट | कब ज़रूरी है |
 | --- | --- | --- | --- |
-| OneUptime → default relay | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` सेट न होने पर mobile push। |
-| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` सेट होने पर direct mobile push। |
-| OneUptime → browser push service | Browser push subscription में सुरक्षित HTTPS endpoint | HTTPS / सामान्यतः TCP 443 | Web push। |
-| Mobile app या browser → OneUptime | आपका OneUptime hostname | HTTPS / TCP 443 | Login, device registration और notification links खोलना। |
+| OneUptime → डिफ़ॉल्ट पुश रिले | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | मोबाइल पुश, जब `EXPO_ACCESS_TOKEN` सेट नहीं है। |
+| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | सीधा मोबाइल पुश, जब `EXPO_ACCESS_TOKEN` सेट है। |
+| OneUptime → ब्राउज़र पुश सेवा | ब्राउज़र के पुश सब्सक्रिप्शन में सहेजा गया HTTPS एंडपॉइंट | HTTPS / आम तौर पर TCP 443 | Web Push। |
+| मोबाइल ऐप या ब्राउज़र → OneUptime | आपका OneUptime होस्टनाम | HTTPS / TCP 443 | साइन इन करना, डिवाइस पंजीकृत करना और सूचना लिंक खोलना। |
 
-`PUSH_NOTIFICATION_RELAY_URL` बदलने पर उसके destination hostname और configured port की अनुमति दें। Custom relay को OneUptime relay API implement करनी होगी। Defaults और delivery mode का चुनाव [OneUptime configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) और [push service](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) में है; direct endpoint के लिए [Expo sending guide](https://docs.expo.dev/push-notifications/sending-notifications/) देखें। OneUptime उसी address पर, `/send` की जगह `/receipts` के साथ, relay से delivery receipts पढ़ता है। जिस relay में यह route नहीं है, वह push अब भी deliver करता है; तब जिस device से app हटा दिया गया हो, उसका पता तभी चलता है जब उसे भेजा गया कोई बाद का push अस्वीकार हो जाए।
+अगर आप `PUSH_NOTIFICATION_RELAY_URL` बदलते हैं, तो उसके गंतव्य होस्टनाम और कॉन्फ़िगर किए गए पोर्ट को अनुमति दें। कस्टम रिले को OneUptime का रिले API लागू करना होगा। ये डिफ़ॉल्ट और रिले तथा सीधी डिलीवरी के बीच का बदलाव [OneUptime के कॉन्फ़िगरेशन](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) और [पुश सेवा](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) में परिभाषित हैं। सीधे Expo को भेजे गए अनुरोध [Expo की भेजने वाली गाइड](https://docs.expo.dev/push-notifications/sending-notifications/) में बताए गए एंडपॉइंट का उपयोग करते हैं। OneUptime रिले से डिलीवरी रसीदें उसी पते पर, `/send` की जगह `/receipts` लगाकर, पढ़ता है। उस रूट के बिना रिले भी पुश पहुँचाता है; तब जिस डिवाइस से ऐप हटा दिया गया हो, उसका पता तभी चलता है जब उस पर भेजा गया कोई बाद का पुश अस्वीकार हो जाए।
 
-Web push के लिए अपनी टीम के browsers की subscription के वास्तविक endpoint hosts की अनुमति दें। OneUptime `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` और `push.apple.com` तथा उनके subdomains स्वीकार करता है, जैसे `updates.push.services.mozilla.com` और `web.push.apple.com`। [Browser subscription](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) destination देती है; केवल Expo या relay की अनुमति देने से web push उपलब्ध नहीं होती।
+Web Push के लिए, आपकी टीम जिन ब्राउज़रों का उपयोग करती है उनके असली सब्सक्रिप्शन एंडपॉइंट होस्ट को अनुमति दें। OneUptime `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` और `push.apple.com` को, उनके सबडोमेन सहित, स्वीकार करता है। आम उदाहरण हैं `updates.push.services.mozilla.com` और `web.push.apple.com`। गंतव्य [ब्राउज़र का पुश सब्सक्रिप्शन](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) देता है; केवल Expo या OneUptime के रिले को अनुमति देने से Web Push सक्षम नहीं होता।
 
-Notifications भेजने वाली OneUptime process से DNS और outbound TLS की अनुमति दें। उसके trust store को destination certificate validate करना चाहिए और proxies को interactive authentication के बिना API requests भेजनी चाहिए। Push providers OneUptime server पर webhook call नहीं करते। Devices VPN या दूसरे private connection से पहुँच सकें तो server private रह सकता है। Relay या external push services तक पहुँच के बिना server ये notifications नहीं पहुँचा सकता।
+सूचनाएँ भेजने वाली OneUptime प्रक्रिया से DNS रिज़ॉल्यूशन और बाहर जाने वाले TLS की अनुमति दें। उसके ट्रस्ट स्टोर को गंतव्य का प्रमाणपत्र मान्य करना होगा, और प्रॉक्सी को API अनुरोध बिना इंटरैक्टिव प्रमाणीकरण के आगे जाने देने होंगे। पुश प्रदाता आपके OneUptime सर्वर पर कोई वेबहुक कॉल नहीं करते, इसलिए जब उपयोगकर्ताओं के डिवाइस VPN या किसी अन्य निजी कनेक्शन से उस तक पहुँच सकते हों, तो सर्वर निजी रह सकता है। जिस सर्वर की अपने रिले या बाहरी पुश सेवाओं तक पहुँच नहीं है, वह ये सूचनाएँ नहीं पहुँचा सकता।
 
-Devices की connectivity अलग आवश्यकता है। iOS को APNs तक पहुँच चाहिए, सामान्यतः TCP 5223 और fallback के लिए TCP 443; ताजा destination ranges के लिए [Apple requirements](https://support.apple.com/en-us/102266) देखें। Android को TCP 5228–5230 और 443 पर FCM चाहिए; वर्तमान hosts और firewall rules के लिए [Google guidance](https://firebase.google.com/docs/cloud-messaging/network-configuration) देखें। इन device ports को OneUptime पर inbound खोलने की जरूरत नहीं है। Server mobile push के लिए relay या Expo इस्तेमाल करता है, सीधे APNs/FCM नहीं।
+डिवाइस की कनेक्टिविटी एक अलग आवश्यकता है। iOS डिवाइस को APNs तक पहुँच चाहिए, आम तौर पर TCP 5223 और विकल्प के रूप में TCP 443; गंतव्य रेंज के लिए [Apple की मौजूदा नेटवर्क आवश्यकताएँ](https://support.apple.com/en-us/102266) देखें। Android डिवाइस को TCP 5228–5230 और 443 पर FCM तक पहुँच चाहिए; [Google का मौजूदा होस्ट और फ़ायरवॉल मार्गदर्शन](https://firebase.google.com/docs/cloud-messaging/network-configuration) उपयोग करें। इन डिवाइस पोर्ट को OneUptime पर इनबाउंड खोलने की ज़रूरत नहीं है, और सर्वर का मोबाइल प्रवाह सीधे APNs/FCM से जुड़ने के बजाय रिले या Expo का उपयोग करता है।
 
-Notification भेजने वाले container या pod से चुने गए mode के destination तक DNS और HTTPS जाँचें। फिर **User Settings > Notification Methods > Push** से test भेजें और registered device पर प्राप्ति की पुष्टि करें। Web push के लिए हर browser अलग जाँचें। OneUptime logs में relay, Expo या web-push errors देखें; API submission सफल होने का अर्थ device delivery की पुष्टि नहीं है। Mobile push के लिए OneUptime हर push के लगभग 15 मिनट बाद Expo की delivery receipt भी पढ़ता है: जो push कभी device तक नहीं पहुँचा, वह push log में और, on-call page के लिए, on-call timeline पर not delivered दिखता है।
+:::steps
+1. सूचनाएँ भेजने वाले कंटेनर या पॉड से अपने डिलीवरी मोड के गंतव्य तक DNS और HTTPS जाँचें: रिले, Expo या किसी ब्राउज़र की पुश सेवा।
+2. **उपयोगकर्ता सेटिंग्स > सूचना विधियां > Push Notifications** से **परीक्षण सूचना** के साथ एक परीक्षण भेजें, और पुष्टि करें कि वह किसी पंजीकृत डिवाइस पर पहुँचता है। Web Push के लिए हर ब्राउज़र का अलग से परीक्षण करें।
+3. OneUptime लॉग में रिले, Expo या वेब पुश की त्रुटियाँ जाँचें; केवल API को सफलतापूर्वक भेज देना डिवाइस पर डिलीवरी की पुष्टि नहीं करता।
+:::
+
+मोबाइल पुश के लिए OneUptime हर पुश के लगभग 15 मिनट बाद Expo की डिलीवरी रसीद भी पढ़ता है: जो पुश कभी डिवाइस तक नहीं पहुँचा, वह तब पुश लॉग में डिलीवर नहीं हुआ दिखता है और, ऑन-कॉल पेज के लिए, ऑन-कॉल टाइमलाइन पर भी।
+
+## गंभीर ऑन-कॉल अलर्ट (साइलेंट मोड को ओवरराइड करना)
+
+डिफ़ॉल्ट रूप से पुश सूचना हैंडसेट की बात मानती है: साइलेंट पर रखा फ़ोन चुप रहता है, और डू नॉट डिस्टर्ब सूचना को रोक लेता है। ऑन-कॉल रेस्पॉन्डर के लिए रात 3 बजे यह गलत डिफ़ॉल्ट है, इसलिए मोबाइल ऐप हर डिवाइस के लिए एक सेटिंग देता है – **Settings > Notifications > Critical On-Call Alerts** – जो *केवल ऑन-कॉल पेज* को दोनों के पार आवाज़ बजाने देती है।
+
+दायरा जान-बूझकर सीमित है। केवल वे पेज योग्य हैं जिन्हें कोई ऑन-कॉल सूचना नियम बनाता है। मालिकों के सब्सक्रिप्शन, नोट पोस्ट होने की सूचनाएँ, स्थिति-बदलाव अपडेट और मॉनिटर सूचनाएँ कभी एस्केलेट नहीं होतीं, यह सेटिंग चाहे जो कहे।
+
+```mermaid title="कब कोई ऑन-कॉल पेज साइलेंट मोड के पार बजता है"
+flowchart TB
+    Page["एक ऑन-कॉल पेज"]
+    Device{"इस डिवाइस के लिए Critical<br/>On-Call Alerts चालू है?"}
+    OS{"फ़ोन का सिस्टम गंभीर<br/>अलर्ट की अनुमति देता है?"}
+    Loud["साइलेंट मोड और डू नॉट डिस्टर्ब<br/>के पार आवाज़ बजाता है"]
+    Quiet["किसी भी दूसरे पुश की तरह<br/>चुपचाप पहुँचाया जाता है"]
+    Page --> Device
+    Device -->|"हाँ"| OS
+    Device -->|"नहीं"| Quiet
+    OS -->|"हाँ"| Loud
+    OS -->|"नहीं"| Quiet
+```
+
+किसी पेज के साइलेंट मोड को ओवरराइड करने के लिए तीनों बातें सच होनी चाहिए। अगर कोई एक भी नहीं है, तो पेज फिर भी पहुँचाया जाता है - बस चुपचाप।
+
+1. **रेस्पॉन्डर ने उस डिवाइस के लिए इसे चालू किया है।** हर डिवाइस के लिए अलग, डिफ़ॉल्ट रूप से बंद, `UserPush.isCriticalAlertEnabled` में संग्रहीत। किसी रेस्पॉन्डर का फ़ोन और टैबलेट अलग-अलग निर्णय हैं।
+2. **सर्वर पेज को गंभीर चिह्नित करता है।** यह iOS के लिए APNs का गंभीर साउंड पेलोड और `interruptionLevel: critical` भेजता है, और Android के लिए `oncall_critical` सूचना चैनल को लक्ष्य करता है।
+3. **ऑपरेटिंग सिस्टम इसकी अनुमति देता है**, और यहीं दोनों प्लेटफ़ॉर्म अलग हैं।
+
+:::tabs
+@tab iOS
+iOS पर गंभीर अलर्ट के लिए `com.apple.developer.usernotifications.critical-alerts` एंटाइटलमेंट चाहिए, जिसे Apple अनुरोध करने पर, प्रति डेवलपर खाते, उन ऐप को देता है जो लोगों को आपात घटनाओं की सूचना देते हैं। इसके लिए [Apple के Critical Alerts अनुरोध फ़ॉर्म](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/) पर अनुरोध करें।
+
+App Store पर आधिकारिक **OneUptime On-Call** ऐप में यह एंटाइटलमेंट **संस्करण 1.5.0** से है। इससे पहले के संस्करणों में यह नहीं है, और iOS उन्हें कभी गंभीर अलर्ट नहीं देता, इसलिए सेटिंग चालू करने से पहले ऐप अपडेट करें।
+
+अगर आप ऐप ख़ुद बनाते हैं, तो एंटाइटलमेंट वैकल्पिक है। कोई प्रोविज़निंग प्रोफ़ाइल ऐसा एंटाइटलमेंट नहीं रख सकती जो टीम को दिया नहीं गया है, और जो बिल्ड ऐसा एंटाइटलमेंट घोषित करता है जिसे वह रख नहीं सकता, वह **साइन नहीं हो पाता**। इसे केवल `packages/MobileApp/eas.json` में `production` प्रोफ़ाइल चालू करती है, क्योंकि Apple ने इसे आधिकारिक ऐप प्रकाशित करने वाली टीम को दिया है। जो फ़ोर्क अपनी Apple टीम से साइन करता है, उसे वह `env` प्रविष्टि तब तक हटानी होगी जब तक Apple उस टीम को भी यह एंटाइटलमेंट न दे दे। मिल जाने के बाद, बिल्ड करते समय इसे चालू करें:
+
+```bash
+EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
+```
+
+या `packages/MobileApp/eas.json` में बिल्ड प्रोफ़ाइल के `env` ब्लॉक में `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` जोड़ें।
+
+डिवाइस पर, ऐप में **Settings > Notifications > Critical On-Call Alerts** चालू करें, और iOS के पूछने पर गंभीर अलर्ट की अनुमति दें। iOS, ऐप के लिए **Critical Alerts** स्विच को iOS सेटिंग्स में **Settings > Notifications > OneUptime On-Call** के अंतर्गत तभी जोड़ता है जब ऐप अनुमति माँग चुका हो, इसलिए ऐप में सेटिंग चालू करने से पहले वह स्विच वहाँ नहीं होता। अगर आप प्रॉम्प्ट अस्वीकार कर देते हैं, तो बाद में iOS सेटिंग्स में उसी स्विच से गंभीर अलर्ट की अनुमति दे सकते हैं।
+
+एंटाइटलमेंट के बिना बने बिल्ड पर iOS न प्रॉम्प्ट दिखाता है न स्विच, और ऐप की सेटिंग्स स्क्रीन बताती है कि ऐप का यह संस्करण गंभीर अलर्ट नहीं पा सकता। यह रेस्पॉन्डर को ऐसा स्विच खोजने नहीं भेजती जिसे iOS दिखा ही नहीं रहा।
+@tab Android
+Android में विक्रेता की मंज़ूरी का कोई चरण नहीं है, लेकिन डू नॉट डिस्टर्ब को बायपास करने की अनुमति उपयोगकर्ता ऐप के भीतर के प्रॉम्प्ट के बजाय सिस्टम स्क्रीन पर देता है। जब कोई रेस्पॉन्डर सेटिंग चालू करता है, तो ऐप उसके लिए **Settings > Notifications > Do Not Disturb access** खोलता है और उसके लौटने पर फिर से जाँचता है।
+
+यहाँ दो तंत्र काम करते हैं, और वे अलग-अलग मामलों को कवर करते हैं:
+
+- `oncall_critical` सूचना चैनल `bypassDnd` माँगता है, जो डू नॉट डिस्टर्ब को कवर करता है और उसे ऊपर बताई गई पहुँच चाहिए।
+- वही चैनल **अलार्म** ऑडियो स्ट्रीम का उपयोग करता है, जो उस फ़ोन पर भी सुनाई देती है जिसकी रिंगर बस म्यूट है। इस आधे हिस्से को किसी अनुमति की ज़रूरत नहीं है।
+
+Android किसी चैनल की सेटिंग्स को चैनल पहली बार बनने पर फ़्रीज़ कर देता है, इसलिए उन्हें ऐप अपडेट से नहीं बदला जा सकता - केवल नई चैनल id जारी करके।
+:::
+
+यह काम करता है या नहीं, यह जाँचने के लिए **उपयोगकर्ता सेटिंग्स > सूचना विधियां > Push Notifications** से डिवाइस पर एक परीक्षण सूचना भेजें। जब डिवाइस पर गंभीर अलर्ट सक्षम हों, तो परीक्षण भी गंभीर अलर्ट के रूप में भेजा जाता है - इसलिए पहले फ़ोन को साइलेंट करें, और आप सुन लेंगे कि कोई असली पेज आप तक पहुँचेगा या नहीं।
 
 ## समस्या निवारण
 
-### Push notifications नहीं आ रहीं
+### पुश सूचनाएँ नहीं पहुँच रहीं
 
-- सुनिश्चित करें कि mobile app EAS Build के साथ built था (Expo Go push notifications support नहीं करता)
-- सत्यापित करें कि device आपके database की `UserPush` table में registered है
-- Expo Push API errors के लिए OneUptime server logs जांचें
-- Confirm करें कि device में active internet connection और notification permissions enabled हैं
-- **User Settings > Notification Methods > Push** check करें: **सूचनाएँ नहीं मिल रहीं** के रूप में marked device को notifications मिलना बंद हो गया है और उसे फिर से register करना होगा (नीचे देखें)
+- सुनिश्चित करें कि मोबाइल ऐप EAS Build से बनाया गया था (Expo Go पुश सूचनाओं का समर्थन नहीं करता)
+- सत्यापित करें कि डिवाइस आपके डेटाबेस की `UserPush` तालिका में पंजीकृत है
+- Expo Push API की त्रुटियों के लिए OneUptime सर्वर लॉग जाँचें
+- पुष्टि करें कि डिवाइस पर सक्रिय इंटरनेट कनेक्शन है और सूचना की अनुमतियाँ सक्षम हैं
+- **उपयोगकर्ता सेटिंग्स > सूचना विधियां > Push Notifications** जाँचें: **सूचनाएँ नहीं मिल रहीं** चिह्नित डिवाइस ने उन्हें पाना बंद कर दिया है और उसे फिर से पंजीकृत करना होगा (नीचे देखें)
 
-### "not delivered" के रूप में marked push
+### iOS सेटिंग्स में Critical Alerts स्विच नहीं है
 
-Expo का push स्वीकार करना यह नहीं बताता कि वह device तक पहुँच गया: Apple या Google उसे अब भी अस्वीकार कर सकते हैं। OneUptime हर mobile push की delivery receipt भेजने के लगभग 15 मिनट बाद पढ़ता है; `EXPO_ACCESS_TOKEN` set न होने पर push relay के ज़रिए। जब receipt कोई error बताती है, तो उस page का push log और on-call timeline sent से बदलकर **Push notification not delivered** हो जाते हैं, Expo के error code के साथ:
+- App Store से OneUptime On-Call अपडेट करें। 1.5.0 से पहले के संस्करण Apple के गंभीर अलर्ट एंटाइटलमेंट के बिना बनाए गए थे, और iOS उनके लिए कोई Critical Alerts स्विच दिखाता ही नहीं
+- ऐप में **Settings > Notifications > Critical On-Call Alerts** चालू करें। iOS अपनी सेटिंग्स में यह स्विच तभी जोड़ता है जब ऐप अनुमति माँग चुका हो, और ऐप यह सेटिंग चालू होने पर अनुमति माँगता है
+- ऑन-कॉल सूचना नियमों या पुश डिवाइसों को हटाकर फिर से जोड़ने से यह नहीं बदलता। यह सेटिंग डिवाइस पर मौजूद ऐप की है, किसी नियम की नहीं
 
-- `DeviceNotRegistered`: mobile app device से हटा दिया गया है, या उसका push token अब valid नहीं है। अगला section देखें।
-- `MessageRateExceeded`: कम समय में device को बहुत सारे notifications भेजे गए। उसे बाद के push सामान्य रूप से भेजे जाते हैं।
-- `MessageTooBig`: notification push services की सीमा से बड़ा था। OneUptime notifications को छोटा करके फिट करता है, इसलिए ऐसा नहीं होना चाहिए; अगर हो, तो कृपया report करें।
-- `InvalidCredentials` या `MismatchSenderId`: push भेजने वाले Expo project के push credentials valid नहीं हैं। `EXPO_ACCESS_TOKEN` के साथ अपने Expo project के push credentials जाँचें; default relay के साथ OneUptime support से संपर्क करें।
+### गंभीर अलर्ट साइलेंट मोड को ओवरराइड नहीं करते
 
-जब Expo किसी push को तुरंत अस्वीकार करता है, तो push log तुरंत कारण बताता है। Push relay के ज़रिए भी ऐसा ही होता है: relay server error के बजाय Expo का error code आगे भेजता है।
+- जाँचें कि स्विच **उस** डिवाइस के लिए चालू है - सेटिंग हर डिवाइस के लिए अलग है, और दोबारा इंस्टॉल करने या शुरू से सेट किए गए नए फ़ोन पर नया डिवाइस पंजीकरण बनता है (पुराने फ़ोन के बैकअप से सेट किया गया फ़ोन, पुराने फ़ोन के सूचनाएँ पाना बंद करते ही, ऐप की उसी सेटिंग के साथ पुराने फ़ोन का पंजीकरण ले लेता है)
+- **iOS**: पुष्टि करें कि बिल्ड में Apple का गंभीर अलर्ट एंटाइटलमेंट है (ऊपर देखें), और iOS Settings > Notifications > OneUptime On-Call के अंतर्गत Critical Alerts की अनुमति है
+- **Android**: पुष्टि करें कि ऐप के पास Settings > Notifications > Do Not Disturb access के अंतर्गत डू नॉट डिस्टर्ब की पहुँच है
+- सेटिंग्स स्क्रीन बताती है कि इनमें से क्या कमी है; वह ऐप के पिछले अनुरोध पर भरोसा करने के बजाय OS से मौजूदा स्थिति वापस पढ़ती है
 
-### Logs में "DeviceNotRegistered" errors
+### "डिलीवर नहीं हुआ" चिह्नित पुश
 
-जब mobile app device से हटा दिया गया हो या device का push token अब valid न हो, तो Expo `DeviceNotRegistered` बताता है। आमतौर पर यह push की delivery receipt में होता है, जिसे OneUptime push के लगभग 15 मिनट बाद पढ़ता है, और कभी-कभी Expo push को तुरंत अस्वीकार कर देता है। दोनों ही स्थितियों में OneUptime उस device पर भेजना बंद कर देता है। Device को delete करने के बजाय notifications न पाने वाले के रूप में marked किया जाता है, इसलिए उसके notification rules बने रहते हैं, और न पहुँचे page का push log तथा on-call timeline कारण बताते हैं। **User Settings > Notification Methods > Push** में यह **सूचनाएँ नहीं मिल रहीं** के रूप में दिखता है। इसके owner के बाकी devices और notification methods पर अब भी notifications जाते हैं।
+Expo का कोई पुश स्वीकार करना यह नहीं बताता कि वह डिवाइस तक पहुँच गया: Apple या Google अब भी उसे अस्वीकार कर सकते हैं। OneUptime हर मोबाइल पुश की डिलीवरी रसीद भेजने के लगभग 15 मिनट बाद पढ़ता है, और `EXPO_ACCESS_TOKEN` सेट न होने पर पुश रिले के ज़रिए। जब रसीद कोई त्रुटि बताती है, तो पुश लॉग और पेज की ऑन-कॉल टाइमलाइन भेजा गया से बदलकर **Push notification not delivered** हो जाते हैं, Expo के त्रुटि कोड के साथ:
 
-Device को वापस लाने के लिए, sign in रहते हुए उस पर mobile app खोलें। App फिर से register होता है, जिससे Expo के साथ उसका push token renew हो जाता है, और device अपने rules के साथ फिर से notifications पाने लगता है। अगर app हटा दिया गया था, तो उसे फिर से install करें और sign in करें। App के फिर से register होने से पहले भेजे गए push की receipt device को marked नहीं करती। जब up-to-date mobile app को पुराने phone के backup से नए phone पर set up किया जाता है, तो वह OneUptime को अपना पिछला push token बताता है; अगर पुराने phone का device अब notifications नहीं पा रहा, तो नया phone उसे उसके rules के साथ ले लेता है।
+- `DeviceNotRegistered`: मोबाइल ऐप डिवाइस से हटा दिया गया है, या उसका पुश टोकन अब मान्य नहीं है। अगला भाग देखें।
+- `MessageRateExceeded`: कम समय में डिवाइस को बहुत अधिक सूचनाएँ भेजी गईं। उस पर बाद के पुश सामान्य रूप से भेजे जाते हैं।
+- `MessageTooBig`: सूचना पुश सेवाओं की स्वीकार्य सीमा से बड़ी थी। OneUptime सूचनाओं को फ़िट करने के लिए छोटा करता है, इसलिए ऐसा नहीं होना चाहिए; अगर हो, तो कृपया बताएँ।
+- `InvalidCredentials` या `MismatchSenderId`: पुश भेजने वाले Expo प्रोजेक्ट के पुश क्रेडेंशियल मान्य नहीं हैं। `EXPO_ACCESS_TOKEN` के साथ अपने Expo प्रोजेक्ट के पुश क्रेडेंशियल जाँचें; डिफ़ॉल्ट रिले के साथ OneUptime सहायता से संपर्क करें।
 
-Push relay के ज़रिए (बिना `EXPO_ACCESS_TOKEN` के) भी यह इसी तरह काम करता है: push भेजते समय relay `DeviceNotRegistered` बताता है, और आपका instance जिन delivery receipts के बारे में पूछता है, उन्हें पढ़ता है।
+जब Expo किसी पुश को तुरंत अस्वीकार कर देता है, तो पुश लॉग तुरंत कारण बताता है। पुश रिले के ज़रिए भी यही होता है: रिले सर्वर त्रुटि से जवाब देने के बजाय Expo का त्रुटि कोड आगे भेजता है।
 
-## Support
+### लॉग में "DeviceNotRegistered" त्रुटियाँ
 
-यदि आपको push notifications में कोई समस्या आती है, तो कृपया:
+Expo `DeviceNotRegistered` तब बताता है जब मोबाइल ऐप डिवाइस से हटा दिया गया हो या डिवाइस का पुश टोकन अब मान्य न हो। आम तौर पर यह किसी पुश की डिलीवरी रसीद में बताया जाता है, जिसे OneUptime पुश के लगभग 15 मिनट बाद पढ़ता है, और कभी-कभी Expo पुश को तुरंत अस्वीकार कर देता है। दोनों ही तरह से OneUptime उस डिवाइस पर भेजना बंद कर देता है। उसे हटाने के बजाय सूचनाएँ न पाने वाला चिह्नित किया जाता है, इसलिए उसके सूचना नियम बने रहते हैं, और न पहुँचे पेज का पुश लॉग और ऑन-कॉल टाइमलाइन इसका कारण बताते हैं। **उपयोगकर्ता सेटिंग्स > सूचना विधियां > Push Notifications** उसे **सूचनाएँ नहीं मिल रहीं** के रूप में दिखाता है। उसके मालिक के दूसरे डिवाइस और सूचना विधियाँ अब भी पेज होती हैं।
 
-1. ऊपर troubleshooting section जांचें
-2. विस्तृत error messages के लिए OneUptime logs review करें
-3. [hello@oneuptime.com](mailto:hello@oneuptime.com) पर हमसे संपर्क करें
+डिवाइस को वापस लाने के लिए, साइन इन रहते हुए उस पर मोबाइल ऐप खोलें। ऐप फिर से पंजीकृत होता है, जिससे Expo के पास उसका पुश टोकन नवीनीकृत होता है, और डिवाइस अपने नियमों के साथ फिर से सूचनाएँ पाने लगता है। अगर ऐप हटा दिया गया था, तो उसे फिर से इंस्टॉल करें और साइन इन करें। ऐप के फिर से पंजीकृत होने से पहले भेजे गए पुश की रसीद डिवाइस को चिह्नित नहीं करती। जब किसी अद्यतन मोबाइल ऐप को पुराने फ़ोन के बैकअप से नए फ़ोन पर सेट किया जाता है, तो वह OneUptime को अपना पहले वाला पुश टोकन बताता है; अगर पुराने फ़ोन का डिवाइस अब सूचनाएँ नहीं पाता, तो नया फ़ोन उसके नियमों के साथ उसे ले लेता है।
+
+पुश रिले के ज़रिए (कोई `EXPO_ACCESS_TOKEN` नहीं) भी यह इसी तरह काम करता है: पुश भेजते समय रिले `DeviceNotRegistered` बताता है, और आपका इंस्टेंस जिन डिलीवरी रसीदों के बारे में पूछता है उन्हें पढ़ता है।
+
+अगर इनमें से कुछ भी मदद न करे, तो अपने OneUptime लॉग की त्रुटियों के साथ [hello@oneuptime.com](mailto:hello@oneuptime.com) पर हमसे संपर्क करें।
+
+## अगले कदम
+
+:::cards
+- [मोबाइल ऐप](/docs/mobile-desktop-apps/index): OneUptime On-Call ऐप इंस्टॉल करें और साइन इन करें।
+- [मोबाइल ऐप समस्या निवारण](/docs/mobile-desktop-apps/faq-troubleshooting): फ़ोन पर साइन-इन और सूचना की समस्याएँ ठीक करें।
+- [एस्केलेशन नियम](/docs/on-call/escalation-rules): तय करें कि किसे और कब पेज किया जाए।
+- [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): आपका सर्वर आपके अपने नेटवर्क में किन चीज़ों तक पहुँच सकता है।
+:::

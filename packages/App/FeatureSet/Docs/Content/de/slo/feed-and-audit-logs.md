@@ -67,7 +67,7 @@ Zwei Dinge fehlen:
 
 ### Audit-Protokolle einschalten
 
-Audit-Protokolle sind eine Enterprise-Funktion: Sie brauchen den Tarif **Enterprise** auf OneUptime Cloud oder die Enterprise Edition in einer selbst gehosteten Installation. Bei anderen Tarifen erklärt die Seite **Audit-Protokolle** des SLO, wie Sie sie bekommen. In einer selbst gehosteten Installation hört die Audit-Protokollierung ohne gültige Lizenz auf aufzuzeichnen (nach der 14-tägigen Testphase oder 30 Tage nach Ablauf einer Lizenz) und setzt wieder ein, sobald eine Lizenz aktiviert ist (siehe [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Die Seiten **Audit-Protokolle** zeigen an, wenn nicht aufgezeichnet wird.
+Audit-Protokolle sind eine Enterprise-Funktion: Sie brauchen den Tarif **Enterprise** auf OneUptime Cloud oder die Enterprise Edition in einer selbst gehosteten Installation. Bei anderen Tarifen erklärt die Seite **Audit-Protokolle** des SLO, wie Sie sie bekommen. In einer selbst gehosteten Installation hört die Audit-Protokollierung ohne gültige Lizenz auf aufzuzeichnen (nach der 14-tägigen Testphase oder 30 Tage nach Ablauf einer Lizenz) und setzt wieder ein, sobald eine Lizenz aktiviert ist (siehe [When a license expires or is missing](/docs/self-hosted/enterprise#wenn-eine-lizenz-abläuft-oder-fehlt)). Die Seiten **Audit-Protokolle** zeigen an, wenn nicht aufgezeichnet wird.
 
 Audit-Protokolle sind außerdem in jedem Projekt standardmäßig ausgeschaltet. So schalten Sie sie ein:
 

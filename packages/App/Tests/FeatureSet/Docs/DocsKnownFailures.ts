@@ -219,9 +219,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "permissions/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "rum/applications": {
     pageLinks: ["fa"],
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -253,22 +250,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "rum/web-vitals": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "self-hosted/enterprise": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION,
-  },
-  "self-hosted/private-network-access": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "self-hosted/push-notifications": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/sendgrid-inbound-email": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
   },
   "telemetry/ai-agent-circuit-breaker": {
     translated: EVERY_TRANSLATION_BUT_FA,

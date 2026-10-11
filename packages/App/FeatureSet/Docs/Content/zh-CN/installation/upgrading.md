@@ -99,7 +99,7 @@ OneUptime 现在以两个镜像交付应用程序。**Community Edition** 是基
 - **不使用 SCIM 的 Community Edition:** 无需操作。照常升级。
 - **使用 `image.type: enterprise-edition` 的 Helm:** 无需操作。chart 已经拉取 `enterprise-` 镜像，这些镜像现在包含企业模块。
 - **使用 `IS_ENTERPRISE_EDITION=true` 的 Docker Compose:** 升级时在 `config.env` 中设置 `APP_TAG=enterprise-release`（或 `enterprise-<version>`），切换到 Enterprise 镜像。`APP_TAG=release` 是 Community 镜像，而 `IS_ENTERPRISE_EDITION=true` 不再开启任何功能。只要 `IS_ENTERPRISE_EDITION=true`，`npm run update` 就会替你完成这项更改（`release` 变为 `enterprise-release`，固定的 `13.0.7` 变为 `enterprise-13.0.7`），并输出它所做的更改。现在，当在 Community 镜像上设置了 `IS_ENTERPRISE_EDITION=true` 时，应用程序会 **拒绝启动**，而不是悄悄停止 SCIM 预配和审计日志记录。错误信息会说明要设置什么：要保留 Enterprise Edition，设置 `APP_TAG=enterprise-<version>`；要运行 Community Edition，设置 `IS_ENTERPRISE_EDITION=false`。
-- **已配置 SCIM 的 Community 镜像:** 此次升级后 SCIM 预配会停止，包括取消预配。要继续使用，请切换到 Enterprise 镜像。否则，请在升级前阅读 [从 Enterprise 切换到 Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。它说明了哪些功能会停止以及应先移除哪些人。要运行 Community Edition，还要设置 `IS_ENTERPRISE_EDITION=false`。单点登录不受影响：Community 镜像同样提供它。
+- **已配置 SCIM 的 Community 镜像:** 此次升级后 SCIM 预配会停止，包括取消预配。要继续使用，请切换到 Enterprise 镜像。否则，请在升级前阅读 [从 Enterprise 切换到 Community](/docs/self-hosted/enterprise#从-enterprise-切换到-community)。它说明了哪些功能会停止以及应先移除哪些人。要运行 Community Edition，还要设置 `IS_ENTERPRISE_EDITION=false`。单点登录不受影响：Community 镜像同样提供它。
 
 你的配置永远不会被删除，无论朝哪个方向切换版本都不需要迁移。
 
@@ -108,8 +108,8 @@ OneUptime 现在以两个镜像交付应用程序。**Community Edition** 是基
 Enterprise Edition 现在会检查自己的许可证：
 
 - **有许可证密钥的安装** 会继续运行。它在启动时以及每天一次向 OneUptime 检查许可证。如果许可证过期，在 30 天的宽限期内一切照常运行，之后会发生与无许可证安装相同的情况。
-- **没有许可证的安装**（例如只通过 `IS_ENTERPRISE_EDITION=true` 运行 Enterprise Edition 的安装）从首次启动此版本起获得 14 天的试用期。**如果你使用 SCIM 或审计日志记录，请在试用期结束前激活许可证。** 试用期结束后，SCIM 预配会停止，审计日志记录也会停止记录。企业配置也会变为只读，企业版 Health 仪表板会被锁定。单点登录不受影响。只要你激活许可证，一切都会立即恢复，无需重启。试用期用于评估：在生产环境中使用 Enterprise Edition 需要 OneUptime Enterprise 订阅。请参阅 [许可证过期或缺失时](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)。
-- **与网络隔离的安装** 可以使用签名的许可证令牌而不是密钥来激活。请参阅 [离线激活](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs)。
+- **没有许可证的安装**（例如只通过 `IS_ENTERPRISE_EDITION=true` 运行 Enterprise Edition 的安装）从首次启动此版本起获得 14 天的试用期。**如果你使用 SCIM 或审计日志记录，请在试用期结束前激活许可证。** 试用期结束后，SCIM 预配会停止，审计日志记录也会停止记录。企业配置也会变为只读，企业版 Health 仪表板会被锁定。单点登录不受影响。只要你激活许可证，一切都会立即恢复，无需重启。试用期用于评估：在生产环境中使用 Enterprise Edition 需要 OneUptime Enterprise 订阅。请参阅 [许可证过期或缺失时](/docs/self-hosted/enterprise#许可证过期或缺失时)。
+- **与网络隔离的安装** 可以使用签名的许可证令牌而不是密钥来激活。请参阅 [离线激活](/docs/self-hosted/enterprise#离线激活与网络隔离的安装)。
 
 ### OneUptime Cloud 客户
 
@@ -135,8 +135,8 @@ OneUptime 14 将应用程序分为两个版本，你拉取的镜像决定你运�
 1. **决定此安装运行哪个版本。** 如果你使用 SCIM 预配、团队合规设置或审计日志，或者需要管理员仪表板的 **Health** 仪表板，那就是 Enterprise Edition。否则无需决定：Community Edition 就是你现在使用的版本，它包含 SAML SSO 和 OpenID Connect。
 2. **使用 Helm 时，在 values 文件中设置版本:** `image.type: enterprise-edition`（默认值为 `community-edition`）。不要改动 `image.tag`——chart 会自行添加 `enterprise-` 前缀，因此 `image.tag: release` 会拉取 `oneuptime/app:enterprise-release`。这个值不是新的。如果你已经在使用 `enterprise-edition`，则无需更改：你已经拉取的标签现在包含 `ee/`。
 3. **使用 Docker Compose 时，在 `config.env` 中设置 `APP_TAG=enterprise-release`**（或用 `enterprise-<version>` 固定版本）。`APP_TAG=release` 是 Community 镜像。这是唯一会让 13 上的安装停下来的一项：在 13 上，使用 Compose 的 Enterprise 安装是 `APP_TAG=release` 加上 `IS_ENTERPRISE_EDITION=true`，而现在这种组合会 **拒绝启动**，而不是以 SCIM 预配和审计日志记录被悄悄停止的 Community Edition 身份启动。只要 `IS_ENTERPRISE_EDITION=true`，`npm run update` 就会替你重写 `APP_TAG`（`release` 变为 `enterprise-release`，固定的 `13.0.8` 变为 `enterprise-13.0.8`），并输出它所做的更改。如果你改为手动拉取镜像，请先自己设置 `APP_TAG`。
-4. **在 Enterprise Edition 上激活许可证。** 没有许可证的安装从其首次启动 Enterprise Edition 起获得 14 天的试用期——对升级来说，这一天是你升级的那天，而不是你第一次安装 OneUptime 的那天。主管理员可以通过管理员仪表板页眉中的版本标签激活它；与网络隔离的安装则使用签名令牌激活。请参阅 [许可](/docs/self-hosted/enterprise#licensing)。
-5. **如果此安装将运行 Community Edition，而你的身份提供商通过 SCIM 取消预配用户，请在升级前检查谁拥有访问权限。** SCIM 取消预配会停止，因此你在身份提供商中移除的人会保留他们的 OneUptime 帐户；除非“Require SSO for login”适用于他们，否则任何仍能访问这些帐户邮箱的人都可以通过“忘记密码”设置密码并登录。请先移除这些用户：[从 Enterprise 切换到 Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
+4. **在 Enterprise Edition 上激活许可证。** 没有许可证的安装从其首次启动 Enterprise Edition 起获得 14 天的试用期——对升级来说，这一天是你升级的那天，而不是你第一次安装 OneUptime 的那天。主管理员可以通过管理员仪表板页眉中的版本标签激活它；与网络隔离的安装则使用签名令牌激活。请参阅 [许可](/docs/self-hosted/enterprise#许可)。
+5. **如果此安装将运行 Community Edition，而你的身份提供商通过 SCIM 取消预配用户，请在升级前检查谁拥有访问权限。** SCIM 取消预配会停止，因此你在身份提供商中移除的人会保留他们的 OneUptime 帐户；除非“Require SSO for login”适用于他们，否则任何仍能访问这些帐户邮箱的人都可以通过“忘记密码”设置密码并登录。请先移除这些用户：[从 Enterprise 切换到 Community](/docs/self-hosted/enterprise#从-enterprise-切换到-community)。
 6. **如果你使用 Ping、Port 或 SSL 监视器监视 IPv6 地址，请在升级后重新保存这些监视器。** 在 14 之前保存的目标可能被截断存储——请参阅 [IPv6 的 Ping、Port 和 SSL 监视器](#ipv6-的-pingport-和-ssl-监视器)。
 
 ### 版本：哪些变了，哪些没变
@@ -162,7 +162,7 @@ OneUptime 14 将应用程序分为两个版本，你拉取的镜像决定你运�
 - **你已有的许可证密钥会被接受**，作为“unverified”许可证：它的到期日和席位上限来自许可证服务器已经告知此安装的信息，并在该到期日之后同样获得 30 天的宽限期。今后签发的许可证都经过签名，由应用程序自行验证。此次升级不需要新的密钥。
 - **此安装从未记录过到期日的密钥** 在试用期内会继续工作，而不会停止。许可证服务器分别写入密钥和到期日，因此一个安装可能拥有从未被告知到期日的密钥。这样的安装与没有许可证的安装完全一样对待：在从首次启动 Enterprise Edition 起计算的 14 天试用期内，所有企业功能都能使用；试用期结束后，停止的功能与上面相同。许可证处于此状态时不强制执行席位上限，因为该安装持有的许可证记录本来就不完整。主管理员通过版本标签重新激活许可证，或每日许可证同步从 oneuptime.com 取回到期日，都会在无需重启的情况下将其恢复。
 
-完整的状态表见 [许可证过期或缺失时](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)。
+完整的状态表见 [许可证过期或缺失时](/docs/self-hosted/enterprise#许可证过期或缺失时)。
 
 ### Docker Compose：选择镜像标签
 

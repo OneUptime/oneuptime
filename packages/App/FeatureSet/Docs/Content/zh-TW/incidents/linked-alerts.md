@@ -170,7 +170,7 @@ sequenceDiagram
 
 取消勾選核取方塊，即可在不確認的情況下宣告。只要警示將維持未確認——核取方塊未勾選或被鎖定——表單就會這樣說明：「Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.」如果你確認了警示，卻沒有為事件選擇待命策略，**待命與角色** 步驟的摘要會指出：「The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.」
 
-**你需要有確認這些警示的權限。** 在宣告時確認它們需要 **Create Alert State Timeline** 和 **Edit Alert**（在警示本身的頁面上確認只需要前者：請參閱 [變更狀態](/docs/permissions/index#變更狀態)）：Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 兩者都有，而能夠從警示宣告事件的 Incident Admin 和 Incident Member 兩者都沒有。你在警示上的標籤和擁有者範圍也必須包含每個將被確認的警示——只檢查尚未確認的警示。已經確認或解決的警示不需要權限，也絕不會阻擋宣告。沒有這些權限時，核取方塊會被鎖定，提示會指出缺少的那個權限，而你仍然可以宣告事件。伺服器在建立任何東西之前，會對它將要確認的每個警示再檢查一次：如果你不能確認其中某個，就不會建立事件，表單會說明原因——取消勾選核取方塊後再送出一次。
+**你需要有確認這些警示的權限。** 在宣告時確認它們，所需的與在每個警示本身的頁面上確認它時相同：**Create Alert State Timeline**，而不需要 **Edit Alert**（請參閱 [變更狀態](/docs/permissions/index#變更狀態)）。Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 擁有該權限，而能夠從警示宣告事件的 Incident Admin 和 Incident Member 沒有。標籤、擁有者和私人警示會像在警示本身的頁面上一樣限制該權限：每個將被確認的警示都必須是你能讀取、且你的權限所及的警示——只檢查尚未確認的警示。已經確認或解決的警示不需要權限，也絕不會阻擋宣告。沒有該權限時，核取方塊會被鎖定，提示會指出該權限，而你仍然可以宣告事件。伺服器在建立任何東西之前，會對它將要確認的每個警示再檢查一次：如果你不能確認其中某個，就不會建立事件，表單會說明原因——取消勾選核取方塊後再送出一次。
 
 **專案需要一個已確認的警示狀態。** 每個專案一開始都有一個。如果你的專案沒有，就不會提供這個核取方塊。
 
@@ -205,7 +205,7 @@ curl -X POST https://oneuptime.com/api/incident \
 - 它是 `true` 或 `false` 以外的任何值；
 - 傳送它時沒有 `alertIdsToLink`；
 - 專案沒有已確認的警示狀態；
-- API 金鑰無法確認每一個尚未確認的警示——這需要 **Create Alert State Timeline** 和 **Edit Alert**，以及包含每一個這些警示的標籤範圍。
+- API 金鑰無法確認每一個尚未確認的警示——這需要 **Create Alert State Timeline**，以及能涵蓋每一個這些警示的標籤和擁有者範圍，與逐一確認這些警示時相同。
 
 API 金鑰不是使用者，所以用它確認的警示不會記在任何人名下，正如它的連結沒有 **連結者** 一樣。
 
@@ -278,7 +278,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 - **連結屬於它的事件。** 你能否看到一個連結，取決於你對其事件的存取權：事件上的標籤限制和擁有者範圍同樣適用於連結。
 - **連結只需要警示的讀取權限，而不需要編輯權限。** 當專案的已連結警示開關開啟時（新專案中預設如此），這就足以讓一個連結確認或解決警示——請參閱 [誰會推動已連結的警示](#誰會推動已連結的警示)。
 
-從警示宣告事件還需要建立事件的權限，而在宣告時確認其警示，需要對其中每個尚未確認的警示都有 **Create Alert State Timeline** 和 **Edit Alert**——請參閱 [宣告時確認警示](#宣告時確認警示)。在儀表板中，你缺少權限的操作會被鎖定，其提示會指出缺少的權限。這也包括對另一側的讀取權限：如果你不能讀取警示，**連結警示** 會被鎖定；如果你不能讀取事件，**連結事件** 和 **連結至事件** 會被鎖定。角色、細部權限、標籤和擁有者範圍如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
+從警示宣告事件還需要建立事件的權限，而在宣告時確認其警示，需要對其中每個尚未確認的警示都有 **Create Alert State Timeline**，與在每個警示本身的頁面上確認它時相同——請參閱 [宣告時確認警示](#宣告時確認警示)。在儀表板中，你缺少權限的操作會被鎖定，其提示會指出缺少的權限。這也包括對另一側的讀取權限：如果你不能讀取警示，**連結警示** 會被鎖定；如果你不能讀取事件，**連結事件** 和 **連結至事件** 會被鎖定。角色、細部權限、標籤和擁有者範圍如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
 ## 動態、Slack 和 Microsoft Teams
 

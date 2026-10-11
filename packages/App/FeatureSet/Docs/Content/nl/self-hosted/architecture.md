@@ -1,125 +1,85 @@
-# OneUptime Zelf-gehoste architectuur
+# Architectuur
 
-Dit diagram toont hoe OneUptime er doorgaans uitziet wanneer het zelf wordt gehost in uw omgeving (bijvoorbeeld in uw Kubernetes-cluster), inclusief hoe probes zowel interne als externe resources bewaken.
+Een zelf gehoste OneUptime-installatie bestaat uit een handvol containers: één ingress waar elk verzoek binnenkomt, één app-image dat het werk doet, probes die de controles van uw monitors uitvoeren en drie gegevensopslagen. Deze pagina laat zien hoe ze in elkaar passen, wat elk onderdeel doet en welke verbindingen uw netwerk oversteken.
 
-```mermaid
+```mermaid title="Een zelf gehoste OneUptime-installatie"
 flowchart TB
-  %% LAYOUT
-  %% Top: Users -> Ingress -> Web / API
-  %% Middle: Core services + Ingest pipeline
-  %% Bottom: Data stores
-
-  %% USERS / EDGE
-  U["End Users / Browsers"]
-
-  %% CLUSTER BOUNDARY
-  subgraph C["Customer Network (Self-hosted Kubernetes Cluster)"]
-    direction TB
-
-    subgraph Edge["Ingress & Routing"]
-      NGINX["NGINX Ingress (TLS)"]
+    People["Mensen en browsers"]
+    Senders["Telemetrieverzenders:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, agents"]
+    Targets["Wat u bewaakt:<br/>intern en openbaar"]
+    subgraph Install["Uw netwerk"]
+        direction TB
+        Ingress["Ingress<br/>(Nginx, TLS)"]
+        App["App<br/>dashboards, statuspagina's,<br/>API, ingest, achtergrondtaken"]
+        Probe["Probes"]
+        Runner["Runner"]
+        subgraph Data["Gegevensopslagen"]
+            direction LR
+            Postgres[("PostgreSQL<br/>configuratie<br/>en status")]
+            ClickHouse[("ClickHouse<br/>logs, metrics,<br/>traces")]
+            Valkey[("Valkey<br/>cache en<br/>wachtrijen")]
+        end
     end
-
-    subgraph Web["Web & API"]
-      direction TB
-      HOME["Home / Dashboard (UI)"]
-      STATUS["Status Pages (UI)"]
-      API["API Server"]
-      WORKER["Background Worker"]
-    end
-
-    subgraph Ingest["Ingest Pipeline"]
-      direction TB
-      PROBEINGEST["Probe Ingest"]
-      OTELINGEST["OpenTelemetry Ingest"]
-      FLUENTLOGS["Logs Ingest (Fluent Bit)"]
-      SERVERMONINGEST["Server Monitor Ingest"]
-      INCOMINGREQINGEST["Incoming Request Ingest"]
-    end
-
-    subgraph Probes["OneUptime Probes"]
-      direction TB
-      P1["Probe Pod(s) in your cluster"]
-      P2["Optional Probe VM/Container on your network"]
-    end
-
-    %% DATA STORES
-    subgraph Data["Data Stores"]
-      direction LR
-      PG[("PostgreSQL\n(config, state, metadata)")]
-      CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Valkey\n(cache, queues, sessions)")]
-    end
-
-  end
-
-  %% EXTERNAL / INTERNAL TARGETS
-  EXT["External Resources\n(public websites/APIs, SaaS)"]
-  INT["Internal Resources\n(private apps, DBs, services)"]
-
-  %% FLOWS: Edge
-  U -->|HTTPS| NGINX
-  NGINX --> HOME
-  NGINX --> STATUS
-  HOME -->|REST/gRPC| API
-  STATUS -->|REST/gRPC| API
-  NGINX --> API
-
-  %% FLOWS: Core services -> Data
-  API --> PG
-  API --> REDIS
-  API --> CH
-  WORKER --> PG
-  WORKER --> REDIS
-  WORKER --> CH
-
-  %% FLOWS: Ingest
-  P1 -->|monitoring results| PROBEINGEST
-  P2 -->|monitoring results| PROBEINGEST
-
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-
-  OTELCOLL["OTel Collector/Agents"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
-  SERVERAGENTS["Server Monitor Agents"] --> SERVERMONINGEST
-
-  %% Ingest flow to core processing
-  PROBEINGEST --> REDIS
-  OTELINGEST --> CH
-  FLUENTLOGS --> CH
-  SERVERMONINGEST --> CH
-  INCOMINGREQINGEST --> CH
-
-  %% Workers consume from queues and write to stores
-  REDIS --> WORKER
-
-  %% Notes / Legend
-  classDef store fill:#fef6e4,stroke:#d4a373,color:#333;
-  classDef edge fill:#e3f2fd,stroke:#64b5f6,color:#333;
-  classDef web fill:#e8f5e9,stroke:#81c784,color:#333;
-  classDef ingest fill:#f3e5f5,stroke:#ba68c8,color:#333;
-  classDef probe fill:#fff3e0,stroke:#ffb74d,color:#333;
-  classDef outside fill:#f5f5f5,stroke:#bdbdbd,color:#333,stroke-dasharray: 3 3;
-
-  class NGINX edge;
-  class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
-  class P1,P2 probe;
-  class PG,CH,REDIS store;
-  class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;
+    People -->|"HTTPS"| Ingress
+    Senders -->|"OTLP, HTTPS"| Ingress
+    Ingress --> App
+    Probe -->|"werk ophalen,<br/>resultaten sturen"| App
+    Runner -->|"taken claimen,<br/>resultaten sturen"| App
+    Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
+    App --> Postgres
+    App --> ClickHouse
+    App --> Valkey
 ```
 
-## Wat dit toont
+## Wat dit laat zien
 
-- Eindgebruikers krijgen toegang tot OneUptime via de Ingress (NGINX) van uw cluster, die routeert naar de UI en API.
-- Kerndiensten lezen/schrijven status naar PostgreSQL, Valkey (de BSD-gelicentieerde fork van Redis 7.2) en ClickHouse.
-- Probes kunnen draaien binnen uw cluster (aanbevolen) en/of elders op uw netwerk. Ze kunnen het volgende bewaken:
-  - Interne/privédiensten achter uw firewall.
-  - Externe/openbare resources op het internet.
-- Probe-resultaten worden verzonden naar Probe Ingest binnen uw cluster, in de wachtrij geplaatst via Valkey en verwerkt door de Achtergrondwerker in uw dataopslag.
-- Telemetrie (metrics/traces/logs) en server-/agentgegevens kunnen worden verwerkt via speciale ingest-diensten en opgeslagen in ClickHouse.
+- Mensen bereiken OneUptime via de **ingress**, die TLS afhandelt en elk verzoek naar de app stuurt: het Dashboard, statuspagina's, de API en elk ingest-eindpunt waar telemetrie naartoe wordt gestuurd.
+- De **app** leest en schrijft zijn status in PostgreSQL, bewaart telemetrie in ClickHouse en gebruikt Valkey (de BSD-gelicentieerde fork van Redis 7.2) als cache en voor de wachtrijen die zijn achtergrondtaken afwerken.
+- **Probes** kunnen binnen uw cluster draaien (aanbevolen) en/of elders in uw netwerk. Ze kunnen het volgende bewaken:
+  - Interne/privé-services achter uw firewall.
+  - Externe/openbare bronnen op internet.
+- Proberesultaten worden naar de app gestuurd, in Valkey in de wachtrij gezet en door de achtergrondtaken in uw gegevensopslagen verwerkt. Een probe elders in uw netwerk bereikt de app via de ingress, op uw OneUptime-URL.
+- Telemetrie (metrics, traces, logs en meer) wordt door dezelfde app opgenomen en in ClickHouse opgeslagen.
 
-> Opmerking: Als u externe PostgreSQL, Redis of ClickHouse gebruikt in plaats van de ingebouwde, wijzen de verbindingen van API/Worker/Ingest naar uw externe eindpunten. De logische stroom blijft hetzelfde.
+> [!NOTE]
+> Als u een externe PostgreSQL, Valkey (of Redis) of ClickHouse gebruikt in plaats van de meegeleverde, maakt de app in plaats daarvan verbinding met uw externe eindpunten. De logische stroom blijft hetzelfde.
+
+## De onderdelen
+
+| Onderdeel | Docker Compose-service | Helm-chart | Wat het doet |
+| --- | --- | --- | --- |
+| Ingress | `ingress` | `nginx` | Handelt TLS af, bedient uw hostnaam en de domeinen van uw statuspagina's en stuurt elk verzoek naar de app. |
+| App | `app` | `app` | Het Dashboard, statuspagina's, de API- en ingest-eindpunten en, tenzij u ze afsplitst, de achtergrondtaken. |
+| Worker | Onderdeel van `app` | `worker` (standaard uit) | De achtergrondtaken, in eigen pods, zodat zware wachtrijverwerking nooit concurreert met API-verzoeken. |
+| Telemetry writer | Onderdeel van `app` | `telemetryWriter` (standaard uit) | Een laag van vaste grootte die elke ClickHouse-insert uitvoert, zodat de inserts begrensd blijven hoe ver de workers ook schalen. |
+| Probe | `probe-1` | `probes` | Voert monitorcontroles uit en stuurt de resultaten terug. Elke meegeleverde probe is een globale probe die alle projecten kunnen gebruiken. |
+| Runner | `runner` | `runner` | De eigen Runner van de instantie, die AI-codecorrecties voor elk project kan uitvoeren. Runbook-stappen draaien op [Runners](/docs/runbooks/agents) die u installeert waar ze moeten draaien. |
+| PostgreSQL | `postgres` | `postgresql`, of `postgresOperator.cnpg` | Projecten, monitors, incidenten, gebruikers en elke andere instelling en status. |
+| ClickHouse | `clickhouse` | `clickhouse`, of `clickhouseOperator.altinity` | Logs, metrics, traces, exceptions, profielen en monitorlogs. |
+| Valkey | `valkey` | `valkey` | De cache, de takenwachtrijen en kortlevende status zoals openstaande push-ontvangstbewijzen. |
+
+Alle rollen van de app zijn hetzelfde image: Docker Compose draait ze in één `app`-container, en de Helm-chart kan de worker en de telemetry writer als eigen deployments draaien. Hoe u elke laag dimensioneert, leest u in [Dimensionering en capaciteitsplanning](/docs/installation/sizing).
+
+## Verbindingen uit uw netwerk
+
+De app maakt alleen verbinding naar buiten voor wat u inschakelt. Elk van deze verbindingen is optioneel, en voor elk is er een pagina die de exacte adressen noemt die u moet toestaan:
+
+| Uitgaande verbinding | Gebruikt voor | Meer lezen |
+| --- | --- | --- |
+| E-mail (SMTP, of de API van SendGrid) | Meldingen en uitnodigingen | [SMTP](/docs/emails/smtp) |
+| Twilio | Sms en telefoongesprekken | [Twilio-integratie](/docs/self-hosted/twilio-integration) |
+| De push-relay van OneUptime, of Expo | Mobiele pushmeldingen | [Pushmeldingen](/docs/self-hosted/push-notifications) |
+| Slack en Microsoft Teams | Meldingen en acties in de werkruimte | [Slack-integratie](/docs/self-hosted/slack-integration) |
+| Een LLM-provider, zoals OpenAI, Anthropic, Microsoft Foundry of een model dat u zelf draait | OneUptime AI | [LLM-providers](/docs/ai/llm-provider) |
+| `oneuptime.com` | Een Enterprise-licentie online activeren | [Enterprise Edition](/docs/self-hosted/enterprise) |
+
+Verbindingen in de andere richting – SendGrid dat inkomende e-mail aflevert, Slack en Microsoft Teams die terugbellen – vereisen dat de ingress vanaf internet bereikbaar is. Welke privéadressen de app en de probes mogen bereiken, bepaalt u zelf: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
+
+## Volgende stappen
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Installeer alle onderdelen op één machine.
+- [Dimensionering en capaciteitsplanning](/docs/installation/sizing): Hoeveel CPU, geheugen en schijfruimte elke laag nodig heeft.
+- [Eigen probes](/docs/probe/custom-probe): Draai een probe binnen een ander netwerk.
+- [Enterprise Edition](/docs/self-hosted/enterprise): Wat de Enterprise-images toevoegen en hoe licenties werken.
+:::

@@ -99,7 +99,7 @@ OneUptime はアプリケーションを 2 つのイメージで提供するよ�
 - **SCIM を使わない Community Edition:** 何もありません。いつもどおりアップグレードしてください。
 - **`image.type: enterprise-edition` を使う Helm:** 何もありません。チャートはすでに `enterprise-` イメージを取得しており、それにエンタープライズモジュールが含まれるようになりました。
 - **`IS_ENTERPRISE_EDITION=true` を使う Docker Compose:** アップグレード時に `config.env` で `APP_TAG=enterprise-release`（または `enterprise-<version>`）を設定して Enterprise のイメージに切り替えます。`APP_TAG=release` は Community のイメージで、`IS_ENTERPRISE_EDITION=true` はもう何も有効にしません。`IS_ENTERPRISE_EDITION=true` である限り、`npm run update` がこの変更を代わりに行い（`release` は `enterprise-release` に、固定した `13.0.7` は `enterprise-13.0.7` になります）、変更内容を表示します。Community のイメージで `IS_ENTERPRISE_EDITION=true` が設定されていると、アプリケーションは SCIM プロビジョニングと監査ログの記録を黙って止めるのではなく、 **起動を拒否する** ようになりました。エラーには、Enterprise Edition を使い続けるなら `APP_TAG=enterprise-<version>`、Community Edition を実行するなら `IS_ENTERPRISE_EDITION=false` と、設定すべき内容が示されます。
-- **SCIM を設定済みの Community のイメージ:** このアップグレードで、デプロビジョニングを含め SCIM プロビジョニングが止まります。使い続けるには Enterprise のイメージに切り替えます。そうしない場合は、アップグレードの前に [Enterprise から Community への切り替え](/docs/self-hosted/enterprise#switching-from-enterprise-to-community) を読んでください。何が止まるか、誰を先に削除すべきかが説明されています。Community Edition を実行するには、`IS_ENTERPRISE_EDITION=false` も設定します。シングルサインオンには影響しません。Community のイメージもシングルサインオンを提供します。
+- **SCIM を設定済みの Community のイメージ:** このアップグレードで、デプロビジョニングを含め SCIM プロビジョニングが止まります。使い続けるには Enterprise のイメージに切り替えます。そうしない場合は、アップグレードの前に [Enterprise から Community への切り替え](/docs/self-hosted/enterprise#enterprise-から-community-への切り替え) を読んでください。何が止まるか、誰を先に削除すべきかが説明されています。Community Edition を実行するには、`IS_ENTERPRISE_EDITION=false` も設定します。シングルサインオンには影響しません。Community のイメージもシングルサインオンを提供します。
 
 設定が削除されることはなく、どちらの方向にエディションを切り替えてもマイグレーションは不要です。
 
@@ -108,8 +108,8 @@ OneUptime はアプリケーションを 2 つのイメージで提供するよ�
 Enterprise Edition は自身のライセンスを確認するようになりました。
 
 - **ライセンスキーのあるインストール** は動作を続けます。起動時と 1 日 1 回、OneUptime でライセンスを確認します。ライセンスの期限が切れても、30 日間の猶予期間はすべてが動作し続け、その後はライセンスのないインストールと同じことが起こります。
-- **ライセンスのないインストール**（たとえば `IS_ENTERPRISE_EDITION=true` だけで Enterprise Edition を実行していたもの）は、このバージョンの初回起動から 14 日間の試用期間を得ます。 **SCIM または監査ログを使っている場合は、試用期間が終わる前にライセンスを有効化してください。** 試用期間の後は SCIM プロビジョニングが止まり、監査ログの記録が止まります。エンタープライズの設定も読み取り専用になり、エンタープライズ向け Health ダッシュボードはロックされます。シングルサインオンには影響しません。ライセンスを有効化すれば、再起動なしですぐにすべてが再開します。試用期間は評価用です。Enterprise Edition を本番環境で使うには OneUptime Enterprise のサブスクリプションが必要です。[ライセンスの期限切れまたは未設定のとき](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) を参照してください。
-- **ネットワークから隔離されたインストール** は、キーの代わりに署名付きライセンストークンで有効化できます。[オフラインでの有効化](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs) を参照してください。
+- **ライセンスのないインストール**（たとえば `IS_ENTERPRISE_EDITION=true` だけで Enterprise Edition を実行していたもの）は、このバージョンの初回起動から 14 日間の試用期間を得ます。 **SCIM または監査ログを使っている場合は、試用期間が終わる前にライセンスを有効化してください。** 試用期間の後は SCIM プロビジョニングが止まり、監査ログの記録が止まります。エンタープライズの設定も読み取り専用になり、エンタープライズ向け Health ダッシュボードはロックされます。シングルサインオンには影響しません。ライセンスを有効化すれば、再起動なしですぐにすべてが再開します。試用期間は評価用です。Enterprise Edition を本番環境で使うには OneUptime Enterprise のサブスクリプションが必要です。[ライセンスの期限切れまたは未設定のとき](/docs/self-hosted/enterprise#ライセンスの期限切れまたは未設定のとき) を参照してください。
+- **ネットワークから隔離されたインストール** は、キーの代わりに署名付きライセンストークンで有効化できます。[オフラインでの有効化](/docs/self-hosted/enterprise#オフラインでの有効化-ネットワークから隔離されたインストール) を参照してください。
 
 ### OneUptime Cloud のお客様
 
@@ -135,8 +135,8 @@ OneUptime 14 はアプリケーションを 2 つのエディションに分け�
 1. **このインストールで実行するエディションを決めます。** SCIM プロビジョニング、チームのコンプライアンス設定、監査ログを使っている場合、または管理者ダッシュボードの **Health** ダッシュボードが必要な場合は Enterprise Edition です。それ以外は決めることはありません。Community Edition はすでにお使いのもので、SAML SSO と OpenID Connect を含みます。
 2. **Helm では、値ファイルでエディションを設定します:** `image.type: enterprise-edition`（既定値は `community-edition`）。`image.tag` には触れないでください。チャートが自動で `enterprise-` という接頭辞を付けるため、`image.tag: release` は `oneuptime/app:enterprise-release` を取得します。この値は新しいものではありません。すでに `enterprise-edition` を使っている場合は、変更する必要はありません。すでに取得しているタグに `ee/` が含まれるようになりました。
 3. **Docker Compose では、`config.env` で `APP_TAG=enterprise-release` を設定します**（バージョンを固定するには `enterprise-<version>`）。`APP_TAG=release` は Community のイメージです。13 のインストールを止める要因はこれだけです。13 では、Compose での Enterprise のインストールは `APP_TAG=release` と `IS_ENTERPRISE_EDITION=true` の組み合わせでしたが、この組み合わせは、SCIM プロビジョニングと監査ログの記録を黙って止めた Community Edition として起動する代わりに、 **起動を拒否する** ようになりました。`IS_ENTERPRISE_EDITION=true` である限り、`npm run update` が代わりに `APP_TAG` を書き換え（`release` は `enterprise-release` に、固定した `13.0.8` は `enterprise-13.0.8` になります）、変更内容を表示します。代わりにイメージを手動で取得する場合は、先に自分で `APP_TAG` を設定してください。
-4. **Enterprise Edition では、ライセンスを有効化します。** ライセンスのないインストールは、Enterprise Edition の初回起動から数えて 14 日間の試用期間を得ます。アップグレードの場合、これは OneUptime を最初にインストールした日ではなく、アップグレードした日です。マスター管理者が管理者ダッシュボードのヘッダーにあるエディションラベルから有効化します。ネットワークから隔離されたインストールは、代わりに署名付きトークンで有効化します。[ライセンス](/docs/self-hosted/enterprise#licensing) を参照してください。
-5. **ID プロバイダーが SCIM でユーザーをデプロビジョニングしている状態で、このインストールを Community Edition で実行する場合は、アップグレードの前にアクセス権を持つユーザーを確認してください。** SCIM のデプロビジョニングが止まるため、ID プロバイダーで削除したユーザーも OneUptime のアカウントを保持します。そのユーザーに「Require SSO for login」が適用されていない限り、そのアカウントのメールボックスにまだアクセスできる人は、「パスワードを忘れた場合」からパスワードを設定してサインインできます。先にそのユーザーを削除してください: [Enterprise から Community への切り替え](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
+4. **Enterprise Edition では、ライセンスを有効化します。** ライセンスのないインストールは、Enterprise Edition の初回起動から数えて 14 日間の試用期間を得ます。アップグレードの場合、これは OneUptime を最初にインストールした日ではなく、アップグレードした日です。マスター管理者が管理者ダッシュボードのヘッダーにあるエディションラベルから有効化します。ネットワークから隔離されたインストールは、代わりに署名付きトークンで有効化します。[ライセンス](/docs/self-hosted/enterprise#ライセンス) を参照してください。
+5. **ID プロバイダーが SCIM でユーザーをデプロビジョニングしている状態で、このインストールを Community Edition で実行する場合は、アップグレードの前にアクセス権を持つユーザーを確認してください。** SCIM のデプロビジョニングが止まるため、ID プロバイダーで削除したユーザーも OneUptime のアカウントを保持します。そのユーザーに「Require SSO for login」が適用されていない限り、そのアカウントのメールボックスにまだアクセスできる人は、「パスワードを忘れた場合」からパスワードを設定してサインインできます。先にそのユーザーを削除してください: [Enterprise から Community への切り替え](/docs/self-hosted/enterprise#enterprise-から-community-への切り替え)。
 6. **Ping、Port、SSL モニターで IPv6 アドレスを監視している場合は、アップグレード後にそれらのモニターを保存し直してください。** 14 より前に保存したターゲットは、切り詰められて保存されている可能性があります。[IPv6 の Ping、Port、SSL モニター](#ipv6-の-pingportssl-モニター) を参照してください。
 
 ### エディション: 変わったことと変わらないこと
@@ -162,7 +162,7 @@ OneUptime 14 はアプリケーションを 2 つのエディションに分け�
 - **すでにお持ちのライセンスキーは受け付けられます**。「unverified」のライセンスとして扱われ、期限日と席数の上限はライセンスサーバーがこのインストールにすでに伝えた内容に基づき、その期限の後に同じ 30 日間の猶予期間を得ます。今後発行されるライセンスは署名付きで、アプリケーション自体が検証します。このアップグレードのために新しいキーは必要ありません。
 - **このインストールが期限を一度も記録していないキー** は、止まらずに試用期間中は動作し続けます。ライセンスサーバーはキーと期限日を別々に書き込むため、期限を一度も伝えられていないキーを持つインストールがありえます。そのようなインストールは、ライセンスのないインストールとまったく同じに扱われます。Enterprise Edition の初回起動から数えて 14 日間の試用期間中はすべてのエンタープライズ機能が動作し、試用期間の後は上と同じものが止まります。ライセンスがこの状態の間は、インストールが持つライセンスの記録がすでに不完全なため、席数の上限は適用されません。マスター管理者がエディションラベルからライセンスを有効化し直すか、毎日のライセンス同期が oneuptime.com から期限を取得すれば、再起動なしで元に戻ります。
 
-状態の完全な表は [ライセンスの期限切れまたは未設定のとき](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) にあります。
+状態の完全な表は [ライセンスの期限切れまたは未設定のとき](/docs/self-hosted/enterprise#ライセンスの期限切れまたは未設定のとき) にあります。
 
 ### Docker Compose: イメージタグを選ぶ
 
