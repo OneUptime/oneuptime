@@ -325,12 +325,10 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "slo/burn-rate-alerts": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "slo/error-budget": {
-    uniqueHeadings: ["en", "fa"],
-    codeLanguage: EN,
+    uniqueHeadings: ["fa"],
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "slo/feed-and-audit-logs": {
