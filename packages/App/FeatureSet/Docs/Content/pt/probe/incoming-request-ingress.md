@@ -1,37 +1,56 @@
-# Ingress de Requisição de Entrada
+# Ingress de requisições recebidas
 
-Uma Probe Personalizada pode opcionalmente executar um **listener HTTP de entrada** que aceita chamadas de `heartbeat` e `incoming-request` de dentro da sua rede privada e as encaminha para o OneUptime. Isso permite que serviços sem **acesso à internet de saída** ainda se reportem a um [Monitor de Requisição de Entrada](/docs/monitor/incoming-request-monitor) enviando a requisição para uma probe na rede local em vez de `oneuptime.com` diretamente.
+Um serviço sem acesso à internet ainda pode enviar heartbeats a um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor). Em vez disso, ele os envia a uma [sonda personalizada](/docs/probe/custom-probe) na própria rede, e a sonda os repassa ao OneUptime.
 
-## Visão Geral
+:::cards
+- [Como funciona](#como-funciona): Do seu serviço ao monitor, passando pela sonda.
+- [Ativar o listener](#ativar-o-listener): Uma única configuração na sonda, para Docker, Docker Compose ou Kubernetes.
+- [Enviar requisições à sonda](#enviar-requisições-à-sonda): Trocar a URL para a qual seu serviço envia, e nada mais.
+- [Solução de problemas](#solução-de-problemas): O que a sonda registra quando uma requisição não passa.
+:::
 
-Quando `PROBE_INGRESS_PORT` está definido, a probe vincula um listener HTTP adicional nessa porta. O listener aceita os mesmos caminhos de URL de `secretkey` dos endpoints públicos do OneUptime:
+## Como funciona
 
-- `POST /heartbeat/:secretkey`
-- `GET /heartbeat/:secretkey`
-- `POST /incoming-request/:secretkey`
-- `GET /incoming-request/:secretkey`
+```mermaid title="Um heartbeat passando pela sonda"
+flowchart TB
+    subgraph net["Sua rede privada"]
+        direction LR
+        S["Serviço sem<br/>acesso à internet"] -->|"HTTP"| P["Sonda personalizada"]
+    end
+    P -->|"HTTPS"| O["OneUptime"]
+    O --> M["Monitor de requisições recebidas"]
+```
 
-A probe então faz proxy da requisição para a sua instância do OneUptime, preservando o método, o corpo e os cabeçalhos de requisição (menos cabeçalhos hop-by-hop como `Host`, `Connection`, `Content-Length`, etc.). A probe anexa automaticamente um cabeçalho `OneUptime-Probe-Id` para que a requisição seja atribuída à probe de encaminhamento.
+1. **Seu serviço envia a requisição à sonda.** O mesmo `GET` ou `POST`, com a mesma chave secreta, que enviaria ao OneUptime, para uma porta em que a sonda escuta.
+2. **A sonda responde na hora.** Ela responde `200` antes de repassar a requisição, então seu serviço nunca espera pelo OneUptime.
+3. **A sonda a repassa.** Ela envia a requisição ao OneUptime com o método, os cabeçalhos e o corpo, e adiciona um cabeçalho `OneUptime-Probe-Id` que identifica a sonda.
+4. **O OneUptime a lê como sempre.** Os critérios do monitor veem a requisição como se o serviço a tivesse enviado diretamente.
 
-O listener é executado em uma **porta dedicada**, separada dos endpoints internos de status/métricas da probe, para que você possa expô-lo à sua rede privada sem expor mais nada.
+O listener roda numa porta própria, separada das verificações de saúde da sonda, então você pode abri-lo para a sua rede privada sem abrir mais nada.
 
-## Quando usar isso
+## Quando usar
 
-Use o listener de ingress quando:
+Use o listener quando:
 
-- Seus serviços executam em um segmento de rede isolado sem acesso HTTPS de saída
-- Você precisa manter todo o tráfego de monitoramento dentro do seu VPC / rede on-premises
-- Você quer um único ponto de egress — a probe — que tenha permissão para alcançar o OneUptime
-- Você já implantou uma [Probe Personalizada](/docs/probe/custom-probe) e quer reutilizá-la para heartbeats de entrada
+- Seus serviços rodam num segmento de rede isolado sem acesso HTTPS de saída
+- Você precisa manter todo o tráfego de monitoramento dentro da sua VPC ou rede local
+- Você quer um único ponto de saída, a sonda, autorizado a alcançar o OneUptime
+- Você já implantou uma [sonda personalizada](/docs/probe/custom-probe) e quer reaproveitá-la para heartbeats recebidos
 
-Se seus serviços já podem alcançar `https://oneuptime.com` (ou sua URL auto-hospedada) diretamente, você **não** precisa deste recurso — chame a URL de heartbeat diretamente do serviço.
+Se seus serviços já conseguem alcançar `https://oneuptime.com` (ou sua URL auto-hospedada) diretamente, você **não** precisa deste recurso: chame a URL de heartbeat direto do serviço.
 
-## Habilitando o listener de ingress
+## Antes de começar
 
-Defina `PROBE_INGRESS_PORT` para a porta à qual você quer que o listener seja vinculado. Qualquer valor maior que `0` habilita o listener; deixar não definido (ou `0`) o desabilita.
+- **Uma sonda personalizada em execução.** O **Status** dela mostra **Conectado**. Veja [Sondas personalizadas](/docs/probe/custom-probe) para instalar uma.
+- **Um monitor de requisições recebidas.** A URL de heartbeat dele contém a chave secreta que seu serviço envia: veja [Monitor de requisições recebidas](/docs/monitor/incoming-request-monitor).
+- **Uma porta no host da sonda que seus serviços alcançam.** Os exemplos usam `3875`.
 
-### Docker
+## Ativar o listener
 
+Defina `PROBE_INGRESS_PORT` com a porta que o listener deve usar. Qualquer valor maior que `0` o ativa; sem definir, ou `0`, o deixa desativado.
+
+:::tabs
+@tab Docker
 ```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
@@ -41,23 +60,9 @@ docker run --name oneuptime-probe --network host \
   -d oneuptime/probe:release
 ```
 
-Se você não estiver usando `--network host`, publique a porta de ingress explicitamente:
-
-```bash
-docker run --name oneuptime-probe \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e PROBE_INGRESS_PORT=3875 \
-  -p 3875:3875 \
-  -d oneuptime/probe:release
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-
+Sem `--network host`, publique a porta com `-p 3875:3875`.
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -67,14 +72,13 @@ services:
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
       - PROBE_INGRESS_PORT=3875
-    ports:
-      - "3875:3875"
+    network_mode: host
     restart: always
 ```
 
-### Kubernetes
-
-```yaml
+Sem `network_mode: host`, publique a porta em `ports:` como `"3875:3875"`.
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -118,25 +122,26 @@ spec:
   type: ClusterIP
 ```
 
-Os serviços internos podem então enviar heartbeats para `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+Os serviços do cluster então enviam para `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+:::
 
-## Enviando requisições para a probe
+Quando o listener está no ar, o log da sonda diz `Probe ingress listener started on port 3875 (heartbeat / incoming-request endpoints)`.
 
-Substitua a URL de heartbeat pública:
+## Enviar requisições à sonda
 
-```
+Seu serviço envia para a sonda em vez do OneUptime. Substitua a URL pública de heartbeat:
+
+```text
 https://oneuptime.com/heartbeat/<secret-key>
 ```
 
-pela URL de ingress da probe:
+pela URL de ingress da sonda:
 
-```
+```text
 http://<probe-host>:<PROBE_INGRESS_PORT>/heartbeat/<secret-key>
 ```
 
-O caminho, método, corpo e cabeçalhos são idênticos, portanto, qualquer código de cliente existente só precisa alterar a URL base.
-
-### Exemplos
+O caminho, o método, o corpo e os cabeçalhos são idênticos no resto, então qualquer código cliente existente só precisa trocar a URL base. A sonda também aceita `/incoming-request/<secret-key>`, que funciona do mesmo jeito.
 
 ```bash
 # GET heartbeat
@@ -151,39 +156,60 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 */5 * * * * curl -s http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
 
-## Comportamento de encaminhamento
+## Como as requisições são repassadas
 
-- **Resposta síncrona, encaminhamento assíncrono.** A probe reconhece a requisição de entrada imediatamente com um `200` e encaminha para o OneUptime em segundo plano. Seu serviço não precisa aguardar a conclusão do encaminhamento.
-- **Cabeçalhos são preservados.** Todos os cabeçalhos exceto os hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) são passados. A probe adiciona um cabeçalho `OneUptime-Probe-Id` se identificando.
-- **O corpo é preservado.** Payloads JSON, URL-encoded e `application/octet-stream` bruto até **50 MB** são aceitos.
-- **Tentativas com backoff.** Se o encaminhamento falhar, a probe tenta novamente até `PROBE_INGRESS_FORWARD_RETRY_LIMIT` vezes com backoff exponencial (2s, 4s, 8s, limitado a 15s).
-- **Ciente de proxy.** Se a própria probe estiver configurada com `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`, as requisições encaminhadas passarão pelo proxy.
+| O quê | Como a sonda lida com isso |
+| --- | --- |
+| A resposta | `200` com um objeto JSON vazio (`{}`), enviada antes de a requisição ser repassada. Como no OneUptime, ela é enviada aconteça o que acontecer depois: uma chave secreta errada também a recebe. |
+| Os métodos | `POST` é repassado como `POST`. `GET`, e `HEAD`, são repassados como `GET`. Os outros métodos recebem um `404` da sonda. |
+| Os cabeçalhos | Todos, exceto os hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). A sonda adiciona `OneUptime-Probe-Id`. |
+| O corpo | Corpos JSON e de formulário de até 50 MB, como quando você envia direto ao OneUptime. Como lá, qualquer outro corpo chega vazio ao monitor. |
+| As novas tentativas | Quando um repasse falha, a sonda tenta de novo até `PROBE_INGRESS_FORWARD_RETRY_LIMIT` vezes, esperando 2 s, depois 4 s, depois 8 s, e nunca mais de 15 s. Depois registra a falha e descarta a requisição. |
+| Os proxies | O repasse passa pelo proxy da sonda quando `HTTP_PROXY_URL` ou `HTTPS_PROXY_URL` está definida. |
+| Para onde vai | `ONEUPTIME_URL` seguida de `/incoming-request-ingest/incoming-request/<secret-key>`. |
 
 ## Variáveis de ambiente
 
-| Variável                            | Padrão                        | Descrição                                                                                                         |
-| ----------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `PROBE_INGRESS_PORT`                | _não definido_ (desabilitado) | Porta à qual o listener de entrada é vinculado. Qualquer valor `> 0` habilita o ingress.                          |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                       | Timeout (ms) para cada tentativa de encaminhamento para o OneUptime. Mínimo `1000`.                               |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                           | Número de tentativas antes de a probe desistir de um encaminhamento. Defina como `0` para desabilitar tentativas. |
+| Variável | Padrão | O que faz |
+| --- | --- | --- |
+| `PROBE_INGRESS_PORT` | sem definir (desativado) | A porta que o listener usa. Qualquer valor maior que `0` o ativa. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Quanto cada repasse ao OneUptime pode demorar, em milissegundos. Um valor abaixo de `1000` volta ao padrão. |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Quantas vezes um repasse que falhou é tentado de novo. `0` desativa as novas tentativas. |
 
-As variáveis padrão de probe (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variáveis de proxy) todas se aplicam — consulte [Probes Personalizadas](/docs/probe/custom-probe) para a lista completa.
+As variáveis normais da sonda (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` e as variáveis de proxy) valem todas: veja [Sondas personalizadas](/docs/probe/custom-probe) para a lista completa.
 
 ## Considerações de segurança
 
-- **O endpoint não tem autenticação por design** — a chave secreta no caminho da URL _é_ a autenticação, assim como no endpoint público `oneuptime.com`. Trate a chave secreta como uma credencial.
-- **Vincule apenas a uma interface privada.** O listener de ingress não deve ser acessível pela internet pública. Use uma política de rede, regra de firewall ou serviço `ClusterIP` para restringir o acesso.
-- **Use terminação HTTPS se precisar de criptografia em trânsito.** O listener da probe fala HTTP simples. Coloque-o atrás de um balanceador de carga interno / controlador de ingress se precisar de TLS na conexão de entrada. A etapa de encaminhamento da probe → OneUptime sempre usa HTTPS (assumindo que `ONEUPTIME_URL` seja `https://`).
-- **Limites de recursos.** O listener aceita corpos de requisição de até 50 MB. Se precisar de um limite mais restrito, coloque um proxy reverso na frente.
+- **O endpoint não tem autenticação, de propósito**: a chave secreta no caminho da URL *é* a autenticação, assim como no endpoint público `oneuptime.com`. Trate a chave secreta como uma credencial.
+- **Mantenha o listener na sua rede privada.** Ele não deve ser alcançável pela internet. Use uma network policy, uma regra de firewall ou um serviço `ClusterIP` para limitar quem pode alcançá-lo.
+- **Coloque TLS na frente se precisar de criptografia na sua rede.** O listener fala HTTP simples. Coloque-o atrás de um balanceador de carga interno ou de um ingress controller para ter TLS nesse trecho. O repasse da sonda ao OneUptime usa HTTPS quando `ONEUPTIME_URL` começa com `https://`.
+- **Limite você mesmo o tamanho do corpo se 50 MB for demais.** Coloque na frente do listener um proxy reverso com um limite menor.
 
-## Solução de Problemas
+## Solução de problemas
 
-- **Probe registra `Probe ingress listener started on port <port>` na inicialização** — confirma que o listener está ativo. Se você não ver esta linha, `PROBE_INGRESS_PORT` está não definido, é `0` ou é inválido.
-- **`Probe ingress: failed to forward to <url> after N attempts`** — a probe não conseguiu alcançar o OneUptime. Verifique a conectividade de saída da probe, as configurações de proxy e o valor de `ONEUPTIME_URL`.
-- **`Probe ingress: probe ID not available, forwarding without it`** — a probe ainda não se registrou. O encaminhamento ainda é bem-sucedido; o heartbeat simplesmente não será atribuído a uma probe.
-- **Heartbeat aparece no OneUptime mas não via a probe** — confirme se seu serviço está atingindo `http://<probe-host>:<port>/...` e não a URL pública. Uma entrada mal configurada de DNS ou `/etc/hosts` é a causa usual.
+:::details O log da sonda nunca diz que o listener iniciou
+`PROBE_INGRESS_PORT` não está definida, vale `0` ou não é um número. Defina um número de porta e reinicie a sonda. A linha de log é `Probe ingress listener started on port <port> (heartbeat / incoming-request endpoints)`.
+:::
 
-## Relacionado
+:::details A sonda registra `Probe ingress: failed to forward to <url> after N attempts`
+A sonda não conseguiu alcançar o OneUptime, nem depois das novas tentativas. Verifique a conectividade de saída da sonda, as configurações de proxy e o valor de `ONEUPTIME_URL`. Se a sonda também mostra **Desconectado**, veja [Sondas personalizadas](/docs/probe/custom-probe) para descobrir onde as requisições dela param.
+:::
 
-- [Probes Personalizadas](/docs/probe/custom-probe)
-- [Monitor de Requisição de Entrada](/docs/monitor/incoming-request-monitor)
+:::details A sonda registra `Probe ingress: probe ID not available, forwarding without it`
+A sonda ainda não terminou de se conectar ao OneUptime, então repassa a requisição sem o cabeçalho `OneUptime-Probe-Id`. A requisição chega ao monitor mesmo assim.
+:::
+
+:::details O monitor recebe as requisições, mas não pela sonda
+Seu serviço ainda envia para a URL pública. Confira se ele envia para `http://<probe-host>:<port>/...`: um nome DNS ou uma entrada em `/etc/hosts` que aponta para outro lugar é a causa habitual.
+:::
+
+:::details O monitor não recebe nada e a sonda não registra nada
+A requisição nunca chegou à sonda. Confira se o serviço alcança o host da sonda na porta: uma regra de firewall, uma porta não publicada ou um Service do Kubernetes que não seleciona o pod da sonda.
+:::
+
+## Próximos passos
+
+:::cards
+- [Monitor de requisições recebidas](/docs/monitor/incoming-request-monitor): Decidir o que conta como um heartbeat saudável.
+- [Sondas personalizadas](/docs/probe/custom-probe): Instalar a sonda, e cada configuração que ela lê.
+:::
