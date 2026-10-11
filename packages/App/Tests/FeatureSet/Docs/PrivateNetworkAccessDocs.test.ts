@@ -51,12 +51,24 @@ const ADMIN_DASHBOARD_LOCALES_DIR: string = path.join(
   "App/FeatureSet/AdminDashboard/src/Locales",
 );
 
-// The guide quotes the dashboards in English in these languages.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
-
 // How each language's guide names the ranges that stay refused.
 const STILL_REFUSED: Record<string, string> = {
   en: "loopback and link-local",
+  de: "Loopback und Link-Local",
+  fr: "loopback et link-local",
+  es: "loopback y link-local",
+  it: "loopback e link-local",
+  pt: "loopback e link-local",
+  nl: "loopback en link-local",
+  da: "loopback og link-local",
+  no: "loopback og link-local",
+  sv: "loopback och link-local",
+  ru: "loopback и link-local",
+  ja: "ループバックとリンクローカル",
+  ko: "루프백과 링크 로컬",
+  "zh-CN": "环回和链路本地",
+  "zh-TW": "回送和連結本機",
+  hi: "लूपबैक और लिंक-लोकल",
   fa: "بازگشتی و محلی-پیوند",
 };
 
@@ -111,12 +123,9 @@ function readSource(relativePath: string): string {
 
 // What the Admin Dashboard draws for a label, by its key, in that language.
 function adminDashboardLabel(language: string, key: string): string {
-  const locale: string = ENGLISH_LABEL_LANGUAGES.includes(language)
-    ? "en"
-    : language;
   let label: unknown = JSON.parse(
     fs.readFileSync(
-      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${locale}.json`),
+      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${language}.json`),
       "utf8",
     ),
   );

@@ -385,6 +385,24 @@ const codeFences: (markdown: string) => Array<CodeFence> = (
   return fences;
 };
 
+/*
+ * A diagram's labels are prose, which a translation words in its own
+ * language; every other fence is code an operator copies.
+ */
+const isDiagram: (fence: CodeFence) => boolean = (
+  fence: CodeFence,
+): boolean => {
+  return fence.language === "mermaid";
+};
+
+const codeBlocks: (markdown: string) => Array<CodeFence> = (
+  markdown: string,
+): Array<CodeFence> => {
+  return codeFences(markdown).filter((fence: CodeFence) => {
+    return !isDiagram(fence);
+  });
+};
+
 const FENCE_LINE: RegExp = /^\s*```/;
 
 const headingLevels: (markdown: string) => Array<number> = (
@@ -1205,7 +1223,20 @@ describe("private network monitors across deployment surfaces (issue #3879)", ()
 
   describe("the fa translation of private-network-access", () => {
     test("keeps every code block byte-identical to en", () => {
-      expect(codeFences(docsContent.fa)).toEqual(codeFences(docsContent.en));
+      expect(codeBlocks(docsContent.en).length).toBeGreaterThan(0);
+      expect(codeBlocks(docsContent.fa)).toEqual(codeBlocks(docsContent.en));
+    });
+
+    test("draws as many diagrams as en", () => {
+      const diagrams: (markdown: string) => Array<CodeFence> = (
+        markdown: string,
+      ): Array<CodeFence> => {
+        return codeFences(markdown).filter(isDiagram);
+      };
+
+      expect(diagrams(docsContent.fa).length).toBe(
+        diagrams(docsContent.en).length,
+      );
     });
 
     test("keeps every quoted error string byte-identical to en", () => {
