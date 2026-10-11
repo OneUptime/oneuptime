@@ -22,7 +22,9 @@
  *   - its walk reads markup exactly as replaceHtmlMarkup (Common/Types/
  *     HtmlMarkup) does when it reads "<" as a browser does
  *     (lessThanAsText): a note an integration wrote can hold a "<" that is
- *     text, "latency < 200ms";
+ *     text, "latency < 200ms"; and, as a browser does, it reads a script or
+ *     a style element whole (rawTextElements). The walk is the section the
+ *     create-from-case scripts carry too (DynamicsCaseDescription.test.ts);
  *   - a note with no tag is plain text: only its entities are read;
  *   - entities are read once, after the walk;
  *   - what came from Dynamics 365 is placed with asWritten, which every
@@ -35,7 +37,7 @@
  */
 
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
-import { removeHtmlMarkup, replaceHtmlMarkup } from "../../../Types/HtmlMarkup";
+import { replaceHtmlMarkup } from "../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../Types/JSON";
 import { ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER } from "../../../Types/Workflow/Templates";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
@@ -106,7 +108,7 @@ const CASE_URL: string = `${DYNAMICS_URL}/main.aspx?pagetype=entityrecord&etn=in
 const HEADER: string = `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: Sam Okafor added a note to case [${CASE_NUMBER}](${CASE_URL}).`;
 
 // Where the script's sections start.
-const READING_SECTION: string = "// ---- Reading a note's HTML ----";
+const READING_SECTION: string = "// ---- Reading rich text ----";
 const STEP_SECTION: string = "// ---- Reading the note ----";
 
 // A "<" that starts something: what no placed text may hold.
@@ -115,8 +117,16 @@ const TAG_START: RegExp = /<(?![\s\u2060])/;
 const MARKUP_START: RegExp = /<[A-Za-z/!?]/;
 const LESS_THAN_RUN: RegExp = /<+/g;
 const STARTS_MARKUP: RegExp = /[A-Za-z/!?]/;
-const AS_A_BROWSER_READS_IT: { lessThanAsText: boolean } = {
+const AS_A_BROWSER_READS_IT: {
+  lessThanAsText: boolean;
+  rawTextElements: boolean;
+} = {
   lessThanAsText: true,
+  rawTextElements: true,
+};
+// The default reading of "<", with script and style elements read whole.
+const SCRIPT_AND_STYLE_WHOLE: { rawTextElements: boolean } = {
+  rawTextElements: true,
 };
 const WORD_JOINER_RUN: RegExp = /\u2060/g;
 const SLACK_MENTION: RegExp = /<[!@#][A-Za-z0-9]/;
@@ -407,6 +417,51 @@ const MARKUP_NOTES: Array<[string, string, string]> = [
   ],
 ];
 
+/*
+ * Notes with an element whose content a browser never reads as markup - a
+ * script or a style, which it never shows, and a title or a textarea, which
+ * hold text - and the text each is saved as. An email's HTML carries a
+ * style; a note an integration wrote can carry any of them.
+ */
+const NAMED_ELEMENT_NOTES: Array<[string, string, string]> = [
+  [
+    "a style element, as Outlook on the web writes one",
+    '<style type="text/css" style="display:none;"> P {margin-top:0;margin-bottom:0;} </style><div class="elementToProof">Restarted the pods.</div>',
+    "Restarted the pods.",
+  ],
+  [
+    "a script element holding a tag",
+    "<p>Before</p><script>document.write('<p>never shown</p>');</script><p>After</p>",
+    "Before\nAfter",
+  ],
+  [
+    "upper-case names, and an end tag with a space",
+    "<P>One</P><SCRIPT type=module>x()</SCRIPT ><STYLE>p{}</style>Two",
+    "One\nTwo",
+  ],
+  [
+    "a title, whose text is shown",
+    "<title>Re: checkout</title>\n<p>Two customers called.</p>",
+    "Re: checkout\nTwo customers called.",
+  ],
+  [
+    "a textarea, read on its own, its tags out",
+    "<textarea><b>typed</b> <script>x</textarea> after",
+    "typed x after",
+  ],
+  ["a script that never ends: an ordinary tag", "<p>a</p><script>b", "a\nb"],
+  [
+    "a script inside a comment or a value starts nothing",
+    '<p title="<script>">x</p><!-- <style> -->y',
+    "x\ny",
+  ],
+  [
+    "a frame and what it holds",
+    "<p>See</p><iframe src=x>fallback <b>text</b></iframe><noembed>n</noembed>",
+    "See",
+  ],
+];
+
 describe("the note script's own walk", () => {
   const generated: Array<string> = generatedTexts(20000, 2718);
   const shapes: Array<string> = [
@@ -445,6 +500,9 @@ describe("the note script's own walk", () => {
   const cases: Array<string> = [
     ...leftoversInParagraphs,
     ...shapes,
+    ...NAMED_ELEMENT_NOTES.map((note: [string, string, string]): string => {
+      return note[1];
+    }),
     ...generated,
   ];
   let readings: ScriptReadings;
@@ -498,12 +556,13 @@ describe("the note script's own walk", () => {
     ).toEqual([]);
   });
 
-  test("reads markup exactly as removeHtmlMarkup does wherever no '<' is text", () => {
+  test("reads markup exactly as the default reading does wherever no '<' is text", () => {
     /*
      * HTML an editor writes has no "<" that is text: it writes "&lt;". On
      * such text - every "<" alone, before what starts markup - both
      * readings agree. (Before a run of "<", the default reading starts
-     * markup at the run's first "<", and a browser at its last.)
+     * markup at the run's first "<", and a browser at its last.) Both read
+     * script and style elements whole.
      */
     const htmlOnly: Array<string> = cases.filter((html: string): boolean => {
       return Array.from(html.matchAll(LESS_THAN_RUN)).every(
@@ -519,7 +578,16 @@ describe("the note script's own walk", () => {
     expect(htmlOnly.length).toBeGreaterThan(1000);
     expect(
       htmlOnly.filter((html: string): boolean => {
-        return readings.removed[cases.indexOf(html)] !== removeHtmlMarkup(html);
+        return (
+          readings.removed[cases.indexOf(html)] !==
+          replaceHtmlMarkup(
+            html,
+            (): string => {
+              return "";
+            },
+            SCRIPT_AND_STYLE_WHOLE,
+          )
+        );
       }),
     ).toEqual([]);
   });
@@ -671,6 +739,15 @@ describe.each(KINDS)(
         expect(textPartOf(result)).toBe(text);
         expect(textPartOf(result)).not.toMatch(TAG_START);
         expect(String(result["note"]).startsWith(`${HEADER}\n\n`)).toBe(true);
+      },
+    );
+
+    test.each(NAMED_ELEMENT_NOTES)(
+      "%s is saved as the text a browser shows",
+      async (_case: string, notetext: string, text: string) => {
+        const result: JSONObject = await noteFor(kind, { notetext: notetext });
+
+        expect(textPartOf(result)).toBe(text);
       },
     );
 
