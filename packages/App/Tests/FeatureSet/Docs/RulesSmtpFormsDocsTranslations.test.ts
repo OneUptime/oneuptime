@@ -422,6 +422,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
 };
 
 /*
+ * Bold leads that read the same in every language: a symbol, and a
+ * protocol's name. Every other lead and prose word is the page's own
+ * English, which a translation translates.
+ */
+const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = ["⋯", "OAuth 2.0"];
+
+/*
  * What the server answers in English, whatever the reader's language, which
  * the pages quote as it is sent: the refusals of a rule that adds nothing
  * (RuleAction), the SMTP test's and the egress guard's answers, and an
@@ -1010,6 +1017,15 @@ describe("the lists this test keeps", () => {
         });
       }
     }
+
+    // A lead that reads the same everywhere is a lead of some page.
+    for (const lead of LEADS_THE_SAME_IN_EVERY_LANGUAGE) {
+      expect(
+        Object.values(PROSE_LEADS).some((leads: Array<string>): boolean => {
+          return leads.includes(lead);
+        }),
+      ).toBe(true);
+    }
   });
 
   it("name keys the locales have, and the switches the shorthand stands for", () => {
@@ -1348,6 +1364,23 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
         });
 
       expect(missing).toEqual([]);
+    });
+
+    /*
+     * The leads, not the PROSE words: those are single words a language may
+     * write as English does ("incident" in French, Dutch and Swedish).
+     */
+    it("translates the page's own bold leads", () => {
+      const translated: string = readPage(language, entry.page);
+      const untranslated: Array<string> = listed(PROSE_LEADS, entry.page)
+        .filter((lead: string): boolean => {
+          return !LEADS_THE_SAME_IN_EVERY_LANGUAGE.includes(lead);
+        })
+        .filter((lead: string): boolean => {
+          return translated.includes(`**${lead}**`);
+        });
+
+      expect(untranslated).toEqual([]);
     });
 
     it("keeps in English what stays English: other consoles, plans, roles, permissions and stored names", () => {
