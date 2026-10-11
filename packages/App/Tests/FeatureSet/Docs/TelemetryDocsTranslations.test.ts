@@ -1,6 +1,4 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
-import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DocsContainerUse,
   DocsHeading,
@@ -26,6 +24,7 @@ import {
   listItemCount,
   navTitle,
   prose,
+  strayMarkers,
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
@@ -286,19 +285,6 @@ const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // A bold span on one line.
 const BOLD_SPAN: RegExp = /\*\*([^*\n]+?)\*\*/g;
 
-// Code in rendered HTML: a code block or an inline code span.
-const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
-
-// A rendered HTML tag, whose attributes may hold underscores of their own.
-const HTML_TAG: RegExp = /<[^>]*>/g;
-
-/*
- * A name written with underscores outside code: CommonMark never reads an
- * underscore between two letters as emphasis, so it is the name, not a
- * marker left over.
- */
-const UNDERSCORED_NAME: RegExp = /[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g;
-
 // A tab of a :::tabs block.
 const TAB_LINE: RegExp = /^@tab\s+(.+)$/;
 
@@ -463,34 +449,6 @@ function unbalancedLines(markdown: string): Array<string> {
       const stars: number = outsideCode.split("**").length - 1;
 
       return ticks % 2 !== 0 || stars % 2 !== 0;
-    });
-}
-
-/*
- * A page as the docs route draws it, without its title line, and the
- * emphasis markers left in its text: a bold or italic span CommonMark did
- * not close. A bold span that ends in punctuation and runs straight into a
- * letter, as in "**（任意）**を", is not closed, and its asterisks show. An
- * underscore never closes inside a word, so "_之后_的" shows both.
- */
-async function strayMarkers(
-  markdown: string,
-  language: string,
-): Promise<Array<string>> {
-  const html: string = await DocsRender.render(
-    DocsPlaceholders.render(markdown.split("\n").slice(1).join("\n"), language),
-  );
-
-  return html
-    .replace(RENDERED_CODE, "")
-    .split("\n")
-    .map((line: string): string => {
-      return line.replace(HTML_TAG, "");
-    })
-    .filter((line: string): boolean => {
-      return (
-        line.includes("**") || line.replace(UNDERSCORED_NAME, "").includes("_")
-      );
     });
 }
 
