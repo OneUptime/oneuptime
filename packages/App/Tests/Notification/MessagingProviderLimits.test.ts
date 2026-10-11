@@ -31,6 +31,7 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import { telegramTextLength } from "Common/Tests/Helpers/HtmlText";
 import Twilio from "twilio";
 
 /*
@@ -215,9 +216,9 @@ describe("a Telegram message", () => {
     expect(text.startsWith("<b>Incident #42</b>\n<i>")).toBe(true);
     expect(text.endsWith(`</i>\n\n${TRUNCATED_TEXT_NOTE}`)).toBe(true);
     // As Telegram counts it: no tags, a reference one character.
-    expect(
-      text.replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, "_").length,
-    ).toBeLessThanOrEqual(MAX_TELEGRAM_MESSAGE_LENGTH);
+    expect(telegramTextLength(text)).toBeLessThanOrEqual(
+      MAX_TELEGRAM_MESSAGE_LENGTH,
+    );
   });
 
   test("within the limit goes as it always did", async () => {

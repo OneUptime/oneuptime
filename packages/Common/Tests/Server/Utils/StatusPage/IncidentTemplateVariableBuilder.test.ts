@@ -74,6 +74,7 @@ import SubscriberNotificationTemplateCompiler from "../../../../Types/StatusPage
 import Timezone from "../../../../Types/Timezone";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { htmlAsText } from "../../../Helpers/HtmlText";
 import { Token, Tokens, marked } from "marked";
 
 import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
@@ -1580,8 +1581,6 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
     "customFields.where",
   ];
 
-  const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
-
   async function siteWith(value: string): Promise<{
     site: IncidentStatusPageTemplateVariables;
     variables: IncidentTemplateVariables;
@@ -1628,13 +1627,7 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
   }
 
   function readText(markdown: string): string {
-    return (marked.parse(markdown, { async: false }) as string)
-      .replace(HTML_TAG_PATTERN, "")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&amp;/g, "&")
+    return htmlAsText(marked.parse(markdown, { async: false }) as string)
       .split(WORD_JOINER)
       .join("");
   }

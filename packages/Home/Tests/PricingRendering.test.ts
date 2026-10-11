@@ -1,15 +1,13 @@
 import { generatePricingMarkdown } from "../Utils/AIDiscovery";
 import Pricing from "../Utils/Pricing";
 import ejs from "ejs";
+import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
 import path from "path";
 
 const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
 
 function textContent(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return markupAsSpaces(html).replace(/\s+/g, " ").trim();
 }
 
 describe("Rendered notification pricing", () => {

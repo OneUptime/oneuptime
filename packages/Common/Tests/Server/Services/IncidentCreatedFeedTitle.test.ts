@@ -5,6 +5,7 @@ import LinkedAffectedResources from "../../../Server/Utils/AffectedResources/Lin
 import IncidentWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -140,7 +141,7 @@ describe("the incident created feed item's title", () => {
      * The bare address may still become a link, which shows where it goes;
      * the text reads as typed.
      */
-    expect(html.replace(/<[^>]+>/g, "")).toContain(
+    expect(removeHtmlMarkup(html)).toContain(
       "![x](https://tracker.example/p.png)",
     );
   });

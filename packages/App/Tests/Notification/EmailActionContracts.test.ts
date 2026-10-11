@@ -3,6 +3,7 @@ import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import { registerEmailBrandHelpers } from "./Fixtures/EmailBrandHelpers";
+import { decodeHtmlEntities, htmlAsText } from "Common/Tests/Helpers/HtmlText";
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,
@@ -72,34 +73,6 @@ interface ExpectedAnchor {
   text: string;
 }
 
-/*
- * Decode once, like an HTML attribute/text node. Numeric character references
- * are important: Handlebars escapes '=' and quotes as well as ampersands.
- * Strip actual tags before decoding, so literal angle brackets stay text.
- */
-function decodeHtml(value: string): string {
-  const named: Record<string, string> = {
-    amp: "&",
-    quot: '"',
-    apos: "'",
-    lt: "<",
-    gt: ">",
-    nbsp: " ",
-  };
-  return value.replace(
-    /&(#x[0-9a-f]+|#\d+|amp|quot|apos|lt|gt|nbsp);/gi,
-    (entity: string, code: string): string => {
-      if (code.startsWith("#")) {
-        const hex: boolean = code[1]?.toLowerCase() === "x";
-        return String.fromCodePoint(
-          parseInt(code.slice(hex ? 2 : 1), hex ? 16 : 10),
-        );
-      }
-      return named[code.toLowerCase()] ?? entity;
-    },
-  );
-}
-
 function anchors(html: string): Array<Anchor> {
   return Array.from(html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)).map(
     (match: RegExpMatchArray): Anchor => {
@@ -107,13 +80,13 @@ function anchors(html: string): Array<Anchor> {
       for (const attribute of match[1]!.matchAll(
         /\b([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
       )) {
-        attributes[attribute[1]!.toLowerCase()] = decodeHtml(
+        attributes[attribute[1]!.toLowerCase()] = decodeHtmlEntities(
           attribute[2] ?? attribute[3] ?? "",
         );
       }
       return {
         href: attributes["href"] ?? "",
-        text: decodeHtml(match[2]!.replace(/<[^>]*>/g, "")).trim(),
+        text: htmlAsText(match[2]!).trim(),
         classes: (attributes["class"] ?? "").split(/\s+/),
       };
     },
