@@ -616,7 +616,7 @@ const CREATE_BUTTON_TABLES: Record<string, { file: string; rows: string }> = {
 
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // A menu path in one bold span: "Project Settings > Workspace > Slack".
 const PATH_SEPARATOR: RegExp = / (?:→|>) /;

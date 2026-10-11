@@ -174,6 +174,9 @@ const PORT_NUMBER: RegExp = /^\d+$/;
 // A GitHub Actions workflow file.
 const YAML_FILE: RegExp = /\.ya?ml$/;
 
+// The spaces of an event's name, which GitHub writes as underscores.
+const SPACES: RegExp = / /g;
+
 // "  IssueComment = "issue_comment"," - a member of the webhook event enum.
 const ENUM_MEMBER_VALUE: RegExp = /[=] "([a-z_]+)",/g;
 
@@ -2439,7 +2442,7 @@ describe("GitHub Integration, against the server and Code Repositories", () => {
     ]);
 
     for (const event of interactive) {
-      expect(known).toContain(event.toLowerCase().replaceAll(" ", "_"));
+      expect(known).toContain(event.toLowerCase().replace(SPACES, "_"));
     }
 
     expect(page).toContain(
