@@ -170,14 +170,14 @@ const PROSE: Record<string, Array<string>> = {};
 
 /*
  * The limits and defaults the pages give in their text rather than in code:
- * Fluentd's 10-second flush, the syslog endpoint's 1 MB, and the status page
- * API's 14-day lists, 15-second overview and 90-day uptime range. A
- * translation writes each as often as the English page does, in its own
- * digits (the Persian pages write Persian ones).
+ * Fluentd's 10-second flush, and the status page API's 14-day lists,
+ * 15-second overview and 90-day uptime range. A translation writes each as
+ * often as the English page does, in its own digits (the Persian pages
+ * write Persian ones). The syslog page's 1 MB is not held here: several
+ * languages write "one" as 1 ("1 つのリクエスト"), so the count says nothing.
  */
 const PROSE_NUMBERS: Record<string, Array<string>> = {
   [FLUENTD]: ["10"],
-  [SYSLOG]: ["1"],
   [PUBLIC_API]: ["14", "15", "90"],
 };
 
