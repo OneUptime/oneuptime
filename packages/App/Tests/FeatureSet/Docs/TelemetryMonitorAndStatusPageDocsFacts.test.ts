@@ -2,7 +2,6 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I1
 import { hasPage, readPage } from "./DocsContentSupport";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import SpanUtil from "../../../FeatureSet/Dashboard/src/Utils/SpanUtil";
-import { getStatusPageResourceFormFields } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourceFormFields";
 import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
@@ -323,6 +322,8 @@ function escapeRegExp(text: string): string {
 // ---- reading the Dashboard's forms as text ---------------------------------------
 
 interface SourceField {
+  // The column the field writes: `field: { displayTooltip: true }`.
+  column: string;
   title: string;
   // The folded section it is drawn in, if any (its variable's name).
   section: string | null;
@@ -339,6 +340,7 @@ function sourceFields(source: string): Array<SourceField> {
     .split(/\n\s*field: \{/)
     .slice(1)
     .map((block: string): SourceField => {
+      const column: RegExpMatchArray | null = block.match(/^\s*(\w+): true/);
       const title: RegExpMatchArray | null = block.match(/\btitle: "([^"]+)"/);
       const section: RegExpMatchArray | null = block.match(
         /collapsibleSection: (\w+)/,
@@ -351,6 +353,7 @@ function sourceFields(source: string): Array<SourceField> {
       );
 
       return {
+        column: column ? (column[1] as string) : "",
         title: title ? (title[1] as string) : "",
         section: section ? (section[1] as string) : null,
         defaultValue: defaultValue ? (defaultValue[1] as string).trim() : null,
@@ -1770,40 +1773,85 @@ describe("the Profiles monitor", () => {
 });
 
 describe("status page resources", () => {
-  const monitorFields: Array<
-    ReturnType<typeof getStatusPageResourceFormFields>[number]
-  > = getStatusPageResourceFormFields({ addMonitorGroup: false });
-  const monitorGroupFields: Array<
-    ReturnType<typeof getStatusPageResourceFormFields>[number]
-  > = getStatusPageResourceFormFields({ addMonitorGroup: true });
+  /*
+   * The resource form (StatusPageResourceFormFields) imports React's types,
+   * which App does not have, so it is read as text: the target field (a
+   * monitor, or a monitor group), the display name, the description, then
+   * the display options getStatusPageResourceAdvancedFields folds.
+   */
+  const resourceFormSource: string = dashboardSource(
+    "Components/StatusPage/StatusPageResourceFormFields.ts",
+  );
+  const resourceFields: Array<SourceField> = sourceFields(resourceFormSource);
+
+  const resourceField: (title: string) => SourceField = (
+    title: string,
+  ): SourceField => {
+    const field: SourceField | undefined = resourceFields.find(
+      (candidate: SourceField): boolean => {
+        return candidate.title === title;
+      },
+    );
+
+    expect({ title: title, inForm: field !== undefined }).toEqual({
+      title: title,
+      inForm: true,
+    });
+
+    return field as SourceField;
+  };
+
+  // The display options, in the order getStatusPageResourceAdvancedFields draws them.
+  const displayOptions: Array<SourceField> = sourceFields(
+    resourceFormSource.slice(
+      resourceFormSource.indexOf(
+        "export const getStatusPageResourceAdvancedFields",
+      ),
+      resourceFormSource.indexOf(
+        "export interface StatusPageResourceFormFieldsOptions",
+      ),
+    ),
+  );
 
   it("Add Monitor asks for the monitor and its display name, and folds everything else under More fields", () => {
+    const form: string = oneLine(resourceFormSource);
+
+    // The form: the target field, the display name, the description, the options.
+    expect(form).toContain(
+      'return [ targetField, { field: { displayName: true, }, title: "Display Name",',
+    );
+    expect(form).toContain(
+      "...getStatusPageResourceAdvancedFields(advancedSection), ]; };",
+    );
     expect(
-      monitorFields.map((field: { title?: string | undefined }): string => {
-        return field.title || "";
+      displayOptions.map((field: SourceField): string => {
+        return field.title;
       }),
     ).toEqual([
-      "Monitor",
-      "Display Name",
-      "Description",
       "Tooltip",
       "Show Current Resource Status",
       "Show Uptime %",
       "Select Uptime Precision",
       "Show Status History Chart",
     ]);
-    expect(
-      monitorFields
-        .filter((field: { collapsibleSection?: unknown }): boolean => {
-          return !field.collapsibleSection;
-        })
-        .map((field: { title?: string | undefined }): string => {
-          return field.title || "";
-        }),
-    ).toEqual(["Monitor", "Display Name"]);
-    expect(monitorFields[0]?.placeholder).toBe("Select Monitor");
-    expect(monitorGroupFields[0]?.title).toBe("Monitor Group");
-    expect(monitorGroupFields[0]?.placeholder).toBe("Select Monitor Group");
+
+    for (const field of displayOptions) {
+      expect({ title: field.title, section: field.section }).toEqual({
+        title: field.title,
+        section: "advancedSection",
+      });
+    }
+
+    expect(resourceField("Description").section).toBe("advancedSection");
+    expect(resourceField("Display Name").section).toBeNull();
+    expect(resourceField("Monitor").section).toBeNull();
+    expect(resourceField("Monitor").placeholder).toBe("Select Monitor");
+    expect(resourceField("Monitor Group").placeholder).toBe(
+      "Select Monitor Group",
+    );
+    expect(form).toContain(
+      'const targetField: ModelField<StatusPageResource> = options.addMonitorGroup ? { field: { monitorGroup: true, }, title: "Monitor Group",',
+    );
 
     expect(RESOURCES).toContain(
       "Choose it in **Monitor** (placeholder **Select Monitor**).",
@@ -1817,24 +1865,11 @@ describe("status page resources", () => {
   });
 
   it("the display options table gives each option's column and the default the form and the resource start with", () => {
-    const described: (value: unknown) => string = (value: unknown): string => {
-      if (value === undefined) {
-        return "Empty";
-      }
-
-      if (value === true) {
-        return "On";
-      }
-
-      if (value === false) {
-        return "Off";
-      }
-
-      if (value === UptimePrecision.ONE_DECIMAL) {
-        return "One decimal";
-      }
-
-      return String(value);
+    // How the page's Default column words each default the form declares.
+    const described: Record<string, string> = {
+      true: "On",
+      false: "Off",
+      "UptimePrecision.ONE_DECIMAL": "One decimal",
     };
     const rows: Array<Array<string>> = tableRows(RESOURCES, [
       "Field",
@@ -1842,33 +1877,33 @@ describe("status page resources", () => {
       "What it does",
     ]);
 
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(displayOptions.length);
+    expect(UptimePrecision.ONE_DECIMAL).toBe("99.9% (One Decimal)");
 
     for (const [name, defaultText] of rows) {
       const title: string = boldSpans(name as string)[0] as string;
       const column: string = codeSpans(name as string)[0] as string;
-      const field: (typeof monitorFields)[number] | undefined =
-        monitorFields.find((candidate: { title?: string | undefined }) => {
-          return candidate.title === title;
-        });
+      const field: SourceField = resourceField(title);
 
-      expect({ title: title, inForm: field !== undefined }).toEqual({
+      expect({ title: title, column: field.column }).toEqual({
         title: title,
-        inForm: true,
+        column: column,
       });
-      expect(Object.keys(field!.field || {})).toEqual([column]);
       expect({ title: title, default: defaultText }).toEqual({
         title: title,
-        default: described(field!.defaultValue),
+        default:
+          field.defaultValue === null ? "Empty" : described[field.defaultValue],
       });
 
-      const columnDefault: unknown =
-        new StatusPageResource().getTableColumnMetadata(column).defaultValue;
-
-      if (typeof field!.defaultValue === "boolean") {
-        expect({ column: column, default: columnDefault }).toEqual({
+      // A switch starts where the resource's own column does.
+      if (field.defaultValue === "true" || field.defaultValue === "false") {
+        expect({
           column: column,
-          default: field!.defaultValue,
+          default: new StatusPageResource().getTableColumnMetadata(column)
+            .defaultValue,
+        }).toEqual({
+          column: column,
+          default: field.defaultValue === "true",
         });
       }
     }
