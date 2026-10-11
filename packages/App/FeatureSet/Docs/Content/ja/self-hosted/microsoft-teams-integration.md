@@ -34,7 +34,7 @@ sequenceDiagram
 
 Incoming Webhook や Teams のワークフロー URL は、このボットのメッセージングエンドポイントの代わりにはなりません。
 
-ビデオ通話 (インシデント用の Teams 会議) はこのボットを使いません。独自のアプリ登録が必要で、[ビデオ通話](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server) で説明しています。
+ビデオ通話 (インシデント用の Teams 会議) はこのボットを使いません。独自のアプリ登録が必要で、[ビデオ通話](/docs/workspace-connections/video-calls#セルフホストのサーバーでのワンクリック接続) で説明しています。
 
 ## 始める前に
 

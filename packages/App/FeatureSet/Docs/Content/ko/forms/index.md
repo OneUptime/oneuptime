@@ -57,7 +57,7 @@ flowchart TB
 
 - **양식이 포함된 요금제.** OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필요합니다. [요금제](#요금제) 를 참조하세요.
 - **양식을 만들 권한.** **Create Form** 은 프로젝트 소유자와 관리자, 그리고 이 권한을 준 역할에 있습니다. [권한](#권한) 을 참조하세요.
-- **인시던트 양식이라면 심각도.** 모든 인시던트에는 심각도가 필요합니다. 질문, 양식의 설정 또는 인시던트 템플릿에서 정해집니다. 심각도가 없으면 모든 제출이 거부됩니다. [제출로 만들어지는 항목](/docs/forms/on-submit#how-a-submission-becomes-an-incident) 을 참조하세요.
+- **인시던트 양식이라면 심각도.** 모든 인시던트에는 심각도가 필요합니다. 질문, 양식의 설정 또는 인시던트 템플릿에서 정해집니다. 심각도가 없으면 모든 제출이 거부됩니다. [제출로 만들어지는 항목](/docs/forms/on-submit#제출이-인시던트가-되는-과정) 을 참조하세요.
 
 ## 첫 양식 만들기
 
@@ -76,7 +76,7 @@ flowchart TB
 
 ### 같은 사례가 자주 보고되면 템플릿 추가하기
 
-**템플릿** 에서 자주 보고되는 사례마다 템플릿을 저장합니다. 양식은 질문 위에 템플릿을 나열하고, 고른 템플릿으로 스스로를 채우며, 그 템플릿이 정한 대로 질문합니다. 한 사례에 필요한 질문은 그 사례의 템플릿에서는 필수로, 다른 템플릿에서는 숨김으로 할 수 있습니다. [템플릿](/docs/forms/building#templates) 을 참조하세요.
+**템플릿** 에서 자주 보고되는 사례마다 템플릿을 저장합니다. 양식은 질문 위에 템플릿을 나열하고, 고른 템플릿으로 스스로를 채우며, 그 템플릿이 정한 대로 질문합니다. 한 사례에 필요한 질문은 그 사례의 템플릿에서는 필수로, 다른 템플릿에서는 숨김으로 할 수 있습니다. [템플릿](/docs/forms/building#템플릿) 을 참조하세요.
 
 ### 링크 공유하기
 
@@ -229,7 +229,7 @@ OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필�
 
 ### API의 브랜딩
 
-양식의 브랜딩은 `logoFileId`, `logoAltText`, `faviconFileId` 입니다. 먼저 양식의 프로젝트에서 `POST /api/file` 로 이미지를 업로드합니다. 그 프로젝트의 API 키를 쓰거나, 프로젝트 멤버로 로그인해 `tenantid` 헤더에 프로젝트 ID를 넣습니다. 이때 `name`, `image/png` 같은 `fileType`, 그리고 base64로 인코딩한 바이트를 `file` 에 담아 보낸 뒤, 반환된 `_id` 를 설정합니다. 멤버가 아닌 프로젝트에 업로드하면 "You can upload files only to a project you are a member of." 로 거부됩니다. 모든 업로드는 비공개입니다: `isPublic` 은 요청 내용과 관계없이 OneUptime이 설정합니다. 각 이미지는 양식을 저장할 때 확인됩니다. 양식의 프로젝트에서 업로드된 것이어야 하며, 로고는 512 KB 이하의 PNG, JPEG, GIF, WebP 또는 SVG 이미지, 파비콘은 그중 하나이거나 128 KB 이하의 ICO여야 합니다. ID를 `null` 로 설정하면 OneUptime의 것으로 돌아갑니다. [브랜딩](/docs/forms/building#branding) 을 참조하세요.
+양식의 브랜딩은 `logoFileId`, `logoAltText`, `faviconFileId` 입니다. 먼저 양식의 프로젝트에서 `POST /api/file` 로 이미지를 업로드합니다. 그 프로젝트의 API 키를 쓰거나, 프로젝트 멤버로 로그인해 `tenantid` 헤더에 프로젝트 ID를 넣습니다. 이때 `name`, `image/png` 같은 `fileType`, 그리고 base64로 인코딩한 바이트를 `file` 에 담아 보낸 뒤, 반환된 `_id` 를 설정합니다. 멤버가 아닌 프로젝트에 업로드하면 "You can upload files only to a project you are a member of." 로 거부됩니다. 모든 업로드는 비공개입니다: `isPublic` 은 요청 내용과 관계없이 OneUptime이 설정합니다. 각 이미지는 양식을 저장할 때 확인됩니다. 양식의 프로젝트에서 업로드된 것이어야 하며, 로고는 512 KB 이하의 PNG, JPEG, GIF, WebP 또는 SVG 이미지, 파비콘은 그중 하나이거나 128 KB 이하의 ICO여야 합니다. ID를 `null` 로 설정하면 OneUptime의 것으로 돌아갑니다. [브랜딩](/docs/forms/building#브랜딩) 을 참조하세요.
 
 ### 제출 내역 읽기
 

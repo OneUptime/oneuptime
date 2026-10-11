@@ -57,7 +57,7 @@ Skjemaer starter med disse to, og flere typer poster kommer.
 
 - **En plan som omfatter skjemaer.** På OneUptime Cloud krever skjemaer planen **Growth** eller høyere. Se [Plan](#plan).
 - **Tillatelse til å opprette skjemaer.** **Create Form** har prosjekteiere og -administratorer, og rollene du gir den til. Se [Tillatelser](#tillatelser).
-- **For et hendelsesskjema, en alvorlighetsgrad.** Hver hendelse trenger en: fra et spørsmål, fra skjemaets innstillinger eller fra hendelsesmalen. Uten den avvises hver innsending. Se [Hva en innsending oppretter](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **For et hendelsesskjema, en alvorlighetsgrad.** Hver hendelse trenger en: fra et spørsmål, fra skjemaets innstillinger eller fra hendelsesmalen. Uten den avvises hver innsending. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-hendelse).
 
 ## Opprett ditt første skjema
 
@@ -76,7 +76,7 @@ Under **Ved innsending** sjekker du hvordan en innsending blir til en hendelse, 
 
 ### Legg til maler hvis folk rapporterer de samme tilfellene
 
-Under **Maler** lagrer du en mal for hvert tilfelle som ofte rapporteres: skjemaet viser dem over spørsmålene, fyller seg ut fra den valgte og stiller spørsmålene slik den malen sier; et spørsmål som ett tilfelle trenger, kan være obligatorisk i malen for det og skjult i de andre. Se [Maler](/docs/forms/building#templates).
+Under **Maler** lagrer du en mal for hvert tilfelle som ofte rapporteres: skjemaet viser dem over spørsmålene, fyller seg ut fra den valgte og stiller spørsmålene slik den malen sier; et spørsmål som ett tilfelle trenger, kan være obligatorisk i malen for det og skjult i de andre. Se [Maler](/docs/forms/building#maler).
 
 ### Del lenken
 
@@ -229,7 +229,7 @@ Spørsmål, maler og innstillinger kontrolleres hver gang de lagres (fra dashbor
 
 ### Merkevare i API-et
 
-Et skjemas merkevare er `logoFileId`, `logoAltText` og `faviconFileId`. Last først opp bildet med `POST /api/file` i skjemaets prosjekt (med en API-nøkkel for det prosjektet, eller pålogget som medlem av det med ID-en i headeren `tenantid`), send `name`, `fileType`, for eksempel `image/png`, og bytene som base64 i `file`, og angi `_id` som returneres. En opplasting til et prosjekt du ikke er medlem av, avvises med "You can upload files only to a project you are a member of." Hver opplasting er privat: `isPublic` angis av OneUptime, uansett hva forespørselen sier. Hvert bilde kontrolleres når skjemaet lagres: det må være lastet opp i skjemaets prosjekt, og en logo må være et PNG-, JPEG-, GIF-, WebP- eller SVG-bilde på høyst 512 KB, et favikon et av dem eller en ICO på høyst 128 KB. Sett en ID til `null` for å gå tilbake til OneUptimes. Se [Merkevare](/docs/forms/building#branding).
+Et skjemas merkevare er `logoFileId`, `logoAltText` og `faviconFileId`. Last først opp bildet med `POST /api/file` i skjemaets prosjekt (med en API-nøkkel for det prosjektet, eller pålogget som medlem av det med ID-en i headeren `tenantid`), send `name`, `fileType`, for eksempel `image/png`, og bytene som base64 i `file`, og angi `_id` som returneres. En opplasting til et prosjekt du ikke er medlem av, avvises med "You can upload files only to a project you are a member of." Hver opplasting er privat: `isPublic` angis av OneUptime, uansett hva forespørselen sier. Hvert bilde kontrolleres når skjemaet lagres: det må være lastet opp i skjemaets prosjekt, og en logo må være et PNG-, JPEG-, GIF-, WebP- eller SVG-bilde på høyst 512 KB, et favikon et av dem eller en ICO på høyst 128 KB. Sett en ID til `null` for å gå tilbake til OneUptimes. Se [Merkevare](/docs/forms/building#merkevare).
 
 ### Lese innsendinger
 

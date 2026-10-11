@@ -34,7 +34,7 @@ sequenceDiagram
 
 Un Incoming Webhook o una URL de flujo de trabajo de Teams no sustituyen el endpoint de mensajería de este bot.
 
-Las videollamadas (una reunión de Teams para un incidente) no usan este bot: necesitan su propio registro de aplicación, descrito en [Videollamadas](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Las videollamadas (una reunión de Teams para un incidente) no usan este bot: necesitan su propio registro de aplicación, descrito en [Videollamadas](/docs/workspace-connections/video-calls#conectar-con-un-clic-en-un-servidor-autoalojado).
 
 ## Antes de empezar
 

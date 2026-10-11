@@ -57,7 +57,7 @@ Formulare beginnen mit diesen beiden, weitere Arten von Datensätzen folgen.
 
 - **Ein Tarif, der Formulare enthält.** In OneUptime Cloud brauchen Formulare den Tarif **Growth** oder höher. Siehe [Tarif](#tarif).
 - **Die Berechtigung, Formulare anzulegen.** **Create Form** haben Projektinhaber und -administratoren sowie die Rollen, denen Sie es geben. Siehe [Berechtigungen](#berechtigungen).
-- **Für ein Vorfallsformular einen Schweregrad.** Jeder Vorfall braucht einen: aus einer Frage, aus den Einstellungen des Formulars oder aus seiner Vorfallsvorlage. Ohne ihn wird jede Einreichung abgelehnt. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Für ein Vorfallsformular einen Schweregrad.** Jeder Vorfall braucht einen: aus einer Frage, aus den Einstellungen des Formulars oder aus seiner Vorfallsvorlage. Ohne ihn wird jede Einreichung abgelehnt. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-vorfall-wird).
 
 ## Ihr erstes Formular anlegen
 
@@ -76,7 +76,7 @@ Prüfen Sie unter **Beim Absenden**, wie aus einer Einreichung ein Vorfall oder 
 
 ### Vorlagen hinzufügen, wenn dieselben Fälle oft gemeldet werden
 
-Speichern Sie unter **Vorlagen** eine Vorlage für jeden Fall, der oft gemeldet wird: Das Formular listet sie über seinen Fragen, füllt sich aus der gewählten aus und stellt die Fragen so, wie diese Vorlage es sagt – eine Frage, die ein Fall braucht, kann in seiner Vorlage erforderlich und in den anderen ausgeblendet sein. Siehe [Vorlagen](/docs/forms/building#templates).
+Speichern Sie unter **Vorlagen** eine Vorlage für jeden Fall, der oft gemeldet wird: Das Formular listet sie über seinen Fragen, füllt sich aus der gewählten aus und stellt die Fragen so, wie diese Vorlage es sagt – eine Frage, die ein Fall braucht, kann in seiner Vorlage erforderlich und in den anderen ausgeblendet sein. Siehe [Vorlagen](/docs/forms/building#vorlagen).
 
 ### Den Link teilen
 

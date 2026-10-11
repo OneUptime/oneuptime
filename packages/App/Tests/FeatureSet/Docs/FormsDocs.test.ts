@@ -348,6 +348,23 @@ function sectionOf(
   return lines.slice(start + 1).join("\n");
 }
 
+/*
+ * The body of a troubleshooting entry - a ":::details <summary>" block - up
+ * to the ":::" that closes it.
+ */
+function detailsOf(markdown: string, summary: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(`:::details ${summary}`);
+
+  expect({ summary, found: start !== -1 }).toEqual({ summary, found: true });
+
+  const end: number = lines.indexOf(":::", start + 1);
+
+  expect(end).toBeGreaterThan(start);
+
+  return lines.slice(start + 1, end).join("\n");
+}
+
 // Every **bold** span in the prose: how the docs name what is on screen.
 function boldText(markdown: string): Set<string> {
   const prose: string = splitMarkdown(markdown).prose.join("\n");
@@ -1966,18 +1983,20 @@ describe("Forms docs: how a template asks each question", () => {
       [ON_SUBMIT_PAGE, "Hidden questions and templates"],
       [SHARING_PAGE, "A question is not on the form"],
     ] as Array<[string, string]>) {
-      const level: number = page === SHARING_PAGE ? 3 : 2;
+      // Sharing & Security answers it in a troubleshooting entry.
+      const text: string =
+        page === SHARING_PAGE
+          ? detailsOf(readPage(page), section)
+          : sectionOf(readPage(page), 2, section);
 
       expect({
         page,
         section,
-        linked: docsLinks(sectionOf(readPage(page), level, section))
+        linked: docsLinks(text)
           .concat(
-            inPageLinks(sectionOf(readPage(page), level, section)).map(
-              (anchor: string): DocsLink => {
-                return { page: BUILDING_PAGE, anchor };
-              },
-            ),
+            inPageLinks(text).map((anchor: string): DocsLink => {
+              return { page: BUILDING_PAGE, anchor };
+            }),
           )
           .some((link: DocsLink): boolean => {
             return (

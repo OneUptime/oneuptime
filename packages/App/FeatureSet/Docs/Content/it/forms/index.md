@@ -57,7 +57,7 @@ I moduli partono con questi due, e seguiranno altri tipi di record.
 
 - **Un piano che includa i moduli.** Su OneUptime Cloud, i moduli richiedono il piano **Growth** o superiore. Vedi [Piano](#piano).
 - **L'autorizzazione a creare moduli.** **Create Form** spetta ai proprietari e agli amministratori del progetto, e ai ruoli a cui la assegni. Vedi [Autorizzazioni](#autorizzazioni).
-- **Per un modulo di incidenti, una gravità.** Ogni incidente ne richiede una: da una domanda, dalle impostazioni del modulo o dal suo modello di incidente. Senza, ogni invio viene rifiutato. Vedi [Cosa crea un invio](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Per un modulo di incidenti, una gravità.** Ogni incidente ne richiede una: da una domanda, dalle impostazioni del modulo o dal suo modello di incidente. Senza, ogni invio viene rifiutato. Vedi [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-incidente).
 
 ## Creare il primo modulo
 
@@ -76,7 +76,7 @@ In **All'invio**, controlla come un invio diventa un incidente o un evento, e fa
 
 ### Aggiungere modelli se le persone segnalano gli stessi casi
 
-In **Modelli**, salva un modello per ogni caso segnalato spesso: il modulo li elenca sopra le domande, si compila a partire da quello scelto e pone le domande come dice quel modello; una domanda che serve a un caso può essere obbligatoria nel suo modello e nascosta negli altri. Vedi [Modelli](/docs/forms/building#templates).
+In **Modelli**, salva un modello per ogni caso segnalato spesso: il modulo li elenca sopra le domande, si compila a partire da quello scelto e pone le domande come dice quel modello; una domanda che serve a un caso può essere obbligatoria nel suo modello e nascosta negli altri. Vedi [Modelli](/docs/forms/building#modelli).
 
 ### Condividere il link
 

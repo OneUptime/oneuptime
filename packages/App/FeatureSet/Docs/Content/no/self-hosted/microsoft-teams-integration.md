@@ -34,7 +34,7 @@ sequenceDiagram
 
 En Incoming Webhook eller en Teams-arbeidsflyt-URL erstatter ikke meldingsendepunktet til denne boten.
 
-Videosamtaler (et Teams-møte for en hendelse) bruker ikke denne boten: de trenger sin egen app-registrering, beskrevet i [Videosamtaler](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Videosamtaler (et Teams-møte for en hendelse) bruker ikke denne boten: de trenger sin egen app-registrering, beskrevet i [Videosamtaler](/docs/workspace-connections/video-calls#koble-til-med-ett-klikk-på-en-selvdriftet-server).
 
 ## Før du begynner
 

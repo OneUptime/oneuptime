@@ -57,7 +57,7 @@ Los formularios empiezan con estos dos, y llegarán más tipos de registro.
 
 - **Un plan que incluya formularios.** En OneUptime Cloud, los formularios necesitan el plan **Growth** o superior. Consulta [Plan](#plan).
 - **Permiso para crear formularios.** **Create Form** corresponde a los propietarios y administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
-- **Para un formulario de incidentes, una severidad.** Cada incidente necesita una: de una pregunta, de los ajustes del formulario o de su plantilla de incidente. Sin ella, se rechaza cada envío. Consulta [Lo que crea un envío](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Para un formulario de incidentes, una severidad.** Cada incidente necesita una: de una pregunta, de los ajustes del formulario o de su plantilla de incidente. Sin ella, se rechaza cada envío. Consulta [Lo que crea un envío](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-incidente).
 
 ## Crear tu primer formulario
 
@@ -76,7 +76,7 @@ En **Al enviar**, comprueba cómo un envío se convierte en un incidente o un ev
 
 ### Añadir plantillas si la gente informa de los mismos casos
 
-En **Plantillas**, guarda una plantilla para cada caso que se informa a menudo: el formulario las muestra sobre sus preguntas, se rellena con la elegida y hace las preguntas como dice esa plantilla; una pregunta que necesita un caso puede ser obligatoria en su plantilla y estar oculta en las demás. Consulta [Plantillas](/docs/forms/building#templates).
+En **Plantillas**, guarda una plantilla para cada caso que se informa a menudo: el formulario las muestra sobre sus preguntas, se rellena con la elegida y hace las preguntas como dice esa plantilla; una pregunta que necesita un caso puede ser obligatoria en su plantilla y estar oculta en las demás. Consulta [Plantillas](/docs/forms/building#plantillas).
 
 ### Compartir el enlace
 
@@ -229,7 +229,7 @@ Las preguntas, las plantillas y los ajustes se comprueban cada vez que se guarda
 
 ### Marca en la API
 
-La marca de un formulario son sus `logoFileId`, `logoAltText` y `faviconFileId`. Sube primero la imagen con `POST /api/file`, en el proyecto del formulario (con una clave de API de ese proyecto, o con sesión iniciada como miembro y su id en la cabecera `tenantid`), enviando su `name`, su `fileType`, como `image/png`, y los bytes en base64 en `file`, y establece el `_id` que devuelve. Una subida a un proyecto del que no eres miembro se rechaza con "You can upload files only to a project you are a member of." Toda subida es privada: OneUptime define `isPublic`, diga lo que diga la solicitud. Cada imagen se comprueba al guardar el formulario: debe haberse subido en el proyecto del formulario, y un logotipo debe ser una imagen PNG, JPEG, GIF, WebP o SVG de 512 KB como máximo, y un favicon una de esas o un ICO de 128 KB como máximo. Establece un id en `null` para volver a los de OneUptime. Consulta [Marca](/docs/forms/building#branding).
+La marca de un formulario son sus `logoFileId`, `logoAltText` y `faviconFileId`. Sube primero la imagen con `POST /api/file`, en el proyecto del formulario (con una clave de API de ese proyecto, o con sesión iniciada como miembro y su id en la cabecera `tenantid`), enviando su `name`, su `fileType`, como `image/png`, y los bytes en base64 en `file`, y establece el `_id` que devuelve. Una subida a un proyecto del que no eres miembro se rechaza con "You can upload files only to a project you are a member of." Toda subida es privada: OneUptime define `isPublic`, diga lo que diga la solicitud. Cada imagen se comprueba al guardar el formulario: debe haberse subido en el proyecto del formulario, y un logotipo debe ser una imagen PNG, JPEG, GIF, WebP o SVG de 512 KB como máximo, y un favicon una de esas o un ICO de 128 KB como máximo. Establece un id en `null` para volver a los de OneUptime. Consulta [Marca](/docs/forms/building#marca).
 
 ### Leer los envíos
 
