@@ -15,10 +15,10 @@ Every reading belongs to a fleet and a device. OneUptime creates the fleet from 
 
 ```mermaid title="From your devices to a fleet in OneUptime"
 flowchart TB
-    sdk["Device with an<br/>OpenTelemetry SDK"] -->|"OTLP"| oneuptime["OneUptime"]
-    devices["Devices"] -->|"OTLP"| gateway["Gateway running<br/>a collector"]
+    devices["Your devices"] -->|"OTLP from<br/>an SDK"| oneuptime["OneUptime"]
+    devices -->|"OTLP"| gateway["A gateway's<br/>collector"]
     gateway -->|"OTLP"| oneuptime
-    mqtt["Device with an<br/>MQTT client"] -->|"MQTT"| oneuptime
+    devices -->|"MQTT"| oneuptime
     oneuptime --> fleet["The fleet: its devices,<br/>charts and monitors"]
 ```
 

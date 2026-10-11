@@ -31,6 +31,8 @@ import {
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { sectionInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -40,9 +42,13 @@ import path from "path";
  * sign opens how to upgrade it. The agents' guides say so where they show
  * the upgrade - in every language that has the guide - naming the field the
  * sign sits beside as the reader's dashboard labels it (each language's own
- * translation from the Dashboard's locale file; English and Persian guides
- * keep the English labels), and their commands are the ones the dialog
- * shows. Markdown is not compiled, so this reads the guides.
+ * translation from the Dashboard's locale file), and their commands are the
+ * ones the dialog shows. Markdown is not compiled, so this reads the guides.
+ *
+ * The infrastructure agent guides of docs task 21 (Kubernetes, Docker,
+ * Podman, the host collector, Proxmox) name the Dashboard as each language's
+ * Dashboard draws it, Persian included (drawnLabelIn). The other guides here
+ * still keep the English labels in Persian (labelIn).
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -57,11 +63,10 @@ const LOCALES_DIR: string = path.resolve(
 // The guides that keep the dashboard's English labels.
 const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
 
-/*
- * The Podman guide is still English outside English and Persian, so its
- * note is too, labels included.
- */
-const PODMAN_TRANSLATED_LANGUAGES: Array<string> = ["en", "fa"];
+// The task 21 guides: each language's drawn labels, Persian's included.
+function drawnLabelIn(language: string, english: string): string {
+  return drawnDashboardLabel(language, english);
+}
 
 function readGuide(language: string, guide: string): string | null {
   const file: string = path.join(CONTENT_DIR, language, guide);
@@ -85,14 +90,26 @@ function labelIn(language: string, english: string): string {
   return locale[english] as string;
 }
 
+// A line that opens a component (":::tabs", "@tab Docker CLI") or closes one.
+const COMPONENT_LINE: RegExp = /^(?::::[a-z]*|@tab\s.*)$/;
+
 /*
  * The paragraph right before the code block that starts with `command`:
- * where each guide puts the note, at the top of its upgrade section.
+ * where each guide puts the note, at the top of its upgrade section. When
+ * the commands sit in tabs (one per install method), the paragraph is the
+ * one before the tabs.
  */
 function paragraphBefore(markdown: string, command: string): string {
   const block: number = markdown.indexOf("```bash\n" + command);
   expect(block).toBeGreaterThan(-1);
-  const before: string = markdown.slice(0, block).trimEnd();
+  const lines: Array<string> = markdown.slice(0, block).trimEnd().split("\n");
+  while (
+    lines.length > 0 &&
+    COMPONENT_LINE.test((lines[lines.length - 1] as string).trim())
+  ) {
+    lines.pop();
+  }
+  const before: string = lines.join("\n").trimEnd();
   return before.slice(before.lastIndexOf("\n\n") + 2);
 }
 
@@ -119,8 +136,10 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
         guide,
         getKubernetesAgentChartUpgradeCommand() + "\n```",
       );
-      expect(note).toContain(`**${labelIn(language, "Agent Version")}**`);
-      expect(note).toContain(`**${labelIn(language, "Cluster Details")}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Agent Version")}**`);
+      expect(note).toContain(
+        `**${drawnLabelIn(language, "Cluster Details")}**`,
+      );
       expect(note).toContain("OneUptime");
     },
   );
@@ -136,8 +155,8 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
         guide,
         "docker pull oneuptime/docker-agent:release",
       );
-      expect(note).toContain(`**${labelIn(language, "Agent Version")}**`);
-      expect(note).toContain(`**${labelIn(language, "Overview")}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Agent Version")}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Overview")}**`);
     },
   );
 
@@ -152,13 +171,8 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
         guide,
         "podman pull oneuptime/podman-agent:release",
       );
-      const labelLanguage: string = PODMAN_TRANSLATED_LANGUAGES.includes(
-        language,
-      )
-        ? language
-        : "en";
-      expect(note).toContain(`**${labelIn(labelLanguage, "Agent Version")}**`);
-      expect(note).toContain(`**${labelIn(labelLanguage, "Overview")}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Agent Version")}**`);
+      expect(note).toContain(`**${drawnLabelIn(language, "Overview")}**`);
     },
   );
 
@@ -289,30 +303,26 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
  * pin.
  */
 describe("the host collector guide stamps the pin and says how to upgrade, in every language", () => {
-  // The section after "Step 4": the new "Upgrading the collector".
-  function upgradeSection(guide: string): string {
-    const lines: Array<string> = guide.split("\n");
-    const headings: Array<number> = lines
-      .map((line: string, index: number): number => {
-        return line.startsWith("## ") ? index : -1;
-      })
-      .filter((index: number): boolean => {
-        return index >= 0;
-      });
-    expect(lines[headings[5]!]).toMatch(/4|۴/);
-    return lines.slice(headings[6]!, headings[7]!).join("\n");
+  /*
+   * "Upgrading the collector", in each language where the English page has
+   * it: the translations lie line for line beside the English page
+   * (InfrastructureAgentDocsTranslations holds them to it).
+   */
+  function upgradeSection(language: string): string {
+    return sectionInLanguage(
+      language,
+      "telemetry/host-otel-collector",
+      "## Upgrading the collector",
+    );
   }
 
   test.each(LANGUAGES)(
     "%s: the upgrade section names the Agent Version on the Overview and the stamp",
     (language: string) => {
-      const guide: string = readGuide(
-        language,
-        "telemetry/host-otel-collector.md",
-      ) as string;
-      const section: string = upgradeSection(guide);
-      expect(section).toContain(`**${labelIn(language, "Agent Version")}**`);
-      expect(section).toContain(`**${labelIn(language, "Overview")}**`);
+      const section: string = upgradeSection(language);
+      expect(section.split("\n")[0]).toMatch(/^## /);
+      expect(section).toContain(`**${drawnLabelIn(language, "Agent Version")}**`);
+      expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
       expect(section).toContain("`oneuptime.agent.version`");
       expect(section).toContain("`VERSION`");
     },
@@ -327,13 +337,18 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
       ) as string;
       const stamps: Array<string> = Array.from(
         guide.matchAll(
-          /- key: service\.name\n\s+value: [^\n]+\n\s+action: upsert\n\s+- key: oneuptime\.agent\.version\n\s+value: "([^"]+)"\n\s+action: upsert/g,
+          /- key: oneuptime\.agent\.version\n\s+value: "([^"]+)"\n\s+action: upsert/g,
         ),
       ).map((match: RegExpMatchArray): string => {
         return match[1]!;
       });
-      // Common pieces, the Linux, macOS and Windows examples, the lean one.
-      expect(stamps).toEqual(Array(5).fill(HOST_COLLECTOR_VERSION));
+      // The Linux, macOS and Windows configs of the install, and the lean one.
+      expect(stamps).toEqual(Array(4).fill(HOST_COLLECTOR_VERSION));
+      /*
+       * Like the dashboard's config, they set no service.name: the host's
+       * telemetry belongs to the host, filed as host/<hostname>.
+       */
+      expect(guide).not.toMatch(/- key: service\.name\n/);
     },
   );
 
@@ -349,8 +364,8 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
       ).map((match: RegExpMatchArray): string => {
         return match[1]!;
       });
-      // Debian, RHEL, macOS and Windows.
-      expect(pins).toEqual(Array(4).fill(HOST_COLLECTOR_VERSION));
+      // Debian, RHEL, macOS, Windows and the release tarball.
+      expect(pins).toEqual(Array(5).fill(HOST_COLLECTOR_VERSION));
       expect(guide).not.toContain("pick the latest release tag");
     },
   );
@@ -362,9 +377,11 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
         language,
         "telemetry/host-otel-collector.md",
       ) as string;
+      // The page's configs are the dashboard's: the filter goes into that pipeline.
       expect(guide).toContain(
-        ">       processors: [filter/drop-metrics, resourcedetection, resource, batch]",
+        "      processors: [filter/drop-metrics, resourcedetection, resource, batch]",
       );
+      expect(guide).toContain("      exporters: [otlphttp/oneuptime]");
       expect(guide).not.toContain(
         'references processor "resource" which is not configured',
       );
@@ -381,14 +398,43 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     return guide.slice(start, end);
   }
 
+  // The Ceph, VMware and Storage Array guides' upgrade headings.
   const HEADINGS: Record<string, string> = {
     en: "## Upgrading the Agent",
     fa: "## ارتقای عامل",
   };
 
+  /*
+   * The Proxmox guide is in every language, line for line with the English
+   * one (docs task 21), and names the Dashboard as each language draws it.
+   */
+  const PROXMOX: string = "telemetry/proxmox.md";
+
+  function upgradeSectionOf(language: string, page: string): string {
+    if (page === PROXMOX) {
+      return sectionInLanguage(
+        language,
+        "telemetry/proxmox",
+        "## Upgrading the agent",
+      );
+    }
+
+    return upgradeSection(
+      readGuide(language, page) as string,
+      HEADINGS[language] as string,
+    );
+  }
+
+  function labelFor(language: string, page: string, english: string): string {
+    return page === PROXMOX
+      ? drawnLabelIn(language, english)
+      : labelIn(language, english);
+  }
+
   test.each([
-    ["en", "telemetry/proxmox.md"],
-    ["fa", "telemetry/proxmox.md"],
+    ...LANGUAGES.map((language: string): [string, string] => {
+      return [language, PROXMOX];
+    }),
     ["en", "telemetry/ceph.md"],
     ["fa", "telemetry/ceph.md"],
     ["en", "telemetry/vmware.md"],
@@ -398,12 +444,11 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
   ])(
     "%s %s: names the Agent Version on the Overview, and pulling alone is gone",
     (language: string, page: string) => {
-      const section: string = upgradeSection(
-        readGuide(language, page) as string,
-        HEADINGS[language] as string,
+      const section: string = upgradeSectionOf(language, page);
+      expect(section).toContain(
+        `**${labelFor(language, page, "Agent Version")}**`,
       );
-      expect(section).toContain(`**${labelIn(language, "Agent Version")}**`);
-      expect(section).toContain(`**${labelIn(language, "Overview")}**`);
+      expect(section).toContain(`**${labelFor(language, page, "Overview")}**`);
       expect(section).toContain("docker compose up -d --force-recreate");
       expect(section).not.toMatch(
         /docker compose pull\ndocker compose up -d\n/,
@@ -418,17 +463,15 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
    * hand any more: the script finds it.
    */
   test.each([
-    ["en", "telemetry/proxmox.md", "proxmox"],
-    ["fa", "telemetry/proxmox.md", "proxmox"],
+    ...LANGUAGES.map((language: string): [string, string, string] => {
+      return [language, PROXMOX, "proxmox"];
+    }),
     ["en", "telemetry/ceph.md", "ceph"],
     ["fa", "telemetry/ceph.md", "ceph"],
   ])(
     "%s %s: the install script again, or the files and the recreate, as the dialog shows them",
     (language: string, page: string, agent: string) => {
-      const section: string = upgradeSection(
-        readGuide(language, page) as string,
-        HEADINGS[language] as string,
-      );
+      const section: string = upgradeSectionOf(language, page);
       const upgrade: string =
         agent === "proxmox"
           ? getProxmoxAgentUpgradeCommand()
@@ -494,7 +537,7 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     },
   );
 
-  test.each(["en", "fa"])(
+  test.each(LANGUAGES)(
     "%s Proxmox: the journald wrapper image is built on the pinned collector",
     (language: string) => {
       const guide: string = readGuide(

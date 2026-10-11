@@ -336,7 +336,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "telemetry/docker-host": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/docker-swarm": {
@@ -347,14 +346,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/host-otel-collector": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/iot-devices": {
     sameShape: ["sv"],
   },
   "telemetry/kubernetes-agent": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/kubernetes-cost": {
@@ -364,7 +361,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/podman-host": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/proxmox": {
