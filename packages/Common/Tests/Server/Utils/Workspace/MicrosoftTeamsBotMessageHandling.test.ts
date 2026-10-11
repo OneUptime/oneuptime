@@ -1931,8 +1931,18 @@ describe("'show ...' replies name ten affected monitors, then how many more", ()
       );
   }
 
+  // The states the project's events wait for their start in.
+  const WAITING_STATE_IDS: Array<ObjectID> = [
+    ObjectID.generate(),
+    ObjectID.generate(),
+  ];
+
+  // The findBy each "show scheduled maintenance" read was asked with.
+  let maintenanceReads: Array<{ query: Record<string, unknown> }> = [];
+
   function stubOneMaintenanceEvent(): void {
     const eventId: ObjectID = ObjectID.generate();
+    maintenanceReads = [];
 
     // The ongoing events are asked for by the states they are in progress in.
     jest
@@ -1942,10 +1952,23 @@ describe("'show ...' replies name ten affected monitors, then how many more", ()
       )
       .mockResolvedValue([ObjectID.generate()]);
 
+    /*
+     * And the events to come by the states they wait for their start in:
+     * the scheduled state, and a state of the project's own placed after
+     * it and before Ongoing ("Confirmed").
+     */
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getWaitingToStartScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue(WAITING_STATE_IDS);
+
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockImplementation((findBy: unknown) => {
         recordQueriedProject(findBy);
+        maintenanceReads.push(findBy as { query: Record<string, unknown> });
         return Promise.resolve([
           {
             id: eventId,
@@ -2009,6 +2032,45 @@ describe("'show ...' replies name ten affected monitors, then how many more", ()
       expect(reply.endsWith(SHORTENED_NOTE)).toBe(false);
     },
   );
+
+  /*
+   * "show scheduled maintenance" lists the events still to come by the
+   * states they wait in (ScheduledMaintenanceStartUtil.isWaitingToStart),
+   * not by the scheduled flag: an event moved on to "Confirmed" was left
+   * out of it until it started.
+   */
+  test("'show scheduled maintenance' asks for the events by the states they wait for their start in, not by the scheduled flag", async () => {
+    stubs.showReplies.getScheduledMaintenanceMessage.mockRestore();
+    stubOneMaintenanceEvent();
+
+    await deliver(personalMessage("show scheduled maintenance"));
+
+    expect(maintenanceReads).toHaveLength(1);
+
+    const query: Record<string, unknown> = maintenanceReads[0]!.query;
+
+    expect(query["currentScheduledMaintenanceState"]).toBeUndefined();
+
+    const condition: {
+      objectLiteralParameters?: Record<string, unknown>;
+    } = query["currentScheduledMaintenanceStateId"] as {
+      objectLiteralParameters?: Record<string, unknown>;
+    };
+
+    const askedFor: Array<string> = (
+      (Object.values(condition.objectLiteralParameters || {})[0] as
+        | Array<unknown>
+        | undefined) || []
+    ).map((id: unknown): string => {
+      return String(id);
+    });
+
+    expect(askedFor.sort()).toEqual(
+      WAITING_STATE_IDS.map((id: ObjectID): string => {
+        return id.toString();
+      }).sort(),
+    );
+  });
 });
 
 describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
