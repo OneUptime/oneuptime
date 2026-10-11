@@ -307,7 +307,8 @@ const TAB_LINE: RegExp = /^@tab\s+(.+)$/;
  * thousands its own way (4.096, 4 096, ۴٬۰۹۶) and write Persian digits.
  */
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
-const THOUSANDS_SEPARATOR: RegExp = /(\d)[,.\s  '٬](?=\d{3}(?!\d))/g;
+const THOUSANDS_SEPARATOR: RegExp =
+  /(\d)[,.\s\u00a0\u202f'\u066c](?=\d{3}(?!\d))/g;
 const PERSIAN_DECIMAL_MARK: RegExp = /(\d)٫(\d)/g;
 
 const REGEXP_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
@@ -1056,15 +1057,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       Array.from(numbersIn("Werte über 4.096 Zeichen; `8 KiB` ist Code.")),
     ).toEqual(["4096"]);
-    expect(Array.from(numbersIn("au plus 1 000 séries"))).toEqual([
-      "1000",
-    ]);
+    expect(Array.from(numbersIn("au plus 1 000 séries"))).toEqual(["1000"]);
     expect(Array.from(numbersIn("حداکثر ۱٬۰۰۰ سری و نسخه ۱٫۵"))).toEqual([
       "1000",
       "1.5",
     ]);
     // A version keeps its point: 1.5 is not a thousand.
-    expect(Array.from(numbersIn("from v0.14 and 1.5"))).toEqual(["0.14", "1.5"]);
+    expect(Array.from(numbersIn("from v0.14 and 1.5"))).toEqual([
+      "0.14",
+      "1.5",
+    ]);
   });
 
   it("find a line whose code span is closed by asterisks", () => {
@@ -1078,19 +1080,31 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("find asterisks the renderer leaves when a bold span runs into a letter", async () => {
     expect(
-      await strayMarkers("# Title\n\n**ターゲット（任意）**を設定します。", "ja"),
+      await strayMarkers(
+        "# Title\n\n**ターゲット（任意）**を設定します。",
+        "ja",
+      ),
     ).toHaveLength(1);
     expect(
-      await strayMarkers("# Title\n\n**ターゲット（任意）** を設定します。", "ja"),
+      await strayMarkers(
+        "# Title\n\n**ターゲット（任意）** を設定します。",
+        "ja",
+      ),
     ).toEqual([]);
   });
 
   it("find underscores the renderer leaves when an italic span sits inside a word", async () => {
     expect(
-      await strayMarkers("# Title\n\n名为_SD-WAN gateway latency_的规则。", "zh-CN"),
+      await strayMarkers(
+        "# Title\n\n名为_SD-WAN gateway latency_的规则。",
+        "zh-CN",
+      ),
     ).toHaveLength(1);
     expect(
-      await strayMarkers("# Title\n\n名为 *SD-WAN gateway latency* 的规则。", "zh-CN"),
+      await strayMarkers(
+        "# Title\n\n名为 *SD-WAN gateway latency* 的规则。",
+        "zh-CN",
+      ),
     ).toEqual([]);
   });
 
@@ -1159,7 +1173,9 @@ describe("the helpers, on these pages' shapes", () => {
       '    drop{"Passt ein Drop-Filter?"} --> arrive["Log trifft ein"]',
     ].join("\n");
 
-    expect(diagramSkeleton(translatedChart)).toBe(diagramSkeleton(englishChart));
+    expect(diagramSkeleton(translatedChart)).toBe(
+      diagramSkeleton(englishChart),
+    );
     expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(englishChart));
   });
 });
