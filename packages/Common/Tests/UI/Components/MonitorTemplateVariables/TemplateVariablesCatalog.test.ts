@@ -568,20 +568,24 @@ describe("TemplateVariablesCatalog.getVariables - IoT Device", () => {
   it("offers the editor the same groups and variables as a Metrics monitor with the same Group By", () => {
     const namesOf: (
       monitorType: MonitorType,
-    ) => Array<[string, Array<string>]> = (
+    ) => Array<[string | undefined, Array<string>]> = (
       monitorType: MonitorType,
-    ): Array<[string, Array<string>]> => {
+    ): Array<[string | undefined, Array<string>]> => {
       return TemplateVariablesCatalog.getTemplateVariableGroups({
         monitorType,
         seriesAttributeKeys: ["device.id"],
-      }).map((group: EditorTemplateVariableGroup): [string, Array<string>] => {
-        return [
-          group.title,
-          group.variables.map((variable: EditorTemplateVariable): string => {
-            return variable.name;
-          }),
-        ];
-      });
+      }).map(
+        (
+          group: EditorTemplateVariableGroup,
+        ): [string | undefined, Array<string>] => {
+          return [
+            group.title,
+            group.variables.map((variable: EditorTemplateVariable): string => {
+              return variable.name;
+            }),
+          ];
+        },
+      );
     };
 
     expect(namesOf(MonitorType.IoTDevice)).toEqual(
