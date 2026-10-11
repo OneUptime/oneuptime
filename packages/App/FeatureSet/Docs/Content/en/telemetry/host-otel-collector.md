@@ -528,7 +528,7 @@ receivers:
     priority: info
 ```
 
-The receiver runs `journalctl`, which the Debian and RPM packages depend on, and the collector's user must be in the `systemd-journal` group.
+The receiver runs `journalctl`, which every systemd host has, and the collector's user must be in the `systemd-journal` group.
 
 ### Linux Services (systemd units, metrics)
 
@@ -801,7 +801,7 @@ Nothing on the machine reports a firmware version available as an upgrade, so On
 
 #### Checking it worked
 
-Open the host in OneUptime, follow **Open inventory item** from the host's page, and look at the details on its **Attributes** card. Values appear within a few minutes of the next batch. Because they are stamped rather than detected, they do not update themselves: stamp them again after a motherboard swap, a firmware update or a re-image.
+Open the host's item under **Products → Inventory** and look at its **Asset Details** card. Values appear within a few minutes of the next batch; a detail the collector has not reported shows as unknown, with a link back to this section. Because they are stamped rather than detected, they do not update themselves: stamp them again after a motherboard swap, a firmware update or a re-image.
 
 ## Other ways to run the collector
 

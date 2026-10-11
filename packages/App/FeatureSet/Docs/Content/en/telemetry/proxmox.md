@@ -263,7 +263,7 @@ Offline here means the node stopped reporting, not necessarily that it is down. 
 What it cannot cover:
 
 - A standalone host, or a whole cluster going silent at once: nobody is left to report it, so no per-node alert fires. The cluster turns **Disconnected** instead, as when the agent stops.
-- A node silent for more than 7 days is no longer reported: its alert resolves and it drops off the Nodes page.
+- A node silent for more than 7 days is no longer reported: its alert resolves and it drops off the Nodes page. A self-hosted OneUptime changes the 7 days with `PVE_SILENT_NODE_RETENTION_HOURS`.
 - A node you take out of the cluster looks the same as a dead one. Use **Remove Node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
 - The node's guests and storage: only the node itself is kept as Offline. Its VMs, containers and storage drop off their pages about 15 minutes after its last report, and guests that HA restarts on another node come back under that node.
 

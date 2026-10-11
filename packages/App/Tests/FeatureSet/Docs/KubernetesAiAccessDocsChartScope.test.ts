@@ -216,7 +216,7 @@ describe("aiAgent.remediation.namespaces in the docs", () => {
   it("tells an operator whose upgrade failed on a missing namespace what to change, in both Upgrading sections", () => {
     for (const [file, heading] of [
       [CHART_README, "## Upgrading"],
-      [KUBERNETES_AGENT_PAGE, "## Upgrading the Agent"],
+      [KUBERNETES_AGENT_PAGE, "## Upgrading the agent"],
     ] as Array<[string, string]>) {
       const section: string = getSection(read(file), heading);
 

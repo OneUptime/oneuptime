@@ -229,7 +229,7 @@ docker compose down
 ```
 :::
 
-The host stays in OneUptime with the data it sent. Delete it from the host's **Settings** if you no longer need it.
+The host stays in OneUptime with the data it sent. If you no longer need it, delete it with **Delete Host** in its menu.
 
 ## AI agent
 

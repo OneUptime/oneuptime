@@ -655,7 +655,7 @@ helm uninstall kubernetes-agent --namespace oneuptime-agent
 kubectl delete namespace oneuptime-agent
 ```
 
-The cluster stays in OneUptime with the data it sent, shown as disconnected. Delete it from the cluster's **Settings** if you no longer need it.
+The cluster stays in OneUptime with the data it sent, shown as disconnected. If you no longer need it, delete it with **Delete Cluster** in its menu.
 
 ## Reducing the volume of data collected
 
