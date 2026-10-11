@@ -1815,3 +1815,101 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
     ]);
   });
 });
+
+/*
+ * A custom SMS and a custom email subject are given the event's Markdown and
+ * Rich text fields as plain text (Markdown.convertToPlainText). The HTML
+ * typed in them comes out completely: where taking a tag out joins the text
+ * either side into another one, that one goes too. A "<" typed as text
+ * stays, and the email body and chat messages keep their own forms.
+ */
+describe("IncidentTemplateVariableBuilder plain text for custom SMS and email subjects", () => {
+  const DESCRIPTION: string =
+    "Checkout down <scr<script>ipt>alert(1)</script> while p99 < 200 ms";
+  const DESCRIPTION_TEXT: string = "Checkout down alert(1) while p99 < 200 ms";
+
+  test("an incident description's typed markup comes out of the SMS and the subject completely", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({
+        definitions: [],
+        markdownVariables: { incidentDescription: DESCRIPTION },
+      }),
+    );
+
+    expect(site.plainText["incidentDescription"]).toBe(DESCRIPTION_TEXT);
+    expect(
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        "{{incidentTitle}}: {{incidentDescription}}",
+        site.plainText,
+      ),
+    ).toBe(`Checkout requests failing: ${DESCRIPTION_TEXT}`);
+
+    // The email body renders the Markdown, its raw HTML escaped, as before.
+    const html: string = htmlOf(site.emailBody["incidentDescription"]);
+
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("<scr");
+    expect(html).toContain("&lt;scr&lt;script&gt;ipt");
+
+    // Chat gets the Markdown as written.
+    expect(site.markdown["incidentDescription"]).toBe(DESCRIPTION);
+  });
+
+  test("a note and a postmortem read the same way", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: [],
+      markdownVariables: {
+        note: "<b<i>Update</i>>Rolled back <<b>script>x</b>",
+        postmortemNote: "**Cause:** <img src=x alt='<b>a</b>'>a bad deploy",
+      },
+    });
+
+    expect(variables.getMarkdownVariable("note").plainText).toBe(
+      "Rolled back x",
+    );
+    expect(variables.getMarkdownVariable("postmortemNote").plainText).toBe(
+      "Cause: a bad deploy",
+    );
+    expect(forSite03(variables).plainText["note"]).toBe("Rolled back x");
+  });
+
+  test("a Rich text field's typed markup comes out of its plain text completely, under both names", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({
+        definitions: [
+          field({
+            name: "Impact",
+            variableKey: "impact",
+            customFieldType: CustomFieldType.Markdown,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+        customFields: { Impact: "**EU** <b<i>x</i>>down, <3 left" },
+      }),
+    );
+
+    expect(site.plainText["incident.customFields.impact"]).toBe(
+      "EU down, <3 left",
+    );
+    expect(site.plainText["customFields.impact"]).toBe("EU down, <3 left");
+    expect(site.markdown["incident.customFields.impact"]).toBe(
+      "**EU** <b<i>x</i>>down, <3 left",
+    );
+  });
+
+  test("text one pass of the old rule read completely reads as before", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({
+        definitions: [],
+        markdownVariables: {
+          incidentDescription:
+            'Card payments **fail** <img src=x onerror="alert(1)"> for `<region>` and p99 > 2 s',
+        },
+      }),
+    );
+
+    expect(site.plainText["incidentDescription"]).toBe(
+      "Card payments fail for <region> and p99 > 2 s",
+    );
+  });
+});

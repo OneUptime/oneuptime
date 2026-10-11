@@ -16,6 +16,10 @@ import ts from "typescript";
  * which code scanning reports as incomplete multi-character sanitization
  * (js/incomplete-multi-character-sanitization): an unclosed tag stays as it
  * came, and a ">" inside a quoted value or a comment ends the tag early.
+ * Markdown read as plain text (Markdown.convertToPlainText) keeps its own
+ * narrower reading, which leaves a "<" typed as text alone, but reads it
+ * through the same module (removeMarkupFromText), until no markup is left:
+ * one pass of its pattern left the markup that taking a tag out joined.
  * This guard reads each of them and fails on:
  *
  *   1. a replace or replaceAll whose pattern takes out a whole HTML tag or
@@ -84,6 +88,15 @@ const MARKUP_READERS: Array<MarkupReader> = [
     what: "a token endpoint's answer quoted in an OAuth error",
     // Each tag and comment becomes a space, so words stay apart.
     readsThrough: "replaceHtmlMarkup",
+  },
+  {
+    file: "packages/Common/Server/Types/Markdown.ts",
+    what: "Markdown read as plain text, for custom SMS and email subjects",
+    /*
+     * The narrow reading that keeps a "<" typed as text, taken out until no
+     * markup is left (convertToPlainText).
+     */
+    readsThrough: "removeMarkupFromText",
   },
 ];
 

@@ -771,6 +771,58 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expectEveryCheckPassed(report);
   }, 600000);
 
+  /*
+   * Plain text takes markup out until none is left: taking a tag out can
+   * join the text either side of it into another one. Done a pass at a
+   * time, markup nested in tags' names - "<a<a<a...>>>" - takes a pass for
+   * each level: sixteen thousand passes over these 64 KB, in time that
+   * grows with the square of the length. Plain text reads it in one walk
+   * (removeMarkupFromText), and none of it is left.
+   */
+  test("plain text takes 64 KB of nested markup out completely, in good time", () => {
+    const report: ProcessReport = runUnoptimized(
+      ['export { default as Markdown } from "./Server/Types/Markdown";'],
+      String.raw`
+        const nestedInputs = {
+          "tags nested in tags' names": () =>
+            "<a".repeat(QUADRATIC_SIZE / 4) + ">".repeat(QUADRATIC_SIZE / 4),
+          "comments nested in comments": () =>
+            "<!".repeat(QUADRATIC_SIZE / 4) + ">".repeat(QUADRATIC_SIZE / 4),
+          "lines of tags nested in tags' names": () =>
+            "<a\n".repeat(QUADRATIC_SIZE / 8) + ">\n".repeat(QUADRATIC_SIZE / 8),
+          "tags that join once one is out": () =>
+            "<scr\n".repeat(QUADRATIC_SIZE / 16) + "<b>" + "ipt>\n".repeat(QUADRATIC_SIZE / 16),
+        };
+
+        // Loaded and compiled once, as in a server.
+        lib.Markdown.convertToPlainText("warm <b>up</b>");
+
+        for (const [name, markdownOf] of Object.entries(nestedInputs)) {
+          const markdown = "Before\n\n" + markdownOf() + "\n\nAfter";
+          const started = process.hrtime.bigint();
+
+          results[name] = await attempt(() => {
+            const text = lib.Markdown.convertToPlainText(markdown);
+            const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e6);
+
+            return {
+              ["in under " + ` +
+        String(QUADRATIC_BUDGET_IN_MS) +
+        String.raw` + " ms (took " + ms + " ms)"]: ms < ` +
+        String(QUADRATIC_BUDGET_IN_MS) +
+        String.raw`,
+              "takes all of it out": text === "Before\nAfter",
+            };
+          });
+        }
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(4);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
   test("the dashboard reads 64 KB of every shape that was slow in good time", () => {
     const report: ProcessReport = runUnoptimized(
       [
