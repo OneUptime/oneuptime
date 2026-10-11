@@ -269,10 +269,11 @@ const UNDERSCORED_NAME: RegExp = /[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g;
  * asterisks show. An underscore never closes inside a word, so "_之后_的"
  * shows both underscores.
  *
- * Each line it returns is a line of the page's text that shows "**" or an
- * underscore; a page that draws every span it opens returns none. Code is
- * left out first, then the tags, so an underscore in an attribute (a link's
- * address, an image's file name) is no marker either.
+ * What it returns are the lines of the drawn page, as text, that show "**"
+ * or an underscore (the renderer draws a run of paragraphs on one line); a
+ * page that draws every span it opens returns none. Code is left out first,
+ * then the tags (stripHtmlTags), so an underscore in an attribute - a link's
+ * address, an image's file name - is no marker either.
  */
 export async function strayMarkers(
   markdown: string,
