@@ -1,6 +1,4 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
-import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DocsHeading,
   DocsLink,
@@ -26,6 +24,7 @@ import {
   listItemCount,
   navTitle,
   prose,
+  strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
 import {
@@ -544,16 +543,6 @@ const PLACEHOLDER_SEGMENT: string = "[^*→\\n]+?";
 // An inline code span, which may hold asterisks of its own.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 
-// Code in rendered HTML: a code block or an inline code span.
-const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
-
-// A rendered HTML tag, whose attributes may hold underscores of their own.
-const HTML_TAG: RegExp = /<[^>]*>/g;
-
-// A Mermaid diagram's fenced source.
-const MERMAID_BLOCK: RegExp =
-  /^ {0,3}```mermaid[^\n]*\n[\s\S]*?^ {0,3}```[^\n]*$/gm;
-
 // The full stop that ends a sentence, in each script the locales write.
 const FULL_STOP: RegExp = /[.。．।]$/;
 
@@ -672,39 +661,6 @@ function unbalancedLines(markdown: string): Array<string> {
       const stars: number = outsideCode.split("**").length - 1;
 
       return ticks % 2 !== 0 || stars % 2 !== 0;
-    });
-}
-
-/*
- * A page as the docs route draws it, without its title line, and the
- * emphasis markers left in its text: a bold or italic span CommonMark did
- * not close. A bold span that ends in punctuation and runs straight into a
- * letter, as in "**超时。**脚本", is not closed, and its asterisks show. An
- * underscore never closes inside a word, so "_之后_的" shows both
- * underscores. A diagram is drawn from its source, which Markdown never
- * reads (`con_name` is a node's words, not emphasis), so diagrams are left
- * out.
- */
-async function strayMarkers(
-  markdown: string,
-  language: string,
-): Promise<Array<string>> {
-  const withoutDiagrams: string = markdown.replace(MERMAID_BLOCK, "");
-  const html: string = await DocsRender.render(
-    DocsPlaceholders.render(
-      withoutDiagrams.split("\n").slice(1).join("\n"),
-      language,
-    ),
-  );
-
-  return html
-    .replace(RENDERED_CODE, "")
-    .split("\n")
-    .map((line: string): string => {
-      return line.replace(HTML_TAG, "");
-    })
-    .filter((line: string): boolean => {
-      return line.includes("**") || line.includes("_");
     });
 }
 
@@ -1558,15 +1514,18 @@ describe("the helpers, on these pages' shapes", () => {
       "",
       '```mermaid title="Without and with Group By"',
       "flowchart TB",
-      '    subgraph With["Group by con_name"]',
+      '    subgraph With["Group by con_name, _per series"]',
       "    end",
       "```",
     ].join("\n");
 
     expect(await strayMarkers(diagram, "de")).toEqual([]);
-    // The same words in the text would show their underscore.
+    /*
+     * The same words in the text show their lone underscore; con_name is
+     * a name written with underscores there, not a marker.
+     */
     expect(
-      await strayMarkers("# Title\n\nGroup by con_name.", "de"),
+      await strayMarkers("# Title\n\nGroup by con_name, _per series.", "de"),
     ).toHaveLength(1);
   });
 
