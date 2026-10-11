@@ -12,6 +12,18 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import {
+  CLOUD_AWS_ECS,
+  CLOUD_AZURE_CONTAINER_APPS,
+  CLOUD_ENVIRONMENTS,
+  CLOUD_GCP_CLOUD_RUN,
+  CLOUD_OTHER_PLATFORMS,
+  CLOUD_PAGE_NAMES,
+  CLOUD_RESOURCES,
+  CLOUD_TROUBLESHOOTING,
+  CONSOLE_PATHS,
+  SHAPE_TABS,
+} from "./CloudDocsPages";
+import {
   DocsFence,
   DocsHeading,
   readPage,
@@ -44,23 +56,15 @@ import path from "path";
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
-const HUB: string = "telemetry/cloud-environments";
-const ECS: string = "telemetry/cloud-aws-ecs";
-const CLOUD_RUN: string = "telemetry/cloud-gcp-cloud-run";
-const CONTAINER_APPS: string = "telemetry/cloud-azure-container-apps";
-const OTHER: string = "telemetry/cloud-other-platforms";
-const TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
-const RESOURCES: string = "telemetry/cloud-resources";
+const HUB: string = CLOUD_ENVIRONMENTS;
+const ECS: string = CLOUD_AWS_ECS;
+const CLOUD_RUN: string = CLOUD_GCP_CLOUD_RUN;
+const CONTAINER_APPS: string = CLOUD_AZURE_CONTAINER_APPS;
+const OTHER: string = CLOUD_OTHER_PLATFORMS;
+const TROUBLESHOOTING: string = CLOUD_TROUBLESHOOTING;
+const RESOURCES: string = CLOUD_RESOURCES;
 
-const PAGES: ReadonlyArray<string> = [
-  HUB,
-  ECS,
-  CLOUD_RUN,
-  CONTAINER_APPS,
-  OTHER,
-  TROUBLESHOOTING,
-  RESOURCES,
-];
+const PAGES: ReadonlyArray<string> = CLOUD_PAGE_NAMES;
 
 // The pages that walk one platform's setup, a step or tab per shape.
 const PLATFORM_PAGES: ReadonlyArray<string> = [ECS, CLOUD_RUN, CONTAINER_APPS];
@@ -102,41 +106,6 @@ const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
     menu: SETTINGS_SIDE_MENU,
     titleKey: "projectSettingsTitle",
   },
-};
-
-/*
- * The paths through a cloud provider's console, which the pages name as
- * that console draws them. Every other path on the pages is a path through
- * OneUptime's own menus, and is checked against them.
- */
-const CONSOLE_PATHS: Record<string, Array<string>> = {
-  [ECS]: [
-    "AWS Console → Amazon Elastic Container Service → Task definitions",
-    "Docker configuration → Command",
-    "Clusters → your cluster → Services → select the service → Update → Task definition revision: latest → Deploy",
-  ],
-  [CLOUD_RUN]: [
-    "Google Cloud console → Cloud Run → click the service → Edit & deploy new revision",
-  ],
-  [CONTAINER_APPS]: [
-    "Azure portal → Container Apps → your app → Settings → Secrets → + Add",
-    "Application → Containers → Edit and deploy",
-  ],
-  [OTHER]: [
-    "AWS Console → Elastic Beanstalk → Environments → your environment → Configuration",
-    "AWS Console → App Runner → Services → your service → Configuration → Configure service",
-    "Security → Instance role",
-    "App Engine → Versions",
-    "App Engine → Services",
-    "Settings → Identity",
-    "Azure portal → App Services → your app → Settings → Environment variables",
-    "Configuration → Application settings",
-    "Azure portal → Container Instances → + Create",
-  ],
-  [RESOURCES]: [
-    "Amazon Data Firehose → Create Firehose stream",
-    "CloudWatch → Metrics → Streams → Create metric stream",
-  ],
 };
 
 const SECTION_OPEN: RegExp =
@@ -976,6 +945,7 @@ describe("the in-app guide's tabs", () => {
   it("are the tabs the platform pages offer, in the guide's words", () => {
     const guide: string = readSource(CLOUD_SETUP_GUIDE);
 
+    expect(SHAPE_TABS).toEqual(["Sidecar collector", "SDK direct"]);
     expect(guide).toContain('const SIDECAR_COLLECTOR: string = "Sidecar collector";');
     expect(guide).toContain('const SDK_DIRECT: string = "SDK direct";');
 
@@ -983,7 +953,7 @@ describe("the in-app guide's tabs", () => {
       const labels: Array<string> = tabLabels(englishPage(page));
 
       expect(labels.length).toBeGreaterThan(0);
-      expect(new Set(labels)).toEqual(new Set(["Sidecar collector", "SDK direct"]));
+      expect(new Set(labels)).toEqual(new Set(SHAPE_TABS));
     }
   });
 });
