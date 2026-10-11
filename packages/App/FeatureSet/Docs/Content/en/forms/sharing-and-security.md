@@ -76,7 +76,15 @@ A form's logo and favicon are part of the form: they are sent inside the answer 
 
 ### IP allowlist
 
-To limit a form to your own networks, fill in **IP Allowlist** on the **Access** card, one entry per line:
+To limit a form to your own networks:
+
+:::steps
+1. Open the form's **Share** page.
+2. On the **Access** card, click **Edit IP Allowlist**.
+3. Enter one network per line, and save. The card then lists them under **IP Allowlist**.
+:::
+
+Each line is one of these:
 
 | Entry | Example | Note |
 | --- | --- | --- |
