@@ -132,7 +132,7 @@ OneUptime reads these fields from each record:
 | Log field | Read from the record's first field of | Notes |
 | --- | --- | --- |
 | Body | `message`, `log`, `msg`, `body`, `text` | The log line. A record with none of them is stored whole, as JSON. |
-| Severity | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Names such as `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` and `fatal`, in any case. Any other value is stored as Unspecified. |
+| Severity | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Names such as `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` and `fatal`, in any case. Any other value is stored as `Unspecified`. |
 | Trace ID | `trace_id`, `traceId`, `traceid` | Links the log to its trace. |
 | Span ID | `span_id`, `spanId`, `spanid` | Links the log to its span. |
 | Service | the `x-oneuptime-service-name` header | `Fluentd` when the header is not set. |

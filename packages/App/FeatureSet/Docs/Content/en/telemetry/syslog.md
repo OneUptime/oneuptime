@@ -91,7 +91,7 @@ curl \
   }'
 ```
 
-A `200` means the message was accepted. Open **Products → Logs**: the log appears in the `production-web` service with the body `502 on /api/login`, severity **Error** and the attributes in [Parsed attributes](#parsed-attributes).
+A `200` means the message was accepted. Open **Products → Logs**: the log appears in the `production-web` service with the body `502 on /api/login`, severity `Error` and the attributes in [Parsed attributes](#parsed-attributes).
 
 ## Forward from rsyslog
 
@@ -206,12 +206,12 @@ The message itself stays in the log body. Firewalls such as Sophos XGS and Forti
 
 | Syslog severity | Code | OneUptime severity |
 | --- | --- | --- |
-| Emergency, Alert | `0`, `1` | Fatal |
-| Critical, Error | `2`, `3` | Error |
-| Warning | `4` | Warning |
-| Notice, Informational | `5`, `6` | Information |
-| Debug | `7` | Debug |
-| No priority in the message | — | Unspecified |
+| Emergency, Alert | `0`, `1` | `Fatal` |
+| Critical, Error | `2`, `3` | `Error` |
+| Warning | `4` | `Warning` |
+| Notice, Informational | `5`, `6` | `Information` |
+| Debug | `7` | `Debug` |
+| No priority in the message | — | `Unspecified` |
 
 A message without a timestamp is stored with the time OneUptime received it.
 
