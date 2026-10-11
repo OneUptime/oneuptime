@@ -309,10 +309,10 @@ const namedPatternsOf: NamedPatternsOfFunction = (
   source: ts.SourceFile,
 ): NamedPatterns => {
   const named: NamedPatterns = new Map<string, RegExp>();
-  let isGrowing: boolean = true;
 
-  while (isGrowing) {
-    isGrowing = false;
+  // One reading of the file: whether it named a pattern not named before.
+  const readOnce: () => boolean = (): boolean => {
+    let isGrowing: boolean = false;
 
     visit(source, (node: ts.Node) => {
       if (
@@ -329,6 +329,14 @@ const namedPatternsOf: NamedPatternsOfFunction = (
         }
       }
     });
+
+    return isGrowing;
+  };
+
+  let isGrowing: boolean = readOnce();
+
+  while (isGrowing) {
+    isGrowing = readOnce();
   }
 
   return named;
