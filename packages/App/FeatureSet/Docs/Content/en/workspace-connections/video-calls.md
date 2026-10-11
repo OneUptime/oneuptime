@@ -87,7 +87,7 @@ Some Microsoft 365 organizations only let administrators approve apps. If Micros
 
 ### Use your own app instead
 
-To connect with a service identity rather than a person's sign-in - a Zoom Server-to-Server OAuth app, a Google service account with domain-wide delegation, or a Microsoft Entra app registration - click **Use your own Zoom app** (or Google, or Microsoft) in the Connect dialog. [Providers](#providers) explains each. On a self-hosted server without one-click apps set up, **Connect** opens this form directly; see [One-click connect on a self-hosted server](#one-click-connect-on-a-self-hosted-server) to set them up.
+To connect with a service identity rather than a person's sign-in — a Zoom Server-to-Server OAuth app, a Google service account with domain-wide delegation, or a Microsoft Entra app registration — click **Use your own Zoom app** (or Google, or Microsoft) in the Connect dialog. [Providers](#providers) explains each. On a self-hosted server without one-click apps set up, **Connect** opens this form directly; see [One-click connect on a self-hosted server](#one-click-connect-on-a-self-hosted-server) to set them up.
 
 ## Starting a call by hand
 
