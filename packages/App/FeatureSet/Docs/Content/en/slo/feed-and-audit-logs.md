@@ -13,12 +13,12 @@ An SLO keeps two records of its history, and they answer different questions. Th
 | Kept | Three years on OneUptime Cloud | 7 days by default, up to 180 |
 
 ```mermaid title="What writes to each record"
-flowchart TB
+flowchart LR
     eval["SLO evaluations"] --> feed["Feed"]
-    rules["Burn rate and monitor rules"] --> feed
+    rules["Burn rate and<br/>monitor rules"] --> feed
     people["People editing the SLO,<br/>its rules and owners"] --> feed
     people --> audit["Audit Logs"]
-    system["OneUptime's own changes"] -.->|"with Store System Events"| audit
+    system["OneUptime's<br/>own changes"] -.->|"with Store<br/>System Events"| audit
 ```
 
 ## The SLO feed

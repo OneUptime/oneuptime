@@ -12,12 +12,10 @@ Every time OneUptime evaluates an SLO, every 5 minutes, it writes the results as
 
 ```mermaid title="Where an SLO's numbers go"
 flowchart TB
-    eval["SLO evaluation,<br/>every 5 minutes"] --> metrics["oneuptime.slo.* metrics"]
+    eval["SLO evaluation,<br/>every 5 minutes"] --> metrics["oneuptime.slo.*<br/>metrics"]
     eval --> history["Error budget history,<br/>kept for 400 days"]
-    metrics --> page["The SLO's Metrics page"]
-    metrics --> explorer["Metrics explorer"]
-    metrics --> boards["Dashboards"]
-    history --> page
+    metrics --> uses["The SLO's Metrics page,<br/>the metrics explorer<br/>and dashboards"]
+    history --> tab["The Error Budget<br/>History tab"]
 ```
 
 ## The metrics

@@ -39,18 +39,14 @@ This is the multi-window, multi-burn-rate pattern from the Google SRE Workbook, 
 
 ```mermaid title="What a burn rate rule does at each evaluation"
 flowchart TB
-    start["The SLO is evaluated"] --> history{"A full long window<br/>of history?"}
-    history -->|"No"| close["Resolve what<br/>the rule has open"]
-    history -->|"Yes"| long{"Long window at or<br/>above the threshold?"}
+    start["The SLO is evaluated"] --> long(["Long window at or<br/>above threshold?"])
     long -->|"No"| recover["Resolve what is open,<br/>if auto-resolve is on"]
-    long -->|"Yes"| short{"Short window at or<br/>above the threshold?"}
-    short -->|"No"| hold["Keep what is open, open"]
-    short -->|"Yes"| maint{"A monitor in<br/>scheduled maintenance?"}
-    maint -->|"Yes"| hold
-    maint -->|"No"| fire["Raise the alert, declare the incident,<br/>or both"]
+    long -->|"Yes"| short(["Short window at or<br/>above threshold?"])
+    short -->|"No"| hold["Keep open<br/>what is open"]
+    short -->|"Yes"| fire["Raise the alert,<br/>declare the incident,<br/>or both"]
 ```
 
-A rule cannot fire until the SLO has a full long window of monitoring history: otherwise a monitor's very first failed check, divided by a few minutes of history, would read as an enormous burn rate. So a new SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six. If an SLO later stops having that much history, for example after its monitors are swapped for new ones, the rule resolves what it has open rather than leaving it hanging.
+A rule cannot fire until the SLO has a full long window of monitoring history: otherwise a monitor's very first failed check, divided by a few minutes of history, would read as an enormous burn rate. So a new SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six. If an SLO later stops having that much history, for example after its monitors are swapped for new ones, the rule resolves what it has open rather than leaving it hanging. A rule does not fire while any of the SLO's monitors is in scheduled maintenance either: see [Scheduled maintenance](#scheduled-maintenance).
 
 ## Default rules
 
@@ -70,7 +66,7 @@ The 14.4× and 6× thresholds are worked out for a 30-day budget, so OneUptime s
 | 30 days | 14.4× | 6× |
 | 90 days | 43.2× | 18× |
 
-Calendar-month SLOs get the 30-day values. The two rules raise an alert at the project's most severe alert severity, with the built-in title and description, resolve it automatically, and add no owners or labels. They never declare an incident, so upgrading OneUptime never starts declaring incidents on your behalf. Edit them, delete them or add your own.
+Calendar-month SLOs get the 30-day values. The two rules raise an alert at the project's most severe alert severity, with the built-in title and description, resolve it automatically, and add no owners or labels. They do not declare incidents, so upgrading OneUptime never starts declaring incidents on your behalf. Edit them, delete them or add your own.
 
 ## Create or edit a rule
 
@@ -220,7 +216,7 @@ A rule fires only once the SLO has a full long window of monitoring history: an 
 :::
 
 :::details An alert resolved while the outage was still going on
-Auto-resolve follows the long window: once the long-window burn rate drops below the threshold, the alert resolves. Raise the threshold of a slower rule, or turn off **Auto Resolve Alert** to resolve it by hand.
+Auto-resolve follows the long window: once the long-window burn rate drops below the threshold, the alert resolves. Give the rule a longer long window, or turn off **Auto Resolve Alert** and resolve the alert by hand.
 :::
 
 :::details Nothing fired during a scheduled maintenance event
