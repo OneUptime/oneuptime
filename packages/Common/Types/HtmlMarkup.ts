@@ -218,11 +218,14 @@ export type HtmlMarkupReplacer = (markup: string) => string;
  * "</style foo>"), and `replace` is given the whole element. Title,
  * textarea and xmp hold text: what is between the start tag and the end
  * tag is read on its own, with no element in it, so nothing there - a
- * "<script", a comment - runs past the end tag. Names are read as a
- * browser reads them (a name ends at ASCII whitespace, a "/" or the ">"),
- * and found by the walk, so a "<script" in a comment or a quoted value
- * starts nothing. A start tag that no end tag follows is an ordinary tag,
- * and what follows it is read as usual. Not read: the escaped-comment
+ * "<script", a comment - runs past the end tag. Read with lessThanAsText,
+ * a run of "<" that ends that text goes, as a run before any markup does:
+ * kept, it would meet whatever follows the end tag ("<title>x<</title>b"
+ * would read "x<b"), which it never does without the option. Names are
+ * read as a browser reads them (a name ends at ASCII whitespace, a "/" or
+ * the ">"), and found by the walk, so a "<script" in a comment or a quoted
+ * value starts nothing. A start tag that no end tag follows is an ordinary
+ * tag, and what follows it is read as usual. Not read: the escaped-comment
  * states a script's content can enter ("<!--<script>"), a quoted value in
  * an end tag, and SVG or MathML, where a title holds markup; each can only
  * leave text behind, never markup.
@@ -475,11 +478,20 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
         } else {
           /*
            * A text element's content is read on its own, with no element in
-           * it, so nothing in it runs past its end tag, which comes next.
+           * it, so nothing in it runs past its end tag, which comes next. A
+           * run of "<" that ends it goes, as a run before any markup does:
+           * read as a browser reads "<", it would be kept as text and meet
+           * what follows the end tag; the default reading drops it anyway.
            */
+          let textEnd: number = endTagAt;
+
+          while (textEnd > end && html.charCodeAt(textEnd - 1) === LESS_THAN) {
+            textEnd--;
+          }
+
           text +=
             replace(html.slice(open, end)) +
-            replaceHtmlMarkup(html.slice(end, endTagAt), replace, {
+            replaceHtmlMarkup(html.slice(end, textEnd), replace, {
               lessThanAsText: lessThanAsText,
             });
           index = endTagAt;

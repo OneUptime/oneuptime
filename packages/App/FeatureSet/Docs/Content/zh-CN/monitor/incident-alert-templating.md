@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph 和 Storage Array 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
 | `metricName` | 监视器的第一个查询所读取的指标的名称，例如 `container.cpu.time`。 | `string` |
 
-分组时，它们还有每个 **Group by** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器没有 `metricName`，但分组的 IoT Device 监视器(其模板都是分组的)有 `{{device.id}}`。
+分组时，它们还有每个 **Group by** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
 
 ### 其他监视器类型
 

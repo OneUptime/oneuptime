@@ -339,11 +339,11 @@ and a default-on fix should not silently stay off for those clusters.
 Usage: {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
 */}}
 {{- define "kubernetes-agent.dropDatabaseServerSpans" -}}
-{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropDatabaseServerSpans) "false") -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (ne (toString .Values.ebpf.dropDatabaseServerSpans) "false") -}}
 {{- end -}}
 
 {{- define "kubernetes-agent.dropUnlinkedDatabaseCalls" -}}
-{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropUnlinkedDatabaseCalls) "false") -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (ne (toString .Values.ebpf.dropUnlinkedDatabaseCalls) "false") -}}
 {{- end -}}
 
 {{- define "kubernetes-agent.ebpfDatabaseFilterEnabled" -}}
@@ -394,7 +394,7 @@ else it costs). So a release upgraded with --reuse-values, whose values
 predate the key, keeps every span as before.
 */}}
 {{- define "kubernetes-agent.dropUnlinkedClientCalls" -}}
-{{- and (.Values.ebpf.enabled | default false) (eq (toString .Values.ebpf.dropUnlinkedClientCalls) "true") -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (toString .Values.ebpf.dropUnlinkedClientCalls) "true") -}}
 {{- end -}}
 
 {{/*
@@ -437,7 +437,7 @@ app's own datapoints), and on unless explicitly set to false, for the same
 --reuse-values reason as the database switches above.
 */}}
 {{- define "kubernetes-agent.dropNodeInspectorMetrics" -}}
-{{- and (.Values.ebpf.enabled | default false) (ne (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") (ne (toString .Values.ebpf.dropNodeInspectorMetrics) "false") -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (ne (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") (ne (toString .Values.ebpf.dropNodeInspectorMetrics) "false") -}}
 {{- end -}}
 
 {{/*
@@ -717,6 +717,56 @@ silently never scheduled there. Everywhere else, including Autopilot, they run.
 false
 {{- else -}}
 true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the platform runs a privileged pod. The eBPF instrumentation (OBI) and
+the continuous profiler each need one, with the host's PID namespace, to load
+eBPF programs into the kernel. GKE Autopilot refuses privileged pods: its
+admission rejects them, and the whole install with them. EKS Fargate runs
+neither privileged containers nor DaemonSets, so the two would sit there never
+scheduling. Like hostPath, this is decided by the preset.
+Usage: {{- if eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.privilegedPodsAllowed" -}}
+{{- $preset := default "" .Values.preset -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+false
+{{- else -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the eBPF instrumentation runs: ebpf.enabled, on a platform that runs
+its privileged DaemonSet. Every template reads ebpf.enabled through this - the
+DaemonSet, its ConfigMap, the collector's OTLP Service, ports, receiver and
+traces pipeline, the trace filters and sampler, the log enricher's parsing and
+the notes - so a preset that turns it off leaves no half of it behind. An
+explicit ebpf.enabled=false is still honoured everywhere.
+Usage: {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.ebpfEnabled" -}}
+{{- if and ((.Values.ebpf | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the continuous profiler runs: profiling.enabled, on a platform that
+runs its privileged DaemonSet (see privilegedPodsAllowed). The profiler's
+DaemonSet, its ConfigMap, the eBPF DaemonSet's trace-context switch and the
+notes read profiling.enabled through this.
+Usage: {{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.profilingEnabled" -}}
+{{- if and ((.Values.profiling | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}
+true
+{{- else -}}
+false
 {{- end -}}
 {{- end -}}
 
@@ -1057,7 +1107,7 @@ Usage: {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
 */}}
 {{- define "kubernetes-agent.traceSamplingEnabled" -}}
 {{- $pct := float64 (include "kubernetes-agent.traceSamplingPercentage" .) -}}
-{{- and (.Values.ebpf.enabled | default false) (lt $pct 100.0) -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (lt $pct 100.0) -}}
 {{- end -}}
 
 {{/*

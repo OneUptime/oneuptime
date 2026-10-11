@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### मेट्रिक और इन्फ्रास्ट्रक्चर मॉनिटर
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph और Storage Array मॉनिटर में एक अपना वेरिएबल होता है:
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array और IoT Device मॉनिटर में एक अपना वेरिएबल होता है:
 
 | वेरिएबल | इसमें क्या है | प्रकार |
 | --- | --- | --- |
 | `metricName` | उस मेट्रिक का नाम जिसे मॉनिटर की पहली क्वेरी पढ़ती है, जैसे `container.cpu.time`। | `string` |
 
-समूहित होने पर, उनमें हर **Group by** एट्रिब्यूट का मान और `seriesLabels` भी होता है: देखें [समूहित मॉनिटर के मान](#समूहित-मॉनिटर-के-मान)। IoT Device मॉनिटर में `metricName` नहीं होता, लेकिन समूहित मॉनिटर में, जैसे उसके टेम्पलेट होते हैं, `{{device.id}}` होता है।
+समूहित होने पर, उनमें हर **Group by** एट्रिब्यूट का मान और `seriesLabels` भी होता है: देखें [समूहित मॉनिटर के मान](#समूहित-मॉनिटर-के-मान)। IoT Device मॉनिटर के टेम्पलेट डिवाइस के हिसाब से समूहित करते हैं, इसलिए उनसे बने मॉनिटर में `{{device.id}}` भी होता है।
 
 ### अन्य मॉनिटर प्रकार
 

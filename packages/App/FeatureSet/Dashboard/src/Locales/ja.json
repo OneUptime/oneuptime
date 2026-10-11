@@ -10807,7 +10807,6 @@
   "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional).": "`iot.device.type` 属性で絞り込み — 例: sensor、gateway、camera（任意）。",
   "Filter by the acting host": "操作したホストで絞り込み",
   "Filter by the acting principal": "操作したプリンシパルで絞り込み",
-  "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set.": "デバイス ID で絞り込み — 生の `device.id` データポイントラベル（任意）。設定した場合、他のフィルターより優先されます。",
   "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource.": "リソース ID の最初のスラッシュ以降の部分で絞り込み — ノード名（`pve1`）、VMID（`100`）、またはストレージの場合は `<node>/<storage>`（`pve1/local`。ストレージ ID は `storage/<node>/<storage>` のため）。任意。スコープと組み合わせて 1 つのリソースを対象にします。",
   "Filter by trace ID": "トレース ID で絞り込み",
   "Filter dashboards by labels. Leave empty to skip the filter.": "ラベルでダッシュボードを絞り込みます。絞り込まない場合は空欄のままにしてください。",
@@ -12856,7 +12855,6 @@
   "Missing or malformed value": "値が欠落しているか形式が不正です",
   "Missing project or service information for context.": "コンテキストとなるプロジェクトまたはサービスの情報がありません。",
   "Missing project or user context.": "プロジェクトまたはユーザーのコンテキストがありません。",
-  "Missing values render as empty strings — they will not break the template.": "欠落している値は空文字列として表示されます — テンプレートが壊れることはありません。",
   "Mistral": "Mistral",
   "Mobile": "モバイル",
   "Mobile (iOS / Android)": "モバイル（iOS / Android）",
@@ -17312,7 +17310,6 @@
   "The Kubernetes cluster this monitor watches.": "このモニターが監視する Kubernetes クラスター。",
   "The Model Context Protocol (MCP) lets AI agents like Claude, Cursor, and GitHub Copilot read this status page as structured data instead of scraping the website. Once the toggle above is on, anyone can point an MCP client at the server below and ask about this page's current status, incidents, scheduled maintenance, and announcements.": "Model Context Protocol（MCP）を使うと、Claude、Cursor、GitHub Copilot などの AI エージェントが、Web サイトをスクレイピングする代わりに、このステータスページを構造化データとして読み取れます。上のトグルをオンにすると、誰でも MCP クライアントを下のサーバーに接続して、このページの現在のステータス、インシデント、定期メンテナンス、お知らせについて質問できます。",
   "The OSD wall — a honeycomb of OSDs colored by up/in state.": "OSD ウォール — up/in の状態で色分けされた OSD のハニカム表示。",
-  "The OTel metric name the monitor is watching (e.g. container.cpu.time).": "モニターが監視している OTel メトリクス名（例: container.cpu.time）。",
   "The OneUptime AI agent": "OneUptime AI エージェント",
   "The OneUptime Ceph cluster backing this Proxmox cluster's storage. Leave empty to unlink. Ceph health never changes the Proxmox health badge — the two products alert separately.": "この Proxmox クラスターのストレージを支える OneUptime の Ceph クラスター。リンクを解除するには空欄にしてください。Ceph のヘルスが Proxmox のヘルスバッジを変えることはありません — 2 つの製品は別々にアラートを出します。",
   "The OneUptime Kubernetes agent runs with eBPF enabled. It observes calls between pods without any code changes.": "OneUptime Kubernetes エージェントは eBPF を有効にして実行されます。コードを変更することなく、Pod 間の呼び出しを観測します。",
@@ -28052,5 +28049,8 @@
   "Azure OpenAI / Microsoft Foundry": "Azure OpenAI / Microsoft Foundry",
   "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "OpenAI、Azure OpenAI / Microsoft Foundry（リソースのキーのいずれか）、Anthropic、Groq、Mistral では必須です。認証が不要な Ollama と OpenAI 互換サーバー（vLLM など）では任意です。",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "使用する具体的なモデル名またはデプロイ名（例: OpenAI は gpt-5.1、Anthropic は claude-sonnet-5-5、Azure OpenAI / Microsoft Foundry はデプロイの名前、Groq は llama-3.3-70b-versatile、Mistral は mistral-large-latest）。OpenAI 互換のプロバイダーでは必須で、サーバーが公開しているモデルと一致している必要があります。",
-  "Twilio Configs": "Twilio 設定"
+  "Twilio Configs": "Twilio 設定",
+  "A variable with no value is left as written, so a mistyped name shows in the text.": "値のない変数は書かれたまま残るため、打ち間違えた名前はテキストにそのまま表示されます。",
+  "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "デバイス ID で絞り込み — 生の `device.id` データポイントラベル（任意）。設定したフィルターはすべて一致する必要があります。",
+  "The name of the metric the monitor's first query reads.": "モニターの最初のクエリが読み取るメトリクスの名前。"
 }

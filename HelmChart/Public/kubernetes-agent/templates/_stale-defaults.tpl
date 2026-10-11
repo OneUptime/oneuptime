@@ -51,10 +51,7 @@ Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 {{- $stale := ne $from (toString .Chart.Version) -}}
 {{- $ebpf := .Values.ebpf | default dict -}}
 {{- /* The test templates/daemonset-ebpf.yaml renders the DaemonSet on. */ -}}
-{{- $ebpfOn := false -}}
-{{- if $ebpf.enabled -}}
-{{- $ebpfOn = true -}}
-{{- end -}}
+{{- $ebpfOn := (eq (include "kubernetes-agent.ebpfEnabled" .) "true") -}}
 {{- $tag := toString (($ebpf.image | default dict).tag | default "") -}}
 {{- $ebpfImageTagStale := and $stale $ebpfOn (ne $tag (include "kubernetes-agent.defaultEbpfImageTag" .)) -}}
 {{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag | toJson -}}

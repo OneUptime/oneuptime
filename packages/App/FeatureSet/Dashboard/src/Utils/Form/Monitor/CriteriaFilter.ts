@@ -470,18 +470,12 @@ export default class CriteriaFilterUtil {
 
     /*
      * Every monitor type whose criteria the server hands to
-     * MetricMonitorCriteria: the metric-only types this form already pins
-     * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
-     * types Docker / Host / Podman / Docker Swarm / Proxmox / VMware /
-     * Ceph / Storage Array), plus
-     * IoT Device, which MonitorCriteriaEvaluator routes down the same path
-     * but which is not metric-only here, so it still draws the full
-     * criteria UI. All of them alert on one thing - an ingested metric.
+     * MetricMonitorCriteria (MonitorTypeHelper's one list): the metric-only
+     * types this form already pins to CheckOn.MetricValue, plus IoT Device,
+     * which is not metric-only here, so it still draws the full criteria UI.
+     * All of them alert on one thing - an ingested metric.
      */
-    if (
-      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType) ||
-      monitorType === MonitorType.IoTDevice
-    ) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
       });
@@ -1477,19 +1471,15 @@ export default class CriteriaFilterUtil {
    * Monitor types whose criteria are expressed purely as metric
    * thresholds. Their criteria form hides the "Filter Type" dropdown
    * entirely and pins every filter to CheckOn.MetricValue.
+   *
+   * Every metric-backed type (MonitorTypeHelper's one list) but IoT Device,
+   * which is left out on purpose: its criteria form keeps the full filter
+   * UI, so its criteria stay filters, not alert rules.
    */
   public static isMetricOnlyMonitorType(monitorType: MonitorType): boolean {
     return (
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.Metrics
+      MonitorTypeHelper.isMetricBackedMonitor(monitorType) &&
+      monitorType !== MonitorType.IoTDevice
     );
   }
 

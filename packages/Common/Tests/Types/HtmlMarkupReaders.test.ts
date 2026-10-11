@@ -36,8 +36,9 @@ import ts from "typescript";
  * Workflow template scripts are strings in Templates.ts, which the file
  * check above cannot see into, and they run in a sandbox that imports
  * nothing. So every script step of every template is read the same way,
- * and the one that reads HTML (the Dynamics 365 note template's) must read
- * it through its own copy of the walk.
+ * and the ones that read HTML (the Dynamics 365 note templates', and the
+ * create-from-case templates' for a case's description) must read it
+ * through their own copy of the walk.
  */
 
 const PACKAGES_DIRECTORY: string = path.resolve(__dirname, "../../..");
@@ -102,9 +103,11 @@ const MARKUP_READERS: Array<MarkupReader> = [
 
 /*
  * A workflow template's script runs in the workflow sandbox, which imports
- * nothing, so it cannot read markup through removeHtmlMarkup. The one that
- * reads HTML - the Dynamics 365 note template's - carries its own copy of
- * the walk, which DynamicsNoteMarkup.test.ts holds to the original.
+ * nothing, so it cannot read markup through removeHtmlMarkup. The ones that
+ * read HTML - the Dynamics 365 note templates' and create-from-case
+ * templates' - carry their own copy of the walk, which
+ * DynamicsNoteMarkup.test.ts and DynamicsCaseDescription.test.ts hold to
+ * the original.
  */
 interface ScriptMarkupReader {
   templateId: string;
@@ -126,6 +129,18 @@ const SCRIPT_MARKUP_READERS: Array<ScriptMarkupReader> = [
     componentId: "read-note-1",
     what: "a Dynamics 365 note saved as an alert's private note",
     readsThrough: "replaceMarkup(text, markupAsText)",
+  },
+  {
+    templateId: "dynamics-declare-incident-from-case",
+    componentId: "prepare-incident-1",
+    what: "a Dynamics 365 case's rich-text description, in an incident's",
+    readsThrough: "htmlToText(writtenDescription)",
+  },
+  {
+    templateId: "dynamics-create-alert-from-case",
+    componentId: "prepare-alert-1",
+    what: "a Dynamics 365 case's rich-text description, in an alert's",
+    readsThrough: "htmlToText(writtenDescription)",
   },
 ];
 

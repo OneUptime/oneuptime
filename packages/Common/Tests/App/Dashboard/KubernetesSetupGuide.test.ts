@@ -204,14 +204,19 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: KubernetesPlatform) => {
     expect(install.indexOf("helm install")).toBeGreaterThan(repoAdd);
   });
 
-  test("uses the preset and the eBPF switch only where the platform needs them", () => {
+  /*
+   * The preset alone: on gke-autopilot and eks-fargate the chart leaves the
+   * privileged eBPF and profiling DaemonSets out itself
+   * (kubernetes-agent.privilegedPodsAllowed), so the command no longer
+   * passes ebpf.enabled=false.
+   */
+  test("uses the preset, and nothing else, only where the platform needs it", () => {
     const command: string = installCommand(guide);
     if (isRestricted) {
       expect(command).toContain(`--set preset=${platform}`);
-      expect(command).toContain("--set ebpf.enabled=false");
+      expect(command).not.toContain("ebpf.enabled");
       expect(getKubernetesPlatformInstallFlags(platform)).toEqual([
         `--set preset=${platform}`,
-        "--set ebpf.enabled=false",
       ]);
     } else {
       expect(command).not.toContain("preset=");
@@ -587,7 +592,10 @@ describe("configuration changes", () => {
       ).advanced?.find((candidate: SetupGuideTopic): boolean => {
         return candidate.title === "Application traces (eBPF)";
       });
-      expect(topic?.markdown).toContain("ebpf.enabled=false");
+      expect(topic?.markdown).toContain(
+        "so the platform's preset leaves it out, and the continuous profiler with it.",
+      );
+      expect(topic?.markdown).not.toContain("ebpf.enabled");
       expect(topic?.markdown).toContain("OpenTelemetry SDK");
       expect(topic?.markdown).not.toContain("ebpf.features");
     }

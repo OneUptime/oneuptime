@@ -91,6 +91,43 @@ enum MonitorType {
 
 export default MonitorType;
 
+/*
+ * The monitor types evaluated as metric series ("metric-backed"): see
+ * MonitorTypeHelper.getMetricBackedMonitorTypes. Kept as constants so the
+ * checks below answer from a set instead of building a list on every call;
+ * the getters hand out copies.
+ */
+const METRIC_BACKED_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  MonitorType.Metrics,
+  MonitorType.Kubernetes,
+  MonitorType.Docker,
+  MonitorType.Host,
+  MonitorType.Podman,
+  MonitorType.DockerSwarm,
+  MonitorType.Proxmox,
+  MonitorType.VMware,
+  MonitorType.Ceph,
+  MonitorType.StorageArray,
+  MonitorType.IoTDevice,
+];
+
+const METRIC_BACKED_MONITOR_TYPE_SET: ReadonlySet<MonitorType> =
+  new Set<MonitorType>(METRIC_BACKED_MONITOR_TYPES);
+
+// The telemetry signals with evaluators of their own, then every metric-backed type.
+const TELEMETRY_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  MonitorType.Logs,
+  MonitorType.Traces,
+  MonitorType.Exceptions,
+  MonitorType.Profiles,
+  MonitorType.SecurityEvents,
+  MonitorType.Llm,
+  ...METRIC_BACKED_MONITOR_TYPES,
+];
+
+const TELEMETRY_MONITOR_TYPE_SET: ReadonlySet<MonitorType> =
+  new Set<MonitorType>(TELEMETRY_MONITOR_TYPES);
+
 export interface MonitorTypeProps {
   monitorType: MonitorType;
   description: string;
@@ -219,26 +256,52 @@ export class MonitorTypeHelper {
     ];
   }
 
+  /*
+   * The monitor types evaluated as metric series ("metric-backed"). The
+   * telemetry worker answers each of them with a MetricMonitorResponse
+   * (MonitorTelemetryMonitor), MonitorCriteriaEvaluator hands their criteria
+   * to MetricMonitorCriteria, their criteria default to the metric value
+   * (MonitorCriteriaInstance), their incident and alert templates get
+   * {{metricName}} and, when grouped, the series labels (MonitorTemplateUtil),
+   * the variables list under the template editor offers both
+   * (TemplateVariablesCatalog), and their monitor page charts the metric
+   * view.
+   *
+   * This is the one list every one of those reads. They used to keep copies,
+   * and two of them left IoT Device out: its incidents kept {{metricName}}
+   * as written, and the editor never offered {{device.id}}. A type added
+   * here gets all of the above at once. MetricBackedMonitorTypes.test.ts
+   * refuses a new copy anywhere in the code.
+   *
+   * Not the same as the Dashboard's CriteriaFilterUtil.isMetricOnlyMonitorType:
+   * IoT Device is metric-backed, but its criteria form keeps the full filter
+   * UI.
+   */
+  public static getMetricBackedMonitorTypes(): Array<MonitorType> {
+    return [...METRIC_BACKED_MONITOR_TYPES];
+  }
+
+  public static isMetricBackedMonitor(
+    monitorType: MonitorType | undefined,
+  ): boolean {
+    if (!monitorType) {
+      return false;
+    }
+
+    return METRIC_BACKED_MONITOR_TYPE_SET.has(monitorType);
+  }
+
+  /*
+   * The monitor types the telemetry worker evaluates on its own schedule:
+   * the telemetry signals with evaluators of their own, and every
+   * metric-backed type.
+   */
+  public static getTelemetryMonitorTypes(): Array<MonitorType> {
+    return [...TELEMETRY_MONITOR_TYPES];
+  }
+
   public static isTelemetryMonitor(monitorType: MonitorType): boolean {
-    return (
-      monitorType === MonitorType.Logs ||
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Traces ||
-      monitorType === MonitorType.Exceptions ||
-      monitorType === MonitorType.Profiles ||
-      monitorType === MonitorType.SecurityEvents ||
-      monitorType === MonitorType.Llm ||
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.IoTDevice
-    );
+    return TELEMETRY_MONITOR_TYPE_SET.has(monitorType);
   }
 
   public static isManualMonitor(monitorType: MonitorType): boolean {
