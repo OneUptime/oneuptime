@@ -98,8 +98,9 @@ export type WithoutAttachmentElementsFunction = (html: string) => string;
  * An element is a start tag, everything up to its first ">", and everything
  * up to the first end tag after that. The end tags are found once. When a
  * start tag has no ">" or no end tag after it, no later one has either, so
- * the rest of the HTML stays as it is. Each call searches with patterns of
- * its own, so no search starts where another one left off.
+ * the rest of the HTML stays as it is. matchAll starts each search at its
+ * pattern's lastIndex, so every call makes its own global patterns: nothing
+ * done elsewhere to a shared one can start a search part way through.
  */
 export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
   html: string,
@@ -1031,14 +1032,15 @@ export default class MicrosoftTeamsReactionNoteSync {
    * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
    * keeps; getMessageText then places it as text for the note.
    *
-   * Every step takes time that grows with the message's length alone. The
-   * attachments and the spaces before line ends are found with loops
-   * (withoutAttachmentElements, withoutSpaceBeforeLineEnds), where patterns
-   * started again from every place a match could start. The patterns left -
-   * entities, numeric references, runs of line breaks - each match where
-   * they start or not at all. MarkupReadersInLongRunningProcess.test.ts
-   * reads a megabyte of every shape in a process that compiles patterns
-   * unoptimized, numeric references and line breaks included.
+   * The attachments and the spaces before line ends are found with loops
+   * (withoutAttachmentElements, withoutSpaceBeforeLineEnds). They replace
+   * patterns that started again from every place a match could start, and
+   * took time that grew with the square of the message. The patterns left -
+   * entities, numeric references, runs of line breaks - start only at an
+   * "&" or a line break and never look back past it. A Teams message is at
+   * most about 28 KB; MarkupReadersInLongRunningProcess.test.ts reads a
+   * megabyte of every shape, numeric references and line breaks included,
+   * in a process that compiles patterns unoptimized.
    */
   public static htmlToText(html: string): string {
     if (!html) {

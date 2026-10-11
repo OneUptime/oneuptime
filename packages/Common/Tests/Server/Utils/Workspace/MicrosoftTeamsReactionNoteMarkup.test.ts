@@ -35,7 +35,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
-import { generatedTexts } from "../../../Types/HtmlMarkupCases";
+import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { Token, marked } from "marked";
 
 /*
@@ -543,6 +543,8 @@ describe("the Teams reader reads a message in one pass", () => {
       ]),
     ];
 
+    // Only the shortest texts repeat.
+    expect(new Set(texts).size).toBeGreaterThan(17000);
     expect(
       texts.filter((text: string): boolean => {
         return (
@@ -589,6 +591,7 @@ describe("the Teams reader reads a message in one pass", () => {
       ]),
     ];
 
+    expect(new Set(texts).size).toBeGreaterThan(17000);
     expect(
       texts.filter((html: string): boolean => {
         return (

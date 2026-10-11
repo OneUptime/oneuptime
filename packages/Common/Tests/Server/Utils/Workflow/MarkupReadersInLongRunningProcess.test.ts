@@ -54,6 +54,7 @@ interface ProcessReport {
   answers: Array<{ shape: string; read: Attempt }>;
   notes: Array<{ shape: string; read: Attempt }>;
   teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
+  sites: Array<{ shape: string; site?: string; error?: string }>;
 }
 
 function runWithUnoptimizedRegularExpressions(): ProcessReport {
@@ -187,6 +188,9 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           ["attachment elements", repeatTo('<attachment id="1"></attachment>')],
           ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
           ["a hexadecimal reference's digits", "<p>&#x" + repeatTo("a") + "</p>"],
+          ["one numeric reference a megabyte long", "<p>&#" + repeatTo("1") + ";</p>"],
+          ["numeric references", "<p>" + repeatTo("&#65;") + "</p>"],
+          ["hexadecimal references", "<p>" + repeatTo("&#x41;") + "</p>"],
         ];
 
         const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
@@ -198,8 +202,40 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           return { shape, read, ms: Date.now() - started };
         });
 
+        /*
+         * The site of a Jira issue's link, read off the event's own REST URL by the helper
+         * block every Jira script starts with: a request can send any URL, as long as it likes.
+         */
+        const jiraSpec = getTemplateGraphSpec("jira-comment-to-incident-private-note");
+        const jiraCode = jiraSpec.nodes.find((node) => node.componentId === "read-comment-1").args.code;
+        const jiraHelpers = new Function(
+          "args",
+          jiraCode.slice(0, jiraCode.indexOf("// ---- What this step does ----")) +
+            "return { siteOf: siteOf };",
+        )({});
+
+        const SITE_SHAPES = [
+          ["an IPv6 address that never closes", "http://[" + repeatTo("1")],
+          ["a host that never ends", "https://" + repeatTo("a")],
+          ["a long host before a path", "https://" + repeatTo("a") + "/rest/api/2/issue/10040"],
+          ["dotted labels", "https://" + repeatTo("a.")],
+          ["a port that never ends", "https://acme.atlassian.net:" + repeatTo("1")],
+        ];
+
+        const sites = SITE_SHAPES.map(([shape, self]) => {
+          try {
+            return { shape, site: jiraHelpers.siteOf(self) };
+          } catch (error) {
+            return { shape, error: String((error && error.message) || error).split("\n")[0] };
+          }
+        });
+        sites.push({
+          shape: "a site, as Jira Cloud sends it",
+          site: jiraHelpers.siteOf("https://acme.atlassian.net/rest/api/2/issue/10040"),
+        });
+
         process.stdout.write(
-          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages }),
+          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites }),
         );
         process.exit(0);
       `,
@@ -245,9 +281,24 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     }
   });
 
+  test("a Jira script reads a site off a megabyte-long issue URL without running out of stack", () => {
+    // None of these is a site's address, so the issue is named without a link.
+    expect(report.sites).toEqual([
+      { shape: "an IPv6 address that never closes", site: "" },
+      { shape: "a host that never ends", site: "" },
+      { shape: "a long host before a path", site: "" },
+      { shape: "dotted labels", site: "" },
+      { shape: "a port that never ends", site: "" },
+      {
+        shape: "a site, as Jira Cloud sends it",
+        site: "https://acme.atlassian.net",
+      },
+    ]);
+  });
+
   test("the Teams reader of a pinned message reads every shape, each in well under a second", () => {
-    // A megabyte of each shape: the ten above, and seven a Teams message can take.
-    expect(report.teamsMessages).toHaveLength(17);
+    // A megabyte of each shape: the ten above, and ten a Teams message can take.
+    expect(report.teamsMessages).toHaveLength(20);
 
     for (const { shape, read, ms } of report.teamsMessages) {
       expect({ shape, read, fast: ms < TEAMS_READ_LIMIT_IN_MS }).toEqual({

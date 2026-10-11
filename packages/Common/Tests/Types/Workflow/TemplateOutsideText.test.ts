@@ -51,7 +51,7 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { decodeHtmlEntities } from "../../Helpers/HtmlText";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
-import { generatedTexts } from "../HtmlMarkupCases";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import {
   CASE_ID,
   CASE_NUMBER,
@@ -807,10 +807,15 @@ describe.each([
 ])(
   "asWritten, as %s carries it",
   (_name: string, run: typeof runJiraScript, step: ScriptStep) => {
+    const generated: Array<string> = generatedTexts(
+      20000,
+      1618,
+      MARKDOWN_ALPHABET,
+    );
     const reported: Array<string> = [
       ...REPORTED,
       ...fenceShapes(),
-      ...generatedTexts(20000, 1618, MARKDOWN_ALPHABET),
+      ...generated,
     ];
     const plain: Array<string> = generatedTexts(2000, 4242, PLAIN_ALPHABET);
     const cases: Array<string> = [...reported, ...plain];
@@ -820,6 +825,12 @@ describe.each([
     beforeAll(async () => {
       placed = await placedByScript(run, step, cases);
       placedTwice = await placedByScript(run, step, placed);
+    });
+
+    test("is held to that many different texts", () => {
+      // Only the shortest texts repeat: there are 39 of one piece, for one.
+      expect(new Set(generated).size).toBeGreaterThan(18000);
+      expect(new Set(plain).size).toBeGreaterThan(1800);
     });
 
     test("places text exactly as FeedMarkdown.reportedValue does", () => {
@@ -2008,6 +2019,14 @@ describe("the link to a Jira issue", () => {
       `https://acme${String.fromCharCode(0xa0)}.atlassian.net/rest/api/2/issue/10040`,
     ],
     ["an unclosed IPv6 address", "http://[2001:db8::1/rest/api/2/issue/10040"],
+    [
+      "a numeral a browser reads as digits and a dot",
+      `https://evil${String.fromCharCode(0x2488)}com/rest/api/2/issue/10040`,
+    ],
+    [
+      "a host longer than a site's address can be",
+      `https://${"a".repeat(300)}.example/rest/api/2/issue/10040`,
+    ],
   ])(
     "%s: names the issue without a link",
     async (_case: string, self: string) => {

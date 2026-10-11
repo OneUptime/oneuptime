@@ -1057,12 +1057,19 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
 });
 // https://your-company.atlassian.net, read off an issue's own REST URL: the scheme, the host and a
 // port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
-// site, and nothing else written into the address can act. A host is letters, marks and digits in
-// any script, ".", "-", "_" and "~", or an IPv6 address in brackets.
-const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{N}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?(?=\/|$)/u;
+// site, and nothing else written into the address can act. A host is letters, marks and decimal
+// digits in any script, ".", "-", "_" and "~", or an IPv6 address in brackets. Only what comes
+// before the URL's path is read, and only when it is no longer than a site's address can be, so a
+// long URL is never matched against a pattern.
+const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
+const LONGEST_SITE = 300;
 const siteOf = (self) => {
-  const match = asText(self).match(SITE);
-  return match ? match[0] : '';
+  const text = asText(self);
+  const hostStart = text.indexOf('://');
+  if (hostStart === -1) return '';
+  const pathStart = text.indexOf('/', hostStart + 3);
+  const site = pathStart === -1 ? text : text.slice(0, pathStart);
+  return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
 const issueLink = (self, issueKey) => {
   const site = siteOf(self);
@@ -1559,14 +1566,15 @@ if (Number(target.order) <= Number(current.order)) {
 }
 
 // The status's name and the name of whoever moved the issue are Jira's text, placed as written
-// (asWritten). The issue key matched ISSUE_KEY when the event was read.
+// (asWritten). The issue key matched ISSUE_KEY when the event was read; it is placed here too, so
+// this step stays safe if that check is ever changed.
 const changedBy = oneLine(event.changedBy);
 return {
   proceed: true,
   ${r}Id: asText(${r}._id),
   stateId: asText(target._id),
   stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asText(event.issueKey) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
+  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asWritten(asText(event.issueKey)) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
