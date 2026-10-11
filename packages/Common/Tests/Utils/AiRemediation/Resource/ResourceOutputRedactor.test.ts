@@ -76,6 +76,9 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
     "data:\n  password: aHVudGVyMg==\n  user: YWRtaW4=",
     "kind: Secret\ndata:\n  x: eQ==",
     "line with\r\nwindows endings DB_TOKEN=abc",
+    // A URL password in a quoted key.
+    '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}',
+    "  'postgres://app:hunter2@db:5432/app': enabled",
   ];
 
   test.each(
@@ -86,6 +89,23 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
     expect(GenericOutputRedactor.redact(text)).toEqual(
       KubectlOutputRedactor.redact(text),
     );
+  });
+});
+
+describe("a quoted key is read for inline material", () => {
+  test("a URL password in a JSON key is masked, on the agent as on the server", () => {
+    const output: string =
+      '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}';
+
+    for (const text of [
+      redact(output),
+      GenericOutputRedactor.redact(output).text,
+    ]) {
+      expect(text).toContain(
+        `"https://ci:${RESOURCE_REDACTED_MARKER}@registry.example.com": {`,
+      );
+      expect(text).not.toContain("hunter2");
+    }
   });
 });
 

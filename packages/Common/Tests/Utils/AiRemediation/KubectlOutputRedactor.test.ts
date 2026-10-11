@@ -1250,6 +1250,40 @@ describe("KubectlOutputRedactor", () => {
     });
 
     /*
+     * REGRESSION. A quoted key was read as a name and never scanned, so a
+     * URL password in one - a YAML key in quotes, any key of JSON - went to
+     * the model as it was. The seeded corpus of the test below found it
+     * ("'+g.-ap://:%:-@@':" is a quoted key with nothing after its colon)
+     * once it drew every text it asked for. A quoted key is now read for
+     * inline material, as a free-text key always was.
+     */
+    it("masks a URL password inside a quoted key, and leaves a quoted key with nothing in it alone", () => {
+      const result: KubectlOutputRedaction = redact(
+        lines(
+          "  'postgres://app:hunter2@db:5432/app': enabled",
+          '"https://ci:hunter2@registry.example.com": {',
+          "'+g.-ap://:%:-@@':",
+          '  "auth": "",',
+          '"name": "web"',
+          "'Image pull secrets': <none>",
+        ),
+      );
+
+      expect(result.text).toBe(
+        lines(
+          `  'postgres://app:${MARKER}@db:5432/app': enabled`,
+          `"https://ci:${MARKER}@registry.example.com": {`,
+          `'+g.-ap://:${MARKER}@@':`,
+          '  "auth": "",',
+          '"name": "web"',
+          "'Image pull secrets': <none>",
+        ),
+      );
+      expect(result.redactionCount).toBe(3);
+    });
+
+
+    /*
      * The URL rule used to start its match at the scheme,
      * /(\b[a-z][a-z0-9+.-]*:\/\/)…/, which retried from every word boundary
      * of a long dotted run and backtracked through the whole run each time

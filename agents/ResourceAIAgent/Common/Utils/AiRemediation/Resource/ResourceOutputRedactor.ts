@@ -136,7 +136,9 @@ const KEY_VALUE_LINE_REGEX: RegExp =
  * An unquoted key with whitespace or `=` in it may be free text rather than
  * a name: "connecting DB_PASSWORD=hunter2 host: db" parses as the key
  * "connecting DB_PASSWORD=hunter2 host". Such a key is scanned for inline
- * material too.
+ * material too, and so is a quoted key, which can hold anything - a colon
+ * and "//" included, so a URL with its password:
+ * "'postgres://app:hunter2@db': enabled".
  */
 const FREE_TEXT_KEY_REGEX: RegExp = /[\s=]/;
 
@@ -434,7 +436,7 @@ interface ParsedLine {
   contentIndent: number;
   // The key of a "key: value" line, without quotes; absent otherwise.
   key?: string | undefined;
-  // An unquoted key with whitespace or "=" in it, which may be free text.
+  // A key that may be free text: quoted, or unquoted with whitespace or "=" in it.
   keyIsFreeText?: boolean | undefined;
   // Everything after the colon, trimmed; "" for "key:".
   value?: string | undefined;
@@ -505,7 +507,7 @@ function parseLine(raw: string): ParsedLine {
     contentIndent,
     key,
     keyIsFreeText:
-      keyMatch[3] !== undefined && FREE_TEXT_KEY_REGEX.test(keyMatch[3]),
+      keyMatch[3] === undefined || FREE_TEXT_KEY_REGEX.test(keyMatch[3]),
     value: raw.slice(valueStart).trim(),
     valueStart,
   };
