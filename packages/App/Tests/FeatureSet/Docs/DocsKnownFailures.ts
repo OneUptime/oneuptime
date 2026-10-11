@@ -292,13 +292,13 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "status-pages/index": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
   },
   "status-pages/one-status-page-per-audience": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
   },
   "status-pages/subscribers": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv", "ru", "ja", "ko", "zh-CN", "zh-TW", "hi"),
   },
   "telemetry/ai-agent-circuit-breaker": {
     translated: EVERY_TRANSLATION_BUT_FA,
