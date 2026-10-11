@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** on a status page. These already re-sync the page whenever a rule is saved; running one re-syncs it on demand.
 - **Monitor Rules** on an SLO. These already re-sync the SLO whenever a rule is saved; running one re-syncs the SLO's monitors on demand. See [Monitors and Monitor Rules](/docs/slo/monitor-rules).
 
-Rules that take an action rather than describe a resource — **On-Call Rules**, **Runbook Rules**, **Auto-Remediation Rules** and **Grouping Rules** — cannot be run against existing records. Running them would page people, execute runbooks or reorganize episodes for incidents that are already over.
+Rules that take an action rather than describe a resource — **On-Call Rules**, **Runbook Rules**, **Auto remediation rules** and **Grouping Rules** — cannot be run against existing records. Running them would page people, execute runbooks, start fixes or reorganize episodes for incidents that are already over.
 
 ## Before you begin
 
@@ -39,7 +39,7 @@ Open the rules page, for example **Monitors → Settings → Label Rules**.
 
 ### Select Run Now
 
-Select **Run Now** on the rule's row, or select **View** and then **Run Now** on the rule's own page. A dialog says what the run will do.
+Open the **⋯** menu at the end of the rule's row and select **Run Now**, or select **View** and then **Run Now** on the rule's own page. A dialog says what the run will do.
 
 ### Choose whether to notify new owners
 

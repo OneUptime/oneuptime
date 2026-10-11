@@ -20,8 +20,8 @@ import path from "path";
  * each setting is in the words that language's dashboard shows, quotes the
  * folded header as the dashboard words it, says what Require TLS does as
  * the switch's own help does, and walks a Microsoft Graph user to its
- * Transport. Persian guides keep the dashboard's English names, as the rest
- * of the Persian docs do.
+ * Transport. The Persian guide names them in Persian too, as the Persian
+ * Dashboard draws them.
  *
  * Markdown is not compiled and App tests read no React module, so the
  * builder's English is read from its source file.
@@ -109,8 +109,7 @@ function readPage(lang: string): string {
 
 /*
  * The words the guide uses for a dashboard label: the dashboard's own
- * translation, or English in the Persian guides (and where a language has
- * none).
+ * translation, Persian included, or English where a language has none.
  */
 function dashboardWords(lang: string): (english: string) => string {
   const locale: Locale = readJson(
@@ -118,10 +117,6 @@ function dashboardWords(lang: string): (english: string) => string {
   );
 
   return (english: string): string => {
-    if (lang === "fa") {
-      return english;
-    }
-
     const translated: unknown = locale[english];
 
     return typeof translated === "string" && translated ? translated : english;
@@ -246,10 +241,10 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
       expect(section).toContain(`**${words("Custom SMTP Configs")}**`);
       expect(section).toContain("Admin Dashboard");
 
-      const adminCard: string =
-        lang === "fa"
-          ? adminText("en", "pages.settings.email.smtpCardTitle")
-          : adminText(lang, "pages.settings.email.smtpCardTitle");
+      const adminCard: string = adminText(
+        lang,
+        "pages.settings.email.smtpCardTitle",
+      );
 
       expect(section).toContain(`**${adminCard}**`);
     },

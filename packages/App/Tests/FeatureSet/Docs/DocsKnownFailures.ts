@@ -126,15 +126,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "configuration/label-and-owner-rules": {
-    translated: EVERY_TRANSLATION,
-  },
-  "configuration/label-rule-import-export": {
-    translated: EVERY_TRANSLATION,
-  },
-  "configuration/run-rules-now": {
-    translated: EVERY_TRANSLATION,
-  },
   "dashboards/authoring": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -148,14 +139,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "emails/smtp": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
   "forms/building": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/index": {
     translated: EVERY_TRANSLATION,
   },
   "forms/on-submit": {
