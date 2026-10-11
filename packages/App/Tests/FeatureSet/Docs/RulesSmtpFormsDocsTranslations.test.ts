@@ -8,11 +8,7 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import {
-  dashboardLocale,
-  drawnActionLabel,
-  isActionLabel,
-} from "./DocsDashboardLabels";
+import { dashboardLocale, isDashboardLabel } from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -29,11 +25,14 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import Form from "Common/Models/DatabaseModels/Form";
+import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import { PermissionHelper } from "Common/Types/Permission";
 import {
   DEFAULT_LANGUAGE,
   createTranslator,
   toSentenceTerm,
+  translateNamedAction,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -57,12 +56,18 @@ import path from "path";
  *
  * "The way it is drawn" has four sources on these pages:
  *
- *   - The Dashboard: a bold label is drawnActionLabel (DocsDashboardLabels),
- *     Persian included, as on the on-call, runbook, workflow and identity
- *     pages. A menu path written in one bold span ("Monitors → Settings →
- *     Label Rules") is drawn segment by segment (PATHS), in one span or one
- *     span a segment, joined by the English arrow or by ">" (Persian writes
- *     ">", which right-to-left text mirrors; "→" it would not).
+ *   - The Dashboard, Persian included, as on the on-call, runbook,
+ *     workflow and identity pages, read with the Dashboard's own translator
+ *     the way each control draws itself (drawnLabel): a menu item, a tab, a
+ *     field, a pill or a plain button looks its text up whole and shows the
+ *     English where the locale has no wording of its own; a table's create
+ *     button ("Create SMTP Config") is the whole phrase, or else the
+ *     "Create {{itemName}}" template with the model's name in it
+ *     (translateCreateAction: MODEL_CREATE_BUTTONS). A menu path written in
+ *     one bold span ("Monitors → Settings → Label Rules") is drawn segment
+ *     by segment, in one span or one span a segment, joined by the English
+ *     arrow or by ">" (Persian writes ">", which right-to-left text mirrors;
+ *     "→" it would not).
  *   - The Admin Dashboard, where a self-hosted installation sets its own
  *     mail server: its top bar, side menu and Email page cards use keys of
  *     their own, and its form fields are looked up whole in its locale
@@ -184,6 +189,19 @@ const ALSO_DRAWN: Record<string, Array<string>> = {
   [SMTP]: ["Create SMTP Config"],
   [FORMS]: ["Create Form", "Delete Form"],
 };
+
+/*
+ * A table's create button, by page: drawn from the "Create {{itemName}}"
+ * template with the model's name when the locale has no wording for the
+ * whole phrase (ModelTable's translateCreateAction).
+ */
+const MODEL_CREATE_BUTTONS: Record<string, Array<string>> = {
+  [RULES]: ["Create Monitor Label Rule"],
+  [SMTP]: ["Create SMTP Config"],
+  [FORMS]: ["Create Form"],
+};
+
+const CREATE_PREFIX: string = "Create ";
 
 // Workflow components a model gets, named after it.
 const WORKFLOW_COMPONENTS: Array<string> = [
@@ -583,6 +601,24 @@ function dashboardTranslator(language: string): Translator {
   }, language);
 }
 
+/*
+ * How the Dashboard draws a label of a page in this language: a table's
+ * create button as translateCreateAction draws it, everything else looked
+ * up whole, in English where the locale has no wording of its own.
+ */
+function drawnLabel(language: string, page: string, english: string): string {
+  const translator: Translator = dashboardTranslator(language);
+
+  if (listed(MODEL_CREATE_BUTTONS, page).includes(english)) {
+    return translateNamedAction(translator, {
+      template: "Create {{itemName}}",
+      itemName: english.slice(CREATE_PREFIX.length),
+    });
+  }
+
+  return translator.translateText(english) || english;
+}
+
 // How the Dashboard words a counted button in this language.
 function pluralButton(language: string, button: PluralButton): string {
   return dashboardTranslator(language).translatePlural(
@@ -645,7 +681,7 @@ function drawnSegments(language: string, page: string, english: string): Array<s
 
     return isAdmin
       ? adminLabel(language, segment)
-      : drawnActionLabel(language, segment);
+      : drawnLabel(language, page, segment);
   });
 }
 
@@ -895,8 +931,33 @@ describe("the lists this test keeps", () => {
         expect({ name, permission: true, label: true }).toEqual({
           name,
           permission: isPermissionOrRole(name),
-          label: isActionLabel(name),
+          label: isDashboardLabel(name),
         });
+      }
+    }
+  });
+
+  it("name as create buttons only the tables' create buttons, after the models they create", () => {
+    expect(listed(MODEL_CREATE_BUTTONS, RULES)).toEqual([
+      `${CREATE_PREFIX}${new MonitorLabelRule().singularName}`,
+    ]);
+    expect(listed(MODEL_CREATE_BUTTONS, SMTP)).toEqual([
+      `${CREATE_PREFIX}${new ProjectSmtpConfig().singularName}`,
+    ]);
+    expect(listed(MODEL_CREATE_BUTTONS, FORMS)).toEqual([
+      `${CREATE_PREFIX}${new Form().singularName}`,
+    ]);
+
+    for (const page of Object.keys(MODEL_CREATE_BUTTONS)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const button of MODEL_CREATE_BUTTONS[page] as Array<string>) {
+        expect({ page, button, bold: true }).toEqual({
+          page,
+          button,
+          bold: labels.includes(button),
+        });
+        expect(isDashboardLabel(button)).toBe(true);
       }
     }
   });
@@ -935,7 +996,7 @@ describe("the lists this test keeps", () => {
         expect({ page, label, isLabel: true }).toEqual({
           page,
           label,
-          isLabel: isActionLabel(label),
+          isLabel: isDashboardLabel(label),
         });
       }
     }
@@ -945,7 +1006,7 @@ describe("the lists this test keeps", () => {
         expect({ page, lead, isLabel: false }).toEqual({
           page,
           lead,
-          isLabel: isActionLabel(lead),
+          isLabel: isDashboardLabel(lead),
         });
       }
     }
@@ -984,7 +1045,7 @@ describe("the lists this test keeps", () => {
       for (const [shorthand, full] of Object.entries(
         SWITCH_SHORTHAND[page] as Record<string, string>,
       )) {
-        expect(isActionLabel(full)).toBe(true);
+        expect(isDashboardLabel(full)).toBe(true);
         expect(full.endsWith(shorthand.replace("… ", " "))).toBe(true);
       }
     }
@@ -1009,7 +1070,7 @@ describe("the lists this test keeps", () => {
             known:
               segment === "Admin Dashboard" ||
               segment === "⋯" ||
-              isActionLabel(segment) ||
+              isDashboardLabel(segment) ||
               Boolean(ADMIN_KEYS[segment]),
           });
         }
@@ -1026,7 +1087,7 @@ describe("the lists this test keeps", () => {
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
-          return !isActionLabel(span) && !known.includes(span);
+          return !isDashboardLabel(span) && !known.includes(span);
         },
       );
 
@@ -1213,15 +1274,15 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       const exceptions: Array<string> = notDashboardLabels(entry.page);
       const missing: Array<string> = boldLabels(english)
         .filter((label: string): boolean => {
-          return isActionLabel(label) && !exceptions.includes(label);
+          return isDashboardLabel(label) && !exceptions.includes(label);
         })
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnActionLabel(language, label)}**`,
+            `**${drawnLabel(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnActionLabel(language, label)}`;
+          return `${label} -> ${drawnLabel(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
@@ -1256,7 +1317,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
         ),
         ...Object.values(SWITCH_SHORTHAND[entry.page] || {}).map(
           (full: string): string => {
-            return drawnActionLabel(language, full);
+            return drawnLabel(language, entry.page, full);
           },
         ),
       ];
@@ -1336,6 +1397,20 @@ describe("the helpers, on these pages' shapes", () => {
     expect(pattern.test("**Überwachung** → **Einstellungen**")).toBe(true);
     expect(pattern.test("**Einstellungen → Überwachung**")).toBe(false);
     expect(pattern.test("**Überwachung**, **Einstellungen**")).toBe(false);
+  });
+
+  it("draw a table's create button from the template where the phrase has no wording, and a plain button as its locale has it", () => {
+    // Italian has no wording for "Create SMTP Config": the template is filled.
+    expect(dashboardLocale("it")["Create SMTP Config"]).toBeUndefined();
+    expect(drawnLabel("it", SMTP, "Create SMTP Config")).toBe(
+      "Crea: SMTP Configurazione",
+    );
+    // A whole phrase the locale words is taken as it is.
+    expect(drawnLabel("de", FORMS, "Create Form")).toBe("Formular erstellen");
+    // A plain button the locale leaves in English is drawn in English.
+    expect(dashboardLocale("it")["Export JSON"]).toBe("Export JSON");
+    expect(drawnLabel("it", IMPORT, "Export JSON")).toBe("Export JSON");
+    expect(drawnLabel("de", IMPORT, "Export JSON")).toBe("JSON exportieren");
   });
 
   it("read the Admin Dashboard's words from its own locale", () => {
