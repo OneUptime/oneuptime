@@ -14,6 +14,16 @@ Running the single-server Docker Compose install instead? Its sizing is simpler:
 - [Retention](#retention-and-how-it-affects-storage): The setting that multiplies your disk.
 :::
 
+## Size your installation
+
+:::steps
+1. Find out how much telemetry you send: the GB of logs, metrics and traces a day. Measure it on a small installation if you can.
+2. Decide how many days to keep it. Retention multiplies ClickHouse's disk (see [Retention](#retention-and-how-it-affects-storage)).
+3. Work out ClickHouse's disk with the [storage formula](#storage-formula), then PostgreSQL's and Valkey's from their own sections.
+4. Pick the [starting tier](#starting-tiers) closest to your numbers, and set its CPU, memory and storage in your Helm values.
+5. Turn on [high availability](#high-availability) for the datastores that need it, then watch real usage and adjust.
+:::
+
 ## What drives each datastore
 
 OneUptime needs three datastores in production. Each grows with something different, so size them independently.
