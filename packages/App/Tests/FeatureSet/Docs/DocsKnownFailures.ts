@@ -271,9 +271,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "self-hosted/enterprise": {
-    translated: ["ja", "ko", "zh-CN", "zh-TW", "hi", "fa"],
-  },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
   },

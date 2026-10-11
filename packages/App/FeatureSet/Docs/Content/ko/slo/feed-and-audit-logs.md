@@ -67,7 +67,7 @@ SLO의 **감사 로그** 페이지에는 다음에 대한 변경이 나열됩니
 
 ### 감사 로그 켜기
 
-감사 로그는 Enterprise 기능입니다. OneUptime Cloud의 **Enterprise** 요금제 또는 자체 호스팅 설치의 Enterprise Edition이 필요합니다. 다른 요금제에서는 SLO의 **감사 로그** 페이지가 이를 얻는 방법을 안내합니다. 자체 호스팅 설치에서는 유효한 라이선스가 없으면 감사 로그가 기록을 멈추고(14일 체험 기간 후, 또는 라이선스가 만료된 지 30일 후), 라이선스가 활성화되는 즉시 다시 기록합니다([When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) 참고). 기록하지 않는 동안에는 **감사 로그** 페이지에 그렇게 표시됩니다.
+감사 로그는 Enterprise 기능입니다. OneUptime Cloud의 **Enterprise** 요금제 또는 자체 호스팅 설치의 Enterprise Edition이 필요합니다. 다른 요금제에서는 SLO의 **감사 로그** 페이지가 이를 얻는 방법을 안내합니다. 자체 호스팅 설치에서는 유효한 라이선스가 없으면 감사 로그가 기록을 멈추고(14일 체험 기간 후, 또는 라이선스가 만료된 지 30일 후), 라이선스가 활성화되는 즉시 다시 기록합니다([When a license expires or is missing](/docs/self-hosted/enterprise#라이선스가-만료되었거나-없을-때) 참고). 기록하지 않는 동안에는 **감사 로그** 페이지에 그렇게 표시됩니다.
 
 감사 로그는 모든 프로젝트에서 기본적으로 꺼져 있습니다. 켜려면:
 

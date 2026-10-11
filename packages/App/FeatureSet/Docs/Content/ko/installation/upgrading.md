@@ -99,7 +99,7 @@ OneUptime은 이제 애플리케이션을 두 가지 이미지로 제공합니�
 - **SCIM 없는 Community Edition:** 없습니다. 평소처럼 업그레이드하십시오.
 - **`image.type: enterprise-edition` 을 쓰는 Helm:** 없습니다. 차트는 이미 `enterprise-` 이미지를 가져오며, 이제 이 이미지에 엔터프라이즈 모듈이 들어 있습니다.
 - **`IS_ENTERPRISE_EDITION=true` 를 쓰는 Docker Compose:** 업그레이드할 때 `config.env` 에서 `APP_TAG=enterprise-release` (또는 `enterprise-<version>`)를 설정해 Enterprise 이미지로 바꾸십시오. `APP_TAG=release` 는 Community 이미지이며, `IS_ENTERPRISE_EDITION=true` 는 더 이상 아무것도 켜지 않습니다. `IS_ENTERPRISE_EDITION=true` 인 동안에는 `npm run update` 가 이 변경을 대신 해 주며(`release` 는 `enterprise-release` 가 되고, 고정한 `13.0.7` 은 `enterprise-13.0.7` 이 됩니다), 바꾼 내용을 출력합니다. 이제 Community 이미지에 `IS_ENTERPRISE_EDITION=true` 가 설정되어 있으면, 애플리케이션은 SCIM 프로비저닝과 감사 로깅을 조용히 멈추는 대신 **시작을 거부합니다**. 오류 메시지는 설정할 내용을 알려 줍니다. Enterprise Edition을 계속 쓰려면 `APP_TAG=enterprise-<version>`, Community Edition을 실행하려면 `IS_ENTERPRISE_EDITION=false` 입니다.
-- **SCIM이 이미 설정된 Community 이미지:** 이 업그레이드로 디프로비저닝을 포함한 SCIM 프로비저닝이 멈춥니다. 계속 쓰려면 Enterprise 이미지로 바꾸십시오. 그렇지 않다면 업그레이드하기 전에 [Enterprise에서 Community로 전환](/docs/self-hosted/enterprise#switching-from-enterprise-to-community) 을 읽으십시오. 무엇이 멈추는지, 누구를 먼저 제거해야 하는지 설명합니다. Community Edition을 실행하려면 `IS_ENTERPRISE_EDITION=false` 도 설정하십시오. 싱글 사인온에는 영향이 없습니다. Community 이미지도 싱글 사인온을 제공합니다.
+- **SCIM이 이미 설정된 Community 이미지:** 이 업그레이드로 디프로비저닝을 포함한 SCIM 프로비저닝이 멈춥니다. 계속 쓰려면 Enterprise 이미지로 바꾸십시오. 그렇지 않다면 업그레이드하기 전에 [Enterprise에서 Community로 전환](/docs/self-hosted/enterprise#enterprise에서-community로-전환) 을 읽으십시오. 무엇이 멈추는지, 누구를 먼저 제거해야 하는지 설명합니다. Community Edition을 실행하려면 `IS_ENTERPRISE_EDITION=false` 도 설정하십시오. 싱글 사인온에는 영향이 없습니다. Community 이미지도 싱글 사인온을 제공합니다.
 
 설정은 절대 삭제되지 않으며, 어느 방향으로 에디션을 바꾸든 마이그레이션이 필요 없습니다.
 
@@ -108,8 +108,8 @@ OneUptime은 이제 애플리케이션을 두 가지 이미지로 제공합니�
 이제 Enterprise Edition은 자신의 라이선스를 확인합니다.
 
 - **라이선스 키가 있는 설치** 는 계속 실행됩니다. 시작할 때와 하루에 한 번 OneUptime에서 라이선스를 확인합니다. 라이선스가 만료되어도 30일의 유예 기간 동안은 모든 것이 계속 동작하며, 그 뒤에는 라이선스가 없는 설치와 같은 일이 일어납니다.
-- **라이선스가 없는 설치** (예: `IS_ENTERPRISE_EDITION=true` 만으로 Enterprise Edition을 실행하던 설치)는 이 버전을 처음 시작한 때부터 14일의 평가판 기간을 받습니다. **SCIM이나 감사 로깅을 쓴다면 평가판 기간이 끝나기 전에 라이선스를 활성화하십시오.** 평가판 기간이 끝나면 SCIM 프로비저닝이 멈추고 감사 로깅이 기록을 멈춥니다. 엔터프라이즈 설정도 읽기 전용이 되고, 엔터프라이즈 Health 대시보드는 잠깁니다. 싱글 사인온에는 영향이 없습니다. 라이선스를 활성화하면 다시 시작하지 않아도 바로 모든 것이 재개됩니다. 평가판 기간은 평가용입니다. Enterprise Edition을 프로덕션에서 쓰려면 OneUptime Enterprise 구독이 필요합니다. [라이선스가 만료되었거나 없을 때](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) 를 참조하십시오.
-- **네트워크와 분리된 설치** 는 키 대신 서명된 라이선스 토큰으로 활성화할 수 있습니다. [오프라인 활성화](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs) 를 참조하십시오.
+- **라이선스가 없는 설치** (예: `IS_ENTERPRISE_EDITION=true` 만으로 Enterprise Edition을 실행하던 설치)는 이 버전을 처음 시작한 때부터 14일의 평가판 기간을 받습니다. **SCIM이나 감사 로깅을 쓴다면 평가판 기간이 끝나기 전에 라이선스를 활성화하십시오.** 평가판 기간이 끝나면 SCIM 프로비저닝이 멈추고 감사 로깅이 기록을 멈춥니다. 엔터프라이즈 설정도 읽기 전용이 되고, 엔터프라이즈 Health 대시보드는 잠깁니다. 싱글 사인온에는 영향이 없습니다. 라이선스를 활성화하면 다시 시작하지 않아도 바로 모든 것이 재개됩니다. 평가판 기간은 평가용입니다. Enterprise Edition을 프로덕션에서 쓰려면 OneUptime Enterprise 구독이 필요합니다. [라이선스가 만료되었거나 없을 때](/docs/self-hosted/enterprise#라이선스가-만료되었거나-없을-때) 를 참조하십시오.
+- **네트워크와 분리된 설치** 는 키 대신 서명된 라이선스 토큰으로 활성화할 수 있습니다. [오프라인 활성화](/docs/self-hosted/enterprise#오프라인-활성화네트워크와-분리된-설치) 를 참조하십시오.
 
 ### OneUptime Cloud 고객
 
@@ -135,8 +135,8 @@ OneUptime 14는 애플리케이션을 두 에디션으로 나누며, 어떤 에�
 1. **이 설치에서 실행할 에디션을 정하십시오.** SCIM 프로비저닝, 팀 규정 준수 설정, 감사 로그를 쓰거나 관리자 대시보드의 **Health** 대시보드가 필요하다면 Enterprise Edition입니다. 그 밖의 경우에는 정할 것이 없습니다. Community Edition이 지금 쓰고 있는 것이며, SAML SSO와 OpenID Connect를 포함합니다.
 2. **Helm에서는 값 파일에 에디션을 설정하십시오:** `image.type: enterprise-edition` (기본값은 `community-edition`). `image.tag` 는 건드리지 마십시오. 차트가 알아서 `enterprise-` 접두사를 붙이므로 `image.tag: release` 는 `oneuptime/app:enterprise-release` 를 가져옵니다. 이 값은 새로운 것이 아닙니다. 이미 `enterprise-edition` 을 쓰고 있다면 바꿀 것이 없습니다. 이미 가져오는 태그에 이제 `ee/` 가 들어 있습니다.
 3. **Docker Compose에서는 `config.env` 에 `APP_TAG=enterprise-release` 를 설정하십시오** (버전을 고정하려면 `enterprise-<version>`). `APP_TAG=release` 는 Community 이미지입니다. 13의 설치를 멈추게 하는 것은 이것뿐입니다. 13에서 Compose의 Enterprise 설치는 `APP_TAG=release` 에 `IS_ENTERPRISE_EDITION=true` 를 더한 조합이었는데, 이 조합은 이제 SCIM 프로비저닝과 감사 로깅이 조용히 멈춘 Community Edition으로 올라오는 대신 **시작을 거부합니다**. `IS_ENTERPRISE_EDITION=true` 인 동안에는 `npm run update` 가 `APP_TAG` 를 대신 다시 써 주며(`release` 는 `enterprise-release` 가 되고, 고정한 `13.0.8` 은 `enterprise-13.0.8` 이 됩니다), 바꾼 내용을 출력합니다. 대신 이미지를 직접 가져온다면 먼저 `APP_TAG` 를 직접 설정하십시오.
-4. **Enterprise Edition에서는 라이선스를 활성화하십시오.** 라이선스가 없는 설치는 Enterprise Edition을 처음 시작한 때부터 세어 14일의 평가판 기간을 받습니다. 업그레이드의 경우 이는 OneUptime을 처음 설치한 날이 아니라 업그레이드한 날입니다. 마스터 관리자가 관리자 대시보드 헤더의 에디션 라벨에서 활성화합니다. 네트워크와 분리된 설치는 대신 서명된 토큰으로 활성화합니다. [라이선싱](/docs/self-hosted/enterprise#licensing) 을 참조하십시오.
-5. **ID 공급자가 SCIM으로 사용자를 디프로비저닝하는 동안 이 설치를 Community Edition으로 실행한다면, 업그레이드하기 전에 누가 접근 권한을 가지고 있는지 검토하십시오.** SCIM 디프로비저닝이 멈추므로 ID 공급자에서 제거한 사람도 OneUptime 계정을 유지하며, "Require SSO for login"이 적용되지 않는 한 그 계정의 메일함에 아직 접근할 수 있는 사람은 누구나 "비밀번호 찾기"로 비밀번호를 설정하고 로그인할 수 있습니다. 먼저 그 사용자들을 제거하십시오: [Enterprise에서 Community로 전환](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
+4. **Enterprise Edition에서는 라이선스를 활성화하십시오.** 라이선스가 없는 설치는 Enterprise Edition을 처음 시작한 때부터 세어 14일의 평가판 기간을 받습니다. 업그레이드의 경우 이는 OneUptime을 처음 설치한 날이 아니라 업그레이드한 날입니다. 마스터 관리자가 관리자 대시보드 헤더의 에디션 라벨에서 활성화합니다. 네트워크와 분리된 설치는 대신 서명된 토큰으로 활성화합니다. [라이선싱](/docs/self-hosted/enterprise#라이선싱) 을 참조하십시오.
+5. **ID 공급자가 SCIM으로 사용자를 디프로비저닝하는 동안 이 설치를 Community Edition으로 실행한다면, 업그레이드하기 전에 누가 접근 권한을 가지고 있는지 검토하십시오.** SCIM 디프로비저닝이 멈추므로 ID 공급자에서 제거한 사람도 OneUptime 계정을 유지하며, "Require SSO for login"이 적용되지 않는 한 그 계정의 메일함에 아직 접근할 수 있는 사람은 누구나 "비밀번호 찾기"로 비밀번호를 설정하고 로그인할 수 있습니다. 먼저 그 사용자들을 제거하십시오: [Enterprise에서 Community로 전환](/docs/self-hosted/enterprise#enterprise에서-community로-전환).
 6. **Ping, Port, SSL 모니터로 IPv6 주소를 모니터링한다면 업그레이드 후에 그 모니터들을 다시 저장하십시오.** 14 이전에 저장한 대상은 잘린 채로 저장되었을 수 있습니다. [IPv6 Ping, Port, SSL 모니터](#ipv6-ping-port-ssl-모니터) 를 참조하십시오.
 
 ### 에디션: 바뀐 것과 바뀌지 않은 것
@@ -162,7 +162,7 @@ OneUptime 14는 애플리케이션을 두 에디션으로 나누며, 어떤 에�
 - **이미 가지고 있는 라이선스 키는 받아들여집니다**. "unverified" 라이선스로 취급되며, 만료일과 좌석 한도는 라이선스 서버가 이 설치에 이미 알려 준 내용에서 가져오고, 그 만료일 이후 같은 30일의 유예 기간을 받습니다. 앞으로 발급되는 라이선스는 서명되어 있으며 애플리케이션이 직접 검증합니다. 이번 업그레이드에 새 키는 필요 없습니다.
 - **이 설치가 만료일을 한 번도 기록하지 않은 키** 는 멈추지 않고 평가판 기간 동안 계속 동작합니다. 라이선스 서버는 키와 만료일을 따로 기록하므로, 만료일을 한 번도 전달받지 못한 키를 가진 설치가 있을 수 있습니다. 그런 설치는 라이선스가 없는 설치와 똑같이 취급됩니다. Enterprise Edition을 처음 시작한 때부터 세어 14일의 평가판 기간 동안 모든 엔터프라이즈 기능이 동작하고, 평가판 기간 이후에는 위와 같은 것들이 멈춥니다. 라이선스가 이 상태인 동안에는 설치가 가진 라이선스 기록이 이미 불완전하므로 좌석 한도가 적용되지 않습니다. 마스터 관리자가 에디션 라벨에서 라이선스를 다시 활성화하거나, 매일 실행되는 라이선스 동기화가 oneuptime.com에서 만료일을 가져오면 다시 시작하지 않아도 복원됩니다.
 
-전체 상태 표는 [라이선스가 만료되었거나 없을 때](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) 에 있습니다.
+전체 상태 표는 [라이선스가 만료되었거나 없을 때](/docs/self-hosted/enterprise#라이선스가-만료되었거나-없을-때) 에 있습니다.
 
 ### Docker Compose: 이미지 태그 고르기
 
