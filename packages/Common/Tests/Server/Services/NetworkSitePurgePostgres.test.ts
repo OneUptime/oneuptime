@@ -1097,9 +1097,11 @@ describePostgres(
       expect(await purgeUntilDone(NetworkSiteService)).toEqual([0]);
 
       const sites: Set<string> = await idsIn("NetworkSite");
-      expect([sites.has(first), sites.has(second), sites.has(outsider)]).toEqual(
-        [true, true, true],
-      );
+      expect([
+        sites.has(first),
+        sites.has(second),
+        sites.has(outsider),
+      ]).toEqual([true, true, true]);
       expect(locksTaken).toEqual([]);
 
       expect(warnSpy).toHaveBeenCalledTimes(1);

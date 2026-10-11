@@ -160,9 +160,7 @@ function world(data: {
     due: (data.due || DUE) as never,
     limit: data.limit === undefined ? 10_000 : data.limit,
     skip: data.skip || 0,
-    read: async (
-      findBy: FindBy<NetworkSite>,
-    ): Promise<Array<NetworkSite>> => {
+    read: async (findBy: FindBy<NetworkSite>): Promise<Array<NetworkSite>> => {
       reads.push(findBy);
 
       const kind: ReadKind = kindOf(findBy);
@@ -398,9 +396,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       skip: 0,
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      2,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(2);
 
     expect(purge.deleted).toEqual([
       [siteId(1).toString(), siteId(2).toString()],
@@ -447,9 +443,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       ],
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      1,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(1);
     expect(purge.deleted).toEqual([[siteId(2).toString()]]);
     expect(purge.lockedProjects).toEqual([[PROJECT_B.toString()]]);
   });
@@ -467,9 +461,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       ],
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      2,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(2);
 
     expect(purge.deleted).toEqual([
       [siteId(1).toString(), siteId(2).toString()],
@@ -509,9 +501,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       cycleCandidates: [site({ index: 5, parentIndex: 5 })],
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      1,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(1);
     expect(purge.deleted).toEqual([[siteId(5).toString()]]);
   });
 
@@ -527,9 +517,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       ],
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      3,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(3);
 
     // 1-2 fits, 3-4 would pass the limit, 5 fits after it.
     expect(purge.deleted).toEqual([
@@ -554,9 +542,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       stay: ring,
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      0,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(0);
 
     expect(purge.deleted).toEqual([]);
     expect(purge.lockedProjects).toEqual([]);
@@ -575,9 +561,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       stay: [site({ index: 7 }), site({ index: 8 })],
     });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      0,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(0);
 
     expect(purge.deleted).toEqual([]);
     expect(purge.lockedProjects).toEqual([]);
@@ -627,9 +611,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
     const warn: SpyInstance<typeof logger.warn> = jest.spyOn(logger, "warn");
     const purge: World = world({});
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      0,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(0);
 
     expect(warn).not.toHaveBeenCalled();
     expect(purge.reads).toHaveLength(3);
@@ -638,9 +620,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
   it("reads nothing for a limit of zero", async () => {
     const purge: World = world({ leaves: [site({ index: 1 })], limit: 0 });
 
-    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(
-      0,
-    );
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(0);
     expect(purge.reads).toEqual([]);
   });
 
