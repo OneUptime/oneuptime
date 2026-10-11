@@ -31,6 +31,14 @@ import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/Inciden
 import IncidentSubscriberAudience from "Common/Types/StatusPage/IncidentSubscriberAudience";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { scanMarkdown } from "./DocsContentSupport";
+import {
+  dashboardLabel,
+  dashboardLocale,
+  drawnActionLabel,
+} from "./DocsDashboardLabels";
+import { PATH_SEPARATOR } from "./DocsPageShape";
+import { comparableFence } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -43,10 +51,16 @@ import path from "path";
  * the status page picker, the scoped-only switch, the Status Page Scope card
  * or the added-pages checkbox; when the miscDataProps keys, the audience
  * endpoint or its channel names change; when a role gains or loses read access
- * to status pages; or when the Persian guide falls behind the English one.
+ * to status pages; or when a translated guide falls behind the English one.
  * Each test reads the source of truth - the nav and its translations, the
  * shared copy constants the dashboard renders, the models, the side menus and
  * the API - and checks the shipped pages still tell the same story.
+ *
+ * Every language names the Dashboard as that language's Dashboard draws it:
+ * the guide and the status page overview with drawnActionLabel, Persian
+ * included, as StatusPageDocsTranslations holds them; the incident pages with
+ * dashboardLabel, which keeps Persian in English, as IncidentDocsTranslations
+ * holds them (DocsDashboardLabels).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -62,12 +76,31 @@ const GUIDE_TITLE: string = "One Status Page per Audience";
 const GUIDE_URL: string = `/docs/${GUIDE_PAGE}`;
 const NAV_GROUP_TITLE: string = "Status Pages";
 
+// Every docs language ships the guide, in its own words.
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> =
+  SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+    return language !== DEFAULT_DOCS_LANGUAGE;
+  });
+const ALL_LANGUAGES: ReadonlyArray<string> = [
+  DEFAULT_DOCS_LANGUAGE,
+  ...TRANSLATED_LANGUAGES,
+];
+
 /*
- * `fa` is the only translated corpus (every other language falls back to the
- * English page at request time), so it is the only one that ships the guide.
+ * The letters of the languages that are not written in Latin letters: every
+ * sentence of such a translation has one. A sentence of a translation in
+ * Latin letters is told from an English leftover by differing from the
+ * English sentence on its line instead.
  */
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
-const ALL_LANGUAGES: ReadonlyArray<string> = ["en", ...TRANSLATED_LANGUAGES];
+const SCRIPT_LETTERS: Readonly<Record<string, RegExp>> = {
+  fa: /[؀-ۿ]/,
+  hi: /[ऀ-ॿ]/,
+  ja: /[぀-ヿ一-鿿]/,
+  ko: /[가-힯]/,
+  ru: /[Ѐ-ӿ]/,
+  "zh-CN": /[一-鿿]/,
+  "zh-TW": /[一-鿿]/,
+};
 
 /*
  * The existing pages that describe who hears about an incident. Each one
@@ -118,8 +151,11 @@ const FENCE_LINE: RegExp = /^\s*```/;
 const SECTION_HEADING: RegExp = /^#{2,3} /;
 // A heading of any level.
 const ANY_HEADING: RegExp = /^#{1,6} /;
-// Arabic-script letters, which every Persian sentence contains.
-const PERSIAN_LETTER: RegExp = /[؀-ۿ]/;
+// The heading that starts each step of the guide's :::steps block.
+const STEP_HEADING: RegExp = /^### /;
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
+// A table row, the quoted summary, a component's line or a tab: not a sentence.
+const NOT_A_SENTENCE: RegExp = /^(?:\||>|:::|@tab\b)/;
 
 type PageFileFunction = (language: string, relative: string) => string;
 
@@ -351,6 +387,96 @@ const expectMenuPath: ExpectMenuPathFunction = (data: {
   ).toBe(true);
 };
 
+type DrawnFunction = (language: string, english: string) => string;
+
+/*
+ * A string the Dashboard looks up whole, by its English text, before it
+ * fills its placeholders (SubscriberAudienceText's `translate`): the locale's
+ * wording, or the English where the locale has none.
+ */
+const lookedUp: DrawnFunction = (language: string, english: string): string => {
+  const value: unknown = dashboardLocale(language)[english];
+
+  return typeof value === "string" && value.trim() ? value : english;
+};
+
+type MenuPathFunction = (
+  language: string,
+  segments: ReadonlyArray<string>,
+  draw?: DrawnFunction,
+) => string;
+
+// A menu path as a page in this language writes it: each label drawn, one bold span.
+const menuPath: MenuPathFunction = (
+  language: string,
+  segments: ReadonlyArray<string>,
+  draw: DrawnFunction = drawnActionLabel,
+): string => {
+  return `**${segments
+    .map((segment: string): string => {
+      return draw(language, segment);
+    })
+    .join(PATH_SEPARATOR)}**`;
+};
+
+type EscapeRegexFunction = (text: string) => string;
+
+const escapeRegex: EscapeRegexFunction = (text: string): string => {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+type StepsOfFunction = (markdown: string) => Array<string>;
+
+// Each step of the page's :::steps block: its heading and the text under it.
+const stepsOf: StepsOfFunction = (markdown: string): Array<string> => {
+  const steps: Array<string> = [];
+  let inSteps: boolean = false;
+
+  for (const line of splitMarkdown(markdown).prose) {
+    if (line.trim() === ":::steps") {
+      inSteps = true;
+      continue;
+    }
+
+    if (!inSteps) {
+      continue;
+    }
+
+    if (line.trim() === ":::") {
+      break;
+    }
+
+    if (STEP_HEADING.test(line)) {
+      steps.push(line);
+    } else if (steps.length > 0) {
+      steps[steps.length - 1] += `\n${line}`;
+    }
+  }
+
+  return steps;
+};
+
+type HiddenPagesQuotesFunction = (language: string) => Array<string>;
+
+/*
+ * The "more status pages you do not have access to" count, as a page quotes
+ * it: the Dashboard's words with the number left out, or written "…" where
+ * the language puts it inside the phrase.
+ */
+const hiddenPagesQuotes: HiddenPagesQuotesFunction = (
+  language: string,
+): Array<string> => {
+  const words: string = lookedUp(
+    language,
+    IncidentStatusPageScopeCopy.audienceHiddenPages,
+  );
+
+  return [
+    words.replace(/\s*\{\{number\}\}\s*/, " ").trim(),
+    words.replace("{{number}}", "…"),
+  ];
+};
+
 describe("One Status Page per Audience docs", () => {
   describe("navigation", () => {
     it("lists the guide in the Status Pages group, right after Subscribers & Announcements", () => {
@@ -379,34 +505,57 @@ describe("One Status Page per Audience docs", () => {
     });
 
     it("ships a real translation of the guide", () => {
+      const english: Array<string> = readPage(GUIDE_PAGE).split("\n");
+
       for (const language of TRANSLATED_LANGUAGES) {
         expect(fs.existsSync(pageFile(language, GUIDE_PAGE))).toBe(true);
 
         const translated: string = readPage(GUIDE_PAGE, language);
+        const lines: Array<string> = translated.split("\n");
+        const letters: RegExp | undefined = SCRIPT_LETTERS[language];
 
-        expect(PERSIAN_LETTER.test(titleOf(translated))).toBe(true);
+        // Line for line beside the English page (StatusPageDocsTranslations).
+        expect(lines).toHaveLength(english.length);
+        expect(titleOf(translated)).not.toBe(GUIDE_TITLE);
 
-        // Every prose paragraph is in Persian, not an English leftover.
-        const paragraphs: Array<string> = splitMarkdown(translated)
-          .prose.join("\n")
-          .split(/\n\s*\n/)
-          .map((paragraph: string): string => {
-            return paragraph.trim();
-          })
-          .filter((paragraph: string): boolean => {
-            return (
-              paragraph.length > 0 &&
-              !paragraph.startsWith("|") &&
-              !paragraph.startsWith(">")
-            );
-          });
+        /*
+         * Every sentence is in the reader's language, not an English
+         * leftover: its line differs from the English page's, and in a
+         * language with letters of its own, it has some. Code, tables, the
+         * quoted summary and the lines of components are not sentences.
+         */
+        const leftovers: Array<string> = [];
+        let inFence: boolean = false;
 
-        for (const paragraph of paragraphs) {
-          expect({
-            paragraph: paragraph.slice(0, 80),
-            persian: PERSIAN_LETTER.test(paragraph),
-          }).toEqual({ paragraph: paragraph.slice(0, 80), persian: true });
-        }
+        lines.forEach((line: string, index: number): void => {
+          if (FENCE_LINE.test(line)) {
+            inFence = !inFence;
+            return;
+          }
+
+          const text: string = line.trim();
+          const englishText: string = (english[index] || "").trim();
+
+          if (
+            inFence ||
+            !LATIN_LETTER.test(englishText) ||
+            NOT_A_SENTENCE.test(text)
+          ) {
+            return;
+          }
+
+          if (
+            text === englishText ||
+            (letters !== undefined && !letters.test(text))
+          ) {
+            leftovers.push(text);
+          }
+        });
+
+        expect({ language: language, leftovers: leftovers }).toEqual({
+          language: language,
+          leftovers: [],
+        });
       }
     });
 
@@ -544,8 +693,12 @@ describe("One Status Page per Audience docs", () => {
       }
     });
 
-    it("keeps every code identifier and code block intact", () => {
+    it("keeps every code identifier and code block intact, and builds the diagram the same way", () => {
       const english: string = readPage(GUIDE_PAGE);
+      const englishFences: Array<string> =
+        scanMarkdown(english).fences.map(comparableFence);
+
+      expect(englishFences.length).toBeGreaterThan(1);
 
       for (const language of TRANSLATED_LANGUAGES) {
         const translated: string = readPage(GUIDE_PAGE, language);
@@ -553,29 +706,37 @@ describe("One Status Page per Audience docs", () => {
         expect(Array.from(inlineCode(translated)).sort()).toEqual(
           Array.from(inlineCode(english)).sort(),
         );
-        expect(splitMarkdown(translated).codeBlocks).toEqual(
-          splitMarkdown(english).codeBlocks,
-        );
+
+        // Code exactly; the diagram by its nodes and arrows, its labels translated.
+        expect({
+          language: language,
+          fences: scanMarkdown(translated).fences.map(comparableFence),
+        }).toEqual({ language: language, fences: englishFences });
       }
     });
 
-    it("quotes only on-screen names the English page quotes too", () => {
+    it("leaves in English only on-screen names the English page quotes too", () => {
       const english: Set<string> = boldText(readPage(GUIDE_PAGE));
 
-      for (const language of TRANSLATED_LANGUAGES) {
+      for (const language of Object.keys(SCRIPT_LETTERS)) {
         /*
-         * The translation keeps screen names in English, as the dashboard
-         * shows them, and translates everything else. So any bold span it
-         * leaves in English must be one the English page quotes: a typo in a
-         * button name, or one the English page has since renamed, fails here.
+         * A translation names the screen as its Dashboard draws it, and the
+         * Dashboard draws some names in English: a product name, or a label
+         * its locale has no wording for. So a bold span with none of the
+         * language's letters must be one the English page quotes: a typo in
+         * a button name, or one the English page has since renamed, fails
+         * here. (In a language written in Latin letters an English name
+         * cannot be told apart by its letters; StatusPageDocsTranslations
+         * holds every language's names to its Dashboard.)
          */
+        const letters: RegExp = SCRIPT_LETTERS[language] as RegExp;
         const untranslated: Array<string> = Array.from(
           boldText(readPage(GUIDE_PAGE, language)),
         ).filter((name: string): boolean => {
-          return !PERSIAN_LETTER.test(name);
+          return !letters.test(name);
         });
 
-        expect(untranslated.length).toBeGreaterThan(10);
+        expect(untranslated.length).toBeGreaterThan(0);
 
         for (const name of untranslated) {
           expect({ language: language, name: name, inEnglish: true }).toEqual({
@@ -607,12 +768,23 @@ describe("One Status Page per Audience docs", () => {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
 
         for (const name of SCREEN_NAMES) {
-          expect({ language: language, name: name, quoted: true }).toEqual({
+          const drawn: string = drawnActionLabel(language, name);
+
+          expect({ language: language, drawn: drawn, quoted: true }).toEqual({
             language: language,
-            name: name,
-            quoted: names.has(name),
+            drawn: drawn,
+            quoted: names.has(drawn),
           });
         }
+      }
+    });
+
+    it("has every screen name in the Dashboard's locale, so every language draws it", () => {
+      for (const name of SCREEN_NAMES) {
+        expect({ name: name, inLocale: true }).toEqual({
+          name: name,
+          inLocale: typeof dashboardLocale("en")[name] === "string",
+        });
       }
     });
 
@@ -623,46 +795,86 @@ describe("One Status Page per Audience docs", () => {
       ).toBe(IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle);
     });
 
-    it("quotes the audience summary in the form the dashboard builds it", () => {
-      // The headline, then one list item per page (SubscriberAudienceSummary).
-      const pageLine: (name: string, emails: number) => string = (
-        name: string,
-        emails: number,
-      ): string => {
-        return formatScopeText(
-          IncidentStatusPageScopeCopy.audiencePageWithCounts,
-          {
-            name: name,
-            counts: formatScopeText(
-              IncidentStatusPageScopeCopy.audienceEmailCount,
-              { number: emails },
-            ),
-          },
-        );
-      };
-
-      const example: string = [
-        `> ${IncidentStatusPageScopeCopy.audienceWillNotify}`,
-        ">",
-        `> - ${pageLine("Site 03", 41)}`,
-        `> - ${pageLine("Site 07", 18)}`,
-      ].join("\n");
-
+    it("quotes the audience summary in the form the dashboard builds it, in every language", () => {
       for (const language of ALL_LANGUAGES) {
+        /*
+         * The headline, then one list item per page, each string looked up
+         * in the language before its placeholders are filled in
+         * (SubscriberAudienceText).
+         */
+        const pageLine: (name: string, emails: number) => string = (
+          name: string,
+          emails: number,
+        ): string => {
+          return formatScopeText(
+            lookedUp(
+              language,
+              IncidentStatusPageScopeCopy.audiencePageWithCounts,
+            ),
+            {
+              name: name,
+              counts: formatScopeText(
+                lookedUp(
+                  language,
+                  IncidentStatusPageScopeCopy.audienceEmailCount,
+                ),
+                { number: emails },
+              ),
+            },
+          );
+        };
+
+        const example: string = [
+          `> ${lookedUp(language, IncidentStatusPageScopeCopy.audienceWillNotify)}`,
+          ">",
+          `> - ${pageLine("Site 03", 41)}`,
+          `> - ${pageLine("Site 07", 18)}`,
+        ].join("\n");
         const guide: string = readPage(GUIDE_PAGE, language);
 
-        expect(guide).toContain(example);
+        expect({
+          language: language,
+          example: guide.includes(example),
+        }).toEqual({ language: language, example: true });
         expect(
-          boldText(guide).has(IncidentStatusPageScopeCopy.audienceNotNotified),
+          boldText(guide).has(
+            lookedUp(language, IncidentStatusPageScopeCopy.audienceNotNotified),
+          ),
         ).toBe(true);
+
+        /*
+         * The "more status pages you do not have access to" wording, too, in
+         * both places the guide quotes it.
+         */
+        const quoted: number = Math.max(
+          ...hiddenPagesQuotes(language).map((quote: string): number => {
+            return guide.toLowerCase().split(quote.toLowerCase()).length - 1;
+          }),
+        );
+
+        expect({ language: language, quoted: quoted }).toEqual({
+          language: language,
+          quoted: 2,
+        });
+      }
+    });
+
+    it("reads the summary's words from the Dashboard's locale, so every language draws them", () => {
+      for (const english of [
+        IncidentStatusPageScopeCopy.audienceWillNotify,
+        IncidentStatusPageScopeCopy.audiencePageWithCounts,
+        IncidentStatusPageScopeCopy.audienceEmailCount,
+        IncidentStatusPageScopeCopy.audienceNotNotified,
+        IncidentStatusPageScopeCopy.audienceHiddenPages,
+      ]) {
+        expect(dashboardLocale("en")[english]).toBe(english);
       }
 
-      // The "more status pages you do not have access to" wording, too.
-      expect(readPage(GUIDE_PAGE)).toContain(
-        formatScopeText(IncidentStatusPageScopeCopy.audienceHiddenPages, {
-          number: "N",
-        }).replace(/^N /, ""),
+      // The English quote is the Dashboard's with the number left out.
+      expect(hiddenPagesQuotes("en")[0]).toBe(
+        "more status pages you do not have access to",
       );
+      expect(hiddenPagesQuotes("ja")[1]).toContain("…");
     });
 
     /*
@@ -758,7 +970,11 @@ describe("One Status Page per Audience docs", () => {
         const names: Set<string> = boldText(guide);
 
         expect(guide).toContain(
-          "**Incidents → All Incidents → Declare Incident**",
+          menuPath(language, [
+            "Incidents",
+            "All Incidents",
+            "Declare Incident",
+          ]),
         );
 
         for (const name of [
@@ -772,10 +988,12 @@ describe("One Status Page per Audience docs", () => {
           "Create from Template",
           "Public Notes",
         ]) {
-          expect({ language: language, name: name, quoted: true }).toEqual({
+          const drawn: string = drawnActionLabel(language, name);
+
+          expect({ language: language, drawn: drawn, quoted: true }).toEqual({
             language: language,
-            name: name,
-            quoted: names.has(name),
+            drawn: drawn,
+            quoted: names.has(drawn),
           });
         }
       }
@@ -810,12 +1028,21 @@ describe("One Status Page per Audience docs", () => {
 
       for (const language of ALL_LANGUAGES) {
         const guide: string = readPage(GUIDE_PAGE, language);
+        const draw: (english: string) => string = (english: string): string => {
+          return escapeRegex(drawnActionLabel(language, english));
+        };
 
-        expect(guide).toContain("**Advanced → Settings**");
-        expect(guide).toContain("**Resources → Monitor Rules**");
-        expect(guide).toMatch(
-          /\*\*Status Pages → [^*]+ → Advanced → Advanced Settings\*\*/,
+        expect(guide).toContain(menuPath(language, ["Advanced", "Settings"]));
+        expect(guide).toContain(
+          menuPath(language, ["Resources", "Monitor Rules"]),
         );
+        expect({
+          language: language,
+          // The status page's own name is the reader's word for "your page".
+          found: new RegExp(
+            `\\*\\*${draw("Status Pages")}${PATH_SEPARATOR}[^*→\\n]+${PATH_SEPARATOR}${draw("Advanced")}${PATH_SEPARATOR}${draw("Advanced Settings")}\\*\\*`,
+          ).test(guide),
+        }).toEqual({ language: language, found: true });
       }
     });
 
@@ -842,21 +1069,33 @@ describe("One Status Page per Audience docs", () => {
         }),
       ).toContain(IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle);
 
+      const englishSteps: Array<string> = stepsOf(readPage(GUIDE_PAGE));
+
+      expect(englishSteps[2]).toMatch(
+        /^### Turn on Only Show Incidents Scoped to This Page\n/,
+      );
+
       for (const language of ALL_LANGUAGES) {
         const guide: string = readPage(GUIDE_PAGE, language);
         const names: Set<string> = boldText(guide);
+        const cardTitle: string = drawnActionLabel(
+          language,
+          StatusPageDisplaySettingsCopy.cardTitle,
+        );
 
-        expect(names.has(StatusPageDisplaySettingsCopy.cardTitle)).toBe(true);
-        expect(names.has("Show Incidents")).toBe(true);
+        expect(names.has(cardTitle)).toBe(true);
+        expect(names.has(drawnActionLabel(language, "Show Incidents"))).toBe(
+          true,
+        );
 
-        // The step no longer sends anyone through an Edit dialog.
-        const step: string =
-          guide.split("\n").find((line: string): boolean => {
-            return line.startsWith("3. ");
-          }) || "";
+        // The third step turns the switch on, and sends nobody through an Edit dialog.
+        const steps: Array<string> = stepsOf(guide);
+        const step: string = steps[2] || "";
 
-        expect(step).toContain(StatusPageDisplaySettingsCopy.cardTitle);
+        expect(steps).toHaveLength(englishSteps.length);
+        expect(step).toContain(`**${cardTitle}**`);
         expect(step).not.toContain("Edit Settings");
+        expect(step).not.toContain(drawnActionLabel(language, "Edit Settings"));
       }
     });
 
@@ -890,7 +1129,10 @@ describe("One Status Page per Audience docs", () => {
       for (const language of ALL_LANGUAGES) {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
 
-        expect(names.has("Add in Bulk")).toBe(true);
+        expect(names.has(drawnActionLabel(language, "Add in Bulk"))).toBe(true);
+        expect(names.has(drawnActionLabel(language, "Email Subscribers"))).toBe(
+          true,
+        );
       }
     });
   });
@@ -963,34 +1205,36 @@ describe("One Status Page per Audience docs", () => {
       for (const language of ALL_LANGUAGES) {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
 
-        expect(
-          names.has(
-            SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
-          ),
-        ).toBe(true);
-        expect(
-          names.has(
-            SubscriberNotificationResendCopy.resendToAllStatusPagesButton,
-          ),
-        ).toBe(true);
-        expect(names.has(SubscriberNotificationResendCopy.resendButton)).toBe(
-          true,
-        );
+        for (const label of [
+          SubscriberNotificationResendCopy.incidentCreatedRetryToAllStatusPagesLabel,
+          SubscriberNotificationResendCopy.resendToAllStatusPagesButton,
+          SubscriberNotificationResendCopy.resendButton,
+        ]) {
+          const drawn: string = drawnActionLabel(language, label);
+
+          expect({ language: language, drawn: drawn, quoted: true }).toEqual({
+            language: language,
+            drawn: drawn,
+            quoted: names.has(drawn),
+          });
+        }
 
         const notes: Set<string> = boldText(
           readPage("incidents/notes-owners-and-feed", language),
         );
 
-        expect(
-          notes.has(
-            SubscriberNotificationResendCopy.resendNoteNotificationButton,
-          ),
-        ).toBe(true);
-        expect(
-          notes.has(
-            SubscriberNotificationResendCopy.retryNoteNotificationButton,
-          ),
-        ).toBe(true);
+        for (const label of [
+          SubscriberNotificationResendCopy.resendNoteNotificationButton,
+          SubscriberNotificationResendCopy.retryNoteNotificationButton,
+        ]) {
+          const named: string = dashboardLabel(language, label);
+
+          expect({ language: language, named: named, quoted: true }).toEqual({
+            language: language,
+            named: named,
+            quoted: notes.has(named),
+          });
+        }
       }
     });
 
@@ -1004,10 +1248,18 @@ describe("One Status Page per Audience docs", () => {
           readPage("incidents/declaring-incidents", language),
         );
 
-        expect(names.has(IncidentCreatedRenotify.formFieldTitle)).toBe(true);
-        expect(
-          names.has(IncidentCreatedRenotify.hiddenFromStatusPagesLabel),
-        ).toBe(true);
+        for (const label of [
+          IncidentCreatedRenotify.formFieldTitle,
+          IncidentCreatedRenotify.hiddenFromStatusPagesLabel,
+        ]) {
+          const named: string = dashboardLabel(language, label);
+
+          expect({ language: language, named: named, quoted: true }).toEqual({
+            language: language,
+            named: named,
+            quoted: names.has(named),
+          });
+        }
       }
     });
 
@@ -1157,7 +1409,9 @@ describe("One Status Page per Audience docs", () => {
 
       for (const language of ALL_LANGUAGES) {
         expect(
-          boldText(readPage(GUIDE_PAGE, language)).has("Status Pages"),
+          boldText(readPage(GUIDE_PAGE, language)).has(
+            drawnActionLabel(language, "Status Pages"),
+          ),
         ).toBe(true);
       }
     });
@@ -1170,8 +1424,10 @@ describe("One Status Page per Audience docs", () => {
       for (const language of ALL_LANGUAGES) {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
 
-        expect(names.has(label)).toBe(true);
-        expect(names.has("More Information")).toBe(true);
+        expect(names.has(drawnActionLabel(language, label))).toBe(true);
+        expect(names.has(drawnActionLabel(language, "More Information"))).toBe(
+          true,
+        );
       }
     });
 
@@ -1184,7 +1440,7 @@ describe("One Status Page per Audience docs", () => {
           .split("\n")
           .filter((line: string): boolean => {
             return line.startsWith(
-              `| **${IncidentStatusPageScopeCopy.pickerTitle}**`,
+              `| **${dashboardLabel(language, IncidentStatusPageScopeCopy.pickerTitle)}**`,
             );
           });
 
@@ -1199,17 +1455,29 @@ describe("One Status Page per Audience docs", () => {
       for (const language of ALL_LANGUAGES) {
         const overview: string = readPage("status-pages/index", language);
 
-        expect(overview).toContain(
-          `**${IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle}** (\`onlyShowScopedIncidents\`)`,
+        // The switch's name, then its column in parentheses, full-width ones in CJK.
+        const switchName: string = escapeRegex(
+          drawnActionLabel(
+            language,
+            IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
+          ),
         );
+
+        expect({
+          language: language,
+          named: new RegExp(
+            `\\*\\*${switchName}\\*\\* ?[(（]\`onlyShowScopedIncidents\`[)）]`,
+          ).test(overview),
+        }).toEqual({ language: language, named: true });
 
         // Listed right after the other incident switch on the same card.
         const lines: Array<string> = overview.split("\n");
         const labelsLine: number = lines.findIndex((line: string): boolean => {
-          return line.includes("(`showIncidentLabelsOnStatusPage`)");
+          return line.includes("`showIncidentLabelsOnStatusPage`");
         });
 
-        expect(lines[labelsLine + 1]).toContain("(`onlyShowScopedIncidents`)");
+        expect(labelsLine).toBeGreaterThan(0);
+        expect(lines[labelsLine + 1]).toContain("`onlyShowScopedIncidents`");
       }
     });
   });

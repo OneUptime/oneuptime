@@ -10,6 +10,15 @@ import {
   ADD_DEVICE_SINGULAR_NAME,
   ADD_DEVICE_SNMP_SECTION,
 } from "../../../FeatureSet/Dashboard/src/Pages/NetworkDevice/AddDeviceForm";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { dashboardLocale } from "./DocsDashboardLabels";
+import { boldSpans, prose, toLatinDigits } from "./DocsTranslationChecks";
+import {
+  PATH_SEPARATOR,
+  drawnNetworkLabel,
+  drawnPath,
+  localeValue,
+} from "./NetworkDocsLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -22,9 +31,11 @@ import path from "path";
  * steps (one for a ping sweep), Add Site in three - and the guides walked
  * the old forms: Create Network Device through three steps, Create
  * Discovery Scan, menu paths through sections that moved. Markdown is not
- * compiled, so this reads the dashboard's own sources and checks the guides,
- * in English and in Persian (which keeps the dashboard's English labels),
- * name what a reader will actually see.
+ * compiled, so this reads the dashboard's own sources and checks the guides
+ * name what a reader will actually see: the English guides by the
+ * dashboard's English labels, and every translation by the labels its
+ * language's Dashboard draws (drawnNetworkLabel), with each English menu
+ * path drawn segment by segment (drawnPath).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -37,11 +48,13 @@ const CONTENT_DIR: string = path.resolve(
 const DEVICE_GUIDE: string = "monitor/network-device-monitor.md";
 const SITES_GUIDE: string = "monitor/network-sites.md";
 
-// Both guides exist in these, and both keep the dashboard's English labels.
-const LANGUAGES: Array<string> = ["en", "fa"];
-
-// The arrow each language writes a menu path with.
-const MENU_ARROW: Record<string, string> = { en: "->", fa: "→" };
+// Both guides exist in every docs language.
+const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
+const TRANSLATIONS: Array<string> = LANGUAGES.filter(
+  (language: string): boolean => {
+    return language !== "en";
+  },
+);
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -53,6 +66,11 @@ function readGuide(language: string, guide: string): string {
 
 function bold(label: string): string {
   return `**${label}**`;
+}
+
+// A Dashboard label in bold, as a guide in a language names it.
+function drawn(language: string, label: string): string {
+  return bold(drawnNetworkLabel(language, label));
 }
 
 /*
@@ -89,23 +107,28 @@ function networkMenu(): Map<string, Array<string>> {
   return menu;
 }
 
-// "**Network** -> **Rules** -> **Auto Import Rules**", as [section, item].
-function menuPathsIn(markdown: string, arrow: string): Array<[string, string]> {
-  const escapedArrow: string = arrow.replace(ESCAPE_PATTERN, "\\$&");
-  const pathPattern: RegExp = new RegExp(
-    `\\*\\*Network\\*\\* ${escapedArrow} \\*\\*([^*]+)\\*\\* ${escapedArrow} \\*\\*([^*]+)\\*\\*`,
-    "g",
-  );
-  const paths: Array<[string, string]> = [];
-
-  for (const match of markdown.matchAll(pathPattern)) {
-    paths.push([match[1]!, match[2]!]);
-  }
-
-  return paths;
+/*
+ * Every Network path an English guide names, "**Network → Rules → Auto
+ * Import Rules**", as its segments after Network: ["Rules", "Auto Import
+ * Rules"], or ["Map"] for a row of the menu's open part.
+ */
+function networkPathsIn(markdown: string): Array<Array<string>> {
+  return boldSpans(prose(markdown))
+    .filter((span: string): boolean => {
+      return span.startsWith(`Network${PATH_SEPARATOR}`);
+    })
+    .map((span: string): Array<string> => {
+      return span
+        .split(PATH_SEPARATOR)
+        .slice(1)
+        .map((segment: string): string => {
+          return segment.trim();
+        });
+    });
 }
 
 const ESCAPE_PATTERN: RegExp = /[.*+?^${}()|[\]\\]/g;
+const PLURAL_SUFFIX: RegExp = /_(?:zero|one|two|few|many|other)$/;
 
 // "{{count}} devices are down" as a pattern any count satisfies.
 function headlinePattern(form: string): RegExp {
@@ -114,31 +137,81 @@ function headlinePattern(form: string): RegExp {
   );
 }
 
-const OVERVIEW_TABLE_ROW: RegExp = /^\| \*\*([^*]+)\*\* \|/gm;
+/*
+ * A headline key as a language's Dashboard words it, in each plural form
+ * its locale has (one, few, many, other), or the key itself in English.
+ */
+function headlineForms(language: string, key: string): Array<string> {
+  if (language === "en") {
+    return [key];
+  }
 
-// The verdicts a guide's Overview table quotes, in order.
-function documentedVerdicts(markdown: string, heading: string): Array<string> {
-  const start: number = markdown.indexOf(heading);
+  const forms: Array<string> = Object.keys(dashboardLocale(language))
+    .filter((candidate: string): boolean => {
+      return candidate === key || candidate.replace(PLURAL_SUFFIX, "") === key;
+    })
+    .map((candidate: string): string => {
+      return localeValue(language, candidate);
+    });
 
-  expect(start).toBeGreaterThan(-1);
-
-  const end: number = markdown.indexOf("\n## ", start + heading.length);
-  const section: string = markdown.slice(start, end === -1 ? undefined : end);
-
-  return Array.from(section.matchAll(OVERVIEW_TABLE_ROW)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
-    },
-  );
+  return forms.length > 0 ? forms : [key];
 }
 
-function verdictKindOf(sentence: string): NetworkHealthVerdictKind | null {
+const OVERVIEW_TABLE_ROW: RegExp = /^\| \*\*([^*]+)\*\* \|/;
+const OVERVIEW_HEADING: string = "## The Network Overview";
+
+/*
+ * The verdicts the Overview section's first table quotes, in order. A
+ * translation lies line for line beside the English guide, so its table is
+ * on the lines the English one takes.
+ */
+function documentedVerdicts(language: string): Array<string> {
+  const english: Array<string> = readGuide("en", DEVICE_GUIDE).split("\n");
+  const heading: number = english.indexOf(OVERVIEW_HEADING);
+
+  expect(heading).toBeGreaterThan(-1);
+
+  const start: number = english.findIndex(
+    (line: string, index: number): boolean => {
+      return index > heading && line.startsWith("|");
+    },
+  );
+  const end: number = english.findIndex(
+    (line: string, index: number): boolean => {
+      return index > start && !line.startsWith("|");
+    },
+  );
+
+  return readGuide(language, DEVICE_GUIDE)
+    .split("\n")
+    .slice(start, end)
+    .map((line: string): string | undefined => {
+      return line.match(OVERVIEW_TABLE_ROW)?.[1];
+    })
+    .filter((verdict: string | undefined): verdict is string => {
+      return verdict !== undefined;
+    })
+    .map((verdict: string): string => {
+      return toLatinDigits(verdict.trim());
+    });
+}
+
+function verdictKindOf(
+  language: string,
+  sentence: string,
+): NetworkHealthVerdictKind | null {
   for (const kind of Object.values(NetworkHealthVerdictKind)) {
     const headline: NetworkHealthPlural = NETWORK_HEALTH_COPY[kind].headline;
+    const forms: Array<string> = [headline.one, headline.other].flatMap(
+      (key: string): Array<string> => {
+        return headlineForms(language, key);
+      },
+    );
 
     if (
-      headlinePattern(headline.one).test(sentence) ||
-      headlinePattern(headline.other).test(sentence)
+      forms.some((form: string): boolean => {
+        return headlinePattern(form).test(sentence);
+      })
     ) {
       return kind;
     }
@@ -146,11 +219,6 @@ function verdictKindOf(sentence: string): NetworkHealthVerdictKind | null {
 
   return null;
 }
-
-const OVERVIEW_HEADING: Record<string, string> = {
-  en: "## The Network Overview",
-  fa: "## نمای کلی شبکه",
-};
 
 // The wizard's steps, from the one list the create and edit forms share.
 function discoveryStepTitles(): Array<string> {
@@ -184,6 +252,21 @@ function addSiteStepTitles(): Array<string> {
   );
 }
 
+const OLD_CREATE_BUTTON: RegExp = /Create Network Device\*\*/;
+// The device table's rows, told apart from the scan table's by what they say.
+const NAME_ROW_OPTIONAL: RegExp =
+  /^\| Name +\|[^\n]*named after its hostname[^\n]*\| No +\|$/m;
+const HOSTNAME_ROW_REQUIRED: RegExp =
+  /^\| Hostname +\|[^\n]*the probe pings[^\n]*\| Yes +\|$/m;
+const PROBE_ROW_REQUIRED: RegExp =
+  /^\| Probe +\|[^\n]*pings this device[^\n]*\| Yes +\|$/m;
+
+// The step headings of the three-step form, in the guides that walked it.
+const OLD_DEVICE_STEP_HEADINGS: Record<string, Array<string>> = {
+  en: ["### Device Details", "### Probe & Site", "### SNMP (Optional)"],
+  fa: ["### جزئیات دستگاه", "### پروب و سایت", "### SNMP (اختیاری)"],
+};
+
 describe("the device guide adds a device the way the dashboard does", () => {
   test.each(LANGUAGES)(
     "%s: by Add Device, not Create Network Device",
@@ -193,13 +276,13 @@ describe("the device guide adds a device the way the dashboard does", () => {
       expect(`${ADD_DEVICE_CREATE_VERB} ${ADD_DEVICE_SINGULAR_NAME}`).toBe(
         "Add Device",
       );
-      expect(guide).toContain(bold("Add Device"));
+      expect(guide).toContain(drawn(language, "Add Device"));
       // The diagnostic permission keeps its name; the button does not.
       expect(guide).not.toMatch(OLD_CREATE_BUTTON);
     },
   );
 
-  test.each(LANGUAGES)(
+  test.each(Object.keys(OLD_DEVICE_STEP_HEADINGS))(
     "%s: no longer walks the three steps the form had",
     (language: string) => {
       const guide: string = readGuide(language, DEVICE_GUIDE);
@@ -215,9 +298,11 @@ describe("the device guide adds a device the way the dashboard does", () => {
     (language: string) => {
       const guide: string = readGuide(language, DEVICE_GUIDE);
 
-      expect(guide).toContain(bold(ADD_DEVICE_SNMP_SECTION.title));
-      expect(guide).toContain(bold(ADD_DEVICE_MORE_FIELDS.title));
-      expect(guide).toContain(`| ${ADD_DEVICE_PING_MONITOR_TITLE} |`);
+      expect(guide).toContain(drawn(language, ADD_DEVICE_SNMP_SECTION.title));
+      expect(guide).toContain(drawn(language, ADD_DEVICE_MORE_FIELDS.title));
+      expect(guide).toContain(
+        `| ${drawnNetworkLabel(language, ADD_DEVICE_PING_MONITOR_TITLE)} |`,
+      );
     },
   );
 
@@ -239,36 +324,21 @@ describe("the device guide adds a device the way the dashboard does", () => {
   });
 });
 
-const OLD_CREATE_BUTTON: RegExp = /Create Network Device\*\*/;
-// The device table's rows, told apart from the scan table's by what they say.
-const NAME_ROW_OPTIONAL: RegExp =
-  /^\| Name +\|[^\n]*named after its hostname[^\n]*\| No +\|$/m;
-const HOSTNAME_ROW_REQUIRED: RegExp =
-  /^\| Hostname +\|[^\n]*the probe pings[^\n]*\| Yes +\|$/m;
-const PROBE_ROW_REQUIRED: RegExp =
-  /^\| Probe +\|[^\n]*pings this device[^\n]*\| Yes +\|$/m;
-
-const OLD_DEVICE_STEP_HEADINGS: Record<string, Array<string>> = {
-  en: ["### Device Details", "### Probe & Site", "### SNMP (Optional)"],
-  fa: ["### جزئیات دستگاه", "### پروب و سایت", "### SNMP (اختیاری)"],
-};
-
 describe("the device guide opens on the Overview's verdict", () => {
   test.each(LANGUAGES)(
     "%s: every verdict it quotes is one the Overview says",
     (language: string) => {
-      const verdicts: Array<string> = documentedVerdicts(
-        readGuide(language, DEVICE_GUIDE),
-        OVERVIEW_HEADING[language]!,
-      );
+      const verdicts: Array<string> = documentedVerdicts(language);
 
       expect(verdicts.length).toBeGreaterThan(0);
 
       for (const verdict of verdicts) {
-        expect({ verdict, kind: verdictKindOf(verdict) }).not.toEqual({
-          verdict,
-          kind: null,
-        });
+        expect({ verdict, kind: verdictKindOf(language, verdict) }).not.toEqual(
+          {
+            verdict,
+            kind: null,
+          },
+        );
       }
     },
   );
@@ -277,9 +347,10 @@ describe("the device guide opens on the Overview's verdict", () => {
     "%s: it quotes every kind of verdict, worst news first",
     (language: string) => {
       const kinds: Array<NetworkHealthVerdictKind | null> = documentedVerdicts(
-        readGuide(language, DEVICE_GUIDE),
-        OVERVIEW_HEADING[language]!,
-      ).map(verdictKindOf);
+        language,
+      ).map((verdict: string): NetworkHealthVerdictKind | null => {
+        return verdictKindOf(language, verdict);
+      });
 
       // The ladder getNetworkHealthVerdict climbs, in its order.
       expect(kinds).toEqual([
@@ -306,16 +377,16 @@ describe("the device guide opens on the Overview's verdict", () => {
 
       for (const label of ["Discover devices", "Add one device"]) {
         expect(getStarted).toContain(`title: "${label}"`);
-        expect(guide).toContain(bold(label));
+        expect(guide).toContain(drawn(language, label));
       }
 
       for (const label of ["Discover Devices", "Add Device"]) {
         expect(hero).toContain(`title="${label}"`);
-        expect(guide).toContain(bold(label));
+        expect(guide).toContain(drawn(language, label));
       }
 
       expect(hero).toContain('translator.translateText("Set up alerts")');
-      expect(guide).toContain(bold("Set up alerts"));
+      expect(guide).toContain(drawn(language, "Set up alerts"));
     },
   );
 });
@@ -336,52 +407,64 @@ describe("the guides' menu paths lead somewhere", () => {
     expect(menu.get("Topology")).toContain("Device Topology");
   });
 
+  test.each([DEVICE_GUIDE, SITES_GUIDE])(
+    "en %s: every Network → page is an open row, and every Network → section → page is in that section",
+    (guide: string) => {
+      const paths: Array<Array<string>> = networkPathsIn(
+        readGuide("en", guide),
+      );
+
+      expect(paths.length).toBeGreaterThan(0);
+
+      for (const segments of paths) {
+        const [first, second] = segments as [string, string | undefined];
+        const found: boolean =
+          segments.length === 1
+            ? Boolean(menu.get("Network")?.includes(first))
+            : segments.length === 2 &&
+              Boolean(menu.get(first)?.includes(second as string));
+
+        expect({ segments, found }).toEqual({ segments, found: true });
+      }
+    },
+  );
+
   test.each(
-    LANGUAGES.flatMap((language: string): Array<[string, string]> => {
+    TRANSLATIONS.flatMap((language: string): Array<[string, string]> => {
       return [
         [language, DEVICE_GUIDE],
         [language, SITES_GUIDE],
       ];
     }),
   )(
-    "%s %s: every Network -> section -> page is in that section",
+    "%s %s: names every path the English guide names, as its Dashboard draws it",
     (language: string, guide: string) => {
-      const paths: Array<[string, string]> = menuPathsIn(
-        readGuide(language, guide),
-        MENU_ARROW[language]!,
-      );
-
-      for (const [section, item] of paths) {
-        expect({
-          section,
-          item,
-          found: menu.get(section)?.includes(item),
-        }).toEqual({
-          section,
-          item,
-          found: true,
+      const translated: string = readGuide(language, guide);
+      const missing: Array<string> = networkPathsIn(readGuide("en", guide))
+        .map((segments: Array<string>): string => {
+          return drawnPath(language, ["Network", ...segments]);
+        })
+        .filter((drawnSegments: string): boolean => {
+          return !translated.includes(drawnSegments);
         });
-      }
+
+      expect(missing).toEqual([]);
     },
   );
 
-  test.each(LANGUAGES)(
-    "%s: the device guide reaches Auto Import Rules and Device Topology by their sections",
-    (language: string) => {
-      const paths: Array<string> = menuPathsIn(
-        readGuide(language, DEVICE_GUIDE),
-        MENU_ARROW[language]!,
-      ).map(([section, item]: [string, string]): string => {
-        return `${section} / ${item}`;
-      });
+  test("en: the device guide reaches Auto Import Rules and Device Topology by their sections", () => {
+    const paths: Array<string> = networkPathsIn(
+      readGuide("en", DEVICE_GUIDE),
+    ).map((segments: Array<string>): string => {
+      return segments.join(" / ");
+    });
 
-      expect(paths).toContain("Rules / Auto Import Rules");
-      expect(paths).toContain("Topology / Device Topology");
-      expect(paths).not.toContain("Settings / Auto Import Rules");
-      expect(paths).not.toContain("Network Map / Topology");
-      expect(paths).not.toContain("Discovery / Discovery Scans");
-    },
-  );
+    expect(paths).toContain("Rules / Auto Import Rules");
+    expect(paths).toContain("Topology / Device Topology");
+    expect(paths).not.toContain("Settings / Auto Import Rules");
+    expect(paths).not.toContain("Network Map / Topology");
+    expect(paths).not.toContain("Discovery / Discovery Scans");
+  });
 });
 
 describe("the device guide starts a scan the way the dashboard does", () => {
@@ -394,14 +477,14 @@ describe("the device guide starts a scan the way the dashboard does", () => {
     (language: string) => {
       const guide: string = readGuide(language, DEVICE_GUIDE);
 
-      expect(guide).toContain(bold("Start Scan"));
+      expect(guide).toContain(drawn(language, "Start Scan"));
       expect(guide).not.toContain("Create Discovery Scan");
 
       for (const step of discoveryStepTitles()) {
-        expect(guide).toContain(bold(step));
+        expect(guide).toContain(drawn(language, step));
       }
 
-      expect(guide).toContain(bold("Repeat this scan"));
+      expect(guide).toContain(drawn(language, "Repeat this scan"));
     },
   );
 });
@@ -420,19 +503,17 @@ describe("the sites guide adds a site the way the dashboard does", () => {
     (language: string) => {
       const guide: string = readGuide(language, SITES_GUIDE);
 
-      expect(guide).toContain(bold("Add Site"));
-      expect(guide).toContain(bold("Add Child Site"));
+      expect(guide).toContain(drawn(language, "Add Site"));
+      expect(guide).toContain(drawn(language, "Add Child Site"));
 
       for (const step of addSiteStepTitles()) {
-        expect(guide).toContain(bold(step));
+        expect(guide).toContain(drawn(language, step));
       }
 
       // The location is no longer a step of its own.
-      expect(guide).not.toContain(bold("Location"));
-      expect(guide).toContain(bold("More fields"));
-      expect(guide).toContain(
-        `${bold("Network")} ${MENU_ARROW[language]} ${bold("Map")}`,
-      );
+      expect(guide).not.toContain(drawn(language, "Location"));
+      expect(guide).toContain(drawn(language, "More fields"));
+      expect(guide).toContain(drawnPath(language, ["Network", "Map"]));
     },
   );
 });

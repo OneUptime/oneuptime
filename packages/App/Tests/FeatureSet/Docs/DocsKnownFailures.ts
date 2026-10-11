@@ -139,15 +139,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "forms/building": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/on-submit": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/sharing-and-security": {
-    translated: EVERY_TRANSLATION,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },
@@ -228,31 +219,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/network-device-monitor": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "monitor/network-sites": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/network-vendor-guides": {
-    translated: EVERY_TRANSLATION,
-  },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
-  },
-  "probe/custom-probe": {
-    title: EVERY_LANGUAGE,
-    uniqueHeadings: except(EVERY_LANGUAGE, "de"),
-    codeLanguage: EN,
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "probe/incoming-request-ingress": {
-    codeLanguage: EN,
-    sameShape: ["de", "hi"],
   },
   "rum/applications": {
     pageLinks: ["fa"],
@@ -300,15 +268,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "self-hosted/sendgrid-inbound-email": {
     codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/one-status-page-per-audience": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "status-pages/subscribers": {
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/ai-agent-circuit-breaker": {
@@ -438,16 +397,5 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "terraform/troubleshooting": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "workspace-connections/microsoft-teams": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workspace-connections/slack": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workspace-connections/video-calls": {
-    translated: EVERY_TRANSLATION,
   },
 };

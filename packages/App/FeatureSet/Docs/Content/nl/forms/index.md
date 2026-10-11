@@ -57,7 +57,7 @@ Formulieren beginnen met deze twee; meer soorten records volgen.
 
 - **Een abonnement met formulieren.** Op OneUptime Cloud hebben formulieren het abonnement **Growth** of hoger nodig. Zie [Abonnement](#abonnement).
 - **De machtiging om formulieren te maken.** **Create Form** hebben projecteigenaren en -beheerders, en de rollen waaraan u het geeft. Zie [Machtigingen](#machtigingen).
-- **Voor een incidentformulier een ernst.** Elk incident heeft er een nodig: uit een vraag, uit de instellingen van het formulier of uit het incidentsjabloon. Zonder ernst wordt elke inzending geweigerd. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Voor een incidentformulier een ernst.** Elk incident heeft er een nodig: uit een vraag, uit de instellingen van het formulier of uit het incidentsjabloon. Zonder ernst wordt elke inzending geweigerd. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-incident-wordt).
 
 ## Uw eerste formulier maken
 
@@ -76,7 +76,7 @@ Controleer onder **Bij verzenden** hoe een inzending een incident of gebeurtenis
 
 ### Sjablonen toevoegen als dezelfde gevallen vaak worden gemeld
 
-Sla onder **Sjablonen** een sjabloon op voor elk geval dat vaak wordt gemeld: het formulier toont ze boven de vragen, vult zich in vanuit het gekozen sjabloon en stelt de vragen zoals dat sjabloon zegt; een vraag die een geval nodig heeft, kan in het sjabloon van dat geval verplicht zijn en in de andere verborgen. Zie [Sjablonen](/docs/forms/building#templates).
+Sla onder **Sjablonen** een sjabloon op voor elk geval dat vaak wordt gemeld: het formulier toont ze boven de vragen, vult zich in vanuit het gekozen sjabloon en stelt de vragen zoals dat sjabloon zegt; een vraag die een geval nodig heeft, kan in het sjabloon van dat geval verplicht zijn en in de andere verborgen. Zie [Sjablonen](/docs/forms/building#sjablonen).
 
 ### De link delen
 
@@ -229,7 +229,7 @@ Vragen, sjablonen en instellingen worden gecontroleerd telkens wanneer ze worden
 
 ### Huisstijl in de API
 
-De huisstijl van een formulier bestaat uit `logoFileId`, `logoAltText` en `faviconFileId`. Upload eerst de afbeelding met `POST /api/file` in het project van het formulier (met een API-sleutel van dat project, of aangemeld als lid ervan met de ID in de header `tenantid`), stuur daarbij de `name`, het `fileType`, zoals `image/png`, en de bytes als base64 in `file`, en stel de teruggegeven `_id` in. Een upload naar een project waarvan u geen lid bent, wordt geweigerd met "You can upload files only to a project you are a member of." Elke upload is privé: `isPublic` wordt door OneUptime ingesteld, wat de aanvraag ook zegt. Elke afbeelding wordt gecontroleerd wanneer het formulier wordt opgeslagen: ze moet in het project van het formulier zijn geüpload, en een logo moet een PNG-, JPEG-, GIF-, WebP- of SVG-afbeelding van maximaal 512 KB zijn, een favicon een van die of een ICO van maximaal 128 KB. Stel een ID in op `null` om terug te gaan naar die van OneUptime. Zie [Huisstijl](/docs/forms/building#branding).
+De huisstijl van een formulier bestaat uit `logoFileId`, `logoAltText` en `faviconFileId`. Upload eerst de afbeelding met `POST /api/file` in het project van het formulier (met een API-sleutel van dat project, of aangemeld als lid ervan met de ID in de header `tenantid`), stuur daarbij de `name`, het `fileType`, zoals `image/png`, en de bytes als base64 in `file`, en stel de teruggegeven `_id` in. Een upload naar een project waarvan u geen lid bent, wordt geweigerd met "You can upload files only to a project you are a member of." Elke upload is privé: `isPublic` wordt door OneUptime ingesteld, wat de aanvraag ook zegt. Elke afbeelding wordt gecontroleerd wanneer het formulier wordt opgeslagen: ze moet in het project van het formulier zijn geüpload, en een logo moet een PNG-, JPEG-, GIF-, WebP- of SVG-afbeelding van maximaal 512 KB zijn, een favicon een van die of een ICO van maximaal 128 KB. Stel een ID in op `null` om terug te gaan naar die van OneUptime. Zie [Huisstijl](/docs/forms/building#huisstijl).
 
 ### Inzendingen lezen
 

@@ -1,4 +1,5 @@
 import StateChangeSubscriberNotification from "Common/Types/StatusPage/StateChangeSubscriberNotification";
+import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -8,10 +9,15 @@ import path from "path";
  * once: the note is the message, and the change is recorded as sent by it
  * (StateChangeSubscriberNotification). The guides say so for both events -
  * Subscribers & Announcements for scheduled maintenance, Incident States &
- * Severities for incidents - in English and in Persian, the one translated
- * corpus that has these sections. Markdown is not compiled, so this reads
+ * Severities for incidents - in English and in Persian, whose pages these
+ * checks were first written for. Markdown is not compiled, so this reads
  * the code the guides quote (the dialog's labels, the status badge's words,
  * the API route and the misc data key) and checks the guides still say it.
+ *
+ * A guide names the dialog as its language's Dashboard draws it: the status
+ * pages with drawnActionLabel, Persian included (StatusPageDocsTranslations),
+ * the incident pages with dashboardLabel, which keeps Persian in English
+ * (IncidentDocsTranslations).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -40,6 +46,24 @@ const NOTE_POSTED_ONCE_THE_CHANGE_IS_SAVED: Record<string, string> = {
 };
 
 const NOTE_KEY_IN_THE_API: string = `"miscDataProps": {"${StateChangeSubscriberNotification.publicNoteKey}": "..."}`;
+
+// The dialog's labels, in bold, as a guide in this language names them.
+function dialogLabels(language: string, page: string): Array<string> {
+  const named: (english: string) => string =
+    page === SUBSCRIBERS_PAGE
+      ? (english: string): string => {
+          return drawnActionLabel(language, english);
+        }
+      : (english: string): string => {
+          return dashboardLabel(language, english);
+        };
+
+  return ["Public Note", "Notify Status Page Subscribers", "Change State"].map(
+    (english: string): string => {
+      return `**${named(english)}**`;
+    },
+  );
+}
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -117,9 +141,10 @@ describe.each(LANGUAGES)("the %s guides", (language: string) => {
       SCHEDULED_MAINTENANCE_SECTION[language]!,
     );
 
-    expect(section).toContain("**Public Note**");
-    expect(section).toContain("**Notify Status Page Subscribers**");
-    expect(section).toContain("**Change State**");
+    for (const label of dialogLabels(language, SUBSCRIBERS_PAGE)) {
+      expect(section).toContain(label);
+    }
+
     expect(section).toContain(NOTE_KEY_IN_THE_API);
     expect(section).toContain(
       "`POST /api/scheduled-maintenance-state-timeline`",
@@ -142,9 +167,9 @@ describe.each(LANGUAGES)("the %s guides", (language: string) => {
       INCIDENT_SECTION[language]!,
     );
 
-    expect(section).toContain("**Public Note**");
-    expect(section).toContain("**Notify Status Page Subscribers**");
-    expect(section).toContain("**Change State**");
+    for (const label of dialogLabels(language, STATES_PAGE)) {
+      expect(section).toContain(label);
+    }
   });
 });
 

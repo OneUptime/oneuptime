@@ -6,6 +6,28 @@ Announcements are the other half of the same job. A monitor can tell your visito
 
 This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, the email report subscribers can get every month, and how announcements are written, scheduled and templated.
 
+:::cards
+- [Subscription channels](#subscription-channels): The channels visitors can sign up on, and the page they sign up on.
+- [What subscribers are told](#what-subscribers-get-notified-about): Announcements, maintenance, incidents and episodes, and edits to them.
+- [Checking what was sent](#checking-what-was-sent): Every notification's status, and Retry and Resend.
+- [Announcements](#announcements): Post a notice to one or more status pages.
+:::
+
+## How it works
+
+```mermaid title="From a sign-up to a message"
+flowchart TB
+    V["A visitor signs up"] --> Q{"By email?"}
+    Q -->|"Yes"| C["Confirms by email"]
+    Q -->|"No"| S["Subscriber"]
+    C --> S
+    E["Incident, maintenance<br/>or announcement"] --> N["Notification"]
+    S --> N
+    N --> M["Message with an<br/>unsubscribe link"]
+```
+
+Each status page keeps its own subscribers. A visitor signs up on the page's **Subscribe** page, where an email address confirms with a link before it hears anything, or your team adds them on the dashboard. From then on, every incident, scheduled maintenance event and announcement that reaches the page notifies its subscribers, each on the channel they signed up with, and every message carries the link that cancels the subscription.
+
 ## Subscription channels
 
 A status page supports five channels. They, and the page visitors sign up on, are switched in one place: the **Channels** card at **Status Pages → your page → Subscribers → Subscriber Settings**. Each switch saves as soon as you flip it:
@@ -27,15 +49,17 @@ Each channel also gets its own list in the status page side menu under **Subscri
 
 ## What a visitor sees on the Subscribe page
 
-The **Subscribe** page has a sub-menu with one tab per enabled channel — **Email**, **SMS**, **Slack**, **MS Teams**, **Webhooks** — mapped to `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams` and `/subscribe/webhooks`. Each tab asks for the minimum it needs:
+The **Subscribe** page has a sub-menu with one tab per enabled channel. Each tab asks for the minimum it needs:
 
-- **Email** — heading **Subscribe by Email**, one field **Your Email** with the placeholder `subscriber@company.com`.
-- **SMS** — heading **Subscribe by SMS**, one field **Your Phone Number** with the placeholder `+11234567890`.
-- **Slack** — heading **Subscribe by Slack**, with **Slack Workspace Name** (used for validation) and **Slack Incoming Webhook URL**, placeholder `https://hooks.slack.com/services/...`.
-- **MS Teams** — heading **Subscribe by Microsoft Teams**, with **Microsoft Teams Workspace Name** and **Microsoft Teams Incoming Webhook URL**, placeholder `https://outlook.office.com/webhook/...`.
-- **Webhooks** — heading **Subscribe by Webhook**, one field **Webhook URL**. A JSON `POST` request is sent to it on each status page event.
+| Tab | Address | Heading | What it asks for |
+| --- | --- | --- | --- |
+| **Email** | `/subscribe/email` | **Subscribe by Email** | **Your Email**, with the placeholder `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **Subscribe by SMS** | **Your Phone Number**, with the placeholder `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **Subscribe by Slack** | **Slack Workspace Name** (used for validation) and **Slack Incoming Webhook URL**, with the placeholder `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Subscribe by Microsoft Teams** | **Microsoft Teams Workspace Name** and **Microsoft Teams Incoming Webhook URL**, with the placeholder `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **Subscribe by Webhook** | **Webhook URL**, with the placeholder `https://example.com/webhook`. A JSON `POST` request is sent to it on each status page event. |
 
-The submit button reads **Subscribe**, and a successful signup shows *You have been subscribed successfully.* The page also carries a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old email.
+The submit button reads **Subscribe**. A signup by SMS, Slack, Microsoft Teams or webhook shows *You have been subscribed successfully.* A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
 
 ## Letting subscribers choose resources and event types
 
@@ -64,7 +88,7 @@ The same card also carries **Subscriber Timezones**.
 
 Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a six-digit **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees *Subscription confirmed successfully*.
 
-SMS, Slack, Microsoft Teams and webhook subscribers skip this — they are created with `isSubscriptionConfirmed` already set to `true`.
+SMS, Slack, Microsoft Teams and webhook subscribers skip this — they are created with `isSubscriptionConfirmed` already set to `true`. So do email subscribers your team adds on **Email Subscribers**: **Do not send confirmation link** is on by default there. Turn it off to have the address confirm like a sign-up.
 
 **Unconfirmed means silent.** The query that fetches subscribers for a notification filters on `isUnsubscribed: false` and `isSubscriptionConfirmed: true`. An email address that never clicked the link will sit in your **Email Subscribers** list and receive nothing. If someone swears they are subscribed but hears nothing, check that column first.
 
@@ -86,7 +110,7 @@ The **Update Subscription** page, `{statusPageUrl}/update-subscription/{statusPa
 - An **Unsubscribe** toggle, described as unsubscribing from all resources. It writes **Is Unsubscribed** (`isUnsubscribed`, default false).
 - A submit button reading **Update Subscription**; saving shows *Your changes have been saved.*
 
-On a private status page it needs a signed-in visitor, like the rest of the page. Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. OneUptime replies that an email with the link has been sent and to check the spam folder if it does not arrive. That message links to the **Update Subscription** page, and hands a custom template both links: `manageSubscriptionUrl` and `unsubscribeUrl`.
+On a private status page it needs a signed-in visitor, like the rest of the page. Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. The link goes to the subscription itself — its email address, its phone number, or its Slack or Microsoft Teams channel — never to an address in the request, and the page answers the same whether a subscription matched or not, so it cannot be used to find out who is subscribed. That message links to the **Update Subscription** page, and hands a custom template both links: `manageSubscriptionUrl` and `unsubscribeUrl`.
 
 The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId`, `PUT .../update-subscription/:statusPageId/:subscriberId`, and `GET` and `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. The unsubscribe `GET` only describes the link. The `POST` cancels the subscription whatever its body, including the `List-Unsubscribe=One-Click` body of a one-click unsubscribe request. Both give the same answer for a wrong token, a deleted subscriber and a subscriber of another status page, so they cannot be used to find out who is subscribed.
 
@@ -127,9 +151,9 @@ Only the title has to be typed: everything else has a default, so **Next** walks
 
 **Which status pages?** Once the event names monitors, the status pages that show them are suggested under **Show event on these status pages**: "Status pages that show the affected monitors:" followed by each page's name. Click a name to add that page, or **Add all** to add every one. A page counts when it lists one of the monitors, directly or through a monitor group. Only the status pages you can see are suggested, and archived pages and pages that do not show scheduled maintenance events are left out. Nothing is picked for you: a status page you pick shows the event and, with the default notifications, tells its subscribers, so that stays your choice. The **Status Pages** step of the event's **Edit** and the forms of a scheduled maintenance template suggest the same way, from the event's or the template's monitors.
 
-**States of your own.** An event is in progress in **Ongoing** and in every state of your own placed between **Ongoing** and **Ended** - a "Verifying" step, say. A state of your own placed before **Ongoing** has not started yet, and one placed after **Ended** - "Reviewing" - is over. Everything that asks whether an event is in progress asks this one rule. Such an event is listed as ongoing on its status pages - on the overview, on the event's own page and in the RSS and Atom feeds - and in the **Ongoing** lists under **Scheduled Maintenance** and **Home**, their menu badges and the **Ongoing maintenance** tile on **Home**, and the Microsoft Teams app lists it as ongoing maintenance. Its monitors stay in maintenance, the network sites and telemetry series it covers stay silenced, and SLO burn-rate alerts on its monitors are held back. At its **Ends At** it is ended the way an ongoing event is, and its subscribers are told if **When the event ends** is on. Moving it from **Ongoing** or "Verifying" straight into a state of your own placed after **Ended** ends it the way **Ended** does: its monitors go back to operational, and the event's header shows how long it took. Moving it on from **Ongoing** to "Verifying", or from **Ended** to "Reviewing", starts or ends nothing again. A state's place is its place in the list on the **Event State** page, under **Scheduled Maintenance → Settings**.
+**States of your own.** An event is in progress in **Ongoing** and in every state of your own placed between **Ongoing** and **Ended** - a "Verifying" step, say. A state of your own placed before **Ongoing** has not started yet, and one placed after **Ended** - "Reviewing" - is over. Everything that asks whether an event is in progress asks this one rule. Such an event is listed as ongoing on its status pages - on the overview, on the event's own page and in the RSS feed - and in the **Ongoing** lists under **Scheduled Maintenance** and **Home**, their menu badges and the **Ongoing maintenance** tile on **Home**, and the Microsoft Teams app lists it as ongoing maintenance. Its monitors stay in maintenance, the network sites and telemetry series it covers stay silenced, and SLO burn-rate alerts on its monitors are held back. At its **Ends At** it is ended the way an ongoing event is, and its subscribers are told if **When the event ends** is on. Moving it from **Ongoing** or "Verifying" straight into a state of your own placed after **Ended** ends it the way **Ended** does: its monitors go back to operational, and the event's header shows how long it took. Moving it on from **Ongoing** to "Verifying", or from **Ended** to "Reviewing", starts or ends nothing again. A state's place is its place in the list on the **Event State** page, under **Scheduled Maintenance → Settings**.
 
-**Waiting to start, over and complete.** The same place says the rest. An event waits for its **Starts At** in **Scheduled** and in every state of your own placed between **Scheduled** and **Ongoing** - a "Confirmed" step, say. At its start time it starts from there the way it starts from **Scheduled**: it moves into **Ongoing**, its monitors change to its **Change Monitor Status to**, its owners are told and its subscribers too if **When the event starts** is on. Until then it is listed among the events to come - on its status pages' overview, scheduled events page and RSS and Atom feeds, and when someone asks the Microsoft Teams app for scheduled maintenance - and the reminders before the event still go out to its subscribers. Its feed and its status page's timeline show such a state with the clock they show for **Scheduled**. A state of your own placed before **Scheduled** - a "Draft" or an approval step - has not started either, but waits for a person: nothing starts an event there at its time, and it is not listed as coming up. An event is over in **Ended**, in **Completed** and in every state of your own placed after **Ended**, and the event's **Overview** treats it as over everywhere - its header, its **Measurements** card and the timeline it shows. It is complete in **Completed** and in every state of your own placed after it - "Archived": that is what stops its owners' reminders (**Remind until event is Completed**), what Slack and Microsoft Teams refuse **Mark as Complete** for, and what its feed and its status page's timeline mark as done. In **Ended**, or in "Reviewing" between **Ended** and **Completed**, it is over but not complete yet.
+**Waiting to start, over and complete.** The same place says the rest. An event waits for its **Starts At** in **Scheduled** and in every state of your own placed between **Scheduled** and **Ongoing** - a "Confirmed" step, say. At its start time it starts from there the way it starts from **Scheduled**: it moves into **Ongoing**, its monitors change to its **Change Monitor Status to**, its owners are told and its subscribers too if **When the event starts** is on. Until then it is listed among the events to come - on its status pages' overview, scheduled events page and RSS feed, and when someone asks the Microsoft Teams app for scheduled maintenance - and the reminders before the event still go out to its subscribers. Its feed and its status page's timeline show such a state with the clock they show for **Scheduled**. A state of your own placed before **Scheduled** - a "Draft" or an approval step - has not started either, but waits for a person: nothing starts an event there at its time, and it is not listed as coming up. An event is over in **Ended**, in **Completed** and in every state of your own placed after **Ended**, and the event's **Overview** treats it as over everywhere - its header, its **Measurements** card and the timeline it shows. It is complete in **Completed** and in every state of your own placed after it - "Archived": that is what stops its owners' reminders (**Remind until event is Completed**), what Slack and Microsoft Teams refuse **Mark as Complete** for, and what its feed and its status page's timeline mark as done. In **Ended**, or in "Reviewing" between **Ended** and **Completed**, it is over but not complete yet.
 
 **Network sites follow every change of state.** The network sites an event covers stop counting its planned outage against the sites above them while it is in progress. Each change of the event's state works their status out again at once, in both directions - also when it moves back, as it does when the entry of the state it is in is deleted from its **State Timeline**: moved back from "Verifying" to **Scheduled**, it stops silencing them right away rather than at the next sweep, which still runs every five minutes as a safety net.
 
@@ -297,13 +321,13 @@ Reports go to the page's email subscribers; SMS, Slack, Microsoft Teams and webh
 
 ## Customizing notification templates
 
-The **Notification Templates** card on **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.
+The **Notification Templates** tab of **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.
 
 Project-wide templates live one level up, at **Status Pages → Settings → Subscriber Templates**, next to **Announcement Templates**.
 
 ### What a custom template needs
 
-On OneUptime Cloud, subscriber notification templates are a **Scale** plan feature; self-hosted installations have no plan limits. A template is used only once it is linked to a status page on that page's **Notification Templates** card, and two channels also need the page to send through your own provider:
+On OneUptime Cloud, subscriber notification templates are a **Scale** plan feature; self-hosted installations have no plan limits. A template is used only once it is linked to a status page on that page's **Notification Templates** tab, and two channels also need the page to send through your own provider:
 
 | Channel                            | A linked template is used when the page has                                   |
 | ---------------------------------- | ----------------------------------------------------------------------------- |
@@ -404,15 +428,15 @@ Because subscribing is a public operation on a public page, OneUptime guards the
 
 - A generic **Webhook URL** is validated before it is accepted, and private, loopback, link-local and cloud-metadata addresses are rejected. You cannot point a subscription at something inside the OneUptime deployment's own network.
 - A **Slack Incoming Webhook URL** must start with `https://hooks.slack.com/services/`.
+- A **Microsoft Teams Incoming Webhook URL** must be an `https` address on `office.com`, `office365.com`, `logic.azure.com` or `environment.api.powerplatform.com`, or a subdomain of one of them.
 
 If a webhook subscription is rejected at signup, an internal or malformed URL is the first thing to check.
 
-## Where to read next
+## Next steps
 
-- [Status Pages Overview](/docs/status-pages/index) — what a status page is and how it is put together.
-- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — the monitors and groups subscribers can choose between.
-- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to the status pages whose subscribers should hear about it.
-- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — custom domains, logos and the look of the page your emails link to.
-- [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
-- [Incident States & Severities](/docs/incidents/states-and-severities) — what puts an incident on a status page and what takes it off.
-- [Incident Settings & Automation](/docs/incidents/settings) — the project-level rules behind incident communication.
+:::cards
+- [Status Pages Overview](/docs/status-pages/index): What a status page is, and how it is put together.
+- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups): The monitors and groups subscribers choose between.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience): Limit an incident to the pages whose subscribers should hear about it.
+- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains): The look of the page your messages link to.
+:::

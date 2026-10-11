@@ -28,7 +28,7 @@ import NetFlowReceiver from "./Services/NetFlowReceiver";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
 import SyslogReceiver from "./Services/SyslogReceiver";
 import MetricsAPI from "./API/Metrics";
-import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
+import { createIngressApp } from "./API/IncomingRequestIngress";
 import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
 import ProxyConfig from "./Utils/ProxyConfig";
 import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
@@ -38,13 +38,7 @@ import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
-import Express, {
-  ExpressApplication,
-  ExpressJson,
-  ExpressRaw,
-  ExpressUrlEncoded,
-  createExpressApp,
-} from "Common/Server/Utils/Express";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const APP_NAME: string = "probe";
@@ -148,11 +142,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     if (PROBE_INGRESS_PORT !== null && PROBE_INGRESS_PORT.toNumber() > 0) {
       const ingressPortNumber: number = PROBE_INGRESS_PORT.toNumber();
-      const ingressApp: ExpressApplication = createExpressApp();
-      ingressApp.use(ExpressJson({ limit: "50mb" }));
-      ingressApp.use(ExpressUrlEncoded({ extended: true, limit: "50mb" }));
-      ingressApp.use(ExpressRaw({ type: "application/octet-stream" }));
-      ingressApp.use(IncomingRequestIngressAPI);
+      const ingressApp: ExpressApplication = createIngressApp();
 
       ingressApp.listen(ingressPortNumber, () => {
         logger.info(

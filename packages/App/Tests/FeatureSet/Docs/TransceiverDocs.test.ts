@@ -20,13 +20,15 @@ import {
   TRANSCEIVER_RX_BASELINE_DAYS,
   TRANSCEIVER_RX_DROP_ALERT_DB,
 } from "Common/Utils/NetworkDevice/TransceiverHealthUtil";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { NETWORK_DEVICE_PAGE, anchorInLanguage } from "./NetworkDocsLabels";
 
 /*
  * The Network Device guide documents transceiver health as the product
  * builds it. Markdown is not compiled, so this reads the product's own
  * definitions - the CheckOns, the alert pack, the MIBs the probe reads, the
- * metric names, the rule's numbers - and checks the guide, in English and in
- * Persian, says the same.
+ * metric names, the rule's numbers - and checks the guide, in every docs
+ * language, says the same.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -63,7 +65,7 @@ const TRANSCEIVER_PACK_ITEMS: Array<NetworkDeviceAlertPackItem> =
     },
   );
 
-describe.each(["en", "fa"])(
+describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
   "the %s Network Device guide",
   (language: string) => {
     const guide: string = readGuide(language);
@@ -99,9 +101,13 @@ describe.each(["en", "fa"])(
     });
 
     test("links to its own transceivers section", () => {
-      const anchor: string =
-        language === "en" ? "transceivers" : "فرستندهگیرندهها";
+      const anchor: string | null = anchorInLanguage(
+        language,
+        NETWORK_DEVICE_PAGE,
+        "transceivers",
+      );
 
+      expect(anchor).not.toBeNull();
       expect(guide).toContain(`](#${anchor})`);
     });
   },
@@ -112,7 +118,7 @@ describe("the English guide states the rules as the product applies them", () =>
 
   test("the section exists, with the troubleshooting entry", () => {
     expect(guide).toContain("\n### Transceivers\n");
-    expect(guide).toContain("### The Transceivers card does not appear");
+    expect(guide).toContain(":::details The Transceivers card does not appear");
   });
 
   test("the drop the recommended alert fires at, and the baseline window", () => {

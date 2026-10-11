@@ -34,7 +34,7 @@ sequenceDiagram
 
 Un Incoming Webhook ou une URL de workflow Teams ne remplace pas le point de terminaison de messagerie de ce bot.
 
-Les appels vidéo (une réunion Teams pour un incident) n'utilisent pas ce bot : ils ont besoin de leur propre inscription d'application, décrite dans [Appels vidéo](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Les appels vidéo (une réunion Teams pour un incident) n'utilisent pas ce bot : ils ont besoin de leur propre inscription d'application, décrite dans [Appels vidéo](/docs/workspace-connections/video-calls#connexion-en-un-clic-sur-un-serveur-auto-hébergé).
 
 ## Avant de commencer
 

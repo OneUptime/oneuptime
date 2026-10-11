@@ -4714,9 +4714,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 
 /*
- * Left to right on every page: Mermaid lays diagrams out that way and their
- * labels are English, so a right-to-left page would scroll a wide one from
- * its far end and draw "Rule 1:" as ":Rule 1".
+ * Left to right on every page: Mermaid lays diagrams out that way, so a
+ * right-to-left page would scroll a wide one from its far end. The text of
+ * a label, and of the caption, reads in its own direction (below).
  */
 .docs-diagram {
   margin: 1.75rem 0;
@@ -4739,6 +4739,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
 /* Width is set per diagram after rendering — see the Mermaid block in Head.ejs. */
 .docs-diagram .mermaid svg {
   height: auto;
+}
+/*
+ * Each line of a label, and the caption, reads in the direction of its first
+ * letter: "Rule 1:" left to right, never ":Rule 1", and a Persian line right
+ * to left. Left to right like the diagram, a Persian line drew the comma
+ * that ends it first, and a Latin word in it (the A of "Market A") on the
+ * wrong side.
+ */
+.docs-diagram .mermaid foreignObject div,
+.docs-diagram .mermaid foreignObject p,
+.docs-diagram .docs-diagram__caption {
+  unicode-bidi: plaintext;
 }
 /*
  * A diagram the page could not draw - it does not parse, or this server has

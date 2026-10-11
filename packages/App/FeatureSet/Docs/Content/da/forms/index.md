@@ -57,7 +57,7 @@ Formularer starter med disse to, og flere slags poster følger.
 
 - **En plan, der omfatter formularer.** På OneUptime Cloud kræver formularer planen **Growth** eller højere. Se [Plan](#plan).
 - **Tilladelse til at oprette formularer.** **Create Form** har projektejere og -administratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
-- **For en hændelsesformular, en alvorsgrad.** Hver hændelse har brug for én: fra et spørgsmål, fra formularens indstillinger eller fra dens hændelsesskabelon. Uden den afvises hver indsendelse. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **For en hændelsesformular, en alvorsgrad.** Hver hændelse har brug for én: fra et spørgsmål, fra formularens indstillinger eller fra dens hændelsesskabelon. Uden den afvises hver indsendelse. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-hændelse).
 
 ## Opret din første formular
 
@@ -76,7 +76,7 @@ Under **Ved indsendelse** tjekker du, hvordan en indsendelse bliver til en hænd
 
 ### Tilføj skabeloner, hvis folk rapporterer de samme tilfælde
 
-Under **Skabeloner** gemmer du en skabelon for hvert tilfælde, der ofte rapporteres: formularen viser dem over sine spørgsmål, udfylder sig selv fra den valgte og stiller spørgsmålene, som den skabelon siger; et spørgsmål, som ét tilfælde har brug for, kan være påkrævet i dets skabelon og skjult i de andre. Se [Skabeloner](/docs/forms/building#templates).
+Under **Skabeloner** gemmer du en skabelon for hvert tilfælde, der ofte rapporteres: formularen viser dem over sine spørgsmål, udfylder sig selv fra den valgte og stiller spørgsmålene, som den skabelon siger; et spørgsmål, som ét tilfælde har brug for, kan være påkrævet i dets skabelon og skjult i de andre. Se [Skabeloner](/docs/forms/building#skabeloner).
 
 ### Del linket
 

@@ -34,7 +34,7 @@ sequenceDiagram
 
 Ein Incoming Webhook oder eine Teams-Workflow-URL ersetzt den Messaging-Endpunkt dieses Bots nicht.
 
-Videoanrufe (ein Teams-Meeting für einen Vorfall) nutzen diesen Bot nicht: Sie brauchen eine eigene App-Registrierung, beschrieben unter [Videoanrufe](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Videoanrufe (ein Teams-Meeting für einen Vorfall) nutzen diesen Bot nicht: Sie brauchen eine eigene App-Registrierung, beschrieben unter [Videoanrufe](/docs/workspace-connections/video-calls#ein-klick-verbindung-auf-einem-selbst-gehosteten-server).
 
 ## Bevor Sie beginnen
 
