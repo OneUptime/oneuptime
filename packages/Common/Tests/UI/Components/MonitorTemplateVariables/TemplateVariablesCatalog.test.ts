@@ -511,7 +511,6 @@ describe("TemplateVariablesCatalog.getVariables - identity-only monitor types", 
       expect(titlesOf(groups)).toEqual(ALWAYS_GROUP_TITLES);
     });
   }
-
 });
 
 /*

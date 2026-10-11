@@ -30,6 +30,14 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
   const filterCondition: FilterCondition =
     props.filterCondition || FilterCondition.All;
 
+  /*
+   * A metric-only monitor's filters are its alert rules: the form pins each
+   * one to the metric value, so its buttons and messages say "rule".
+   */
+  const isMetricOnly: boolean = CriteriaFilterUtil.isMetricOnlyMonitorType(
+    props.monitorType,
+  );
+
   const getConnectorLabel: () => string = (): string => {
     return filterCondition === FilterCondition.All ? "AND" : "OR";
   };
@@ -95,20 +103,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
       })}
       <div className="mt-3 -ml-3">
         <Button
-          title={
-            props.monitorType === MonitorType.Kubernetes ||
-            props.monitorType === MonitorType.Docker ||
-            props.monitorType === MonitorType.Host ||
-            props.monitorType === MonitorType.Podman ||
-            props.monitorType === MonitorType.DockerSwarm ||
-            props.monitorType === MonitorType.Proxmox ||
-            props.monitorType === MonitorType.VMware ||
-            props.monitorType === MonitorType.Ceph ||
-            props.monitorType === MonitorType.StorageArray ||
-            props.monitorType === MonitorType.Metrics
-              ? "Add Rule"
-              : "Add Filter"
-          }
+          title={isMetricOnly ? "Add Rule" : "Add Filter"}
           buttonSize={ButtonSize.Small}
           icon={IconProp.Add}
           onClick={() => {
@@ -135,30 +130,12 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
       {showCantDeleteModal ? (
         <ConfirmModal
           description={
-            props.monitorType === MonitorType.Kubernetes ||
-            props.monitorType === MonitorType.Docker ||
-            props.monitorType === MonitorType.Host ||
-            props.monitorType === MonitorType.Podman ||
-            props.monitorType === MonitorType.DockerSwarm ||
-            props.monitorType === MonitorType.Proxmox ||
-            props.monitorType === MonitorType.VMware ||
-            props.monitorType === MonitorType.Ceph ||
-            props.monitorType === MonitorType.StorageArray ||
-            props.monitorType === MonitorType.Metrics
+            isMetricOnly
               ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
               : `We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`
           }
           title={
-            props.monitorType === MonitorType.Kubernetes ||
-            props.monitorType === MonitorType.Docker ||
-            props.monitorType === MonitorType.Host ||
-            props.monitorType === MonitorType.Podman ||
-            props.monitorType === MonitorType.DockerSwarm ||
-            props.monitorType === MonitorType.Proxmox ||
-            props.monitorType === MonitorType.VMware ||
-            props.monitorType === MonitorType.Ceph ||
-            props.monitorType === MonitorType.StorageArray ||
-            props.monitorType === MonitorType.Metrics
+            isMetricOnly
               ? `Cannot delete last remaining rule.`
               : `Cannot delete last remaining filter.`
           }

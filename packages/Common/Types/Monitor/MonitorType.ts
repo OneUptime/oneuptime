@@ -219,26 +219,74 @@ export class MonitorTypeHelper {
     ];
   }
 
-  public static isTelemetryMonitor(monitorType: MonitorType): boolean {
-    return (
-      monitorType === MonitorType.Logs ||
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Traces ||
-      monitorType === MonitorType.Exceptions ||
-      monitorType === MonitorType.Profiles ||
-      monitorType === MonitorType.SecurityEvents ||
-      monitorType === MonitorType.Llm ||
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.IoTDevice
+  /*
+   * The monitor types evaluated as metric series ("metric-backed"). The
+   * telemetry worker answers each of them with a MetricMonitorResponse
+   * (MonitorTelemetryMonitor), MonitorCriteriaEvaluator hands their criteria
+   * to MetricMonitorCriteria, their criteria default to the metric value
+   * (MonitorCriteriaInstance), their incident and alert templates get
+   * {{metricName}} and, when grouped, the series labels (MonitorTemplateUtil),
+   * the variables list under the template editor offers both
+   * (TemplateVariablesCatalog), and their monitor page charts the metric
+   * view.
+   *
+   * This is the one list every one of those reads. They used to keep copies,
+   * and two of them left IoT Device out: its incidents kept {{metricName}}
+   * as written, and the editor never offered {{device.id}}. A type added
+   * here gets all of the above at once. MetricBackedMonitorTypes.test.ts
+   * refuses a new copy anywhere in the code.
+   *
+   * Not the same as the Dashboard's CriteriaFilterUtil.isMetricOnlyMonitorType:
+   * IoT Device is metric-backed, but its criteria form keeps the full filter
+   * UI.
+   */
+  public static getMetricBackedMonitorTypes(): Array<MonitorType> {
+    return [
+      MonitorType.Metrics,
+      MonitorType.Kubernetes,
+      MonitorType.Docker,
+      MonitorType.Host,
+      MonitorType.Podman,
+      MonitorType.DockerSwarm,
+      MonitorType.Proxmox,
+      MonitorType.VMware,
+      MonitorType.Ceph,
+      MonitorType.StorageArray,
+      MonitorType.IoTDevice,
+    ];
+  }
+
+  public static isMetricBackedMonitor(
+    monitorType: MonitorType | undefined,
+  ): boolean {
+    if (!monitorType) {
+      return false;
+    }
+
+    return MonitorTypeHelper.getMetricBackedMonitorTypes().includes(
+      monitorType,
     );
+  }
+
+  /*
+   * The monitor types the telemetry worker evaluates on its own schedule:
+   * the telemetry signals with evaluators of their own, and every
+   * metric-backed type.
+   */
+  public static getTelemetryMonitorTypes(): Array<MonitorType> {
+    return [
+      MonitorType.Logs,
+      MonitorType.Traces,
+      MonitorType.Exceptions,
+      MonitorType.Profiles,
+      MonitorType.SecurityEvents,
+      MonitorType.Llm,
+      ...MonitorTypeHelper.getMetricBackedMonitorTypes(),
+    ];
+  }
+
+  public static isTelemetryMonitor(monitorType: MonitorType): boolean {
+    return MonitorTypeHelper.getTelemetryMonitorTypes().includes(monitorType);
   }
 
   public static isManualMonitor(monitorType: MonitorType): boolean {

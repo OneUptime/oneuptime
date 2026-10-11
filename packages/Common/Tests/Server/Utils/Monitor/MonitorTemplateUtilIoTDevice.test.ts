@@ -116,9 +116,11 @@ describe("MonitorTemplateUtil - IoT Device monitors get the metric variables", (
     ).toBe("[IoT] iot_device_up is down on Warehouse sensors");
   });
 
-  test.each(getAllIoTAlertTemplates().map((template: IoTAlertTemplate) => {
-    return [template.id, template];
-  }))(
+  test.each(
+    getAllIoTAlertTemplates().map((template: IoTAlertTemplate) => {
+      return [template.id, template];
+    }),
+  )(
     "every IoT alert template's metric reaches {{metricName}} (%s)",
     (_id: string, template: IoTAlertTemplate) => {
       const expected: unknown =

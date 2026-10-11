@@ -624,10 +624,23 @@ describe("the criteria form treats storage array monitors as metric monitors", (
     expect(body).toContain("monitorType === MonitorType.StorageArray ||");
   });
 
+  /*
+   * The wording follows isMetricOnlyMonitorType - the list the test above
+   * pins storage arrays into - instead of three copies of that list.
+   */
   test("it says rule, not filter, in all three places the Ceph monitor does", () => {
-    expect(
-      criteriaFilters.split("props.monitorType === MonitorType.StorageArray ||")
-        .length - 1,
-    ).toBe(3);
+    expect(criteriaFilters).toContain(
+      "const isMetricOnly: boolean = CriteriaFilterUtil.isMetricOnlyMonitorType( props.monitorType, );",
+    );
+    expect(criteriaFilters).toContain(
+      'title={isMetricOnly ? "Add Rule" : "Add Filter"}',
+    );
+    expect(criteriaFilters).toContain(
+      "description={ isMetricOnly ? `At least one alert rule is required.",
+    );
+    expect(criteriaFilters).toContain(
+      "title={ isMetricOnly ? `Cannot delete last remaining rule.`",
+    );
+    expect(criteriaFilters).not.toContain("MonitorType.StorageArray");
   });
 });

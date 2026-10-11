@@ -470,18 +470,12 @@ export default class CriteriaFilterUtil {
 
     /*
      * Every monitor type whose criteria the server hands to
-     * MetricMonitorCriteria: the metric-only types this form already pins
-     * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
-     * types Docker / Host / Podman / Docker Swarm / Proxmox / VMware /
-     * Ceph / Storage Array), plus
-     * IoT Device, which MonitorCriteriaEvaluator routes down the same path
-     * but which is not metric-only here, so it still draws the full
-     * criteria UI. All of them alert on one thing - an ingested metric.
+     * MetricMonitorCriteria (MonitorTypeHelper's one list): the metric-only
+     * types this form already pins to CheckOn.MetricValue, plus IoT Device,
+     * which is not metric-only here, so it still draws the full criteria UI.
+     * All of them alert on one thing - an ingested metric.
      */
-    if (
-      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType) ||
-      monitorType === MonitorType.IoTDevice
-    ) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
       });

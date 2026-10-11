@@ -17,7 +17,9 @@ import {
   LlmAnswerIssue,
   LlmAnswerIssueUtil,
 } from "Common/Types/Telemetry/LlmAnswerIssue";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import {
   DEFAULT_NTP_PORT,
   DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS,
@@ -308,19 +310,7 @@ export default class MonitorStepViewModel {
    * page should therefore render a live chart preview of it.
    */
   public static hasMetricPreview(monitorType: MonitorType): boolean {
-    return [
-      MonitorType.Metrics,
-      MonitorType.Kubernetes,
-      MonitorType.Docker,
-      MonitorType.Host,
-      MonitorType.Podman,
-      MonitorType.Proxmox,
-      MonitorType.VMware,
-      MonitorType.DockerSwarm,
-      MonitorType.Ceph,
-      MonitorType.StorageArray,
-      MonitorType.IoTDevice,
-    ].includes(monitorType);
+    return MonitorTypeHelper.isMetricBackedMonitor(monitorType);
   }
 
   /**

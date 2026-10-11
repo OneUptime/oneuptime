@@ -345,9 +345,7 @@ function isListSeparator(between: string): boolean {
     .replace(WHITESPACE, "");
 
   return (
-    separator === "," ||
-    separator === ":case" ||
-    OR_COMPARISON.test(separator)
+    separator === "," || separator === ":case" || OR_COMPARISON.test(separator)
   );
 }
 
@@ -447,7 +445,10 @@ describe("no other file keeps its own copy of the metric-backed list", () => {
   );
 
   const runs: Array<ListRun> = scanned.flatMap((file: string) => {
-    return listRunsIn(file, fs.readFileSync(path.join(REPO_ROOT, file), "utf8"));
+    return listRunsIn(
+      file,
+      fs.readFileSync(path.join(REPO_ROOT, file), "utf8"),
+    );
   });
 
   test("the scan reads the code that used to keep copies", () => {

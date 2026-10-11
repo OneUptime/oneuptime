@@ -1,4 +1,6 @@
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import { translateTemplate } from "../../Utils/TranslateTemplate";
 import {
   TemplateVariable as EditorTemplateVariable,
@@ -38,11 +40,11 @@ export default class TemplateVariablesCatalog {
     monitorType: MonitorType;
     /**
      * Attribute keys the user has configured on the metric query
-     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
-     * proxmox/vmware/ceph/storage array monitors, these become per-series
-     * template variables — one incident fires per unique value combination,
-     * and each incident can reference the label values via `{{host.name}}`
-     * etc.
+     * (e.g. ["host.name", "region"]). For a monitor evaluated as metric
+     * series (MonitorTypeHelper.isMetricBackedMonitor), these become
+     * per-series template variables — one incident fires per unique value
+     * combination, and each incident can reference the label values via
+     * `{{host.name}}` etc.
      */
     seriesAttributeKeys?: Array<string> | undefined;
   }): Array<TemplateVariableGroup> {
@@ -57,18 +59,8 @@ export default class TemplateVariablesCatalog {
       groups.push(perTypeGroup);
     }
 
-    if (
-      input.monitorType === MonitorType.Metrics ||
-      input.monitorType === MonitorType.Kubernetes ||
-      input.monitorType === MonitorType.Docker ||
-      input.monitorType === MonitorType.Host ||
-      input.monitorType === MonitorType.Podman ||
-      input.monitorType === MonitorType.DockerSwarm ||
-      input.monitorType === MonitorType.Proxmox ||
-      input.monitorType === MonitorType.VMware ||
-      input.monitorType === MonitorType.Ceph ||
-      input.monitorType === MonitorType.StorageArray
-    ) {
+    // The same list MonitorTemplateUtil sets {{metricName}} and the labels for.
+    if (MonitorTypeHelper.isMetricBackedMonitor(input.monitorType)) {
       groups.push(
         TemplateVariablesCatalog.seriesLabelsGroup(input.seriesAttributeKeys),
       );
@@ -247,6 +239,20 @@ export default class TemplateVariablesCatalog {
   private static perTypeGroup(
     monitorType: MonitorType,
   ): TemplateVariableGroup | null {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
+      return {
+        title: "Metric",
+        variables: [
+          {
+            key: "metricName",
+            description:
+              "The OTel metric name the monitor is watching (e.g. container.cpu.time).",
+            example: "container.cpu.time",
+          },
+        ],
+      };
+    }
+
     switch (monitorType) {
       case MonitorType.API:
       case MonitorType.Website:
@@ -899,28 +905,6 @@ export default class TemplateVariablesCatalog {
             },
             { key: "responseTimeInMs", description: "Fetch time." },
             { key: "failureCause", description: "Failure reason." },
-          ],
-        };
-
-      case MonitorType.Metrics:
-      case MonitorType.Kubernetes:
-      case MonitorType.Docker:
-      case MonitorType.Host:
-      case MonitorType.Podman:
-      case MonitorType.DockerSwarm:
-      case MonitorType.Proxmox:
-      case MonitorType.VMware:
-      case MonitorType.Ceph:
-      case MonitorType.StorageArray:
-        return {
-          title: "Metric",
-          variables: [
-            {
-              key: "metricName",
-              description:
-                "The OTel metric name the monitor is watching (e.g. container.cpu.time).",
-              example: "container.cpu.time",
-            },
           ],
         };
 
