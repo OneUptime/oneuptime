@@ -275,55 +275,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         createBy.data.isOwnerNotified = true;
       }
 
-      if (
-        stateBeforeThis &&
-        stateBeforeThis.scheduledMaintenanceStateId &&
-        scheduledMaintenanceStateId
-      ) {
-        if (
-          stateBeforeThis.scheduledMaintenanceStateId.toString() ===
-          scheduledMaintenanceStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Scheduled Maintenance state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.scheduledMaintenanceState?.order) {
-        const newScheduledMaintenanceState: ScheduledMaintenanceState | null =
-          await ScheduledMaintenanceStateService.findOneBy({
-            query: {
-              _id: scheduledMaintenanceStateId,
-            },
-            select: {
-              order: true,
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (
-          newScheduledMaintenanceState &&
-          newScheduledMaintenanceState.order
-        ) {
-          // check if the new scheduledMaintenance state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.scheduledMaintenanceState &&
-            stateBeforeThis.scheduledMaintenanceState.order &&
-            newScheduledMaintenanceState.order <=
-              stateBeforeThis.scheduledMaintenanceState.order
-          ) {
-            throw new BadDataException(
-              `ScheduledMaintenance cannot transition to ${newScheduledMaintenanceState.name} state from ${stateBeforeThis.scheduledMaintenanceState.name} state because ${newScheduledMaintenanceState.name} is before ${stateBeforeThis.scheduledMaintenanceState.name} in the order of scheduledMaintenance states.`,
-            );
-          }
-        }
-      }
-
       const stateAfterThis: ScheduledMaintenanceStateTimeline | null =
         await this.findOneBy({
           query: {
@@ -343,24 +294,42 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           },
         });
 
+      /*
+       * Where the event may move, by the one rule every state timeline asks
+       * (Common/Utils/StateMove): not into the state it is in, not back up
+       * the project's list of states, and not into the state of the row
+       * after a back-dated one.
+       */
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.ScheduledMaintenance,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.scheduledMaintenanceStateId,
+              name: stateBeforeThis.scheduledMaintenanceState?.name,
+              order: stateBeforeThis.scheduledMaintenanceState?.order,
+            }
+          : null,
+        newStateId: scheduledMaintenanceStateId,
+        nextStateId: stateAfterThis?.scheduledMaintenanceStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await ScheduledMaintenanceStateService.findOneBy({
+            query: {
+              _id: scheduledMaintenanceStateId,
+            },
+            select: {
+              order: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        },
+      });
+
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      if (
-        stateAfterThis &&
-        stateAfterThis.scheduledMaintenanceStateId &&
-        scheduledMaintenanceStateId
-      ) {
-        if (
-          stateAfterThis.scheduledMaintenanceStateId.toString() ===
-          scheduledMaintenanceStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Scheduled Maintenance state cannot be same as next state.",
-          );
-        }
       }
 
       /*

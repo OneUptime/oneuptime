@@ -329,6 +329,26 @@ export const getStateListReachedBuiltIn: (
   return null;
 };
 
+/**
+ * Whether `row` sits below `other` in the list - after it, on the path a
+ * record walks down - by the comparison the server makes of their places.
+ * Null when either has no place to compare: nothing about their order is
+ * known. Two rows at the same place are not after each other.
+ */
+export const isStateListRowAfter: (
+  row: StateListRow,
+  other: StateListRow,
+) => boolean | null = (
+  row: StateListRow,
+  other: StateListRow,
+): boolean | null => {
+  if (row.order === null || other.order === null) {
+    return null;
+  }
+
+  return row.order > other.order;
+};
+
 export interface StateListOrderViolation {
   // The built-in row that has to come first, and what it is.
   earlier: StateListRow;

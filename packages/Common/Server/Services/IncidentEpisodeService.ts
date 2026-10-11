@@ -72,6 +72,11 @@ import StartingStageUtil, {
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import Incident from "../../Models/DatabaseModels/Incident";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -201,7 +206,71 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     });
 
+    /*
+     * An update that writes the episode's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of incident states. Refused before
+     * anything is written, with the timeline's own sentence.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.IncidentEpisode,
+      updateBy: updateBy,
+      stateKeys: INCIDENT_STATE_KEYS,
+      stateModelName: "Incident State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (projectId: ObjectID): Promise<Array<IncidentState>> => {
+        return IncidentStateService.getAllIncidentStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A state an update wrote is a change of the episode's state, recorded on
+   * its state timeline like any other - as an alert episode's, an
+   * incident's and an alert's are - so the episode's feed, its owners and
+   * its incidents hear of it, and its header and its timeline agree.
+   * onBeforeUpdate held the move to the state move rule; writing the state
+   * an episode is in already records nothing (changeEpisodeState). The
+   * episode's own state follow-ons - OneUptime's writes that carry the
+   * timeline over, with no project on them - record nothing either.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const updatedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        INCIDENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
+      for (const itemId of updatedItemIds) {
+        await this.changeEpisodeState({
+          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+          episodeId: itemId,
+          incidentStateId: updatedIncidentStateId,
+          notifyOwners: true,
+          rootCause: "State was changed when the episode was updated.",
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    return onUpdate;
   }
 
   /*
@@ -835,6 +904,13 @@ export class Service extends ProjectReferencesService<Model> {
      * subscribers like any state change.
      */
     isFirstState?: boolean | undefined;
+    /*
+     * OneUptime's reopen of a recently resolved episode for its grouping
+     * rule's reopen window (reopenEpisode): the one move back up the list of
+     * states the state move rule allows, written through the timeline's own
+     * reopen (IncidentEpisodeStateTimelineService.createReopen).
+     */
+    isGroupingRuleReopen?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -845,6 +921,7 @@ export class Service extends ProjectReferencesService<Model> {
       props,
       cascadeToIncidents,
       isFirstState,
+      isGroupingRuleReopen,
     } = data;
 
     // Get last episode state timeline
@@ -895,10 +972,17 @@ export class Service extends ProjectReferencesService<Model> {
       stateTimeline.rootCause = rootCause;
     }
 
-    await IncidentEpisodeStateTimelineService.create({
-      data: stateTimeline,
-      props: props || {},
-    });
+    if (isGroupingRuleReopen) {
+      await IncidentEpisodeStateTimelineService.createReopen({
+        data: stateTimeline,
+        props: props || {},
+      });
+    } else {
+      await IncidentEpisodeStateTimelineService.create({
+        data: stateTimeline,
+        props: props || {},
+      });
+    }
 
     /*
      * Note: resolvedAt is updated by IncidentEpisodeStateTimelineService.onCreateSuccess()
@@ -916,6 +1000,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Moves the episode's incidents into the state the episode moved into,
+   * each by the rule its own state timeline holds it to
+   * (Common/Utils/StateMove): an incident in that state already, or past it
+   * in the project's list of incident states - one resolved on its own, or
+   * a resolved incident of an episode its grouping rule reopened - is left
+   * where it is, rather than sent a move its timeline would refuse. An
+   * episode never reopens its incidents. Each move that is made is a row of
+   * the incident's timeline, written with `props`; one that still fails is
+   * logged, and the others go on.
+   */
   @CaptureSpan()
   public async cascadeStateToMemberIncidents(data: {
     projectId: ObjectID;
@@ -946,11 +1041,71 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    // Update state for each member incident
-    for (const member of members) {
-      if (!member.incidentId) {
+    const memberIncidentIds: Array<ObjectID> = members
+      .map((member: IncidentEpisodeMember): ObjectID | undefined => {
+        return member.incidentId;
+      })
+      .filter((incidentId: ObjectID | undefined): incidentId is ObjectID => {
+        return Boolean(incidentId);
+      });
+
+    if (memberIncidentIds.length === 0) {
+      return;
+    }
+
+    // Where each incident is now, and the project's list it walks down.
+    const [memberIncidents, incidentStates] = await Promise.all([
+      IncidentService.findBy({
+        query: {
+          _id: QueryHelper.any(memberIncidentIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          currentIncidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+      IncidentStateService.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    // Update state for each member incident its own rule lets move there.
+    for (const memberIncident of memberIncidents as Array<Incident>) {
+      if (!memberIncident.id) {
         continue;
       }
+
+      if (
+        !StateMoveUtil.isMoveAllowed({
+          list: StateMoveUtil.getList(StateMoveRecord.Incident),
+          states: incidentStates,
+          fromStateId: memberIncident.currentIncidentStateId,
+          toStateId: incidentStateId,
+        })
+      ) {
+        logger.debug(
+          `Incident ${memberIncident.id.toString()} of episode ${episodeId.toString()} is in that state or past it already, so the episode leaves it where it is.`,
+          {
+            projectId: projectId.toString(),
+            incidentEpisodeId: episodeId.toString(),
+            incidentId: memberIncident.id.toString(),
+          } as LogAttributes,
+        );
+        continue;
+      }
+
+      const member: { incidentId: ObjectID } = {
+        incidentId: memberIncident.id,
+      };
 
       try {
         await IncidentService.changeIncidentState({
@@ -1153,6 +1308,7 @@ export class Service extends ProjectReferencesService<Model> {
         userId: reopenedByUserId,
       },
       cascadeToIncidents: cascadeToIncidents,
+      isGroupingRuleReopen: true,
     });
 
     // Clear resolved timestamp and allIncidentsResolvedAt when episode is reopened

@@ -35,6 +35,8 @@ import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
@@ -898,6 +900,35 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
      */
 
     await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * An update that writes the event's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of scheduled maintenance states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.ScheduledMaintenance,
+      updateBy: updateBy,
+      stateKeys: STATE_KEYS,
+      stateModelName: "Scheduled Maintenance State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<ScheduledMaintenanceState>> => {
+        return ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
 
     /*
      * The one stored read of the event's own columns the update writes. A

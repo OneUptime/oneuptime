@@ -36,6 +36,8 @@ import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
@@ -438,6 +440,35 @@ export class Service extends ProjectReferencesService<Model> {
       await this.getMonitorChangesForUpdate(updateBy);
 
     await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * An update that writes the alert's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of alert states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.Alert,
+      updateBy: updateBy,
+      stateKeys: ALERT_STATE_KEYS,
+      stateModelName: "Alert State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<AlertState>> => {
+        return AlertStateService.getAllAlertStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
 
     /*
      * Two cases, one call. The Custom Fields modal saves the WHOLE bag back
