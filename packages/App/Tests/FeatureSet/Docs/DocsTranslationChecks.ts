@@ -21,7 +21,10 @@ import path from "path";
  * OnCallDocsTranslations): the code exactly, the diagrams by how they are
  * built, the inline code, the shape of the tables and lists, the cards,
  * links that land on a heading of the page they open, and no emphasis
- * marker left on the page as the reader sees it (strayMarkers).
+ * marker left on the page as the reader sees it (strayMarkers). Two more
+ * read how wide a diagram's labels draw (diagramLabelLines,
+ * labelLineWidth), so a suite can hold a diagram that fills the 590px docs
+ * column to the label lines measured to fit it.
  *
  * Each is a plain function of the Markdown, so the suites can also show that
  * it catches the break it is there for. Suites import these rather than
