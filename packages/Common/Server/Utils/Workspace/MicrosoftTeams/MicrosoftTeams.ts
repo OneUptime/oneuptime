@@ -68,6 +68,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
+import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
 // Bot Framework SDK imports
 import {
@@ -3649,23 +3650,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Plain text out of a Teams message body, which Graph and the Bot Framework
    * hand over as HTML. Removing complete tags is not enough on its own: an
    * unclosed one ("<script" with no ">" after it) matches no tag pattern, so
-   * once no tag is left, any "<" still standing goes too, and the text holds
-   * no markup at all. The tag pass repeats until nothing changes - the shape
-   * code scanning recognises as complete, where a single pass is reported as
-   * incomplete multi-character sanitization. Teams sends a literal "<" in a
-   * message as "&lt;", which is left encoded: decoding it here would hand
-   * back what this removed.
+   * any "<" whose markup never ends goes too, and the text holds no markup
+   * at all. It is read by removeHtmlMarkup (Common/Types/HtmlMarkup), the
+   * one walk product code takes markup out of text with - the reaction note
+   * sync reads message bodies through it too - which also ends a tag only
+   * at a ">" outside a quoted attribute value and a comment at its "-->", so
+   * neither leaves the rest of a value or a comment behind as text. Teams
+   * sends a literal "<" in a message as "&lt;", which is left encoded:
+   * decoding it here would hand back what this removed.
    */
   public static stripHtmlTags(html: string): string {
-    let text: string = html;
-    let previous: string;
-
-    do {
-      previous = text;
-      text = text.replace(/<[^>]*>/g, "");
-    } while (text !== previous);
-
-    return text.replace(/</g, "");
+    return removeHtmlMarkup(html);
   }
 
   /*

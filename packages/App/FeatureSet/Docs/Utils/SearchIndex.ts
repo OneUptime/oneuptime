@@ -10,6 +10,7 @@ import {
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import OneUptimeDate from "Common/Types/Date";
+import { removeHtmlMarkup } from "Common/Types/HtmlMarkup";
 
 /*
  * What docs search searches: every page in the nav, by its title, its
@@ -65,31 +66,84 @@ const INLINE_CODE: RegExp = /`+([^`]*)`+/g;
 const CODE_MARK: string = "";
 const CODE_PLACEHOLDER: RegExp = /(\d+)/g;
 
-// Markdown inline syntax off a line of text: links, emphasis, code, images.
+// A run of "<", and the characters a tag, a comment or a declaration starts with.
+const LESS_THAN_RUN: RegExp = /<+/g;
+const STARTS_MARKUP: RegExp = /[A-Za-z/!?]/;
+// Marks a "<" that is text while markup is taken out: private use, as CODE_MARK.
+const TEXT_LESS_THAN_MARK: string = "";
+
+/*
+ * Every "<" in `text` that Markdown reads as text rather than as the start
+ * of a tag, a comment or a declaration - one before whitespace, a digit or
+ * any other character none of those starts with, or at the end: "LCP <
+ * 2.5 s", "<= 5", "<->" - as TEXT_LESS_THAN_MARK. A run of them ("<<") goes
+ * with the character after its last one. A "<" before a letter, "/", "!",
+ * "?" or a code span is left for removeHtmlMarkup: what follows it could
+ * make a tag, so it must not stay.
+ */
+const markTextLessThans: (text: string) => string = (text: string): string => {
+  return text.replace(
+    LESS_THAN_RUN,
+    (run: string, offset: number, whole: string): string => {
+      const next: string = whole.charAt(offset + run.length);
+
+      return next === CODE_MARK || STARTS_MARKUP.test(next)
+        ? run
+        : TEXT_LESS_THAN_MARK.repeat(run.length);
+    },
+  );
+};
+
+/*
+ * Markdown inline syntax off a line of text: links, emphasis, code, images,
+ * and HTML tags and comments.
+ *
+ * Tags and comments are read out with removeHtmlMarkup (Common/Types/
+ * HtmlMarkup): one walk that drops each whole - a quoted attribute value
+ * holding ">" and a comment holding ">" included - and drops a "<" that
+ * never closes on its own, so no tag is left in the text around the code
+ * and none can form from what is left. It used to be one pass of a tag
+ * pattern, which kept an unclosed "<img" or "<script" as it was, and the end
+ * of a value or a comment after its first ">". A "<" that Markdown reads as
+ * text ("LCP < 2.5 s") is set aside first and kept, as the page shows it.
+ * The search box and the page's meta description escape what they show, so
+ * this is about the index holding text, not markup.
+ */
 export const stripInlineMarkdown: (text: string) => string = (
   text: string,
 ): string => {
   /*
    * Inline code is kept as written - "`oneuptime <resource> list`" reads
    * "oneuptime <resource> list", as on the page - so it is set aside before
-   * links, emphasis and tags are taken out, and put back after.
+   * links, emphasis and tags are taken out, and put back after. The marks
+   * are private-use characters no page has; any in the text are dropped
+   * first, so only the ones set here are read back.
    */
   const code: Array<string> = [];
-  const withoutCode: string = text.replace(
-    INLINE_CODE,
-    (_whole: string, inner: string): string => {
+  const withoutCode: string = text
+    .split(CODE_MARK)
+    .join("")
+    .split(TEXT_LESS_THAN_MARK)
+    .join("")
+    .replace(INLINE_CODE, (_whole: string, inner: string): string => {
       code.push(inner);
       return `${CODE_MARK}${code.length - 1}${CODE_MARK}`;
-    },
+    });
+
+  const withoutMarkup: string = removeHtmlMarkup(
+    markTextLessThans(
+      withoutCode
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/\[([^\]]*)\]\[[^\]]*\]/g, "$1")
+        .replace(/(\*\*|__)(.*?)\1/g, "$2")
+        .replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, "$1$2"),
+    ),
   );
 
-  return withoutCode
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\[([^\]]*)\]\[[^\]]*\]/g, "$1")
-    .replace(/(\*\*|__)(.*?)\1/g, "$2")
-    .replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, "$1$2")
-    .replace(/<[^>]+>/g, "")
+  return withoutMarkup
+    .split(TEXT_LESS_THAN_MARK)
+    .join("<")
     .replace(/\s+/g, " ")
     .replace(CODE_PLACEHOLDER, (_whole: string, position: string): string => {
       return code[Number(position)] ?? "";

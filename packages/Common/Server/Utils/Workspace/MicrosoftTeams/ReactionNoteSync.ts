@@ -40,6 +40,8 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
+import { neutralizeTagStarts } from "../../../../Utils/Markdown/MarkdownEscape";
+import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -805,7 +807,20 @@ export default class MicrosoftTeamsReactionNoteSync {
     return mdText`${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`.toString();
   }
 
-  // The text of a Graph chatMessage: its body, plus any adaptive card it carries.
+  /*
+   * The text of a Graph chatMessage, as the note it is saved as: its body,
+   * plus any adaptive card it carries.
+   *
+   * A note is Markdown, and it goes to the dashboard, to the status page
+   * and subscribers' email when it is public, and as a feed item to the
+   * project's Slack and Microsoft Teams channels. So a "<" in the message's
+   * text - one the person typed, which Teams sends as "&lt;" and htmlToText
+   * reads back, or one in a plain-text body or a card - is broken by an
+   * invisible word joiner (neutralizeTagStarts) unless whitespace follows
+   * it: "<img ...>" or "<!channel>" in a message reads as typed in the note,
+   * but no renderer reads a tag or a mention from it. A message with no "<"
+   * in its text is saved exactly as it reads.
+   */
   public static getMessageText(message: JSONObject): string {
     const body: JSONObject | undefined = message["body"] as
       | JSONObject
@@ -852,22 +867,38 @@ export default class MicrosoftTeamsReactionNoteSync {
       }
     }
 
-    return parts.join("\n\n").trim();
+    return neutralizeTagStarts(parts.join("\n\n").trim());
   }
 
+  /*
+   * A Teams message body (HTML) as the text it shows: attachments out,
+   * mentions as "@name", line breaks, list items and the ends of blocks as
+   * lines, every other tag and comment out, then entities read - once, so
+   * "&amp;lt;" is the text "&lt;".
+   *
+   * The tags left after the line breaks are taken out by removeHtmlMarkup
+   * (Common/Types/HtmlMarkup), one walk that leaves no "<" of the HTML
+   * behind. It used to be one pass of a tag pattern, which kept an unclosed
+   * tag ("<img src=x onerror=..." with no ">" after it) as it came, and kept
+   * the end of an attribute value or a comment holding ">" as text. Entities
+   * are read only after that, so text that was "&lt;script&gt;" in the HTML
+   * is text, never a tag this takes out or keeps; getMessageText then makes
+   * it inert for the note.
+   */
   public static htmlToText(html: string): string {
     if (!html) {
       return "";
     }
 
     return this.decodeHtmlEntities(
-      html
-        .replace(/<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, "")
-        .replace(/<at\b[^>]*>([\s\S]*?)<\/at>/gi, "@$1")
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<li\b[^>]*>/gi, "- ")
-        .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|tr)>/gi, "\n")
-        .replace(/<[^>]*>/g, ""),
+      removeHtmlMarkup(
+        html
+          .replace(/<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, "")
+          .replace(/<at\b[^>]*>([\s\S]*?)<\/at>/gi, "@$1")
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<li\b[^>]*>/gi, "- ")
+          .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|tr)>/gi, "\n"),
+      ),
     )
       .replace(/\u00a0/g, " ")
       .replace(/[ \t]+\n/g, "\n")

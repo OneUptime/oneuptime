@@ -283,4 +283,36 @@ export const markdownCodeSpan: MarkdownCodeSpanFunction = (
   return `${fence} ${text} ${fence}`;
 };
 
+/*
+ * Text somebody typed in a chat tool, placed into Markdown as a whole - a
+ * Microsoft Teams message saved as a note when someone pins it - where its
+ * lines, lists and words should stay as they were, so escaping every
+ * Markdown character (escapeMarkdownInline) would change too much.
+ *
+ * What must not happen is a "<" the person typed becoming markup once the
+ * text is Markdown: raw HTML ("<img src=...>", "<script>"), an autolink, or
+ * a chat control sequence ("<!channel>", "<@U123>"). The note goes to the
+ * dashboard and, when public, the status page and subscribers' email, and
+ * as a feed item to the project's Slack and Microsoft Teams channels, and
+ * those read "<" differently. So every "<" that whitespace does not follow
+ * is broken by the invisible word joiner, as markdownCodeSpan does inside
+ * code: the text reads exactly as typed, and no renderer reads a tag, a
+ * comment, a link or a mention from it. A "<" before whitespace ("p99 < 200
+ * ms") is no tag and is left as it is, and so is one already broken: it is
+ * idempotent.
+ */
+export type NeutralizeTagStartsFunction = (
+  value: string | undefined | null,
+) => string;
+
+export const neutralizeTagStarts: NeutralizeTagStartsFunction = (
+  value: string | undefined | null,
+): string => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  return String(value).replace(OPEN_ANGLE_BRACKET_PATTERN, `<${WORD_JOINER}`);
+};
+
 export default escapeMarkdownInline;

@@ -1,4 +1,5 @@
 import { MarkedExtension, RendererThis, Token, Tokens } from "marked";
+import { removeHtmlMarkup } from "../../Types/HtmlMarkup";
 import SafeHtml from "../../Types/SafeHtml";
 
 /*
@@ -323,15 +324,18 @@ export const splitDocsTabs: (body: string) => {
   return { intro: intro, tabs: tabs };
 };
 
-// The value a tab label is matched on: case and spacing do not matter.
+/*
+ * The value a tab label is matched on: case and spacing do not matter, and
+ * neither does markup in the label - "@tab <b>Docker</b>" is the Docker tab.
+ * Tags and comments are read out of it with removeHtmlMarkup (one walk that
+ * leaves no "<" behind), not one pass of a tag pattern: that kept an
+ * unclosed "<b" and the end of a comment holding ">" in the key. No label
+ * in the docs has markup, so every key stays what it was.
+ */
 export const docsTabKey: (label: string) => string = (
   label: string,
 ): string => {
-  return label
-    .toLowerCase()
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return removeHtmlMarkup(label.toLowerCase()).replace(/\s+/g, " ").trim();
 };
 
 const escapeHtml: (text: string) => string = (text: string): string => {
