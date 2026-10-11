@@ -148,9 +148,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
   },
-  "installation/upgrading": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },

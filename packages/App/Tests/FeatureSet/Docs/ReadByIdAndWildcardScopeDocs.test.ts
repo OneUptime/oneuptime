@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { otherChangesItemAtEnglishPlace } from "./UpgradingDocsNotes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -19,7 +20,7 @@ import path from "path";
  *
  * Users, Teams & Permissions says so in every docs language, the API
  * reference says what a read by id answers, and the upgrade notes say what
- * changes, in English at length and in one line in every other guide.
+ * changes, in every guide.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -221,26 +222,25 @@ describe("Docs: every grant and scope narrows what it reaches", () => {
       return language !== "en";
     }),
   )(
-    "the %s upgrade guide has the line, before the endpoint changes",
+    "the %s upgrade guide has the note, in the English note's place",
     (language: string) => {
-      const lines: Array<string> = read(
+      /*
+       * Each translation lists the English notes in the English order: the
+       * note is the one in the English note's place.
+       */
+      const note: string = otherChangesItemAtEnglishPlace(
         language,
-        "installation/upgrading.md",
-      ).split("\n");
-      const anchor: number = lines.findIndex((line: string): boolean => {
-        return (
-          line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
-        );
-      });
+        "Every grant and scope narrows what it reaches, and a read by ID of a",
+      );
 
-      expect([language, anchor > 0]).toEqual([language, true]);
-
-      const line: string = lines[anchor - 1] || "";
-
-      expect([language, line.startsWith("- **")]).toEqual([language, true]);
-      expect([language, line.includes(GET_ITEM)]).toEqual([language, true]);
-      expect([language, line.includes(WILDCARD)]).toEqual([language, true]);
-      expect([language, line.includes("`404`")]).toEqual([language, true]);
+      expect([language, note.startsWith("- **")]).toEqual([language, true]);
+      expect([language, note.includes(GET_ITEM)]).toEqual([language, true]);
+      expect([language, note.includes(WILDCARD)]).toEqual([language, true]);
+      expect([language, note.includes("`404`")]).toEqual([language, true]);
+      expect([
+        language,
+        note.includes("](/docs/terraform/troubleshooting"),
+      ]).toEqual([language, true]);
     },
   );
 });

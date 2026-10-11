@@ -1,4 +1,4 @@
-# Upgrading OneUptime
+# Upgrading
 
 Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — to a newer release. Follow the procedure below, and read the notes for every major version between the one you run and the one you are moving to.
 
@@ -1774,8 +1774,8 @@ service. What changes is the name of the block that configures it.
 
 ### Verify the upgrade
 
-- **Admin Dashboard → Health → Valkey** should read Connected, with a memory
-  figure. This is the same reachability check the health warning emails use.
+- **Admin Dashboard → OneUptime Health → Valkey** should read Connected, with a
+  memory figure. This is the same reachability check the health warning emails use.
 - **Compose:** `docker compose ps` lists a `valkey` service and no `redis`
   container.
 - **Helm:** `kubectl get pods,svc -n <namespace>` shows `<release>-valkey-0`

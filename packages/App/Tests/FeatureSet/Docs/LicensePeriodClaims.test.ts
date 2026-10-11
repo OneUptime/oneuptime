@@ -2,6 +2,11 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  listItems,
+  sectionAtEnglishPlace,
+  statedNumbers,
+} from "./UpgradingDocsNotes";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -24,7 +29,8 @@ import path from "path";
  * and no text may still describe a 14-day grace period.
  *
  * The scan reads English: the translated identity pages are pinned
- * separately, number by number, in EnterpriseEditionDocs.test.ts.
+ * separately, number by number, in EnterpriseEditionDocs.test.ts, and the
+ * translated upgrade notes here, number by number.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -300,19 +306,40 @@ describe("the key pages state both lengths, from the constants", () => {
 
     expect(pages.length).toBe(17);
 
+    // The English words.
+    const english: string = sentencesOf(
+      readFile(path.join(DOCS_CONTENT_DIR, "en/installation/upgrading.md")),
+    ).join(" ");
+
+    expect(english).toContain(
+      `everything keeps working for a ${GRACE}-day grace period`,
+    );
+    expect(english).toContain(`gets a ${TRIAL}-day trial`);
+
+    /*
+     * Every language, in the licensing list of its edition section (the
+     * English list's place): an install with a license key gets the grace
+     * period, one with no license the trial, with the lengths the license
+     * classifier uses, whatever words and digits the language writes them in.
+     */
     for (const file of pages) {
-      const page: string = sentencesOf(readFile(file)).join(" ");
+      const language: string = path
+        .relative(DOCS_CONTENT_DIR, file)
+        .split(path.sep)[0]!;
+      const items: Array<string> = listItems(
+        sectionAtEnglishPlace(language, "Licensing after the upgrade"),
+      );
 
       expect({
         file: path.relative(DOCS_CONTENT_DIR, file),
-        grace: page.includes(
-          `everything keeps working for a ${GRACE}-day grace period`,
-        ),
-        trial: page.includes(`gets a ${TRIAL}-day trial`),
+        grace: statedNumbers(items[0] || "").includes(GRACE),
+        trial: statedNumbers(items[1] || "").includes(TRIAL),
+        trialIsNotGrace: statedNumbers(items[1] || "").includes(GRACE),
       }).toEqual({
         file: path.relative(DOCS_CONTENT_DIR, file),
         grace: true,
         trial: true,
+        trialIsNotGrace: false,
       });
     }
   });
