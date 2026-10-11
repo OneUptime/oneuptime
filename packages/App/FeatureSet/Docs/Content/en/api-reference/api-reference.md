@@ -125,6 +125,16 @@ The API reference marks these fields read-only. A value a request sends for one 
 
 An incident, an alert, an incident episode and an alert episode can be created in any of your project's states, as the **Initial State** field of their create forms does: send `currentIncidentStateId` (incidents and incident episodes) or `currentAlertStateId` (alerts and alert episodes), or the relation. The record starts in that state and its state timeline begins with it. Leave it out and it starts in your project's created state, the one flagged `isCreatedState` — or, for an incident declared from a template that has an initial state, in the template's. A state of another project is refused like any other record. Terraform's `current_incident_state_id` and `current_alert_state_id` work the same way. A record created at or past your acknowledged state pages no one, and one created resolved is also not grouped, remediated or investigated by AI and gets no Slack or Microsoft Teams channel — see [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
+### Changing a record's state
+
+A record's state changes by a row of its state timeline - `POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline` or `/api/scheduled-maintenance-state-timeline` - or by an update that writes its current state (`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, or the relation), which records the same row. Either way one rule holds the move, for an episode as for an incident, an alert or a scheduled maintenance event: a state earlier in your project's order than the record's current one is refused before anything is saved, as is the state it is in already:
+
+```text
+Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.
+```
+
+A state set by mistake is put right by deleting its row from the record's state timeline. See [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference).
+
 ### The episode an incident or alert is in
 
 An incident's `incidentEpisodeId` and an alert's `alertEpisodeId` — and their relations `incidentEpisode` and `alertEpisode` — name the latest episode it was added to and is still a member of, or nothing. They are read-only: OneUptime sets them from the episode's members. To put an incident in an episode, create an Incident Episode Member (`POST /api/incident-episode-member` with `incidentEpisodeId` and `incidentId`); to take it out, delete that member, and the incident then names the latest episode it is still in, or none. Alerts work the same way through Alert Episode Members (`/api/alert-episode-member`, with `alertEpisodeId` and `alertId`). Grouping rules add incidents and alerts to episodes the same way. A create or update of an incident or alert that sends its episode is refused, whoever sends it — the API, Terraform, the MCP tools or a workflow. In Terraform, `incident_episode_id` and `alert_episode_id` can be read but not set; the `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member` resources manage membership.

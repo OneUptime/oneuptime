@@ -27,7 +27,7 @@ import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/Wor
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStanding,
-  WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -1479,55 +1479,166 @@ describe("WorkspaceMemberActions.getStanding", (): void => {
   });
 });
 
+/*
+ * The states a chat's change-state form offers: those the member may read
+ * that the record may move into next, by the rule its state timeline holds
+ * every move to (Common/Utils/StateMove) - for an episode as for an
+ * incident, an alert or a scheduled maintenance event - so no form offers a
+ * move the timeline would refuse.
+ */
 describe("WorkspaceMemberActions.findStateOptions", (): void => {
-  const STATE_LISTS: Array<{
-    type: WorkspaceEventType;
-    service: unknown;
-  }> = [
-    { type: WorkspaceEventType.Incident, service: IncidentStateService },
-    {
-      type: WorkspaceEventType.IncidentEpisode,
-      service: IncidentStateService,
-    },
-    { type: WorkspaceEventType.Alert, service: AlertStateService },
-    { type: WorkspaceEventType.AlertEpisode, service: AlertStateService },
-    {
-      type: WorkspaceEventType.ScheduledMaintenance,
-      service: ScheduledMaintenanceStateService,
-    },
+  interface StateOptionsKind {
+    kind: RecordKind;
+    // The service of the kind's states: its findBy is the member's read of them.
+    stateService: unknown;
+    /*
+     * The project's states as OneUptime reads them, stubbed, top first: four
+     * built-in ones and one of the project's own after the last of them.
+     */
+    stubProjectStates: () => Array<StateRow>;
+  }
+
+  function projectStates<
+    T extends IncidentState | AlertState | ScheduledMaintenanceState,
+  >(makeState: () => T, names: Array<string>): Array<T> {
+    return names.map((name: string, index: number): T => {
+      const state: T = makeState();
+      state.id = ObjectID.generate();
+      state.projectId = projectId;
+      state.name = name;
+      state.order = index + 1;
+      return state;
+    });
+  }
+
+  function asRows(
+    states: Array<IncidentState | AlertState | ScheduledMaintenanceState>,
+  ): Array<StateRow> {
+    return states.map(
+      (
+        state: IncidentState | AlertState | ScheduledMaintenanceState,
+      ): StateRow => {
+        return { id: state.id!, name: state.name! };
+      },
+    );
+  }
+
+  const INCIDENT_LIKE_NAMES: Array<string> = [
+    "Created",
+    "Acknowledged",
+    "Investigating",
+    "Resolved",
+    // A state of the project's own after Resolved.
+    "Closed",
   ];
 
-  test.each(STATE_LISTS)(
-    "lists the $type states the member may read, as the member, in the project's order",
-    async ({
-      type,
-      service,
-    }: {
-      type: WorkspaceEventType;
-      service: unknown;
-    }): Promise<void> => {
-      const first: StateRow = { id: ObjectID.generate(), name: "Created" };
-      const second: StateRow = { id: ObjectID.generate(), name: "Resolved" };
-      const findSpy: AnySpy = (
-        jest.spyOn(
-          service as { findBy: () => Promise<unknown> },
-          "findBy",
-        ) as AnySpy
-      ).mockResolvedValue([
-        { id: first.id, name: first.name },
+  const STATE_OPTIONS_KINDS: Array<StateOptionsKind> = RECORD_KINDS.map(
+    (kind: RecordKind): StateOptionsKind => {
+      switch (kind.type) {
+        case WorkspaceEventType.Incident:
+        case WorkspaceEventType.IncidentEpisode:
+          return {
+            kind: kind,
+            stateService: IncidentStateService,
+            stubProjectStates: (): Array<StateRow> => {
+              const states: Array<IncidentState> = projectStates(
+                (): IncidentState => {
+                  return new IncidentState();
+                },
+                INCIDENT_LIKE_NAMES,
+              );
+              jest
+                .spyOn(IncidentStateService, "getAllIncidentStates")
+                .mockResolvedValue(states);
+              return asRows(states);
+            },
+          };
+        case WorkspaceEventType.Alert:
+        case WorkspaceEventType.AlertEpisode:
+          return {
+            kind: kind,
+            stateService: AlertStateService,
+            stubProjectStates: (): Array<StateRow> => {
+              const states: Array<AlertState> = projectStates(
+                (): AlertState => {
+                  return new AlertState();
+                },
+                INCIDENT_LIKE_NAMES,
+              );
+              jest
+                .spyOn(AlertStateService, "getAllAlertStates")
+                .mockResolvedValue(states);
+              return asRows(states);
+            },
+          };
+        case WorkspaceEventType.ScheduledMaintenance:
+          return {
+            kind: kind,
+            stateService: ScheduledMaintenanceStateService,
+            stubProjectStates: (): Array<StateRow> => {
+              const states: Array<ScheduledMaintenanceState> =
+                projectStates((): ScheduledMaintenanceState => {
+                  return new ScheduledMaintenanceState();
+                }, ["Scheduled", "Ongoing", "Ended", "Completed", "Archived"]);
+              jest
+                .spyOn(
+                  ScheduledMaintenanceStateService,
+                  "getAllScheduledMaintenanceStates",
+                )
+                .mockResolvedValue(states);
+              return asRows(states);
+            },
+          };
+        default:
+          throw new Error(`No states for ${kind.type}`);
+      }
+    },
+  );
+
+  // The member's read of the kind's states, stubbed to find `rows`.
+  function stubReadableStates(
+    optionsKind: StateOptionsKind,
+    rows: Array<{ id: ObjectID; name: string | undefined }>,
+  ): AnySpy {
+    return (
+      jest.spyOn(
+        optionsKind.stateService as { findBy: () => Promise<unknown> },
+        "findBy",
+      ) as AnySpy
+    ).mockResolvedValue(rows);
+  }
+
+  async function optionsFor(
+    optionsKind: StateOptionsKind,
+  ): Promise<WorkspaceEventStateOptions> {
+    return await WorkspaceMemberActions.findStateOptions({
+      event: { type: optionsKind.kind.type, id: ObjectID.generate() },
+      props: memberProps,
+    });
+  }
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "offers $kind.name only the states the member may read that it may move into next, read as the member, in the project's order",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      const readSpy: AnySpy = optionsKind.kind.stubRead(states[1]!.id);
+      const findSpy: AnySpy = stubReadableStates(optionsKind, [
+        ...states,
         // A row without a name is no choice.
         { id: ObjectID.generate(), name: undefined },
-        { id: second.id, name: second.name },
       ]);
 
-      const options: Array<WorkspaceEventStateOption> =
-        await WorkspaceMemberActions.findStateOptions({
-          type: type,
-          projectId: projectId,
-          props: memberProps,
-        });
+      const result: WorkspaceEventStateOptions = await optionsFor(optionsKind);
 
-      expect(options).toEqual([first, second]);
+      // Never the state it is in, nor one above it.
+      expect(result).toEqual({
+        options: [states[2], states[3], states[4]],
+        hasNoLaterState: false,
+      });
+
+      // The record and the states the member may read, read as the member.
+      expect(readSpy).toHaveBeenCalledTimes(1);
+      expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
       expect(findSpy).toHaveBeenCalledTimes(1);
       expect(findSpy.mock.calls[0]![0].props).toBe(memberProps);
       expect(findSpy.mock.calls[0]![0].query).toEqual({
@@ -1539,28 +1650,145 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
     },
   );
 
-  test.each(STATE_LISTS)(
-    "lists no $type states to a member whose read of them is refused",
-    async ({
-      type,
-      service,
-    }: {
-      type: WorkspaceEventType;
-      service: unknown;
-    }): Promise<void> => {
+  test.each(STATE_OPTIONS_KINDS)(
+    "offers $kind.name in the state that closes the list only the project's own state after it",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      // Resolved, or Completed for a maintenance event.
+      optionsKind.kind.stubRead(states[3]!.id);
+      stubReadableStates(optionsKind, states);
+
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: [states[4]],
+        hasNoLaterState: false,
+      });
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "tells the member $kind.name in the last state it can reach has no later state",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      optionsKind.kind.stubRead(states[4]!.id);
+      stubReadableStates(optionsKind, states);
+
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: [],
+        hasNoLaterState: true,
+      });
+      expect(
+        WorkspaceMemberActions.getNoLaterStateMessage(optionsKind.kind.type),
+      ).toBe(
+        `There is no later state to move this ${optionsKind.kind.noun} to.`,
+      );
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "a state of $kind.name the member may not read still holds its place in the list",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      // In the middle state, which the member may not read.
+      optionsKind.kind.stubRead(states[2]!.id);
+      stubReadableStates(optionsKind, [states[0]!, states[4]!]);
+
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: [states[4]],
+        hasNoLaterState: false,
+      });
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "the member may read only states of $kind.name above the one it is in: no later state",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      optionsKind.kind.stubRead(states[2]!.id);
+      stubReadableStates(optionsKind, [states[0]!, states[1]!, states[2]!]);
+
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: [],
+        hasNoLaterState: true,
+      });
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "$kind.name in a state the project's list does not hold may move into any state the member may read",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      optionsKind.kind.stubRead(ObjectID.generate());
+      stubReadableStates(optionsKind, states);
+
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: states,
+        hasNoLaterState: false,
+      });
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "lists no states of $kind.name to a member whose read of them is refused",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      optionsKind.kind.stubRead(states[0]!.id);
       jest
-        .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")
+        .spyOn(
+          optionsKind.stateService as { findBy: () => Promise<unknown> },
+          "findBy",
+        )
         .mockRejectedValue(
           new NotAuthorizedException("You do not have permissions to read."),
         );
 
-      await expect(
-        WorkspaceMemberActions.findStateOptions({
-          type: type,
-          projectId: projectId,
+      // Not "no later state": they may read none at all.
+      expect(await optionsFor(optionsKind)).toEqual({
+        options: [],
+        hasNoLaterState: false,
+      });
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "refuses $kind.name the member may not read, like one that is not there, and reads no states",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      optionsKind.stubProjectStates();
+      optionsKind.kind.stubRead(null);
+      const findSpy: AnySpy = stubReadableStates(optionsKind, []);
+
+      await expect(optionsFor(optionsKind)).rejects.toThrow(
+        new NotAuthorizedException(
+          `The ${optionsKind.kind.noun} was not found in this project, or you do not have access to it.`,
+        ),
+      );
+      expect(findSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(STATE_OPTIONS_KINDS)(
+    "$kind.name read for the member already is not read again",
+    async (optionsKind: StateOptionsKind): Promise<void> => {
+      const states: Array<StateRow> = optionsKind.stubProjectStates();
+      const readSpy: AnySpy = optionsKind.kind.stubRead(states[3]!.id);
+      stubReadableStates(optionsKind, states);
+
+      const found: {
+        record: unknown;
+        event: WorkspaceEventRecord;
+      } | null = await WorkspaceMemberActions.findEventForMember({
+        event: { type: optionsKind.kind.type, id: ObjectID.generate() },
+        props: memberProps,
+        select: {},
+      });
+      expect(readSpy).toHaveBeenCalledTimes(1);
+
+      expect(
+        await WorkspaceMemberActions.findStateOptions({
+          event: found!.event,
           props: memberProps,
         }),
-      ).resolves.toEqual([]);
+      ).toEqual({ options: [states[4]], hasNoLaterState: false });
+      expect(readSpy).toHaveBeenCalledTimes(1);
     },
   );
 });

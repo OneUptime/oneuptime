@@ -86,7 +86,8 @@ import UserNotificationEventType from "../../../../Types/UserNotification/UserNo
  * more than the dashboard asks (acknowledging needs the state timeline's
  * create permission and the record's read, not an edit grant on the record);
  * a record outside the member's read is refused like one that is not there;
- * a change-state card offers only the states the member may read; Escalate
+ * a change-state card offers only the states the member may read that the
+ * record may move into next; Escalate
  * pages for the card's incident, alert or episode, and a card naming none is
  * answered plainly.
  *
@@ -901,13 +902,15 @@ describe.each(TEAMS_KINDS)(
 
       test("the card offers only the states the member may read, read as the member", async (): Promise<void> => {
         const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
+        const states: ProjectStates = kind.stubStates();
         stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
           stateColumn: kind.recordStateColumn,
-          currentStateId: ObjectID.generate(),
+          currentStateId: states.created,
         });
-        const investigating: ObjectID = ObjectID.generate();
+        // Of the project's states, the member may read this one.
+        const investigating: ObjectID = states.acknowledged;
         const statesSpy: AnySpy = (
           jest.spyOn(
             kind.stateService as { findBy: () => Promise<unknown> },
@@ -929,6 +932,78 @@ describe.each(TEAMS_KINDS)(
         expect(turn.replies).toHaveLength(1);
         expect(cardChoices(turn.replies[0])).toEqual([
           { title: "Investigating", value: investigating.toString() },
+        ]);
+      });
+
+      /*
+       * Every state timeline refuses a move back up the project's list, for
+       * an episode as for an incident or an alert (Common/Utils/StateMove):
+       * the card offers only the states the record may move into next.
+       */
+      test("the card offers only the states it may move into next, none back up the list", async (): Promise<void> => {
+        const states: ProjectStates = kind.stubStates();
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: states.acknowledged,
+        });
+        (
+          jest.spyOn(
+            kind.stateService as { findBy: () => Promise<unknown> },
+            "findBy",
+          ) as AnySpy
+        ).mockResolvedValue([
+          { id: states.created, name: "First" },
+          { id: states.acknowledged, name: "Second" },
+          { id: states.resolved, name: "Last" },
+        ]);
+        const turn: FakeTurn = createTurn();
+
+        await kind.handle({
+          actionType: kind.changeState.view,
+          actionValue: ObjectID.generate().toString(),
+          value: {},
+          props: memberProps([kind.role]),
+          turnContext: turn.turnContext,
+        });
+
+        expect(turn.replies).toHaveLength(1);
+        expect(cardChoices(turn.replies[0])).toEqual([
+          { title: "Last", value: states.resolved.toString() },
+        ]);
+      });
+
+      test("in the last state it can reach, the member is told there is no later state instead of a card", async (): Promise<void> => {
+        const states: ProjectStates = kind.stubStates();
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: states.resolved,
+        });
+        (
+          jest.spyOn(
+            kind.stateService as { findBy: () => Promise<unknown> },
+            "findBy",
+          ) as AnySpy
+        ).mockResolvedValue([
+          { id: states.created, name: "First" },
+          { id: states.acknowledged, name: "Second" },
+          { id: states.resolved, name: "Last" },
+        ]);
+        const turn: FakeTurn = createTurn();
+
+        await kind.handle({
+          actionType: kind.changeState.view,
+          actionValue: ObjectID.generate().toString(),
+          value: {},
+          props: memberProps([kind.role]),
+          turnContext: turn.turnContext,
+        });
+
+        expect(turn.replies).toEqual([
+          `There is no later state to move this ${kind.noun} to.`,
         ]);
       });
 
@@ -1594,8 +1669,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     const props: DatabaseCommonInteractionProps = memberProps([
       Permission.ScheduledMaintenanceMember,
     ]);
-    stubMaintenance(true);
-    const ongoing: ObjectID = ObjectID.generate();
+    const ongoing: ObjectID = stubMaintenance(true).states.ongoing;
     const statesSpy: AnySpy = jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
       .mockResolvedValue([
@@ -1616,6 +1690,48 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     expect(turn.replies).toHaveLength(1);
     expect(cardChoices(turn.replies[0])).toEqual([
       { title: "Ongoing", value: ongoing.toString() },
+    ]);
+  });
+
+  test("the change-state card offers only the states the event may move into next", async (): Promise<void> => {
+    const states: MaintenanceStates = stubMaintenance(true, "ongoing").states;
+    jest.spyOn(ScheduledMaintenanceStateService, "findBy").mockResolvedValue([
+      { id: states.scheduled, name: "Scheduled" },
+      { id: states.ongoing, name: "Ongoing" },
+      { id: states.ended, name: "Ended" },
+      { id: states.completed, name: "Completed" },
+    ] as unknown as Array<ScheduledMaintenanceState>);
+
+    const turn: FakeTurn = await press({
+      actionType:
+        MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
+      payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+      props: memberProps([Permission.ScheduledMaintenanceMember]),
+    });
+
+    expect(turn.replies).toHaveLength(1);
+    expect(cardChoices(turn.replies[0])).toEqual([
+      { title: "Ended", value: states.ended.toString() },
+      { title: "Completed", value: states.completed.toString() },
+    ]);
+  });
+
+  test("a completed event is answered with no later state instead of a card", async (): Promise<void> => {
+    const states: MaintenanceStates = stubMaintenance(true, "completed").states;
+    jest.spyOn(ScheduledMaintenanceStateService, "findBy").mockResolvedValue([
+      { id: states.scheduled, name: "Scheduled" },
+      { id: states.completed, name: "Completed" },
+    ] as unknown as Array<ScheduledMaintenanceState>);
+
+    const turn: FakeTurn = await press({
+      actionType:
+        MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
+      payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+      props: memberProps([Permission.ScheduledMaintenanceMember]),
+    });
+
+    expect(turn.replies).toEqual([
+      "There is no later state to move this scheduled maintenance event to.",
     ]);
   });
 

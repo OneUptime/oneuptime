@@ -1,114 +1,182 @@
-# Fluentd gebruiken om telemetriegegevens naar OneUptime te sturen
+# Fluentd
 
-## Overzicht
+[Fluentd](https://www.fluentd.org/) verzamelt logs uit bestanden, containers, syslog, applicaties en [vele andere bronnen](https://www.fluentd.org/datasources). De ingebouwde [HTTP-output](https://docs.fluentd.org/output/http) stuurt ze naar het Fluentd-endpoint van OneUptime, waar ze doorzoekbaar worden onder **Producten → Logboeken**.
 
-U kunt de [Fluentd](https://www.fluentd.org/)-plugin gebruiken om logboeken en telemetriegegevens te verzamelen van uw applicaties en diensten. De plugin stuurt de telemetriegegevens naar de OneUptime HTTP-bron. U kunt de http-uitvoerplugin van Fluentd gebruiken om de telemetriegegevens naar de OneUptime HTTP-bron te sturen. Deze plugin is hier te vinden: https://docs.fluentd.org/output/http
+:::cards
+- [Fluentd configureren](#fluentd-configureren): Een HTTP-output toevoegen die naar OneUptime wijst.
+- [Hoe records worden gelezen](#hoe-records-worden-gelezen): Welke velden het bericht, het niveau en de attributen worden.
+- [Zelf gehoste OneUptime](#zelf-gehoste-oneuptime): Fluentd op je eigen instantie richten.
+:::
 
-## Aan de slag
+## Hoe het werkt
 
-Fluentd ondersteunt honderden gegevensbronnen en u kunt logboeken van elk van deze bronnen verwerken in OneUptime. Enkele populaire bronnen zijn:
+```mermaid title="Van Fluentd naar OneUptime"
+flowchart TB
+    sources["Bestanden, containers, syslog, apps"] --> fluentd["Fluentd"]
+    fluentd -->|"HTTP-output, JSON + ingestiesleutel"| ingest["OneUptime /fluentd/logs"]
+    ingest --> service["Service die in het request staat"]
+    service --> logs["Logs"]
+```
 
-- Docker
-- Syslog
-- Apache
-- Nginx
-- MySQL
-- PostgreSQL
-- MongoDB
-- NodeJS
-- Ruby
-- Python
-- Java
-- PHP
-- Go
-- Rust
+Fluentd stuurt records in batches als JSON, met je ingestiesleutel in de header `x-oneuptime-token` en de servicenaam in `x-oneuptime-service-name`. OneUptime maakt van elk record een log van die service, en maakt de service aan zodra hij voor het eerst stuurt.
 
-en nog veel meer.
+## Voordat je begint
 
-U vindt de volledige lijst met ondersteunde bronnen [hier](https://www.fluentd.org/datasources)
+- **Fluentd installeren**: zie de [installatiehandleiding](https://docs.fluentd.org/installation).
+- **Een OneUptime-project.** In OneUptime Cloud wordt telemetrie per opgenomen GB gefactureerd (zie de [prijzen](https://oneuptime.com/pricing)), en een project op het Free-abonnement heeft een betaalmethode nodig voordat het telemetrie kan sturen.
+- **Een telemetrie-ingestiesleutel.** Heb je er nog geen:
 
-## Vereisten
+:::steps
+### De ingestiesleutels openen
 
-- **Stap 1: Fluentd installeren op uw systeem** - U kunt Fluentd installeren aan de hand van de instructies [hier](https://docs.fluentd.org/installation)
-- **Stap 2: Een OneUptime-account aanmaken** - U kunt een gratis account aanmaken [hier](https://oneuptime.com). Houd er rekening mee dat hoewel het account gratis is, logboekingestie een betaalde functie is. U kunt meer informatie over de prijzen vinden [hier](https://oneuptime.com/pricing).
-- **Stap 3: OneUptime-project aanmaken** - Zodra u het account heeft, kunt u een project aanmaken vanuit het OneUptime-dashboard. Als u hulp nodig heeft bij het aanmaken van een project of vragen heeft, neem dan contact op via support@oneuptime.com
-- **Stap 4: Telemetrie-ingestietoken aanmaken** - Zodra u een OneUptime-account heeft aangemaakt, kunt u een telemetrie-ingestietoken aanmaken om logboeken, metrics en traces van uw applicatie te verwerken.
+Ga naar **Producten → Projectinstellingen**, open **Telemetrie & APM** in het zijmenu en kies **Ingestiesleutels**.
 
-Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Producten" in de navigatiebalk en vervolgens op "Projectinstellingen".
+![De pagina met telemetrie-ingestiesleutels in de projectinstellingen](/docs/static/images/TelemetryIngestionKeys.png)
 
-Klik op de pagina Telemetrie-ingestiesleutel op "Inname-sleutel aanmaken" om een token aan te maken.
+### Een sleutel maken
 
-![Dienst aanmaken](/docs/static/images/TelemetryIngestionKeys.png)
+Klik op **Inname-sleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen, het soort sleutel waarmee een applicatie of een collector stuurt. Klik dus op **Inname-sleutel aanmaken** om hem te maken, of geef hem eerst een andere naam.
 
-Zodra u een token hebt aangemaakt, klikt u op "Bekijken" om het token te bekijken.
+### Het geheim kopiëren
 
-![Dienst bekijken](/docs/static/images/TelemetryIngestionKeyView.png)
+De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel**: dat is het `YOUR_SERVICE_TOKEN` in de configuratie hieronder.
 
-## Configuratie
+![De pagina van een telemetrie-ingestiesleutel, met de geheime sleutel](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
-U kunt de volgende configuratie gebruiken om de telemetriegegevens naar de OneUptime HTTP-bron te sturen. U kunt deze configuratie toevoegen aan het Fluentd-configuratiebestand. Het configuratiebestand bevindt zich doorgaans op `/etc/fluentd/fluent.conf` of `/etc/td-agent/td-agent.conf`.
+## Fluentd configureren
 
-U moet `YOUR_SERVICE_TOKEN` vervangen door het token dat u in de vorige stap hebt aangemaakt. U moet ook `YOUR_SERVICE_NAME` vervangen door de naam van uw dienst. De naam van de dienst kan elke naam zijn die u wilt. Als de dienst niet bestaat in OneUptime, wordt deze automatisch aangemaakt.
+Het configuratiebestand van Fluentd is meestal `/etc/fluent/fluentd.conf`, of `/etc/td-agent/td-agent.conf` bij het oudere td-agent-pakket.
 
-```yaml
-# Overeenkomt met alle patronen
+:::steps
+### Een HTTP-output toevoegen
+
+Voeg een `<match>`-sectie toe die records naar OneUptime stuurt. Vervang `YOUR_SERVICE_TOKEN` door je ingestiesleutel en `YOUR_SERVICE_NAME` door de naam waaronder de logs moeten verschijnen (welke naam je maar wilt):
+
+```text title="fluentd.conf"
+# Match all patterns
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+    chunk_limit_size 900k
+  </buffer>
 </match>
 ```
 
-Een voorbeeld van een volledig configuratiebestand wordt hieronder getoond:
+`json_array true` stuurt elke chunk van de buffer als één JSON-array, en `flush_interval 10s` stuurt de buffer elke 10 seconden. `chunk_limit_size 900k` houdt elk request onder 1 MB, het meeste dat OneUptime op dit endpoint aanneemt.
 
-```yaml
+### Fluentd herstarten
+
+Herstart de Fluentd-service, zodat hij de nieuwe output laadt.
+
+### Controleren of logs binnenkomen
+
+Enkele seconden na de volgende flush verschijnen de logs onder **Producten → Logboeken**. De service staat onder **Producten → Services**; bestond hij nog niet, dan maakt OneUptime hem aan.
+:::
+
+## Volledig voorbeeld
+
+Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort `24224` en stuurt ze allemaal naar OneUptime:
+
+```text title="fluentd.conf"
 ####
-## Bronbeschrijvingen:
+## Source descriptions:
 ##
 
-## ingebouwde TCP-invoer
+## built-in TCP input
 ## @see https://docs.fluentd.org/input/forward
 <source>
-@type forward
-port 24224
-bind 0.0.0.0
+  @type forward
+  port 24224
+  bind 0.0.0.0
 </source>
 
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+    chunk_limit_size 900k
+  </buffer>
 </match>
 ```
 
-**Als u OneUptime zelf host**: Als u OneUptime zelf host, kunt u de `endpoint_url` vervangen door de URL van uw OneUptime-instantie. `http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`
+Wil je verschillende bronnen als verschillende services sturen, gebruik dan één `<match>`-sectie per tag, elk met een eigen `x-oneuptime-service-name`.
 
-## Gebruik
+## Hoe records worden gelezen
 
-Zodra u de configuratie aan het Fluentd-configuratiebestand hebt toegevoegd, kunt u de Fluentd-dienst herstarten. Zodra de dienst is herstart, worden de telemetriegegevens naar de OneUptime HTTP-bron gestuurd. U kunt nu de telemetriegegevens zien in het OneUptime-dashboard. Als u vragen heeft of hulp nodig heeft bij de configuratie, neem dan contact op via support@oneuptime.com
+OneUptime leest deze velden uit elk record:
+
+| Logveld | Gelezen uit het eerste aanwezige veld van | Opmerkingen |
+| --- | --- | --- |
+| Inhoud | `message`, `log`, `msg`, `body`, `text` | De logregel. Een record zonder een van deze velden wordt in zijn geheel opgeslagen, als JSON. |
+| Niveau | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Namen zoals `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` en `fatal`, in hoofd- of kleine letters. Elke andere waarde wordt opgeslagen als `Unspecified`. |
+| Trace-ID | `trace_id`, `traceId`, `traceid` | Koppelt de log aan zijn trace. |
+| Span-ID | `span_id`, `spanId`, `spanid` | Koppelt de log aan zijn span. |
+| Service | de header `x-oneuptime-service-name` | `Fluentd` als de header niet is ingesteld. |
+| Tijd | — | Het moment waarop OneUptime het record ontvangt. |
+
+Elk ander veld wordt een attribuut met de naam `fluentd.` gevolgd door de naam van het veld, waarop je kunt zoeken en filteren: een veld `container_name` is `@fluentd.container_name` in de logboekexplorer. Een genest object wordt met punten platgemaakt, zoals `fluentd.kubernetes.pod_name`, en een lijst wordt als JSON opgeslagen.
+
+Fluentd-logs gaan door je [logboekpipelines](/docs/telemetry/log-pipelines), dropfilters en maskeerregels, net als elke andere log.
+
+## Zelf gehoste OneUptime
+
+Vervang `https://oneuptime.com` in `endpoint` door de URL van je OneUptime-instantie: `http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`.
+
+## Problemen oplossen
+
+:::details Fluentd logt `401` van de HTTP-output
+De ingestiesleutel ontbreekt, is onbekend of verlopen. Controleer de waarde van `x-oneuptime-token` in `headers`.
+:::
+
+:::details Fluentd logt `402` of `422`
+`402`: in OneUptime Cloud zit het project op het Free-abonnement en heeft het geen betaalmethode. Voeg er een toe onder **Projectinstellingen → Facturering en facturen → Facturering**. `422`: de sleutel is uitgeschakeld, of het is een browsersleutel. Zet **Ingeschakeld** weer aan in de instellingen van de sleutel, of maak een **Server**-sleutel.
+:::
+
+:::details Fluentd logt `413`
+Het request is groter dan 1 MB, het meeste dat OneUptime op dit endpoint aanneemt. Zet `chunk_limit_size 900k` in de sectie `<buffer>`, zoals in de configuratie hierboven.
+:::
+
+:::details Logs komen binnen onder de service `Fluentd`
+De header `x-oneuptime-service-name` ontbreekt. Voeg hem toe aan `headers` in elke `<match>`-sectie.
+:::
+
+:::details De inhoud van de log toont het hele record als JSON
+OneUptime neemt de inhoud uit het eerste aanwezige veld van `message`, `log`, `msg`, `body` of `text`, en slaat het hele record op als het geen van die velden heeft. Hernoem het veld met je logregel naar een daarvan, bijvoorbeeld met het filter `record_transformer` van Fluentd.
+:::
+
+Heb je vragen of hulp nodig bij de configuratie, mail ons dan op support@oneuptime.com.
+
+## Volgende stappen
+
+:::cards
+- [Logboekpipelines](/docs/telemetry/log-pipelines): De logs die Fluentd stuurt parsen en verrijken.
+- [Zoeksyntaxis](/docs/telemetry/search-syntax): De logs vinden in de logboekexplorer.
+- [Fluent Bit](/docs/telemetry/fluentbit): Een lichtere agent die via OpenTelemetry stuurt.
+- [Logs-monitor](/docs/monitor/logs-monitor): Waarschuwen wanneer overeenkomende logs verschijnen.
+:::

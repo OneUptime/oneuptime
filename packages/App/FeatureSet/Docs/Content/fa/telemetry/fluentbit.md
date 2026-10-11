@@ -1,91 +1,108 @@
-# استفاده از FluentBit برای فرستادن داده تله‌متری به OneUptime
+# Fluent Bit
 
-## نمای کلی
+[Fluent Bit](https://docs.fluentbit.io/manual) یک عامل سبک است که لاگ‌ها را از فایل‌ها، systemd، کانتینرها، syslog، HTTP و بسیاری منبع دیگر جمع‌آوری می‌کند. [خروجی OpenTelemetry](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry) آن، هر آنچه جمع می‌کند را به نقطهٔ پایانی OpenTelemetry (OTLP) در OneUptime می‌فرستد و لاگ‌ها در **محصولات → لاگ‌ها** قابل جستجو می‌شوند.
 
-می‌توانید با افزونه [FluentBit](https://docs.fluentbit.io/manual) لاگ‌ها و داده‌های تله‌متری را از برنامه‌ها و سرویس‌های خود جمع‌آوری کنید. این افزونه داده تله‌متری را به کالکتور HTTP مربوط به OpenTelemetry در OneUptime می‌فرستد. می‌توانید از افزونه خروجی opentelemetry در fluentbit برای فرستادن داده تله‌متری به آن کالکتور استفاده کنید. این افزونه را اینجا می‌یابید: https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry
+:::cards
+- [پیکربندی Fluent Bit](#پیکربندی-fluent-bit): خروجی OpenTelemetry را اضافه کنید و برای سرویس‌تان نام بگذارید.
+- [نمونهٔ کامل](#نمونهٔ-کامل): یک فایل پیکربندی کامل برای شروع.
+- [OneUptime با میزبانی شخصی](#oneuptime-با-میزبانی-شخصی): Fluent Bit را به سمت نمونهٔ خودتان بفرستید.
+:::
 
-## شروع به کار
+## چگونه کار می‌کند
 
-FluentBit از صدها منبع داده پشتیبانی می‌کند و می‌توانید لاگ‌ها و تله‌متری را از هر یک از آن‌ها به OneUptime بفرستید. برخی از منابع پرکاربرد:
-
-- Docker
-- Syslog
-- Apache
-- Nginx
-- MySQL
-- PostgreSQL
-- MongoDB
-- NodeJS
-- Ruby
-- Python
-- Java
-- PHP
-- Go
-- Rust
-
-و بسیاری دیگر.
-
-فهرست کامل منابع پشتیبانی‌شده را [اینجا](https://docs.fluentbit.io/manual) می‌یابید
-
-## پیش‌نیازها
-
-- **گام ۱: FluentBit را روی سامانه خود نصب کنید** — می‌توانید FluentBit را با دستورالعمل‌های [اینجا](https://docs.fluentbit.io/manual/installation/getting-started-with-fluent-bit) نصب کنید
-- **گام ۲: در OneUptime حساب بسازید** — می‌توانید [اینجا](https://oneuptime.com) یک حساب رایگان بسازید. توجه کنید که هرچند حساب رایگان است، دریافت لاگ یک قابلیت پولی است. جزئیات بیشتر درباره قیمت‌گذاری را [اینجا](https://oneuptime.com/pricing) می‌یابید.
-- **گام ۳: پروژه OneUptime بسازید** — پس از داشتن حساب، می‌توانید از داشبورد OneUptime یک پروژه بسازید. اگر برای ساخت پروژه کمک می‌خواهید یا پرسشی دارید، با support@oneuptime.com تماس بگیرید
-- **گام ۴: توکن دریافت تله‌متری بسازید** — پس از ساخت حساب OneUptime، می‌توانید یک توکن دریافت تله‌متری بسازید تا لاگ‌ها، متریک‌ها و ترِیس‌ها را از برنامه خود بفرستید.
-
-پس از ثبت‌نام در OneUptime و ساخت پروژه، روی «Products» در نوار ناوبری و سپس روی «Project Settings» کلیک کنید.
-
-در صفحه Telemetry Ingestion Key روی «Create Ingestion Key» کلیک کنید تا یک توکن بسازید.
-
-![ساخت سرویس](/docs/static/images/TelemetryIngestionKeys.png)
-
-پس از ساخت توکن، برای دیدن آن روی «View» کلیک کنید.
-
-![مشاهده سرویس](/docs/static/images/TelemetryIngestionKeyView.png)
-
-## پیکربندی
-
-می‌توانید از پیکربندی زیر برای فرستادن داده تله‌متری به کالکتور HTTP مربوط به OpenTelemetry در OneUptime استفاده کنید. این پیکربندی را می‌توانید به فایل پیکربندی fluentbit اضافه کنید. فایل پیکربندی معمولاً در `/etc/fluent-bit/fluent-bit.yaml` قرار دارد. بخش outputs فایل پیکربندی این‌گونه خواهد بود:
-
-```yaml
-outputs:
-  - name: stdout
-    match: "*"
-  - name: opentelemetry
-    match: "*"
-    host: "oneuptime.com"
-    port: 443
-    metrics_uri: "/otlp/v1/metrics"
-    logs_uri: "/otlp/v1/logs"
-    traces_uri: "/otlp/v1/traces"
-    tls: On
-    header:
-      - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```mermaid title="از Fluent Bit تا OneUptime"
+flowchart TB
+    sources["فایل‌ها، کانتینرها، syslog، HTTP"] --> inputs["ورودی‌های Fluent Bit"]
+    inputs --> envelope["پردازشگر opentelemetry_envelope"]
+    envelope --> name["content_modifier مقدار service.name را تنظیم می‌کند"]
+    name --> output["خروجی opentelemetry"]
+    output -->|"OTLP/HTTP + کلید دریافت داده"| oneuptime["OneUptime /otlp/v1/logs"]
+    oneuptime --> logs["لاگ‌ها"]
 ```
 
-مطمئن شوید که در بخش input خود opentelemetry_envelope را دارید. نمونه‌ای از بخش input:
+Fluent Bit هر رکورد را در یک پاکت OpenTelemetry می‌پیچد تا بتواند attributeهای منبع مانند `service.name` را با خود ببرد. سپس خروجی OpenTelemetry رکوردها را با کلید دریافت داده‌تان در سرآیند `x-oneuptime-token` به OneUptime می‌فرستد. OneUptime آن‌ها را زیر سرویسی که `service.name` نام می‌برد ثبت می‌کند و نخستین باری که داده‌ای برسد آن سرویس را می‌سازد.
 
-```yaml
+## پیش از شروع
+
+- **نصب Fluent Bit**: [راهنمای نصب](https://docs.fluentbit.io/manual/installation/getting-started-with-fluent-bit) را ببینید. پیکربندی این صفحه از قالب YAML در Fluent Bit و پردازشگر `opentelemetry_envelope` استفاده می‌کند، پس از یک نسخهٔ به‌روز استفاده کنید.
+- **یک پروژهٔ OneUptime.** در OneUptime Cloud هزینهٔ تله‌متری بر پایهٔ هر گیگابایت دریافت‌شده محاسبه می‌شود ([قیمت‌ها](https://oneuptime.com/pricing) را ببینید)، و پروژه‌ای که روی پلن Free است پیش از ارسال تله‌متری به یک روش پرداخت نیاز دارد.
+- **یک کلید دریافت دادهٔ تله‌متری.** اگر ندارید:
+
+:::steps
+### کلیدهای دریافت داده را باز کنید
+
+به **محصولات → تنظیمات پروژه** بروید، در منوی کناری **تله‌متری و APM** را باز کنید و **کلیدهای دریافت داده** را برگزینید.
+
+![صفحهٔ کلیدهای دریافت دادهٔ تله‌متری در تنظیمات پروژه](/docs/static/images/TelemetryIngestionKeys.png)
+
+### یک کلید بسازید
+
+روی **ساخت کلید دریافت داده** کلیک کنید. در پنجره، نام کلید از پیش پر شده و **سرور** انتخاب شده است، یعنی همان نوع کلیدی که برنامه‌ها و Collectorها با آن داده می‌فرستند؛ پس برای ساختن کلید روی **ساخت کلید دریافت داده** کلیک کنید، یا پیش از آن نامش را تغییر دهید.
+
+### کلید محرمانه را کپی کنید
+
+کلید تازه در صفحهٔ خودش باز می‌شود. **کلید محرمانه** آن را کپی کنید: این همان `YOUR_TELEMETRY_INGESTION_TOKEN` در پیکربندی زیر است.
+
+![صفحهٔ یک کلید دریافت دادهٔ تله‌متری که کلید محرمانه‌اش را نشان می‌دهد](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
+
+## پیکربندی Fluent Bit
+
+Fluent Bit پیکربندی YAML خود را از فایلی مانند `/etc/fluent-bit/fluent-bit.yaml` می‌خواند.
+
+:::steps
+### خروجی OpenTelemetry را اضافه کنید
+
+یک خروجی `opentelemetry` اضافه کنید که به OneUptime بفرستد. اگر می‌خواهید رکوردها را به‌صورت محلی ببینید، هنگام آزمایش خروجی `stdout` را نگه دارید:
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: stdout
+      match: "*"
+    - name: opentelemetry
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+### لاگ‌ها را در یک پاکت OpenTelemetry بپیچید و برای سرویس نام بگذارید
+
+به هر ورودی پردازشگر `opentelemetry_envelope` را اضافه کنید و پس از آن یک `content_modifier` بگذارید که `service.name` را تنظیم کند. به‌جای `YOUR_SERVICE_NAME` نامی را بنویسید که لاگ‌ها باید در OneUptime با آن نمایش داده شوند:
+
+```yaml title="fluent-bit.yaml"
 pipeline:
   inputs:
-    # Your inputs
+    - name: tail # or any other input
+      path: /var/log/my-app/*.log
 
-    processors:
-      logs:
-        - name: opentelemetry_envelope
+      processors:
+        logs:
+          - name: opentelemetry_envelope
 
-        - name: content_modifier
-          context: otel_resource_attributes
-          action: upsert
-          key: service.name
-          # Please replace YOUR_SERVICE_NAME with the name of your service
-          value: YOUR_SERVICE_NAME
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            value: YOUR_SERVICE_NAME
 ```
 
-نمونه فایل پیکربندی کامل:
+### Fluent Bit را دوباره راه‌اندازی کنید
 
-```yaml
+سرویس Fluent Bit را دوباره راه‌اندازی کنید، یا آن را با `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` اجرا کنید. در چند ثانیه لاگ‌ها در **محصولات → لاگ‌ها** نمایش داده می‌شوند و سرویس در **محصولات → سرویس‌ها** فهرست می‌شود.
+:::
+
+## نمونهٔ کامل
+
+این پیکربندی لاگ‌ها را از راه HTTP روی درگاه `8888` می‌گیرد و به OneUptime می‌فرستد:
+
+```yaml title="fluent-bit.yaml"
 service:
   flush: 1
   log_level: info
@@ -121,25 +138,53 @@ pipeline:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
 
-**اگر OneUptime را خودمیزبانی می‌کنید**: می‌توانید `host` را با میزبان نمونه OneUptime خود جایگزین کنید. اگر روی سرور http و نه https میزبانی می‌کنید، می‌توانید `port` را با پورت نمونه خود (احتمالاً پورت ۸۰) جایگزین کنید.
+به‌جای ورودی `http` ورودی‌هایی را بگذارید که لازم دارید، مانند `tail` برای فایل‌های لاگ یا `systemd` برای ژورنال، و دو پردازشگر را روی هرکدام نگه دارید.
 
-در این حالت پیکربندی این‌گونه خواهد بود:
+## OneUptime با میزبانی شخصی
 
-```yaml
-outputs:
-  - name: stdout
-    match: "*"
-  - name: opentelemetry
-    match: "*"
-    host: "your-oneuptime-instance.com"
-    port: 80
-    metrics_uri: "/otlp/v1/metrics"
-    logs_uri: "/otlp/v1/logs"
-    traces_uri: "/otlp/v1/traces"
-    header:
-      - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+`host` را روی میزبان نمونهٔ OneUptime خود تنظیم کنید. اگر آن را با HTTP ساده به‌جای HTTPS ارائه می‌کنید، `port` را هم روی درگاهی که به آن گوش می‌دهد بگذارید (معمولاً `80`) و `tls` را حذف کنید:
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: stdout
+      match: "*"
+    - name: opentelemetry
+      match: "*"
+      host: "your-oneuptime-instance.com"
+      port: 80
+      metrics_uri: "/otlp/v1/metrics"
+      logs_uri: "/otlp/v1/logs"
+      traces_uri: "/otlp/v1/traces"
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
 
-## استفاده
+## عیب‌یابی
 
-پس از افزودن پیکربندی به فایل پیکربندی fluentbit، می‌توانید سرویس fluentbit را راه‌اندازی مجدد کنید. پس از راه‌اندازی مجدد، داده تله‌متری به منبع HTTP OneUptime فرستاده می‌شود. اکنون می‌توانید داده تله‌متری را در داشبورد OneUptime ببینید. اگر پرسشی دارید یا برای پیکربندی به کمک نیاز دارید، با support@oneuptime.com تماس بگیرید
+:::details Fluent Bit از خروجی OpenTelemetry خطای `401` ثبت می‌کند
+کلید دریافت داده وجود ندارد، ناشناخته است یا منقضی شده است. خط `header` را بررسی کنید: نخست `x-oneuptime-token`، سپس یک فاصله، و بعد **کلید محرمانه** آن کلید.
+:::
+
+:::details Fluent Bit خطای `402` یا `422` ثبت می‌کند
+`402`: در OneUptime Cloud، پروژه روی پلن Free است و روش پرداخت ندارد. یکی در **تنظیمات پروژه → صورت‌حساب و فاکتورها → صورت‌حساب** اضافه کنید. `422`: کلید غیرفعال است، یا کلید مرورگر است. **فعال** را در تنظیمات کلید دوباره روشن کنید، یا یک کلید **سرور** بسازید.
+:::
+
+:::details لاگ‌ها زیر سرویسی نامنتظر می‌رسند
+سرویس از `service.name` می‌آید. بررسی کنید هر ورودی پردازشگر `opentelemetry_envelope` را داشته باشد و پس از آن `content_modifier` که آن را تنظیم می‌کند.
+:::
+
+:::details چیزی نمی‌رسد و Fluent Bit خطای اتصال ثبت می‌کند
+بررسی کنید که برای یک نقطهٔ پایانی HTTPS مقدارهای `tls: On` و `port: 443` تنظیم شده باشند، و میزبانی که Fluent Bit را اجرا می‌کند بتواند روی آن درگاه به میزبان OneUptime شما برسد.
+:::
+
+اگر پرسشی دارید یا برای پیکربندی به کمک نیاز دارید، به support@oneuptime.com ایمیل بزنید.
+
+## گام‌های بعدی
+
+:::cards
+- [خط‌های لوله لاگ](/docs/telemetry/log-pipelines): لاگ‌هایی را که Fluent Bit می‌فرستد تجزیه و غنی کنید.
+- [نحو جستجو](/docs/telemetry/search-syntax): لاگ‌ها را در کاوشگر لاگ پیدا کنید.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): نقطه‌های پایانی، کلیدها و محدودیت‌ها برای همهٔ تله‌متری.
+- [Fluentd](/docs/telemetry/fluentd): به‌جای آن از Fluentd استفاده کنید.
+:::

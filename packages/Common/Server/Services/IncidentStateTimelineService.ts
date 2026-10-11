@@ -50,6 +50,8 @@ import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -268,28 +270,24 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       }
 
       /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
+       * Where the incident may move, by the one rule every state timeline
+       * asks (Common/Utils/StateMove): not into the state it is in, not
+       * back up the project's list of states, and not into the state of the
+       * row after a back-dated one.
        */
-
-      if (
-        stateBeforeThis &&
-        stateBeforeThis.incidentStateId &&
-        incidentStateId
-      ) {
-        if (
-          stateBeforeThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.incidentState?.order) {
-        const newIncidentState: IncidentState | null =
-          await IncidentStateService.findOneBy({
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.Incident,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.incidentStateId,
+              name: stateBeforeThis.incidentState?.name,
+              order: stateBeforeThis.incidentState?.order,
+            }
+          : null,
+        newStateId: incidentStateId,
+        nextStateId: stateAfterThis?.incidentStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await IncidentStateService.findOneBy({
             query: {
               _id: incidentStateId,
             },
@@ -301,41 +299,12 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
               isRoot: true,
             },
           });
-
-        if (newIncidentState && newIncidentState.order) {
-          // check if the new incident state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.incidentState &&
-            stateBeforeThis.incidentState.order &&
-            newIncidentState.order <= stateBeforeThis.incidentState.order
-          ) {
-            throw new BadDataException(
-              `Incident cannot transition to ${newIncidentState.name} state from ${stateBeforeThis.incidentState.name} state because ${newIncidentState.name} is before ${stateBeforeThis.incidentState.name} in the order of incident states.`,
-            );
-          }
-        }
-      }
+        },
+      });
 
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
-        if (
-          stateAfterThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as next state.",
-          );
-        }
       }
 
       logger.debug("State After this", {

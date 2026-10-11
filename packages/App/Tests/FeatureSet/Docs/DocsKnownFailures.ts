@@ -391,9 +391,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "status-pages/one-status-page-per-audience": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "status-pages/public-api": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/subscribers": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -450,12 +447,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/fluentbit": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/fluentd": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/gemini-cli-and-copilot": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
@@ -491,9 +482,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/serilog": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/serverless-functions": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -505,9 +493,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/storage-arrays": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/syslog": {
-    sameShape: EVERY_TRANSLATION,
   },
   "telemetry/threat-intelligence": {
     codeLanguage: EN,
