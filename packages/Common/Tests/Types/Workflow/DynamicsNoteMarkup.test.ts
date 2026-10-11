@@ -418,10 +418,11 @@ const MARKUP_NOTES: Array<[string, string, string]> = [
 ];
 
 /*
- * Notes with an element whose content a browser never reads as markup - a
+ * Notes as an integration or an email writes HTML, and the text each is
+ * saved as: an element whose content a browser never reads as markup - a
  * script or a style, which it never shows, and a title or a textarea, which
- * hold text - and the text each is saved as. An email's HTML carries a
- * style; a note an integration wrote can carry any of them.
+ * hold text - references by number and by name, and source indented with
+ * spaces, which a browser never shows either.
  */
 const NAMED_ELEMENT_NOTES: Array<[string, string, string]> = [
   [
@@ -454,6 +455,16 @@ const NAMED_ELEMENT_NOTES: Array<[string, string, string]> = [
     "a script inside a comment or a value starts nothing",
     '<p title="<script>">x</p><!-- <style> -->y',
     "x\ny",
+  ],
+  [
+    "references by number and by name",
+    "<p>Don&rsquo;t restart&#160;yet &#8212; see &#x201C;runbook&#x201D;</p>",
+    "Don\u2019t restart yet \u2014 see \u201crunbook\u201d",
+  ],
+  [
+    "HTML written through the API with indented lines",
+    "<div>\n    <p>Restarted the pods.</p>\n    <p>Watching for errors.</p>\n</div>",
+    "Restarted the pods.\n\nWatching for errors.",
   ],
   [
     "a frame and what it holds",

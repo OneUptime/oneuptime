@@ -1639,9 +1639,8 @@ describe.each(KINDS)(
           caseRow({
             title:
               "<!channel> Checkout down ![x](https://tracker.example/x.png)",
-            // Plain text: it does not start with a tag (DynamicsCaseDescription.test.ts reads rich text).
             description:
-              "Steps: <img src=x onerror=alert(1)>\n```mermaid\ngraph TD; A-->B\n```\n[logo]: https://tracker.example/logo.png",
+              "<img src=x onerror=alert(1)>\n```mermaid\ngraph TD; A-->B\n```\n[logo]: https://tracker.example/logo.png",
             ticketnumber: "CAS-1](https://evil.example)",
             customerName: "<a href=https://evil.example>Contoso</a>",
           }),
@@ -1658,7 +1657,7 @@ describe.each(KINDS)(
           `Priority: [High]${J}(https://evil.example)`,
           `Customer: <${J}a href=https://evil.example>Contoso<${J}/a>`,
           "",
-          `Steps: <${J}img src=x onerror=alert(1)>`,
+          `<${J}img src=x onerror=alert(1)>`,
           `\`\`\`${J}mermaid`,
           "graph TD; A-->B",
           "```",

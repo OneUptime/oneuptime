@@ -478,29 +478,22 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
         } else {
           /*
            * A text element's content is read on its own, with no element in
-           * it, so nothing in it runs past its end tag, which comes next.
-           * Read as a browser reads "<", a run of "<" at its end is kept
-           * there, as text; it goes before the end tag, as before any
-           * markup, or it would meet what follows the end tag.
+           * it, so nothing in it runs past its end tag, which comes next. A
+           * run of "<" that ends it goes, as a run before any markup does:
+           * read as a browser reads "<", it would be kept as text and meet
+           * what follows the end tag; the default reading drops it anyway.
            */
-          const elementText: string = replaceHtmlMarkup(
-            html.slice(end, endTagAt),
-            replace,
-            { lessThanAsText: lessThanAsText },
-          );
           let textEnd: number = endTagAt;
 
-          while (
-            lessThanAsText &&
-            textEnd > end &&
-            html.charCodeAt(textEnd - 1) === LESS_THAN
-          ) {
+          while (textEnd > end && html.charCodeAt(textEnd - 1) === LESS_THAN) {
             textEnd--;
           }
 
           text +=
             replace(html.slice(open, end)) +
-            elementText.slice(0, elementText.length - (endTagAt - textEnd));
+            replaceHtmlMarkup(html.slice(end, textEnd), replace, {
+              lessThanAsText: lessThanAsText,
+            });
           index = endTagAt;
           continue;
         }

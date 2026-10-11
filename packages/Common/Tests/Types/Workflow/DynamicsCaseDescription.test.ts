@@ -506,6 +506,43 @@ const RICH_DESCRIPTIONS: Array<[string, string, string]> = [
     "\n\n   <p>Login fails on the mobile app.</p>",
     "Login fails on the mobile app.",
   ],
+  [
+    "an alert email whose HTML is indented, which would read as code",
+    [
+      "<html>",
+      "  <body>",
+      "    <table>",
+      "      <tr>",
+      "        <td>",
+      "          CPU at 98% on db-1",
+      "        </td>",
+      "      </tr>",
+      "      <tr>",
+      "        <td>",
+      "          Since 09:40 UTC",
+      "        </td>",
+      "      </tr>",
+      "    </table>",
+      "  </body>",
+      "</html>",
+    ].join("\n"),
+    "CPU at 98% on db-1\n\nSince 09:40 UTC",
+  ],
+  [
+    "a space the editor wrote as &nbsp; at the start of a line, which stays",
+    richText("<p>Steps:<br>&nbsp;&nbsp;1. Restart<br>&nbsp;&nbsp;2. Retry</p>"),
+    "Steps:\n  1. Restart\n  2. Retry",
+  ],
+  [
+    "references an email writes, by number and by name",
+    "<div>Don&rsquo;t restart&#160;yet &mdash; see &#8220;runbook&#8221; &#x2192; step&nbsp;2 &copy; ACME&trade;</div>",
+    "Don\u2019t restart yet \u2014 see \u201crunbook\u201d \u2192 step 2 \u00a9 ACME\u2122",
+  ],
+  [
+    "references that are no character, and a control character",
+    "<p>a&#0;b&#xD800;c&#1114112;d&#1;e&unknown;f&amp;rsquo;</p>",
+    "a\ufffdb\ufffdc\ufffdde&unknown;f&rsquo;",
+  ],
 ];
 
 /*
@@ -549,6 +586,13 @@ const TYPED_MARKUP: Array<[string, string, string]> = [
     "entities typed as text",
     richText("<p>&amp;lt;b&amp;gt; stays text</p>"),
     "&lt;b&gt; stays text",
+  ],
+  [
+    "markup written as numeric references",
+    richText(
+      "<p>&#60;img src=x onerror=alert(1)&#62; and &#x3C;!channel&#x3E;</p>",
+    ),
+    `<${J}img src=x onerror=alert(1)> and <${J}!channel>`,
   ],
 ];
 
@@ -615,6 +659,47 @@ const PLAIN_DESCRIPTIONS: Array<[string, string, string]> = [
     `<${J}o:p> is what Outlook writes`,
   ],
   [
+    "a name in brackets first",
+    "<Jane Doe> cannot log in since 9am",
+    `<${J}Jane Doe> cannot log in since 9am`,
+  ],
+  ["a placeholder", "<none>", `<${J}none>`],
+  [
+    "a redaction first",
+    "<REDACTED> asked for a call back",
+    `<${J}REDACTED> asked for a call back`,
+  ],
+  [
+    "words in brackets first",
+    "<a lot of errors> since the deploy",
+    `<${J}a lot of errors> since the deploy`,
+  ],
+  [
+    "bold typed into a plain-text column",
+    "<b>Urgent</b>: checkout is down",
+    `<${J}b>Urgent<${J}/b>: checkout is down`,
+  ],
+  [
+    "an image typed first",
+    "<img src=x onerror=alert(1)> showed up on the page",
+    `<${J}img src=x onerror=alert(1)> showed up on the page`,
+  ],
+  [
+    "a measurement in brackets",
+    "<p99 latency> is above 2 s",
+    `<${J}p99 latency> is above 2 s`,
+  ],
+  [
+    "an element's name first, with no tag after it",
+    "<div unfinished thought",
+    `<${J}div unfinished thought`,
+  ],
+  [
+    "a numeric reference in plain text, which stays as written",
+    "Use &#60; for less-than",
+    "Use &#60; for less-than",
+  ],
+  [
     "white space and blank lines around it",
     "\n\n  Login fails.  \n\n",
     "Login fails.",
@@ -624,6 +709,77 @@ const PLAIN_DESCRIPTIONS: Array<[string, string, string]> = [
     "line one\u0001\nline two\ttabbed\r\nline three",
     "line one\nline two\ttabbed\nline three",
   ],
+];
+
+/*
+ * How a description starts decides how it is read: with a tag an editor or
+ * an email starts with, a comment, a document type or an XML declaration,
+ * it is HTML. Each of these is followed by "<p>Text</p>".
+ */
+const RICH_STARTS: Array<string> = [
+  "<div>",
+  '<div class="ck-content" data-wrapper="true">',
+  "<p>",
+  "<html>",
+  '<HTML lang="en">',
+  "<head>",
+  "<body>",
+  '<meta charset="utf-8">',
+  "<title>",
+  "<style>p{}</style>",
+  "<link rel=stylesheet>",
+  "<base href=x>",
+  "<span>",
+  '<font face="Arial">',
+  "<center>",
+  "<table>",
+  "<ul>",
+  "<ol>",
+  "<dl>",
+  "<h1>",
+  "<H6>",
+  "<br>",
+  "<br/>",
+  "<hr>",
+  "<pre>",
+  "<blockquote>",
+  "<figure>",
+  "<section>",
+  "<article>",
+  "<header>",
+  "<footer>",
+  "<main>",
+  "<nav>",
+  "<address>",
+  "<form>",
+  "<!DOCTYPE html>",
+  "<!doctype html>",
+  "<!-- converted -->",
+  '<?xml version="1.0"?>',
+  "  \n<div>",
+];
+
+// Starts of plain text, which a "<" begins: each is followed by " <p>Text</p>".
+const PLAIN_STARTS: Array<string> = [
+  "<Jane Doe>",
+  "<none>",
+  "<a lot>",
+  "<b>",
+  "<i>",
+  "<img>",
+  "<o:p>",
+  "<x-custom>",
+  "<divider>",
+  "<p99>",
+  "<!channel>",
+  "<!here>",
+  "<@U0123ABC>",
+  "<#C0123ABC>",
+  "<3",
+  "< ",
+  "<https://status.example.com>",
+  "<jane@contoso.com>",
+  "<?php",
 ];
 
 /* -------------------------------- The scripts -------------------------------- */
@@ -772,6 +928,15 @@ describe.each(KINDS)(
       },
     );
 
+    test.each(RICH_STARTS)(
+      "a description that starts with %s is read as rich text",
+      async (start: string) => {
+        const record: JSONObject = await recordFor(kind, `${start}<p>Text</p>`);
+
+        expect(descriptionPartOf(kind, record)).toBe("Text");
+      },
+    );
+
     test("a description that is nothing but markup adds nothing to the record's description", async () => {
       for (const html of [
         richText(""),
@@ -812,6 +977,18 @@ describe.each(KINDS)(
           FeedMarkdown.reportedValue(
             cleanedAsTheScriptDoes(description).trim(),
           ),
+        );
+      },
+    );
+
+    test.each(PLAIN_STARTS)(
+      "a description that starts with %s is plain text, written as before",
+      async (start: string) => {
+        const description: string = `${start} <p>Text</p>`;
+        const record: JSONObject = await recordFor(kind, description);
+
+        expect(descriptionPartOf(kind, record)).toBe(
+          FeedMarkdown.reportedValue(description),
         );
       },
     );

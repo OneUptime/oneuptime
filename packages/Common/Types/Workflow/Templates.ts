@@ -4655,11 +4655,10 @@ const replaceMarkup = (html, replace, isElementText) => {
         } else if (hidden) {
           end = elementEnd + 1;
         } else {
-          // A run of "<" that ends the element's text goes before its end tag, as before any markup.
+          // A run of "<" that ends the element's text goes, as a run before any markup does.
           let textEnd = endTagAt;
           while (textEnd > end && html.charAt(textEnd - 1) === '<') textEnd--;
-          const elementText = replaceMarkup(html.slice(end, endTagAt), replace, true);
-          text += replace(html.slice(open, end)) + elementText.slice(0, elementText.length - (endTagAt - textEnd));
+          text += replace(html.slice(open, end)) + replaceMarkup(html.slice(end, textEnd), replace, true);
           at = endTagAt;
           continue;
         }
@@ -4679,14 +4678,34 @@ const hasTag = (text) => {
   const start = text.search(TAG_START);
   return start !== -1 && text.indexOf('>', start + 2) !== -1;
 };
+// The characters editors and emails most often write by name, other than the five above.
+const NAMED_CHARACTERS = {
+  rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026',
+  bull: '\u2022', middot: '\u00b7', copy: '\u00a9', reg: '\u00ae', trade: '\u2122', euro: '\u20ac', pound: '\u00a3',
+  deg: '\u00b0', times: '\u00d7',
+};
+// A character written as its number: a no-break space as a space, as &nbsp; is, and one that is not
+// a character - 0, half of a pair, past the last - as the replacement character, as a browser
+// shows it.
+const numberedCharacter = (code) => (code === 160 ? ' ' : code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd');
 const readEntities = (text) => text
   .replace(/&nbsp;/gi, ' ')
   .replace(/&lt;/gi, '<')
   .replace(/&gt;/gi, '>')
   .replace(/&quot;/gi, '"')
   .replace(/&#39;|&apos;/gi, "'")
+  .replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (reference, hex, decimal) => numberedCharacter(hex ? parseInt(hex, 16) : parseInt(decimal, 10)))
+  .replace(/&([a-z]{3,6});/g, (reference, name) => (Object.prototype.hasOwnProperty.call(NAMED_CHARACTERS, name) ? NAMED_CHARACTERS[name] : reference))
   // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
   .replace(/&amp;/gi, '&');
+// The spaces and tabs the HTML's own source starts a line with, which a browser never shows: email
+// HTML is often indented, and four spaces start a code block in Markdown. Taken out before entities
+// are read, so a space written as &nbsp; stays.
+const withoutIndent = (text) => text.split('\n').map((line) => {
+  let start = 0;
+  while (start < line.length && (line.charAt(start) === ' ' || line.charAt(start) === '\t')) start++;
+  return line.slice(start);
+}).join('\n');
 // The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
 // and indexOf rather than patterns with quantifiers, which a long text is not read with.
 const tidyLines = (text) => {
@@ -4713,7 +4732,7 @@ const htmlToText = (value) => {
   const text = asText(value);
   // Plain text: nothing in it is markup, and only its entities are read.
   if (!hasTag(text)) return readEntities(text);
-  return tidyLines(readEntities(replaceMarkup(text, markupAsText)));
+  return tidyLines(readEntities(withoutIndent(replaceMarkup(text, markupAsText))));
 };
 `;
 
@@ -4784,10 +4803,11 @@ if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
 const customer = formatted(row, '_customerid_value');
 if (customer) lines.push('Customer: ' + asWritten(customer));
 // A description written in the rich-text editor, or that an email became, is HTML from its first
-// character - a tag such as <div> or <p>, a comment, a document type or an XML declaration - and
-// is read as the text it shows (htmlToText). Any other description is plain text, kept exactly as
-// it was written: a "<" in it too, as in "From: Jane Doe <jane@contoso.com>".
-const RICH_TEXT_START = /^<(?:[a-z][a-z0-9]*[\s\/>]|!--|!doctype[\s>]|\?xml\s)/i;
+// character: a tag an editor or an email starts with - <div>, <p>, <html>, <table> and the like - a
+// comment, a document type or an XML declaration. It is read as the text it shows (htmlToText). Any
+// other description is plain text, kept exactly as it was written, a "<" in it too: "From: Jane Doe
+// <jane@contoso.com>", "<none>", "<b>urgent</b>" typed into a plain-text column.
+const RICH_TEXT_START = /^<(?:(?:html|head|body|meta|title|style|link|base|div|p|span|font|center|table|ul|ol|dl|h[1-6]|br|hr|pre|blockquote|figure|section|article|header|footer|main|nav|address|form)[\s\/>]|!--|!doctype[\s>]|\?xml\s)/i;
 const writtenDescription = clean(row.description);
 const isRichText = RICH_TEXT_START.test(writtenDescription.trimStart().slice(0, 16)) && hasTag(writtenDescription);
 const description = (isRichText ? clean(htmlToText(writtenDescription)) : writtenDescription).trim();

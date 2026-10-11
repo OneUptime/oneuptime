@@ -173,7 +173,16 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             "return { htmlToText: htmlToText, asWritten: asWritten };",
         )({});
 
-        const notes = SHAPES.map(([shape, text]) => {
+        // What else the Dynamics 365 reading reads: references by number and by name, and indentation.
+        const READING_SHAPES = [
+          ...SHAPES,
+          ["numeric references", "<p>" + repeatTo("&#8212;&#x2019;") + "</p>"],
+          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
+          ["named references", "<p>" + repeatTo("&rsquo;&bogus;") + "</p>"],
+          ["indented lines", "<div>" + repeatTo("\n        x") + "</div>"],
+        ];
+
+        const notes = READING_SHAPES.map(([shape, text]) => {
           return {
             shape,
             read: attempt(() => {
@@ -200,7 +209,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             "return asWritten(description);\n};",
         )({});
 
-        const descriptions = SHAPES.flatMap(([shape, text]) => {
+        const descriptions = READING_SHAPES.flatMap(([shape, text]) => {
           return [
             { shape: shape + ", as rich text", read: attempt(() => readDescription("<div>" + text)) },
             { shape: shape + ", as plain text", read: attempt(() => readDescription(text)) },
@@ -323,8 +332,8 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     });
 
     expect(report.answers).toHaveLength(10);
-    expect(report.notes).toHaveLength(10);
-    expect(report.descriptions).toHaveLength(20);
+    expect(report.notes).toHaveLength(14);
+    expect(report.descriptions).toHaveLength(28);
 
     for (const { shape, read } of [
       ...report.answers,
