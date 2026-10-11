@@ -97,7 +97,7 @@ const NAMED_REFERENCES: Record<string, string> = {
   nbsp: " ",
 };
 
-// The last code point Unicode has; a reference past it decodes to nothing.
+// The last code point Unicode has; a reference past it is left as written.
 const LAST_CODE_POINT: number = 0x10ffff;
 
 /**
