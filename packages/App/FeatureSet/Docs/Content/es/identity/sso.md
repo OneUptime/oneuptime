@@ -1,305 +1,363 @@
-# SSO (inicio de sesión único)
+# SSO
 
-OneUptime admite el inicio de sesión único (SSO) basado en SAML 2.0 para la autenticación empresarial. SSO permite que los miembros de tu equipo inicien sesión en OneUptime usando las credenciales de la organización, lo que proporciona una gestión de acceso centralizada y mayor seguridad.
+El inicio de sesión único (SSO) permite que las personas de tu proyecto inicien sesión en OneUptime con el proveedor de identidad (IdP) de tu organización, mediante SAML 2.0 u OpenID Connect. Gestionas el acceso, las contraseñas y la autenticación multifactor en un solo lugar, y puedes exigir SSO a todos los miembros del proyecto.
 
-> **Edición:** SSO, incluido «Require SSO for login», forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible en el plan **Scale** y superiores. Consulta [Enterprise Edition](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
+> [!NOTE]
+> **Edición:** el SSO, incluido "Require SSO for login", forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible a partir del plan **Scale**. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
 
-## Información general
+:::cards
+- [Configurar un proveedor SAML](#configurar-sso): Crearlo en OneUptime y dar dos URL a tu IdP.
+- [Guías de proveedores de identidad](#guías-de-proveedores-de-identidad): Keycloak, Microsoft Entra ID y Okta, paso a paso.
+- [OpenID Connect](#openid-connect-oidc): Iniciar sesión mediante una aplicación OIDC.
+- [Exigir SSO](#exigir-sso-en-tu-proyecto): Hacer del SSO la única forma de entrar en el proyecto.
+:::
 
-La integración SSO proporciona los siguientes beneficios:
+## Cómo funciona el inicio de sesión SAML
 
-- **Autenticación centralizada**: Los usuarios inician sesión con sus credenciales corporativas existentes
-- **Mayor seguridad**: Aprovecha la autenticación de múltiples factores y las políticas de seguridad de tu IdP
-- **Gestión simplificada de usuarios**: Gestiona el acceso desde tu sistema de gestión de identidades existente
-- **Reducción de la fatiga de contraseñas**: Los usuarios no necesitan recordar una contraseña separada de OneUptime
+Un proveedor SAML conecta un proyecto con una aplicación de tu proveedor de identidad. Quien inicia sesión elige el proyecto en la página **Iniciar sesión con SSO** de OneUptime, inicia sesión en tu IdP y vuelve con la sesión iniciada.
 
-## Configuración de SSO
+```mermaid title="El inicio de sesión SAML, paso a paso"
+sequenceDiagram
+    actor U as Persona
+    participant O as OneUptime
+    participant I as Proveedor de identidad
+    U->>O: Iniciar sesión con SSO, elegir el proyecto
+    O->>I: Solicitud SAML a la URL de inicio de sesión
+    I->>U: Página de inicio de sesión
+    U->>I: Credenciales y MFA
+    I->>O: Aserción firmada a la URL de respuesta
+    Note over O: Comprueba la firma y el emisor,<br/>lee el correo del Name ID
+    O->>U: Sesión iniciada en el proyecto
+```
 
-1. **Navegar a la configuración del proyecto**
+OneUptime solo lee unas pocas cosas de la aserción que envía tu IdP:
 
-   - Ve a tu proyecto de OneUptime
-   - Navega a **Ajustes del proyecto** > **Seguridad** > **SSO**
+| De la aserción | Qué hace OneUptime con ello |
+| --- | --- |
+| Firma | La comprueba con el **Certificado público** del proveedor. La respuesta debe estar firmada y no debe estar cifrada. |
+| Issuer | Debe coincidir exactamente con el **Emisor** del proveedor. |
+| Name ID | La dirección de correo de la persona. Debe ser una dirección de correo válida. |
+| `http://schemas.microsoft.com/identity/claims/displayname` | El nombre de la persona, que se usa cuando OneUptime crea su cuenta. Opcional. |
 
-2. **Crear la configuración SSO**
+Quienes inician sesión por primera vez se unen a los **Equipos** del proveedor, que deciden lo que pueden hacer: consulta [Roles y equipos de los usuarios de SSO](#roles-y-equipos-de-los-usuarios-de-sso).
+
+> [!NOTE]
+> En OneUptime Cloud, la primera vez que alguien inicia sesión en el proyecto con uno de sus proveedores SAML u OIDC, OneUptime le envía un enlace por correo en lugar de iniciar su sesión. La persona lo abre, confirma que el inicio de sesión único del proyecto puede iniciar su sesión y continúa. El enlace es válido durante 24 horas. Esto ocurre una vez por proyecto, y de nuevo si la persona deja el proyecto y vuelve. Las instalaciones autoalojadas inician la sesión de inmediato.
+
+## Configurar SSO
+
+Necesitas permiso para añadir proveedores de SSO — **Project Owner**, **Project Admin** o **Create Project SSO** — y, en OneUptime Cloud, el plan **Scale**. Para la parte de tu proveedor de identidad, consulta las [guías de proveedores de identidad](#guías-de-proveedores-de-identidad).
+
+:::steps
+1. **Ir a los ajustes del proyecto**
+
+   - Abre tu proyecto de OneUptime
+   - Ve a **Ajustes del proyecto** > **Seguridad** > **SSO**
+
+2. **Crear la configuración de SSO**
 
    - Haz clic en **Crear SSO**
-   - Ingresa un **Nombre** para la configuración SSO (por ejemplo, "Keycloak SAML" o "Okta SAML")
-   - Ingresa la **URL de inicio de sesión** de tu proveedor de identidad
-   - Ingresa el **Emisor** (ID de entidad) de tu proveedor de identidad
+   - Introduce un **Nombre** para la configuración de SSO (por ejemplo, "Keycloak SAML" u "Okta SAML")
+   - Introduce la **URL de inicio de sesión** de tu proveedor de identidad
+   - Introduce el **Emisor** (Entity ID) de tu proveedor de identidad
    - Pega el **Certificado público** de tu proveedor de identidad
-   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: las personas que inician sesión por primera vez se unen a estos equipos. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**
-   - Todo lo demás se rellena en **Más campos**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor de identidad lo necesita
+   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Solo se aceptan equipos a los que tú podrías invitar a alguien: un equipo que da más acceso del que tienes se indica en **Equipos**
+   - Todo lo demás ya está completado en **Más campos**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción ("Sign in with" y el nombre). Cámbialos solo si tu proveedor de identidad lo requiere
 
-3. **Obtener los metadatos SSO de OneUptime**
-   - Al guardar se abre el diálogo **Configuración de SSO**. Puedes volver a abrirlo con el botón **Ver configuración SSO**
-   - Copia el **Identificador (ID de entidad)**: es necesario en la configuración de tu IdP
-   - Copia la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: es necesaria en la configuración de tu IdP
-   - Un proveedor nuevo empieza deshabilitado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
+3. **Obtener los metadatos de SSO de OneUptime**
+   - Al guardar se abre el cuadro de diálogo **Configuración de SSO**. Puedes volver a abrirlo con el botón **Ver configuración SSO**
+   - Copia el **Identificador (Entity ID)**, como `https://oneuptime.com/<project-id>/<provider-id>`; lo necesitas en la configuración de tu IdP
+   - Copia la **URL de respuesta (URL del Assertion Consumer Service)**, como `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>`; la necesitas en la configuración de tu IdP
+   - Un proveedor nuevo empieza desactivado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
 
-## Configuración SAML de Keycloak
+4. **Probar el proveedor**
+   - Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor en la página que se abre. Se te redirige a la página de inicio de sesión de tu proveedor de identidad y vuelves a OneUptime con la sesión iniciada
+   - Cuando funcione, puedes [exigir SSO](#exigir-sso-en-tu-proyecto) en el proyecto
+:::
 
-Keycloak es una popular solución de código abierto para gestión de identidades y accesos. Sigue estos pasos para configurar Keycloak como proveedor de identidad SAML para OneUptime.
+## Guías de proveedores de identidad
 
-### Prerrequisitos
+Elige tu proveedor de identidad. Cada guía obtiene los valores del IdP, crea el proveedor en OneUptime y luego da al IdP el **Identificador (Entity ID)** y la **URL de respuesta** de OneUptime.
 
-- Una instancia de Keycloak en ejecución con un dominio configurado
-- Acceso de administrador tanto a Keycloak como a OneUptime
-- Cuenta de OneUptime con soporte SSO
+:::tabs
+@tab Keycloak
+Keycloak es una solución de código abierto muy extendida para la gestión de identidades y accesos. Necesitas una instancia de Keycloak en funcionamiento con un realm, y acceso de administrador a Keycloak y a OneUptime.
 
-### Paso 1: Configurar SSO en OneUptime
+:::steps
+1. **Reunir los valores de tu realm**
 
-1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Ajustes del proyecto** > **Seguridad** > **SSO**
-3. Haz clic en **Crear SSO** y completa lo siguiente:
-   - **Nombre**: Un nombre descriptivo (por ejemplo, `my-project-oneuptime`)
    - **URL de inicio de sesión**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Emisor**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
-   - **Certificado**: Consulta el [Paso 2](#paso-2-obtener-el-certificado-de-keycloak) a continuación
-   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
-4. Guarda la configuración
+   - **Certificado**: el certificado de firma del realm. Abre `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml/descriptor` y copia el valor de `X509Certificate`, o abre **Realm settings** > **Keys** y haz clic en **Certificate** en la clave RS256
 
-### Paso 2: Obtener el certificado de Keycloak
+   Keycloak 17 y versiones posteriores sirven estas URL sin el prefijo `/auth`. Pon el certificado entre sus propias líneas, así:
 
-1. En Keycloak, navega a la configuración de tu cliente
-2. Haz clic en **Exportar** (o ve a la pestaña **Claves** según tu versión de Keycloak)
-3. En el archivo JSON exportado, encuentra la clave con `certificate` en el nombre
-4. Copia el valor del certificado y pégalo en OneUptime en el siguiente formato:
+   ```text
+   -----BEGIN CERTIFICATE-----
+   MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
+   -----END CERTIFICATE-----
+   ```
 
-```
------BEGIN CERTIFICATE-----
-MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
------END CERTIFICATE-----
-```
+2. **Crear el proveedor en OneUptime**
 
-### Paso 3: Configurar el cliente de Keycloak
+   Ve a **Ajustes del proyecto** > **Seguridad** > **SSO**, haz clic en **Crear SSO** y completa:
+   - **Nombre**: un nombre descriptivo (por ejemplo, `my-project-oneuptime`)
+   - **URL de inicio de sesión** y **Emisor**: los valores de arriba
+   - **Certificado público**: el certificado, entre sus propias líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`
+   - **Método de firma** y **Método de resumen**: ya definidos en **Más campos** (`RSA-SHA256` y `SHA256`)
 
-1. En Keycloak, navega a **Clientes** en tu dominio
-2. Crea un nuevo cliente o edita uno existente
-3. Establece el **Protocolo del cliente** en `saml`
-4. Establece el **ID de cliente** en el valor del **Identificador (ID de entidad)** de la **Vista de configuración SSO** de OneUptime
-5. Establece las **URIs de redirección válidas** en tu URL de OneUptime
-6. Establece la **URL raíz** en la URL base de OneUptime
-7. Pega la **URL de respuesta (URL del Servicio de consumidor de aserciones)** de OneUptime en el campo **URL de enlace POST del Servicio de consumidor de aserciones**
+   Guarda y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo que se abre.
 
-### Paso 4: Configurar los ajustes del cliente de Keycloak
+3. **Crear el cliente de Keycloak**
 
-1. Deshabilita la **Configuración de claves de firma** (en la pestaña Claves)
-2. Establece el **Formato del ID de nombre** en `email`
-3. Asegúrate de que la opción **Forzar formato de ID de nombre** esté habilitada para que Keycloak siempre envíe el correo electrónico como ID de nombre
+   En Keycloak, abre **Clients** en tu realm y crea un cliente, o edita uno existente:
+   - **Client Protocol** (tipo de cliente): `saml`
+   - **Client ID**: el **Identificador (Entity ID)** de OneUptime
+   - **Root URL** y **Valid Redirect URIs**: tu URL de OneUptime
+   - **Assertion Consumer Service POST Binding URL**: la **URL de respuesta (URL del Assertion Consumer Service)** de OneUptime
 
-### Paso 5: Verificar la configuración
+4. **Ajustar la configuración del cliente**
 
-1. Guarda todos los ajustes tanto en Keycloak como en OneUptime
-2. Intenta iniciar sesión en OneUptime usando SSO
-3. Deberías ser redirigido a la página de inicio de sesión de Keycloak y de vuelta a OneUptime tras la autenticación exitosa
+   - Establece **Name ID Format** en `email` y activa **Force Name ID Format**, para que Keycloak envíe siempre el correo como Name ID
+   - En la pestaña **Keys** del cliente, desactiva **Client signature required** (en **Signing keys config**): OneUptime no firma sus solicitudes
 
-### Solución de problemas con Keycloak
+5. **Activar el proveedor y probarlo**
 
-- **Error de firma al iniciar sesión**: Asegúrate de que el certificado se haya copiado correctamente, incluyendo las líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`
-- **Error de ID de nombre**: Verifica que el **Formato del ID de nombre** esté establecido en `email` en Keycloak
-- **Bucle de redirección**: Comprueba que las **URI de redirección válidas** y la **URL de enlace POST del Servicio de consumidor de aserciones** estén configuradas correctamente
-- **Certificado no encontrado**: Asegúrate de estar exportando desde el cliente correcto en el dominio correcto
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Keycloak y volver a OneUptime.
+:::
+@tab Microsoft Entra ID
+Microsoft Entra ID (antes Azure AD / Active Directory) es el servicio de identidad en la nube de Microsoft. Necesitas un tenant que admita aplicaciones empresariales con SSO SAML, y acceso de administrador a Entra ID y a OneUptime.
 
----
+:::steps
+1. **Crear una aplicación empresarial en Entra ID**
 
-## Configuración SAML de Microsoft Entra ID (anteriormente Azure AD / Active Directory)
+   - Inicia sesión en el [Microsoft Entra admin center](https://entra.microsoft.com)
+   - Ve a **Identity** > **Applications** > **Enterprise applications**, haz clic en **+ New application** y luego en **+ Create your own application**
+   - Introduce un nombre (por ejemplo, "OneUptime"), selecciona **Integrate any other application you don't find in the gallery (Non-gallery)** y haz clic en **Create**
 
-Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nube de Microsoft. Sigue estos pasos para configurar Entra ID como proveedor de identidad SAML para OneUptime.
+2. **Copiar los valores SAML de Entra ID**
 
-### Prerrequisitos
+   - En la aplicación, ve a **Single sign-on** y selecciona **SAML**
+   - En **SAML Certificates**, descarga el **Certificate (Base64)**, abre el archivo en un editor de texto y copia su contenido
+   - En **Set up OneUptime**, copia la **Login URL** y el **Microsoft Entra Identifier** (**Azure AD Identifier** en tenants antiguos)
 
-- Inquilino de Microsoft Entra ID (cualquier nivel que admita aplicaciones empresariales con SSO SAML)
-- Acceso de administrador tanto a Microsoft Entra ID como a OneUptime
-- Cuenta de OneUptime con soporte SSO
+3. **Crear el proveedor en OneUptime**
 
-### Paso 1: Configurar SSO en OneUptime
+   Ve a **Ajustes del proyecto** > **Seguridad** > **SSO**, haz clic en **Crear SSO** y completa:
+   - **Nombre**: un nombre descriptivo (por ejemplo, `Azure AD SAML`)
+   - **URL de inicio de sesión**: la **Login URL**
+   - **Emisor**: el **Microsoft Entra Identifier**
+   - **Certificado público**: el certificado Base64, incluidas las líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`
+   - **Método de firma** y **Método de resumen**: ya definidos en **Más campos** (`RSA-SHA256` y `SHA256`)
 
-1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Ajustes del proyecto** > **Seguridad** > **SSO**
-3. Haz clic en **Crear SSO** y completa lo siguiente:
-   - **Nombre**: Un nombre descriptivo (por ejemplo, `Azure AD SAML`)
-   - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
-   - **Emisor**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
-   - **Certificado**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
-   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
-4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Entra ID
+   Guarda y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo que se abre.
 
-### Paso 2: Crear una aplicación empresarial en Microsoft Entra ID
+4. **Dar a Entra ID las URL de OneUptime**
 
-1. Inicia sesión en el [centro de administración de Microsoft Entra](https://entra.microsoft.com)
-2. Navega a **Identidad** > **Aplicaciones** > **Aplicaciones empresariales**
-3. Haz clic en **+ Nueva aplicación**
-4. Haz clic en **+ Crear tu propia aplicación**
-5. Ingresa un nombre (por ejemplo, "OneUptime")
-6. Selecciona **Integrar cualquier otra aplicación que no encuentres en la galería (no de galería)**
-7. Haz clic en **Crear**
+   En **Basic SAML Configuration**, haz clic en **Edit** y establece:
+   - **Identifier (Entity ID)**: el **Identificador (Entity ID)** de OneUptime
+   - **Reply URL (Assertion Consumer Service URL)**: la **URL de respuesta** de OneUptime
 
-### Paso 3: Configurar SSO SAML en Entra ID
+   Haz clic en **Save**.
 
-1. En tu nueva aplicación empresarial, ve a **Inicio de sesión único**
-2. Selecciona **SAML** como método de inicio de sesión único
-3. En **Configuración básica de SAML**, haz clic en **Editar** y establece:
-   - **Identificador (ID de entidad)**: Pega el **Identificador (ID de entidad)** de la **Vista de configuración SSO** de OneUptime
-   - **URL de respuesta (URL del Servicio de consumidor de aserciones)**: Pega la **URL de respuesta** de la **Vista de configuración SSO** de OneUptime
-4. Haz clic en **Guardar**
-5. En la sección **Certificados SAML**:
-   - Descarga el **Certificado (Base64)**
-   - Abre el archivo de certificado descargado en un editor de texto y copia el contenido
-6. En la sección **Configurar OneUptime**, copia:
-   - **URL de inicio de sesión**: pégala como la **URL de inicio de sesión** en OneUptime
-   - **Identificador de Azure AD**: pégalo como el **Emisor** en OneUptime
-7. Vuelve a OneUptime y pega el certificado y las URL, luego guarda
+5. **Enviar el correo como Name ID**
 
-### Paso 4: Configurar atributos de usuario y notificaciones
+   En **Attributes & Claims**, haz clic en **Edit**:
+   - Establece **Unique User Identifier (Name ID)** en la dirección de correo del usuario: `user.mail`, o `user.userprincipalname` cuando esa sea la dirección de correo
+   - Establece el **Name identifier format** en `Email address`
+   - Opcionalmente, añade una notificación llamada `http://schemas.microsoft.com/identity/claims/displayname` con el atributo de origen `user.displayname`, para que las cuentas nuevas reciban el nombre de la persona. OneUptime ignora las demás notificaciones
 
-1. En la página de configuración SAML, haz clic en **Editar** en **Atributos y notificaciones**
-2. Asegúrate de que las siguientes notificaciones estén configuradas:
+6. **Asignar usuarios y grupos**
 
-| Nombre de la notificación                                            | Valor                                  |
-| -------------------------------------------------------------------- | -------------------------------------- |
-| `Unique User Identifier (Name ID)`                                   | `user.userprincipalname` o `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | `user.mail`                            |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                       |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                         |
+   En **Users and groups** de la aplicación, haz clic en **+ Add user/group**, selecciona los usuarios y grupos que tendrán acceso por SSO y haz clic en **Assign**.
 
-3. Establece el **Formato del identificador de nombre** en `Email address`
-4. Haz clic en **Guardar**
+7. **Activar el proveedor y probarlo**
 
-### Paso 5: Asignar usuarios y grupos
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Microsoft y volver a OneUptime.
+:::
+@tab Okta
+Okta es una plataforma de identidad muy utilizada con SSO SAML. Necesitas una organización de Okta con acceso de administrador, y acceso de administrador a OneUptime.
 
-1. En tu aplicación empresarial, ve a **Usuarios y grupos**
-2. Haz clic en **+ Agregar usuario/grupo**
-3. Selecciona los usuarios y/o grupos a los que deseas conceder acceso SSO
-4. Haz clic en **Asignar**
+:::steps
+1. **Crear una aplicación SAML en Okta**
 
-### Paso 6: Verificar la configuración
+   - En la Okta Admin Console, ve a **Applications** > **Applications** y haz clic en **Create App Integration**
+   - Selecciona **SAML 2.0** y haz clic en **Next**, introduce "OneUptime" como **App name** y haz clic en **Next**
+   - Okta pide las URL de OneUptime antes de mostrar las suyas. Por ahora, introduce tu dirección de OneUptime (por ejemplo `https://oneuptime.com`) como **Single sign-on URL** y como **Audience URI (SP Entity ID)**: las sustituirás en el paso 4
+   - Establece **Name ID format** en `EmailAddress` y **Application username** en `Email`
+   - Haz clic en **Next**, selecciona **I'm an Okta customer adding an internal app** y haz clic en **Finish**
 
-1. Guarda todos los ajustes tanto en Entra ID como en OneUptime
-2. Intenta iniciar sesión en OneUptime usando SSO
-3. Deberías ser redirigido a la página de inicio de sesión de Microsoft y de vuelta a OneUptime tras la autenticación exitosa
+2. **Copiar los valores SAML de Okta**
 
-### Solución de problemas con Microsoft Entra ID
+   En la pestaña **Sign On** de la aplicación, en **SAML Signing Certificates**, busca el certificado activo:
+   - Haz clic en **Actions** > **View IdP metadata** y copia la **URL de inicio de sesión** (Identity Provider Single Sign-On URL) y el **Emisor** (Identity Provider Issuer)
+   - Haz clic en **Actions** > **Download certificate**, abre el archivo `.cert` en un editor de texto y copia su contenido
 
-- **Error AADSTS700016**: El Identificador (ID de entidad) en Entra ID no coincide con OneUptime: verifica que ambos valores sean idénticos
-- **Error de certificado**: Asegúrate de haber descargado el certificado **Base64** (no el formato raw/binario) e incluido las líneas `BEGIN CERTIFICATE` / `END CERTIFICATE`
-- **Usuario no asignado**: Los usuarios deben estar asignados explícitamente a la aplicación empresarial antes de poder iniciar sesión mediante SSO
-- **Error de ID de nombre**: Asegúrate de que la notificación del ID de nombre esté establecida en una dirección de correo electrónico que coincida con el correo del usuario en OneUptime
+3. **Crear el proveedor en OneUptime**
 
----
+   Ve a **Ajustes del proyecto** > **Seguridad** > **SSO**, haz clic en **Crear SSO** y completa:
+   - **Nombre**: un nombre descriptivo (por ejemplo, `Okta SAML`)
+   - **URL de inicio de sesión** y **Emisor**: los valores de Okta
+   - **Certificado público**: el certificado, incluidas las líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`
+   - **Método de firma** y **Método de resumen**: ya definidos en **Más campos** (`RSA-SHA256` y `SHA256`)
 
-## Configuración SAML de Okta
+   Guarda y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo que se abre.
 
-Okta es una plataforma de identidad ampliamente utilizada que proporciona sólidas capacidades de SSO SAML. Sigue estos pasos para configurar Okta como proveedor de identidad SAML para OneUptime.
+4. **Dar a Okta las URL de OneUptime**
 
-### Prerrequisitos
+   En la pestaña **General** de la aplicación, haz clic en **Edit** en **SAML Settings** y en **Next**, y establece:
+   - **Single sign-on URL**: la **URL de respuesta (URL del Assertion Consumer Service)** de OneUptime
+   - **Audience URI (SP Entity ID)**: el **Identificador (Entity ID)** de OneUptime
 
-- Organización de Okta con acceso de administrador
-- Cuenta de OneUptime con soporte SSO
+   Opcionalmente, añade una declaración de atributo llamada `http://schemas.microsoft.com/identity/claims/displayname` con el valor `user.firstName + " " + user.lastName`, para que las cuentas nuevas reciban el nombre de la persona. Haz clic en **Next** y luego en **Finish**.
 
-### Paso 1: Configurar SSO en OneUptime
+5. **Asignar personas**
 
-1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Ajustes del proyecto** > **Seguridad** > **SSO**
-3. Haz clic en **Crear SSO** y completa lo siguiente:
-   - **Nombre**: Un nombre descriptivo (por ejemplo, `Okta SAML`)
-   - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
-   - **Emisor**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
-   - **Certificado**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
-   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
-4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Okta
+   En la pestaña **Assignments**, haz clic en **Assign** > **Assign to People** o **Assign to Groups**, selecciona quién obtiene acceso por SSO, haz clic en **Assign** para cada uno y luego en **Done**.
 
-### Paso 2: Crear una aplicación SAML en Okta
+6. **Activar el proveedor y probarlo**
 
-1. Inicia sesión en tu consola de administración de Okta
-2. Navega a **Aplicaciones** > **Aplicaciones**
-3. Haz clic en **Crear integración de aplicación**
-4. Selecciona **SAML 2.0** y haz clic en **Siguiente**
-5. Ingresa "OneUptime" como el **Nombre de la aplicación** y haz clic en **Siguiente**
-6. En la sección **Configuración de SAML**, configura:
-   - **URL de inicio de sesión único**: Pega la **URL de respuesta (URL del Servicio de consumidor de aserciones)** de la **Vista de configuración SSO** de OneUptime
-   - **URI de audiencia (ID de entidad del SP)**: Pega el **Identificador (ID de entidad)** de la **Vista de configuración SSO** de OneUptime
-   - **Formato del ID de nombre**: Selecciona `EmailAddress`
-   - **Nombre de usuario de la aplicación**: Selecciona `Email`
-7. Haz clic en **Siguiente**, luego selecciona **Soy un cliente de Okta que agrega una aplicación interna** y haz clic en **Finalizar**
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Okta y volver a OneUptime.
+:::
+@tab Otro
+El SSO de OneUptime usa SAML 2.0 y funciona con cualquier proveedor de identidad compatible:
 
-### Paso 3: Copiar los metadatos SAML de Okta a OneUptime
-
-1. En tu aplicación de Okta, ve a la pestaña **Inicio de sesión**
-2. En la sección **Certificados de firma SAML**, encuentra el certificado activo y haz clic en **Acciones** > **Ver metadatos del IdP**
-3. Desde los metadatos XML o desde los detalles de la pestaña **Inicio de sesión**:
-   - Copia la **URL de inicio de sesión** (también llamada **URL de inicio de sesión único del proveedor de identidad**): pégala como la **URL de inicio de sesión** en OneUptime
-   - Copia el **Emisor** (también llamado **Emisor del proveedor de identidad**): pégalo como el **Emisor** en OneUptime
-4. Descarga el certificado de firma:
-   - En la sección **Certificados de firma SAML**, haz clic en **Acciones** > **Descargar certificado** para el certificado activo
-   - Abre el archivo `.cert` descargado en un editor de texto y copia el contenido
-   - Pega el certificado en OneUptime (incluyendo las líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`)
-5. Guarda la configuración SSO de OneUptime
-
-### Paso 4: Configurar declaraciones de atributos (opcional)
-
-1. En la aplicación de Okta, ve a la pestaña **General**
-2. Haz clic en **Editar** en la sección **Configuración de SAML** y haz clic en **Siguiente** para llegar a los ajustes SAML
-3. En la sección **Declaraciones de atributos**, agrega:
-
-| Nombre      | Valor            |
-| ----------- | ---------------- |
-| `email`     | `user.email`     |
-| `firstName` | `user.firstName` |
-| `lastName`  | `user.lastName`  |
-
-4. Haz clic en **Siguiente** y luego en **Finalizar**
-
-### Paso 5: Asignar usuarios y grupos
-
-1. En tu aplicación de Okta, ve a la pestaña **Asignaciones**
-2. Haz clic en **Asignar** > **Asignar a personas** o **Asignar a grupos**
-3. Selecciona los usuarios o grupos a los que deseas conceder acceso SSO
-4. Haz clic en **Asignar** para cada selección, luego haz clic en **Listo**
-
-### Paso 6: Verificar la configuración
-
-1. Guarda todos los ajustes tanto en Okta como en OneUptime
-2. Intenta iniciar sesión en OneUptime usando SSO
-3. Deberías ser redirigido a la página de inicio de sesión de Okta y de vuelta a OneUptime tras la autenticación exitosa
-
-### Solución de problemas con Okta
-
-- **Error 404 o URL SSO no válida**: Verifica que la **URL de inicio de sesión único** en Okta coincida exactamente con la **URL de respuesta** de OneUptime
-- **Error de audiencia**: Asegúrate de que el **URI de audiencia** en Okta coincida exactamente con el **Identificador (ID de entidad)** de OneUptime
-- **Error de certificado**: Asegúrate de haber descargado el certificado para el certificado de firma **activo**, no uno inactivo
-- **Usuario no asignado**: Los usuarios deben estar asignados a la aplicación de Okta antes de poder iniciar sesión mediante SSO
-- **Error de ID de nombre**: Verifica que el **Formato del ID de nombre** esté establecido en `EmailAddress` y que el **Nombre de usuario de la aplicación** esté establecido en `Email`
-
----
-
-## Otros proveedores de identidad
-
-La implementación SSO de OneUptime usa el protocolo SAML 2.0 y debería funcionar con cualquier proveedor de identidad compatible. Los pasos generales de configuración son:
-
-1. En OneUptime, crea una configuración SSO y anota el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)** del botón **Ver configuración SSO**
-2. En tu proveedor de identidad, crea una aplicación SAML usando:
-   - **URL del Servicio de consumidor de aserciones / URL de respuesta**: De la configuración SSO de OneUptime
-   - **ID de entidad / URI de audiencia**: De la configuración SSO de OneUptime
-   - **Formato del ID de nombre**: Dirección de correo electrónico
-3. De tu proveedor de identidad, copia lo siguiente en OneUptime:
-   - **URL de inicio de sesión** (punto de conexión SSO)
-   - **Emisor** (ID de entidad del IdP)
-   - **Certificado público** (certificado de firma X.509)
-4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están configurados en **Más campos**; cámbialos solo si tu proveedor de identidad firma de otra forma
+:::steps
+1. Obtén la **URL de inicio de sesión** (su endpoint de SSO), el **Emisor** (su Entity ID) y el **Certificado público** (su certificado de firma X.509) de tu proveedor de identidad. Si tu IdP solo los muestra cuando existe una aplicación, crea la aplicación con tu dirección de OneUptime como URL provisionales.
+2. En OneUptime, crea el proveedor con esos valores y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo **Configuración de SSO** (o de **Ver configuración SSO**).
+3. En la aplicación SAML de tu proveedor de identidad, establece la **Assertion Consumer Service URL / Reply URL** y el **Entity ID / Audience URI** con los valores de OneUptime, y el **Name ID Format** en la dirección de correo.
+4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están definidos en **Más campos**; cámbialos solo si tu proveedor de identidad firma de otra forma
+5. Activa **Habilitado** en el proveedor y pruébalo con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+:::
+:::
 
 ## OpenID Connect (OIDC)
 
-Un proyecto también puede iniciar sesión mediante un proveedor de OpenID Connect, como Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak.
+Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect, como Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak. Necesitas permiso para añadir proveedores OIDC (**Project Owner**, **Project Admin** o **Create Project OIDC**) y, en OneUptime Cloud, el plan **Scale**.
 
-1. Registra una aplicación (un cliente OIDC) en tu proveedor de identidad y copia su **URL del emisor**, su **ID de cliente** y su **Secreto de cliente**.
+:::steps
+1. Registra en tu proveedor de identidad una aplicación (un cliente OIDC) que pueda usar el flujo authorization code con PKCE, y copia su **URL del emisor**, su **ID de cliente** y su **Secreto de cliente**.
 2. En OneUptime, ve a **Ajustes del proyecto** > **Seguridad** > **OIDC** y haz clic en **Crear OIDC**.
-3. Introduce un **Nombre** (lo que la gente ve en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
-4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás se rellena en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de los claims `email` y `name`, y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor lo necesita. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**.
-5. Guarda. Se abre el diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza deshabilitado; después, edítalo y activa **Habilitado**.
-6. Usa el enlace de la tarjeta **Probar OpenID Connect (OIDC)** para iniciar sesión con el proveedor antes de exigir SSO en el proyecto.
+3. Introduce un **Nombre** (lo que las personas ven en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
+4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás ya está completado en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción ("Sign in with" y el nombre). Cámbialos solo si tu proveedor lo requiere. Solo se aceptan equipos a los que tú podrías invitar a alguien: un equipo que da más acceso del que tienes se indica en **Equipos**.
+5. Guarda. Se abre el cuadro de diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza desactivado, así que después edítalo y activa **Habilitado**.
+6. Usa el enlace de la tarjeta **Probar OpenID Connect (OIDC)** para iniciar sesión mediante el proveedor antes de exigir SSO en el proyecto.
+:::
 
-## Notas sobre SSO y roles
+## Roles y equipos de los usuarios de SSO
 
-OneUptime actualmente no admite la asignación de roles SAML desde tu proveedor de identidad. El control de acceso basado en roles debe configurarse por separado dentro de los **Ajustes del proyecto** > **SSO** de OneUptime, donde puedes asignar roles predeterminados para usuarios SSO.
+OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien puede hacer depende de los equipos a los que pertenece: un proveedor añade a los recién llegados a sus **Equipos**, y tú gestionas los equipos y sus permisos en OneUptime, como describe [Usuarios, equipos y permisos](/docs/permissions/index). Para mantener la pertenencia a los equipos alineada con tu proveedor de identidad, usa [SCIM](/docs/identity/scim).
 
-Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, así que un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada vez que se guarda se vuelven a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los abarque, como un propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen añadiendo a las personas a sus equipos. Cualquier persona que pueda editar un proveedor puede desactivarlo igualmente, para que se pueda detener al instante.
+Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, por eso un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada guardado los vuelve a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los cubra, como un propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen iniciando la sesión de las personas en sus equipos. Cualquiera que pueda editar un proveedor puede seguir desactivándolo, para poder detenerlo en el acto.
+
+## Exigir SSO en tu proyecto
+
+Configurar un proveedor no impide que nadie inicie sesión con contraseña. Para que el SSO sea la única forma de entrar en el proyecto, usa el interruptor **Requerir SSO para iniciar sesión** en **Ajustes del proyecto** > **Seguridad** > **SSO**, debajo de tus proveedores:
+
+:::steps
+1. Prueba primero tu proveedor con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+2. Activa **Requerir SSO para iniciar sesión**. OneUptime pregunta antes de guardar nada: a partir de entonces todos los miembros del proyecto, tú incluido, deben iniciar sesión con SSO para abrirlo, y quien haya iniciado sesión con contraseña queda fuera del proyecto hasta que inicie sesión con SSO.
+3. Haz clic en **Requerir SSO** para confirmar. El interruptor se guarda al instante; no hay un botón de guardar aparte.
+:::
+
+Para activar **Requerir SSO para iniciar sesión** hace falta un proveedor que inicie la sesión de las personas en el proyecto: uno de sus propios proveedores SAML u OIDC que esté activado, o un proveedor global activado que inicie sesiones en él. Sin ninguno, OneUptime lo rechaza y pide que primero actives un proveedor para el proyecto y lo pruebes. Si eliges un proveedor que el proyecto exige, tiene que ser uno de esos, y se pide lo mismo cuando más adelante exiges otro proveedor.
+
+Un guardado que envía **Requerir SSO para iniciar sesión** activado cuando ya lo está, o que nombra el proveedor que el proyecto ya exige, se comprueba igual: la API, Terraform y otras herramientas suelen enviar todos los ajustes en cada guardado. Así que, mientras el proyecto no tenga ningún proveedor que inicie sesiones, o el proveedor que exige se haya desactivado desde entonces, ese guardado se rechaza con las mismas palabras, cambie lo que cambie: primero activa un proveedor, exige otro o desactiva **Requerir SSO para iniciar sesión**.
+
+Un proyecto nuevo sigue la misma regla. Aún no tiene proveedor propio, así que crearlo con **Requerir SSO para iniciar sesión** ya activado — solo puede hacerlo un administrador maestro — necesita un proveedor global activado que inicie sesiones en todos los proyectos, y sin él se rechaza con las mismas palabras. Crea el proyecto, configura y prueba su proveedor y luego activa el interruptor.
+
+Mientras todo el servidor exija SSO (**Admin** > **Ajustes** > **Autenticación** > **Exigir SSO para iniciar sesión**), crear cualquier proyecto también necesita un proveedor global así; de lo contrario nadie, ni siquiera quien lo crea, podría abrir el proyecto. Sin él, la creación de un proyecto se rechaza y el mensaje pide a un administrador del servidor que active uno. Los administradores maestros pueden seguir creando proyectos.
+
+Desactivar **Requerir SSO para iniciar sesión** se guarda en cuanto cambias el interruptor y deja que los miembros vuelvan a entrar con su contraseña al instante, salvo que alguien lo vuelva a activar en ese mismo momento; entonces un servidor de aplicaciones puede tardar hasta un minuto en seguir el cambio. Pueden cambiarlo los propietarios del proyecto, los administradores del proyecto y los miembros con el permiso **Edit Project**; los demás ven el interruptor bloqueado, junto con el permiso que necesitarían.
+
+> [!NOTE]
+> En OneUptime Cloud, exigir SSO requiere el plan **Scale**, y desactivarlo funciona en todos los planes. Por debajo de Scale, **Ajustes del proyecto** > **Seguridad** > **SSO** muestra la oferta del plan; un proyecto que una prueba de Scale dejó exigiendo SSO también encuentra ahí **Requerir SSO para iniciar sesión**, debajo de la oferta, para poder desactivarlo. Volver a activarlo requiere **Scale**.
+
+## Desactivar o eliminar un proveedor
+
+| Lo que cambias | Las personas que iniciaron sesión con el proveedor |
+| --- | --- |
+| Desactivarlo o eliminarlo | Vuelven a iniciar sesión con SSO en su siguiente solicitud, donde se exige SSO |
+| Un certificado o secreto de cliente nuevo, otras URL, un nombre nuevo u otros equipos | Siguen con la sesión iniciada |
+| Activarlo | Pueden iniciar sesión con él al instante |
+
+Desactivar o eliminar un proveedor SAML u OIDC pone fin a las sesiones que inició. En un proyecto que exige SSO, por sí mismo o porque lo exige todo el servidor:
+
+- Quien inició sesión con él debe volver a iniciar sesión con SSO en su siguiente solicitud, y las páginas que tiene abiertas dejan de recibir actualizaciones en directo al instante.
+- Un cliente MCP que alguien conectó tras iniciar sesión con él deja de funcionar en el proyecto. Vuelve a conectarlo después de iniciar sesión con SSO.
+- Volver a activar el proveedor no recupera esas sesiones: las personas vuelven a iniciar sesión con él.
+
+Cambiar cualquier otra cosa de un proveedor mantiene a todos con la sesión iniciada: un certificado o secreto de cliente nuevo, otras URL, un nombre nuevo u otros equipos. Sus sesiones se comprobaron cuando se iniciaron, y el siguiente inicio de sesión usa los ajustes nuevos.
+
+Mientras el proyecto exija SSO, OneUptime mantiene una forma de entrar: no puedes desactivar ni eliminar el último proveedor con el que las personas pueden iniciar sesión en el proyecto, contando los proveedores globales que inician sesiones en él, ni el proveedor que el proyecto exige. Primero desactiva **Requerir SSO para iniciar sesión**.
+
+Activar un proveedor permite iniciar sesión con él al instante.
+
+Cuando todo el servidor exige SSO (**Admin** > **Ajustes** > **Autenticación** > **Exigir SSO para iniciar sesión**), cada proyecto mantiene una forma de entrar del mismo modo, incluso uno que no exige SSO por sí mismo: primero activa otro proveedor para él.
+
+Los proveedores globales siguen la misma regla: un cambio en uno de ellos, o en sus proyectos adjuntos, que dejaría sin proveedor a un proyecto que exige SSO se rechaza, nombrando el proyecto. Consulta [SSO global](/docs/identity/global-sso#desactivar-o-eliminar-un-proveedor).
+
+Donde ni el proyecto ni el servidor exigen SSO, desactivar un proveedor detiene los nuevos inicios de sesión con él. Quienes ya iniciaron sesión la mantienen, igual que quienes iniciaron sesión con contraseña.
+
+## Proveedores que quedan por debajo del plan Scale
+
+Un proveedor SAML u OIDC que un proyecto todavía tiene sigue iniciando sesiones cuando termina una prueba de Scale o se baja de plan. Por eso, por debajo de Scale, las páginas **SSO** y **OIDC** muestran los proveedores del proyecto debajo de la oferta (**Proveedores SAML aún configurados**, **Proveedores OIDC aún configurados**):
+
+- **Desactivar** detiene un proveedor al instante. OneUptime pregunta antes.
+- **Eliminar** lo quita.
+
+Añadir un proveedor, cambiar uno o volver a activarlo requiere **Scale**. Quién puede hacer cada cosa es lo mismo que con Scale: desactivar un proveedor requiere permiso para editarlo, y eliminarlo, permiso para eliminarlo.
+
+Mientras el proyecto siga exigiendo SSO, sus páginas **SSO** y **OIDC** también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar el último proveedor. Hasta entonces, el último proveedor con el que las personas pueden iniciar sesión no se puede desactivar ni eliminar, para que nadie quede fuera del proyecto.
+
+Las páginas **SSO** y **OIDC** de una página de estado muestran sus propios proveedores de la misma forma. Mientras la página de estado siga exigiendo SSO, ambas páginas también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar sus proveedores, o sus usuarios privados no podrán iniciar sesión en absoluto.
+
+## Solución de problemas
+
+:::details "SSO Config not found"
+El proveedor está desactivado, o el enlace es de un proveedor que ya no existe. Un proveedor nuevo empieza desactivado: edítalo y activa **Habilitado**.
+:::
+
+:::details "No teams added."
+La persona aún no está en el proyecto y el proveedor no tiene **Equipos** a los que añadirla. Edita el proveedor y elige al menos un equipo, como el equipo de miembros de tu proyecto.
+:::
+
+:::details "Issuer URL does not match"
+El emisor de la aserción de tu IdP no es el **Emisor** del proveedor. Vuelve a copiarlo de tu IdP — la URL del realm de Keycloak, el **Microsoft Entra Identifier** o el Identity Provider Issuer de Okta — para que ambos coincidan exactamente.
+:::
+
+:::details El inicio de sesión falla con un error de firma o de certificado
+Pega el certificado de firma actual del IdP en **Certificado público**, incluidas las líneas `BEGIN CERTIFICATE` y `END CERTIFICATE`. Para Entra ID, descarga el certificado **Base64**, no el sin formato; para Okta, el certificado de firma activo; para Keycloak, el certificado del realm correcto.
+:::
+
+:::details "Encrypted SAML Responses are not supported"
+OneUptime no descifra aserciones. Desactiva el cifrado de aserciones de la aplicación en tu IdP para que envíe una aserción firmada y sin cifrar.
+:::
+
+:::details "SAML response did not include a valid email address"
+OneUptime lee la dirección de correo del Name ID. Establece el Name ID en el correo del usuario: **Name ID Format** `email` con **Force Name ID Format** en Keycloak, el **Unique User Identifier (Name ID)** en Entra ID, o **Name ID format** `EmailAddress` y **Application username** `Email` en Okta. La dirección debe coincidir con la cuenta de OneUptime de la persona.
+:::
+
+:::details Entra ID: AADSTS700016
+El **Identifier (Entity ID)** de Entra ID no coincide con el de OneUptime. Vuelve a copiarlo desde **Ver configuración SSO**; ambos valores deben ser idénticos.
+:::
+
+:::details Okta: 404 o una audiencia que no coincide
+La **Single sign-on URL** de Okta debe ser exactamente la **URL de respuesta** de OneUptime, y la **Audience URI** exactamente el **Identificador (Entity ID)** de OneUptime. Comprueba que ambas sustituyeron los valores provisionales.
+:::
+
+:::details El usuario no está asignado a la aplicación
+Entra ID y Okta solo inician la sesión de las personas asignadas a la aplicación. Asigna al usuario, o a un grupo al que pertenezca.
+:::
+
+:::details Keycloak: bucle de redirección
+Comprueba que **Valid Redirect URIs** y **Assertion Consumer Service POST Binding URL** estén configurados como arriba, en el cliente del realm correcto.
+:::
+
+## Próximos pasos
+
+:::cards
+- [SSO global](/docs/identity/global-sso): Un solo proveedor de identidad para todos los proyectos de una instancia autoalojada.
+- [SCIM](/docs/identity/scim): Deja que tu proveedor de identidad añada y quite personas automáticamente.
+- [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos a los que se unen los recién llegados.
+:::

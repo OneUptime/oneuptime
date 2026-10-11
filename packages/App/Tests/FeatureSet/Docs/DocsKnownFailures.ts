@@ -126,9 +126,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "configuration/ip-addresses": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "configuration/label-and-owner-rules": {
     translated: EVERY_TRANSLATION,
   },
@@ -166,17 +163,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
-  },
-  "identity/global-sso": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "identity/scim": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "identity/sso": {
-    uniqueHeadings: except(EVERY_TRANSLATION, "de"),
-    sameShape: EVERY_TRANSLATION,
   },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
@@ -302,9 +288,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "permissions/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "permissions/reference": {
     sameShape: EVERY_TRANSLATION,
   },
   "probe/custom-probe": {
