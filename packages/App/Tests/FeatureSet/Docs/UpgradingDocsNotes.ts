@@ -96,7 +96,9 @@ export function headingAtEnglishPlace(
   );
 
   if (index < 0) {
-    throw new Error(`The English upgrade guide has no heading "${englishText}"`);
+    throw new Error(
+      `The English upgrade guide has no heading "${englishText}"`,
+    );
   }
 
   const heading: UpgradingHeading | undefined =

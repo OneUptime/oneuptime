@@ -290,8 +290,8 @@ const PROSE_LEADS: Array<string> = [
   "An incident's or alert's episode is set by the episode's members only.",
   "New incoming call escalation rules ring for 20 seconds, not 30.",
   "Slack and Microsoft Teams summaries keep their time of day when the clocks change.",
-  'An incident\'s or alert\'s "updated" feed entry records only what changed.',
-  'A scheduled maintenance event\'s or a monitor\'s "updated" feed entry records only what changed, too.',
+  "An incident's or alert's \"updated\" feed entry records only what changed.",
+  "A scheduled maintenance event's or a monitor's \"updated\" feed entry records only what changed, too.",
   "A maintenance event in a state of your own before Ongoing starts at its time, and is listed as coming up.",
   "A maintenance event in a state of your own after Ongoing counts as in progress everywhere.",
   "Saving a secret back as it is changes nothing.",
@@ -440,7 +440,7 @@ const PATH_SEPARATOR: RegExp = / (?:→|>) /;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // A number, but not a part of a version such as 13.0.8 or 8.1.
 const NUMBER: RegExp = /(?<!\d|\d\.)\d+(?!\d|\.\d)/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const LIST_MARKER: RegExp = /^\s*(?:[-*]|\d+\.)\s/;
 const BLOCK_START: RegExp = /^\s*(?:#|:::|@tab|\||>)/;
 const FENCE_LINE: RegExp = /^ {0,3}(`{3,}|~{3,})(.*)$/;
@@ -783,11 +783,9 @@ function expectedAnchor(
     return null;
   }
 
-  const index: number = english.findIndex(
-    (heading: ShapedHeading): boolean => {
-      return heading.anchor === englishAnchor;
-    },
-  );
+  const index: number = english.findIndex((heading: ShapedHeading): boolean => {
+    return heading.anchor === englishAnchor;
+  });
 
   return index < 0 ? null : translated[index]!.anchor;
 }
@@ -1149,9 +1147,7 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
   });
 
   it("draws every bold and italic span, with no asterisks or underscores left on the page", async () => {
-    expect(await strayMarkers(translatedPage(language), language)).toEqual(
-      [],
-    );
+    expect(await strayMarkers(translatedPage(language), language)).toEqual([]);
   });
 
   it("has the English page's headings, steps, tables and list items", () => {
@@ -1260,13 +1256,21 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
    * another page wherever that page is translated in the English shape.
    */
   it("points every link at the heading the English link means", () => {
-    const source: Array<{ page: string; anchor: string | null }> =
-      linksOf(unwrapped(english));
-    const translated: Array<{ page: string; anchor: string | null }> =
-      linksOf(unwrapped(translatedPage(language)));
+    const source: Array<{ page: string; anchor: string | null }> = linksOf(
+      unwrapped(english),
+    );
+    const translated: Array<{ page: string; anchor: string | null }> = linksOf(
+      unwrapped(translatedPage(language)),
+    );
 
-    expect(translated.map((link: { page: string }) => link.page)).toEqual(
-      source.map((link: { page: string }) => link.page),
+    expect(
+      translated.map((link: { page: string }): string => {
+        return link.page;
+      }),
+    ).toEqual(
+      source.map((link: { page: string }): string => {
+        return link.page;
+      }),
     );
 
     const englishSections: Array<DocsHeading> = sections(english);
@@ -1275,48 +1279,51 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
     );
     const problems: Array<string> = [];
 
-    source.forEach((link: { page: string; anchor: string | null }, index) => {
-      const other: { page: string; anchor: string | null } = translated[
-        index
-      ]!;
+    source.forEach(
+      (link: { page: string; anchor: string | null }, index: number) => {
+        const other: { page: string; anchor: string | null } =
+          translated[index]!;
 
-      if (link.anchor === null) {
-        if (other.anchor !== null) {
-          problems.push(`link ${index} to ${link.page}: an anchor English has not`);
+        if (link.anchor === null) {
+          if (other.anchor !== null) {
+            problems.push(
+              `link ${index} to ${link.page}: an anchor English has not`,
+            );
+          }
+
+          return;
         }
 
-        return;
-      }
+        if (link.page === "") {
+          const at: number = englishSections.findIndex(
+            (heading: DocsHeading): boolean => {
+              return heading.slug === link.anchor;
+            },
+          );
+          const expected: string | undefined = translatedSections[at]?.slug;
 
-      if (link.page === "") {
-        const at: number = englishSections.findIndex(
-          (heading: DocsHeading): boolean => {
-            return heading.slug === link.anchor;
-          },
+          if (other.anchor !== expected) {
+            problems.push(
+              `link ${index} #${link.anchor}: #${other.anchor} should be #${expected}`,
+            );
+          }
+
+          return;
+        }
+
+        const expected: string | null = expectedAnchor(
+          language,
+          link.page,
+          link.anchor,
         );
-        const expected: string | undefined = translatedSections[at]?.slug;
 
-        if (other.anchor !== expected) {
+        if (expected !== null && other.anchor !== expected) {
           problems.push(
-            `link ${index} #${link.anchor}: #${other.anchor} should be #${expected}`,
+            `link ${index} to ${link.page}#${link.anchor}: write #${expected} (the ${language} page now has the English shape)`,
           );
         }
-
-        return;
-      }
-
-      const expected: string | null = expectedAnchor(
-        language,
-        link.page,
-        link.anchor,
-      );
-
-      if (expected !== null && other.anchor !== expected) {
-        problems.push(
-          `link ${index} to ${link.page}#${link.anchor}: write #${expected} (the ${language} page now has the English shape)`,
-        );
-      }
-    });
+      },
+    );
 
     expect(problems).toEqual([]);
   });
@@ -1361,11 +1368,15 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
       const needed: number = boldCount(english, label) - markAs.keptInEnglish;
 
       if (boldCount(translated, drawn) < needed) {
-        problems.push(`${label} -> ${drawn}: ${boldCount(translated, drawn)} of ${needed}`);
+        problems.push(
+          `${label} -> ${drawn}: ${boldCount(translated, drawn)} of ${needed}`,
+        );
       }
 
       if (boldCount(translated, label) < markAs.keptInEnglish) {
-        problems.push(`${label} in English: ${boldCount(translated, label)} of ${markAs.keptInEnglish}`);
+        problems.push(
+          `${label} in English: ${boldCount(translated, label)} of ${markAs.keptInEnglish}`,
+        );
       }
     }
 

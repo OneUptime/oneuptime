@@ -194,7 +194,10 @@ function readPage(): string {
  * Enterprise Edition images", up to the next section.
  */
 function editionHeading(lang: string): string {
-  const heading: string | undefined = readContent(lang, "installation/upgrading")
+  const heading: string | undefined = readContent(
+    lang,
+    "installation/upgrading",
+  )
     .split("\n")
     .filter((line: string) => {
       return line.startsWith("## ");
