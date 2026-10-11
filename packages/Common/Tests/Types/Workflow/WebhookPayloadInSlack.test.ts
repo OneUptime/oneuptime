@@ -7,14 +7,16 @@
  * body out, and the Slack step puts what it returns between two fences of
  * three backticks. Whoever has the webhook's address chooses that body.
  *
- * Slack reads "&", "<" and ">" everywhere in a message, a code block too
- * (Slack's "Formatting message text": they "must be converted to HTML
- * entities if they're not going to be used for their parsing purpose"), and
- * a code block can hold a link. So "<!channel>" in a body reached the
- * channel as a mention, "<https://...|words>" as a link whose words hide
- * where it goes, and "&lt;" showed as "<". The script turned three backticks
- * into three quotes, so a body with a fence in it did not read as it was
- * sent, and a body that started or ended with a backtick ran into a fence.
+ * Slack treats "&", "<" and ">" as control characters everywhere in a
+ * message, a code block too (Slack's "Formatting message text": they "must
+ * be converted to HTML entities if they're not going to be used for their
+ * parsing purpose"), and a code block can hold a link (a preformatted rich
+ * text element holds "text or link elements"). So a body handed Slack
+ * "<!channel>" as a mention sequence, "<https://...|words>" as a link whose
+ * words hide where it goes, and "&lt;" showed as "<". The script turned
+ * three backticks into three quotes, so a body with a fence in it did not
+ * read as it was sent, and a body that started or ended with a backtick ran
+ * into a fence.
  *
  * The script now writes "&", "<" and ">" as Slack's own apps write them
  * (SlackUtil.escapeSlackText), and puts an invisible word joiner (U+2060)

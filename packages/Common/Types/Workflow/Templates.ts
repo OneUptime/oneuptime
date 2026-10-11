@@ -4784,9 +4784,9 @@ if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
 const customer = formatted(row, '_customerid_value');
 if (customer) lines.push('Customer: ' + asWritten(customer));
 // A description written in the rich-text editor, or that an email became, is HTML from its first
-// character - a tag such as <div> or <p>, a comment, or a document type - and is read as the text
-// it shows (htmlToText). Any other description is plain text, kept exactly as it was written: a "<"
-// in it too, as in "From: Jane Doe <jane@contoso.com>".
+// character - a tag such as <div> or <p>, a comment, a document type or an XML declaration - and
+// is read as the text it shows (htmlToText). Any other description is plain text, kept exactly as
+// it was written: a "<" in it too, as in "From: Jane Doe <jane@contoso.com>".
 const RICH_TEXT_START = /^<(?:[a-z][a-z0-9]*[\s\/>]|!--|!doctype[\s>]|\?xml\s)/i;
 const writtenDescription = clean(row.description);
 const isRichText = RICH_TEXT_START.test(writtenDescription.trimStart().slice(0, 16)) && hasTag(writtenDescription);
@@ -6781,13 +6781,14 @@ const DYNAMICS_365_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  *
  * The webhook-to-slack template posts whatever its webhook receives into a
  * Slack channel, inside a code block. Whoever has the webhook's address
- * chooses what it receives, and Slack reads "&", "<" and ">" everywhere in
- * a message, a code block too: "<!channel>" is a mention and
- * "<https://...|words>" a link whose words hide where it goes. And three
- * backticks in a row end the code block, so what came after them was posted
- * as an ordinary message. The script used to turn three backticks into
- * three quotes, which changed the payload, and left "&", "<" and ">" as
- * they came.
+ * chooses what it receives. Slack treats "&", "<" and ">" as control
+ * characters everywhere in a message, a code block included - they start
+ * mentions such as "<!channel>", links such as "<https://...|words>" whose
+ * words hide where they go, and dates - and the script left them as they
+ * came. Three backticks in a row would end the code block and post the
+ * rest as an ordinary message; the script turned them into three quotes,
+ * so a payload with a fence in it did not read as it was sent, and one
+ * that started or ended with a backtick still ran into a fence.
  *
  * Now it writes "&", "<" and ">" as Slack's own apps write them (SlackUtil.
  * escapeSlackText): "&amp;", "&lt;", "&gt;", which Slack shows as the
@@ -6809,12 +6810,13 @@ const JOINER = '\u2060';
 
 const payload = typeof args === 'string' ? args : JSON.stringify(args || {}, null, 2);
 
-// Slack reads "&", "<" and ">" everywhere in a message, a code block too: <!channel> is a mention,
-// and <https://...|words> a link whose words hide where it goes. So each is written the way Slack's
-// own apps write it - &amp;, &lt; and &gt; - which Slack shows as the character itself. Three
-// backticks in a row end a code block, and the rest would be posted as an ordinary message: so an
-// invisible word joiner (U+2060) goes between two backticks side by side, and between a backtick
-// and either fence. Everything else is written as it came, so the payload reads as it was sent.
+// Slack treats "&", "<" and ">" as control characters everywhere in a message, a code block too:
+// they start mentions such as <!channel>, links such as <https://...|words>, and dates. So each is
+// written the way Slack's own apps write it - &amp;, &lt; and &gt; - which Slack shows as the
+// character itself. Three backticks in a row would end the code block and post the rest as an
+// ordinary message: so an invisible word joiner (U+2060) goes between two backticks side by side,
+// and between a backtick and either fence. Everything else is written as it came, so the payload
+// reads as it was sent.
 let written = '';
 // The code block opens with a backtick.
 let last = BACKTICK;
