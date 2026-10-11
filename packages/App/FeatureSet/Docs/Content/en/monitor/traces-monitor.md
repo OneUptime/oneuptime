@@ -55,6 +55,9 @@ The **Monitor Criteria** card starts with two criteria: offline, with an inciden
 Click **Create Monitor**. The monitor opens on its **Overview** page, and its first evaluation runs within a minute.
 :::
 
+> [!TIP]
+> To be told when an AI feature answers badly — failed, refused, cut off, empty, flagged or slow answers — pick **AI / LLM** under **Telemetry** instead. It reads the AI calls in your traces for you, with no span filters to write. See [AI / LLM Observability](/docs/telemetry/ai-llm-observability#get-told-when-the-ai-answers-badly).
+
 ## What it queries
 
 | Field | What it matches | Default |
@@ -83,6 +86,7 @@ If you want successful requests to show as OK, add a trace pipeline under **Trac
 - **Every minute.** A Traces monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
 - **One number per evaluation.** The monitor counts the spans that match every filter and started within **Monitor Traces for (time)** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
 - **No spans is a count of 0.** A service that stops sending traces produces 0, which is what the default offline criteria looks for.
+- **OneUptime's own downtime is not silence.** While the time window holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first.
 
 Each status change, with the reason for it, is recorded on the monitor's **Status Timeline**.

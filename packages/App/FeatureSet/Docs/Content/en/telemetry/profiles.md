@@ -1,4 +1,4 @@
-# Send Continuous Profiling Data to OneUptime
+# Continuous Profiling
 
 Continuous profiling shows how your application spends CPU time and memory, function by function. OneUptime exposes a **Pyroscope-compatible ingest API**, so anything that can push to a Pyroscope server — the Grafana Alloy eBPF profiler or a Pyroscope language SDK — can push to OneUptime, and you read the result as flame graphs next to your logs, metrics and traces.
 
@@ -18,7 +18,7 @@ flowchart TB
     subgraph profilers["Profilers"]
         direction LR
         alloy["Grafana Alloy (eBPF)"]
-        sdk["Pyroscope SDK in your app"]
+        sdk["Pyroscope SDK<br/>in your app"]
     end
     alloy -->|"push API"| endpoint["OneUptime /pyroscope"]
     sdk -->|"ingest or push API"| endpoint
@@ -266,7 +266,7 @@ curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
   https://oneuptime.com/otlp/v1/validate
 ```
 
-A valid token returns `200` with `{"valid": true, ...}`; an unknown or revoked token returns `401`.
+A valid token returns `200` with `{"valid": true, ...}`, and its `keyType` must be `Server`: a Browser key is valid too, but cannot send profiles. An unknown, revoked, disabled or expired token returns `401`.
 
 ### Open the Profiles page
 
