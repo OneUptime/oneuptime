@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import { seededRandom } from "../../../Common/Tests/Helpers/SeededRandom";
 
 /*
  * The reader's pure logic (Static/js/book-reader-core.js): layout, pagination
@@ -147,21 +148,6 @@ interface ReaderCore {
 const Core: ReaderCore = jest.requireActual(
   "../../Static/js/book-reader-core.js",
 ) as ReaderCore;
-
-// A small deterministic PRNG, so the property-style tests are reproducible.
-const seededRandom: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let value: number = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-};
 
 const randomCounts: (random: () => number) => Array<number> = (
   random: () => number,

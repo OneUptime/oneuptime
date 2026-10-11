@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import * as BrandColors from "../../../Types/BrandColors";
 import Color, { RGB } from "../../../Types/Color";
 import {
@@ -102,16 +103,15 @@ const EDGE_COLORS: Array<string> = [
 ];
 
 /*
- * A spread across the whole cube, the same on every run (a fixed-seed LCG),
- * so a failure names a colour that can be reproduced.
+ * A spread across the whole cube, the same on every run (a fixed seed), so a
+ * failure names a colour that can be reproduced.
  */
 function sampleColors(count: number): Array<string> {
   const colors: Array<string> = [];
-  let seed: number = 20260101;
+  const random: SeededRandom = seededRandom(20260101);
 
   for (let i: number = 0; i < count; i++) {
-    seed = (seed * 1664525 + 1013904223) % 4294967296;
-    colors.push(`#${(seed >>> 8).toString(16).padStart(6, "0").slice(-6)}`);
+    colors.push(`#${random(16777216).toString(16).padStart(6, "0")}`);
   }
 
   return colors;

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import Markdown from "../../../Server/Types/Markdown";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * PLAIN TEXT OF ANY LENGTH: convertToPlainText, for SMS, calls, push
@@ -108,20 +109,11 @@ describe("Markdown.convertToPlainText - text over 64 KB", () => {
 
 describe("Markdown.convertToPlainText - the loops that replaced regular expressions", () => {
   /*
-   * Seeded, so every run checks the same strings and a failure
-   * reproduces. The strings are made of what the replaced patterns read:
-   * spaces, tabs, line breaks, other whitespace, and the sentinel
-   * characters.
+   * Seeded (Tests/Helpers/SeededRandom), so every run checks the same
+   * strings and a failure reproduces. The strings are made of what the
+   * replaced patterns read: spaces, tabs, line breaks, other whitespace,
+   * and the sentinel characters.
    */
-  function makeRandom(seed: number): () => number {
-    let state: number = seed >>> 0;
-
-    return (): number => {
-      state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-      return state / 4294967296;
-    };
-  }
-
   function randomString(random: () => number, alphabet: Array<string>): string {
     let text: string = "";
     const length: number = Math.floor(random() * 40);
@@ -134,7 +126,7 @@ describe("Markdown.convertToPlainText - the loops that replaced regular expressi
   }
 
   test("collapseWhitespace does what the two regular expressions did, for 5000 strings", () => {
-    const random: () => number = makeRandom(1601);
+    const random: () => number = seededRandom(1601);
     const collapse: (text: string) => string = Markdown["collapseWhitespace"];
     const alphabet: Array<string> = [
       " ",
@@ -167,7 +159,7 @@ describe("Markdown.convertToPlainText - the loops that replaced regular expressi
   });
 
   test("holdInputSentinels holds back what the regular expression did, for 5000 strings", () => {
-    const random: () => number = makeRandom(1602);
+    const random: () => number = seededRandom(1602);
     const holdSentinels: (
       text: string,
       hold: (value: string) => string,

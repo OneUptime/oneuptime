@@ -3,7 +3,7 @@ import removeHtmlMarkup, {
   HtmlMarkupReplacer,
   replaceHtmlMarkup,
 } from "../../Types/HtmlMarkup";
-import { generatedTexts } from "./HtmlMarkupCases";
+import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
 import { JSDOM } from "jsdom";
 

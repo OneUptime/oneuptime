@@ -11,6 +11,7 @@ import {
   ReferenceItem,
   ReferenceRelationship,
 } from "./TopologyReference";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * Seeded random inventory estates for the Topology differential tests.
@@ -31,20 +32,20 @@ import {
  * to Postgres.
  */
 
-/* mulberry32: small, fast and good enough to explore an input space. */
-export class SeededRandom {
-  private state: number;
+/*
+ * The draws an estate is made of, from the suites' one seeded generator
+ * (Tests/Helpers/SeededRandom), with the shapes an estate needs.
+ */
+export class EstateRandom {
+  private readonly draw: SeededRandom;
 
   public constructor(seed: number) {
-    this.state = seed >>> 0;
+    this.draw = seededRandom(seed);
   }
 
+  // A fraction from 0 up to, not including, 1.
   public next(): number {
-    this.state = (this.state + 0x6d2b79f5) >>> 0;
-    let t: number = this.state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    return this.draw();
   }
 
   /* Inclusive on both ends. */
@@ -237,11 +238,11 @@ const DAY_MS: number = 24 * 60 * MINUTE_MS;
 /* A few creation instants, so createdAt ties (broken by _id) are common. */
 const CREATED_BASE: number = Date.UTC(2026, 7, 1, 0, 0, 0);
 
-function createdAt(random: SeededRandom): Date {
+function createdAt(random: EstateRandom): Date {
   return new Date(CREATED_BASE + random.int(0, 3) * DAY_MS);
 }
 
-function randomKey(random: SeededRandom): string {
+function randomKey(random: EstateRandom): string {
   const length: number = random.int(1, 4);
   let key: string = "";
   for (let index: number = 0; index < length; index++) {
@@ -251,7 +252,7 @@ function randomKey(random: SeededRandom): string {
 }
 
 /* In range, on the boundary, a millisecond before it, stale, or never. */
-function itemLastSeen(random: SeededRandom, rangeStart: Date): Date | null {
+function itemLastSeen(random: EstateRandom, rangeStart: Date): Date | null {
   const roll: number = random.next();
   const start: number = rangeStart.getTime();
   if (roll < 0.5) {
@@ -270,7 +271,7 @@ function itemLastSeen(random: SeededRandom, rangeStart: Date): Date | null {
 }
 
 function relationshipLastSeen(
-  random: SeededRandom,
+  random: EstateRandom,
   rangeStart: Date,
 ): Date | null {
   const roll: number = random.next();
@@ -290,7 +291,7 @@ function relationshipLastSeen(
   return null;
 }
 
-function source(random: SeededRandom): string {
+function source(random: EstateRandom): string {
   const roll: number = random.next();
   if (roll < 0.7) {
     return EntitySource.Discovered;
@@ -319,7 +320,7 @@ class EstateBuilder {
   private relationshipIdentities: Set<string> = new Set<string>();
 
   public constructor(
-    private random: SeededRandom,
+    private random: EstateRandom,
     private options: EstateOptions,
   ) {}
 
@@ -338,7 +339,7 @@ class EstateBuilder {
       return null;
     }
     this.itemIdentities.add(identity);
-    const random: SeededRandom = this.random;
+    const random: EstateRandom = this.random;
     const item: ReferenceItem = {
       id: random.uuid(),
       projectId,
@@ -382,7 +383,7 @@ class EstateBuilder {
       return;
     }
     this.relationshipIdentities.add(identity);
-    const random: SeededRandom = this.random;
+    const random: EstateRandom = this.random;
     const callCount: number | null = random.chance(0.15)
       ? null
       : random.chance(0.1)
@@ -413,7 +414,7 @@ class EstateBuilder {
 }
 
 export function generateEstate(
-  random: SeededRandom,
+  random: EstateRandom,
   options: EstateOptions,
 ): ReferenceEstate {
   const builder: EstateBuilder = new EstateBuilder(random, options);

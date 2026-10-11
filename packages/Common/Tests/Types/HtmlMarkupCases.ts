@@ -5,22 +5,12 @@
  * the Dynamics 365 note template, whose script runs in the workflow sandbox
  * and so carries its own copy of the walk.
  *
+ * Texts generated from MARKUP_ALPHABET come from the suites' one generator:
+ * generatedTexts(count, seed, MARKUP_ALPHABET), from Tests/Helpers/
+ * GeneratedTexts.
+ *
  * Not a test file itself (jest only collects *.test.ts).
  */
-
-// A small seeded generator, so the generated cases are the same every run.
-export type SeededRandomFunction = (seed: number) => (limit: number) => number;
-
-export const seededRandom: SeededRandomFunction = (
-  seed: number,
-): ((limit: number) => number) => {
-  let state: number = seed;
-
-  return (limit: number): number => {
-    state = (state * 1103515245 + 12345) & 0x7fffffff;
-    return state % limit;
-  };
-};
 
 // The characters markup is made of, and some that are not.
 export const MARKUP_ALPHABET: ReadonlyArray<string> = [
@@ -49,35 +39,6 @@ export const MARKUP_ALPHABET: ReadonlyArray<string> = [
   "&",
   ";",
 ];
-
-export type GeneratedTextsFunction = (
-  count: number,
-  seed: number,
-  alphabet?: ReadonlyArray<string>,
-) => Array<string>;
-
-// Texts of up to 27 characters drawn from the alphabet.
-export const generatedTexts: GeneratedTextsFunction = (
-  count: number,
-  seed: number,
-  alphabet: ReadonlyArray<string> = MARKUP_ALPHABET,
-): Array<string> => {
-  const random: (limit: number) => number = seededRandom(seed);
-  const texts: Array<string> = [];
-
-  for (let index: number = 0; index < count; index++) {
-    let text: string = "";
-    const length: number = random(28);
-
-    for (let position: number = 0; position < length; position++) {
-      text += alphabet[random(alphabet.length)];
-    }
-
-    texts.push(text);
-  }
-
-  return texts;
-};
 
 /*
  * Markup a single pass of /<[^>]*>/ leaves behind, or ends in the wrong

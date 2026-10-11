@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { replacePipeTables } from "../../../Utils/Markdown/PipeTables";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * PIPE TABLES AS THE CHAT CONVERTERS READ THEM (Utils/Markdown/PipeTables).
@@ -149,21 +150,17 @@ describe("replacePipeTables", () => {
       "| a |  ",
     ];
 
-    let state: number = 4577;
-    const next: () => number = (): number => {
-      state = (state * 1103515245 + 12345) % 2147483648;
-      return state / 2147483648;
-    };
+    const next: SeededRandom = seededRandom(4577);
 
     let compared: number = 0;
     let tables: number = 0;
 
     for (let index: number = 0; index < 3000; index++) {
-      const count: number = 1 + Math.floor(next() * 12);
+      const count: number = 1 + next(12);
       const lines: Array<string> = [];
 
       for (let line: number = 0; line < count; line++) {
-        lines.push(LINES[Math.floor(next() * LINES.length)]!);
+        lines.push(LINES[next(LINES.length)]!);
       }
 
       const markdown: string = lines.join("\n") + (next() < 0.5 ? "\n" : "");
