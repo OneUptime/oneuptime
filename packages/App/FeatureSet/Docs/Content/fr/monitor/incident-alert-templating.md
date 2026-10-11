@@ -417,7 +417,7 @@ Pour afficher la capture de chaque exécution en échec, placez l'image dans une
 | `trapSourceIp` | L'adresse d'où vient le trap. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `string` |
 | `trapVarbinds` | Les varbinds du trap, chacun sous la forme `{oid, value}`. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `Array<Object>` |
 
-Un équipement réseau reçoit un ping à chaque interrogation et n'est parcouru en SNMP que lorsqu'il a des identifiants, donc **`isOnline` est la seule variable ci-dessus que remplit un équipement en ping seul** : toutes les autres viennent du parcours SNMP et restent telles qu'écrites sans lui. Commencez par `{{isOnline}}` et le nom de l'équipement dans les modèles qui peuvent servir pour des équipements sans identifiants. Voir [Surveillance des équipements réseau](/docs/monitor/network-device-monitor#what-a-poll-actually-does) pour ce que collecte chaque type d'interrogation.
+Un équipement réseau reçoit un ping à chaque interrogation et n'est parcouru en SNMP que lorsqu'il a des identifiants, donc **`isOnline` est la seule variable ci-dessus que remplit un équipement en ping seul** : toutes les autres viennent du parcours SNMP et restent telles qu'écrites sans lui. Commencez par `{{isOnline}}` et le nom de l'équipement dans les modèles qui peuvent servir pour des équipements sans identifiants. Voir [Surveillance des équipements réseau](/docs/monitor/network-device-monitor#ce-que-fait-réellement-une-interrogation) pour ce que collecte chaque type d'interrogation.
 
 ### Moniteurs de santé de base de données
 

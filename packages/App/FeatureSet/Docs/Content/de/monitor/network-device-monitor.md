@@ -132,8 +132,8 @@ Lassen Sie den Abschnitt eingeklappt, und das Gerät wird nur angepingt: Der ein
 | SNMP-v3-Benutzername | Der auf dem Gerät eingerichtete Sicherheitsname (Benutzer). | Ja: leer heißt nur Ping |
 | SNMP-v3-Authentifizierungsprotokoll | MD5, SHA, SHA-256 oder SHA-512. | Mit Authentifizierung |
 | SNMP-v3-Authentifizierungsschlüssel | Die Authentifizierungs-Passphrase. | Mit Authentifizierung |
-| SNMP-v3-Datenschutzprotokoll | DES, AES oder AES-256. | Mit Verschlüsselung |
-| SNMP-v3-Datenschutzschlüssel | Die Passphrase für die Verschlüsselung. | Mit Verschlüsselung |
+| SNMP-v3-Privacy-Protokoll | DES, AES oder AES-256. | Mit Verschlüsselung |
+| SNMP-v3-Privacy-Schlüssel | Die Passphrase für die Verschlüsselung. | Mit Verschlüsselung |
 :::
 
 Auf dem Gerät eingegebene Anmeldedaten haben Vorrang vor einem daneben gewählten Anmeldedatenprofil, und der Standort des Geräts kann ebenfalls ein Standardprofil tragen. Anmeldedaten in einem Profil werden verschlüsselt gespeichert. Auf einem Gerät eingegebene Anmeldedaten sind durch dieselben Leseberechtigungen geschützt, werden aber nicht verschlüsselt gespeichert: ein Grund mehr, gemeinsam genutzte Anmeldedaten in einem Profil zu halten.
@@ -281,7 +281,7 @@ Die Abfrage befindet sich auf der **Einstellungen**-Seite des Geräts, in der Ka
 | OID-Erfassungsvorlage | Eine gemeinsame, benannte OID-Liste, die das Gerät erfasst. Eine Änderung der Vorlage ändert jedes verknüpfte Gerät bei seiner nächsten Abfrage. | Keine |
 | Gerätespezifische Integritäts-OIDs | Zusätzliche OIDs, die nur dieses Gerät erfasst, zusätzlich zu denen seiner Vorlage. | Keine |
 | Integritätsvorlage des Herstellers automatisch anwenden | Wenn der Hersteller des Geräts erkannt ist und seine eigene OID-Liste leer ist, die Liste bei der nächsten Abfrage aus der Vorlage des Herstellers füllen. | Aus; an für Geräte, die die Erkennung importiert |
-| Gerätespezifische SNMP-Tabellen | Zusätzliche [SNMP-Tabellen](#snmp-tabellen), die nur dieses Gerät abfragt, zusätzlich zu denen seiner Vorlage. Eine Tabelle mit demselben Schlüssel wie eine Vorlagentabelle ersetzt diese auf diesem Gerät. | Keine |
+| Device-Specific SNMP Tables | Zusätzliche [SNMP-Tabellen](#snmp-tabellen), die nur dieses Gerät abfragt, zusätzlich zu denen seiner Vorlage. Eine Tabelle mit demselben Schlüssel wie eine Vorlagentabelle ersetzt diese auf diesem Gerät. | Keine |
 
 Alles ab **Schnittstellen abfragen** abwärts braucht SNMP-Anmeldedaten: Auf einem nur angepingten Gerät bleiben diese Einstellungen gespeichert und haben keinen Walk, auf den sie wirken.
 
