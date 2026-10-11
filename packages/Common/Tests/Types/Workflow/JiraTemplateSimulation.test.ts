@@ -178,6 +178,7 @@ const WEBHOOK_IDENTIFIER: string = "a1b2c3d4-webhook-delivery-sentinel";
 
 /** What the create wizard would have stored for each variable a template declares. */
 const VARIABLE_VALUES: Dictionary<string> = {
+  jiraSiteUrl: JIRA_SITE,
   jiraBaseUrl: JIRA_SITE,
   jiraBasicAuthToken: JIRA_TOKEN,
   jiraProjectKey: "OPS",
@@ -302,15 +303,20 @@ const buildSimulatedGraph: BuildSimulatedGraphFunction = (
   };
 };
 
-type VariablesForFunction = (templateId: string) => Dictionary<string>;
+type VariablesForFunction = (
+  templateId: string,
+  overrides?: Dictionary<string | null> | undefined,
+) => Dictionary<string>;
 
 /*
  * Only the variables the template declares, because that is all the wizard
  * creates. A reference to anything else stays unresolved, exactly as it would
- * in a real workflow.
+ * in a real workflow. A scenario can store another value for one, or none at
+ * all (null), as someone editing the workflow's variables afterwards could.
  */
 const variablesFor: VariablesForFunction = (
   templateId: string,
+  overrides?: Dictionary<string | null> | undefined,
 ): Dictionary<string> => {
   const template: WorkflowTemplate | null = getWorkflowTemplate(templateId);
 
@@ -321,13 +327,31 @@ const variablesFor: VariablesForFunction = (
   const values: Dictionary<string> = {};
 
   for (const variable of template.variables) {
-    const value: string | undefined = VARIABLE_VALUES[variable.name];
+    const override: string | null | undefined = overrides?.[variable.name];
+
+    // Deleted after the workflow was created: nothing resolves its reference.
+    if (override === null) {
+      continue;
+    }
+
+    const value: string | undefined =
+      override === undefined ? VARIABLE_VALUES[variable.name] : override;
 
     if (value === undefined) {
       throw new Error(`The simulation has no value for ${variable.name}.`);
     }
 
     values[variable.name] = value;
+  }
+
+  for (const name of Object.keys(overrides || {})) {
+    if (
+      !template.variables.some((variable: WorkflowTemplateVariable) => {
+        return variable.name === name;
+      })
+    ) {
+      throw new Error(`${templateId} declares no variable ${name}.`);
+    }
   }
 
   return values;
@@ -455,6 +479,11 @@ interface Scenario {
    * SYNC_PRIVATE_INCIDENTS or SYNC_PRIVATE_ALERTS on.
    */
   editCode?: Dictionary<EditCodeFunction> | undefined;
+  /*
+   * Variables stored with other values than the wizard's (VARIABLE_VALUES),
+   * by name, or deleted (null), as editing the workflow's variables would.
+   */
+  variables?: Dictionary<string | null> | undefined;
 }
 
 interface SimulationTrace {
@@ -785,7 +814,10 @@ const runTemplate: RunTemplateFunction = async (
     logs: [],
     runLog: [],
     storage: {
-      local: { variables: variablesFor(scenario.templateId), components: {} },
+      local: {
+        variables: variablesFor(scenario.templateId, scenario.variables),
+        components: {},
+      },
       global: { variables: {} },
     },
   };
