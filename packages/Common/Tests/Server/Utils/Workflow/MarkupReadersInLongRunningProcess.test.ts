@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 import childProcess from "child_process";
 import path from "path";
 
@@ -6,26 +6,41 @@ import path from "path";
  * TEXT FROM OUTSIDE, A MEGABYTE LONG, READ BY A PROCESS THAT HAS BEEN
  * RUNNING A WHILE.
  *
- * Two readers take markup out of text from outside: the quote of a token
+ * Three readers take markup out of text from outside: the quote of a token
  * endpoint's answer in an OAuth error (OAuth2TokenClient; an answer may be
- * a megabyte), and the Dynamics 365 note template's script, which reads a
- * note's HTML (a note's text can be as long). V8 matches a regular
- * expression with a backtracking stack that can grow with every character a
- * quantifier takes, and a process that has run a while compiles them
- * without optimization - so, as AGENTS.md ("Megabyte-long values") asks,
- * neither runs a pattern with a quantifier over the whole text: each reads
- * it with loops and indexOf.
+ * a megabyte), the Dynamics 365 note template's script, which reads a
+ * note's HTML (a note's text can be as long) and places it with the
+ * asWritten helper every Jira and Dynamics 365 script carries, and the
+ * Microsoft Teams reader of a pinned message (ReactionNoteSync.htmlToText).
+ * V8 matches a regular expression with a backtracking stack that can grow
+ * with every character a quantifier takes, and a process that has run a
+ * while compiles them without optimization - so, as AGENTS.md
+ * ("Megabyte-long values") asks, none runs a pattern with a quantifier over
+ * the whole text: each reads it with loops and indexOf.
  *
- * Both run here in a node process started with --no-regexp-optimization,
- * the state such a process reaches, on a megabyte of each shape that a
- * quantified pattern would take whole. esbuild bundles the modules in that
- * process, as ScreenshotEmailInLongRunningProcess.test.ts does. The note
- * script runs as the workflow runner runs it, as the body of a function
- * given its arguments, with its step swapped for a few lines that call its
- * readers.
+ * All three run here in a node process started with
+ * --no-regexp-optimization, the state such a process reaches, on a megabyte
+ * of each shape that a quantified pattern would take whole. esbuild bundles
+ * the modules in that process, as ScreenshotEmailInLongRunningProcess.test.ts
+ * does. The note script runs as the workflow runner runs it, as the body of
+ * a function given its arguments, with its step swapped for a few lines that
+ * call its readers.
+ *
+ * The Teams reader is also held to time. It took the spaces before each line
+ * break out with /[ \t]+\n/g and attachment elements with
+ * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, which start again from
+ * every place a match could start: in this state, two seconds for 28 KB of
+ * spaces (a Teams message's largest) and half a minute for 100 KB. Each
+ * shape below is read well inside a second.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+
+/*
+ * Each shape is read in about 50 ms on a developer machine. The patterns
+ * this replaced took minutes on a megabyte of the slow ones.
+ */
+const TEAMS_READ_LIMIT_IN_MS: number = 1000;
 
 interface Attempt {
   ok: boolean;
@@ -38,6 +53,8 @@ interface ProcessReport {
   oldBase64Pattern: Attempt;
   answers: Array<{ shape: string; read: Attempt }>;
   notes: Array<{ shape: string; read: Attempt }>;
+  teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
+  sites: Array<{ shape: string; site?: string; error?: string }>;
 }
 
 function runWithUnoptimizedRegularExpressions(): ProcessReport {
@@ -56,6 +73,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
               'export { default as OAuth2TokenClient } from "./Server/Utils/Workflow/OAuth2TokenClient";',
               'export { OAuth2GrantType } from "./Types/Workflow/WorkflowVariableOAuth";',
               'export { getTemplateGraphSpec } from "./Types/Workflow/Templates";',
+              'export { default as MicrosoftTeamsReactionNoteSync } from "./Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync";',
             ].join("\n"),
             resolveDir: process.cwd(),
             loader: "ts",
@@ -76,7 +94,12 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           bundle.exports,
           require,
         );
-        const { OAuth2TokenClient, OAuth2GrantType, getTemplateGraphSpec } = bundle.exports;
+        const {
+          OAuth2TokenClient,
+          OAuth2GrantType,
+          getTemplateGraphSpec,
+          MicrosoftTeamsReactionNoteSync,
+        } = bundle.exports;
 
         const MEGABYTE = 1024 * 1024;
         const repeatTo = (unit) => unit.repeat(Math.floor(MEGABYTE / unit.length));
@@ -143,19 +166,77 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         const readers = new Function(
           "args",
           code.slice(0, code.indexOf(step)) +
-            "return { htmlToText: htmlToText, asNoteText: asNoteText };",
+            "return { htmlToText: htmlToText, asWritten: asWritten };",
         )({});
 
         const notes = SHAPES.map(([shape, text]) => {
           return {
             shape,
             read: attempt(() => {
-              return readers.asNoteText(readers.htmlToText(text));
+              return readers.asWritten(readers.htmlToText(text));
             }),
           };
         });
 
-        process.stdout.write(JSON.stringify({ oldBase64Pattern, answers, notes }));
+        // A Teams message body as Graph hands it over: HTML, its attachments as elements.
+        const TEAMS_SHAPES = [
+          ...SHAPES,
+          ["spaces with no line break after them", "<p>" + repeatTo(" ") + "x</p>"],
+          ["non-breaking spaces", "<p>" + repeatTo("&nbsp;") + "x</p>"],
+          ["attachment elements that never close", repeatTo('<attachment id="1">')],
+          ["attachment start tags with no '>'", repeatTo("<attachment ")],
+          ["attachment elements", repeatTo('<attachment id="1"></attachment>')],
+          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
+          ["a hexadecimal reference's digits", "<p>&#x" + repeatTo("a") + "</p>"],
+          ["one numeric reference a megabyte long", "<p>&#" + repeatTo("1") + ";</p>"],
+          ["numeric references", "<p>" + repeatTo("&#65;") + "</p>"],
+          ["hexadecimal references", "<p>" + repeatTo("&#x41;") + "</p>"],
+        ];
+
+        const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
+          const started = Date.now();
+          const read = attempt(() => {
+            return MicrosoftTeamsReactionNoteSync.htmlToText(text);
+          });
+
+          return { shape, read, ms: Date.now() - started };
+        });
+
+        /*
+         * The site of a Jira issue's link, read off the event's own REST URL by the helper
+         * block every Jira script starts with: a request can send any URL, as long as it likes.
+         */
+        const jiraSpec = getTemplateGraphSpec("jira-comment-to-incident-private-note");
+        const jiraCode = jiraSpec.nodes.find((node) => node.componentId === "read-comment-1").args.code;
+        const jiraHelpers = new Function(
+          "args",
+          jiraCode.slice(0, jiraCode.indexOf("// ---- What this step does ----")) +
+            "return { siteOf: siteOf };",
+        )({});
+
+        const SITE_SHAPES = [
+          ["an IPv6 address that never closes", "http://[" + repeatTo("1")],
+          ["a host that never ends", "https://" + repeatTo("a")],
+          ["a long host before a path", "https://" + repeatTo("a") + "/rest/api/2/issue/10040"],
+          ["dotted labels", "https://" + repeatTo("a.")],
+          ["a port that never ends", "https://acme.atlassian.net:" + repeatTo("1")],
+        ];
+
+        const sites = SITE_SHAPES.map(([shape, self]) => {
+          try {
+            return { shape, site: jiraHelpers.siteOf(self) };
+          } catch (error) {
+            return { shape, error: String((error && error.message) || error).split("\n")[0] };
+          }
+        });
+        sites.push({
+          shape: "a site, as Jira Cloud sends it",
+          site: jiraHelpers.siteOf("https://acme.atlassian.net/rest/api/2/issue/10040"),
+        });
+
+        process.stdout.write(
+          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites }),
+        );
         process.exit(0);
       `,
     ],
@@ -171,9 +252,13 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
 }
 
 describe("Markup read out of megabyte-long text, where V8 compiles regular expressions unoptimized", () => {
-  test("the OAuth error quote and the Dynamics 365 note script read every shape without running out of stack", () => {
-    const report: ProcessReport = runWithUnoptimizedRegularExpressions();
+  let report: ProcessReport;
 
+  beforeAll(() => {
+    report = runWithUnoptimizedRegularExpressions();
+  }, 300000);
+
+  test("the OAuth error quote and the Dynamics 365 note script read every shape without running out of stack", () => {
     /*
      * The process really is in that state: a quantified pattern over three
      * megabytes runs out of stack there. If V8 ever stops doing that, this
@@ -194,5 +279,33 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
         read: { ok: true, markup: false },
       });
     }
-  }, 300000);
+  });
+
+  test("a Jira script reads a site off a megabyte-long issue URL without running out of stack", () => {
+    // None of these is a site's address, so the issue is named without a link.
+    expect(report.sites).toEqual([
+      { shape: "an IPv6 address that never closes", site: "" },
+      { shape: "a host that never ends", site: "" },
+      { shape: "a long host before a path", site: "" },
+      { shape: "dotted labels", site: "" },
+      { shape: "a port that never ends", site: "" },
+      {
+        shape: "a site, as Jira Cloud sends it",
+        site: "https://acme.atlassian.net",
+      },
+    ]);
+  });
+
+  test("the Teams reader of a pinned message reads every shape, each in well under a second", () => {
+    // A megabyte of each shape: the ten above, and ten a Teams message can take.
+    expect(report.teamsMessages).toHaveLength(20);
+
+    for (const { shape, read, ms } of report.teamsMessages) {
+      expect({ shape, read, fast: ms < TEAMS_READ_LIMIT_IN_MS }).toEqual({
+        shape,
+        read: { ok: true, markup: false },
+        fast: true,
+      });
+    }
+  });
 });
