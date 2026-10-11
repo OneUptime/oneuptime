@@ -223,6 +223,13 @@ export interface WorkflowTemplateVariable {
    * OAuth 2.0 variable, and never as a static variable's plain content.
    */
   isOAuth2SettingOnly?: boolean | undefined;
+  /**
+   * The name of a setting the template asks for before this one. Until
+   * someone types into this field, the wizard fills it in with whatever is
+   * typed there, so a value that is usually the same is typed once. Inert in
+   * a template that does not ask for that setting.
+   */
+  prefilledFrom?: string | undefined;
 }
 
 /*
@@ -708,32 +715,50 @@ const JIRA_BASE_URL: WorkflowTemplateVariable = {
   placeholder: "https://your-company.atlassian.net",
   required: true,
   isSecret: false,
+  // With a classic token, and on Data Center, the requests go to the site itself.
+  prefilledFrom: "jiraSiteUrl",
 };
 
 /*
- * What a Jira Site URL can be: http or https, a host and a port, as SITE
- * reads a site off an event's REST URL in the scripts' helper block - a host
- * is letters, marks and decimal digits in any script, ".", "-", "_" and "~",
- * or an IPv6 address in brackets - and, for Jira Data Center under a context
- * path, that one path segment. A slash may end it. At most 300 characters,
- * as SITE takes. Nothing else fits, so a link built on it goes to that site,
- * and no page, query, user name or markup can ride along.
+ * A site's address as the scripts read one: a host - letters, marks and
+ * decimal digits in any script, ".", "-", "_" and "~", or an IPv6 address in
+ * brackets - and a port of up to five digits. SITE, in the scripts' helper
+ * block, reads an event's REST URL with these, and the Jira Site URL takes
+ * the same hosts and ports, so the two readings never part on one.
+ */
+const SITE_HOST_SOURCE: string = String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])`;
+
+const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
+
+/*
+ * What a Jira Site URL can be: http or https, in any case, then a host and
+ * a port as above, with a letter or a digit in the host ("." or "-" alone is
+ * no site), then, for Jira Data Center under a context path, that one path
+ * segment, and perhaps the slash an address bar ends a site with. At most 300
+ * characters, as SITE takes. Nothing else fits, so a link built on it goes to
+ * that site, and no page, query, user name or markup can ride along.
  *
  * One path segment, not more: Data Center runs under one, such as
  * https://example.com/jira, while the address of a page - what gets pasted
  * from a browser's address bar, https://acme.atlassian.net/jira/your-work or
- * .../browse/OPS-17 - has two or more, and is refused rather than turned
- * into links that go nowhere.
+ * .../browse/OPS-17 - has two or more. Links built on a page's address would
+ * go nowhere, so it is refused.
  *
  * The create wizard checks a typed value with JIRA_SITE_URL_PATTERN, and the
  * scripts read the setting with the same source (SITE_SETTING), so a value
  * the wizard took is one the scripts link to.
  */
-const JIRA_SITE_URL_PATTERN_SOURCE: string = String.raw`^(?![\s\S]{301})https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?(?:\/[A-Za-z0-9._~-]+)?\/?$`;
+const JIRA_SITE_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})https?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9._~-]+)?\/?$`,
+].join("");
 
 export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
   JIRA_SITE_URL_PATTERN_SOURCE,
-  "u",
+  "iu",
 );
 
 /*
@@ -1120,15 +1145,16 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
 // that site and nothing else can ride along. The setting decides whatever the event says: an event
 // from that site links exactly as before, and one that names another site still links the issue,
 // by its key (which matched ISSUE_KEY), on the site the setting names. A setting that is not a
-// site's address - a value edited in later, or a variable that is gone - links nothing.
-const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/u;
-// Without the setting, the site is read off the issue's own REST URL: the scheme, the host and a
-// port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
-// site, and nothing else written into the address can act. A host is letters, marks and decimal
-// digits in any script, ".", "-", "_" and "~", or an IPv6 address in brackets. Only what comes
-// before the URL's path is read, and only when it is no longer than a site's address can be, so a
-// long URL is never matched against a pattern.
-const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
+// site's address - a value edited in later, an emptied variable or one that is gone - links
+// nothing.
+const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/iu;
+// A script handed no setting at all - a workflow whose arguments no longer name it - reads the site
+// off the issue's own REST URL: the scheme, the host and a port, and nothing else. The URL comes with
+// the event, so an issue's link can only ever go to a site, and nothing else written into the
+// address can act. A host is letters, marks and decimal digits in any script, ".", "-", "_" and
+// "~", or an IPv6 address in brackets. Only what comes before the URL's path is read, and only when
+// it is no longer than a site's address can be, so a long URL is never matched against a pattern.
+const SITE = /^https?:\/\/${SITE_HOST_SOURCE}${SITE_PORT_SOURCE}$/u;
 const LONGEST_SITE = 300;
 const siteOf = (self) => {
   const text = asText(self);
@@ -1138,16 +1164,18 @@ const siteOf = (self) => {
   const site = pathStart === -1 ? text : text.slice(0, pathStart);
   return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
-// The site a Jira Site URL setting names, without the slash it may end with, or '' when it names
-// none. SITE_SETTING takes at most LONGEST_SITE characters, and a character is at most two UTF-16
-// units, so a longer value is refused before any pattern reads it.
+// The site a Jira Site URL setting names, without the slash it may end with and with its scheme in
+// lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE characters, and a
+// character is at most two UTF-16 units, so a longer value is refused before any pattern reads it.
 const siteOfSetting = (setting) => {
   const text = asText(setting).trim();
   if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
-  return text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
 };
 const issueLink = (self, issueKey, setting) => {
-  const site = asText(setting).trim() ? siteOfSetting(setting) : siteOf(self);
+  const site = setting === undefined || setting === null ? siteOf(self) : siteOfSetting(setting);
   return site ? '[' + issueKey + '](' + site + '/browse/' + issueKey + ')' : issueKey;
 };
 // A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
@@ -1813,21 +1841,24 @@ const proceedCondition: ProceedConditionFunction = (
   };
 };
 
-type JiraLinkingEventArgumentsFunction = () => string;
+type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
 
 /*
- * The arguments of a script that reads a Jira event and links its issue in a
- * note: the workflow's Jira Site URL, the site the link goes to, and the
- * request body. The body goes last, as everywhere text Jira users wrote is
- * quoted into an argument, and it arrives as JSON text the script reads.
+ * The arguments of a script that reads a Jira event and links its issue:
+ * whatever else the script needs, then the workflow's Jira Site URL, the
+ * site the link goes to, then the request body. The body goes last, as
+ * everywhere text Jira users wrote is quoted into an argument, and it
+ * arrives as JSON text the script reads.
  */
-const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction =
-  (): string => {
-    return jsonText({
-      jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
-      payload: "{{local.components.webhook-1.returnValues.request-body}}",
-    });
-  };
+const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction = (
+  before?: JSONObject,
+): string => {
+  return jsonText({
+    ...(before || {}),
+    jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
+    payload: "{{local.components.webhook-1.returnValues.request-body}}",
+  });
+};
 
 type JiraTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
 
@@ -2718,12 +2749,9 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
              * The Jira payload goes last. Text Jira users wrote is only
              * ever substituted after everything else in an argument.
              */
-            arguments: jsonText({
+            arguments: jiraLinkingEventArguments({
               severities:
                 "{{local.components.find-severities-1.returnValues.models}}",
-              jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
-              payload:
-                "{{local.components.webhook-1.returnValues.request-body}}",
             }),
           },
         },

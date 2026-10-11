@@ -3572,6 +3572,35 @@ describe.each(KINDS)(
       ]);
     });
 
+    /*
+     * A variable's content can be emptied after the workflow is created.
+     * An empty setting names no site: the note names the issue without a
+     * link, rather than at the site the event names, and is still written.
+     */
+    test("with the Jira Site URL variable emptied, the note names the issue without a link, whatever the event says", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        ...issueChangesScenario(kind, {
+          event: jiraIssueUpdatedEvent({
+            labels: linkedLabelsOf(kind),
+            self: OTHER_HOST_ISSUE_URL,
+            items: [
+              changelogItem({
+                field: "priority",
+                fromString: "Medium",
+                toString: "Highest",
+              }),
+            ],
+          }),
+        }),
+        variables: { jiraSiteUrl: "" },
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated ${JIRA_ISSUE_KEY}.\n\n- priority: Medium → Highest`,
+      });
+    });
+
     test("a Jira Site URL stored with a slash at its end links the issue without a second one", async () => {
       const event: JSONObject = jiraCommentEvent();
 

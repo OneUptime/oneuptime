@@ -2148,6 +2148,102 @@ describe("CreateWorkflowModal Jira templates", () => {
       });
 
       /*
+       * On most sites the API calls go to the address people open Jira at,
+       * so the Jira API URL takes what is typed into the Jira Site URL until
+       * it is typed into itself: the address is typed once, and a scoped
+       * token's gateway address is typed over it.
+       */
+      test("the Jira API URL takes what is typed into the Jira Site URL, until it is typed into itself", () => {
+        renderModal();
+        goToConfigure(kind.commentToNoteTemplateId);
+
+        fillVariable("jiraSiteUrl", "https://acme.atlassian.net");
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://acme.atlassian.net",
+        );
+        // Nothing else takes it: the token is nobody's copy.
+        expect(getVariableInput(JIRA_TOKEN_VARIABLE)).toHaveValue("");
+
+        fillVariable("jiraSiteUrl", "https://jira.acme.example");
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://jira.acme.example",
+        );
+
+        fillVariable(
+          "jiraBaseUrl",
+          "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+        );
+        fillVariable("jiraSiteUrl", "https://acme.atlassian.net");
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+        );
+        expect(getVariableInput("jiraSiteUrl")).toHaveValue(
+          "https://acme.atlassian.net",
+        );
+      });
+
+      test("a Jira API URL filled in from the site loses its message, and is saved as its own setting", async () => {
+        const created: Workflow = createdWorkflow();
+
+        acceptEveryCreate(created);
+
+        const harness: ModalHarness = renderModal();
+        goToConfigure(kind.createFromIssueTemplateId);
+
+        submit();
+
+        expect(
+          screen.getByText("Jira API URL is required."),
+        ).toBeInTheDocument();
+
+        fillVariable(
+          "jiraSiteUrl",
+          JIRA_LINKING_VALUES["jiraSiteUrl"] as string,
+        );
+
+        expect(
+          screen.queryByText("Jira API URL is required."),
+        ).not.toBeInTheDocument();
+
+        fillVariable(
+          JIRA_TOKEN_VARIABLE,
+          JIRA_LINKING_VALUES[JIRA_TOKEN_VARIABLE] as string,
+        );
+        submit();
+
+        await waitFor(() => {
+          expect(harness.onCreated).toHaveBeenCalledWith(created);
+        });
+
+        expect(writtenRows(createCalls().slice(1))).toEqual(
+          Object.keys(JIRA_LINKING_VALUES).map(expectedJiraRow),
+        );
+      });
+
+      test("another template starts afresh: what was typed for the last one neither stays nor stops the filling in", () => {
+        renderModal();
+        goToConfigure(kind.commentToNoteTemplateId);
+
+        fillVariable("jiraBaseUrl", "https://api.atlassian.com/ex/jira/7a3c");
+
+        // Back to Name, back to the templates, and on with another one.
+        fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+        fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+        goToConfigure(kind.createFromIssueTemplateId);
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue("");
+
+        fillVariable("jiraSiteUrl", "https://acme.atlassian.net");
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://acme.atlassian.net",
+        );
+      });
+
+      /*
        * A link built on the setting goes to that site and nowhere else, so a
        * value that is not a site's address - a page pasted from the address
        * bar, a query, no https:// - is refused where it is typed, saying

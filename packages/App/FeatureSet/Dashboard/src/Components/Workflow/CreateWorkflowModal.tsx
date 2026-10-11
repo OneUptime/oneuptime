@@ -110,6 +110,15 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     useState<WorkflowTemplateVariableValues>({});
   const [variableErrors, setVariableErrors] =
     useState<WorkflowTemplateVariableErrors>({});
+  /*
+   * The settings someone has typed into. A setting prefilled from another
+   * (WorkflowTemplateVariable.prefilledFrom) takes what is typed there until
+   * it is in this list: the Jira API URL is the Jira Site URL on most sites,
+   * so it is typed once, and changed only where it differs.
+   */
+  const [typedVariableNames, setTypedVariableNames] = useState<Array<string>>(
+    [],
+  );
   const [pickerState, setPickerState] = useState<WorkflowTemplatePickerState>(
     INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
   );
@@ -169,6 +178,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       setDescription(template ? template.workflowDescription : "");
       setVariableValues({});
       setVariableErrors({});
+      setTypedVariableNames([]);
     }
 
     setNameError("");
@@ -445,15 +455,53 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                   error={variableErrors[variable.name]}
                   dataTestId={inputId}
                   onChange={(value: string) => {
+                    // The settings filled in from this one, until each is typed into.
+                    const prefilled: Array<string> = variables
+                      .filter((candidate: WorkflowTemplateVariable) => {
+                        return (
+                          candidate.prefilledFrom === variable.name &&
+                          !typedVariableNames.includes(candidate.name)
+                        );
+                      })
+                      .map((candidate: WorkflowTemplateVariable) => {
+                        return candidate.name;
+                      });
+                    const changed: Array<string> = [
+                      variable.name,
+                      ...prefilled,
+                    ];
+
                     setVariableValues(
                       (
                         current: WorkflowTemplateVariableValues,
                       ): WorkflowTemplateVariableValues => {
-                        return { ...current, [variable.name]: value };
+                        const next: WorkflowTemplateVariableValues = {
+                          ...current,
+                        };
+
+                        for (const name of changed) {
+                          next[name] = value;
+                        }
+
+                        return next;
                       },
                     );
 
-                    if (variableErrors[variable.name]) {
+                    if (!typedVariableNames.includes(variable.name)) {
+                      setTypedVariableNames(
+                        (current: Array<string>): Array<string> => {
+                          return current.includes(variable.name)
+                            ? current
+                            : [...current, variable.name];
+                        },
+                      );
+                    }
+
+                    if (
+                      changed.some((name: string) => {
+                        return Boolean(variableErrors[name]);
+                      })
+                    ) {
                       setVariableErrors(
                         (
                           current: WorkflowTemplateVariableErrors,
@@ -461,7 +509,11 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                           const next: WorkflowTemplateVariableErrors = {
                             ...current,
                           };
-                          delete next[variable.name];
+
+                          for (const name of changed) {
+                            delete next[name];
+                          }
+
                           return next;
                         },
                       );

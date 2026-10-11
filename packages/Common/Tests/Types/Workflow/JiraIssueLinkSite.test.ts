@@ -286,6 +286,12 @@ const SITES: Array<[string, string, string]> = [
     `https://${"a".repeat(292)}`,
     `https://${"a".repeat(292)}`,
   ],
+  [
+    "a scheme in capitals, linked in lower case",
+    "HTTPS://Acme.atlassian.net",
+    "https://Acme.atlassian.net",
+  ],
+  ["the IPv6 loopback address", "http://[::1]:8443", "http://[::1]:8443"],
 ];
 
 // What the wizard refuses, and the scripts never link to.
@@ -293,7 +299,6 @@ const NOT_SITES: Array<[string, string]> = [
   ["no scheme", "acme.atlassian.net"],
   ["another scheme", "ftp://acme.atlassian.net"],
   ["a script", "javascript:alert(1)"],
-  ["a scheme in capitals", "HTTPS://acme.atlassian.net"],
   ["a page of Jira Cloud", "https://acme.atlassian.net/jira/your-work"],
   ["an issue's page", "https://acme.atlassian.net/browse/OPS-17"],
   [
@@ -341,6 +346,10 @@ const NOT_SITES: Array<[string, string]> = [
   ["a port of six digits", "https://acme.atlassian.net:844300"],
   ["no host", "https://"],
   ["no host, then a path", "https:///jira"],
+  ["a host of dots alone", "https://.."],
+  ["a host of a dash, with a port", "https://-:8443"],
+  ["a host of an underscore and a tilde", "https://_~"],
+  ["a host of a dot, before a context path", "https://./jira"],
   ["an address longer than a site's can be", `https://${"a".repeat(293)}`],
   ["a reference to a variable that is gone", "{{local.variables.jiraSiteUrl}}"],
 ];
@@ -467,8 +476,13 @@ interface ParsedAddress {
 describe("the Jira Site URL a workflow is created with", () => {
   test.each(SITES)("takes %s", (_case: string, typed: string, site: string) => {
     expect(JIRA_SITE_URL_PATTERN.test(typed)).toBe(true);
-    // The site links go to is what was typed, bar a slash at the end.
-    expect(typed === site || typed === `${site}/`).toBe(true);
+
+    // The site links go to is what was typed, bar a slash at the end, with its scheme in lower case.
+    const schemeEnd: number = typed.indexOf("://");
+    const asLinked: string =
+      typed.slice(0, schemeEnd).toLowerCase() + typed.slice(schemeEnd);
+
+    expect(asLinked === site || asLinked === `${site}/`).toBe(true);
   });
 
   test.each(NOT_SITES)("refuses %s", (_case: string, typed: string) => {
@@ -515,7 +529,7 @@ describe("the Jira Site URL a workflow is created with", () => {
     let unparsed: number = 0;
 
     // Enough of them are sites, of every shape, for this to say something.
-    expect(taken.length).toBeGreaterThan(1500);
+    expect(taken.length).toBeGreaterThan(1400);
     expect(
       taken.filter((text: string): boolean => {
         return text.includes("/jira");
@@ -700,7 +714,33 @@ describe("the templates that link a Jira issue", () => {
       });
     }
 
-    expect(JIRA_SITE_URL_PATTERN.flags).toBe("u");
+    // Read in any case: a scheme in capitals is a scheme.
+    expect(JIRA_SITE_URL_PATTERN.flags).toBe("iu");
+  });
+
+  /*
+   * SITE, which reads a site off an event's REST URL when a script is handed
+   * no setting, is built from the same host and port as the setting's
+   * pattern, so the two readings take the same hosts and ports, and a change
+   * to one is a change to both.
+   */
+  test("the scripts read an event's site with the setting's own host and port", () => {
+    const code: string = scriptOf(
+      LINKING_SCRIPTS[1]!.templateId,
+      LINKING_SCRIPTS[1]!.componentId,
+    );
+    const prefix: string = "\nconst SITE = /^https?:\\/\\/";
+    const start: number = code.indexOf(prefix);
+    const end: number = code.indexOf("$/u;\n", start);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const hostAndPort: string = code.slice(start + prefix.length, end);
+
+    expect(hostAndPort).toBe(
+      String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?`,
+    );
+    expect(JIRA_SITE_URL_PATTERN.source).toContain(hostAndPort);
   });
 });
 
@@ -730,6 +770,7 @@ describe.each(LINKING_SCRIPTS)(
     const configured: Array<LinkCase> = [];
     const refused: Array<LinkCase> = [];
     const unset: Array<LinkCase> = [];
+    const empty: Array<LinkCase> = [];
     // Each site's own event, for the sites a REST URL could name before: no context path.
     const matching: Array<LinkCase> = SITES.filter(
       ([, , site]: [string, string, string]): boolean => {
@@ -755,23 +796,29 @@ describe.each(LINKING_SCRIPTS)(
       }
     }
 
-    // Handed no setting: left out, null, empty, or only spaces.
+    // Handed no setting at all: the argument left out, or null.
     for (const self of [...selfs, ...generatedSelfs]) {
       unset.push({ self: self, key: JIRA_ISSUE_KEY });
       unset.push({ self: self, key: "ABC_1-2", setting: null });
-      unset.push({ self: self, key: JIRA_ISSUE_KEY, setting: "" });
-      unset.push({ self: self, key: JIRA_ISSUE_KEY, setting: " \t\n" });
+    }
+
+    // Handed an empty setting - a variable emptied after the workflow was created - or only spaces.
+    for (const self of [...EVENT_URLS, ...generatedSelfs.slice(0, 200)]) {
+      empty.push({ self: self, key: JIRA_ISSUE_KEY, setting: "" });
+      empty.push({ self: self, key: JIRA_ISSUE_KEY, setting: " \t\n" });
     }
 
     let configuredLinks: Array<string> = [];
     let refusedLinks: Array<string> = [];
     let unsetLinks: Array<string> = [];
+    let emptyLinks: Array<string> = [];
     let matchingLinks: Array<string> = [];
 
     beforeAll(async () => {
       configuredLinks = await linksBy(step, configured);
       refusedLinks = await linksBy(step, refused);
       unsetLinks = await linksBy(step, unset);
+      emptyLinks = await linksBy(step, empty);
       matchingLinks = await linksBy(step, matching);
     });
 
@@ -820,6 +867,24 @@ describe.each(LINKING_SCRIPTS)(
           return linkCase.key;
         }),
       );
+    });
+
+    /*
+     * A variable's content can be emptied after the workflow is created. An
+     * empty setting names no site, so the issue is named without a link: the
+     * site does not go back to the event's choosing.
+     */
+    test("an empty setting names the issue without a link, whatever the event's issue URL says", () => {
+      expect(emptyLinks).toEqual(
+        empty.map((linkCase: LinkCase): string => {
+          return linkCase.key;
+        }),
+      );
+      expect(
+        empty.some((linkCase: LinkCase): boolean => {
+          return issueLinkBefore(linkCase.self, linkCase.key).startsWith("[");
+        }),
+      ).toBe(true);
     });
 
     test("without the setting, links exactly as #4676's code did", () => {
@@ -872,7 +937,8 @@ test("Jira Data Center under a context path is linked under that path, where it 
  * A value the wizard takes is one the scripts link to, and a value it
  * refuses is one they never link to - for every text, not only the tables.
  * The wizard trims what is typed before it checks and stores it, and the
- * scripts trim what they are handed.
+ * scripts trim what they are handed. A blank value is refused by both: the
+ * wizard asks for one, and the scripts link nothing.
  */
 test("the scripts link to exactly the settings the wizard takes", async () => {
   const typed: Array<string> = [
@@ -888,10 +954,9 @@ test("the scripts link to exactly the settings the wizard takes", async () => {
       },
     ),
     ...generatedTexts(2000, 3141, URL_ALPHABET, 9),
-  ].filter((text: string): boolean => {
-    // A blank setting is no setting: the wizard asks for it instead.
-    return text.trim() !== "";
-  });
+    "",
+    "   ",
+  ];
   const links: Array<string> = await linksBy(
     LINKING_SCRIPTS[0]!,
     typed.map((setting: string): LinkCase => {

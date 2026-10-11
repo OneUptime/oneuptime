@@ -822,6 +822,44 @@ describe("workflow template variables", () => {
     }
   });
 
+  /*
+   * A setting prefilled from another takes what is typed there until it is
+   * typed into, so the other has to come first: the wizard asks in the
+   * template's order. Where the template does not ask for it, nothing fills
+   * the field in.
+   */
+  test("a setting prefilled from another follows it in its template, or names one the template does not ask for", () => {
+    for (const template of templates) {
+      const names: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.name;
+        },
+      );
+
+      template.variables.forEach(
+        (variable: WorkflowTemplateVariable, index: number): void => {
+          if (!variable.prefilledFrom) {
+            return;
+          }
+
+          const from: number = names.indexOf(variable.prefilledFrom);
+
+          expect({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: from === -1 || from < index,
+            notItself: variable.prefilledFrom !== variable.name,
+          }).toEqual({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: true,
+            notItself: true,
+          });
+        },
+      );
+    }
+  });
+
   test("names are unique within a template, because they become one row each", () => {
     for (const template of templates) {
       const names: Array<string> = [

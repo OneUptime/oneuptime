@@ -420,7 +420,9 @@ test.describe("Create a workflow", () => {
     expect((await boxOf(api)).y).toBeLessThan((await boxOf(token)).y);
     await expect(site).toHaveAttribute("type", "text");
 
+    // Typed once: the Jira API URL takes the site's address until it is typed into.
     await site.fill("https://acme.atlassian.net/jira/your-work");
+    await expect(api).toHaveValue("https://acme.atlassian.net/jira/your-work");
     await api.fill("https://acme.atlassian.net");
     await token.fill("cHJpeWFAYWNtZS5jb206QVRBVFQzeEZmR0YwUzNjcjN0");
     await submitButton(dialog).click();
@@ -441,6 +443,8 @@ test.describe("Create a workflow", () => {
 
     await site.fill("https://acme.atlassian.net/");
     await expect(dialog).not.toContainText(message);
+    // Typed into, the Jira API URL keeps what was typed there.
+    await expect(api).toHaveValue("https://acme.atlassian.net");
     await submitButton(dialog).click();
 
     await expect(page.getByTestId("created-workflow")).toHaveText(
