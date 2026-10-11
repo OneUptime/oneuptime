@@ -7,6 +7,7 @@ import {
   isNetbiosQueryAddressAllowed,
 } from "../../../Utils/Discovery/NetbiosNameResolver";
 import { isNetbiosQueryableIPv4Address } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -243,14 +244,13 @@ describe("isNetbiosQueryableIPv4Address agrees with the probe's isNetbiosQueryAd
 
   it("on a seeded random sweep of the whole address space", () => {
     /*
-     * A deterministic LCG, not Math.random, as in NetbiosNameUtil.test.ts: a
-     * parity check that fails one run in a thousand gets deleted.
+     * Seeded, not Math.random, as in NetbiosNameUtil.test.ts: a parity check
+     * that fails one run in a thousand gets deleted.
      */
-    let seed: number = 0x3916;
+    const random: SeededRandom = seededRandom(0x3916);
 
     const nextAddress: () => string = (): string => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return toDottedQuad(seed);
+      return toDottedQuad(random(4294967296));
     };
 
     const values: Array<string> = [];

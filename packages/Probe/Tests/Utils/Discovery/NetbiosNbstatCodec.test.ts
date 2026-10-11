@@ -8,6 +8,7 @@ import {
   parseNbstatResponse,
   toNbstatTransactionId,
 } from "../../../Utils/Discovery/NetbiosNbstatCodec";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -679,18 +680,11 @@ describe("chooseNetbiosName", () => {
 
 describe("parseNbstatResponse — seeded hostile datagrams", () => {
   /*
-   * A deterministic LCG, so a failure reproduces from the seed and the suite
-   * can never be flaky. Math.random would make "never throws" a claim tested
-   * on a different set of inputs every run.
+   * Seeded draws (Common/Tests/Helpers/SeededRandom), so a failure
+   * reproduces from the seed and the suite can never be flaky. Math.random
+   * would make "never throws" a claim tested on a different set of inputs
+   * every run.
    */
-  function seededRandom(seed: number): () => number {
-    let state: number = seed >>> 0;
-
-    return (): number => {
-      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-      return state / 0x100000000;
-    };
-  }
 
   function expectWellFormed(response: NbstatResponse | null): void {
     if (response === null) {

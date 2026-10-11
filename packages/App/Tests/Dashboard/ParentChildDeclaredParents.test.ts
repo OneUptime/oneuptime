@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -172,10 +173,9 @@ const permuted: PermuteFunction = <ItemType>(
   seed: number,
 ): Array<ItemType> => {
   const shuffled: Array<ItemType> = [...items];
-  let state: number = Math.imul(seed, 2654435761) >>> 0 || 0x9e3779b9;
+  const random: SeededRandom = seededRandom(seed);
   for (let index: number = shuffled.length - 1; index > 0; index--) {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    const target: number = state % (index + 1);
+    const target: number = random(index + 1);
     const held: ItemType = shuffled[index]!;
     shuffled[index] = shuffled[target]!;
     shuffled[target] = held;

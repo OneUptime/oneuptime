@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
@@ -1434,19 +1435,8 @@ describe("splitSearchWords", () => {
    * must hold for all of them.
    */
   describe("generated inputs", () => {
+    // Draws of the suites' seeded generator: the same on every machine.
     type RandomSource = () => number;
-
-    // mulberry32: tiny, seedable, and the same sequence on every machine.
-    function seededRandom(seed: number): RandomSource {
-      let state: number = seed >>> 0;
-      return (): number => {
-        state = (state + 0x6d2b79f5) >>> 0;
-        let mixed: number = state;
-        mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-        mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-        return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-      };
-    }
 
     function pick<T>(random: RandomSource, items: Array<T>): T {
       return items[Math.floor(random() * items.length)] as T;

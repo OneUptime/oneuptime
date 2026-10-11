@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { TopologyPoint } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyGraphUtil";
 import {
   ArrangementPersistence,
@@ -40,27 +41,6 @@ const makeMap: MakeMapFunction = (
   entries: ReadonlyArray<[string, TopologyPoint]>,
 ): Map<string, TopologyPoint> => {
   return new Map<string, TopologyPoint>(entries);
-};
-
-/*
- * Deterministic pseudo-random unit value. Math.random would make the
- * round-trip fixtures irreproducible, so an xorshift step over an integer
- * seed stands in for it.
- */
-type SeededUnitFunction = (seed: number) => number;
-
-const seededUnit: SeededUnitFunction = (seed: number): number => {
-  let x: number = seed >>> 0;
-  if (x === 0) {
-    x = 0x9e3779b9;
-  }
-  x ^= x << 13;
-  x >>>= 0;
-  x ^= x >> 17;
-  x >>>= 0;
-  x ^= x << 5;
-  x >>>= 0;
-  return x / 4294967296;
 };
 
 /* A persisted payload of the current version wrapping raw positions JSON. */
@@ -818,10 +798,15 @@ describe("serialize / parse round trip", () => {
     string,
     TopologyPoint
   >();
+  /*
+   * Seeded, not Math.random, so the round-trip fixture is the same on every
+   * run.
+   */
+  const random: () => number = seededRandom(40503);
   for (let i: number = 0; i < 40; i++) {
     overrides.set(`endpoint:${String(i).padStart(3, "0")}`, {
-      x: (seededUnit(i * 2654435761 + 1) - 0.5) * 2000,
-      y: (seededUnit(i * 40503 + 7919) - 0.5) * 2000,
+      x: (random() - 0.5) * 2000,
+      y: (random() - 0.5) * 2000,
     });
   }
 

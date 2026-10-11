@@ -30,6 +30,7 @@ import {
   isProxmoxSilentNodeDetectionEnabled,
   recordProxmoxNodePushAndFindSilentNodes,
 } from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * ------------------------------------------------------------------
@@ -154,18 +155,6 @@ export const NATIVE_ADOPTION_FENCE_SECONDS: number = 600;
  * missing or over a minute older than the worker's now.
  */
 export const SILENT_NODE_MARK_REFRESH_MS: number = 60_000;
-
-// mulberry32 — small, fast and fully deterministic for a given seed.
-export function createSeededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let mixed: number = state;
-    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function toNumberOrNull(raw: JSONValue | undefined): number | null {
   if (typeof raw === "number") {
@@ -459,7 +448,7 @@ export class SimulatedMetricTable {
   private storedNames: Set<string> | null;
 
   public constructor(seed: number, storedNames?: Array<string> | undefined) {
-    this.random = createSeededRandom(seed);
+    this.random = seededRandom(seed);
     this.storedNames = storedNames ? new Set<string>(storedNames) : null;
   }
 
@@ -1146,7 +1135,7 @@ export class ProxmoxNativeClusterSimulator {
     let sequence: number = 0;
 
     plan.nodes.forEach((node: SimulatedNodePlan, nodeIndex: number) => {
-      const random: () => number = createSeededRandom(
+      const random: () => number = seededRandom(
         plan.seed * 1000 + nodeIndex + 1,
       );
       const phaseMs: number = Math.floor(random() * PUSH_INTERVAL_MS);
@@ -1155,7 +1144,7 @@ export class ProxmoxNativeClusterSimulator {
       const bursts: Array<number> = node.processingBursts
         ? burstTimes(
             node.processingBursts,
-            createSeededRandom(plan.seed * 1000 + 500 + nodeIndex + 1),
+            seededRandom(plan.seed * 1000 + 500 + nodeIndex + 1),
           )
         : [];
       const stalledFromMs: number = node.processingBursts

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -86,25 +87,10 @@ const buildGraph: BuildGraphFunction = (
 };
 
 /*
- * Seeded xorshift, written here rather than imported: the fixtures must be
+ * Seeded draws (Common/Tests/Helpers/SeededRandom): the fixtures must be
  * reproducible byte for byte on every machine and every run, and
  * Math.random would make a failing permutation impossible to reproduce.
  */
-type NextSeedFunction = (seed: number) => number;
-
-const nextSeed: NextSeedFunction = (seed: number): number => {
-  let x: number = seed >>> 0;
-  if (x === 0) {
-    x = 0x2545f491;
-  }
-  x ^= x << 13;
-  x >>>= 0;
-  x ^= x >>> 17;
-  x ^= x << 5;
-  x >>>= 0;
-  return x >>> 0;
-};
-
 type ShuffleFunction = <T>(items: ReadonlyArray<T>, seed: number) => Array<T>;
 
 const shuffle: ShuffleFunction = <T>(
@@ -112,10 +98,9 @@ const shuffle: ShuffleFunction = <T>(
   seed: number,
 ): Array<T> => {
   const out: Array<T> = [...items];
-  let state: number = nextSeed(seed + 7);
+  const random: SeededRandom = seededRandom(seed + 7);
   for (let i: number = out.length - 1; i > 0; i--) {
-    state = nextSeed(state);
-    const j: number = state % (i + 1);
+    const j: number = random(i + 1);
     const held: T = out[i]!;
     out[i] = out[j]!;
     out[j] = held;
@@ -139,12 +124,10 @@ const makeRandomGraph: MakeRandomGraphFunction = (
     ids.push(`dev-${String(i).padStart(3, "0")}`);
   }
   const pairs: Array<[string, string]> = [];
-  let state: number = nextSeed(seed);
+  const random: SeededRandom = seededRandom(seed);
   for (let i: number = 0; i < edgeCount; i++) {
-    state = nextSeed(state);
-    const from: string = ids[state % nodeCount]!;
-    state = nextSeed(state);
-    const to: string = ids[state % nodeCount]!;
+    const from: string = ids[random(nodeCount)]!;
+    const to: string = ids[random(nodeCount)]!;
     pairs.push([from, to]);
   }
   /* Two edges naming a device that has aged out of the view. */

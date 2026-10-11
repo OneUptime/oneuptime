@@ -125,6 +125,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 
 const MONITORS: number = 3;
@@ -168,19 +169,6 @@ function secretKeyOf(job: ModelJob): string {
 
 function sequenceOf(body: unknown): number {
   return (body as JSONObject)["sequence"] as number;
-}
-
-// mulberry32: small, fast, and the same sequence for the same seed.
-function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 class DeduplicatingQueueModel {
