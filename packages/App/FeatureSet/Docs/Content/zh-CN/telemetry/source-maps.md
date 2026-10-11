@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 映射通过经过认证的 API 上传到 OneUptime，**绝不会从你的网站获取**，因此你可以（也应该）继续使用 `hidden-source-map`（webpack）或 `sourcemap: 'hidden'`（Vite / Rollup）进行构建，永远不要把 `.map` 文件发布在 bundle 旁边。
 
 ```mermaid title="压缩后的栈帧如何被解析"
-sequenceDiagram
-    participant CI as CI 流水线
-    participant App as Web 应用
-    participant OU as OneUptime
-    participant You as 你
-    CI->>OU: 上传某个服务和版本的映射
-    App->>OU: 带有压缩栈帧的异常
-    You->>OU: 打开异常
-    OU->>OU: 查找其服务、版本和 bundle 的映射
-    OU-->>You: 原始文件、行号和函数
+flowchart TB
+    ci["CI 流水线"] -->|"上传某个服务和<br/>版本的映射"| ou["OneUptime"]
+    app["Web 应用"] -->|"发送带有压缩<br/>栈帧的异常"| ou
+    ou -->|"你打开异常时"| find["查找其服务、版本<br/>和 bundle 的映射"]
+    find --> original["原始文件、行号和函数"]
 ```
 
 ## 匹配方式

@@ -23,16 +23,11 @@ Last opp source maps fra bygget ditt til OneUptime, så løser unntaksdashbordet
 Maps lastes opp til OneUptime via et autentisert API og **hentes aldri fra nettstedet ditt**, så du kan (og bør) fortsette å bygge med `hidden-source-map` (webpack) eller `sourcemap: 'hidden'` (Vite / Rollup) og aldri publisere `.map`-filene ved siden av bundlene dine.
 
 ```mermaid title="Slik løses en minifisert ramme opp"
-sequenceDiagram
-    participant CI as CI-pipeline
-    participant App as Nettapp
-    participant OU as OneUptime
-    participant You as Deg
-    CI->>OU: Last opp maps for en tjeneste og en utgivelse
-    App->>OU: Unntak med minifiserte rammer
-    You->>OU: Åpne unntaket
-    OU->>OU: Finn maps for tjeneste, utgivelse og bundle
-    OU-->>You: Opprinnelig fil, linje og funksjon
+flowchart TB
+    ci["CI-pipeline"] -->|"laster opp maps for en<br/>tjeneste og en utgivelse"| ou["OneUptime"]
+    app["Nettapp"] -->|"sender et unntak<br/>med minifiserte rammer"| ou
+    ou -->|"du åpner unntaket"| find["Finn maps for<br/>tjeneste, utgivelse og bundle"]
+    find --> original["Opprinnelig fil, linje og funksjon"]
 ```
 
 ## Slik fungerer koblingen

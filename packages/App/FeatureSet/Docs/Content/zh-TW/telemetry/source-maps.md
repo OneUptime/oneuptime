@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 對應會透過經過驗證的 API 上傳到 OneUptime，**絕不會從你的網站擷取**，因此你可以（也應該）繼續使用 `hidden-source-map`（webpack）或 `sourcemap: 'hidden'`（Vite / Rollup）建置，永遠不要把 `.map` 檔案發佈在 bundle 旁邊。
 
 ```mermaid title="壓縮後的堆疊框架如何被解析"
-sequenceDiagram
-    participant CI as CI 管線
-    participant App as Web 應用程式
-    participant OU as OneUptime
-    participant You as 你
-    CI->>OU: 上傳某個服務與版本的對應
-    App->>OU: 帶有壓縮堆疊框架的例外
-    You->>OU: 開啟例外
-    OU->>OU: 尋找其服務、版本與 bundle 的對應
-    OU-->>You: 原始檔案、行號與函式
+flowchart TB
+    ci["CI 管線"] -->|"上傳某個服務與<br/>版本的對應"| ou["OneUptime"]
+    app["Web 應用程式"] -->|"傳送帶有壓縮<br/>堆疊框架的例外"| ou
+    ou -->|"你開啟例外時"| find["尋找其服務、版本<br/>與 bundle 的對應"]
+    find --> original["原始檔案、行號與函式"]
 ```
 
 ## 比對方式

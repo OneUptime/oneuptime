@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 マップは認証付きの API で OneUptime にアップロードされ、**サイトから取得されることはありません**。そのため、引き続き `hidden-source-map` (webpack) や `sourcemap: 'hidden'` (Vite / Rollup) でビルドし、`.map` ファイルをバンドルの横に公開しないようにできます (そうすべきです)。
 
 ```mermaid title="圧縮されたフレームが解決されるまで"
-sequenceDiagram
-    participant CI as CI パイプライン
-    participant App as Web アプリ
-    participant OU as OneUptime
-    participant You as あなた
-    CI->>OU: サービスとリリースのマップをアップロード
-    App->>OU: 圧縮されたフレームを含む例外
-    You->>OU: 例外を開く
-    OU->>OU: サービス、リリース、バンドルのマップを探す
-    OU-->>You: 元のファイル、行、関数
+flowchart TB
+    ci["CI パイプライン"] -->|"サービスとリリースの<br/>マップをアップロード"| ou["OneUptime"]
+    app["Web アプリ"] -->|"圧縮されたフレームを<br/>含む例外を送信"| ou
+    ou -->|"あなたが例外を開く"| find["サービス、リリース、<br/>バンドルのマップを探す"]
+    find --> original["元のファイル、行、関数"]
 ```
 
 ## 照合のしくみ

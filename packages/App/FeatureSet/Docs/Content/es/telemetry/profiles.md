@@ -18,7 +18,7 @@ flowchart TB
     subgraph profilers["Perfiladores"]
         direction LR
         alloy["Grafana Alloy (eBPF)"]
-        sdk["SDK de Pyroscope en su aplicación"]
+        sdk["SDK de Pyroscope<br/>en su aplicación"]
     end
     alloy -->|"API push"| endpoint["OneUptime /pyroscope"]
     sdk -->|"API ingest o push"| endpoint

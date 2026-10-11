@@ -24,13 +24,13 @@ Solange ein Zoom aktiv ist, erscheint neben der Zeitbereichsauswahl der Seite ei
 
 ```mermaid title="Was Ziehen, Doppelklick und Auswahl mit dem Zeitbereich der Seite machen"
 stateDiagram-v2
-    state "Bereich aus der Auswahl" as Picked
+    state "Gewählter Bereich" as Picked
     state "Gezoomtes Fenster" as Zoomed
     [*] --> Picked
-    Picked --> Zoomed: über ein Diagramm ziehen
+    Picked --> Zoomed: im Diagramm ziehen
     Zoomed --> Zoomed: erneut ziehen
     Zoomed --> Picked: Doppelklick oder Zoom zurücksetzen
-    Zoomed --> Picked: einen Bereich wählen
+    Zoomed --> Picked: Bereich wählen
 ```
 
 ## Wie sich Zoomen verhält

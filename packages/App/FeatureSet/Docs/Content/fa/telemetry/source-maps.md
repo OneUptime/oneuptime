@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 نقشه‌ها از راه یک API احرازشده در OneUptime بارگذاری می‌شوند و **هرگز از سایت شما واکشی نمی‌شوند**، پس می‌توانید (و باید) همچنان با `hidden-source-map` (webpack) یا `sourcemap: 'hidden'` (Vite / Rollup) بیلد کنید و فایل‌های `.map` را هرگز کنار باندل‌هایتان منتشر نکنید.
 
 ```mermaid title="یک فریم فشرده چگونه بازگشایی می‌شود"
-sequenceDiagram
-    participant CI as خط لولهٔ CI
-    participant App as برنامهٔ وب
-    participant OU as OneUptime
-    participant You as شما
-    CI->>OU: بارگذاری نقشه‌های یک سرویس و انتشار
-    App->>OU: استثنا با فریم‌های فشرده
-    You->>OU: باز کردن استثنا
-    OU->>OU: یافتن نقشه‌های سرویس، انتشار و باندل آن
-    OU-->>You: فایل، خط و تابع اصلی
+flowchart TB
+    ci["خط لولهٔ CI"] -->|"نقشه‌های یک سرویس و<br/>انتشار را بارگذاری می‌کند"| ou["OneUptime"]
+    app["برنامهٔ وب"] -->|"استثنایی با فریم‌های<br/>فشرده می‌فرستد"| ou
+    ou -->|"شما استثنا را باز می‌کنید"| find["یافتن نقشه‌های سرویس،<br/>انتشار و باندل آن"]
+    find --> original["فایل، خط و تابع اصلی"]
 ```
 
 ## تطبیق چگونه کار می‌کند

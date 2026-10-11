@@ -23,16 +23,11 @@ Upload de source maps van uw build naar OneUptime en het uitzonderingendashboard
 Maps worden via een geauthenticeerde API naar OneUptime geüpload en **nooit van uw site opgehaald**, dus u kunt (en moet) blijven bouwen met `hidden-source-map` (webpack) of `sourcemap: 'hidden'` (Vite / Rollup) en de `.map`-bestanden nooit naast uw bundels publiceren.
 
 ```mermaid title="Hoe een geminificeerd frame wordt opgelost"
-sequenceDiagram
-    participant CI as CI-pipeline
-    participant App as Webapp
-    participant OU as OneUptime
-    participant You as U
-    CI->>OU: Maps uploaden voor een service en release
-    App->>OU: Uitzondering met geminificeerde frames
-    You->>OU: De uitzondering openen
-    OU->>OU: De maps zoeken voor service, release en bundel
-    OU-->>You: Oorspronkelijk bestand, regel en functie
+flowchart TB
+    ci["CI-pipeline"] -->|"uploadt maps voor een<br/>service en release"| ou["OneUptime"]
+    app["Webapp"] -->|"stuurt een uitzondering<br/>met geminificeerde frames"| ou
+    ou -->|"u opent de uitzondering"| find["De maps zoeken voor<br/>service, release en bundel"]
+    find --> original["Oorspronkelijk bestand, regel en functie"]
 ```
 
 ## Hoe het koppelen werkt

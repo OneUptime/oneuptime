@@ -23,16 +23,11 @@ Laden Sie die Source Maps Ihres Builds zu OneUptime hoch, und das Ausnahmen-Dash
 Maps werden über eine authentifizierte API zu OneUptime hochgeladen und **nie von Ihrer Website abgerufen**; Sie können (und sollten) also weiter mit `hidden-source-map` (webpack) oder `sourcemap: 'hidden'` (Vite / Rollup) bauen und die `.map`-Dateien nie neben Ihren Bundles veröffentlichen.
 
 ```mermaid title="Wie ein minifizierter Frame aufgelöst wird"
-sequenceDiagram
-    participant CI as CI-Pipeline
-    participant App as Web-App
-    participant OU as OneUptime
-    participant You as Sie
-    CI->>OU: Maps für einen Dienst und ein Release hochladen
-    App->>OU: Ausnahme mit minifizierten Frames
-    You->>OU: Die Ausnahme öffnen
-    OU->>OU: Die Maps zu Dienst, Release und Bundle finden
-    OU-->>You: Ursprüngliche Datei, Zeile und Funktion
+flowchart TB
+    ci["CI-Pipeline"] -->|"lädt Maps für einen<br/>Dienst und ein Release hoch"| ou["OneUptime"]
+    app["Web-App"] -->|"sendet eine Ausnahme<br/>mit minifizierten Frames"| ou
+    ou -->|"Sie öffnen die Ausnahme"| find["Maps zu Dienst,<br/>Release und Bundle finden"]
+    find --> original["Ursprüngliche Datei, Zeile und Funktion"]
 ```
 
 ## Wie die Zuordnung funktioniert

@@ -23,16 +23,11 @@ Envie ao OneUptime os source maps do seu build e o painel de exceções resolve 
 Os maps são enviados ao OneUptime por uma API autenticada e **nunca são buscados no seu site**, então você pode (e deve) continuar gerando o build com `hidden-source-map` (webpack) ou `sourcemap: 'hidden'` (Vite / Rollup) e nunca publicar os arquivos `.map` junto aos seus bundles.
 
 ```mermaid title="Como um frame minificado é resolvido"
-sequenceDiagram
-    participant CI as Pipeline de CI
-    participant App as Aplicação web
-    participant OU as OneUptime
-    participant You as Você
-    CI->>OU: Enviar os maps de um serviço e uma versão
-    App->>OU: Exceção com frames minificados
-    You->>OU: Abrir a exceção
-    OU->>OU: Encontrar os maps do serviço, da versão e do bundle
-    OU-->>You: Arquivo, linha e função originais
+flowchart TB
+    ci["Pipeline de CI"] -->|"envia os maps de um<br/>serviço e uma versão"| ou["OneUptime"]
+    app["Aplicação web"] -->|"envia uma exceção<br/>com frames minificados"| ou
+    ou -->|"você abre a exceção"| find["Encontrar os maps do serviço,<br/>da versão e do bundle"]
+    find --> original["Arquivo, linha e função originais"]
 ```
 
 ## Como a correspondência funciona

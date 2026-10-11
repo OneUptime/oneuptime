@@ -23,16 +23,11 @@ Caricate su OneUptime le source map della vostra build e la dashboard delle ecce
 Le map vengono caricate su OneUptime tramite un'API autenticata e **non vengono mai scaricate dal vostro sito**, quindi potete (e dovreste) continuare a creare la build con `hidden-source-map` (webpack) o `sourcemap: 'hidden'` (Vite / Rollup) e non pubblicare mai i file `.map` accanto ai vostri bundle.
 
 ```mermaid title="Come viene risolto un frame minificato"
-sequenceDiagram
-    participant CI as Pipeline di CI
-    participant App as App web
-    participant OU as OneUptime
-    participant You as Voi
-    CI->>OU: Caricare le map per un servizio e una release
-    App->>OU: Eccezione con frame minificati
-    You->>OU: Aprire l'eccezione
-    OU->>OU: Trovare le map per servizio, release e bundle
-    OU-->>You: File, riga e funzione originali
+flowchart TB
+    ci["Pipeline di CI"] -->|"carica le map per un<br/>servizio e una release"| ou["OneUptime"]
+    app["App web"] -->|"invia un'eccezione<br/>con frame minificati"| ou
+    ou -->|"aprite l'eccezione"| find["Trovare le map per<br/>servizio, release e bundle"]
+    find --> original["File, riga e funzione originali"]
 ```
 
 ## Come funziona la corrispondenza

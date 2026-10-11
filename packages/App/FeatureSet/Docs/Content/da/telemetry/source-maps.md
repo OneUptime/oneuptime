@@ -23,16 +23,11 @@ Upload dit builds source maps til OneUptime, så opløser dashboardet for undtag
 Maps uploades til OneUptime via et godkendt API og **hentes aldrig fra dit websted**, så du kan (og bør) blive ved med at bygge med `hidden-source-map` (webpack) eller `sourcemap: 'hidden'` (Vite / Rollup) og aldrig offentliggøre `.map`-filerne ved siden af dine bundles.
 
 ```mermaid title="Sådan opløses en minificeret frame"
-sequenceDiagram
-    participant CI as CI-pipeline
-    participant App as Webapp
-    participant OU as OneUptime
-    participant You as Dig
-    CI->>OU: Upload maps for en tjeneste og en udgivelse
-    App->>OU: Undtagelse med minificerede frames
-    You->>OU: Åbn undtagelsen
-    OU->>OU: Find maps for tjeneste, udgivelse og bundle
-    OU-->>You: Oprindelig fil, linje og funktion
+flowchart TB
+    ci["CI-pipeline"] -->|"uploader maps for en<br/>tjeneste og en udgivelse"| ou["OneUptime"]
+    app["Webapp"] -->|"sender en undtagelse<br/>med minificerede frames"| ou
+    ou -->|"du åbner undtagelsen"| find["Find maps for<br/>tjeneste, udgivelse og bundle"]
+    find --> original["Oprindelig fil, linje og funktion"]
 ```
 
 ## Sådan fungerer matchningen

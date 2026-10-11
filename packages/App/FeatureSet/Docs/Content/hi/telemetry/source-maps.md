@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 मैप एक ऑथेंटिकेटेड API से OneUptime पर अपलोड होते हैं और **आपकी साइट से कभी नहीं लाए जाते**, इसलिए आप `hidden-source-map` (webpack) या `sourcemap: 'hidden'` (Vite / Rollup) के साथ बिल्ड करते रह सकते हैं (और करना चाहिए), और `.map` फ़ाइलें अपने बंडल के बगल में कभी प्रकाशित न करें।
 
 ```mermaid title="मिनिफ़ाइड फ़्रेम कैसे हल होता है"
-sequenceDiagram
-    participant CI as CI पाइपलाइन
-    participant App as वेब ऐप
-    participant OU as OneUptime
-    participant You as आप
-    CI->>OU: किसी सेवा और रिलीज़ के मैप अपलोड करें
-    App->>OU: मिनिफ़ाइड फ़्रेम वाला अपवाद
-    You->>OU: अपवाद खोलें
-    OU->>OU: उसकी सेवा, रिलीज़ और बंडल के मैप खोजें
-    OU-->>You: मूल फ़ाइल, पंक्ति और फ़ंक्शन
+flowchart TB
+    ci["CI पाइपलाइन"] -->|"किसी सेवा और रिलीज़ के<br/>मैप अपलोड करती है"| ou["OneUptime"]
+    app["वेब ऐप"] -->|"मिनिफ़ाइड फ़्रेम वाला<br/>अपवाद भेजता है"| ou
+    ou -->|"आप अपवाद खोलते हैं"| find["उसकी सेवा, रिलीज़ और<br/>बंडल के मैप खोजें"]
+    find --> original["मूल फ़ाइल, पंक्ति और फ़ंक्शन"]
 ```
 
 ## मिलान कैसे होता है

@@ -32,11 +32,11 @@ flowchart TB
     neg -->|"sim"| invert["Excluir o que corresponde"]
     neg -->|"não"| at{"Começa com @"}
     invert --> at
-    at -->|"sim"| attr["Filtro de atributo"]
+    at -->|"sim"| attr["Filtro de<br/>atributo"]
     at -->|"não"| colon{"Tem key:value"}
     colon -->|"não"| text["Texto livre"]
     colon -->|"sim"| known{"Campo conhecido"}
-    known -->|"sim"| field["Filtro de campo"]
+    known -->|"sim"| field["Filtro de<br/>campo"]
     known -->|"não"| attr
     attr --> all["Todos os termos precisam corresponder"]
     field --> all

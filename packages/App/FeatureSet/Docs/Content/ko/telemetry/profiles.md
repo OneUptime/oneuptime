@@ -18,7 +18,7 @@ flowchart TB
     subgraph profilers["프로파일러"]
         direction LR
         alloy["Grafana Alloy (eBPF)"]
-        sdk["앱 안의 Pyroscope SDK"]
+        sdk["앱 안의<br/>Pyroscope SDK"]
     end
     alloy -->|"push API"| endpoint["OneUptime /pyroscope"]
     sdk -->|"ingest 또는 push API"| endpoint

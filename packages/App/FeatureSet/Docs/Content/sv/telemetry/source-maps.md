@@ -23,16 +23,11 @@ Ladda upp byggets source maps till OneUptime, så löser instrumentpanelen för 
 Maps laddas upp till OneUptime via ett autentiserat API och **hämtas aldrig från din webbplats**, så du kan (och bör) fortsätta bygga med `hidden-source-map` (webpack) eller `sourcemap: 'hidden'` (Vite / Rollup) och aldrig publicera `.map`-filerna bredvid dina bundlar.
 
 ```mermaid title="Så löses en minifierad ram upp"
-sequenceDiagram
-    participant CI as CI-pipeline
-    participant App as Webbapp
-    participant OU as OneUptime
-    participant You as Du
-    CI->>OU: Ladda upp maps för en tjänst och en version
-    App->>OU: Undantag med minifierade ramar
-    You->>OU: Öppna undantaget
-    OU->>OU: Hitta maps för tjänst, version och bundle
-    OU-->>You: Ursprunglig fil, rad och funktion
+flowchart TB
+    ci["CI-pipeline"] -->|"laddar upp maps för en<br/>tjänst och en version"| ou["OneUptime"]
+    app["Webbapp"] -->|"skickar ett undantag<br/>med minifierade ramar"| ou
+    ou -->|"du öppnar undantaget"| find["Hitta maps för<br/>tjänst, version och bundle"]
+    find --> original["Ursprunglig fil, rad och funktion"]
 ```
 
 ## Så fungerar matchningen

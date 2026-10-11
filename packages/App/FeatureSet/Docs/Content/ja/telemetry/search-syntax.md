@@ -32,11 +32,11 @@ flowchart TB
     neg -->|"はい"| invert["一致したものを除外"]
     neg -->|"いいえ"| at{"@ で始まる"}
     invert --> at
-    at -->|"はい"| attr["属性フィルター"]
+    at -->|"はい"| attr["属性<br/>フィルター"]
     at -->|"いいえ"| colon{"key:value の形"}
-    colon -->|"いいえ"| text["フリーテキスト"]
+    colon -->|"いいえ"| text["フリー<br/>テキスト"]
     colon -->|"はい"| known{"既知のフィールド"}
-    known -->|"はい"| field["フィールドフィルター"]
+    known -->|"はい"| field["フィールド<br/>フィルター"]
     known -->|"いいえ"| attr
     attr --> all["すべての項目が一致する必要あり"]
     field --> all

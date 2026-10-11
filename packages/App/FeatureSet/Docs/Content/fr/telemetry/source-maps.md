@@ -23,16 +23,11 @@ Envoyez les source maps de votre build à OneUptime, et le tableau de bord des e
 Les maps sont envoyées à OneUptime par une API authentifiée et ne sont **jamais récupérées depuis votre site** : vous pouvez (et devriez) continuer à construire avec `hidden-source-map` (webpack) ou `sourcemap: 'hidden'` (Vite / Rollup) et ne jamais publier les fichiers `.map` à côté de vos bundles.
 
 ```mermaid title="Comment une frame minifiée est résolue"
-sequenceDiagram
-    participant CI as Pipeline CI
-    participant App as Application web
-    participant OU as OneUptime
-    participant You as Vous
-    CI->>OU: Envoyer les maps d'un service et d'une version
-    App->>OU: Exception avec des frames minifiées
-    You->>OU: Ouvrir l'exception
-    OU->>OU: Trouver les maps de son service, de sa version et de son bundle
-    OU-->>You: Fichier, ligne et fonction d'origine
+flowchart TB
+    ci["Pipeline CI"] -->|"envoie les maps d'un<br/>service et d'une version"| ou["OneUptime"]
+    app["Application web"] -->|"envoie une exception<br/>avec des frames minifiées"| ou
+    ou -->|"vous ouvrez l'exception"| find["Trouver les maps de son service,<br/>de sa version et de son bundle"]
+    find --> original["Fichier, ligne et fonction d'origine"]
 ```
 
 ## Comment fonctionne la correspondance

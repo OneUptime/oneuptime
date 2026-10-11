@@ -23,16 +23,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 맵은 인증된 API를 통해 OneUptime에 업로드되며 **사이트에서 가져오는 일은 없습니다**. 따라서 계속 `hidden-source-map` (webpack) 이나 `sourcemap: 'hidden'` (Vite / Rollup) 으로 빌드하고 `.map` 파일을 번들 옆에 공개하지 않을 수 있으며, 그렇게 해야 합니다.
 
 ```mermaid title="축소된 프레임이 해석되는 방식"
-sequenceDiagram
-    participant CI as CI 파이프라인
-    participant App as 웹 앱
-    participant OU as OneUptime
-    participant You as 사용자
-    CI->>OU: 서비스와 릴리스의 맵 업로드
-    App->>OU: 축소된 프레임이 있는 예외
-    You->>OU: 예외 열기
-    OU->>OU: 서비스, 릴리스, 번들의 맵 찾기
-    OU-->>You: 원래 파일, 줄, 함수
+flowchart TB
+    ci["CI 파이프라인"] -->|"서비스와 릴리스의<br/>맵 업로드"| ou["OneUptime"]
+    app["웹 앱"] -->|"축소된 프레임이 있는<br/>예외 전송"| ou
+    ou -->|"사용자가 예외를 열면"| find["서비스, 릴리스, 번들의<br/>맵 찾기"]
+    find --> original["원래 파일, 줄, 함수"]
 ```
 
 ## 매칭 방식
