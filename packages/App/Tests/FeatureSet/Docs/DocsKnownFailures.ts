@@ -107,6 +107,7 @@ const WORKSPACE_AND_FORMS_TO_TRANSLATE: Array<string> = except(
   "ko",
   "zh-CN",
   "zh-TW",
+  "hi",
 );
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
