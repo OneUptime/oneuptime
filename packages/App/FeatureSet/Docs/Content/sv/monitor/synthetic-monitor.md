@@ -154,7 +154,7 @@ return {
 };
 ```
 
-En körning sparar upp till 20 skärmbilder, var och en upp till 10 MB och 50 MB totalt. En skärmbild kan också visas i den incident eller det larm som en misslyckad körning öppnar — på dess sida och i e-postmeddelandena om den — genom att du placerar den i monitorns beskrivning för incidenter eller larm. Se [Visa en skärmbild](/docs/monitor/incident-alert-templating#syntetiska-monitorer).
+En körning sparar upp till 20 skärmbilder, var och en upp till 10 MB och 50 MB totalt. En skärmbild kan också visas i den incident eller det larm som en misslyckad körning öppnar — på dess sida och i e-postmeddelandena om den — genom att du placerar den i monitorns beskrivning för incidenter eller larm. Se [Visa en skärmbild](/docs/monitor/incident-alert-templating#visa-en-skärmbild).
 
 :::details Returnera skärmbilder (äldre sätt)
 För bakåtkompatibilitet kan du också returnera skärmbilder från skriptet som en del av returvärdet. Skärmbilder som returneras på det här sättet sparas **bara** när skriptet slutförs normalt — de går förlorade om skriptet kastar ett fel. Föredra sidokanalmönstret ovan när du vill ha bevis på fel.
@@ -295,6 +295,6 @@ Sonden körs utanför sin Docker-avbildning, utan Chromium eller Firefox install
 
 :::cards
 - [Anpassad kodövervakning](/docs/monitor/custom-code-monitor): Kontrollera API:er med ett skript, utan webbläsare.
-- [Visa en skärmbild](/docs/monitor/incident-alert-templating#syntetiska-monitorer): Lägg in skärmbilden från den misslyckade körningen i incidenten.
+- [Visa en skärmbild](/docs/monitor/incident-alert-templating#visa-en-skärmbild): Lägg in skärmbilden från den misslyckade körningen i incidenten.
 - [Övervakningshemligheter](/docs/monitor/monitor-secrets): Håll inloggningsuppgifter utanför ditt skript.
 :::

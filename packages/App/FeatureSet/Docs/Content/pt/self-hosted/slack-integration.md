@@ -151,7 +151,7 @@ O manifesto configura estes recursos. Cada um alcança o seu servidor pela rota 
 
 ### Imagens nas mensagens
 
-As descrições de incidentes e alertas podem trazer capturas de tela, como a de um monitor sintético (veja [Monitores sintéticos](/docs/monitor/incident-alert-templating#monitores-sintéticos)). O OneUptime as mostra nas mensagens do Slack enviando cada uma ao seu workspace como arquivo privado, o que exige o escopo de bot `files:write`. O manifesto gerado o inclui.
+As descrições de incidentes e alertas podem trazer capturas de tela, como a de um monitor sintético (veja [Mostrar uma captura de tela](/docs/monitor/incident-alert-templating#mostrar-uma-captura-de-tela)). O OneUptime as mostra nas mensagens do Slack enviando cada uma ao seu workspace como arquivo privado, o que exige o escopo de bot `files:write`. O manifesto gerado o inclui.
 
 Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `files:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o novo escopo seja concedido. Até lá, cada captura de tela aparece como o seu texto alternativo.
 
