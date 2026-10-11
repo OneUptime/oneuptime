@@ -70,8 +70,9 @@ const MONITOR_NAME: string = "Acme Prod";
 
 /*
  * The exact list MonitorCriteriaEvaluator hands to MetricMonitorCriteria.
- * Written out rather than derived from `isMetricBackedMonitorType` so this
- * file disagrees loudly if that helper is edited without the evaluator.
+ * Written out rather than derived from
+ * `MonitorTypeHelper.isMetricBackedMonitor` so this file disagrees loudly if
+ * that list is edited without the evaluator.
  */
 const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Metrics,
@@ -240,20 +241,18 @@ function evaluateProfile(input: {
 }
 
 describe("Default criteria for metric-backed and profile monitors", () => {
-  describe("isMetricBackedMonitorType", () => {
+  describe("MonitorTypeHelper.isMetricBackedMonitor", () => {
     test.each(METRIC_BACKED_MONITOR_TYPES)(
       "%s is routed to MetricMonitorCriteria, so it is metric-backed",
       (monitorType: MonitorType) => {
-        expect(
-          MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType),
-        ).toBe(true);
+        expect(MonitorTypeHelper.isMetricBackedMonitor(monitorType)).toBe(true);
       },
     );
 
     test("no other monitor type claims to be metric-backed", () => {
       const claimed: Array<MonitorType> = ALL_MONITOR_TYPES.filter(
         (monitorType: MonitorType) => {
-          return MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType);
+          return MonitorTypeHelper.isMetricBackedMonitor(monitorType);
         },
       );
 
@@ -267,7 +266,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
      */
     test("Profiles is not metric-backed - it has its own evaluator", () => {
       expect(
-        MonitorCriteriaInstance.isMetricBackedMonitorType(MonitorType.Profiles),
+        MonitorTypeHelper.isMetricBackedMonitor(MonitorType.Profiles),
       ).toBe(false);
     });
   });
@@ -942,7 +941,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
      */
     test("no non-metric-backed type seeds a metric value filter", () => {
       for (const monitorType of ALL_MONITOR_TYPES) {
-        if (MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType)) {
+        if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
           continue;
         }
 

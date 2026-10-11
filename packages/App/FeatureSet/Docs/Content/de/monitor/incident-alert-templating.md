@@ -417,7 +417,7 @@ Um den Screenshot jedes fehlgeschlagenen Laufs zu zeigen, setzen Sie das Bild in
 | `trapSourceIp` | Die Adresse, von der der Trap kam. Nur, wenn ein SNMP-Trap die Prüfung ausgelöst hat. | `string` |
 | `trapVarbinds` | Die Varbinds des Traps, jedes als `{oid, value}`. Nur, wenn ein SNMP-Trap die Prüfung ausgelöst hat. | `Array<Object>` |
 
-Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefragt, wenn es Zugangsdaten hat, deshalb ist **`isOnline` die einzige Variable oben, die ein reines Ping-Gerät füllt**: Jede andere stammt aus dem SNMP-Walk und bleibt ohne ihn so stehen, wie sie geschrieben wurde. Beginnen Sie Vorlagen, die für Geräte ohne Zugangsdaten verwendet werden könnten, mit `{{isOnline}}` und dem Namen des Geräts. Siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor#what-a-poll-actually-does) dazu, was jede Art von Abfrage erfasst.
+Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefragt, wenn es Zugangsdaten hat, deshalb ist **`isOnline` die einzige Variable oben, die ein reines Ping-Gerät füllt**: Jede andere stammt aus dem SNMP-Walk und bleibt ohne ihn so stehen, wie sie geschrieben wurde. Beginnen Sie Vorlagen, die für Geräte ohne Zugangsdaten verwendet werden könnten, mit `{{isOnline}}` und dem Namen des Geräts. Siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor#was-eine-abfrage-tatsächlich-tut) dazu, was jede Art von Abfrage erfasst.
 
 ### Datenbankzustands-Monitore
 
@@ -451,13 +451,13 @@ Die Seriennamen in `metrics` enthalten Punkte, etwa `oneuptime.monitor.database.
 
 ### Metrik- und Infrastruktur-Monitore
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker-Swarm-, Proxmox-, VMware-, Ceph- und Storage-Array-Monitore haben eine eigene Variable:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker-Swarm-, Proxmox-, VMware-, Ceph-, Storage-Array- und IoT-Geräte-Monitore haben eine eigene Variable:
 
 | Variable | Inhalt | Typ |
 | --- | --- | --- |
 | `metricName` | Der Name der Metrik, die die erste Abfrage des Monitors liest, etwa `container.cpu.time`. | `string` |
 
-Gruppiert haben sie außerdem den Wert jedes Attributs unter **Gruppieren nach** und `seriesLabels`: siehe [Werte eines gruppierten Monitors](#werte-eines-gruppierten-monitors). Ein IoT-Geräte-Monitor hat kein `metricName`, aber ein gruppierter, wie seine Vorlagen es sind, hat `{{device.id}}`.
+Gruppiert haben sie außerdem den Wert jedes Attributs unter **Gruppieren nach** und `seriesLabels`: siehe [Werte eines gruppierten Monitors](#werte-eines-gruppierten-monitors). Die Vorlagen des IoT-Geräte-Monitors gruppieren nach Gerät, daher hat ein daraus erstellter Monitor auch `{{device.id}}`.
 
 ### Andere Monitortypen
 

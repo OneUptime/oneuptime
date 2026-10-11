@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | 陷阱的来源地址。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapVarbinds` | 陷阱的 varbind，每个形如 `{oid, value}`。仅在 SNMP 陷阱触发检查时。 | `Array<Object>` |
 
-网络设备在每次轮询时都会被 ping，只有在有凭据时才会通过 SNMP 遍历，因此 **在上面的变量中，仅支持 ping 的设备只会填写 `isOnline`**：其他所有变量都来自 SNMP 遍历，没有遍历时会原样保留。在可能用于没有凭据的设备的模板中，请以 `{{isOnline}}` 和设备的名称开头。每种轮询收集哪些内容，请参阅 [网络设备监视器](/docs/monitor/network-device-monitor#what-a-poll-actually-does)。
+网络设备在每次轮询时都会被 ping，只有在有凭据时才会通过 SNMP 遍历，因此 **在上面的变量中，仅支持 ping 的设备只会填写 `isOnline`**：其他所有变量都来自 SNMP 遍历，没有遍历时会原样保留。在可能用于没有凭据的设备的模板中，请以 `{{isOnline}}` 和设备的名称开头。每种轮询收集哪些内容，请参阅 [网络设备监视器](/docs/monitor/network-device-monitor#一次轮询实际做了什么)。
 
 ### 数据库健康监视器
 
@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph 和 Storage Array 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
 | `metricName` | 监视器的第一个查询所读取的指标的名称，例如 `container.cpu.time`。 | `string` |
 
-分组时，它们还有每个 **Group by** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器没有 `metricName`，但分组的 IoT Device 监视器(其模板都是分组的)有 `{{device.id}}`。
+分组时，它们还有每个 **Group by** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
 
 ### 其他监视器类型
 

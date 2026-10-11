@@ -417,7 +417,7 @@ För att visa skärmbilden från varje misslyckad körning lägger du bilden i e
 | `trapSourceIp` | Adressen som trapen kom från. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapVarbinds` | Trapens varbinds, var och en som `{oid, value}`. Bara när en SNMP-trap utlöste kontrollen. | `Array<Object>` |
 
-En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när den har inloggningsuppgifter, så **`isOnline` är den enda variabeln ovan som en enhet med bara ping fyller i**: alla andra kommer från SNMP-genomgången och blir kvar som de skrevs utan den. Börja med `{{isOnline}}` och enhetens namn i mallar som kan användas för enheter utan inloggningsuppgifter. Se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor#what-a-poll-actually-does) för vad varje typ av avsökning samlar in.
+En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när den har inloggningsuppgifter, så **`isOnline` är den enda variabeln ovan som en enhet med bara ping fyller i**: alla andra kommer från SNMP-genomgången och blir kvar som de skrevs utan den. Börja med `{{isOnline}}` och enhetens namn i mallar som kan användas för enheter utan inloggningsuppgifter. Se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor#vad-en-avsökning-faktiskt-gör) för vad varje typ av avsökning samlar in.
 
 ### Monitorer för databashälsa
 
@@ -451,13 +451,13 @@ Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.con
 
 ### Mätvärdes- och infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph- och Storage Array-monitorer har en egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- och IoT Device-monitorer har en egen variabel:
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
 | `metricName` | Namnet på mätvärdet som monitorns första fråga läser, som `container.cpu.time`. | `string` |
 
-Grupperade har de också värdet för varje attribut i **Group by**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). En IoT Device-monitor har ingen `metricName`, men en grupperad, som dess mallar är, har `{{device.id}}`.
+Grupperade har de också värdet för varje attribut i **Group by**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). Mallarna för IoT Device-monitorn grupperar efter enhet, så en monitor som skapats från en av dem har också `{{device.id}}`.
 
 ### Andra monitortyper
 

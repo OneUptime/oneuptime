@@ -1,0 +1,271 @@
+# The gke-autopilot and eks-fargate presets leave out the privileged pods.
+#
+# The eBPF instrumentation (OBI) and the continuous profiler each run as a
+# privileged DaemonSet with the host's PID namespace: loading eBPF programs
+# needs both. GKE Autopilot refuses privileged pods, so the install a preset
+# promised to make work failed on them, and EKS Fargate runs neither
+# privileged containers nor DaemonSets, so the eBPF DaemonSet sat there
+# never scheduling. The README's preset commands set only the preset, and
+# ebpf.enabled defaults to true.
+#
+# The presets now turn both off themselves (kubernetes-agent.ebpfEnabled and
+# kubernetes-agent.profilingEnabled, on kubernetes-agent.privilegedPodsAllowed),
+# and nothing of either is left behind: no DaemonSet, ConfigMap or Service,
+# no OTLP ports on the collector, no OTLP receiver or traces pipeline in its
+# config. The notes say so, and why. An explicit ebpf.enabled=false, as older
+# docs told people to pass, changes nothing. The standard preset is as it was.
+suite: the GKE Autopilot and EKS Fargate presets leave out the privileged pods
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/daemonset-ebpf.yaml
+  - templates/configmap-ebpf.yaml
+  - templates/service.yaml
+  - templates/deployment.yaml
+  - templates/configmap-deployment.yaml
+  - templates/daemonset-profiling.yaml
+  - templates/configmap-profiling.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- GKE Autopilot ---------------------------------------------------------
+  - it: renders no eBPF DaemonSet, ConfigMap or Service on GKE Autopilot
+    set:
+      preset: gke-autopilot
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 0
+
+  - it: gives the collector no OTLP ports on GKE Autopilot
+    set:
+      preset: gke-autopilot
+    asserts:
+      - template: templates/deployment.yaml
+        notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: otlp-http
+          any: true
+      - template: templates/deployment.yaml
+        notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: otlp-grpc
+          any: true
+
+  - it: leaves the eBPF pipeline out of the collector config on GKE Autopilot
+    set:
+      preset: gke-autopilot
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^  otlp:$"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^ *- otlp$"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^    traces:$"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-"
+
+  - it: renders no profiler on GKE Autopilot, even with profiling turned on
+    set:
+      preset: gke-autopilot
+      profiling.enabled: true
+    asserts:
+      - template: templates/daemonset-profiling.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-profiling.yaml
+        hasDocuments:
+          count: 0
+
+  # --- EKS Fargate -----------------------------------------------------------
+  - it: renders no eBPF DaemonSet, ConfigMap or Service on EKS Fargate
+    set:
+      preset: eks-fargate
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 0
+
+  - it: gives the collector no OTLP ports on EKS Fargate
+    set:
+      preset: eks-fargate
+    asserts:
+      - template: templates/deployment.yaml
+        notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: otlp-http
+          any: true
+
+  - it: leaves the eBPF pipeline out of the collector config on EKS Fargate
+    set:
+      preset: eks-fargate
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^  otlp:$"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^    traces:$"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-"
+
+  - it: renders no profiler on EKS Fargate, even with profiling turned on
+    set:
+      preset: eks-fargate
+      profiling.enabled: true
+    asserts:
+      - template: templates/daemonset-profiling.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-profiling.yaml
+        hasDocuments:
+          count: 0
+
+  # --- the switches that only mean something with eBPF on --------------------
+  # Each of these only has a traces pipeline to run in with eBPF on. Rendered
+  # with no pipeline to reference it, a processor is config the collector
+  # refuses to start with.
+  - it: drops no traces setting into a config without a traces pipeline
+    set:
+      preset: gke-autopilot
+      sampling.traces.percentage: 25
+      ebpf.dropUnlinkedClientCalls: true
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [kube-system]
+          scopes: [traces]
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "probabilistic_sampler"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/telemetry"
+
+  # --- an explicit ebpf.enabled=false, as the docs used to tell people -------
+  - it: renders the same with an explicit ebpf.enabled=false on either preset
+    set:
+      preset: eks-fargate
+      ebpf.enabled: false
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^    traces:$"
+
+  # --- the standard preset is as it was ----------------------------------------
+  - it: still runs eBPF on the standard preset, with its ConfigMap, Service and ports
+    set:
+      preset: standard
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/daemonset-ebpf.yaml
+        equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: true
+      - template: templates/configmap-ebpf.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: otlp-http
+            containerPort: 4318
+            protocol: TCP
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^  otlp:$"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^    traces:$"
+
+  - it: still runs eBPF with no preset set
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 1
+
+  - it: still runs the profiler on the standard preset when turned on
+    set:
+      profiling.enabled: true
+    asserts:
+      - template: templates/daemonset-profiling.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/configmap-profiling.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/daemonset-ebpf.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+            value: "true"
+
+  - it: still turns eBPF off on the standard preset with ebpf.enabled=false
+    set:
+      ebpf.enabled: false
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/service.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^    traces:$"

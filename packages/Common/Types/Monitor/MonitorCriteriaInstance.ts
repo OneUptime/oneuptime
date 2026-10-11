@@ -18,7 +18,7 @@ import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
 import IncidentGroupingConfig, {
   IncidentGroupingConfigSchema,
 } from "./IncomingMonitor/IncidentGroupingConfig";
-import MonitorType from "./MonitorType";
+import MonitorType, { MonitorTypeHelper } from "./MonitorType";
 import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
@@ -151,37 +151,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       name: "",
       description: "",
     };
-  }
-
-  /*
-   * The monitor types whose criteria MonitorCriteriaEvaluator hands to
-   * MetricMonitorCriteria. That evaluator reads exactly one thing -
-   * CheckOn.MetricValue - so these types share a single pair of defaults:
-   * a metric that is reporting a value means online, a metric that has
-   * gone to zero means offline.
-   *
-   * Kept in step with the routing list in MonitorCriteriaEvaluator and
-   * with the check-on narrowing in the dashboard's CriteriaFilter util,
-   * which offers these types the metric value and nothing else. A type
-   * missing here falls through to `new MonitorCriteriaInstance()` and
-   * ships an unnamed criteria whose "Is Online" filter no evaluator on
-   * this path reads - a rule that can never fire and cannot be saved,
-   * since getValidationError requires a name.
-   */
-  public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
-    return (
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.IoTDevice
-    );
   }
 
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
@@ -372,7 +341,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    /*
+     * The metric-backed types: MonitorCriteriaEvaluator hands their criteria
+     * to MetricMonitorCriteria, which reads exactly one thing -
+     * CheckOn.MetricValue - so they share one pair of defaults: a metric
+     * that is reporting a value means online, a metric that has gone to zero
+     * means offline. A type missing from the list would fall through to
+     * `new MonitorCriteriaInstance()` and ship an unnamed criteria whose
+     * "Is Online" filter no evaluator on this path reads - a rule that can
+     * never fire and cannot be saved, since getValidationError requires a
+     * name.
+     */
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -1625,7 +1605,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,

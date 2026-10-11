@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | 트랩을 보낸 주소. SNMP 트랩이 검사를 트리거했을 때만. | `string` |
 | `trapVarbinds` | 트랩의 varbind. 각각 `{oid, value}` 형식입니다. SNMP 트랩이 검사를 트리거했을 때만. | `Array<Object>` |
 
-네트워크 장치는 폴링할 때마다 ping을 받고, 자격 증명이 있을 때만 SNMP로 워크됩니다. 그래서 **ping만 되는 장치가 채우는 위 변수는 `isOnline` 뿐입니다**. 나머지는 모두 SNMP 워크에서 오므로, 워크가 없으면 작성한 그대로 남습니다. 자격 증명이 없는 장치에도 쓰일 수 있는 템플릿에서는 `{{isOnline}}` 과 장치 이름을 앞에 두세요. 폴링 종류마다 무엇을 수집하는지는 [네트워크 장치 모니터](/docs/monitor/network-device-monitor#what-a-poll-actually-does)를 참고하세요.
+네트워크 장치는 폴링할 때마다 ping을 받고, 자격 증명이 있을 때만 SNMP로 워크됩니다. 그래서 **ping만 되는 장치가 채우는 위 변수는 `isOnline` 뿐입니다**. 나머지는 모두 SNMP 워크에서 오므로, 워크가 없으면 작성한 그대로 남습니다. 자격 증명이 없는 장치에도 쓰일 수 있는 템플릿에서는 `{{isOnline}}` 과 장치 이름을 앞에 두세요. 폴링 종류마다 무엇을 수집하는지는 [네트워크 장치 모니터](/docs/monitor/network-device-monitor#폴링이-실제로-하는-일)를 참고하세요.
 
 ### 데이터베이스 상태 모니터
 
@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |
 | `metricName` | 모니터의 첫 번째 쿼리가 읽는 메트릭의 이름(예: `container.cpu.time`). | `string` |
 
-그룹화되면 각 **Group by** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터에는 `metricName` 이 없지만, 템플릿처럼 그룹화된 모니터에는 `{{device.id}}` 가 있습니다.
+그룹화되면 각 **Group by** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
 
 ### 기타 모니터 유형
 

@@ -11,6 +11,8 @@ Cluster Name: {{ .Values.clusterName }}
 OneUptime URL: {{ .Values.oneuptime.url }}
 
 The agent is now collecting:
+{{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
+{{- if eq (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" }}
   - Node, pod, and container resource metrics (kubeletstats)
 {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
   - Container & pod CPU/memory saturation (% of request/limit)
@@ -20,6 +22,7 @@ The agent is now collecting:
 {{- end }}
 {{- if .Values.cadvisor.enabled }}
   - cAdvisor: CFS throttling and OOM kill counters (kubelet /metrics/cadvisor)
+{{- end }}
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
@@ -44,13 +47,13 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
   - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation (DaemonSet, no code changes)
 {{- end }}
-{{- if .Values.profiling.enabled }}
+{{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
   - Continuous CPU flame graphs from every process on every node, via the OpenTelemetry eBPF Profiler (DaemonSet, samples stacks at {{ .Values.profiling.samplesPerSecond }}Hz)
 {{- end }}
-{{- if .Values.hostMetrics.enabled }}
+{{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
   - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
 {{- end }}
 {{- if .Values.auditLogs.enabled }}
@@ -76,6 +79,17 @@ The agent is now collecting:
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
+{{- if eq (include "kubernetes-agent.privilegedPodsAllowed" .) "false" }}
+eBPF auto-instrumentation and continuous CPU profiling are off on this preset,
+whatever ebpf.enabled and profiling.enabled say: both need a privileged pod
+{{- if eq .Values.preset "eks-fargate" }}
+on every node, and EKS Fargate runs neither privileged pods nor DaemonSets.
+To trace your services, send traces from them with an OpenTelemetry SDK.
+{{- else }}
+on every node, and GKE Autopilot refuses privileged pods. To trace your
+services, send traces from them with an OpenTelemetry SDK.
+{{- end }}
+{{- end }}
 {{- end }}
 
 To verify the agent is running:
@@ -83,7 +97,7 @@ To verify the agent is running:
 
 To check collector logs:
   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }} -c otel-collector
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 
 To check the eBPF instrumentation logs:
   kubectl logs -n {{ .Release.Namespace }} -l component=ebpf-instrument -c ebpf-instrument --tail=100

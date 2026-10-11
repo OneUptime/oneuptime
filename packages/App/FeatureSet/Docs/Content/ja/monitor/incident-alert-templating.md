@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | トラップの送信元アドレス。SNMP トラップがチェックをトリガーしたときのみ。 | `string` |
 | `trapVarbinds` | トラップの varbind。それぞれ `{oid, value}` の形です。SNMP トラップがチェックをトリガーしたときのみ。 | `Array<Object>` |
 
-ネットワークデバイスはポーリングのたびに ping され、認証情報があるときだけ SNMP でウォークされます。そのため、**ping だけのデバイスが埋める上記の変数は `isOnline` だけです**。それ以外はすべて SNMP ウォークから得られるため、ウォークがなければ書いたまま残ります。認証情報のないデバイスにも使う可能性のあるテンプレートでは、`{{isOnline}}` とデバイスの名前を先頭に置いてください。各種ポーリングが何を収集するかは、[ネットワークデバイス モニター](/docs/monitor/network-device-monitor#what-a-poll-actually-does) を参照してください。
+ネットワークデバイスはポーリングのたびに ping され、認証情報があるときだけ SNMP でウォークされます。そのため、**ping だけのデバイスが埋める上記の変数は `isOnline` だけです**。それ以外はすべて SNMP ウォークから得られるため、ウォークがなければ書いたまま残ります。認証情報のないデバイスにも使う可能性のあるテンプレートでは、`{{isOnline}}` とデバイスの名前を先頭に置いてください。各種ポーリングが何を収集するかは、[ネットワークデバイス モニター](/docs/monitor/network-device-monitor#ポーリングが実際に行うこと) を参照してください。
 
 ### データベース ヘルス モニター
 
@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### メトリクスとインフラストラクチャのモニター
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array の各モニターには、固有の変数が 1 つあります。
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array、IoT Device の各モニターには、固有の変数が 1 つあります。
 
 | 変数 | 内容 | 型 |
 | --- | --- | --- |
 | `metricName` | モニターの最初のクエリが読むメトリクスの名前 (`container.cpu.time` など)。 | `string` |
 
-グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT Device モニターには `metricName` はありませんが、テンプレートのようにグループ化されたものには `{{device.id}}` があります。
+グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT Device モニターのテンプレートはデバイスごとにグループ化するため、テンプレートから作成したモニターには `{{device.id}}` もあります。
 
 ### その他のモニターの種類
 

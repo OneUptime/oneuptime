@@ -28,7 +28,7 @@ flowchart TB
 > [!IMPORTANT]
 > 특정 레이블이나 자신이 소유한 리소스로 제한된 권한으로는 부족합니다. 실행은 프로젝트의 모든 리소스를 바꿀 수 있기 때문입니다. 팀의 차단 목록은 다른 곳과 똑같이 적용되며, 일부 레이블로 제한된 차단도 고려됩니다. 실행은 그 레이블이 붙은 리소스도 바꾸므로, 규칙이 변경하는 리소스의 편집에 레이블이 지정된 차단이 있으면 실행이 거부됩니다.
 
-네트워크의 규칙도 이미 있는 장치에 실행할 때 같은 것을 요구합니다. 사이트 할당 규칙이나 장치 레이블 규칙의 **Run Now** 에는 규칙을 편집할 권한과 **Edit Network Device** 가 필요합니다. 자동 가져오기 규칙의 **Dry Run** 과 **Run Rule** 에는 규칙을 편집할 권한, **Create Network Device**, 그리고 규칙에 모니터 템플릿이 있으면 **Create Monitor** 가 필요합니다. 각 권한은 프로젝트 전체에 미쳐야 합니다. [자동 가져오기 규칙으로 자동 가져오기](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules) 를 참조하세요.
+네트워크의 규칙도 이미 있는 장치에 실행할 때 같은 것을 요구합니다. 사이트 할당 규칙이나 장치 레이블 규칙의 **Run Now** 에는 규칙을 편집할 권한과 **Edit Network Device** 가 필요합니다. 자동 가져오기 규칙의 **Dry Run** 과 **Run Rule** 에는 규칙을 편집할 권한, **Create Network Device**, 그리고 규칙에 모니터 템플릿이 있으면 **Create Monitor** 가 필요합니다. 각 권한은 프로젝트 전체에 미쳐야 합니다. [자동 가져오기 규칙으로 자동 가져오기](/docs/monitor/network-device-monitor#자동-가져오기-규칙으로-자동-가져오기) 를 참조하세요.
 
 ## 규칙 하나 실행하기
 

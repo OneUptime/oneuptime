@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | Trap 的來源位址。僅在 SNMP trap 觸發檢查時。 | `string` |
 | `trapVarbinds` | Trap 的 varbind，每個形如 `{oid, value}`。僅在 SNMP trap 觸發檢查時。 | `Array<Object>` |
 
-網路設備在每次輪詢時都會被 ping，只有在有認證資訊時才會透過 SNMP 走訪，因此 **在上面的變數中，僅支援 ping 的設備只會填入 `isOnline`**：其他所有變數都來自 SNMP 走訪，沒有走訪時會原樣保留。在可能用於沒有認證資訊之設備的範本中，請以 `{{isOnline}}` 和設備的名稱開頭。每種輪詢收集哪些內容，請參閱 [網路設備監測器](/docs/monitor/network-device-monitor#what-a-poll-actually-does)。
+網路設備在每次輪詢時都會被 ping，只有在有認證資訊時才會透過 SNMP 走訪，因此 **在上面的變數中，僅支援 ping 的設備只會填入 `isOnline`**：其他所有變數都來自 SNMP 走訪，沒有走訪時會原樣保留。在可能用於沒有認證資訊之設備的範本中，請以 `{{isOnline}}` 和設備的名稱開頭。每種輪詢收集哪些內容，請參閱 [網路設備監測器](/docs/monitor/network-device-monitor#一次輪詢實際做了什麼)。
 
 ### 資料庫健康狀態監測器
 
@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### 指標和基礎設施監測器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph 和 Storage Array 監測器各有一個自己的變數：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array 和 IoT Device 監測器各有一個自己的變數：
 
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |
 | `metricName` | 監測器的第一個查詢所讀取的指標名稱，例如 `container.cpu.time`。 | `string` |
 
-分組時，它們還有每個 **Group by** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器沒有 `metricName`，但分組的 IoT Device 監測器(其範本都是分組的)有 `{{device.id}}`。
+分組時，它們還有每個 **Group by** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
 
 ### 其他監測器類型
 

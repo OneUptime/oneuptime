@@ -10807,7 +10807,6 @@
   "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional).": "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional).",
   "Filter by the acting host": "Filter by the acting host",
   "Filter by the acting principal": "Filter by the acting principal",
-  "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set.": "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set.",
   "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource.": "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource.",
   "Filter by trace ID": "Filter by trace ID",
   "Filter dashboards by labels. Leave empty to skip the filter.": "Filter dashboards by labels. Leave empty to skip the filter.",
@@ -12856,7 +12855,6 @@
   "Missing or malformed value": "Missing or malformed value",
   "Missing project or service information for context.": "Missing project or service information for context.",
   "Missing project or user context.": "Missing project or user context.",
-  "Missing values render as empty strings — they will not break the template.": "Missing values render as empty strings — they will not break the template.",
   "Mistral": "Mistral",
   "Mobile": "Mobile",
   "Mobile (iOS / Android)": "Mobile (iOS / Android)",
@@ -17312,7 +17310,6 @@
   "The Kubernetes cluster this monitor watches.": "The Kubernetes cluster this monitor watches.",
   "The Model Context Protocol (MCP) lets AI agents like Claude, Cursor, and GitHub Copilot read this status page as structured data instead of scraping the website. Once the toggle above is on, anyone can point an MCP client at the server below and ask about this page's current status, incidents, scheduled maintenance, and announcements.": "The Model Context Protocol (MCP) lets AI agents like Claude, Cursor, and GitHub Copilot read this status page as structured data instead of scraping the website. Once the toggle above is on, anyone can point an MCP client at the server below and ask about this page's current status, incidents, scheduled maintenance, and announcements.",
   "The OSD wall — a honeycomb of OSDs colored by up/in state.": "The OSD wall — a honeycomb of OSDs colored by up/in state.",
-  "The OTel metric name the monitor is watching (e.g. container.cpu.time).": "The OTel metric name the monitor is watching (e.g. container.cpu.time).",
   "The OneUptime AI agent": "The OneUptime AI agent",
   "The OneUptime Ceph cluster backing this Proxmox cluster's storage. Leave empty to unlink. Ceph health never changes the Proxmox health badge — the two products alert separately.": "The OneUptime Ceph cluster backing this Proxmox cluster's storage. Leave empty to unlink. Ceph health never changes the Proxmox health badge — the two products alert separately.",
   "The OneUptime Kubernetes agent runs with eBPF enabled. It observes calls between pods without any code changes.": "The OneUptime Kubernetes agent runs with eBPF enabled. It observes calls between pods without any code changes.",
@@ -28052,5 +28049,8 @@
   "Azure OpenAI / Microsoft Foundry": "Azure OpenAI / Microsoft Foundry",
   "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "OpenAI, Azure OpenAI / Microsoft Foundry (आपके रिसोर्स की कुंजियों में से एक), Anthropic, Groq और Mistral के लिए आवश्यक। Ollama और उन OpenAI-संगत सर्वरों (जैसे vLLM) के लिए वैकल्पिक जिन्हें प्रमाणीकरण की आवश्यकता नहीं है।",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "उपयोग करने के लिए विशिष्ट मॉडल या परिनियोजन नाम (जैसे, OpenAI के लिए gpt-5.1, Anthropic के लिए claude-sonnet-5-5, Azure OpenAI / Microsoft Foundry के लिए आपके परिनियोजन का नाम, Groq के लिए llama-3.3-70b-versatile, Mistral के लिए mistral-large-latest)। OpenAI-संगत प्रदाताओं के लिए आवश्यक — यह आपके सर्वर द्वारा उपलब्ध कराए गए किसी मॉडल से मेल खाना चाहिए।",
-  "Twilio Configs": "Twilio कॉन्फ़िगरेशन"
+  "Twilio Configs": "Twilio कॉन्फ़िगरेशन",
+  "A variable with no value is left as written, so a mistyped name shows in the text.": "बिना मान वाला वेरिएबल जैसा लिखा है वैसा ही रहता है, इसलिए गलत टाइप किया गया नाम टेक्स्ट में दिखता है।",
+  "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "डिवाइस आईडी द्वारा फ़िल्टर करें — कच्चा `device.id` डेटापॉइंट लेबल (वैकल्पिक)। आपके सेट किए गए हर फ़िल्टर का मेल खाना ज़रूरी है।",
+  "The name of the metric the monitor's first query reads.": "उस मेट्रिक का नाम जिसे मॉनिटर की पहली क्वेरी पढ़ती है।"
 }
