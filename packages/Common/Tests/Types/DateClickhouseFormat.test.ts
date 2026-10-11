@@ -89,8 +89,8 @@ describe("OneUptimeDate.toClickhouseDateTime", () => {
 
   test("fuzz sweep: parity with moment across ±100 years", () => {
     /*
-     * Deterministic LCG so a failure is reproducible. 2000 samples spread
-     * across ~200 years of epoch millis, including sub-second components.
+     * Seeded, so a failure is reproducible. 2000 samples spread across
+     * ~200 years of epoch millis, including sub-second components.
      */
     const nextRandom: SeededRandom = seededRandom(42);
 

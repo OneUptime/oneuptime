@@ -1,5 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
-import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -97,15 +101,7 @@ const shuffle: ShuffleFunction = <T>(
   items: ReadonlyArray<T>,
   seed: number,
 ): Array<T> => {
-  const out: Array<T> = [...items];
-  const random: SeededRandom = seededRandom(seed + 7);
-  for (let i: number = out.length - 1; i > 0; i--) {
-    const j: number = random(i + 1);
-    const held: T = out[i]!;
-    out[i] = out[j]!;
-    out[j] = held;
-  }
-  return out;
+  return shuffled(items, seededRandom(seed + 7));
 };
 
 type MakeRandomGraphFunction = (

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { seededRandom, shuffled } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -334,15 +334,7 @@ const shuffle: ShuffleFunction = <T>(
   items: ReadonlyArray<T>,
   seed: number,
 ): Array<T> => {
-  const result: Array<T> = [...items];
-  const random: SeededRandom = seededRandom(seed);
-  for (let i: number = result.length - 1; i > 0; i--) {
-    const j: number = random(i + 1);
-    const held: T = result[i]!;
-    result[i] = result[j]!;
-    result[j] = held;
-  }
-  return result;
+  return shuffled(items, seededRandom(seed));
 };
 
 /* Flip every edge's direction — links are undirected by contract. */

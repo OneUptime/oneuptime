@@ -115,7 +115,7 @@ const LONG_HOSTNAME: string = "h".repeat(200);
 describe("hostile name fixture", () => {
   /*
    * The property tests below are only worth anything if the generated
-   * corpus is actually varied. A silently degenerate xorshift (every name
+   * corpus is actually varied. A silently degenerate generator (every name
    * "aaa") would make six tests pass while asserting nothing.
    */
   test("the seeded corpus is varied and long enough to exercise wrapping", () => {

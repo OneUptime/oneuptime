@@ -112,7 +112,10 @@ describe("findMessageCardLinks", () => {
       "!",
     ];
     let found: number = 0;
-    const differences: Array<[string, Array<MessageCardLink>]> = [];
+    // Each line read differently: the line, what it read, what the expression read.
+    const differences: Array<
+      [string, Array<MessageCardLink>, Array<MessageCardLink>]
+    > = [];
 
     for (let index: number = 0; index < 20000; index++) {
       const line: string = randomLine(next, PIECES);
@@ -122,7 +125,7 @@ describe("findMessageCardLinks", () => {
       found += expected.length;
 
       if (!isDeepStrictEqual(read, expected)) {
-        differences.push([line, read]);
+        differences.push([line, read, expected]);
       }
     }
 
@@ -174,7 +177,9 @@ describe("findFact", () => {
       "value",
     ];
     let found: number = 0;
-    const differences: Array<[string, MessageCardFact | null]> = [];
+    const differences: Array<
+      [string, MessageCardFact | null, MessageCardFact | null]
+    > = [];
 
     for (let index: number = 0; index < 20000; index++) {
       const line: string = randomLine(next, PIECES);
@@ -186,7 +191,7 @@ describe("findFact", () => {
       }
 
       if (!isDeepStrictEqual(read, expected)) {
-        differences.push([line, read]);
+        differences.push([line, read, expected]);
       }
     }
 

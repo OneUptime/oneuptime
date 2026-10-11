@@ -5,7 +5,12 @@
  * repeats itself the way the copies it replaced did.
  */
 
-import { LARGEST_LIMIT, SeededRandom, seededRandom } from "./SeededRandom";
+import {
+  LARGEST_LIMIT,
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "./SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 // `count` draws of a stream, each below the limit (or fractions, with none).
@@ -241,6 +246,111 @@ describe("seededRandom", () => {
       return seededRandom(1)(0);
     }).toThrow(
       "A seeded draw takes a whole number from 1 to 2^32 as its limit, not 0.",
+    );
+  });
+
+  test("reaches every 32-bit number in two halves", () => {
+    /*
+     * One draw of the whole range is not one-to-one; two 16-bit halves each
+     * take every value, so every 32-bit number can come up.
+     */
+    const random: SeededRandom = seededRandom(17);
+    const seen: Array<Uint8Array> = [
+      new Uint8Array(65536),
+      new Uint8Array(65536),
+    ];
+    const missing: Array<number> = [65536, 65536];
+    let pairs: number = 0;
+
+    // Every half-value turns up within about a million pairs (the coupon collector's 727,000).
+    while ((missing[0]! > 0 || missing[1]! > 0) && pairs < 2000000) {
+      for (const half of [0, 1]) {
+        const value: number = random(65536);
+
+        if (seen[half]![value] === 0) {
+          seen[half]![value] = 1;
+          missing[half] = missing[half]! - 1;
+        }
+      }
+
+      pairs++;
+    }
+
+    expect(missing).toEqual([0, 0]);
+  });
+});
+
+describe("shuffled", () => {
+  const ITEMS: ReadonlyArray<string> = ["a", "b", "c"];
+
+  test("gives every order about as often as any other", () => {
+    const random: SeededRandom = seededRandom(23);
+    const counts: Map<string, number> = new Map<string, number>();
+
+    for (let round: number = 0; round < 60000; round++) {
+      const order: string = shuffled(ITEMS, random).join("");
+      counts.set(order, (counts.get(order) || 0) + 1);
+    }
+
+    expect(Array.from(counts.keys()).sort()).toEqual([
+      "abc",
+      "acb",
+      "bac",
+      "bca",
+      "cab",
+      "cba",
+    ]);
+    expect(
+      Array.from(counts.values()).every((count: number): boolean => {
+        return Math.abs(count - 10000) < 500;
+      }),
+    ).toBe(true);
+  });
+
+  test("gives the same order for the same stream, keeps every item, and leaves the items as they were", () => {
+    const items: Array<string | undefined> = ["x", undefined, "y", "x", "z"];
+    const order: Array<string | undefined> = shuffled(items, seededRandom(5));
+
+    expect(shuffled(items, seededRandom(5))).toEqual(order);
+    expect(items).toEqual(["x", undefined, "y", "x", "z"]);
+    expect([...order].sort()).toEqual([...items].sort());
+    expect(shuffled([], seededRandom(5))).toEqual([]);
+    expect(shuffled(["only"], seededRandom(5))).toEqual(["only"]);
+  });
+
+  test("takes one draw for each place but the first, from the stream it is given", () => {
+    const random: SeededRandom = seededRandom(31);
+    const fresh: SeededRandom = seededRandom(31);
+
+    shuffled(["a", "b", "c", "d", "e"], random);
+    drawsOf(fresh, 4, 2);
+
+    expect(random()).toBe(fresh());
+  });
+
+  test("is Fisher-Yates from the last place: the suites' shuffles draw the orders they drew", () => {
+    const random: SeededRandom = seededRandom(7);
+    const order: Array<number> = [0, 1, 2, 3, 4, 5, 6, 7];
+
+    for (let place: number = order.length - 1; place > 0; place--) {
+      const other: number = random(place + 1);
+      const held: number = order[place]!;
+      order[place] = order[other]!;
+      order[other] = held;
+    }
+
+    expect(shuffled([0, 1, 2, 3, 4, 5, 6, 7], seededRandom(7))).toEqual(order);
+  });
+
+  test("refuses a stream that ignores its limit", () => {
+    const fractions: () => number = (): number => {
+      return 0.5;
+    };
+
+    expect(() => {
+      return shuffled(ITEMS, fractions);
+    }).toThrow(
+      "shuffled draws from seededRandom; this stream gave 0.5 for a limit of 3.",
     );
   });
 });

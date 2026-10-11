@@ -6,7 +6,7 @@ import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { seededRandom } from "../../Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 type RectSpec = Partial<GridRect> & { id: string };
 
@@ -842,11 +842,7 @@ describe("GridLayoutUtil DashboardBaseComponent bridge", () => {
 
 describe("GridLayoutUtil property-style invariants", () => {
   test("random move/resize sequences always produce valid, in-bounds layouts", () => {
-    const random: () => number = seededRandom(20260807);
-
-    const randomInt: (max: number) => number = (max: number): number => {
-      return Math.floor(random() * max);
-    };
+    const random: SeededRandom = seededRandom(20260807);
 
     // Build a random valid starting board.
     let layout: Array<GridRect> = [];
@@ -854,10 +850,10 @@ describe("GridLayoutUtil property-style invariants", () => {
       layout.push(
         rect({
           id: `w${i}`,
-          left: randomInt(10),
-          top: randomInt(20),
-          width: 1 + randomInt(6),
-          height: 1 + randomInt(4),
+          left: random(10),
+          top: random(20),
+          width: 1 + random(6),
+          height: 1 + random(4),
         }),
       );
     }
@@ -865,7 +861,7 @@ describe("GridLayoutUtil property-style invariants", () => {
     expectValidLayout(layout);
 
     for (let step: number = 0; step < 300; step++) {
-      const target: GridRect = layout[randomInt(layout.length)]!;
+      const target: GridRect = layout[random(layout.length)]!;
 
       const before: Array<GridRect> = frozen(
         layout.map((r: GridRect) => {
@@ -877,8 +873,8 @@ describe("GridLayoutUtil property-style invariants", () => {
         layout = GridLayoutUtil.moveRect({
           rects: before,
           id: target.id,
-          left: randomInt(14) - 1,
-          top: randomInt(24) - 1,
+          left: random(14) - 1,
+          top: random(24) - 1,
         });
       } else {
         layout = GridLayoutUtil.resizeRect({
@@ -886,8 +882,8 @@ describe("GridLayoutUtil property-style invariants", () => {
           id: target.id,
           left: target.left,
           top: target.top,
-          width: 1 + randomInt(13),
-          height: 1 + randomInt(6),
+          width: 1 + random(13),
+          height: 1 + random(6),
         });
       }
 

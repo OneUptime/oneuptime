@@ -8,19 +8,23 @@
  *
  *   const random: SeededRandom = seededRandom(2718);
  *
- *   random();   // a fraction, from 0 up to, not including, 1
- *   random(6);  // a whole number, from 0 up to, not including, 6
+ *   random();               // a fraction, from 0 up to, not including, 1
+ *   random(6);              // a whole number, from 0 up to, not including, 6
+ *   shuffled(items, random); // the items in an order drawn from the stream
  *
  * Texts drawn from an alphabet are GeneratedTexts.generatedTexts, built on
- * this. SeededRandomGuard.test.ts fails any test file that rolls a generator
- * of its own.
+ * this. SeededRandomGuard.test.ts fails a test file that rolls a generator
+ * of the kinds tests used to carry (an LCG, mulberry32, xorshift).
  *
- * The generator is mulberry32: a 32-bit counter, stepped by an odd number so
- * it passes every one of its 2^32 values before one comes round again, and
- * mixed into each draw so that every bit of a draw is as good as any other.
- * A whole number below a limit is about as likely as any other, whatever the
+ * The generator is mulberry32: its state is a 32-bit counter, stepped by an
+ * odd number, so the draws only come round after 2^32 of them, and each
+ * state is mixed into a draw whose every bit is as good as any other. A
+ * whole number below a limit is about as likely as any other, whatever the
  * limit, and the draws of seeds 1, 2 and 3 have nothing to do with one
- * another.
+ * another. The mixing is not one-to-one - some 32-bit numbers come out of
+ * two states and others of none - so a test that must be able to reach
+ * every 32-bit number draws two halves: random(65536) * 65536 +
+ * random(65536).
  *
  * Why there is only one. Suites each carried a copy of some generator, and
  * the most copied one, `state * 1103515245 + 12345` with a plain "*",
@@ -79,4 +83,39 @@ export const seededRandom: SeededRandomFunction = (
 
     return limit === undefined ? fraction : Math.floor(fraction * limit);
   };
+};
+
+export type ShuffledFunction = <ItemType>(
+  items: ReadonlyArray<ItemType>,
+  random: SeededRandom,
+) => Array<ItemType>;
+
+/*
+ * The items in an order drawn from a stream (Fisher-Yates, from the last
+ * place to the second): every order about as likely as any other, the same
+ * for the same stream, one draw per place but the first, and the items
+ * themselves left as they were. The stream must be a seededRandom one: a
+ * function that ignores its limit is refused.
+ */
+export const shuffled: ShuffledFunction = <ItemType>(
+  items: ReadonlyArray<ItemType>,
+  random: SeededRandom,
+): Array<ItemType> => {
+  const order: Array<ItemType> = [...items];
+
+  for (let place: number = order.length - 1; place > 0; place--) {
+    const other: number = random(place + 1);
+
+    if (!(Number.isInteger(other) && other >= 0 && other <= place)) {
+      throw new RangeError(
+        `shuffled draws from seededRandom; this stream gave ${String(other)} for a limit of ${String(place + 1)}.`,
+      );
+    }
+
+    const held: ItemType = order[place] as ItemType;
+    order[place] = order[other] as ItemType;
+    order[other] = held;
+  }
+
+  return order;
 };

@@ -7,7 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
-import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { seededRandom, shuffled } from "../../Helpers/SeededRandom";
 
 /*
  * Regression tests for the grey bars at the end of status.chainflip.io (root cause 1).
@@ -213,17 +213,7 @@ const shuffleDeterministically: ShuffleFunction = (
   items: Array<MonitorStatusTimeline>,
   seed: number,
 ): Array<MonitorStatusTimeline> => {
-  const random: SeededRandom = seededRandom(seed);
-  const shuffled: Array<MonitorStatusTimeline> = [...items];
-
-  for (let i: number = shuffled.length - 1; i > 0; i--) {
-    const j: number = random(i + 1);
-    const temp: MonitorStatusTimeline = shuffled[i]!;
-    shuffled[i] = shuffled[j]!;
-    shuffled[j] = temp;
-  }
-
-  return shuffled;
+  return shuffled(items, seededRandom(seed));
 };
 
 type PreFixCompareFunction = (

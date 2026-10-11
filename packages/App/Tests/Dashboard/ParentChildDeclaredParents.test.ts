@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { seededRandom, shuffled } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -172,15 +172,7 @@ const permuted: PermuteFunction = <ItemType>(
   items: Array<ItemType>,
   seed: number,
 ): Array<ItemType> => {
-  const shuffled: Array<ItemType> = [...items];
-  const random: SeededRandom = seededRandom(seed);
-  for (let index: number = shuffled.length - 1; index > 0; index--) {
-    const target: number = random(index + 1);
-    const held: ItemType = shuffled[index]!;
-    shuffled[index] = shuffled[target]!;
-    shuffled[target] = held;
-  }
-  return shuffled;
+  return shuffled(items, seededRandom(seed));
 };
 
 /* Seeds used wherever "shuffle it" means "shuffle it several ways". */

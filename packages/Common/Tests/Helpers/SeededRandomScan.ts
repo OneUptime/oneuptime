@@ -14,24 +14,28 @@ import { REPOSITORY_DIRECTORY } from "./TagStripScan";
  *   - ee/Tests/Server/SeededRandomGuard.test.ts reads ee/'s test files from
  *     ee's own jest run, the only one with ee/ checked out.
  *
- * What it finds is the three shapes of generator the repository's tests
- * copied, wherever they are written - in code, or in a string or template
+ * What it finds is the three kinds of generator the repository's tests
+ * carried, wherever they are written - in code, or in a string or template
  * that a child process or a browser page runs:
  *
  *   1. a multiply by the multiplier of a known linear congruential
- *      generator (1103515245, 1664525, 16807 ... - LCG_MULTIPLIERS), written
- *      in decimal or hex, with or without "_" separators, as a number or a
- *      bigint, in place or held in a name the file multiplies by;
+ *      generator (1103515245, 1664525, 16807, 9301 ... - LCG_MULTIPLIERS),
+ *      written in decimal or hex, with or without "_" separators, as a
+ *      number or a bigint, in place or held in a name the file multiplies
+ *      by;
  *   2. mulberry32's step, an add of 0x6d2b79f5 (or splitmix64's
  *      0x9e3779b97f4a7c15);
  *   3. an xorshift step: a value XORed with a left shift of itself
- *      (x ^= x << 13, x = x ^ (x << 13)).
+ *      (x ^= x << 13, x ^ (x << 13)).
  *
  * Not a generator, and passed: a hash of a value (FNV, a multiplicative hash
  * such as Math.imul(index, 2654435761), a mixer's x ^= x >>> 16 - right
- * shifts only), a constant that is only compared or listed, and anything in
- * a comment. Tests/Helpers/SeededRandom itself is where the one generator
- * lives.
+ * shifts only), a constant that is only compared or listed, a multiply by a
+ * number no well-known generator uses, and anything in a comment. It is a
+ * guard against the generators tests copy, not a proof that a file has
+ * none: a generator of another kind (xoshiro, sfc32, a table) gets past it,
+ * and a review has to catch that. Tests/Helpers/SeededRandom itself is where
+ * the one generator lives.
  *
  * It imports nothing but node's fs and path, the TypeScript parser and
  * TagStripScan (for the repository's root).
@@ -58,7 +62,6 @@ export const LCG_MULTIPLIERS: ReadonlyMap<bigint, string> = new Map<
   [BigInt("22695477"), "the Borland LCG"],
   [BigInt("214013"), "the Microsoft LCG"],
   [BigInt("134775813"), "the Delphi LCG"],
-  [BigInt("69069"), "Marsaglia's LCG"],
   [BigInt("1140671485"), "an LCG"],
   [BigInt("747796405"), "the PCG 32-bit LCG"],
   [BigInt("2891336453"), "an LCG"],
@@ -66,7 +69,7 @@ export const LCG_MULTIPLIERS: ReadonlyMap<bigint, string> = new Map<
   [BigInt("16807"), "the Park-Miller (MINSTD) generator"],
   [BigInt("48271"), "the Park-Miller (MINSTD) generator"],
   [BigInt("69621"), "the Park-Miller (MINSTD) generator"],
-  [BigInt("65539"), "RANDU"],
+  [BigInt("9301"), "the 9301 / 49297 / 233280 LCG"],
   [BigInt("25214903917"), "Java's LCG"],
   [BigInt("6364136223846793005"), "the Knuth MMIX / PCG 64-bit LCG"],
   [BigInt("2685821657736338717"), "the xorshift64* multiplier"],
@@ -215,6 +218,15 @@ const ADD_OPERATORS: ReadonlySet<ts.SyntaxKind> = new Set<ts.SyntaxKind>([
   ts.SyntaxKind.PlusEqualsToken,
 ]);
 
+type IsImulFunction = (callee: ts.Expression) => boolean;
+
+// Math.imul, or an imul taken off it.
+const isImul: IsImulFunction = (callee: ts.Expression): boolean => {
+  const name: string = callee.getText();
+
+  return name === "imul" || name.endsWith(".imul");
+};
+
 type IsOperandOfFunction = (
   node: ts.Node,
   operators: ReadonlySet<ts.SyntaxKind>,
@@ -242,7 +254,7 @@ const isOperandOf: IsOperandOfFunction = (
     parent.arguments.some((argument: ts.Expression): boolean => {
       return argument === operand;
     }) &&
-    parent.expression.getText().endsWith("imul")
+    isImul(parent.expression)
   );
 };
 
@@ -284,43 +296,34 @@ const isSelfLeftShift: IsSelfLeftShiftFunction = (
 type IsXorshiftStepFunction = (node: ts.BinaryExpression) => boolean;
 
 /*
- * x ^= x << 13, or x = x ^ (x << 13) (either way round, inside a ">>> 0" or
- * "| 0" or not).
+ * x ^= x << 13, or x ^ (x << 13) wherever it is - assigned, returned, either
+ * way round, inside a ">>> 0" or "| 0" or not.
  */
 const isXorshiftStep: IsXorshiftStepFunction = (
   node: ts.BinaryExpression,
 ): boolean => {
-  const target: string = unwrap(node.left).getText();
-
   if (node.operatorToken.kind === ts.SyntaxKind.CaretEqualsToken) {
-    return isSelfLeftShift(target, node.right);
+    return isSelfLeftShift(unwrap(node.left).getText(), node.right);
   }
 
-  if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+  if (node.operatorToken.kind !== ts.SyntaxKind.CaretToken) {
     return false;
   }
 
-  const value: ts.Node = withoutFold(node.right);
-
   return (
-    ts.isBinaryExpression(value) &&
-    value.operatorToken.kind === ts.SyntaxKind.CaretToken &&
-    ((unwrap(value.left).getText() === target &&
-      isSelfLeftShift(target, value.right)) ||
-      (unwrap(value.right).getText() === target &&
-        isSelfLeftShift(target, value.left)))
+    isSelfLeftShift(unwrap(node.left).getText(), node.right) ||
+    isSelfLeftShift(unwrap(node.right).getText(), node.left)
   );
 };
 
-type HasXorshiftStepFunction = (text: string) => boolean;
+type XorshiftStepAtFunction = (text: string) => number;
 
 /*
- * Whether text holds an xorshift step: at an "^", the name before it (or,
- * for "x = x ^ ...", the name assigned) is the name shifted left after it.
- * Each "^" is read with the few characters around it, so a long string is
- * read once.
+ * Where text holds an xorshift step, or -1: at an "^", the name XORed is the
+ * name shifted left after it ("x ^= x << 13", "x ^ (x << 13)"). Each "^" is
+ * read with the few characters around it, so a long string is read once.
  */
-const hasXorshiftStep: HasXorshiftStepFunction = (text: string): boolean => {
+const xorshiftStepAt: XorshiftStepAtFunction = (text: string): number => {
   for (
     let caret: number = text.indexOf("^");
     caret !== -1;
@@ -337,24 +340,28 @@ const hasXorshiftStep: HasXorshiftStepFunction = (text: string): boolean => {
       continue;
     }
 
-    const isCompound: boolean = text.charAt(caret + 1) === "=";
-    // x ^= x << 13: the name before the "^=" is shifted; x = x ^ (x << 13): the name XORed is.
-    const target: string | undefined = isCompound ? before[1] : before[2];
-    const operand: string = before[1]!;
+    /*
+     * The name XORed: the one before "^=", or before "^" - after an
+     * assignment's "=" when there is one ("y = x ^ ...": x).
+     */
+    const xored: string =
+      text.charAt(caret + 1) === "=" ? before[1]! : before[2] ?? before[1]!;
 
-    if (
-      target !== undefined &&
-      after[1] === target &&
-      (isCompound || operand === target)
-    ) {
-      return true;
+    if (after[1] === xored) {
+      return caret;
     }
   }
 
-  return false;
+  return -1;
 };
 
-type FindingsInTextFunction = (text: string) => Array<string>;
+interface TextFinding {
+  // Where in the text it is.
+  offset: number;
+  finding: string;
+}
+
+type FindingsInTextFunction = (text: string) => Array<TextFinding>;
 
 /*
  * Generators written in a string or a template - code a child process or a
@@ -362,8 +369,8 @@ type FindingsInTextFunction = (text: string) => Array<string>;
  */
 const findingsInText: FindingsInTextFunction = (
   text: string,
-): Array<string> => {
-  const findings: Array<string> = [];
+): Array<TextFinding> => {
+  const findings: Array<TextFinding> = [];
 
   for (const match of text.matchAll(NUMBER_TOKEN)) {
     const value: bigint | null = valueOf(match[0]);
@@ -387,16 +394,21 @@ const findingsInText: FindingsInTextFunction = (
       multiplier &&
       (MULTIPLY_BEFORE.test(before) || MULTIPLY_AFTER.test(after))
     ) {
-      findings.push(`a multiply by ${multiplier}'s ${value!.toString()}`);
+      findings.push({
+        offset: start,
+        finding: `a multiply by ${multiplier}'s ${value!.toString()}`,
+      });
     }
 
     if (increment && ADD_BEFORE.test(before)) {
-      findings.push(`${increment}'s step`);
+      findings.push({ offset: start, finding: `${increment}'s step` });
     }
   }
 
-  if (hasXorshiftStep(text)) {
-    findings.push("an xorshift step");
+  const xorshift: number = xorshiftStepAt(text);
+
+  if (xorshift !== -1) {
+    findings.push({ offset: xorshift, finding: "an xorshift step" });
   }
 
   return findings;
@@ -427,14 +439,16 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
   const multipliedNames: Set<string> = new Set<string>();
   const addedNames: Set<string> = new Set<string>();
 
-  const report: (node: ts.Node, finding: string) => void = (
+  const report: (node: ts.Node, finding: string, offset?: number) => void = (
     node: ts.Node,
     finding: string,
+    offset: number = 0,
   ): void => {
     found.push({
       file: file,
       line:
-        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        source.getLineAndCharacterOfPosition(node.getStart(source) + offset)
+          .line + 1,
       finding: finding,
     });
   };
@@ -543,10 +557,7 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
       }
     }
 
-    if (
-      ts.isCallExpression(node) &&
-      node.expression.getText().endsWith("imul")
-    ) {
+    if (ts.isCallExpression(node) && isImul(node.expression)) {
       for (const argument of node.arguments) {
         const name: string | null = nameOf(argument);
 
@@ -563,13 +574,19 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
       ts.isTemplateMiddle(node) ||
       ts.isTemplateTail(node)
     ) {
-      const raw: string =
-        ts.isStringLiteral(node) || node.rawText === undefined
-          ? node.text
-          : node.rawText;
+      /*
+       * A template's raw text is its source, after the "`" or "}" it starts
+       * with, so a finding is reported on its own line; a quoted string's
+       * text (escapes read) is reported where the string starts.
+       */
+      const rawText: string | undefined = ts.isStringLiteral(node)
+        ? undefined
+        : node.rawText;
+      const isTemplate: boolean = rawText !== undefined;
+      const raw: string = rawText ?? node.text;
 
-      for (const finding of findingsInText(raw)) {
-        report(node, finding);
+      for (const { offset, finding } of findingsInText(raw)) {
+        report(node, finding, isTemplate ? 1 + offset : 0);
       }
     }
 

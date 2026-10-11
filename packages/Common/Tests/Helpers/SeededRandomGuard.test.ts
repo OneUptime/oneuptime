@@ -71,6 +71,7 @@ const NUMERICAL_RECIPES: string = "1664525";
 const PARK_MILLER: string = "16_807";
 const PARK_MILLER_2: string = "48271";
 const BORLAND: string = "22695477";
+const CLASSIC: string = "9301";
 const KNUTH_64: string = "6364136223846793005n";
 const MULBERRY: string = "0x6d2b79f5";
 const SPLITMIX: string = "0x9e3779b97f4a7c15n";
@@ -254,6 +255,20 @@ describe("what the detector calls a generator of a test's own", () => {
       ],
     ],
     [
+      "xorshift, returned",
+      "Gen.test.ts",
+      code(
+        `const next = (x: number): number => (x ^ (x ${SHIFT_LEFT} 13)) >>> 0;`,
+      ),
+      [[1, "an xorshift step"]],
+    ],
+    [
+      "the 9301 / 49297 / 233280 generator",
+      "Gen.test.ts",
+      code(`seed = (seed * ${CLASSIC} + 49297) % 233280;`),
+      [[1, "a multiply by the 9301 / 49297 / 233280 LCG's 9301"]],
+    ],
+    [
       "a generator in a script a child process runs",
       "Child.test.ts",
       code(
@@ -264,8 +279,9 @@ describe("what the detector calls a generator of a test's own", () => {
         `const evaluated: string = "x ^= x ${SHIFT_LEFT} 13";`,
         `const page: string = 'state = (state + ${MULBERRY}) | 0; s = s ^ (s ${SHIFT_LEFT} 5);';`,
       ),
+      // A template's finding on its own line; a quoted string's where it starts.
       [
-        [1, ANSI_FINDING],
+        [3, ANSI_FINDING],
         [5, "an xorshift step"],
         [6, "mulberry32's step"],
         [6, "an xorshift step"],
@@ -347,6 +363,14 @@ describe("what it passes", () => {
         `const mask: number = 1 ${SHIFT_LEFT} 13;`,
         `flags ^= other ${SHIFT_LEFT} 2;`,
         `x = y ^ (x ${SHIFT_LEFT} 1);`,
+        `const gray: number = v ^ (v >>> 1);`,
+      ),
+    ],
+    [
+      "a multiply by a number no well-known generator uses",
+      code(
+        "const bytes: number = count * 65539;",
+        "const id: number = index * 69069 + 1;",
       ),
     ],
     [

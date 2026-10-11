@@ -27,7 +27,7 @@ import MonitorStepProxmoxMonitor from "../../../../Types/Monitor/MonitorStepProx
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
-import { seededRandom } from "../../../Helpers/SeededRandom";
+import { seededRandom, shuffled } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -1593,17 +1593,6 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
     pushesPerNode: Array<number>;
     upValues: Array<number>; // every pve_up{pve.scope=node} row
     infoValues: Array<number>; // every pve_node_info{pve.scope=node} row
-  }
-
-  function shuffled<T>(items: Array<T>, random: Random): Array<T> {
-    const out: Array<T> = [...items];
-    for (let i: number = out.length - 1; i > 0; i--) {
-      const j: number = Math.floor(random() * (i + 1));
-      const swap: T = out[i] as T;
-      out[i] = out[j] as T;
-      out[j] = swap;
-    }
-    return out;
   }
 
   /*

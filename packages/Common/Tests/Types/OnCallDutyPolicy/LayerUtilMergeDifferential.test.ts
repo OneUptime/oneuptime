@@ -432,9 +432,9 @@ describe("removeOverlappingEvents agrees with the original implementation", () =
     /*
      * About one input in five of 16 events on an hourly grid with 3
      * priorities is one the original never finishes. The first three such
-     * inputs of a seed - each checked to exhaust the reference's budget - and
-     * the rewrite must return on each, quickly, and with the merge invariants
-     * intact.
+     * inputs of a seed - each one an input the reference ran out of budget
+     * on - and the rewrite must return on each, quickly, and with the merge
+     * invariants intact.
      */
     const rng: () => number = seededRandom(0x5eed + 15);
     const unfinished: Array<Array<PriorityCalendarEvents>> = [];
@@ -466,10 +466,6 @@ describe("removeOverlappingEvents agrees with the original implementation", () =
     expect(unfinished).toHaveLength(3);
 
     for (const generated of unfinished) {
-      expect(() => {
-        return reference(clone(generated));
-      }).toThrow(ReferenceBudgetExceeded);
-
       const started: number = Date.now();
       const actual: Array<CalendarEvent> =
         new LayerUtil().removeOverlappingEvents(clone(generated));
