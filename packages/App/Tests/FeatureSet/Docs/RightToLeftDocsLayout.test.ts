@@ -389,11 +389,27 @@ describe("style.css on a right-to-left page", () => {
   );
 
   it("keeps diagrams and keyboard shortcuts left to right", () => {
-    // Mermaid lays diagrams out left to right, and their labels are English.
+    // Mermaid lays diagrams out left to right.
     expect(declared(".docs-diagram", "direction")).toBe("ltr");
     // ⌘K, never K⌘.
     expect(declared(".docs-kbd", "direction")).toBe("ltr");
   });
+
+  it.each([
+    ".docs-diagram .mermaid foreignObject div",
+    ".docs-diagram .mermaid foreignObject p",
+    ".docs-diagram .docs-diagram__caption",
+  ])(
+    "reads each line of %s in the direction of its first letter",
+    (selector: string) => {
+      /*
+       * A translated label is not English: left to right like the diagram,
+       * a Persian line drew the comma that ends it first, and a Latin word
+       * in it on the wrong side.
+       */
+      expect(declared(selector, "unicode-bidi")).toBe("plaintext");
+    },
+  );
 
   it("aligns table headers to the start, where browsers would centre them", () => {
     /*
