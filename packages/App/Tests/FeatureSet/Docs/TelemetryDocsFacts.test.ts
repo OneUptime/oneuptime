@@ -1057,10 +1057,9 @@ describe("Source Maps", () => {
       process.env["SOURCE_MAP_MAX_MAPS_PER_RELEASE"] = "2000";
 
       jest.isolateModules(() => {
-        const raised: EnvironmentConfigModule =
-          jest.requireActual<EnvironmentConfigModule>(
-            "Common/Server/EnvironmentConfig",
-          );
+        const raised: EnvironmentConfigModule = jest.requireActual(
+          "Common/Server/EnvironmentConfig",
+        ) as EnvironmentConfigModule;
 
         expect(raised.SourceMapMaxFilesPerRequest).toBe(50);
         expect(raised.SourceMapMaxFileSizeInBytes).toBe(50 * 1024 * 1024);
@@ -1072,10 +1071,9 @@ describe("Source Maps", () => {
       process.env["SOURCE_MAP_MAX_FILE_SIZE_BYTES"] = String(1024 * 1024);
 
       jest.isolateModules(() => {
-        const lowered: EnvironmentConfigModule =
-          jest.requireActual<EnvironmentConfigModule>(
-            "Common/Server/EnvironmentConfig",
-          );
+        const lowered: EnvironmentConfigModule = jest.requireActual(
+          "Common/Server/EnvironmentConfig",
+        ) as EnvironmentConfigModule;
 
         expect(lowered.SourceMapMaxFilesPerRequest).toBe(10);
         expect(lowered.SourceMapMaxFileSizeInBytes).toBe(1024 * 1024);
