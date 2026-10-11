@@ -116,6 +116,10 @@ function tableAfter(markdown: string, lead: string): Array<string> {
   return rows;
 }
 
+// A step's heading inside a :::steps block, and the hashes that open it.
+const STEP_HEADING: RegExp = /^#{3,4} /;
+const HEADING_HASHES: RegExp = /^#+ /;
+
 // The headings of the steps in a page's first :::steps block.
 function firstStepHeadings(markdown: string): Array<string> {
   const lines: Array<string> = markdown.split("\n");
@@ -130,8 +134,8 @@ function firstStepHeadings(markdown: string): Array<string> {
       break;
     }
 
-    if (/^#{3,4} /.test(line)) {
-      headings.push(line.replace(/^#+ /, ""));
+    if (STEP_HEADING.test(line)) {
+      headings.push(line.replace(HEADING_HASHES, ""));
     }
   }
 

@@ -121,8 +121,6 @@ const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const TABLE_ROW: RegExp = /^\|.*\|$/;
 // A "title: "..."" entry of a source file.
 const TITLE_ENTRY: RegExp = /title: "([^"]+)"/g;
-// A JSX title attribute: title="...".
-const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/g;
 // A stat tile's label="..." attribute.
 const LABEL_ATTRIBUTE: RegExp = /label="([^"]+)"/g;
 const COLLAPSED_TITLES_LIST: RegExp =
@@ -285,9 +283,9 @@ function operatorsFor(fieldType: string): Array<string> {
 
 // What the condition builder calls one of its own controls.
 function criteriaCopy(key: string): string {
-  const match: RegExpExecArray | null = new RegExp(`\\n  ${key}: "([^"]+)"`).exec(
-    readSource("ruleCriteriaFields"),
-  );
+  const match: RegExpExecArray | null = new RegExp(
+    `\\n  ${key}: "([^"]+)"`,
+  ).exec(readSource("ruleCriteriaFields"));
 
   expect({ key, found: Boolean(match) }).toEqual({ key, found: true });
 
@@ -295,7 +293,11 @@ function criteriaCopy(key: string): string {
 }
 
 // A table create button, as ModelTable names it: "Create" and the model's singular name.
-function createButton(model: { singularName?: string | undefined }): string {
+function createButton(model: {
+  singularName?: string | null | undefined;
+}): string {
+  expect(model.singularName).toBeTruthy();
+
   return `Create ${model.singularName as string}`;
 }
 
@@ -361,7 +363,9 @@ describe("SLOs Overview, against the product", () => {
   it("opens SLOs from the Products menu", () => {
     expect(
       readSource("sloListSideMenu").includes('title: "SLOs"') &&
-        page.includes("Open **SLOs** from the **Products** menu in the top bar."),
+        page.includes(
+          "Open **SLOs** from the **Products** menu in the top bar.",
+        ),
     ).toBe(true);
   });
 
@@ -391,7 +395,9 @@ describe("SLOs Overview, against the product", () => {
     expect(fields).toContain("getLabelsFormField<ServiceLevelObjective>({");
 
     const folded: Array<string> = [...titles.slice(2), "Labels"];
-    const table: string = page.slice(page.indexOf("The fields under **More fields**:"));
+    const table: string = page.slice(
+      page.indexOf("The fields under **More fields**:"),
+    );
 
     expect(firstCells(table)).toEqual(
       folded.map((title: string): string => {
@@ -413,7 +419,9 @@ describe("SLOs Overview, against the product", () => {
     );
     expect(defaults["**Window Type**"]).toBe(`**${SloWindowType.Rolling}**`);
     expect(defaults["**Timezone**"]).toBe("UTC");
-    expect(form).toContain('"Decides when each calendar month starts and ends. Defaults to UTC."');
+    expect(form).toContain(
+      '"Decides when each calendar month starts and ends. Defaults to UTC."',
+    );
   });
 
   it("states the window and threshold ranges the server enforces", () => {
@@ -524,7 +532,7 @@ describe("SLOs Overview, against the product", () => {
 
   it("names the status tiles above the SLO list, in their order", () => {
     const tiles: Array<string> = allMatches(
-      blockFrom(readSource("statusTiles"), "label: \"Healthy\"", "];"),
+      blockFrom(readSource("statusTiles"), 'label: "Healthy"', "];"),
       /label: "([^"]+)"/g,
     );
 
@@ -555,9 +563,9 @@ describe("SLOs Overview, against the product", () => {
     expect(blockFrom(menu, 'title: "Settings"', 'title: "Advanced"')).toContain(
       'title: "Label Rules"',
     );
-    expect(blockFrom(menu, 'title: "Advanced"', "addDeveloperSideMenuSection")).toContain(
-      'title: "Archived"',
-    );
+    expect(
+      blockFrom(menu, 'title: "Advanced"', "addDeveloperSideMenuSection"),
+    ).toContain('title: "Archived"');
     expect(startsFolded("Advanced")).toBe(true);
 
     const list: string = section(page, "The SLO list");
@@ -622,9 +630,11 @@ describe("SLOs Overview, against the product", () => {
     ]);
 
     const cards: Array<string> = [
-      blockFrom(readSource("burnDown"), 'title="Error budget burn-down"', "\n").includes(
-        "Error budget burn-down",
-      )
+      blockFrom(
+        readSource("burnDown"),
+        'title="Error budget burn-down"',
+        "\n",
+      ).includes("Error budget burn-down")
         ? "Error budget burn-down"
         : "",
       overview.includes('title="Recent activity"') ? "Recent activity" : "",
@@ -646,9 +656,11 @@ describe("SLOs Overview, against the product", () => {
       overview.indexOf("<SloBurnRateRulesSummaryCard"),
     ];
 
-    expect([...order].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(order);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
 
     const overviewSection: string = section(page, "The Overview");
     const named: Array<string> = boldIn(overviewSection);
@@ -666,9 +678,11 @@ describe("SLOs Overview, against the product", () => {
       },
     );
 
-    expect([...positions].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(positions);
+    expect(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(positions);
 
     // The cards that left the Overview stay out of its description.
     expect(overview).not.toContain("SloMonitorsSummaryCard");
@@ -690,7 +704,9 @@ describe("SLOs Overview, against the product", () => {
     expect(page).toContain(
       `how fast the budget is being spent over the last ${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} minutes`,
     );
-    expect(page).toContain("It turns amber above 1× and red, with **Rule threshold reached**");
+    expect(page).toContain(
+      "It turns amber above 1× and red, with **Rule threshold reached**",
+    );
   });
 
   it("names the Settings cards, the fields their edit buttons open, and the Evaluation switch", () => {
@@ -714,13 +730,17 @@ describe("SLOs Overview, against the product", () => {
     ]);
     expect(copy).toContain('cardTitle: translationKey("Evaluation")');
     expect(copy).toContain('switchTitle: translationKey("Evaluate this SLO")');
-    expect(copy).toContain('turnOnButton: translationKey("Turn evaluation on")');
+    expect(copy).toContain(
+      'turnOnButton: translationKey("Turn evaluation on")',
+    );
     expect(archive).toContain("`Archive ${singularName}`");
     expect(settings).toContain('singularName="SLO"');
 
     const fields: string = readSource("settingsFields");
 
-    expect(fields).toContain('"targetPercentage",\n  "atRiskThresholdPercentage",');
+    expect(fields).toContain(
+      '"targetPercentage",\n  "atRiskThresholdPercentage",',
+    );
     expect(fields).toContain('title: "Multi Monitor Mode"');
     expect(fields).toContain('title: "Downtime Monitor Statuses"');
 
@@ -762,7 +782,11 @@ describe("SLOs Overview, against the product", () => {
       lastEvaluatedAt: new Date(),
     };
     const notices: Array<SloNotice | null> = [
-      getSloNotice({ ...base, monitorCount: 0, sloStatus: SloStatus.Misconfigured }),
+      getSloNotice({
+        ...base,
+        monitorCount: 0,
+        sloStatus: SloStatus.Misconfigured,
+      }),
       getSloNotice({ ...base, sloStatus: SloStatus.Misconfigured }),
       getSloNotice({ ...base, sloStatus: SloStatus.Paused }),
       getSloNotice({
@@ -891,7 +915,7 @@ describe("Monitors and Monitor Rules, against the product", () => {
     const monitors: string = readSource("monitorsPage");
 
     expect(monitors).toContain(
-      "title=\"This SLO's monitors are managed by its monitor rules\"",
+      'title="This SLO\'s monitors are managed by its monitor rules"',
     );
     expect(monitors).toContain('"Manage Monitor Rules"');
     expect(page).toContain(
@@ -904,7 +928,9 @@ describe("Monitors and Monitor Rules, against the product", () => {
     const fields: string = readSource("monitorRuleFields");
 
     expect(rules).toContain('{ title: "Basic Info", id: "basic-info" }');
-    expect(rules).toContain('{ title: "Match Criteria", id: "match-criteria" }');
+    expect(rules).toContain(
+      '{ title: "Match Criteria", id: "match-criteria" }',
+    );
     expect(rules).toContain("<RuleTable<ServiceLevelObjectiveMonitorRule>");
     expect(readSource("ruleTable")).toContain(
       "withRuleEnabledOnEditOnly<TBaseModel>(tableProps.formFields)",
@@ -974,16 +1000,15 @@ describe("Monitors and Monitor Rules, against the product", () => {
 
   it("requires a condition, as the server does for SLO monitor rules", () => {
     const registry: string = fs.readFileSync(
-      path.join(PACKAGES_DIR, "Common/Types/Rules/RuleCriteriaFieldRegistry.ts"),
+      path.join(
+        PACKAGES_DIR,
+        "Common/Types/Rules/RuleCriteriaFieldRegistry.ts",
+      ),
       "utf8",
     );
 
     expect(
-      blockFrom(
-        registry,
-        "RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION",
-        "];",
-      ),
+      blockFrom(registry, "RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION", "];"),
     ).toContain('"ServiceLevelObjectiveMonitorRule"');
     expect(page).toContain("A monitor rule needs at least one condition.");
   });
@@ -1051,7 +1076,9 @@ describe("Error Budgets, against the math the worker does", () => {
 
   it("states the 31-day month's and the three-monitor SLO's budgets", () => {
     expect(budgetDuration(budgetSeconds(99.9, 31))).toBe("44m 38s");
-    expect(page).toContain("a 99.9% SLO in a 31-day month has all of its 44m 38s on the 1st");
+    expect(page).toContain(
+      "a 99.9% SLO in a 31-day month has all of its 44m 38s on the 1st",
+    );
     expect(Math.floor((3 * budgetSeconds(99.9, 30)) / 60)).toBe(129);
     expect(page).toContain(
       "a three-monitor 99.9% SLO over 30 days has about 129 minutes of budget rather than 43",
@@ -1097,7 +1124,9 @@ describe("Error Budgets, against the math the worker does", () => {
 
     expect(runsOut.kind).toBe(SloBudgetRunwayKind.RunsOut);
     expect(runsOut.value.startsWith("~")).toBe(true);
-    expect(runway({ errorBudgetRemainingSeconds: 0.01 }).value).toBe("Under 1m");
+    expect(runway({ errorBudgetRemainingSeconds: 0.01 }).value).toBe(
+      "Under 1m",
+    );
     expect(runway({ currentBurnRate: 0 }).value).toBe("Not burning");
     expect(
       runway({ errorBudgetRemainingSeconds: budgetSeconds(99.9, 30) }).value,
@@ -1121,7 +1150,9 @@ describe("Error Budgets, against the math the worker does", () => {
       "**Lasts until reset**",
       "**Overspent**",
     ]);
-    expect(section(page, "Budget runway")).toContain("**Under 1m** means less than a minute.");
+    expect(section(page, "Budget runway")).toContain(
+      "**Under 1m** means less than a minute.",
+    );
   });
 
   it("turns the runway red at a day or less, and amber before that", () => {
@@ -1175,8 +1206,12 @@ describe("Error Budgets, against the math the worker does", () => {
       "Status changes and the at-risk threshold",
     );
 
-    expect(statusSection).toContain("AtRisk --> Healthy: 5 points above the threshold");
-    expect(statusSection).toContain("Exhausted --> AtRisk: 2% of the budget back");
+    expect(statusSection).toContain(
+      "AtRisk --> Healthy: 5 points above the threshold",
+    );
+    expect(statusSection).toContain(
+      "Exhausted --> AtRisk: 2% of the budget back",
+    );
     expect(statusSection).toContain(
       `With the default threshold of ${DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE}%, an At Risk SLO turns Healthy again at ${
         DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE + 5
@@ -1193,8 +1228,12 @@ describe("Error Budgets, against the math the worker does", () => {
       numberConstant(worker, "STATUS_NOTIFICATION_MIN_INTERVAL_MINUTES"),
     ).toBe(60);
     expect(worker).toContain("isEscalationToExhausted ||");
-    expect(worker).toContain("owners = await ProjectService.getOwners(slo.projectId);");
-    expect(worker).toContain("const subject: string = `[SLO ${newStatus}] ${sloName}`;");
+    expect(worker).toContain(
+      "owners = await ProjectService.getOwners(slo.projectId);",
+    );
+    expect(worker).toContain(
+      "const subject: string = `[SLO ${newStatus}] ${sloName}`;",
+    );
     expect(readSource("sloService")).toContain(
       "TeamMemberService.filterUsersToProjectMembers",
     );
@@ -1207,7 +1246,9 @@ describe("Error Budgets, against the math the worker does", () => {
     ).toContain("SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION");
     expect(settings).toContain('name: "Monitoring"');
 
-    expect(notifications).toContain("An SLO with no owners notifies the project owners instead.");
+    expect(notifications).toContain(
+      "An SLO with no owners notifies the project owners instead.",
+    );
     expect(notifications).toContain(
       "Each owner gets an email by default, and the notification on every other channel they turn on for **SLO status changed** in **User Settings** → **Notification Settings** → **Monitoring**.",
     );
@@ -1222,7 +1263,9 @@ describe("Error Budgets, against the math the worker does", () => {
     expect(readSource("sloHistory")).toContain(
       'ttlExpression: "bucketStart + INTERVAL 400 DAY"',
     );
-    expect(page).toContain("whose **Error Budget History** tab goes back up to 400 days");
+    expect(page).toContain(
+      "whose **Error Budget History** tab goes back up to 400 days",
+    );
   });
 
   it("names the burn-down card, its link and its zoom", () => {
@@ -1235,7 +1278,9 @@ describe("Error Budgets, against the math the worker does", () => {
     const burnDown: string = section(page, "Error budget burn-down");
 
     expect(burnDown).toContain("The **Error budget burn-down** chart");
-    expect(burnDown).toContain("**Open metrics** opens the SLO's **Metrics** page");
+    expect(burnDown).toContain(
+      "**Open metrics** opens the SLO's **Metrics** page",
+    );
     expect(burnDown).toContain("click **Reset zoom**");
     expect(burnDown).toContain(
       `A point is recorded at every evaluation, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes`,
@@ -1256,12 +1301,18 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
 
     expect(seed).toContain('name: "Fast burn",');
     expect(seed).toContain("this.roundToTwoDecimals((0.02 * windowHours) / 1)");
-    expect(seed).toContain("longWindowInMinutes: 60,\n        shortWindowInMinutes: 5,");
+    expect(seed).toContain(
+      "longWindowInMinutes: 60,\n        shortWindowInMinutes: 5,",
+    );
     expect(seed).toContain('name: "Slow burn",');
     expect(seed).toContain("this.roundToTwoDecimals((0.05 * windowHours) / 6)");
-    expect(seed).toContain("longWindowInMinutes: 360,\n        shortWindowInMinutes: 30,");
+    expect(seed).toContain(
+      "longWindowInMinutes: 360,\n        shortWindowInMinutes: 30,",
+    );
     // A calendar month seeds as 30 days.
-    expect(service).toContain("? 720\n        : (createdItem.windowDays || 30) * 24;");
+    expect(service).toContain(
+      "? 720\n        : (createdItem.windowDays || 30) * 24;",
+    );
 
     const threshold: (value: number) => string = (value: number): string => {
       return `${Math.round(value * 100) / 100}×`;
@@ -1330,7 +1381,11 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     const worker: string = readSource("worker");
 
     expect(
-      blockFrom(worker, "async function fireBurnRateRule", "const refireSuppressionMinutes"),
+      blockFrom(
+        worker,
+        "async function fireBurnRateRule",
+        "const refireSuppressionMinutes",
+      ),
     ).toContain("isAnyMonitorUnderOngoingMaintenance()");
     expect(section(page, "Scheduled maintenance")).toContain(
       "What the rules already have open still resolves as usual.",
@@ -1356,10 +1411,14 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       expect(form).toContain(`title: "${title}",`);
     }
 
-    expect(form).toContain("getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({");
+    expect(form).toContain(
+      "getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({",
+    );
 
     const create: string = section(page, "Create or edit a rule");
-    const button: string = createButton(new ServiceLevelObjectiveBurnRateRule());
+    const button: string = createButton(
+      new ServiceLevelObjectiveBurnRateRule(),
+    );
 
     expect(button).toBe("Create SLO Burn Rate Rule");
     expect(create).toContain(`click **${button}**`);
@@ -1400,7 +1459,9 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
 
     expect(service).toContain('"Burn rate threshold must be greater than 0."');
     expect(service).toContain('"Short window must be greater than 0 minutes."');
-    expect(service).toContain('"Long window must be greater than the short window."');
+    expect(service).toContain(
+      '"Long window must be greater than the short window."',
+    );
     expect(service).toContain(
       '"Re-fire suppression must be a number of minutes greater than or equal to 0."',
     );
@@ -1538,8 +1599,12 @@ describe("SLO Metrics and Dashboards, against the emitter and the Metrics page",
 
     expect(config).toContain("range: TimeRange.PAST_ONE_DAY,");
     expect(config).toContain("range: TimeRange.PAST_ONE_WEEK,");
-    expect(section(page, "The Metrics page")).toContain("the past day by default");
-    expect(section(page, "The Metrics page")).toContain("the past week by default");
+    expect(section(page, "The Metrics page")).toContain(
+      "the past day by default",
+    );
+    expect(section(page, "The Metrics page")).toContain(
+      "the past week by default",
+    );
   });
 
   it("names the SLO Dashboard template, its bands and widgets", () => {
@@ -1558,7 +1623,10 @@ describe("SLO Metrics and Dashboards, against the emitter and the Metrics page",
       "Error Budget History",
       "Burn Rate History",
     ]) {
-      expect({ title, inTemplate: templates.includes(`title: "${title}",`) }).toEqual({
+      expect({
+        title,
+        inTemplate: templates.includes(`title: "${title}",`),
+      }).toEqual({
         title,
         inTemplate: true,
       });
@@ -1574,7 +1642,9 @@ describe("SLO Metrics and Dashboards, against the emitter and the Metrics page",
       `Every time OneUptime evaluates an SLO, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes,`,
     );
     expect(readSource("sloHistory")).toContain("INTERVAL 400 DAY");
-    expect(page).toContain("That history is stored separately and kept for 400 days.");
+    expect(page).toContain(
+      "That history is stored separately and kept for 400 days.",
+    );
   });
 });
 
@@ -1662,7 +1732,9 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
     expect(service).toContain(
       'this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365);',
     );
-    expect(page).toContain("On OneUptime Cloud, items older than three years are removed.");
+    expect(page).toContain(
+      "On OneUptime Cloud, items older than three years are removed.",
+    );
     expect(page).toContain("| Kept | Three years on OneUptime Cloud |");
   });
 
@@ -1674,7 +1746,9 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       "public auditLogsRetentionInDays",
     );
 
-    expect(project).toContain("defaultValue: 7,\n    title: \"Audit Log Retention (days)\",");
+    expect(project).toContain(
+      'defaultValue: 7,\n    title: "Audit Log Retention (days)",',
+    );
     expect(column).toContain("Minimum 7, maximum 180.");
     expect(page).toContain("| 7 days by default, up to 180 |");
     expect(page).toContain(
@@ -1713,11 +1787,15 @@ describe("SLO Feed and Audit Logs, against the feed and the audit log settings",
       });
     }
 
-    expect(fs.readFileSync(tableFile, "utf8")).toContain("Audit logging is off");
+    expect(fs.readFileSync(tableFile, "utf8")).toContain(
+      "Audit logging is off",
+    );
     expect(page).toContain(
       "Click **Edit Audit Log Settings** and turn on **Enable Audit Logs**.",
     );
-    expect(page).toContain("the SLO's **Audit Logs** page says **Audit logging is off**");
+    expect(page).toContain(
+      "the SLO's **Audit Logs** page says **Audit logging is off**",
+    );
   });
 });
 
@@ -1728,16 +1806,23 @@ describe("Label and Owner Rules, against the rule forms and the run's permission
     const label: string = createButton(new ServiceLevelObjectiveLabelRule());
     const owner: string = createButton(new ServiceLevelObjectiveOwnerRule());
 
-    expect([label, owner]).toEqual(["Create SLO Label Rule", "Create SLO Owner Rule"]);
+    expect([label, owner]).toEqual([
+      "Create SLO Label Rule",
+      "Create SLO Owner Rule",
+    ]);
     expect(page).toContain(`click **${label}** or **${owner}**`);
-    expect(page).toContain(`Click **${label}** or **${owner}** again on the last step.`);
+    expect(page).toContain(
+      `Click **${label}** or **${owner}** again on the last step.`,
+    );
   });
 
   it("fills the rule's name the way the form does", () => {
     const form: string = readSource("resourceRuleForm");
 
     expect(form).toContain('allPicks: translationKey("Add {{labels}}"),');
-    expect(form).toContain('allPicks: translationKey("Add {{owners}} as owners"),');
+    expect(form).toContain(
+      'allPicks: translationKey("Add {{owners}} as owners"),',
+    );
     expect(page).toContain(
       `_${"Add {{labels}}".replace("{{labels}}", "Checkout, Production")}_`,
     );
@@ -1749,7 +1834,9 @@ describe("Label and Owner Rules, against the rule forms and the run's permission
   it("lists the SLO fields a condition can compare, with their operators", () => {
     const labels: string = readSource("labelRulesPage");
     const owners: string = readSource("ownerRulesPage");
-    const table: Array<Array<string>> = tableRows(section(page, "Match criteria"));
+    const table: Array<Array<string>> = tableRows(
+      section(page, "Match criteria"),
+    );
 
     expect(
       table.map((row: Array<string>): string => {
@@ -1769,7 +1856,9 @@ describe("Label and Owner Rules, against the rule forms and the run's permission
       operatorsFor(fieldTypeOf(labels, "SLO Name")),
     );
     expect((table[2] as Array<string>)[2]).toBe("The same as **SLO Name**");
-    expect(page).toContain("A new name or description condition starts on **Contains**.");
+    expect(page).toContain(
+      "A new name or description condition starts on **Contains**.",
+    );
   });
 
   it("puts the rules in the SLO list's folded Settings section", () => {
@@ -1822,7 +1911,9 @@ describe("Label and Owner Rules, against the rule forms and the run's permission
       '"You do not have permission to edit this rule, which running it requires."',
     );
     expect(run).toContain("modelType: definition.resourceModelType,");
-    expect(run).toContain("for (const ownerModelType of definition.ownerModelTypes || [])");
+    expect(run).toContain(
+      "for (const ownerModelType of definition.ownerModelTypes || [])",
+    );
     expect(run).toContain("projectWideOnly: true,");
   });
 });

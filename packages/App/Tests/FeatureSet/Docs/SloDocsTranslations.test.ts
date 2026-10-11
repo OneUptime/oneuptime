@@ -288,7 +288,18 @@ const VALUES_AS_IS: Record<string, Array<string>> = {
 const NUMBERS: Record<string, Array<string>> = {
   [INTRODUCTION]: ["5", "99.9", "30", "20", "366", "43", "12", "60"],
   [MONITOR_RULES]: [],
-  [ERROR_BUDGET]: ["43", "30", "99.9", "129", "31", "60", "400", "25", "2", "20"],
+  [ERROR_BUDGET]: [
+    "43",
+    "30",
+    "99.9",
+    "129",
+    "31",
+    "60",
+    "400",
+    "25",
+    "2",
+    "20",
+  ],
   [BURN_RATE]: [
     "14.4",
     "6",
@@ -313,15 +324,22 @@ const NUMBERS: Record<string, Array<string>> = {
  * page: the form's sentence, in each language's words, around the page's
  * example picks.
  */
-const NAMED_FROM_PICKS: Array<{ template: string; slot: string; value: string }> =
-  [
-    { template: "Add {{labels}}", slot: "{{labels}}", value: "Checkout, Production" },
-    {
-      template: "Add {{owners}} as owners",
-      slot: "{{owners}}",
-      value: "Checkout team",
-    },
-  ];
+const NAMED_FROM_PICKS: Array<{
+  template: string;
+  slot: string;
+  value: string;
+}> = [
+  {
+    template: "Add {{labels}}",
+    slot: "{{labels}}",
+    value: "Checkout, Production",
+  },
+  {
+    template: "Add {{owners}} as owners",
+    slot: "{{owners}}",
+    value: "Checkout team",
+  },
+];
 
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
@@ -900,11 +918,12 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
 
     it("translates the page's own bold leads", () => {
       const translated: string = readPage(language, entry.page);
-      const untranslated: Array<string> = listed(PROSE_LEADS, entry.page).filter(
-        (lead: string): boolean => {
-          return translated.includes(`**${lead}**`);
-        },
-      );
+      const untranslated: Array<string> = listed(
+        PROSE_LEADS,
+        entry.page,
+      ).filter((lead: string): boolean => {
+        return translated.includes(`**${lead}**`);
+      });
 
       expect(untranslated).toEqual([]);
     });
@@ -940,9 +959,9 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       if (language === "fa") {
         expect(translated.includes(RIGHT_ARROW)).toBe(false);
       } else {
-        expect(occurrences(translated, RIGHT_ARROW) + occurrences(translated, " > ")).toBe(
-          occurrences(prose(english), RIGHT_ARROW),
-        );
+        expect(
+          occurrences(translated, RIGHT_ARROW) + occurrences(translated, " > "),
+        ).toBe(occurrences(prose(english), RIGHT_ARROW));
       }
     });
 
@@ -989,27 +1008,47 @@ describe("the helpers, on these pages' shapes", () => {
   it("read numbers in any digits, without thousands separators", () => {
     expect(
       Array.from(
-        statedNumbers("Bis zu 50.000 Zeichen, ۱۴٫۴ و 99.9 und 1,000, 99,9 % oder 3,36."),
+        statedNumbers(
+          "Bis zu 50.000 Zeichen, ۱۴٫۴ و 99.9 und 1,000, 99,9 % oder 3,36.",
+        ),
       ),
     ).toEqual(["50000", "14.4", "99.9", "1000", "3.36"]);
   });
 
   it("find a rule's name in either italic", () => {
-    expect(italicPattern("Add Checkout, Production").test("_Add Checkout, Production_")).toBe(
-      true,
-    );
-    expect(italicPattern("Checkout, Production を追加").test("*Checkout, Production を追加*")).toBe(
-      true,
-    );
+    expect(
+      italicPattern("Add Checkout, Production").test(
+        "_Add Checkout, Production_",
+      ),
+    ).toBe(true);
+    expect(
+      italicPattern("Checkout, Production を追加").test(
+        "*Checkout, Production を追加*",
+      ),
+    ).toBe(true);
     expect(italicPattern("Add Checkout").test("Add Checkout")).toBe(false);
   });
 
   it("draw a rule's name from the language's own sentence", () => {
     expect(
-      namedFromPicks("de", NAMED_FROM_PICKS[0] as { template: string; slot: string; value: string }),
+      namedFromPicks(
+        "de",
+        NAMED_FROM_PICKS[0] as {
+          template: string;
+          slot: string;
+          value: string;
+        },
+      ),
     ).toBe("Checkout, Production hinzufügen");
     expect(
-      namedFromPicks("en", NAMED_FROM_PICKS[1] as { template: string; slot: string; value: string }),
+      namedFromPicks(
+        "en",
+        NAMED_FROM_PICKS[1] as {
+          template: string;
+          slot: string;
+          value: string;
+        },
+      ),
     ).toBe("Add Checkout team as owners");
   });
 });
