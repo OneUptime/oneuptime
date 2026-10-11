@@ -1,14 +1,37 @@
 # Video Calls
 
-Give every incident and alert its own call. When a Slack or Microsoft Teams notification rule fires for a new incident or alert, OneUptime starts a dedicated meeting (a Zoom meeting, a Google Meet, a Microsoft Teams meeting or the Slack huddle of the incident's channel) and posts a **Join call** button wherever the incident's updates go.
+Give every incident and alert its own call. When a Slack or Microsoft Teams notification rule fires for a new incident or alert, OneUptime starts a dedicated meeting (a Zoom meeting, a Google Meet, a Microsoft Teams meeting or the Slack huddle of the incident's channel) and posts a **Join call** button wherever the incident's updates go. Responders join in one click, and nobody has to create a meeting at 3am and paste the link around.
 
-Responders join in one click from the incident's Slack or Microsoft Teams channel, from its feed, or from the incident's page. Nobody has to create a meeting at 3am and paste the link around.
+:::cards
+- [How it works](#how-it-works): A rule starts the call, and responders join from wherever they are.
+- [Connect in one click](#connect-in-one-click): Zoom, Google Meet or Microsoft Teams, by signing in.
+- [Providers](#providers): Your own app's service identity, a standing meeting link, or a Slack huddle.
+- [Starting a call by hand](#starting-a-call-by-hand): From an incident's or alert's page.
+:::
 
 ## How it works
 
-1. **Connect a provider.** Go to **Project Settings** > **Workspace** > **Video Calls** and connect Zoom, Google Meet or Microsoft Teams, or add a standing meeting link. On OneUptime Cloud, connecting Zoom, Google Meet or Microsoft Teams is one click: sign in and allow OneUptime to create meetings (see [Connect in one click](#connect-in-one-click)). Slack huddles need nothing beyond the project's Slack connection.
-2. **Turn it on in a rule.** Open a Slack or Microsoft Teams notification rule for incidents or alerts (**Incidents** > **Workspace** > **Slack**, for example). On the rule's **Video Call** step, turn on **Start a video call for the incident** and pick where the call is held.
-3. **Responders join in one click.** When the rule fires, OneUptime starts one call for the incident and posts it with a **Join call** button to the channels the incident's updates go to and to the incident's feed. The incident's page shows the call in its **Video Call** card and a **Join call** button in its header.
+```mermaid title="From a notification rule to a Join call button"
+flowchart TB
+    declared["An incident or alert<br/>is declared"] --> rule{"A Slack or Microsoft Teams<br/>rule with a video call matches"}
+    rule --> start["OneUptime starts one call<br/>with the rule's connection"]
+    start --> posted["Join call posted to its channels,<br/>its feed and its page"]
+    start -.->|"the provider refuses"| failed["The feed says why,<br/>the incident goes on"]
+```
+
+:::steps
+### Connect a provider
+
+Go to **Project Settings** > **Workspace** > **Video Calls** and connect Zoom, Google Meet or Microsoft Teams, or add a standing meeting link. On OneUptime Cloud, connecting Zoom, Google Meet or Microsoft Teams is one click: sign in and allow OneUptime to create meetings (see [Connect in one click](#connect-in-one-click)). Slack huddles need nothing beyond the project's Slack connection.
+
+### Turn it on in a rule
+
+Open a Slack or Microsoft Teams notification rule for incidents or alerts (**Incidents** > **Workspace** > **Slack**, for example). On the rule's **Video Call** step, turn on **Start a video call for the incident** and pick where the call is held.
+
+### Join in one click
+
+When the rule fires, OneUptime starts one call for the incident and posts it with a **Join call** button to the channels the incident's updates go to and to the incident's feed. The incident's page shows the call in its **Video Call** card and a **Join call** button in its header.
+:::
 
 The rule's conditions decide which incidents get a call. For a bridge on Sev1 incidents only, give the rule a **Severity** condition. Calls start for incidents and alerts that are declared ongoing. An incident created already resolved gets no call.
 
@@ -20,7 +43,7 @@ A call is started once per incident for each place a call is held. Rules that pi
 
 Declaring an incident never waits for a video call provider. The call is started after the incident is created, so a slow or failing provider never delays the incident or its on-call notifications.
 
-If the provider refuses (an expired secret, a missing permission, a deleted host), the incident's feed says **Video call failed** with the provider's reason, the rule's run is listed in the workspace notification logs as **Start Video Call**, and the connection's row in **Project Settings** > **Workspace** > **Video Calls** shows the error until a call starts again.
+If the provider refuses (an expired secret, a missing permission, a deleted host), the incident's feed says the rule's call could not be started, with the provider's reason, so responders know to start one from the incident's page. The rule's run is listed in the workspace notification logs as **Start Video Call**, and the connection's row in **Project Settings** > **Workspace** > **Video Calls** shows the error until a call starts again.
 
 ### Private incidents
 
@@ -30,9 +53,11 @@ A meeting is named after the incident it is for, with its number and title, and 
 
 On OneUptime Cloud, connecting Zoom, Google Meet or Microsoft Teams takes one click and nothing to set up at the provider:
 
+:::steps
 1. Go to **Project Settings** > **Workspace** > **Video Calls** and click **Connect** on Zoom, Google Meet or Microsoft Teams.
 2. Click **Continue to Zoom** (or Google, or Microsoft), sign in, and allow OneUptime to create meetings.
 3. You come back to the Video Calls page with the connection made. **Start a test meeting** checks it end to end, then pick the connection in a Slack or Microsoft Teams notification rule.
+:::
 
 Every meeting is created as the account you sign in with, which hosts it. Sign in with a shared account, such as incidents@example.com, rather than your own, so calls keep starting when people leave. The connection's row shows who it is signed in as.
 
@@ -86,11 +111,13 @@ Connecting a provider needs **Project Owner**, **Project Admin** or **Settings A
 
 OneUptime creates a Zoom meeting for each incident through a Zoom **Server-to-Server OAuth** app, hosted by a licensed Zoom user of your choice.
 
+:::steps
 1. In the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop** > **Build App** and create a **Server-to-Server OAuth** app. Creating one needs a Zoom account admin, or a role that allows Server-to-Server OAuth apps.
 2. On the app's **Scopes** page, add **meeting:write:meeting:admin** (create a meeting for a user). An app created before granular scopes can use **meeting:write:admin** instead.
 3. **Activate** the app, then copy the **Account ID**, **Client ID** and **Client secret** from its **App Credentials** page into the connection form.
 4. Enter the **Meeting host**: the email of a licensed Zoom user, ideally a service account such as incidents@example.com, so meetings keep working when people leave. Meetings hosted by a Basic (free) user end after 40 minutes.
 5. Responders join without waiting for the host, because the host is a service account that never joins. Make sure your Zoom account's **Waiting room** setting is not locked on, or nobody can get in.
+:::
 
 | Field | Where to find it |
 | --- | --- |
@@ -103,10 +130,12 @@ OneUptime creates a Zoom meeting for each incident through a Zoom **Server-to-Se
 
 OneUptime creates a Google Meet for each incident with the Google Meet REST API, through a Google Cloud service account that acts as a Google Workspace user with domain-wide delegation.
 
+:::steps
 1. In the [Google Cloud console](https://console.cloud.google.com/), pick or create a project and enable the **Google Meet REST API** for it.
 2. Under **IAM & Admin** > **Service accounts**, create a service account. Open it, go to **Keys** > **Add key** > **Create new key**, choose **JSON**, and paste the downloaded file into the connection form as the **Service account JSON key**.
 3. In the [Google Admin console](https://admin.google.com/), open **Security** > **Access and data control** > **API controls** > **Manage Domain Wide Delegation** and click **Add new**. Enter the service account's numeric **Client ID** and the scope `https://www.googleapis.com/auth/meetings.space.created`.
 4. Enter the Google Workspace user the service account acts as in **Create meetings as**: a dedicated account such as incidents@example.com. Every meeting is owned by this user.
+:::
 
 **Who can join** decides who joins without asking: with **People in your organization join directly, others ask to join** (the default), people outside your Google Workspace ask to join and someone in the call admits them. With **Anyone with the link joins directly**, nobody waits.
 
@@ -116,11 +145,13 @@ Domain-wide delegation can take a few minutes to start working. If the test repo
 
 OneUptime creates a Microsoft Teams meeting for each incident with Microsoft Graph, through a Microsoft Entra app registration that organizes meetings on behalf of a licensed Teams user.
 
+:::steps
 1. In the [Microsoft Entra admin center](https://entra.microsoft.com/), open **App registrations** > **New registration** and register a single-tenant app. Copy its **Directory (tenant) ID** and **Application (client) ID**.
 2. Under **API permissions**, add the Microsoft Graph **application** permission **OnlineMeetings.ReadWrite.All**, then click **Grant admin consent**.
 3. Under **Certificates & secrets**, create a client secret and paste its **Value**, not its Secret ID, into the connection form as the **Client secret**.
 4. Pick the organizer: a licensed Teams user, ideally a service account. Copy its **Object ID** from **Users** in the Entra admin center into **Organizer object ID**.
-5. Allow the app to create meetings for the organizer with an application access policy. In Teams PowerShell, after `Connect-MicrosoftTeams`, run:
+5. Allow the app to create meetings for the organizer with an application access policy. In Teams PowerShell, after `Connect-MicrosoftTeams`, run the two commands below.
+:::
 
 ```powershell
 New-CsApplicationAccessPolicy -Identity OneUptime-Meetings -AppIds "<application-client-id>"
@@ -135,8 +166,10 @@ The policy can take up to 30 minutes to apply. Until it does, the test reports t
 
 A standing meeting link is the same room for every incident: a Zoom Personal Meeting Room, a recurring Microsoft Teams or Google Meet meeting, a Webex personal room or a Jitsi room. Nothing is created per incident, so there is nothing to authorize.
 
+:::steps
 1. Create a meeting that never expires in the tool your team already uses.
 2. Paste its https join link into the connection form as the **Meeting link**.
+:::
 
 Every incident and alert started with this connection shares the room, so two incidents at once share it too. Make sure the meeting lets people join without the host.
 
@@ -187,3 +220,30 @@ Create one OAuth app per provider and register this redirect URI on it, with you
 - **Microsoft Teams**: in the [Microsoft Entra admin center](https://entra.microsoft.com/), register an app for **Accounts in any organizational directory**, add the redirect URI as a **Web** redirect URI, add the Microsoft Graph delegated permissions `openid`, `profile`, `email`, `offline_access` and `OnlineMeetings.ReadWrite`, and create a client secret. Use a registration of its own, not the Microsoft Teams bot's (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Until the app has a verified publisher, most organizations need an administrator to consent to it.
 
 The client IDs are public: they are sent to the Dashboard so it knows which providers connect in one click. Keep the secrets and the webhook secret token secret. The worker refreshes every sign-in daily, so it needs the same values as the app.
+
+## Troubleshooting
+
+:::details No call was started for an incident
+Check that the rule matched the incident (**Test Rule**), that its **Video Call** step is on, and that the incident was declared ongoing: an incident created already resolved gets no call. A rule that already started a call for the incident with that connection does not start another.
+:::
+
+:::details The feed says the call could not be started
+The provider refused, and the feed gives its reason. Start a call from the incident's page meanwhile. Then run **Test** on the connection's row: it shows the same reason while you fix the setup at the provider, such as an expired client secret or a missing permission.
+:::
+
+:::details A connection shows Not working
+Its sign-in stopped working: the account removed OneUptime, was deleted or suspended, or must sign in again. Click **Reconnect** on its row. Until then, the calls it should start cannot start.
+:::
+
+:::details People wait in a lobby or a waiting room
+Change **Who can join** (Google Meet) or **Who skips the lobby** (Microsoft Teams) with **Edit** on the connection's row. For Zoom, make sure the account's **Waiting room** setting is not locked on.
+:::
+
+## Next steps
+
+:::cards
+- [Slack](/docs/workspace-connections/slack): The rules that start calls, and the channels they post to.
+- [Microsoft Teams](/docs/workspace-connections/microsoft-teams): The same rules and calls in Microsoft Teams.
+- [Microsoft Teams Integration](/docs/self-hosted/microsoft-teams-integration): Set up the Teams bot on a self-hosted server.
+- [Declaring an Incident](/docs/incidents/declaring-incidents): What happens when an incident starts.
+:::
