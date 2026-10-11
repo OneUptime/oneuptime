@@ -1,6 +1,4 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
-import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DocsHeading,
   DocsLink,
@@ -26,6 +24,7 @@ import {
   listItemCount,
   navTitle,
   prose,
+  strayMarkers,
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
@@ -203,13 +202,6 @@ const PATH_SEPARATOR: string = " → ";
 // An inline code span, which may hold asterisks of its own.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 
-// Code in rendered HTML: a code block or an inline code span.
-const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
-
-// A Mermaid diagram's fenced source.
-const MERMAID_BLOCK: RegExp =
-  /^ {0,3}```mermaid[^\n]*\n[\s\S]*?^ {0,3}```[^\n]*$/gm;
-
 function englishPage(page: string): string {
   return readPage("en", page);
 }
@@ -263,33 +255,6 @@ function drawnTemplate(language: string, entry: TemplateLabel): string {
 }
 
 /*
- * HTML with its tags taken out, by walking it once: everything from a "<"
- * to the next ">" is a tag. A single pass of a tag pattern can leave a new
- * tag behind ("<scr<b>ipt>"); this reads every character once and never
- * re-joins what it skipped.
- */
-export function withoutHtmlTags(html: string): string {
-  let text: string = "";
-  let inTag: boolean = false;
-
-  for (const character of html) {
-    if (inTag) {
-      inTag = character !== ">";
-      continue;
-    }
-
-    if (character === "<") {
-      inTag = true;
-      continue;
-    }
-
-    text += character;
-  }
-
-  return text;
-}
-
-/*
  * The prose lines that open a bold span or an inline code span and never
  * close it.
  */
@@ -302,38 +267,6 @@ function unbalancedLines(markdown: string): Array<string> {
       const stars: number = outsideCode.split("**").length - 1;
 
       return ticks % 2 !== 0 || stars % 2 !== 0;
-    });
-}
-
-/*
- * A page as the docs route draws it, without its title line, and the
- * emphasis markers left in its text: a bold or italic span CommonMark did
- * not close. A bold span that ends in punctuation and runs straight into a
- * letter, as in "**超时。**脚本", is not closed, and its asterisks show. An
- * underscore never closes inside a word, so "_之后_的" shows both
- * underscores. Code is left out (`x-oneuptime-token` is code, not
- * emphasis), and so are diagrams, which Markdown never reads.
- */
-async function strayMarkers(
-  markdown: string,
-  language: string,
-): Promise<Array<string>> {
-  const withoutDiagrams: string = markdown.replace(MERMAID_BLOCK, "");
-  const html: string = await DocsRender.render(
-    DocsPlaceholders.render(
-      withoutDiagrams.split("\n").slice(1).join("\n"),
-      language,
-    ),
-  );
-
-  return html
-    .replace(RENDERED_CODE, "")
-    .split("\n")
-    .map((line: string): string => {
-      return withoutHtmlTags(line);
-    })
-    .filter((line: string): boolean => {
-      return line.includes("**") || line.includes("_");
     });
 }
 
@@ -976,15 +909,6 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 });
 
 describe("the helpers, on these pages' shapes", () => {
-  it("strip HTML tags by walking the text once, leaving no tag rebuilt from the pieces", () => {
-    expect(withoutHtmlTags("<p>One <strong>two</strong></p>")).toBe("One two");
-    expect(withoutHtmlTags("<scr<b>ipt>alert(1)</scr</b>ipt>")).toBe(
-      "ipt>alert(1)ipt>",
-    );
-    expect(withoutHtmlTags("<scr<b>ipt>")).not.toContain("<script>");
-    expect(withoutHtmlTags("a < b")).toBe("a ");
-  });
-
   it("tell a menu path from a label", () => {
     const markdown: string =
       "**Products → Project Settings**, **Secret Key** and **AI → MCP**";

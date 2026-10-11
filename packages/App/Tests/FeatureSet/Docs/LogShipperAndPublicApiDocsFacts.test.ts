@@ -2284,10 +2284,7 @@ function diagramAnswers(): Dictionary<string> {
   const answers: Dictionary<string> = {};
 
   for (const match of diagram(PUBLIC_API).matchAll(DIAGRAM_ANSWER)) {
-    answers[match[1] as string] = (match[2] as string).replace(
-      LINE_BREAK,
-      " ",
-    );
+    answers[match[1] as string] = (match[2] as string).replace(LINE_BREAK, " ");
   }
 
   return answers;
