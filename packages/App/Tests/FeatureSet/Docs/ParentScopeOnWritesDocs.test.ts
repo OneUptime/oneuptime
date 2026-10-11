@@ -1,4 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  otherChangesItemAtEnglishPlace,
+  otherChangesItems,
+} from "./UpgradingDocsNotes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -18,7 +22,7 @@ import path from "path";
  * create's scope, step 6 for a block with labels on a create, step 7 for a
  * change and the records a write lists, each step still one line - the API
  * reference says what a client sees, and the upgrade notes say what
- * changes, at length in English and in one line in every other guide.
+ * changes, in every guide.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -97,7 +101,7 @@ const CHANGE_RULE: Record<string, string> = {
 const UPGRADE_HEADING: Record<string, string> = {
   en: "A record moved under another one, or given more records in a list",
   da: "En post, der flyttes under en anden eller får flere poster i en liste, får kun poster, som den, der ændrer den, må læse, og en tilladelse til at oprette begrænset til labels eller til omfanget Ejede gælder også den post, den opretter",
-  de: 'Ein Datensatz, der unter einen anderen verschoben wird oder weitere Datensätze in einer Liste bekommt, bekommt nur Datensätze, die sein Bearbeiter lesen darf, und eine auf Labels oder auf „Eigene" beschränkte Berechtigung zum Anlegen gilt auch für den Datensatz, den sie anlegt',
+  de: 'Ein Datensatz, der unter einen anderen verschoben wird oder weitere Datensätze in einer Liste bekommt, bekommt nur Datensätze, die sein Bearbeiter lesen darf, und eine auf Labels oder auf „Eigene“ beschränkte Berechtigung zum Anlegen gilt auch für den Datensatz, den sie anlegt',
   es: "Un registro que se mueve bajo otro, o que recibe más registros en una lista, solo recibe registros que quien lo cambia puede leer, y un permiso para crear restringido a etiquetas o al alcance Propios rige también el registro que crea",
   fa: "رکوردی که زیر رکورد دیگری برده می‌شود یا رکوردهای بیشتری در یک فهرست می‌گیرد، فقط رکوردهایی می‌گیرد که ویرایشگرش اجازهٔ خواندنشان را دارد، و مجوز ساختنی که به برچسب‌ها یا دامنه Owned محدود است، رکوردی را که می‌سازد هم در بر می‌گیرد",
   fr: "Un enregistrement déplacé sous un autre, ou à qui l'on ajoute des enregistrements dans une liste, ne reçoit que des enregistrements que son auteur peut lire, et une autorisation de créer restreinte à des étiquettes ou à la portée Possédées vaut aussi pour l'enregistrement qu'elle crée",
@@ -117,31 +121,12 @@ const UPGRADE_HEADING: Record<string, string> = {
 };
 
 /*
- * The upgrade line's last words: the picks of a create form are added for
+ * The English note's words on the picks of a create form: they are added for
  * their creator past their own read of the new record only, and a pick their
  * permission to add does not reach refuses the create.
  */
-const PICKS_ON_CREATE: Record<string, string> = {
-  en: "  even when the creator's own read does not reach the new record. A pick",
-  da: "også når vedkommendes egen læseadgang ikke når den nye post; et valg, som vedkommendes tilladelse til at tilføje det ikke når, afviser oprettelsen.",
-  de: "auch wenn seine eigene Leseberechtigung den neuen Datensatz nicht erreicht; eine Auswahl, die seine Berechtigung zum Hinzufügen nicht erreicht, lehnt das Anlegen ab.",
-  es: "aunque su propio permiso de lectura no alcance el registro nuevo; una elección que su permiso para añadirla no alcanza rechaza la creación.",
-  fa: "حتی اگر مجوز خواندن خود او به رکورد تازه نرسد؛ انتخابی که مجوز افزودنش به آن نمی‌رسد، ساختن را رد می‌کند.",
-  fr: "même quand sa propre autorisation de lecture n'atteint pas le nouvel enregistrement ; un choix que son autorisation d'ajouter n'atteint pas fait refuser la création.",
-  hi: "भले ही उसकी अपनी पढ़ने की अनुमति नए रिकॉर्ड तक न पहुँचे; जिस चुनाव तक उसकी जोड़ने की अनुमति नहीं पहुँचती, वह बनाना अस्वीकार करा देता है।",
-  it: "anche quando la sua autorizzazione a leggere non raggiunge il nuovo record; una scelta che la sua autorizzazione ad aggiungerla non raggiunge fa rifiutare la creazione.",
-  ja: "作成者自身の読み取り権限が新しいレコードに届かなくても、作成者のために追加されます。追加する権限が届かない選択があると、作成は拒否されます。",
-  ko: "만든 사람 자신의 읽기 권한이 새 레코드에 닿지 않아도 만든 사람을 위해 추가되며, 추가할 권한이 닿지 않는 선택이 있으면 만들기가 거부됩니다.",
-  nl: "ook als diens eigen leestoestemming het nieuwe record niet bereikt; een keuze die diens toestemming om haar toe te voegen niet bereikt, weigert de aanmaak.",
-  no: "også når egen lesetillatelse ikke når den nye posten; et valg som tillatelsen til å legge det til ikke når, avviser opprettingen.",
-  pt: "mesmo quando a sua própria permissão de leitura não alcança o registro novo; uma escolha que a sua permissão para adicioná-la não alcança recusa a criação.",
-  ru: "даже если его собственное разрешение на чтение не достаёт до новой записи; выбор, до которого не достаёт его разрешение на добавление, отклоняет создание.",
-  sv: "även när dennes egen läsbehörighet inte når den nya posten; ett val som dennes behörighet att lägga till det inte når avvisar skapandet.",
-  "zh-CN":
-    "即使创建者自己的读取权限不及新记录；创建者添加权限不及的选择会使创建被拒绝。",
-  "zh-TW":
-    "即使建立者自己的讀取權限不及新記錄；建立者新增權限不及的選擇會使建立被拒絕。",
-};
+const PICKS_ON_CREATE: string =
+  "  even when the creator's own read does not reach the new record. A pick";
 
 // What step 7 already said about a create under a record you may read.
 const CREATE_UNDER_A_READABLE_RECORD: Record<string, string> = {
@@ -196,7 +181,6 @@ describe("Docs: a record's parents and listed records on a change, and a create'
       CREATE_BLOCK,
       CHANGE_RULE,
       UPGRADE_HEADING,
-      PICKS_ON_CREATE,
     ]) {
       expect(Object.keys(words).sort()).toEqual([...LANGUAGES].sort());
     }
@@ -309,7 +293,7 @@ describe("Docs: a record's parents and listed records on a change, and a create'
       "  or the change is refused with the `400` that names the field and the ID,",
       "  is refused with a `422` that names the labels. A create permission scoped",
       "  rule picked when creating an on-call policy, are added for their creator",
-      PICKS_ON_CREATE["en"]!,
+      PICKS_ON_CREATE,
       "  record does not carry, for one - refuses the create, and nothing is",
       "  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)",
     ]) {
@@ -341,46 +325,57 @@ describe("Docs: a record's parents and listed records on a change, and a create'
       return language !== "en";
     }),
   )(
-    "the %s upgrade guide has the line, between a create under a readable record and the reads by ID",
+    "the %s upgrade guide has the note, between a create under a readable record and the reads by ID",
     (language: string) => {
-      const lines: Array<string> = read(
+      /*
+       * Each translation lists the English notes in the English order: the
+       * note is the one in the English note's place, under its own lead.
+       */
+      const items: Array<string> = otherChangesItems(language);
+      const moved: string = otherChangesItemAtEnglishPlace(
         language,
-        "installation/upgrading.md",
-      ).split("\n");
-      const anchor: number = lines.findIndex((line: string): boolean => {
-        return (
-          line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
-        );
-      });
-      const moved: Array<number> = lines
-        .map((line: string, index: number): number => {
-          return line.startsWith("- **") &&
-            line.includes(UPGRADE_HEADING[language]!)
-            ? index
-            : -1;
-        })
-        .filter((index: number): boolean => {
-          return index >= 0;
-        });
+        UPGRADE_HEADING["en"]!,
+      );
+      const created: string = otherChangesItemAtEnglishPlace(
+        language,
+        "A record read through another one is created only under a record its",
+      );
+      const readById: string = otherChangesItemAtEnglishPlace(
+        language,
+        "Every grant and scope narrows what it reaches, and a read by ID of a",
+      );
 
-      expect([language, moved.length]).toEqual([language, 1]);
+      expect([
+        language,
+        moved.startsWith(`- **${UPGRADE_HEADING[language]!}`),
+      ]).toEqual([language, true]);
 
       // Before it, a create under a record you may read; after it, the reads by ID.
       expect([
         language,
-        lines[moved[0]! - 1]!.includes("`CreateIncidentInternalNote`"),
+        created.includes("`CreateIncidentInternalNote`"),
       ]).toEqual([language, true]);
-      expect([language, moved[0]! + 2]).toEqual([language, anchor]);
-      expect([language, lines[moved[0]!]!.includes("`422`")]).toEqual([
+      expect([language, items.indexOf(created) + 1]).toEqual([
         language,
-        true,
+        items.indexOf(moved),
       ]);
-
-      // It ends with the picks of a create form, which it may refuse.
       expect([
         language,
-        lines[moved[0]!]!.endsWith(PICKS_ON_CREATE[language]!),
+        items.indexOf(moved) < items.indexOf(readById),
       ]).toEqual([language, true]);
+
+      for (const status of ["`400`", "`422`"]) {
+        expect([language, status, moved.includes(status)]).toEqual([
+          language,
+          status,
+          true,
+        ]);
+      }
+
+      expect([language, moved.includes(UPGRADE_HEADING["en"]!)]).toEqual([
+        language,
+        false,
+      ]);
     },
   );
 });

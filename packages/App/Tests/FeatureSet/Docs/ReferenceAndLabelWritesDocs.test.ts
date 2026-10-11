@@ -1,4 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  otherChangesItemAtEnglishPlace,
+  otherChangesItems,
+} from "./UpgradingDocsNotes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -20,8 +24,7 @@ import path from "path";
  * change of labels and the owner made first, step 6 for a block with labels
  * on a change, step 7 for the record a write names, each step still one
  * line - the API reference says what a client sees, and the upgrade notes
- * say what changes, at length in English and in one line in every other
- * guide.
+ * say what changes, in every guide.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -292,48 +295,43 @@ describe("Docs: the one record a write names, and a change of a record's labels"
       return language !== "en";
     }),
   )(
-    "the %s upgrade guide has the line, before a create under a readable record",
+    "the %s upgrade guide has the note, after a record moved or given more records",
     (language: string) => {
-      const lines: Array<string> = read(
+      /*
+       * Each translation lists the English notes in the English order: the
+       * note is the one in the English note's place, under its own lead.
+       */
+      const items: Array<string> = otherChangesItems(language);
+      const named: string = otherChangesItemAtEnglishPlace(
         language,
-        "installation/upgrading.md",
-      ).split("\n");
-      const anchor: number = lines.findIndex((line: string): boolean => {
-        return (
-          line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
-        );
-      });
-      const named: Array<number> = lines
-        .map((line: string, index: number): number => {
-          return line.startsWith("- **") &&
-            line.includes(UPGRADE_HEADING[language]!)
-            ? index
-            : -1;
-        })
-        .filter((index: number): boolean => {
-          return index >= 0;
-        });
-
-      expect([language, named.length]).toEqual([language, 1]);
-
-      const line: string = lines[named[0]!]!;
-
-      // Right before the line on a create under a record its creator may read.
-      expect([
+        UPGRADE_HEADING["en"]!,
+      );
+      const moved: string = otherChangesItemAtEnglishPlace(
         language,
-        lines[named[0]! + 1]!.includes("`CreateIncidentInternalNote`"),
-      ]).toEqual([language, true]);
-      expect([language, named[0]! < anchor]).toEqual([language, true]);
+        "A record moved under another one, or given more records in a list,",
+      );
 
-      for (const status of ["`400`", "`422`"]) {
-        expect([language, status, line.includes(status)]).toEqual([
+      expect([language, named.startsWith("- **")]).toEqual([language, true]);
+      expect([language, named.includes(UPGRADE_HEADING[language]!)]).toEqual([
+        language,
+        true,
+      ]);
+
+      // Right after a record moved under another one, as in English.
+      expect([language, items.indexOf(moved) + 1]).toEqual([
+        language,
+        items.indexOf(named),
+      ]);
+
+      for (const status of ["`400`", "`422`", "`500`"]) {
+        expect([language, status, named.includes(status)]).toEqual([
           language,
           status,
           true,
         ]);
       }
 
-      expect([language, line.includes(UPGRADE_HEADING["en"]!)]).toEqual([
+      expect([language, named.includes(UPGRADE_HEADING["en"]!)]).toEqual([
         language,
         false,
       ]);
