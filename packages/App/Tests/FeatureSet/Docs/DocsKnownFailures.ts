@@ -277,9 +277,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "monitor/exceptions-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/host-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
@@ -300,12 +297,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/kubernetes-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
-  "monitor/logs-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/metrics-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/network-device-monitor": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -322,9 +313,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "monitor/profiles-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/proxmox-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
@@ -334,9 +322,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "monitor/storage-array-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/traces-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/vmware-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -442,9 +427,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "slo/monitor-rules": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "status-pages/branding-and-domains": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -452,9 +434,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "status-pages/public-api": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/resources-and-groups": {
     sameShape: EVERY_TRANSLATION,
   },
   "status-pages/subscribers": {
