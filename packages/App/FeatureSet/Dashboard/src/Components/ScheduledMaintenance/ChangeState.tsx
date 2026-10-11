@@ -8,6 +8,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -663,9 +664,11 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
               id: state.id?.toString() || "",
               name: state.name || "",
               color: state.color || Black,
+              order: state.order,
             };
           },
         )}
+        stateList={StateListType.ScheduledMaintenanceState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}

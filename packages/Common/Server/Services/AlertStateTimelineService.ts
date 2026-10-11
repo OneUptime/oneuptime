@@ -35,6 +35,8 @@ import Exception from "../../Types/Exception/Exception";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -200,51 +202,6 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         createBy.data.isOwnerNotified = true;
       }
 
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateBeforeThis && stateBeforeThis.alertStateId && alertStateId) {
-        if (
-          stateBeforeThis.alertStateId.toString() === alertStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Alert state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.alertState?.order) {
-        const newAlertState: AlertState | null =
-          await AlertStateService.findOneBy({
-            query: {
-              _id: alertStateId,
-            },
-            select: {
-              order: true,
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (newAlertState && newAlertState.order) {
-          // check if the new alert state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.alertState &&
-            stateBeforeThis.alertState.order &&
-            newAlertState.order <= stateBeforeThis.alertState.order
-          ) {
-            throw new BadDataException(
-              `Alert cannot transition to ${newAlertState.name} state from ${stateBeforeThis.alertState.name} state because ${newAlertState.name} is before ${stateBeforeThis.alertState.name} in the order of alert states.`,
-            );
-          }
-        }
-      }
-
       const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
         query: {
           alertId: createBy.data.alertId,
@@ -263,24 +220,42 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         },
       });
 
+      /*
+       * Where the alert may move, by the one rule every state timeline asks
+       * (Common/Utils/StateMove): not into the state it is in, not back up
+       * the project's list of states, and not into the state of the row
+       * after a back-dated one.
+       */
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.Alert,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.alertStateId,
+              name: stateBeforeThis.alertState?.name,
+              order: stateBeforeThis.alertState?.order,
+            }
+          : null,
+        newStateId: alertStateId,
+        nextStateId: stateAfterThis?.alertStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await AlertStateService.findOneBy({
+            query: {
+              _id: alertStateId,
+            },
+            select: {
+              order: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        },
+      });
+
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateAfterThis && stateAfterThis.alertStateId && alertStateId) {
-        if (
-          stateAfterThis.alertStateId.toString() === alertStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Alert state cannot be same as next state.",
-          );
-        }
       }
 
       logger.debug("State After this");

@@ -51,6 +51,7 @@ const DECLARE_FROM_ALERT: string =
   "Components/Alert/DeclareIncidentFromAlert.ts";
 const BULK_HOOK: string = "Components/Alert/BulkIncidentLinkActions.tsx";
 const EVENT_STATUS_PANEL: string = "Components/EventView/EventStatusPanel.tsx";
+const EVENT_STATE_MENU: string = "Components/EventView/EventStateMenu.ts";
 const ACKNOWLEDGE_ON_DECLARE: string =
   "Components/Incident/AcknowledgeAlertsOnDeclare.ts";
 const ALERT_OVERVIEW_PAGE: string = "Pages/Alerts/View/Index.tsx";
@@ -463,18 +464,24 @@ describe("EventStatusPanel secondary actions", () => {
   test("never hide a state from the More actions menu", () => {
     const code: string = dense(EVENT_STATUS_PANEL);
 
+    /*
+     * The menu offers the states the shared rule lets the record move into
+     * (EventStateMenu), less only those a state action's button offers.
+     */
     expect(code).toContain(
-      "constvisibleActionStateIds:Set<string>=newSet(props.actions.map((action:EventStateAction)=>{returnaction.stateId;}),);",
+      "conststatesForMenu:Array<EventStateItem>=getEventStateMenuStates({list:props.stateList,states:props.states,currentStateId:props.currentStateId,buttonStateIds:props.actions.map((action:EventStateAction):string=>{returnaction.stateId;}),});",
     );
 
     const menuRules: string = sectionBetween(
       code,
-      "constvisibleActionStateIds:",
+      "conststatesForMenu:",
       "constactionBaseClassName:",
     );
 
     expect(menuRules).not.toContain("secondaryActions");
     expect(menuRules).not.toContain("EventPanelAction");
+    expect(dense(EVENT_STATE_MENU)).not.toContain("secondaryActions");
+    expect(dense(EVENT_STATE_MENU)).not.toContain("EventPanelAction");
   });
 
   test("are neutral buttons that obey the panel's disabled state and never change state", () => {

@@ -434,6 +434,46 @@ API, SSO, or the Slack and Microsoft Teams apps.
   Projects whose custom states all sit above the acknowledged state see no
   change. See
   [What acknowledging does](/docs/incidents/states-and-severities#what-acknowledging-does).
+- **Episodes move through their states by the rule incidents and alerts
+  follow.** An incident or alert episode could be moved back up its list of
+  states — a resolved episode back to **Acknowledged**, say — from the
+  dashboard's state timeline, Slack, Microsoft Teams, the API or Terraform,
+  and the move went on to its incidents or alerts. Now a move into a state
+  earlier in the order than the episode's current one is refused with the
+  error an incident gets ("Episode cannot transition to Acknowledged state
+  from Resolved state because Acknowledged is before Resolved in the order
+  of incident states."), and nothing changes. A grouping rule's **Reopen
+  recently resolved episodes** still reopens an episode, as OneUptime's own
+  move. To put right a state set by mistake, delete its row from the
+  episode's state timeline, as for an incident; the episode goes back to
+  the state of its latest remaining row, and deleting the row that
+  resolved it clears its resolved time. An episode moves each of its
+  incidents or alerts only where theirs would move: one already in that
+  state, or past it, is left where it is.
+- **A write of a record's current state follows the same rule.** Updating
+  an incident's, alert's, episode's or scheduled maintenance event's
+  current state through the API or Terraform (`currentIncidentStateId`,
+  `currentAlertStateId`, `currentScheduledMaintenanceStateId`) is refused
+  before anything is saved when it moves the record back up its list,
+  with the same error. Before, the write landed on the record and the
+  state timeline then refused it, leaving the record in a state its
+  timeline never held. Writing an incident episode's state now records it
+  on the episode's state timeline and moves its incidents, as writing an
+  alert episode's already did. A Terraform plan that sets an earlier state
+  fails at apply; set states in their order, or change the state with a
+  state timeline row.
+- **Change State in Slack and Microsoft Teams offers only the states a
+  record may move into next.** A record in the last state it can reach is
+  answered "There is no later state to move this incident to." instead of
+  a form whose every choice would be refused. The **Change state to** menu
+  in the dashboard header asks the same rule.
+- **The error for a scheduled maintenance event moved back up its list
+  reads like the others:** "Scheduled Maintenance cannot transition to
+  Scheduled state from Ongoing state because Scheduled is before Ongoing in
+  the order of scheduled maintenance states." (it said `ScheduledMaintenance`
+  and `scheduledMaintenance states`). A script that matched the old text
+  needs the new one. See
+  [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference).
 - **Resolving an incident gives back only the monitors it holds.**
   OneUptime now records whether an incident holds its monitors' status. An
   incident resolved once already and then reopened no longer returns its
