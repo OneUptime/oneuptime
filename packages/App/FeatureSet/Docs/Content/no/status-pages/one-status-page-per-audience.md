@@ -206,7 +206,7 @@ Via API-et sender du `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated
 
 Å slette en statusside fjerner den fra hver hendelse som var begrenset til den. En hendelse der alle de valgte sidene er slettet, forblir begrenset, til ingenting: den er skjult på hver statusside i stedet for å vises på hver side som viser monitorene dens. Kortet **Statussideomfang** sier det. Velg andre sider, eller tøm listen, for å vise den igjen.
 
-Hendelsesmaler fungerer på samme måte. En mal der alle sidene er slettet, forblir begrenset: en hendelse som et [skjema](/docs/forms/on-submit#the-incident-template) eller en arbeidsflyts trinn **Create One Incident** erklærer ut fra den, er skjult på hver statusside, malens kort **Statussideomfang** advarer deg, og **Erklær hendelse** starter uten noen valgt side og ber deg velge sidene hendelsen gjelder. Velg andre sider på malen, eller lagre listen tom for å slutte å begrense hendelsene som erklæres ut fra den.
+Hendelsesmaler fungerer på samme måte. En mal der alle sidene er slettet, forblir begrenset: en hendelse som et [skjema](/docs/forms/on-submit#hendelsesmalen) eller en arbeidsflyts trinn **Create One Incident** erklærer ut fra den, er skjult på hver statusside, malens kort **Statussideomfang** advarer deg, og **Erklær hendelse** starter uten noen valgt side og ber deg velge sidene hendelsen gjelder. Velg andre sider på malen, eller lagre listen tom for å slutte å begrense hendelsene som erklæres ut fra den.
 
 ## Én e-post per person
 

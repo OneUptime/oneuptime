@@ -206,7 +206,7 @@ Die ganze Liste zu leeren ist etwas anderes, als Seiten zu entfernen: Der Vorfal
 
 Eine Statusseite zu löschen entfernt sie aus jedem Vorfall, der auf sie beschränkt war. Ein Vorfall, dessen gewählte Seiten alle gelöscht wurden, bleibt beschränkt, auf nichts: Er ist auf jeder Statusseite ausgeblendet, statt auf jeder Seite zu erscheinen, die seine Monitore auflistet. Die Karte **Statusseiten-Umfang** sagt das. Wählen Sie andere Seiten oder leeren Sie die Liste, um ihn wieder zu zeigen.
 
-Vorfallvorlagen funktionieren genauso. Eine Vorlage, deren Seiten alle gelöscht wurden, bleibt beschränkt: Ein Vorfall, den ein [Formular](/docs/forms/on-submit#the-incident-template) oder der Schritt **Create One Incident** eines Workflows daraus meldet, ist auf jeder Statusseite ausgeblendet, die Karte **Statusseiten-Umfang** der Vorlage warnt Sie, und **Vorfall melden** beginnt ohne gewählte Seite und bittet Sie, die Seiten zu wählen, für die der Vorfall gedacht ist. Wählen Sie andere Seiten an der Vorlage, oder speichern Sie ihre Liste leer, um die daraus gemeldeten Vorfälle nicht mehr zu beschränken.
+Vorfallvorlagen funktionieren genauso. Eine Vorlage, deren Seiten alle gelöscht wurden, bleibt beschränkt: Ein Vorfall, den ein [Formular](/docs/forms/on-submit#die-vorfallsvorlage) oder der Schritt **Create One Incident** eines Workflows daraus meldet, ist auf jeder Statusseite ausgeblendet, die Karte **Statusseiten-Umfang** der Vorlage warnt Sie, und **Vorfall melden** beginnt ohne gewählte Seite und bittet Sie, die Seiten zu wählen, für die der Vorfall gedacht ist. Wählen Sie andere Seiten an der Vorlage, oder speichern Sie ihre Liste leer, um die daraus gemeldeten Vorfälle nicht mehr zu beschränken.
 
 ## Eine E-Mail pro Person
 

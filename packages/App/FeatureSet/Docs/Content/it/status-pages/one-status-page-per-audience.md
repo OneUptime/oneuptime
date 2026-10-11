@@ -206,7 +206,7 @@ Svuotare l'intero elenco è diverso dal togliere pagine: l'incidente non è più
 
 Eliminare una pagina di stato la toglie da ogni incidente che era limitato a essa. Un incidente le cui pagine scelte sono state tutte eliminate resta limitato, a niente: è nascosto da ogni pagina di stato invece di essere mostrato su ogni pagina che elenca i suoi monitor. La scheda **Ambito delle pagine di stato** lo dice. Scegliete altre pagine, o svuotate l'elenco, per mostrarlo di nuovo.
 
-I modelli di incidente funzionano allo stesso modo. Un modello le cui pagine sono state tutte eliminate resta limitato: un incidente che un [modulo](/docs/forms/on-submit#the-incident-template) o il passo **Create One Incident** di un workflow dichiara da esso è nascosto da ogni pagina di stato, la scheda **Ambito delle pagine di stato** del modello vi avverte, e **Dichiara incidente** parte senza alcuna pagina scelta e vi chiede di scegliere le pagine a cui è destinato l'incidente. Scegliete altre pagine nel modello, o salvate il suo elenco vuoto per smettere di limitare gli incidenti dichiarati da esso.
+I modelli di incidente funzionano allo stesso modo. Un modello le cui pagine sono state tutte eliminate resta limitato: un incidente che un [modulo](/docs/forms/on-submit#il-modello-di-incidente) o il passo **Create One Incident** di un workflow dichiara da esso è nascosto da ogni pagina di stato, la scheda **Ambito delle pagine di stato** del modello vi avverte, e **Dichiara incidente** parte senza alcuna pagina scelta e vi chiede di scegliere le pagine a cui è destinato l'incidente. Scegliete altre pagine nel modello, o salvate il suo elenco vuoto per smettere di limitare gli incidenti dichiarati da esso.
 
 ## Un'email per persona
 

@@ -206,7 +206,7 @@ Att tömma hela listan är något annat än att ta bort sidor: incidenten är d�
 
 Att ta bort en statussida tar bort den från varje incident som var begränsad till den. En incident vars valda sidor alla har tagits bort förblir begränsad, till ingenting: den är dold på varje statussida i stället för att visas på varje sida som listar dess monitorer. Kortet **Statussideomfång** säger det. Välj andra sidor, eller töm listan, för att visa den igen.
 
-Incidentmallar fungerar på samma sätt. En mall vars sidor alla har tagits bort förblir begränsad: en incident som ett [formulär](/docs/forms/on-submit#the-incident-template) eller ett arbetsflödes steg **Create One Incident** deklarerar utifrån den är dold på varje statussida, mallens kort **Statussideomfång** varnar dig, och **Deklarera incident** börjar utan någon vald sida och ber dig välja de sidor som incidenten gäller. Välj andra sidor i mallen, eller spara dess lista tom för att sluta begränsa de incidenter som deklareras utifrån den.
+Incidentmallar fungerar på samma sätt. En mall vars sidor alla har tagits bort förblir begränsad: en incident som ett [formulär](/docs/forms/on-submit#incidentmallen) eller ett arbetsflödes steg **Create One Incident** deklarerar utifrån den är dold på varje statussida, mallens kort **Statussideomfång** varnar dig, och **Deklarera incident** börjar utan någon vald sida och ber dig välja de sidor som incidenten gäller. Välj andra sidor i mallen, eller spara dess lista tom för att sluta begränsa de incidenter som deklareras utifrån den.
 
 ## Ett e-postmeddelande per person
 

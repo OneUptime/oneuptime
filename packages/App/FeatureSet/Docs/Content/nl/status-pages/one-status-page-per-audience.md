@@ -206,7 +206,7 @@ De hele lijst leegmaken is iets anders dan pagina's verwijderen: het incident is
 
 Een statuspagina verwijderen haalt haar weg uit elk incident dat tot haar was beperkt. Een incident waarvan de gekozen pagina's allemaal zijn verwijderd, blijft beperkt, tot niets: het is verborgen op elke statuspagina in plaats van getoond op elke pagina die zijn monitoren vermeldt. De kaart **Bereik van statuspagina's** zegt dat. Kies andere pagina's, of maak de lijst leeg, om het weer te tonen.
 
-Incident-sjablonen werken op dezelfde manier. Een sjabloon waarvan de pagina's allemaal zijn verwijderd, blijft beperkt: een incident dat een [formulier](/docs/forms/on-submit#the-incident-template) of de stap **Create One Incident** van een workflow op basis ervan meldt, is verborgen op elke statuspagina, de kaart **Bereik van statuspagina's** van het sjabloon waarschuwt u, en **Incident melden** begint zonder gekozen pagina en vraagt u de pagina's te kiezen waarvoor het incident bedoeld is. Kies andere pagina's in het sjabloon, of sla de lijst leeg op om de incidenten die ermee worden gemeld niet langer te beperken.
+Incident-sjablonen werken op dezelfde manier. Een sjabloon waarvan de pagina's allemaal zijn verwijderd, blijft beperkt: een incident dat een [formulier](/docs/forms/on-submit#het-incidentsjabloon) of de stap **Create One Incident** van een workflow op basis ervan meldt, is verborgen op elke statuspagina, de kaart **Bereik van statuspagina's** van het sjabloon waarschuwt u, en **Incident melden** begint zonder gekozen pagina en vraagt u de pagina's te kiezen waarvoor het incident bedoeld is. Kies andere pagina's in het sjabloon, of sla de lijst leeg op om de incidenten die ermee worden gemeld niet langer te beperken.
 
 ## Eén e-mail per persoon
 

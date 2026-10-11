@@ -206,7 +206,7 @@ Vider toute la liste est différent de retirer des pages : l'incident n'est alor
 
 Supprimer une page de statut la retire de chaque incident qui lui était limité. Un incident dont toutes les pages choisies ont été supprimées reste limité, à rien : il est masqué de chaque page de statut au lieu de s'afficher sur chaque page qui liste ses moniteurs. La carte **Portée des pages de statut** l'indique. Choisissez d'autres pages, ou videz la liste, pour l'afficher de nouveau.
 
-Les modèles d'incident fonctionnent de la même façon. Un modèle dont toutes les pages ont été supprimées reste limité : un incident qu'un [formulaire](/docs/forms/on-submit#the-incident-template) ou l'étape **Create One Incident** d'un workflow déclare à partir de lui est masqué de chaque page de statut, la carte **Portée des pages de statut** du modèle vous avertit, et **Déclarer un incident** commence sans page choisie et vous demande de choisir les pages auxquelles l'incident est destiné. Choisissez d'autres pages sur le modèle, ou enregistrez sa liste vide pour cesser de limiter les incidents déclarés à partir de lui.
+Les modèles d'incident fonctionnent de la même façon. Un modèle dont toutes les pages ont été supprimées reste limité : un incident qu'un [formulaire](/docs/forms/on-submit#le-modèle-dincident) ou l'étape **Create One Incident** d'un workflow déclare à partir de lui est masqué de chaque page de statut, la carte **Portée des pages de statut** du modèle vous avertit, et **Déclarer un incident** commence sans page choisie et vous demande de choisir les pages auxquelles l'incident est destiné. Choisissez d'autres pages sur le modèle, ou enregistrez sa liste vide pour cesser de limiter les incidents déclarés à partir de lui.
 
 ## Un e-mail par personne
 

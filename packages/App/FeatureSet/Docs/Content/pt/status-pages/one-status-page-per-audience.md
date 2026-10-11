@@ -206,7 +206,7 @@ Esvaziar a lista inteira é diferente de remover páginas: o incidente deixa de 
 
 Excluir uma página de status a remove de todo incidente que estava limitado a ela. Um incidente cujas páginas escolhidas foram todas excluídas continua limitado, a nada: ele fica oculto de toda página de status em vez de aparecer em toda página que lista os monitores dele. O cartão **Escopo de páginas de status** diz isso. Escolha outras páginas, ou esvazie a lista, para mostrá-lo de novo.
 
-Os modelos de incidente funcionam da mesma forma. Um modelo cujas páginas foram todas excluídas continua limitado: um incidente que um [formulário](/docs/forms/on-submit#the-incident-template) ou a etapa **Create One Incident** de um workflow declara a partir dele fica oculto de toda página de status, o cartão **Escopo de páginas de status** do modelo avisa você, e **Declarar incidente** começa sem nenhuma página escolhida e pede que você escolha as páginas a que o incidente se destina. Escolha outras páginas no modelo, ou salve a lista dele vazia para parar de limitar os incidentes declarados a partir dele.
+Os modelos de incidente funcionam da mesma forma. Um modelo cujas páginas foram todas excluídas continua limitado: um incidente que um [formulário](/docs/forms/on-submit#o-modelo-de-incidente) ou a etapa **Create One Incident** de um workflow declara a partir dele fica oculto de toda página de status, o cartão **Escopo de páginas de status** do modelo avisa você, e **Declarar incidente** começa sem nenhuma página escolhida e pede que você escolha as páginas a que o incidente se destina. Escolha outras páginas no modelo, ou salve a lista dele vazia para parar de limitar os incidentes declarados a partir dele.
 
 ## Um e-mail por pessoa
 

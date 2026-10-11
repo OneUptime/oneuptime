@@ -206,7 +206,7 @@ At tømme hele listen er noget andet end at fjerne sider: hændelsen er så slet
 
 At slette en statusside fjerner den fra hver hændelse, der var begrænset til den. En hændelse, hvis valgte sider alle er slettet, forbliver begrænset, til ingenting: den er skjult på hver statusside i stedet for at blive vist på hver side, der viser dens monitorer. Kortet **Statussideomfang** siger det. Vælg andre sider, eller tøm listen, for at vise den igen.
 
-Hændelsesskabeloner fungerer på samme måde. En skabelon, hvis sider alle er slettet, forbliver begrænset: en hændelse, som en [formular](/docs/forms/on-submit#the-incident-template) eller et workflows trin **Create One Incident** erklærer ud fra den, er skjult på hver statusside, skabelonens kort **Statussideomfang** advarer dig, og **Erklær hændelse** starter uden nogen valgt side og beder dig vælge de sider, hændelsen er til. Vælg andre sider på skabelonen, eller gem dens liste tom for at holde op med at begrænse de hændelser, der erklæres ud fra den.
+Hændelsesskabeloner fungerer på samme måde. En skabelon, hvis sider alle er slettet, forbliver begrænset: en hændelse, som en [formular](/docs/forms/on-submit#hændelsesskabelonen) eller et workflows trin **Create One Incident** erklærer ud fra den, er skjult på hver statusside, skabelonens kort **Statussideomfang** advarer dig, og **Erklær hændelse** starter uden nogen valgt side og beder dig vælge de sider, hændelsen er til. Vælg andre sider på skabelonen, eller gem dens liste tom for at holde op med at begrænse de hændelser, der erklæres ud fra den.
 
 ## Én e-mail pr. person
 
