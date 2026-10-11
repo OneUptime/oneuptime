@@ -151,7 +151,7 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 ### 訊息中的圖片
 
-事件和警示的描述可以包含螢幕截圖，例如合成監控的截圖（請參閱 [合成監控](/docs/monitor/incident-alert-templating#合成監控)）。OneUptime 會把每張截圖當作私人檔案上傳到你的工作區，藉此在 Slack 訊息中顯示，這需要機器人權限範圍 `files:write`。產生的資訊清單已包含它。
+事件和警示的描述可以包含螢幕截圖，例如合成監控的截圖（請參閱 [顯示螢幕截圖](/docs/monitor/incident-alert-templating#顯示螢幕截圖)）。OneUptime 會把每張截圖當作私人檔案上傳到你的工作區，藉此在 Slack 訊息中顯示，這需要機器人權限範圍 `files:write`。產生的資訊清單已包含它。
 
 如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `files:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，每張截圖都會以其替代文字顯示。
 

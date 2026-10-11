@@ -154,7 +154,7 @@ return {
 };
 ```
 
-每次运行最多保留 20 张截图，每张最多 10 MB，总共最多 50 MB。只要把截图放进监视器的事件或告警描述中，失败的运行所打开的事件或告警的页面以及相关邮件里也能显示截图。请参阅 [显示截图](/docs/monitor/incident-alert-templating#合成监控器)。
+每次运行最多保留 20 张截图，每张最多 10 MB，总共最多 50 MB。只要把截图放进监视器的事件或告警描述中，失败的运行所打开的事件或告警的页面以及相关邮件里也能显示截图。请参阅 [显示截图](/docs/monitor/incident-alert-templating#显示截图)。
 
 :::details 返回截图（旧方式）
 为了向后兼容，你也可以把截图作为返回值的一部分从脚本中返回。以这种方式返回的截图 **只有** 在脚本正常结束时才会保存；如果脚本抛出错误，它们就会丢失。需要失败证据时，请优先使用上面的旁路方式。
@@ -295,6 +295,6 @@ return {
 
 :::cards
 - [自定义代码监控](/docs/monitor/custom-code-monitor): 不用浏览器，用脚本检查 API。
-- [显示截图](/docs/monitor/incident-alert-templating#合成监控器): 把失败运行的截图放进事件。
+- [显示截图](/docs/monitor/incident-alert-templating#显示截图): 把失败运行的截图放进事件。
 - [监控密钥](/docs/monitor/monitor-secrets): 不把凭据写进脚本。
 :::

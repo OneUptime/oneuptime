@@ -151,7 +151,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 ### 메시지의 이미지
 
-인시던트와 알림의 설명에는 스크린샷이 들어갈 수 있습니다. 예를 들어 합성 모니터의 스크린샷입니다([합성 모니터](/docs/monitor/incident-alert-templating#합성-모니터) 참고). OneUptime은 각 스크린샷을 비공개 파일로 워크스페이스에 업로드해 Slack 메시지에 표시하며, 이를 위해 봇 스코프 `files:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
+인시던트와 알림의 설명에는 스크린샷이 들어갈 수 있습니다. 예를 들어 합성 모니터의 스크린샷입니다([스크린샷 표시](/docs/monitor/incident-alert-templating#스크린샷-표시) 참고). OneUptime은 각 스크린샷을 비공개 파일로 워크스페이스에 업로드해 Slack 메시지에 표시하며, 이를 위해 봇 스코프 `files:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
 
 이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
 

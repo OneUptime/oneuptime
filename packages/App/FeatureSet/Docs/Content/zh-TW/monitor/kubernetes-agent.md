@@ -1,13 +1,65 @@
-# 安裝 Kubernetes Agent
+# Kubernetes 代理程式(Helm 安裝)
 
-OneUptime Kubernetes agent 會從您的 Kubernetes 叢集收集叢集指標、事件、pod 記錄、**應用程式追蹤（透過 eBPF 的 HTTP/gRPC）**，以及 **OS 層級的節點指標**，並將它們傳送至 OneUptime。它以 Helm chart 形式發佈，並透過單一指令安裝 — eBPF 自動檢測（auto-instrumentation）預設為開啟，因此您無需變更任何程式碼即可看到服務層級的追蹤與 RED 指標。**持續性 CPU 火焰圖（eBPF profiler）**也同樣可用 — 當您需要更多遙測資料時，使用 `--set profiling.enabled=true` 選擇加入。
+OneUptime Kubernetes 代理程式是一個 Helm Chart，它會收集叢集的指標、事件和 Pod 日誌、透過 eBPF 擷取的應用程式追蹤，以及每個節點的作業系統指標，並傳送到 OneUptime。只需一次 `helm install` 即可部署，不必修改應用程式的程式碼。[Kubernetes 監測器](/docs/monitor/kubernetes-monitor) 會根據它傳送的資料發出警示。
 
-## 快速開始
+:::cards
+- [安裝代理程式](#安裝代理程式): 使用 Helm 的四個步驟。
+- [選擇預設組合](#選擇預設組合): 標準叢集、GKE Autopilot 或 EKS Fargate。
+- [常用選項](#常用選項): 大多數叢集會修改的設定。
+- [疑難排解](#疑難排解): 一個診斷指令碼和常見問題。
+:::
+
+## Chart 安裝的內容
+
+Chart 會在它自己的命名空間中執行幾個工作負載。每個工作負載都使用你提供的擷取金鑰，透過 OTLP 把收集到的資料傳送到你的 OneUptime URL。
+
+```mermaid title="從你的叢集到 OneUptime"
+flowchart LR
+    subgraph cluster["你的叢集"]
+        direction TB
+        nodes["每個 Linux 節點:<br/>節點收集器、eBPF"]
+        collector["叢集收集器"]
+        ai["Kubernetes AI 代理程式"]
+    end
+    nodes -->|"日誌、指標、<br/>追蹤"| oneuptime["OneUptime"]
+    collector -->|"指標、事件"| oneuptime
+    ai <-->|"唯讀<br/>kubectl"| oneuptime
+```
+
+| 工作負載 | 類型 | 作用 | 預設開啟 |
+| --- | --- | --- | --- |
+| 叢集收集器 | Deployment | 從 Kubernetes API 收集叢集指標、Kubernetes 事件，以及 Pod、節點和工作負載的完整規格。 | 是 |
+| 節點收集器 | DaemonSet | 來自 `/var/log/pods` 的 Pod 日誌、kubelet 和 cAdvisor 指標，以及節點的作業系統指標。 | 是 |
+| eBPF 檢測(OBI) | DaemonSet | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis 追蹤與請求指標，以及服務地圖。 | 是 |
+| Kubernetes AI 代理程式 | Deployment | 讓 OneUptime AI 在調查此叢集上的事件或警示時執行唯讀的 `kubectl`。 | 是 |
+| 日誌追蹤器 | Deployment | 在節點收集器無法讀取的地方，透過 Kubernetes API 取得 Pod 日誌。 | 在 `gke-autopilot` 和 `eks-fargate` 預設組合中 |
+| eBPF 剖析器 | DaemonSet | 每個處理程序的持續 CPU 火焰圖。 | 否 |
+| kube-state-metrics | Deployment | Pod 階段、容器等待原因和資源配額。 | 否 |
+
+每個代理程式映像檔都只支援 Linux，因此每個工作負載都固定在 Linux 節點上。
+
+## 開始之前
+
+- **一個擷取金鑰。** 在 OneUptime 的 **專案設定 → 遙測與 APM → 擷取金鑰** 中建立。代理程式會把它作為 `x-oneuptime-token` 標頭傳送，因此專案 API 金鑰在這裡無法使用。
+- **Helm 3** 以及對叢集的 `kubectl` 存取權。升級會使用 `--reset-then-reuse-values`，它需要 Helm 3.14 或更新版本。
+- **叢集的名稱**，在你的專案中唯一。沒有名稱時 Chart 會拒絕安裝：兩個同名叢集會顯示為一個。
+- 從叢集到你的 OneUptime URL 的 **輸出 HTTPS**。
+
+## 安裝代理程式
+
+:::steps
+### 新增 Helm 存放庫
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com
 helm repo update
+```
 
+### 安裝 Chart
+
+把 URL 換成你的 OneUptime URL，並把兩個預留位置換成你的擷取金鑰和叢集的名稱：
+
+```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --create-namespace \
@@ -16,13 +68,69 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
 ```
 
-您的叢集將在幾分鐘內出現在 OneUptime 中。
+這使用的是 `standard` 預設組合。在 GKE Autopilot 或 EKS Fargate 上，請改為 [選擇它們的預設組合](#選擇預設組合)。
 
-## 選用 — 使用專案標籤自動為此叢集加上標籤
+### 檢查 Pod 是否在執行
 
-任何以 `oneuptime.label.` 為前綴的資源屬性都會被提升為專案標籤（Label），並附加到此 agent 所發出的叢集、服務和主機上。模式：`oneuptime.label.<dimension>=<value>` 會成為名為 `<dimension>:<value>` 的標籤。
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent
+```
 
-在安裝時使用 `--set oneuptime.labels.<key>=<value>` 傳入標籤：
+每個 Pod 都應在一兩分鐘內進入 `Running` 狀態。
+
+### 在 OneUptime 中找到叢集
+
+開啟 **產品 → 基礎設施 → Kubernetes → 所有叢集**。幾分鐘內，叢集會以其名稱出現，其節點、Pod 和工作負載也會陸續填入。
+:::
+
+## 選擇預設組合
+
+有些 Kubernetes 平台不允許工作負載掛載 `hostPath` 磁碟區或執行 DaemonSet，而節點收集器兩者都要用到。`preset` 設定用來選擇在你的平台上可行的方式：
+
+| 預設組合 | 適用於 | Pod 日誌 | 每個節點上 |
+| --- | --- | --- | --- |
+| `standard`(預設) | 自行管理、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | 節點收集器讀取 `/var/log/pods` | kubelet、cAdvisor 和作業系統指標 |
+| `gke-autopilot` | **GKE Autopilot** | 日誌追蹤器透過 Kubernetes API 讀取 | kubelet 和 cAdvisor 指標，不使用 `hostPath` |
+| `eks-fargate` | **EKS Fargate** | 日誌追蹤器透過 Kubernetes API 讀取 | 無：Fargate 不執行 DaemonSet |
+
+如果不確定，請不要設定 `preset`，以使用 `standard`。如果安裝因提到 `hostPath` 的 Pod Security 錯誤而失敗，請用 `gke-autopilot` 重新安裝，在 EKS Fargate 上則用 `eks-fargate`。
+
+GKE Autopilot 和 EKS Fargate 也會拒絕 eBPF 檢測所需的特權 Pod，因此在這兩個平台上請用 `--set ebpf.enabled=false` 關閉它：
+
+:::tabs
+@tab Standard
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod
+```
+@tab GKE Autopilot
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-gke-autopilot \
+  --set preset=gke-autopilot \
+  --set ebpf.enabled=false
+```
+@tab EKS Fargate
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-eks-fargate \
+  --set preset=eks-fargate \
+  --set ebpf.enabled=false
+```
+:::
+
+## 為叢集加上標籤
+
+你在安裝時傳入的標籤會附加到叢集上，以及此代理程式回報的服務和主機上。`--set oneuptime.labels.<key>=<value>` 會成為名為 `<key>:<value>` 的專案標籤：
 
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
@@ -36,10 +144,9 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.labels.region=us-east-1
 ```
 
-或將它們保存在 values 檔案中：
+或者把它們放在 values 檔案中：
 
-```yaml
-# values.yaml
+```yaml title="values.yaml"
 oneuptime:
   url: https://oneuptime.com
   apiKey: <YOUR_API_KEY>
@@ -56,123 +163,83 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   -f values.yaml
 ```
 
-此 agent 傳送的每一筆記錄 — 記錄、指標、追蹤、eBPF 自動檢測的 span，以及 CPU profile — 都會在 OneUptime UI 中以 `team:payments`、`env:production` 和 `region:us-east-1` 標記顯示。標籤以不分大小寫的方式比對，因此既有的手動建立的 `Production` 標籤會被重複使用，而不是被複製。在 OneUptime UI 中手動新增的標籤永遠不會被 agent 移除。
+這樣，此代理程式傳送的每筆記錄——日誌、指標、追蹤和剖析資料——都會帶有 `team:payments`、`env:production` 和 `region:us-east-1`。每個標籤都是一個 `oneuptime.label.<key>=<value>` 資源屬性，OneUptime 會把每個以 `oneuptime.label.` 開頭的屬性變成標籤。標籤比對時不區分大小寫，因此既有的 `Production` 標籤會被重複使用，而不會重複建立。代理程式絕不會刪除你在 OneUptime 中加入的標籤。
 
-## 為您的叢集挑選正確的預設組態（preset）
+## Pod 日誌
 
-不同的 Kubernetes 發行版有不同的限制 — 最明顯的是工作負載是否能掛載 `hostPath` 磁碟區。為了讓您不必閱讀安全性文件，此 chart 公開了一個頂層選項：`preset`。
+`preset` 會設定 `logs.mode`，你也可以自行設定它：
 
-| Preset             | 適用於                                                                     | 記錄收集                                     | 備註                                                                                                                  |
-| ------------------ | -------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `standard`（預設） | 自我管理、**EC2 上的 EKS**、**GKE Standard**、**AKS**、minikube、kind、k3s | DaemonSet 透過 hostPath 讀取 `/var/log/pods` | 負擔最低。這些平台上可使用 hostPath。                                                                                 |
-| `gke-autopilot`    | **GKE Autopilot**                                                          | Kubernetes API tailer（Deployment）          | Autopilot 上封鎖 hostPath。設定一個強化的安全性內容（security context），以通過 Autopilot 的 Pod Security Standards。 |
-| `eks-fargate`      | **EKS Fargate**                                                            | Kubernetes API tailer（Deployment）          | 與 `gke-autopilot` 相同。Fargate 封鎖 hostPath 和 DaemonSet。                                                         |
+| `logs.mode` | 如何讀取日誌 | 優點 | 注意事項 |
+| --- | --- | --- | --- |
+| `daemonset` | 每個節點上的一個節點收集器會追蹤 `/var/log/pods` 下的檔案。 | 負擔最低，隨節點擴展，不會增加 Kubernetes API 伺服器的負載，能跟隨日誌輪替。 | 需要 `hostPath` 和 DaemonSet。 |
+| `api` | 一個日誌追蹤器從 Kubernetes API 串流取得每個容器的日誌，就像 `kubectl logs -f` 一樣。 | 在 `hostPath` 被封鎖或適用 `restricted` Pod Security Standard 的地方也能運作。 | 每個容器串流都是與 API 伺服器的一條長時間連線。一個副本可處理幾千個容器。 |
+| `disabled` | 什麼都不做。 | 適用於已經用其他方式傳送日誌的應用程式。 | |
 
-如果您不確定，請將 `preset` 保留為未設定 — 您會取得 `standard` 預設值。如果您的叢集因 Pod Security 政策錯誤（提及 `hostPath`）而拒絕安裝，請改用 `gke-autopilot`（或在 EKS Fargate 上使用 `eks-fargate`）並重新安裝。
+若要關閉日誌收集，請設定 `--set logs.enabled=false`，並改用 [OpenTelemetry](/docs/telemetry/open-telemetry) SDK 傳送應用程式日誌。指標不受影響：節點收集器會繼續執行。
 
-### 範例
+### 混合作業系統叢集(Windows 節點集區)
 
-**GKE Standard、EC2 上的 EKS、自我管理或 AKS：**
+Windows 節點上從不執行代理程式 Pod。關於這些節點及其 Pod 的叢集層級資料仍會送達，因為它們來自 Kubernetes API：節點狀況、Pod 階段、Kubernetes 事件和 kube-state-metrics。Windows 節點缺少的是在節點上收集的資料：作業系統指標、kubelet 和 cAdvisor 指標、eBPF 追蹤、剖析資料，以及在 `daemonset` 日誌模式下的 Pod 日誌。
 
-```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
-  --set oneuptime.url=https://oneuptime.com \
-  --set oneuptime.apiKey=<YOUR_API_KEY> \
-  --set clusterName=prod
-```
-
-**GKE Autopilot：**
+若要同時收集 Windows 節點上 Pod 的日誌，請開啟混合模式：
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
-  --set oneuptime.url=https://oneuptime.com \
-  --set oneuptime.apiKey=<YOUR_API_KEY> \
-  --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set logs.windowsPods.enabled=true
 ```
 
-**EKS Fargate：**
+日誌追蹤器接著會與節點收集器並行執行，只處理 Windows 節點上的 Pod。Linux Pod 繼續使用負擔較低的檔案追蹤，兩者依節點的作業系統劃分 Pod，因此不會有日誌行被傳送兩次。
 
-```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
-  --set oneuptime.url=https://oneuptime.com \
-  --set oneuptime.apiKey=<YOUR_API_KEY> \
-  --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate
-```
+- **追蹤器映像檔的版本。** 僅針對 Windows 的劃分內建在 `kubernetes-log-tailer` 映像檔中。舊映像檔會忽略它並追蹤 *每個* Pod，把每個 Linux Pod 的日誌傳送兩次。不要把 `logs.api.image.tag` 固定到比 Chart 發行版本更舊的版本；如果某個節點可能快取了舊的 `release` 映像檔，請在升級時加入 `--set logs.api.image.pullPolicy=Always`。
+- **依嚴重性篩選。** 設定了 `filters.logs.minSeverity` 時，沒有可辨識嚴重性的行在節點收集器的路徑上會被捨棄，但在日誌追蹤器的路徑上會被保留——請參閱 [依日誌嚴重性篩選](/docs/telemetry/kubernetes-agent#依日誌嚴重性篩選)。因此，Windows Pod 傳送的無層級行可能比 Linux Pod 多。
 
-## 兩種記錄收集模式有何不同
+## 使用 eBPF 的應用程式追蹤
 
-在底層，`preset` 會設定 `logs.mode` — 而如果您需要覆寫預設組態的預設值，也可以直接設定它。
+Chart 會在每個節點上執行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 把 eBPF 程式載入 Linux 核心並觀察每個 Pod 的網路流量，因此不必對應用程式做任何變更(沒有 SDK，也沒有 sidecar)就能重建 HTTP 和 HTTPS、gRPC 以及 SQL 和 Redis 呼叫。它會把這些作為追蹤和請求指標傳送到 OneUptime。
 
-### DaemonSet 模式（`logs.mode: daemonset`）
+一兩分鐘內，你的服務會出現在 **產品 → 追蹤** 下和服務地圖上，`k8s.cluster.name` 設定為叢集的名稱，因此可以依叢集篩選。
 
-DaemonSet 會在每個節點上執行一個 OpenTelemetry Collector pod。它透過 hostPath 磁碟區追蹤 `/var/log/pods/` 下的記錄檔案，並以 OTLP 轉發它們。
+### 何時關閉 eBPF
 
-- **優點：** 負擔最低、隨節點線性擴展、不對 Kubernetes API server 造成負載、能處理記錄輪替。
-- **缺點：** 需要 hostPath、需要排程 DaemonSet 的能力 — 這兩者在 GKE Autopilot 和 EKS Fargate 上都無法使用。
+eBPF 預設開啟。在以下情況下，請用 `--set ebpf.enabled=false` 關閉它：
 
-### API 模式（`logs.mode: api`）
+- 叢集是 **GKE Autopilot** 或 **EKS Fargate**。它們會拒絕特權 Pod，而 OBI 必須擁有特權才能載入其程式。
+- 節點執行的核心早於 **Linux 5.8** 且沒有 BTF。Debian 11、Ubuntu 20.10、Fedora 34、RHEL 9 及更新版本都沒有問題。
+- 你的應用程式已經透過 OpenTelemetry SDK 傳送追蹤，而你不想要重複的資料。
 
-一個單一複本的 Deployment（`oneuptime/kubernetes-log-tailer` 映像檔）使用 Kubernetes API 來串流容器記錄 — 與 `kubectl logs -f` 所使用的相同端點。沒有 hostPath、沒有主機存取、沒有 DaemonSet。
+### eBPF 傳送的內容
 
-- **優點：** 可在 GKE Autopilot、EKS Fargate，以及任何封鎖 hostPath 或強制執行 `restricted` Pod Security Standard 的叢集上運作。
-- **缺點：** 每個容器串流都是連到 kube-apiserver 的長連線。一個副本通常可處理數千個容器。對於超大型叢集，請在 namespaceFilters.rules 中使用 podLogs 作用域的 include 規則，將不同 release 分片。
+OBI 會傳送幾種訊號。每一種都可以用 `--set ebpf.features.<key>=false` 關閉：
 
-### 您應該使用哪一個？
+| 設定 | 預設值 | 加入的內容 |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | 開啟 | 每個服務的 HTTP 和 gRPC 請求指標：請求速率、延遲直方圖和錯誤。 |
+| `ebpf.features.spanMetrics` | 開啟 | Span 指標：依服務、路由或作業、Span 類型和狀態統計的呼叫次數與耗時——`traces.span.metrics.calls` 和 `traces.span.metrics.duration`(秒)。 |
+| `ebpf.features.serviceGraph` | 開啟 | 從一個服務到另一個服務的每次呼叫的速率和延遲，用於繪製服務地圖。 |
+| `ebpf.features.networkMetrics` | 開啟 | 每對 Pod 之間經由 TCP 和 UDP 傳輸的位元組和封包，帶有它們的 Kubernetes 名稱。即使是 OBI 無法解析的通訊協定，也能顯示每一對相互通訊的 Pod。 |
+| `ebpf.features.networkInterZoneMetrics` | 關閉 | 同樣的資料，但統計可用區域之間。會使序列數量加倍：只有在依區域排程時才開啟。 |
+| `ebpf.features.tcpStats` | 開啟 | 每個節點的 TCP 統計：來回時間、失敗的連線和重新傳輸。 |
 
-如果 hostPath 可用，請使用 DaemonSet。其他所有情況，請使用 API 模式。`preset` 設定會為您挑選正確的那一個。
+### 跨服務連結追蹤
 
-您也可以使用 `--set logs.enabled=false` 完全停用記錄收集，並改為透過 OpenTelemetry SDK 傳送應用程式記錄。請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry) 文件。
+OBI 也能讓追蹤跨越一次呼叫延續下去：當 Pod A 透過 HTTP 或 gRPC 呼叫 Pod B 時，B 端的 Span 會加入 A 的追蹤，兩個應用程式中都不需要 SDK。**此功能預設關閉。** 閱讀下面的警告後，用 `--set ebpf.contextPropagation=true` 開啟它。
 
-## 透過 eBPF 收集應用程式追蹤與 HTTP 請求（預設開啟）
+| 選項 | 預設值 | 作用 |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | 關閉 | 把 W3C `traceparent` 寫入輸出流量，使 Span 在服務之間連結起來。 |
+| `ebpf.contextPropagationMode` | `headers` | 方式：`headers`(HTTP/1.1 請求標頭，範圍最窄)、`tcp`(TCP 選項，透過 Linux Traffic Control)或 `all`(兩者都用)。僅在 `contextPropagation` 開啟時讀取。 |
+| `ebpf.trackRequestHeaders` | 開啟 | 在核心中追蹤請求標頭，使接收端在一般 HTTP 伺服器上也能找到 `traceparent`。僅在 `contextPropagation` 開啟時生效。 |
 
-此 chart 會發佈一個 DaemonSet，在每個節點上執行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 將 eBPF 程式載入 Linux 核心，並監看 socket 層級的流量，以從節點上的每個 pod 重建 HTTP/HTTPS、gRPC 和 SQL/Redis 呼叫 — 無需變更程式碼、無需 SDK、無需 sidecar。擷取到的流量會以 OTLP 追蹤和請求/延遲指標的形式直接匯出到 OneUptime。
+> [!WARNING]
+> 每種傳播模式都會修改已經在傳輸中的流量。對於一般 HTTP，OBI 會在核心中擴大輸出請求以容納標頭；對於 TLS 和原始 TCP，它會從 Traffic Control 掛鉤加入一個 TCP 選項，重寫封包及其總和檢查碼。如果之後連線的位元組計數沒有被精確修正，資料串流就會 **失去同步**：經過 nginx 這類 Proxy 的傳輸一旦回應超過約 64 KB 就會中途卡住，直到連線逾時。小請求仍能正常運作，因此看起來像是應用程式或 Proxy 的錯誤。沒有哪個核心版本能讓這種重寫消失。追蹤、請求指標和服務地圖在沒有它的情況下都能運作；服務中的 OpenTelemetry SDK 完全不需要核心重寫就能連結追蹤。如果你要開啟它，請先在非正式環境的叢集上試用，並檢查經過 Proxy 的大型傳輸。
 
-安裝後，您的服務會在一兩分鐘內開始出現在 **產品 → 追蹤** 和服務地圖（service map）中，並將 `k8s.cluster.name` 設定為您的 `clusterName`，以便您可以依叢集進行篩選。
+### 將日誌連結到追蹤
 
-### 何時將其關閉
+**預設關閉。** 開啟後，OBI 會在它檢測的每個處理程序的 `write()` 系統呼叫上掛載一個探針，並且：
 
-eBPF **預設為開啟**。在以下情況下，您應該停用它（`--set ebpf.enabled=false`）：
-
-- 您在 **GKE Autopilot** 或 **EKS Fargate** 上安裝。這些平台封鎖特權（privileged）pod，而 OBI 需要特權模式才能載入 eBPF 程式。
-- 您的節點執行的核心版本舊於 **Linux 5.8** 且未進行 BTF backport。（現代發行版 — Debian 11+、Ubuntu 20.10+、Fedora 34+、RHEL/Stream 9+ — 都沒問題。）
-- 您已經透過 OpenTelemetry SDK 從您的應用程式傳送追蹤，且不想要重複的資料。
-
-### 會發出什麼資料
-
-OBI 從擷取到的流量中提取數個訊號家族（signal family）。所有訊號都預設為開啟；每一個都可以使用 `--set ebpf.features.<key>=false` 獨立停用：
-
-| 訊號                                    | 預設 | 它新增了什麼                                                                                                                   |
-| --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `ebpf.features.httpMetrics`             | 開啟 | 每個服務的 HTTP/gRPC RED 指標 — 請求速率、延遲長條圖、錯誤計數。                                                               |
-| `ebpf.features.spanMetrics`             | 開啟 | Span 指標：依服務、路由/操作、span 類型與狀態統計的呼叫次數與持續時間 — `traces.span.metrics.calls`、`traces.span.metrics.duration`（秒）。 |
-| `ebpf.features.serviceGraph`            | 開啟 | 服務對服務的邊緣指標（呼叫端 → 被呼叫端的請求速率 + 延遲）。為服務地圖提供動力。                                               |
-| `ebpf.features.networkMetrics`          | 開啟 | 帶有 k8s 中繼資料的 pod 對 pod TCP/UDP 流量位元組與封包計數器。呈現每一對有通訊的 pod，包括那些執行 OBI 無法解析之協定的 pod。 |
-| `ebpf.features.networkInterZoneMetrics` | 關閉 | 網路指標的跨區域（inter-zone）變體。會使基數（cardinality）加倍；只有當您實際使用基於區域的排程時才值得啟用。                  |
-| `ebpf.features.tcpStats`                | 開啟 | 節點層級的 TCP 統計資料：RTT 長條圖、失敗連線計數、重傳次數。                                                                  |
-
-OBI 也可以跨服務邊界傳播追蹤內容（trace context），使 pod B 端產生的 span 連結到與 pod A 出站請求相同的追蹤中，兩個應用程式都不需要變更 SDK。**此功能預設關閉；可用 `--set ebpf.contextPropagation=true` 啟用。**
-
-| 選項                       | 預設 | 描述                                                                                                                |
-| -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | 關閉 | 將 W3C `traceparent` 注入出站流量，使 span 跨服務串連。預設關閉——請先閱讀下方警告。無額外核心需求；也沒有任何核心版本能讓它失效。 |
-| `ebpf.contextPropagationMode` | headers | `traceparent` 的注入方式：`headers`（HTTP/1.1 請求標頭，影響面最小）、`tcp`（經由 Linux Traffic Control 的 TCP 選項）或 `all`（兩者）。僅在 `contextPropagation` 為 true 時讀取。 |
-| `ebpf.trackRequestHeaders` | 開啟 | 核心端的請求標頭追蹤，使傳播也能在純 HTTP 伺服器（非 Go、非 TLS）上運作。僅在 `contextPropagation` 為 true 時生效。 |
-
-> **⚠️ 為什麼預設關閉。** 所有傳播模式都會改動已經在傳輸中的流量：明文 HTTP 請求會在核心中就地擴充，而 TLS 與原始 TCP 則由 Traffic Control hook 附加一個 TCP 選項。若連線的位元組記帳未被精確修正，資料流就會失去同步——已回報的症狀是：當回應超過約 64KB 之後，經由 nginx 這類 L7 代理的傳輸會在回應主體中途停住，而小型請求仍然正常，因此看起來像是應用程式的問題而非 agent 的問題。追蹤、RED 指標與服務地圖都不依賴此功能；若需要跨服務串連，使用在使用者空間傳播該標頭、完全不改寫核心的 OpenTelemetry SDK 更為安全。
-
-### 記錄 ↔ 追蹤關聯（選擇加入）
-
-**預設關閉。** 啟用後，OBI 的記錄增強器（log enricher）會在每個受檢測程序中對 `write()` 系統呼叫附加一個 uprobe，並：
-
-- 對於 **JSON 格式的記錄**：將 `trace_id` 和 `span_id` 欄位注入該行（記錄中任何既有的值都會被保留）。filelog DaemonSet 接著會將這些欄位提升到 LogRecord 的原生 trace_id/span_id 插槽，因此在追蹤檢視中點擊一個 span 便會跳到它在 OneUptime 中的記錄 — 而點擊一行記錄則會跳到它的父追蹤。
-- 對於 **非 JSON 記錄**：該行會原封不動地保留 — 仍會被收集，只是不會自動連結。
-
-啟用方式：
+- **JSON 日誌行** 會獲得 `trace_id` 和 `span_id` 欄位(行中已有的欄位會保留)。節點收集器會把它們移到日誌記錄自身的追蹤欄位上，因此在 OneUptime 中，一個 Span 的日誌只需一次點選就能看到，日誌行的追蹤也是如此。
+- **其他任何日誌行** 都會原樣收集，不帶連結。
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -180,28 +247,28 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --set ebpf.logToTraceCorrelation=true
 ```
 
-| 選項                         | 預設                             | 描述                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.logToTraceCorrelation` | `false`                          | 啟用 OBI 記錄增強器和 filelog pipeline 的 trace_id 提升。預設關閉 — 請參閱下方的相容性警告。                                                                                                                                                                                                                               |
-| `ebpf.logEnricher.services`  | `[{service: [{exe_path: "*"}]}]` | 記錄增強器的程序選擇器。每個項目都是一個 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 選擇器 — 欄位包括 `exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports`、`cmd_args`。當您要將記錄增強範圍限定在工作負載的子集合時，請縮小此範圍。 |
+| 選項 | 預設值 | 作用 |
+| --- | --- | --- |
+| `ebpf.logToTraceCorrelation` | `false` | 開啟 OBI 的日誌擴充器以及節點收集器對 `trace_id` 的提取。 |
+| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | 擴充器會處理哪些處理程序。每個項目都是一個 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 選取器，帶有 `exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports` 和 `cmd_args` 等欄位。 |
 
-#### 為什麼它預設關閉 — APM agent 相容性
+#### 與它一起使用會當機的 APM 代理程式
 
-記錄增強器會**在程序內（in-process）**重寫應用程式的 stdout 緩衝區：當一個被比對到的程序呼叫 `write()` 時，OBI 的 eBPF probe 會將原始的緩衝區位元組歸零（在下游被過濾掉），並透過一條獨立路徑重新發出一個經過增強的副本。該程序內緩衝區重寫與透過 `LD_PRELOAD` 注入自身並包裝 libc `write()` 的 APM agent 不相容：
+擴充器會 **在處理程序內部** 重寫應用程式的輸出緩衝區：當相符的處理程序呼叫 `write()` 時，OBI 會清空原始位元組並寫入擴充後的副本。透過 `LD_PRELOAD` 載入、並且自己也包裝 `write()` 的 APM 代理程式無法承受這一點：
 
-| APM agent          | 函式庫               | 兩者同時存在時的影響                                                                                                                                            |
-| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dynatrace OneAgent | `liboneagentproc.so` | 應用程式 SIGSEGV（exit 139）。Dynatrace watchdog 存活探測（liveness probe）失敗（它自己對 PID 檔案的 `write()` 停滯超過 10 秒門檻），且 OneAgent 進入重啟迴圈。 |
-| New Relic          | `libnewrelic*.so`    | 相同類別的當機。                                                                                                                                                |
-| AppDynamics        | `libappdynamics*.so` | 相同類別的當機。                                                                                                                                                |
-| Datadog            | `libdd*.so`          | 相同類別的當機。                                                                                                                                                |
-| Instana            | `libinstana*.so`     | 相同類別的當機。                                                                                                                                                |
+| APM 代理程式 | 程式庫 | 會發生什麼 |
+| --- | --- | --- |
+| Dynatrace OneAgent | `liboneagentproc.so` | 應用程式以 SIGSEGV(結束代碼 139)當機。Dynatrace 監看程式自身的 `write()` 卡住超過其 10 秒限制，OneAgent 不斷循環重新啟動。 |
+| New Relic | `libnewrelic*.so` | 同樣的當機。 |
+| AppDynamics | `libappdynamics*.so` | 同樣的當機。 |
+| Datadog | `libdd*.so` | 同樣的當機。 |
+| Instana | `libinstana*.so` | 同樣的當機。 |
 
-**.NET 工作負載最為脆弱** — Dynatrace 的 .NET agent 一律透過 `LD_PRELOAD` 注入，且 Microsoft.Extensions.Logging 主控台 sink 是無緩衝的，因此每一行記錄都會跨越這條競爭的 `write()` 路徑。Python 和 Go 工作負載通常不受影響，因為它們的 I/O 模型不在同一條程式碼路徑上。
+**.NET 應用程式受影響最大：** Dynatrace 的 .NET 代理程式一律透過 `LD_PRELOAD` 載入，而 Microsoft.Extensions.Logging 的主控台日誌不經緩衝，因此每一行都會走這條路徑。Python 和 Go 應用程式通常不受影響。
 
-**如果您需要在使用上述其中一種 APM agent 的同時取得記錄↔追蹤關聯**，請限定 `logEnricher.services` 的範圍，使增強器跳過執行 APM 的 pod。OBI 的 log_enricher 選擇器沒有 `exclude_services` 欄位（只有正向選擇器），因此您必須列出您「要」增強的工作負載：
+若要與這些代理程式之一一起使用，請讓 `logEnricher.services` 只指向沒有該代理程式的 Pod。擴充器無法排除，因此請列出要擴充的 Pod：
 
-```yaml
+```yaml title="values.yaml"
 ebpf:
   logToTraceCorrelation: true
   logEnricher:
@@ -212,9 +279,9 @@ ebpf:
               apm-agent: "none"
 ```
 
-或依執行階段（runtime）限定範圍 — Dynatrace 的 `LD_PRELOAD` 注入是針對 .NET 的，因此只增強 Python/Go 可避免衝突：
+或者依執行階段選擇。Dynatrace 的 `LD_PRELOAD` 載入針對的是 .NET，因此只擴充 Python、Go、Ruby 和 Node.js 就能避開它：
 
-```yaml
+```yaml title="values.yaml"
 ebpf:
   logToTraceCorrelation: true
   logEnricher:
@@ -223,98 +290,88 @@ ebpf:
           - languages: "python,go,ruby,nodejs"
 ```
 
-#### 其他注意事項
+#### 日誌必須是 JSON 且不緩衝
 
-- **記錄必須是 JSON，`trace_id` 才會出現。** 將您的記錄器（logger）切換為 JSON 格式化器 — `structlog`、`pino`、`winston`、`serilog`、`logback-json`、klog `--logging-format=json` 等。
-- **有緩衝的 stdout 會破壞關聯**，因為 `write()` 系統呼叫是在與處理請求的執行緒不同的執行緒上觸發。常見修正方式：
-  - **Python**：設定 `PYTHONUNBUFFERED=1`（執行階段在非 TTY 時會對 stdout 進行區塊緩衝）。
-  - **.NET**：在啟動時，`Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`。Microsoft.Extensions.Logging 的 `AddConsole()` 和 Serilog 的非同步 sink 也都無法運作 — 請改用同步的主控台寫入器（Serilog 預設的 `WriteTo.Console()` 沒問題）。
-- Greenlet / gevent、Tornado 以及其他自訂的非同步執行階段不在涵蓋範圍內。
+- **只有 JSON 行才會獲得 `trace_id`。** 請把記錄器切換為 JSON 格式：`structlog`、`pino`、`winston`、`serilog`、`logback-json`、klog `--logging-format=json` 等。
+- **緩衝的輸出會中斷連結**，因為此時 `write()` 發生在與請求不同的執行緒上。在 **Python** 中，設定 `PYTHONUNBUFFERED=1`。在 **.NET** 中，在啟動時呼叫 `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`；Microsoft.Extensions.Logging 的 `AddConsole()` 和 Serilog 的非同步接收器無法使用，Serilog 一般的 `WriteTo.Console()` 則可以。
+- Greenlet、gevent、Tornado 和其他自訂非同步執行階段不受支援。
 
-### 調校
+### 調整 eBPF
 
-| 選項                   | 預設                                                    | 描述                                                                                            |
-| ---------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `ebpf.enabled`         | `true`                                                  | 主開關。設定為 `false` 以完全略過 eBPF DaemonSet。                                              |
-| `ebpf.image.tag`       | `v0.14.0`                                               | OBI 映像檔標籤。OBI 處於 pre-1.0；請釘選到一個已知良好的版本，並在升版時重新測試。              |
-| `ebpf.autoTargetExe`   | `*`                                                     | 要檢測的可執行檔的 glob。如果您想要限定自動檢測的範圍，請縮小此範圍（例如 `*/python,*/java`）。 |
-| `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要略過的以逗號分隔的 glob。                                                                     |
-| `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。在進行疑難排解時設定為 `debug`。                            |
-| `ebpf.printTraces`     | `false`                                                 | 在 OTLP 匯出之外，另將 span 列印到 OBI 的 stdout — 對於在安裝期間驗證擷取很有用。               |
-| `ebpf.resources.*`     | requests `100m / 256Mi`，limits `1000m / 1Gi`           | 對於高流量叢集請調高。                                                                          |
+| 選項 | 預設值 | 作用 |
+| --- | --- | --- |
+| `ebpf.enabled` | `true` | 執行 eBPF DaemonSet。`false` 則不部署它。 |
+| `ebpf.image.tag` | `v0.14.0` | OBI 映像檔。OBI 還處於 1.0 之前：請固定你測試過的版本，更換前再測試一次。 |
+| `ebpf.autoTargetExe` | `*` | 要檢測的執行檔的萬用字元模式，以逗號分隔。縮小範圍(例如 `*/python,*/java`)可以檢測較少的執行階段。 |
+| `ebpf.excludeExePaths` | Shell、叢集基礎元件、服務網格 sidecar、CNI 代理程式、瀏覽器、ClickHouse、收集器和 OBI 本身 | 要略過的執行檔的萬用字元模式，以逗號分隔。範圍過廣的模式也會略過你自己的二進位檔。 |
+| `ebpf.logLevel` | `info` | `debug`、`info`、`warn` 或 `error`。 |
+| `ebpf.printTraces` | `false` | 同時把 Span 印到 OBI 自己的日誌中，以便檢查它擷取了什麼。 |
+| `ebpf.resources.*` | 請求 `100m` CPU 和 `512Mi` 記憶體，限制 `2000m` 和 `2Gi` | 在流量大或短生命週期處理程序多的節點上調高。 |
 
-若要檢查 OBI 是否正在執行並看到流量：
+若要檢查 OBI 是否在執行並能看到流量：
 
 ```bash
 kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## 持續性 CPU 分析（預設關閉）
+## 持續 CPU 剖析
 
-一個獨立的 DaemonSet 執行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — 封裝為 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以 19Hz 在每個受支援的執行階段（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上取樣 on-CPU 堆疊，並將 OTLP profile 傳送至 OneUptime，在那裡它們會出現在 **產品 → 效能設定檔** 之下，並以從個別追蹤 span 連結而來的火焰圖呈現。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每個節點上執行，使用 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以每秒 19 次的頻率對每個處理程序正在執行的內容取樣，支援 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，並把剖析資料傳送到 OneUptime。這些資料會顯示在 **產品 → 效能設定檔** 下，也會作為火焰圖顯示在每個追蹤 Span 上。
 
-分析（profiling）**預設關閉** — 它比 OBI 自動檢測更重（每個節點更多 CPU、更大的記憶體佔用），而且並非每個叢集都想要永遠開啟的火焰圖。當您想要更豐富的遙測資料時再啟用它：`--set profiling.enabled=true`。
+**剖析預設關閉：** 它每個節點耗用的 CPU 和記憶體比 eBPF 檢測更多。用 `--set profiling.enabled=true` 開啟它。
 
-當 eBPF 自動檢測也已開啟時（`ebpf.enabled: true`，預設值），每個 CPU 取樣都會透過共享的 bpffs map 與 OBI 的追蹤內容關聯 — 因此火焰圖會帶有 trace_id/span_id，而 OneUptime UI 可以向您顯示每個 span 的火焰圖。
+如果同時開啟了 eBPF 檢測(預設)，每個樣本都會帶有它所屬的追蹤，因此每個 Span 都有自己的火焰圖。為此，Chart 會要求 OBI 讓目前的追蹤內容保持可用(`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)，這會讓被檢測的應用程式在每次非同步內容切換時付出少許代價。設定 `profiling.obiProcessContext=false` 可得到不連結 Span 的火焰圖。
 
-需求：
+剖析需要 **Linux 5.10** 或更新版本，以及一個擁有節點處理程序 ID 的特權 Pod：它無法在 GKE Autopilot 或 EKS Fargate 上執行。在本身就是容器的節點上(例如 kind 或 k3d)，它無法區分處理程序，幾乎沒有樣本能連結到 Span。
 
-- **Linux 核心 5.10+**（比 OBI 所需的 5.8 略新）。
-- 具有 hostPID 的特權 pod — 與 eBPF 自動檢測 DaemonSet 的限制相同。無法在 GKE Autopilot、EKS Fargate 或其他鎖定的環境中執行。
+| 選項 | 預設值 | 作用 |
+| --- | --- | --- |
+| `profiling.enabled` | `false` | 執行剖析器 DaemonSet。 |
+| `profiling.image.tag` | `0.152.0` | 剖析器映像檔。它還處於 1.0 之前：請固定你測試過的版本。 |
+| `profiling.samplesPerSecond` | `19` | 每秒取樣多少次。19 可以避免與常見的計時器頻率對齊。 |
+| `profiling.offCpuThreshold` | `0` | 大於 0 且不超過 1 的值也會剖析 CPU 之外花費的時間，從而顯示鎖定爭用和封鎖 I/O，但會帶來一些額外負擔。 |
+| `profiling.tracers` | `""`(每種執行階段) | 要載入的語言追蹤器，以逗號分隔，例如 `go,python`。 |
+| `profiling.obiProcessContext` | `true` | 把樣本連結到 OBI 的追蹤，並讓 OBI 為此保持追蹤內容可用。 |
 
-調校：
+## 其他資料收集
 
-| 選項                          | 預設                   | 描述                                                                                                              |
-| ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `profiling.enabled`           | `false`                | 主開關。預設關閉；為持續性 CPU 火焰圖選擇加入。                                                                   |
-| `profiling.image.tag`         | `0.152.0`              | `otel/opentelemetry-collector-ebpf-profiler` 映像檔標籤。此 profiler 處於 pre-1.0；請釘選到一個已知良好的版本。   |
-| `profiling.samplesPerSecond`  | `19`                   | 以 Hz 為單位的取樣頻率。上游預設值；避免意外與常見的計時器頻率產生混疊（aliasing）。                              |
-| `profiling.offCpuThreshold`   | `0`                    | (0–1] 會啟用 off-CPU 分析 — 診斷鎖定爭用（lock contention）和阻塞式 I/O。預設關閉，因為它會增加 tracepoint 負擔。 |
-| `profiling.tracers`           | `""`_（所有執行階段）_ | 要載入的語言追蹤器（tracer）的以逗號分隔清單。                                                                    |
-| `profiling.obiProcessContext` | `true`                 | 將取樣與 OBI 的追蹤內容關聯，以進行追蹤 ↔ profile 連結。                                                         |
-
-## 其他資料收集（主機指標、飽和度、cAdvisor、KSM、稽核記錄、CSI、CoreDNS）
-
-此 chart 也可以收集：
-
-| `<key>.enabled`                   | 預設 | 它新增了什麼                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hostMetrics`                     | 開啟 | 來自 `/proc` 和 `/sys` 的每個節點 OS 指標 — 磁碟 I/O 佇列深度、檔案系統 inode 使用率、NIC 錯誤計數器、分頁統計資料、平均負載。位於記錄收集器 DaemonSet 內部（沒有額外的 pod）。                                                                                                                                                                                           |
-| `kubeletstats.utilizationMetrics` | 開啟 | 飽和度指標 — 以 request 和 limit 百分比表示的容器與 pod CPU/記憶體。八個衍生的指標家族，為「CPU/Memory vs Request」和「CPU/Memory vs Limit」監視器提供動力。與既有的 `kubeletstats` 接收器使用相同的抓取（scrape），沒有額外的 pod。當 pod 未設定 request/limit 時一律為 0。                                                                                              |
-| `kubeletstats.volumeMetrics`      | 開啟 | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。為「PVC Low Disk Space」監視器提供動力。每個 pod 的每個 PVC 一條序列 — 對大多數叢集而言是有界的，對擁有數千個 PVC 的有狀態工作負載則較重。                                                                                                                                                        |
-| `cadvisor`                        | 開啟 | 從每個節點的 DaemonSet pod 抓取 kubelet 的 `/metrics/cadvisor` 端點，以取得 `kubeletstats` 不會轉譯的容器指標：CFS 節流（`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`）和 OOM kill 事件（`container_oom_events_total`）。一個 relabel 允許清單（allowlist）會在接收器處捨棄其他所有內容，使基數保持有界。                               |
-| `kubeStateMetrics`                | 關閉 | 從 kube-state-metrics 拉取叢集狀態指標：pod 階段（Pending / Terminating）、pod 排程狀態（排程失敗的 pod）、容器等待原因（CrashLoopBackOff、ImagePullBackOff），以及資源配額使用量。`mode: bundled`（預設）會為您部署一個小型的 KSM Deployment；`mode: external` 則透過 `endpoint` 抓取既有的 KSM。預設關閉，因為 bundled 模式會在 chart 的佔用空間中增加一個 Deployment。 |
-| `auditLogs`                       | 關閉 | 從主機追蹤 `/var/log/kubernetes/audit.log`。擷取每一個 Kubernetes API 請求 — 誰對哪個資源做了什麼。僅限自我管理叢集 — 受管理的 K8s（EKS、GKE、AKS、DOKS）會將稽核記錄路由至雲端供應商的 sink。                                                                                                                                                                            |
-| `csi`                             | 關閉 | 自動探索標記為 `app=csi-driver`（或 `app.kubernetes.io/component=csi-driver`）的 pod，並抓取它們的 Prometheus `metrics` 連接埠 — 磁碟區 attach/detach 延遲、佈建失敗、IOPS。                                                                                                                                                                                              |
-| `coreDns`                         | 關閉 | 在 `:9153/metrics` 上抓取叢集的 CoreDNS 服務。呈現查詢速率、延遲、快取命中率、錯誤計數 — 常見的 P99 延遲元兇。                                                                                                                                                                                                                                                            |
+| 選項 | 預設值 | 加入的內容 |
+| --- | --- | --- |
+| `hostMetrics.enabled` | 開啟 | 每個節點來自 `/proc` 和 `/sys` 的作業系統指標：磁碟 I/O 佇列、檔案系統 inode、網路介面錯誤、分頁和平均負載。在節點收集器中執行，不需要額外的 Pod。 |
+| `kubeletstats.utilizationMetrics.enabled` | 開啟 | 容器和 Pod 的 CPU 與記憶體佔其 request 和 limit 的百分比，CPU 和記憶體飽和監測器會讀取這些資料。對於沒有 request 或 limit 的 Pod 一律為 0。 |
+| `kubeletstats.volumeMetrics.enabled` | 開啟 | 每個 PVC 的可用空間和總空間(`k8s.volume.available`、`k8s.volume.capacity`)，PVC Low Disk Space 監測器會讀取這些資料。每個 Pod 的每個 PVC 一個序列。 |
+| `cadvisor.enabled` | 開啟 | 來自每個 kubelet 的 `/metrics/cadvisor` 的 CPU 節流和 OOM 終止：`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total` 和 `container_oom_events_total`，沒有其他內容。 |
+| `kubeStateMetrics.enabled` | 關閉 | 來自 kube-state-metrics 的 Pod 階段(Pending、Terminating)、無法排程的 Pod、容器等待原因(CrashLoopBackOff、ImagePullBackOff)和資源配額使用情況。`kubeStateMetrics.mode: bundled`(預設)會為你執行一個小型 kube-state-metrics；`external` 則讀取你已在執行的執行個體，位於 `kubeStateMetrics.endpoint`。 |
+| `auditLogs.enabled` | 關閉 | Kubernetes 稽核日誌 `/var/log/kubernetes/audit.log`：對 API 的每個請求，由誰發出、針對什麼。僅限自行管理的叢集：受管理的叢集(EKS、GKE、AKS、DOKS)會把它傳送給雲端供應商。 |
+| `csi.enabled` | 關閉 | 來自帶有 `app=csi-driver` 或 `app.kubernetes.io/component=csi-driver` 標籤之 Pod 的 CSI 儲存驅動程式指標：磁碟區掛接和卸離時間、佈建失敗、IOPS。 |
+| `coreDns.enabled` | 關閉 | `:9153/metrics` 上的 CoreDNS 指標：查詢速率、延遲、快取命中和錯誤。 |
+| `controlPlane.enabled` | 關閉 | etcd、API 伺服器、排程器和控制器管理員。僅限自行管理的叢集：受管理的叢集不會公開這些元件。 |
+| `cost.enabled` | 關閉 | 每個工作負載的成本。請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。 |
 
 ## 常用選項
 
-| 選項                                      | 預設                       | 描述                                                                                                                                                                                      |
-| ----------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preset`                                  | （空白 — 視為 `standard`） | 請參閱上方的表格。                                                                                                                                                                        |
-| `oneuptime.url`                           | _(必填)_                   | 您的 OneUptime 實例的 URL。                                                                                                                                                               |
-| `oneuptime.apiKey`                        | _(必填)_                   | 專案 API 金鑰（設定 → API 金鑰）。                                                                                                                                                        |
-| `oneuptime.labels`                        | `{}`                       | 要附加到此 agent 每一筆記錄的專案標籤。每個 `<key>: <value>` 都會成為一個 `oneuptime.label.<key>=<value>` 資源屬性。請參閱上方的自動標記章節。                                            |
-| `clusterName`                             | _(必填)_                   | 此叢集的唯一名稱。會在每一筆記錄上標記為 `k8s.cluster.name`。                                                                                                                             |
-| `namespaceFilters.rules`                  | 從 podLogs 與 ebpfDiscovery 排除 kube-system | 針對 podLogs、ebpfDiscovery、metrics 與 traces 的作用域 include/exclude 規則。模式支援 *，而且 exclude 永遠優先。 |
-| `logs.enabled`                            | `true`                     | 開啟或關閉記錄收集。                                                                                                                                                                      |
-| `logs.mode`                               | （從 `preset` 衍生）       | `daemonset`、`api` 或 `disabled`。覆寫 preset。                                                                                                                                           |
-| `logs.api.replicas`                       | `1`                        | 記錄 tailer Deployment 複本的數量（僅在 API 模式中）。                                                                                                                                    |
-| `ebpf.enabled`                            | `true`                     | 透過 OpenTelemetry eBPF Instrumentation 從每個 pod 自動擷取 HTTP/gRPC 追蹤。請參閱上方章節。                                                                                              |
-| `profiling.enabled`                       | `false`                    | 透過 OpenTelemetry eBPF Profiler 的持續性 CPU 火焰圖。預設關閉；為更多遙測資料選擇加入。請參閱上方章節。                                                                                  |
-| `hostMetrics.enabled`                     | `true`                     | 每個節點的 OS 指標。                                                                                                                                                                      |
-| `kubeletstats.utilizationMetrics.enabled` | `true`                     | 容器與 pod 的 CPU/記憶體飽和度（request 和 limit 的 %）。無額外抓取 — 從 kubeletstats 資料衍生而來。                                                                                      |
-| `kubeletstats.volumeMetrics.enabled`      | `true`                     | 每個 PVC 的磁碟使用量（`k8s.volume.available`、`k8s.volume.capacity`）。                                                                                                                  |
-| `cadvisor.enabled`                        | `true`                     | 抓取此節點的 kubelet `/metrics/cadvisor`，以取得 CFS 節流 + OOM kill 計數器。允許清單限定為 3 個指標。                                                                                    |
-| `kubeStateMetrics.enabled`                | `false`                    | 從 kube-state-metrics 拉取 pod 階段、pod 排程狀態、容器等待原因（CrashLoopBackOff / ImagePullBackOff）和 ResourceQuota 使用量。bundled 與 external 的差異請參閱 `kubeStateMetrics.mode`。 |
-| `auditLogs.enabled`                       | `false`                    | Kubernetes 稽核記錄收集（自我管理叢集）。                                                                                                                                                 |
-| `csi.enabled`                             | `false`                    | CSI 驅動程式 Prometheus 指標。                                                                                                                                                            |
-| `coreDns.enabled`                         | `false`                    | CoreDNS Prometheus 指標。                                                                                                                                                                 |
-| `controlPlane.enabled`                    | `false`                    | 抓取 etcd / api-server / scheduler / controller-manager。僅限自我管理叢集 — 受管理的方案（EKS/GKE/AKS）通常不會公開這些端點。                                                             |
+| 選項 | 預設值 | 作用 |
+| --- | --- | --- |
+| `oneuptime.url` | (必填) | 你的 OneUptime URL。 |
+| `oneuptime.apiKey` | (必填) | 擷取金鑰，來自 **專案設定 → 遙測與 APM → 擷取金鑰**。作為 `x-oneuptime-token` 標頭傳送；專案 API 金鑰無法使用。 |
+| `clusterName` | (必填) | 叢集的名稱，在專案中唯一。每筆記錄都把它作為 `k8s.cluster.name` 攜帶。 |
+| `preset` | (空白：`standard`) | `standard`、`gke-autopilot` 或 `eks-fargate`。請參閱 [選擇預設組合](#選擇預設組合)。 |
+| `oneuptime.labels` | `{}` | 此代理程式傳送的每筆記錄的標籤。請參閱 [為叢集加上標籤](#為叢集加上標籤)。 |
+| `namespaceFilters.rules` | 把 `kube-system` 排除在 `podLogs` 和 `ebpfDiscovery` 之外 | 針對 `podLogs`、`ebpfDiscovery`、`metrics` 和 `traces` 包含或排除命名空間的規則。模式可以使用 `*`，排除一律優先。 |
+| `filters.logs.minSeverity` | `""` | 捨棄低於此層級的 Pod 日誌行：`TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR` 或 `FATAL`。 |
+| `filters.metrics.exclude` | `[]` | 要捨棄的指標名稱。 |
+| `sampling.traces.percentage` | `100` | 要保留的追蹤比例，從 0 到 100。追蹤會整個保留或捨棄。 |
+| `logs.enabled` | `true` | 收集 Pod 日誌。 |
+| `logs.mode` | (來自 `preset`) | `daemonset`、`api` 或 `disabled`。覆寫預設組合。 |
+| `logs.windowsPods.enabled` | `false` | 同時追蹤 Windows 節點上的 Pod。請參閱 [混合作業系統叢集](#混合作業系統叢集windows-節點集區)。 |
+| `logs.api.replicas` | `1` | 在 `api` 模式下日誌追蹤器的副本數。 |
+| `ebpf.enabled` | `true` | eBPF 追蹤和請求指標。請參閱 [使用 eBPF 的應用程式追蹤](#使用-ebpf-的應用程式追蹤)。 |
+| `profiling.enabled` | `false` | CPU 火焰圖。請參閱 [持續 CPU 剖析](#持續-cpu-剖析)。 |
+| `kubeStateMetrics.enabled` | `false` | 來自 kube-state-metrics 的叢集狀態。 |
+| `aiAgent.enabled` | `true` | Kubernetes AI 代理程式。它可以做什麼，請參閱 [Kubernetes AI 代理程式](/docs/telemetry/kubernetes-agent)。 |
 
-如需完整清單，請參閱 [chart 的 `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml)。
+Chart 的 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) 列出並說明了每個選項，[Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) 則介紹了篩選、取樣以及如何控制資料量。
 
 ## 升級
 
@@ -325,7 +382,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --reset-then-reuse-values
 ```
 
-`--reset-then-reuse-values`（Helm 3.14+）會保留您設定的值（preset、叢集名稱、篩選條件），其他所有值則取自新的 chart；在其之上傳入任何新的 `--set` 覆寫值。在 Helm 3.13 或更早版本上，請改用您設定的值來升級：
+`--reset-then-reuse-values`(Helm 3.14 及更新版本)會保留你設定的值——預設組合、叢集名稱、篩選器——並從新 Chart 取得其他所有值。在它後面加入任何新的 `--set`。在 Helm 3.13 或更早版本上，請改為使用你設定的值進行升級：
 
 ```bash
 helm repo update
@@ -334,9 +391,10 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
   --namespace oneuptime-kubernetes-agent -f values.yaml
 ```
 
-請勿使用 `--reuse-values`：它也會保留您升級前所用 chart 的預設值，因此較新 chart 的預設值（包括其 eBPF 映像）永遠不會套用。當某個 release 以較舊 chart 的預設值執行時，Helm 在安裝或升級後列印的說明最後會顯示警告，以及修正它的指令。
+不要使用 `--reuse-values` 升級：它還會保留你升級前那個 Chart 的預設值，因此新 Chart 的預設值(包括其 eBPF 映像檔)永遠不會生效。當某個發行版本使用舊 Chart 的預設值執行時，Helm 在安裝或升級後印出的說明會以一則警告和修正它的命令結尾。
 
-> **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
+> [!WARNING]
+> **eBPF Span 指標有了新名稱。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`(秒)，取代 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：同樣的序列，使用 OBI 保留的名稱(它已淘汰舊名稱)。使用舊名稱的儀表板、圖表或指標監測器在升級後會收不到新資料，也不會報錯——請把它們改為新名稱，並更新所有提到舊名稱的 `filters.metrics` 項目。
 
 ## 解除安裝
 
@@ -347,45 +405,68 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ## 疑難排解
 
-### 安裝失敗，出現「hostPath volumes are not allowed」
+:::details 叢集顯示為 Disconnected，或沒有資料送達
+執行 Chart 的診斷指令碼。它會檢查 Pod、擷取金鑰以及離開叢集的網路路徑，詢問 OneUptime 金鑰是否被接受，並印出一個結論。它只會讀取，不做任何變更：
 
-您的叢集封鎖 hostPath。請切換到 API 模式的 preset：
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+  | bash -s -- -n oneuptime-kubernetes-agent
+```
+
+常見原因(尤其是在重新安裝之後)是擷取金鑰錯誤或已被撤銷：OneUptime 拒絕它，收集器會捨棄每一批資料，而它的 Pod 仍處於 `Running` 狀態。
+:::
+
+:::details 安裝失敗，顯示 "hostPath volumes are not allowed"
+叢集封鎖了 `hostPath`。請切換到透過 Kubernetes API 讀取日誌的預設組合，並關閉 eBPF：
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot   # or eks-fargate
+  --set preset=gke-autopilot \
+  --set ebpf.enabled=false
 ```
 
-### OneUptime 中沒有出現任何記錄
+在 EKS Fargate 上，請使用 `--set preset=eks-fargate`。
+:::
 
-檢查 agent 的 pod：
+:::details 代理程式 Pod 在 Windows 節點上卡在 ImagePullBackOff
+舊版 Chart 會把代理程式的 DaemonSet 排程到 Windows 節點上，而那裡永遠無法提取它們的 Linux 映像檔。執行 `helm upgrade`：目前的 Chart 會把每個工作負載固定在 Linux 節點上，卡住的 Pod 就會消失。若要收集 Windows 節點上 Pod 的日誌，請參閱 [混合作業系統叢集](#混合作業系統叢集windows-節點集區)。
+:::
+
+:::details 沒有日誌送達 OneUptime
+檢查代理程式的 Pod 及其日誌：
 
 ```bash
 kubectl get pods -n oneuptime-kubernetes-agent
 kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
-在 API 模式中，記錄 tailer pod 會在連接埠 13133 上公開 `/healthz` — 透過 `kubectl port-forward` 連線以取得匯出狀態快照。
+在 `api` 模式下，日誌追蹤器會在 `/healthz`(連接埠 13133)上回報其匯出的狀態：用 `kubectl port-forward` 存取它。
+:::
 
-### eBPF DaemonSet pod 處於 `CrashLoopBackOff` 或無法啟動
-
-檢查 OBI pod 的記錄：
+:::details eBPF Pod 處於 CrashLoopBackOff，或無法啟動
+查看 OBI 的日誌：
 
 ```bash
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-常見原因：
+- **核心太舊，或沒有 BTF。** OBI 需要帶 BTF 的 Linux 5.8 或更新版本；在節點上用 `uname -r` 檢查。如果無法升級核心，請用 `--set ebpf.enabled=false` 關閉 eBPF。
+- **特權 Pod 被拒絕。** 有些叢集即使不是 Autopilot 或 Fargate 也會拒絕它們。請關閉 eBPF。
+- **OBI 在執行，但沒有追蹤送達。** 設定 `--set ebpf.printTraces=true` 並再次查看 OBI 的日誌。如果那裡有 Span，表示匯出到 OneUptime 失敗：請檢查 URL 和擷取金鑰。如果那裡沒有 Span，可能是流量被 OBI 無法讀取的 TLS 程式庫(例如靜態連結的程式庫)加密了。
+:::
 
-- **核心太舊或缺少 BTF。** OBI 需要具有 BTF 的 Linux 5.8+。在節點上用 `uname -r` 檢查。如果您無法升級，請停用 eBPF：`--set ebpf.enabled=false`。
-- **特權 pod 被封鎖。** 有些叢集即使在 Autopilot/Fargate 之外也會拒絕特權 pod。請停用 eBPF。
-- **儀表板中沒有追蹤，但 OBI 正在執行。** 設定 `--set ebpf.printTraces=true` 並檢查 OBI 的 stdout — 如果您在那裡看到 span，問題就在於 OTLP 傳遞（請檢查 `OTEL_EXPORTER_OTLP_ENDPOINT` 以及您的 OneUptime URL/API 金鑰）。如果您沒有看到 span，OBI 正在監看的流量可能全都被一個 OBI 無法攔截的 TLS 函式庫加密了（例如它無法辨識的靜態連結 TLS 實作）。
+:::details 開啟追蹤連結後，大型傳輸卡住
+這是 `ebpf.contextPropagation` 在重寫流量：請參閱 [跨服務連結追蹤](#跨服務連結追蹤) 中的警告。用 `--set ebpf.contextPropagation=false` 關閉它。
+:::
 
-### 我的叢集 pod 太多，一個記錄 tailer 複本無法負荷（僅限 API 模式）
+:::details 開啟日誌連結後，應用程式以結束代碼 139 當機
+同一個 Pod 中有透過 `LD_PRELOAD` 載入的 APM 代理程式：請參閱 [與它一起使用會當機的 APM 代理程式](#與它一起使用會當機的-apm-代理程式)。關閉 `ebpf.logToTraceCorrelation`，或讓 `ebpf.logEnricher.services` 指向沒有該代理程式的 Pod。
+:::
 
-透過分片命名空間進行水平擴展。每個命名空間群組部署一次：
+:::details 一個日誌追蹤器不足以應付叢集(api 模式)
+把命名空間分配到多個發行版本中，每個發行版本都用自己的命名空間規則安裝：
 
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
@@ -394,4 +475,14 @@ helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   ...
 ```
 
-或者，調高 `logs.api.replicas` — 但請注意每個複本都會處理所有被允許的命名空間，因此為了去重複，您仍然需要命名空間分片。
+增加 `logs.api.replicas` 會增加追蹤器，但每個追蹤器都會讀取所有允許的命名空間，因此仍需要拆分命名空間以避免重複。
+:::
+
+## 後續步驟
+
+:::cards
+- [Kubernetes 監控](/docs/monitor/kubernetes-monitor): 根據代理程式傳送的資料發出警示。
+- [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent): 篩選、取樣、AI 代理程式，以及如何控制資料量。
+- [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost): 查看每個工作負載的成本。
+- [追蹤監控](/docs/monitor/traces-monitor): 根據 eBPF 擷取的追蹤發出警示。
+:::

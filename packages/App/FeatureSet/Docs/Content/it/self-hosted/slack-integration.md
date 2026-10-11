@@ -151,7 +151,7 @@ Il manifest configura queste funzionalità. Ognuna raggiunge il tuo server sulla
 
 ### Immagini nei messaggi
 
-Le descrizioni di incidenti e avvisi possono contenere screenshot, per esempio quello di un monitor sintetico (vedi [Monitor sintetico](/docs/monitor/incident-alert-templating#monitor-sintetico)). OneUptime li mostra nei messaggi Slack caricando ciascuno nella tua area di lavoro come file privato, il che richiede lo scope del bot `files:write`. Il manifest generato lo include.
+Le descrizioni di incidenti e avvisi possono contenere screenshot, per esempio quello di un monitor sintetico (vedi [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#mostrare-uno-screenshot)). OneUptime li mostra nei messaggi Slack caricando ciascuno nella tua area di lavoro come file privato, il che richiede lo scope del bot `files:write`. Il manifest generato lo include.
 
 Se hai creato la tua app Slack da un manifest più vecchio, aggiungi `files:write` in **OAuth & Permissions > Bot Token Scopes** (o aggiorna l'app dal manifest attuale). Poi seleziona di nuovo **Connect with Slack** in **Impostazioni del progetto > Area di lavoro > Slack**, perché il nuovo scope venga concesso. Fino ad allora, ogni screenshot viene mostrato come il suo testo alternativo.
 

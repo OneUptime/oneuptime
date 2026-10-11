@@ -154,7 +154,7 @@ return {
 };
 ```
 
-Ein Lauf behält bis zu 20 Screenshots, jeden bis 10 MB und insgesamt 50 MB. Ein Screenshot kann auch in dem Vorfall oder der Warnung erscheinen, die ein fehlschlagender Lauf eröffnet — auf dessen Seite und in den E-Mails dazu —, wenn Sie ihn in die Vorfall- oder Warnungsbeschreibung des Monitors setzen. Siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#synthetische-monitore).
+Ein Lauf behält bis zu 20 Screenshots, jeden bis 10 MB und insgesamt 50 MB. Ein Screenshot kann auch in dem Vorfall oder der Warnung erscheinen, die ein fehlschlagender Lauf eröffnet — auf dessen Seite und in den E-Mails dazu —, wenn Sie ihn in die Vorfall- oder Warnungsbeschreibung des Monitors setzen. Siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen).
 
 :::details Screenshots zurückgeben (veraltet)
 Aus Gründen der Abwärtskompatibilität können Sie Screenshots auch als Teil des Rückgabewerts aus dem Skript zurückgeben. So zurückgegebene Screenshots werden **nur** erfasst, wenn das Skript normal endet — sie gehen verloren, wenn das Skript einen Fehler wirft. Bevorzugen Sie das Seitenkanal-Muster oben, wenn Sie Belege für Fehlschläge wollen.
@@ -295,6 +295,6 @@ Die Sonde läuft außerhalb ihres Docker-Images, ohne installiertes Chromium ode
 
 :::cards
 - [Benutzerdefinierte Code-Überwachung](/docs/monitor/custom-code-monitor): APIs mit einem Skript prüfen, ohne Browser.
-- [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#synthetische-monitore): Den Screenshot des fehlgeschlagenen Laufs in den Vorfall übernehmen.
+- [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen): Den Screenshot des fehlgeschlagenen Laufs in den Vorfall übernehmen.
 - [Überwachungs-Geheimnisse](/docs/monitor/monitor-secrets): Zugangsdaten aus Ihrem Skript heraushalten.
 :::

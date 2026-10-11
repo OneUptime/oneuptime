@@ -154,7 +154,7 @@ return {
 };
 ```
 
-En kjøring beholder opptil 20 skjermbilder, hvert på opptil 10 MB og 50 MB til sammen. Et skjermbilde kan også vises i hendelsen eller varselet som en mislykket kjøring åpner — på siden og i e-postene om den — ved å plassere det i monitorens beskrivelse for hendelser eller varsler. Se [Vis et skjermbilde](/docs/monitor/incident-alert-templating#syntetiske-monitorer).
+En kjøring beholder opptil 20 skjermbilder, hvert på opptil 10 MB og 50 MB til sammen. Et skjermbilde kan også vises i hendelsen eller varselet som en mislykket kjøring åpner — på siden og i e-postene om den — ved å plassere det i monitorens beskrivelse for hendelser eller varsler. Se [Vis et skjermbilde](/docs/monitor/incident-alert-templating#vis-et-skjermbilde).
 
 :::details Returnere skjermbilder (eldre metode)
 For bakoverkompatibilitet kan du også returnere skjermbilder fra skriptet som en del av returverdien. Skjermbilder som returneres slik, tas **bare** vare på når skriptet fullføres normalt — de går tapt hvis skriptet kaster en feil. Foretrekk sidekanalmønsteret ovenfor når du vil ha bevis på feil.
@@ -295,6 +295,6 @@ Sonden kjører utenfor Docker-bildet sitt, uten Chromium eller Firefox installer
 
 :::cards
 - [Egendefinert kode-overvåking](/docs/monitor/custom-code-monitor): Sjekk API-er med et skript, uten nettleser.
-- [Vis et skjermbilde](/docs/monitor/incident-alert-templating#syntetiske-monitorer): Sett skjermbildet fra den mislykkede kjøringen inn i hendelsen.
+- [Vis et skjermbilde](/docs/monitor/incident-alert-templating#vis-et-skjermbilde): Sett skjermbildet fra den mislykkede kjøringen inn i hendelsen.
 - [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold påloggingsinformasjon utenfor skriptet ditt.
 :::

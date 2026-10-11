@@ -154,7 +154,7 @@ return {
 };
 ```
 
-Un'esecuzione conserva fino a 20 screenshot, ciascuno fino a 10 MB e 50 MB in totale. Uno screenshot può anche comparire nell'incidente o nell'avviso aperto da un'esecuzione fallita (nella sua pagina e nelle email che lo riguardano) se lo inserite nella descrizione di incidente o di avviso del monitor. Consultate [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#monitor-sintetico).
+Un'esecuzione conserva fino a 20 screenshot, ciascuno fino a 10 MB e 50 MB in totale. Uno screenshot può anche comparire nell'incidente o nell'avviso aperto da un'esecuzione fallita (nella sua pagina e nelle email che lo riguardano) se lo inserite nella descrizione di incidente o di avviso del monitor. Consultate [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#mostrare-uno-screenshot).
 
 :::details Restituire gli screenshot (metodo precedente)
 Per compatibilità con il passato, potete anche restituire gli screenshot dallo script come parte del valore di ritorno. Gli screenshot restituiti così vengono conservati **solo** quando lo script termina normalmente: vanno persi se lo script genera un errore. Preferite il canale laterale descritto sopra quando volete prove dei fallimenti.
@@ -239,7 +239,7 @@ Un'esecuzione può catturare al massimo 100 metriche, solo con valori numerici, 
 
 Ogni filtro viene controllato su ogni esecuzione, e corrisponde quando corrisponde anche una sola esecuzione. I filtri vengono controllati separatamente, non esecuzione per esecuzione: **Errore** Is Not Empty insieme a **Tipo di browser** Equal To `Firefox` corrisponde quando un'esecuzione qualsiasi è fallita e una delle esecuzioni ha usato Firefox, non solo quando è fallita l'esecuzione Firefox. Per tenere d'occhio un browser da solo, dategli un monitor tutto suo.
 
-Nei modelli di incidente e di avviso, ogni esecuzione si trova in `{{syntheticResponses}}`: consultate [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating#monitor-sintetico).
+Nei modelli di incidente e di avviso, ogni esecuzione si trova in `{{syntheticResponses}}`: consultate [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating#monitor-sintetici).
 
 ## Moduli disponibili nello script
 
@@ -295,6 +295,6 @@ La sonda è in esecuzione fuori dalla sua immagine Docker, senza Chromium né Fi
 
 :::cards
 - [Monitor codice personalizzato](/docs/monitor/custom-code-monitor): Controllate le API con uno script, senza browser.
-- [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#monitor-sintetico): Inserite nell'incidente lo screenshot dell'esecuzione fallita.
+- [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#mostrare-uno-screenshot): Inserite nell'incidente lo screenshot dell'esecuzione fallita.
 - [Segreti del monitor](/docs/monitor/monitor-secrets): Tenete le credenziali fuori dallo script.
 :::
