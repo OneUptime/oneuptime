@@ -26,17 +26,15 @@ export function getEventStateMenuStates<T extends EventStateMenuState>(data: {
 }): Array<T> {
   const statesToMoveTo: Array<T> = StateMoveUtil.getStatesToMoveTo({
     list: data.list,
-    states: data.states.map(
-      (state: T, index: number): EventStateMenuState => {
-        return {
-          id: state.id,
-          order:
-            state.order === undefined || state.order === null
-              ? index + 1
-              : state.order,
-        };
-      },
-    ),
+    states: data.states.map((state: T, index: number): EventStateMenuState => {
+      return {
+        id: state.id,
+        order:
+          state.order === undefined || state.order === null
+            ? index + 1
+            : state.order,
+      };
+    }),
     currentStateId: data.currentStateId,
   }).map((state: EventStateMenuState): T => {
     return data.states.find((given: T): boolean => {

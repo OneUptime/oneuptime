@@ -116,6 +116,10 @@ const RECORD_SERVICES: Array<RecordService> = [
   },
 ];
 
+// A TypeScript source file, and a call of an episode timeline's reopen.
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+const CREATE_REOPEN_CALL: RegExp = /createReopen\(/;
+
 // The rule's own sentences: written only by Common/Utils/StateMove.
 const REFUSALS: RegExp =
   /cannot be same as previous state|cannot be same as next state|cannot transition to/;
@@ -183,9 +187,9 @@ describe("every state timeline asks the one state move rule", () => {
     (timeline: Timeline) => {
       const source: string = code(timeline.file);
 
-      expect(
-        count(source, /StateMoveCheck\.assertTimelineRowAllowed\(/),
-      ).toBe(1);
+      expect(count(source, /StateMoveCheck\.assertTimelineRowAllowed\(/)).toBe(
+        1,
+      );
       expect(source).toContain(`record: StateMoveRecord.${timeline.record},`);
     },
   );
@@ -218,9 +222,7 @@ describe("every state timeline asks the one state move rule", () => {
 
       // The row before it is read with its state's place and name.
       expect(source).toMatch(
-        new RegExp(
-          `${relation}: \\{[^}]*order: true,[^}]*name: true,[^}]*\\}`,
-        ),
+        new RegExp(`${relation}: \\{[^}]*order: true,[^}]*name: true,[^}]*\\}`),
       );
       expect(source).toMatch(
         new RegExp(`order: stateBeforeThis\\.${relation}\\?\\.order,`),
@@ -232,9 +234,12 @@ describe("every state timeline asks the one state move rule", () => {
     const writers: Array<string> = [];
 
     const walk: (directory: string) => void = (directory: string): void => {
-      for (const entry of fs.readdirSync(path.join(REPOSITORY_ROOT, directory), {
-        withFileTypes: true,
-      })) {
+      for (const entry of fs.readdirSync(
+        path.join(REPOSITORY_ROOT, directory),
+        {
+          withFileTypes: true,
+        },
+      )) {
         const relative: string = `${directory}/${entry.name}`;
 
         if (entry.isDirectory()) {
@@ -244,7 +249,7 @@ describe("every state timeline asks the one state move rule", () => {
           continue;
         }
 
-        if (/\.tsx?$/.test(entry.name) && writesRefusal(relative)) {
+        if (TYPESCRIPT_FILE.test(entry.name) && writesRefusal(relative)) {
           writers.push(relative);
         }
       }
@@ -285,9 +290,12 @@ describe("an episode is moved back up its list only by its grouping rule's reope
     const callers: Array<string> = [];
 
     const walk: (directory: string) => void = (directory: string): void => {
-      for (const entry of fs.readdirSync(path.join(REPOSITORY_ROOT, directory), {
-        withFileTypes: true,
-      })) {
+      for (const entry of fs.readdirSync(
+        path.join(REPOSITORY_ROOT, directory),
+        {
+          withFileTypes: true,
+        },
+      )) {
         const relative: string = `${directory}/${entry.name}`;
 
         if (entry.isDirectory()) {
@@ -297,7 +305,10 @@ describe("an episode is moved back up its list only by its grouping rule's reope
           continue;
         }
 
-        if (/\.tsx?$/.test(entry.name) && /createReopen\(/.test(code(relative))) {
+        if (
+          TYPESCRIPT_FILE.test(entry.name) &&
+          CREATE_REOPEN_CALL.test(code(relative))
+        ) {
           callers.push(relative);
         }
       }
@@ -357,9 +368,9 @@ describe("an update that writes a record's state asks the rule before anything i
     (service: RecordService) => {
       const source: string = code(service.file);
 
-      expect(
-        count(source, /StateMoveCheck\.assertUpdateMovesAllowed\(/),
-      ).toBe(1);
+      expect(count(source, /StateMoveCheck\.assertUpdateMovesAllowed\(/)).toBe(
+        1,
+      );
       expect(source).toMatch(
         new RegExp(
           `StateMoveCheck\\.assertUpdateMovesAllowed\\(\\{\\s*record: StateMoveRecord\\.${service.record},\\s*updateBy: updateBy,\\s*stateKeys: ${service.stateKeys},`,

@@ -24,7 +24,9 @@ import type { Mock } from "jest-mock";
  * are faked here; what is pinned is what is read, when, and what is refused.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("7d000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "7d000000-0000-4000-8000-000000000001",
+);
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "7d000000-0000-4000-8000-000000000002",
 );
@@ -87,9 +89,9 @@ async function rejection(promise: Promise<unknown>): Promise<unknown> {
 }
 
 describe("StateMoveCheck.assertTimelineRowAllowed", () => {
-  function readerOf(state: IncidentState | null): Mock<
-    () => Promise<StateMoveState | null>
-  > {
+  function readerOf(
+    state: IncidentState | null,
+  ): Mock<() => Promise<StateMoveState | null>> {
     return jest.fn(async (): Promise<StateMoveState | null> => {
       return state ? { name: state.name, order: state.order } : null;
     });
@@ -513,9 +515,7 @@ describe("StateMoveCheck.assertUpdateMovesAllowed", () => {
       check.run({ currentIncidentStateId: idOf(here.resolved) }),
     );
 
-    expect((error as Error).message).toContain(
-      "Episode cannot transition to",
-    );
+    expect((error as Error).message).toContain("Episode cannot transition to");
     expect(check.getProjectStates).toHaveBeenCalledTimes(2);
   });
 

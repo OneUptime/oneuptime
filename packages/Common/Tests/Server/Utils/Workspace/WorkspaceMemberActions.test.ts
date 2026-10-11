@@ -1576,12 +1576,10 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
             kind: kind,
             stateService: ScheduledMaintenanceStateService,
             stubProjectStates: (): Array<StateRow> => {
-              const states: Array<ScheduledMaintenanceState> = projectStates(
-                (): ScheduledMaintenanceState => {
+              const states: Array<ScheduledMaintenanceState> =
+                projectStates((): ScheduledMaintenanceState => {
                   return new ScheduledMaintenanceState();
-                },
-                ["Scheduled", "Ongoing", "Ended", "Completed", "Archived"],
-              );
+                }, ["Scheduled", "Ongoing", "Ended", "Completed", "Archived"]);
               jest
                 .spyOn(
                   ScheduledMaintenanceStateService,
@@ -1591,6 +1589,8 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
               return asRows(states);
             },
           };
+        default:
+          throw new Error(`No states for ${kind.type}`);
       }
     },
   );
@@ -1678,7 +1678,9 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
       });
       expect(
         WorkspaceMemberActions.getNoLaterStateMessage(optionsKind.kind.type),
-      ).toBe(`There is no later state to move this ${optionsKind.kind.noun} to.`);
+      ).toBe(
+        `There is no later state to move this ${optionsKind.kind.noun} to.`,
+      );
     },
   );
 

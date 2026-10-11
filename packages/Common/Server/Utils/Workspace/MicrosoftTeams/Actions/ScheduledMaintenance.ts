@@ -509,7 +509,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             break;
           }
 
-          const card: JSONObject = this.buildChangeScheduledMaintenanceStateCard(scheduledMaintenanceId, stateOptions.options);
+          const card: JSONObject =
+            this.buildChangeScheduledMaintenanceStateCard(
+              scheduledMaintenanceId,
+              stateOptions.options,
+            );
 
           await turnContext.sendActivity({
             attachments: [
@@ -665,7 +669,6 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     scheduledMaintenanceId: ObjectID,
     scheduledMaintenanceStates: Array<WorkspaceEventStateOption>,
   ): JSONObject {
-
     const choices: Array<{ title: string; value: string }> =
       scheduledMaintenanceStates.map((state: WorkspaceEventStateOption) => {
         return {

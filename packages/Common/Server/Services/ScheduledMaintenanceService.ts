@@ -921,12 +921,14 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       getProjectStates: (
         projectId: ObjectID,
       ): Promise<Array<ScheduledMaintenanceState>> => {
-        return ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
-          projectId: projectId,
-          props: {
-            isRoot: true,
+        return ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: projectId,
+            props: {
+              isRoot: true,
+            },
           },
-        });
+        );
       },
     });
 

@@ -492,15 +492,17 @@ describe("StateMoveUtil.isMoveAllowed and getStatesToMoveTo", () => {
   });
 
   test("reads the states as models: by _id, with their places", () => {
-    const states: Array<AlertState> = ["Created", "Acknowledged", "Resolved"].map(
-      (name: string, index: number): AlertState => {
-        const state: AlertState = new AlertState();
-        state._id = ObjectID.generate().toString();
-        state.name = name;
-        state.order = index + 1;
-        return state;
-      },
-    );
+    const states: Array<AlertState> = [
+      "Created",
+      "Acknowledged",
+      "Resolved",
+    ].map((name: string, index: number): AlertState => {
+      const state: AlertState = new AlertState();
+      state._id = ObjectID.generate().toString();
+      state.name = name;
+      state.order = index + 1;
+      return state;
+    });
 
     expect(
       StateMoveUtil.getStatesToMoveTo({

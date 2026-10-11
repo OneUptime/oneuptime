@@ -503,8 +503,7 @@ export default class SlackAlertEpisodeActions {
       return;
     }
 
-    const alertStates: Array<WorkspaceEventStateOption> =
-      stateOptions.options;
+    const alertStates: Array<WorkspaceEventStateOption> = stateOptions.options;
 
     const dropdownOptions: Array<DropdownOption> = alertStates.map(
       (state: WorkspaceEventStateOption) => {

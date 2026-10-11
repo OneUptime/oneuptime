@@ -57,8 +57,12 @@ jest.mock("../../../Server/Utils/Logger");
  *     where its latest row puts it, resolvedAt with it.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("7f000000-0000-4000-8000-000000000001");
-const EPISODE_ID: ObjectID = new ObjectID("7f000000-0000-4000-8000-000000000002");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "7f000000-0000-4000-8000-000000000001",
+);
+const EPISODE_ID: ObjectID = new ObjectID(
+  "7f000000-0000-4000-8000-000000000002",
+);
 
 interface States {
   created: ObjectID;
@@ -133,9 +137,10 @@ const INCIDENT_EPISODE: EpisodeKind = {
     }, "0000000001");
   },
   stubProjectStates: (states: States): void => {
-    getJestSpyOn(IncidentStateService, "getAllIncidentStates").mockResolvedValue(
-      states.all,
-    );
+    getJestSpyOn(
+      IncidentStateService,
+      "getAllIncidentStates",
+    ).mockResolvedValue(states.all);
   },
   stubMembers: (memberStates: Array<ObjectID | undefined>): Array<ObjectID> => {
     const ids: Array<ObjectID> = memberStates.map((): ObjectID => {
@@ -412,11 +417,7 @@ describe.each(KINDS)("$name", (kind: EpisodeKind) => {
     });
 
     test("back up the list - the grouping rule's reopen - no member is moved back", async () => {
-      kind.stubMembers([
-        states.acknowledged,
-        states.resolved,
-        states.closed,
-      ]);
+      kind.stubMembers([states.acknowledged, states.resolved, states.closed]);
       const moves: Array<{ memberId: string; stateId: string }> =
         kind.stubMemberMoves();
 
@@ -577,7 +578,9 @@ describe.each(KINDS)("$name", (kind: EpisodeKind) => {
       stubEpisodeIn(states.closed);
 
       await expect(
-        beforeUpdate({ [kind.stateRelation]: { _id: states.resolved.toString() } }),
+        beforeUpdate({
+          [kind.stateRelation]: { _id: states.resolved.toString() },
+        }),
       ).rejects.toThrow(
         "Episode cannot transition to Resolved state from Closed state",
       );
@@ -603,7 +606,9 @@ describe.each(KINDS)("$name", (kind: EpisodeKind) => {
       stubEpisodeIn(states.resolved);
       const statesRead: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
         kind === INCIDENT_EPISODE ? IncidentStateService : AlertStateService,
-        kind === INCIDENT_EPISODE ? "getAllIncidentStates" : "getAllAlertStates",
+        kind === INCIDENT_EPISODE
+          ? "getAllIncidentStates"
+          : "getAllAlertStates",
       ).mockResolvedValue(states.all as never);
 
       // Back up the list, as a grouping rule's reopen carries it over: taken.
@@ -642,7 +647,9 @@ describe.each(KINDS)("$name", (kind: EpisodeKind) => {
       expect(String(change["episodeId"])).toBe(EPISODE_ID.toString());
       expect(
         String(
-          change[kind === INCIDENT_EPISODE ? "incidentStateId" : "alertStateId"],
+          change[
+            kind === INCIDENT_EPISODE ? "incidentStateId" : "alertStateId"
+          ],
         ),
       ).toBe(states.resolved.toString());
       expect(change["props"]).toEqual({ isRoot: true });

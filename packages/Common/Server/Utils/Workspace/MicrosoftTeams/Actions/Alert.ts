@@ -383,7 +383,10 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      const card: JSONObject = this.buildChangeAlertStateCard(actionValue, stateOptions.options);
+      const card: JSONObject = this.buildChangeAlertStateCard(
+        actionValue,
+        stateOptions.options,
+      );
 
       await turnContext.sendActivity({
         attachments: [
@@ -572,7 +575,6 @@ export default class MicrosoftTeamsAlertActions {
     alertId: string,
     alertStates: Array<WorkspaceEventStateOption>,
   ): JSONObject {
-
     const choices: Array<{ title: string; value: string }> = alertStates.map(
       (state: WorkspaceEventStateOption) => {
         return {

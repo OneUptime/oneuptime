@@ -220,7 +220,9 @@ export class Service extends ProjectReferencesService<Model> {
       findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
         return this.findRowsAndHoldUpdateToThem(updateBy, select);
       },
-      getProjectStates: (projectId: ObjectID): Promise<Array<IncidentState>> => {
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<IncidentState>> => {
         return IncidentStateService.getAllIncidentStates({
           projectId: projectId,
           props: {

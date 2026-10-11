@@ -44,8 +44,9 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
    * (Common/Utils/StateMove). Only createReopen adds to it, so nothing a
    * person sends - from the dashboard, a chat or the API - can ask for it.
    */
-  private readonly groupingRuleReopens: WeakSet<CreateBy<IncidentEpisodeStateTimeline>> =
-    new WeakSet<CreateBy<IncidentEpisodeStateTimeline>>();
+  private readonly groupingRuleReopens: WeakSet<
+    CreateBy<IncidentEpisodeStateTimeline>
+  > = new WeakSet<CreateBy<IncidentEpisodeStateTimeline>>();
 
   public constructor() {
     super(IncidentEpisodeStateTimeline);
