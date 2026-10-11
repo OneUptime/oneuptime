@@ -1,283 +1,314 @@
-# پیکربندی SMTP
+# SMTP
 
-‏OneUptime از فرستادن ایمیل از راه کارسازهای سفارشی SMTP با سه روش احراز هویت پشتیبانی می‌کند:
+ایمیل‌های OneUptime را از راه سرور ایمیل خودتان بفرستید. یک پروژه پیکربندی SMTP می‌افزاید که صفحات وضعیتش هنگام فرستادن ایمیل به کار می‌برند، و یک نصب خودمیزبان سروری را تنظیم می‌کند که OneUptime بقیهٔ ایمیل‌ها را با آن می‌فرستد. هر دو از سه روش ورود پشتیبانی می‌کنند:
 
-- **نام کاربری و گذرواژه** — احراز هویت سنتی SMTP
-- **OAuth 2.0** — احراز هویت امروزی برای Microsoft 365 و Google Workspace
-- **هیچ** — برای کارسازهای رله که به احراز هویت نیاز ندارند
+- **نام کاربری و رمز عبور**: احراز هویت سنتی SMTP.
+- **OAuth 2.0**: برای Microsoft 365 و Google Workspace، که احراز هویت پایه در آن‌ها اغلب خاموش است.
+- **هیچ‌کدام**: برای سرورهای رله‌ای که به احراز هویت نیاز ندارند.
 
-بخش اول زیر نشان می‌دهد هر تنظیم کجاست. بقیهٔ این راهنما دربارهٔ احراز هویت OAuth 2.0 برای Microsoft 365 و Google Workspace است.
+```mermaid title="کدام سرور ایمیل چه چیزی را می‌فرستد"
+flowchart TB
+    SP["ایمیل‌های یک صفحهٔ وضعیت"] --> Q{"صفحه یک پیکربندی<br/>SMTP سفارشی برگزیده؟"}
+    Q -->|"بله"| P["پیکربندی SMTP پروژه"]
+    Q -->|"نه"| D["سرور ایمیل خود OneUptime"]
+    E["همهٔ ایمیل‌های دیگر OneUptime"] --> D
+```
 
-## افزودن سرور SMTP
+در یک نصب خودمیزبان، سرور ایمیل خود OneUptime همان سروری است که در Admin Dashboard تنظیم می‌کنید. یک صفحهٔ وضعیت پیکربندی SMTP را در کارت **SMTP سفارشی** صفحهٔ **تنظیمات مشترکان** خود برمی‌گزیند.
 
-سرور ایمیل یک پروژه را در **Project Settings > Notifications > Notification Settings**، در کارت **Custom SMTP Configs** اضافه کنید. در نصب خودمیزبان، سروری که خود OneUptime از آن ایمیل می‌فرستد در **Admin Dashboard > Settings > Emails**، در کارت **Custom Email and SMTP Settings** تنظیم می‌شود. هر دو فرم همین موارد را در دو مرحله می‌پرسند:
+:::cards
+- [افزودن یک سرور ایمیل](#افزودن-یک-سرور-smtp): دو گام، و بقیه بسته.
+- [Microsoft 365](#پیکربندی-microsoft-365): OAuth با ثبت برنامه در Entra.
+- [Google Workspace](#پیکربندی-google-workspace): OAuth با حساب سرویس.
+- [عیب‌یابی](#عیبیابی): خطاهای رایج و معنای آن‌ها.
+:::
 
-1. **Server**: **Name** (فقط پیکربندی‌های پروژه)، **Hostname**، **Port** (پیکربندی جدید با `587` شروع می‌شود)، **Username** و **Password**.
-2. **Sender**: **From Email** و **From Name** که ایمیل‌های شما از آن‌ها ارسال می‌شوند.
+## افزودن یک سرور SMTP
 
-بقیهٔ موارد در انتهای مرحلهٔ Server زیر **More fields** جمع شده‌اند. تا وقتی جمع شده است، عنوان آن می‌گوید ایمیل چگونه ارسال می‌شود، برای مثال «ایمیل از طریق SMTP ارسال می‌شود و ورود با نام کاربری و رمز عبور انجام می‌شود. TLS الزامی است.»
+سرور ایمیل یک پروژه را در کارت **پیکربندی‌های SMTP سفارشی** در **تنظیمات پروژه** > **اعلان‌ها** > **تنظیمات اعلان** می‌افزایید. در یک نصب خودمیزبان، سروری که خود OneUptime با آن ایمیل می‌فرستد در کارت **تنظیمات ایمیل سفارشی و SMTP** در **Admin Dashboard** > **تنظیمات** > **اعلان‌ها** > **ایمیل‌ها** تنظیم می‌شود. هر دو فرم همان چیزها را در دو گام می‌پرسند.
 
-| فیلد | کاری که انجام می‌دهد |
+:::steps
+### فرم را باز کنید
+
+:::tabs
+@tab پروژه
+در کارت **پیکربندی‌های SMTP سفارشی** در **تنظیمات پروژه** > **اعلان‌ها** > **تنظیمات اعلان**، روی **ساخت پیکربندی SMTP** کلیک کنید.
+@tab نمونهٔ خودمیزبان
+در Admin Dashboard، **تنظیمات** را باز کنید، سپس **اعلان‌ها** > **ایمیل‌ها** را در منوی کناری (**اعلان‌ها** در آغاز بسته است). در کارت **تنظیمات سرور ایمیل**، روی **ویرایش سرور** کلیک کنید و **نوع سرور ایمیل** را روی `Custom SMTP` بگذارید. سپس در کارت **تنظیمات ایمیل سفارشی و SMTP** که زیر آن پدیدار می‌شود، روی **ویرایش پیکربندی SMTP** کلیک کنید.
+:::
+
+### گام سرور را پر کنید
+
+در گام **سرور**، **نام** (فقط پیکربندی‌های پروژه)، **نام میزبان**، **پورت** (پیکربندی‌های تازهٔ پروژه با `587` آغاز می‌شوند)، **نام کاربری** و **رمز عبور** را وارد کنید.
+
+### فیلدهای بیشتر را بررسی کنید
+
+بقیهٔ چیزها زیر **فیلدهای بیشتر** در پایان گام **سرور** بسته‌اند. تا وقتی بسته است، عنوانش می‌گوید ایمیل چگونه فرستاده می‌شود، برای نمونه: «ایمیل از طریق SMTP ارسال می‌شود و ورود با نام کاربری و رمز عبور انجام می‌شود. TLS الزامی است.» آن را فقط وقتی باز کنید که لازم است یکی از تنظیمات جدول زیر را تغییر دهید.
+
+### گام فرستنده را پر کنید
+
+در گام **فرستنده**، **ایمیل فرستنده** و **نام فرستنده** را که ایمیل‌هایتان از آن‌ها می‌آیند وارد کنید. سرور شما باید فرستادن از آن نشانی را مجاز بداند.
+
+### ذخیره کنید و یک ایمیل آزمایشی بفرستید
+
+پیکربندی را ذخیره کنید. پس از ذخیره کردن یک پیکربندی پروژه، با **ارسال ایمیل آزمایشی** در ردیف آن بررسی کنید که کار می‌کند. این کار به دسترسی افزودن پیکربندی SMTP نیاز دارد: **Project Owner**، **Project Admin**، یا **Create SMTP Config** و **Read SMTP Config** در یک نقش سفارشی. در OneUptime Cloud، مانند افزودن یک پیکربندی، به طرح **Growth** هم نیاز دارد. برای دیگران دکمه قفل است و راهنمای آن می‌گوید چه چیزی لازم است.
+
+آزمایش می‌پرسد به کدام نشانی **ایمیل** فرستاده شود، که در آغاز نشانی خود شماست. بررسی کنید که پیام برسد.
+:::
+
+تنظیمات زیر **فیلدهای بیشتر** این‌ها هستند:
+
+| فیلد | چه می‌کند |
 | --- | --- |
-| **Transport** | `SMTP` (پیش‌فرض)، یا `Microsoft Graph` برای تننت Microsoft 365 که SMTP AUTH در آن خاموش است. با انتخاب Microsoft Graph، نام میزبان، پورت، نام کاربری و رمز عبور پنهان و فیلدهای OAuth نمایش داده می‌شوند. |
-| **Require TLS** | در پیکربندی جدید پروژه روشن است. ایمیل فقط از طریق اتصال رمزگذاری‌شده با گواهی معتبر ارسال می‌شود. وقتی این گزینه خاموش باشد، ایمیل فقط در صورتی رمزگذاری می‌شود که سرور آن را ارائه دهد و گواهی بررسی نمی‌شود. پورت ۴۶۵ همیشه رمزگذاری‌شده است. |
-| **Authentication Type** | `Username and Password` (پیش‌فرض)، `OAuth`، یا `None` برای رله‌ای که به ورود نیاز ندارد. |
-| **فیلدهای OAuth** | نوع ارائه‌دهنده، شناسهٔ کلاینت، رمز کلاینت، نشانی توکن و دامنه (scope)، که با انتخاب OAuth یا Microsoft Graph نمایش داده می‌شوند. |
-| **Description** | یادداشتی برای تیم شما (فقط پیکربندی‌های پروژه). |
+| **انتقال** | `SMTP` (پیش‌فرض)، یا `Microsoft Graph` برای مستأجرهای Microsoft 365 که SMTP AUTH در آن‌ها خاموش است. انتخاب Microsoft Graph نام میزبان، پورت، نام کاربری و رمز عبور را پنهان می‌کند و فیلدهای OAuth را نشان می‌دهد. |
+| **الزام TLS** | در پیکربندی‌های تازهٔ پروژه روشن است. ایمیل فقط از طریق اتصال رمزگذاری‌شده با گواهی معتبر ارسال می‌شود. وقتی این گزینه خاموش باشد، ایمیل فقط در صورتی رمزگذاری می‌شود که سرور آن را ارائه دهد و گواهی بررسی نمی‌شود. پورت ۴۶۵ همیشه رمزگذاری‌شده است. |
+| **نوع احراز هویت** | `Username and Password` (پیش‌فرض)، `OAuth`، یا `None` برای رله‌هایی که ورود نمی‌خواهند. |
+| **فیلدهای OAuth** | **نوع ارائه‌دهنده OAuth**، **شناسه کلاینت OAuth**، **کلید محرمانه کلاینت OAuth**، **نشانی توکن OAuth** و **دامنه دسترسی OAuth**، که با انتخاب OAuth یا Microsoft Graph نمایش داده می‌شوند. |
+| **توضیحات** | یادداشتی برای تیم شما (فقط پیکربندی‌های پروژه). |
 
-**Microsoft Graph.** **More fields** را باز کنید، **Transport** را روی `Microsoft Graph` بگذارید و یک برنامهٔ Azure با مجوز برنامهٔ **Mail.Send** را وارد کنید: شناسهٔ کلاینت و رمز کلاینت آن، نشانی توکن `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` و دامنهٔ `https://graph.microsoft.com/.default`. ایمیل از صندوق پستی **From Email** ارسال می‌شود که باید یک صندوق پستی دارای مجوز در تننت شما باشد.
+**Microsoft Graph.** **فیلدهای بیشتر** را باز کنید، **انتقال** را روی `Microsoft Graph` بگذارید، و اطلاعات یک برنامهٔ Azure با دسترسی برنامهٔ **Mail.Send** را وارد کنید: شناسهٔ کلاینت و کلید محرمانهٔ کلاینت آن، نشانی توکن `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` و دامنهٔ دسترسی `https://graph.microsoft.com/.default`. ایمیل از صندوق **ایمیل فرستنده** فرستاده می‌شود، که باید صندوقی دارای مجوز در مستأجر شما باشد.
 
-پس از ذخیرهٔ پیکربندی پروژه، **Send Test Email** در ردیف آن بررسی می‌کند که کار می‌کند. این کار به مجوز افزودن پیکربندی‌های SMTP نیاز دارد: **Project Owner**، **Project Admin** یا **Create SMTP Config** و **Read SMTP Config** در یک نقش سفارشی. در OneUptime Cloud، مانند افزودن یک پیکربندی، به طرح **Growth** هم نیاز دارد. برای هر کس دیگری قفل است و راهنمای آن می‌گوید چه لازم است.
+> [!NOTE]
+> در OneUptime Cloud، سرور ایمیل یک پروژه باید از اینترنت در دسترس باشد: میزبانی که به نشانی خصوصی یا داخلی ترجمه شود رد می‌شود. در یک نصب خودمیزبان، نشانی‌های خصوصی مجازند مگر آنکه `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` برابر `true` باشد، اما نشانی‌های loopback و link-local همیشه رد می‌شوند. سرور ایمیل خود نمونه به این شکل بررسی نمی‌شود.
 
 ## احراز هویت OAuth 2.0
 
-‏OAuth 2.0 راهی امن‌تر برای احراز هویت با کارسازهای ایمیل فراهم می‌کند، به‌ویژه برای محیط‌های سازمانی‌ای که احراز هویت پایه را غیرفعال کرده‌اند. OneUptime از دو نوع اعطای OAuth پشتیبانی می‌کند:
+OAuth 2.0 به OneUptime امکان می‌دهد بدون رمز عبور به سرور ایمیل شما وارد شود، و سرویس‌های ایمیل سازمانی روزبه‌روز بیشتر آن را الزامی می‌کنند. OneUptime از دو نوع اعطای OAuth پشتیبانی می‌کند:
 
-- **Client Credentials** — به کار رفته توسط Microsoft 365 و بیشتر ارائه‌دهندگان OAuth
-- **JWT Bearer** — به کار رفته توسط حساب‌های سرویس Google Workspace
+- **Client Credentials**: Microsoft 365 و بیشتر ارائه‌دهندگان OAuth از آن استفاده می‌کنند.
+- **JWT Bearer**: حساب‌های سرویس Google Workspace از آن استفاده می‌کنند.
 
-### فیلدهای الزامی برای OAuth
+```mermaid title="OneUptime چگونه با OAuth وارد می‌شود"
+sequenceDiagram
+    participant O as OneUptime
+    participant T as نشانی توکن
+    participant M as سرور ایمیل
+    O->>T: درخواست توکن دسترسی
+    T-->>O: توکن دسترسی
+    Note over O: نگهداری در حافظهٔ نهان و<br/>تازه‌سازی پیش از انقضا
+    O->>M: ورود با توکن
+    O->>M: فرستادن ایمیل
+```
 
-هنگام پیکربندی SMTP با احراز هویت OAuth در OneUptime، به این‌ها نیاز خواهید داشت:
+**نوع احراز هویت** و فیلدهای OAuth در گام سرور فرم، زیر **فیلدهای بیشتر** هستند. برای ورود با OAuth این‌ها را پر کنید:
 
 | فیلد | توضیح |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **Hostname** | نشانی کارساز SMTP |
-| **Port** | درگاه SMTP (معمولاً ۵۸۷ برای STARTTLS یا ۴۶۵ برای TLS ضمنی) |
-| **Username** | نشانی ایمیلی که از آن فرستاده می‌شود |
-| **Authentication Type** | «OAuth» را برگزینید |
-| **OAuth Provider Type** | برای Microsoft 365 «Client Credentials»، یا برای Google Workspace «JWT Bearer» را برگزینید |
-| **Client ID** | شناسه برنامه/کلاینت از ارائه‌دهنده OAuth شما (برای Google: ایمیل حساب سرویس) |
-| **Client Secret** | راز کلاینت از ارائه‌دهنده OAuth شما (برای Google: کلید خصوصی) |
-| **Token URL** | نشانی نقطه پایانی توکن OAuth |
-| **Scope** | دامنه(های) لازم OAuth برای دسترسی SMTP |
+| --- | --- |
+| **نام میزبان** | نشانی سرور SMTP |
+| **پورت** | پورت SMTP (معمولاً ۵۸۷ برای STARTTLS، ۴۶۵ برای TLS ضمنی) |
+| **نام کاربری** | نشانی ایمیل صندوقی که می‌فرستد |
+| **نوع احراز هویت** | `OAuth` |
+| **نوع ارائه‌دهنده OAuth** | `Client Credentials` برای Microsoft 365، `JWT Bearer` برای Google Workspace |
+| **شناسه کلاینت OAuth** | شناسهٔ برنامه (کلاینت) از ارائه‌دهندهٔ OAuth شما (برای Google، ایمیل حساب سرویس) |
+| **کلید محرمانه کلاینت OAuth** | کلید محرمانهٔ کلاینت از ارائه‌دهندهٔ OAuth شما (برای Google، کلید خصوصی) |
+| **نشانی توکن OAuth** | نقطهٔ پایانی توکن OAuth ارائه‌دهنده |
+| **دامنه دسترسی OAuth** | دامنهٔ دسترسی OAuth که دسترسی SMTP می‌دهد |
 
-**Authentication Type** و فیلدهای OAuth در مرحلهٔ Server فرم، زیر **More fields** قرار دارند.
-
----
+OneUptime توکن‌های OAuth را در حافظهٔ نهان نگه می‌دارد و پیش از انقضا خودکار تازه‌شان می‌کند.
 
 ## پیکربندی Microsoft 365
 
-برای استفاده از OAuth با Microsoft 365/Exchange Online، باید برنامه‌ای در Microsoft Entra (‏Azure AD) ثبت کنید و دسترسی‌های مناسب را پیکربندی کنید.
+برای استفاده از OAuth با Microsoft 365 (Exchange Online)، یک برنامه در Microsoft Entra ثبت کنید، به آن اجازهٔ فرستادن ایمیل از راه SMTP بدهید، و بگذارید از صندوق فرستنده استفاده کند.
 
-### گام ۱: ثبت یک برنامه در Microsoft Entra
+:::steps
+### برنامه را در Microsoft Entra ثبت کنید
 
-1. به [مرکز مدیریت Microsoft Entra](https://entra.microsoft.com) وارد شوید
-2. به **Identity** > **Applications** > **App registrations** بروید
-3. روی **New registration** کلیک کنید
-4. نامی برای برنامه‌تان وارد کنید (برای نمونه «OneUptime SMTP»)
-5. برای **Supported account types**، گزینه «Accounts in this organizational directory only» را برگزینید
-6. **Redirect URI** را خالی بگذارید (برای جریان اعتبارنامه کلاینت لازم نیست)
-7. روی **Register** کلیک کنید
+1. به [مرکز مدیریت Microsoft Entra](https://entra.microsoft.com) وارد شوید.
+2. به **Identity** > **Applications** > **App registrations** بروید و روی **New registration** کلیک کنید.
+3. یک نام وارد کنید (برای نمونه "OneUptime SMTP")، "Accounts in this organizational directory only" را برگزینید، و **Redirect URI** را خالی بگذارید.
+4. روی **Register** کلیک کنید.
 
-پس از ثبت، این مقادیر را از صفحه **Overview** یادداشت کنید:
+در صفحهٔ **Overview**، **Application (client) ID** (شناسهٔ کلاینت شما) و **Directory (tenant) ID** (برای نشانی توکن) را یادداشت کنید.
 
-- **Application (client) ID** — این Client ID شماست
-- **Directory (tenant) ID** — برای Token URL لازمش خواهید داشت
+### یک کلید محرمانهٔ کلاینت بسازید
 
-### گام ۲: ساخت یک Client Secret
+1. در ثبت برنامه، به **Certificates & secrets** بروید و روی **New client secret** کلیک کنید.
+2. یک توضیح بیفزایید، دورهٔ انقضا را برگزینید و روی **Add** کلیک کنید.
+3. **مقدار کلید محرمانه را بی‌درنگ کپی کنید**: دوباره نمایش داده نمی‌شود.
 
-1. در ثبت برنامه‌تان، به **Certificates & secrets** بروید
-2. روی **New client secret** کلیک کنید
-3. توضیحی بیفزایید و دوره انقضایی برگزینید
-4. روی **Add** کلیک کنید
-5. **مقدار راز را فوراً کپی کنید** — دوباره نشان داده نمی‌شود
+### دسترسی SMTP را بیفزایید
 
-### گام ۳: افزودن دسترسی‌های API برای SMTP
+1. به **API permissions** بروید و روی **Add a permission** کلیک کنید.
+2. **APIs my organization uses** را برگزینید، سپس **Office 365 Exchange Online** را جست‌وجو کنید و برگزینید.
+3. **Application permissions** را برگزینید، **SMTP.SendAsApp** را تیک بزنید و روی **Add permissions** کلیک کنید.
+4. روی **Grant admin consent for [your organization]** کلیک کنید (به حقوق مدیر نیاز دارد).
 
-1. به **API permissions** بروید
-2. روی **Add a permission** کلیک کنید
-3. گزینه **APIs my organization uses** را برگزینید
-4. **Office 365 Exchange Online** را جستجو و برگزینید
-5. **Application permissions** را برگزینید
-6. **SMTP.SendAsApp** را بیابید و تیک بزنید
-7. روی **Add permissions** کلیک کنید
-8. روی **Grant admin consent for [سازمان شما]** کلیک کنید (به امتیاز مدیر نیاز دارد)
+### اصل سرویس را در Exchange Online ثبت کنید
 
-### گام ۴: ثبت Service Principal در Exchange Online
-
-پیش از آنکه برنامه‌تان بتواند ایمیل بفرستد، باید service principal را در Exchange Online ثبت کنید و دسترسی صندوق پستی بدهید.
-
-1. ماژول PowerShell برای Exchange Online را نصب کنید:
+پیش از آنکه برنامه بتواند ایمیل بفرستد، اصل سرویس آن را در Exchange Online ثبت کنید و به آن دسترسی به صندوق فرستنده بدهید:
 
 ```powershell
+# Install and load the Exchange Online module, then connect
 Install-Module -Name ExchangeOnlineManagement -Force
-```
-
-2. به Exchange Online وصل شوید:
-
-```powershell
 Import-Module ExchangeOnlineManagement
 Connect-ExchangeOnline -Organization <your-tenant-id>
-```
 
-3. ‏service principal را ثبت کنید (از Object ID در **Enterprise Applications** استفاده کنید، نه App Registrations):
-
-```powershell
-# Find the Object ID in Microsoft Entra > Enterprise Applications > Your App > Object ID
+# Register the service principal. Use the Object ID from
+# Microsoft Entra > Enterprise Applications > your app (not App Registrations)
 New-ServicePrincipal -AppId <application-client-id> -ObjectId <enterprise-app-object-id>
-```
 
-4. به service principal دسترسی فرستادن به‌عنوان صندوق پستی مشخصی بدهید:
-
-```powershell
-# Grant full mailbox access to the service principal
+# Give the service principal access to the sending mailbox
 Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal-id> -AccessRights FullAccess
 ```
 
-> **توجه:** از `Add-MailboxPermission` استفاده کنید (نه `Add-RecipientPermission`). دستور `Add-RecipientPermission` فقط `SendAs` را روی گیرنده اعطا می‌کند و برای فرستادن نامه از راه SMTP با OAuth توسط service principal کافی نیست — هنگام فرستادن خطای احراز هویت/دسترسی می‌گیرید. دستور `Add-MailboxPermission` با `FullAccess` همان چیزی است که واقعاً کار می‌کند.
+> [!IMPORTANT]
+> از `Add-MailboxPermission` استفاده کنید، نه `Add-RecipientPermission`. `Add-RecipientPermission` فقط `SendAs` را روی گیرنده می‌دهد، که برای اینکه یک اصل سرویس با OAuth از راه SMTP ایمیل بفرستد کافی نیست، و فرستادن با خطای احراز هویت یا دسترسی شکست می‌خورد.
 
-### گام ۵: پیکربندی در OneUptime
+### پیکربندی SMTP را در OneUptime بسازید
 
-در OneUptime، پیکربندی SMTPای با این تنظیمات بسازید یا ویرایش کنید:
+یک پیکربندی SMTP با این تنظیمات بسازید یا ویرایش کنید، و `<tenant-id>` را با **Directory (tenant) ID** خود جایگزین کنید:
 
 | فیلد | مقدار |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Hostname | `smtp.office365.com` |
-| Port | `587` |
-| Username | نشانی ایمیلی که به آن دسترسی داده‌اید (برای نمونه `sender@yourdomain.com`) |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `Client Credentials` |
-| Client ID | شناسه Application (client) شما از گام ۱ |
-| Client Secret | مقدار راز از گام ۲ |
-| Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Scope | `https://outlook.office365.com/.default` |
-| From Email | همان Username |
-| Require TLS | فعال |
+| --- | --- |
+| نام میزبان | `smtp.office365.com` |
+| پورت | `587` |
+| نام کاربری | نشانی ایمیلی که مجوزش را داده‌اید (برای نمونه `sender@yourdomain.com`) |
+| نوع احراز هویت | `OAuth` |
+| نوع ارائه‌دهنده OAuth | `Client Credentials` |
+| شناسه کلاینت OAuth | **Application (client) ID** شما |
+| کلید محرمانه کلاینت OAuth | مقدار کلید محرمانهٔ کلاینت شما |
+| نشانی توکن OAuth | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
+| دامنه دسترسی OAuth | `https://outlook.office365.com/.default` |
+| ایمیل فرستنده | همان نام کاربری |
+| الزام TLS | روشن |
 
-به‌جای `<tenant-id>` شناسه Directory (tenant) خود از گام ۱ را بگذارید.
-
----
+سپس با **ارسال ایمیل آزمایشی** بررسی کنید.
+:::
 
 ## پیکربندی Google Workspace
 
-‏Google Workspace به **حساب سرویس** با واگذاری در سطح دامنه نیاز دارد تا از طرف کاربران ایمیل بفرستد. این لازم است چون کارسازهای SMTP گوگل از جریان مستقیم اعتبارنامه کلاینت OAuth برای Gmail پشتیبانی نمی‌کنند.
+Google Workspace به یک **حساب سرویس** با واگذاری در سطح دامنه نیاز دارد، که از طرف یک کاربر دامنهٔ شما ایمیل می‌فرستد. سرورهای SMTP گوگل از جریان سادهٔ client credentials برای Gmail پشتیبانی نمی‌کنند.
 
-### پیش‌نیازها
+### پیش از Google Workspace
 
-- حساب Google Workspace (نه Gmail معمولی — حساب‌های مصرفی Gmail از این پشتیبانی نمی‌کنند)
-- دسترسی Super Admin به کنسول مدیریت Google Workspace
-- دسترسی به Google Cloud Console
+- یک حساب Google Workspace. حساب‌های شخصی Gmail از این پشتیبانی نمی‌کنند.
+- دسترسی مدیر ارشد به کنسول مدیریت Google Workspace.
+- دسترسی به Google Cloud Console.
 
-### گام ۱: ساخت یک پروژه Google Cloud
+:::steps
+### یک پروژهٔ Google Cloud بسازید
 
-1. به [Google Cloud Console](https://console.cloud.google.com) بروید
-2. روی فهرست کشویی پروژه کلیک کنید و **New Project** را برگزینید
-3. نام پروژه‌ای وارد کنید و روی **Create** کلیک کنید
-4. پروژه تازه‌تان را برگزینید
+1. به [Google Cloud Console](https://console.cloud.google.com) بروید.
+2. روی فهرست کشویی پروژه کلیک کنید و **New Project** را برگزینید.
+3. یک نام پروژه وارد کنید، روی **Create** کلیک کنید و پروژهٔ تازه را برگزینید.
 
-### گام ۲: فعال کردن Gmail API
+### Gmail API را فعال کنید
 
-1. به **APIs & Services** > **Library** بروید
-2. «Gmail API» را جستجو کنید
-3. روی **Gmail API** و سپس **Enable** کلیک کنید
+1. به **APIs & Services** > **Library** بروید.
+2. "Gmail API" را جست‌وجو کنید، روی **Gmail API** کلیک کنید، سپس روی **Enable**.
 
-### گام ۳: ساخت یک حساب سرویس
+### یک حساب سرویس بسازید
 
-1. به **APIs & Services** > **Credentials** بروید
-2. روی **Create Credentials** > **Service account** کلیک کنید
-3. نام و توضیحی برای حساب سرویس وارد کنید
-4. روی **Create and Continue** کلیک کنید
-5. گام‌های اختیاری را رد کنید و روی **Done** کلیک کنید
+1. به **APIs & Services** > **Credentials** بروید.
+2. روی **Create Credentials** > **Service account** کلیک کنید.
+3. یک نام و توضیح وارد کنید، روی **Create and Continue** کلیک کنید، گام‌های اختیاری را رد کنید و روی **Done** کلیک کنید.
 
-### گام ۴: ساخت کلیدهای حساب سرویس
+### یک کلید حساب سرویس بسازید
 
-1. روی حساب سرویسی که تازه ساختید کلیک کنید
-2. به زبانه **Keys** بروید
-3. روی **Add Key** > **Create new key** کلیک کنید
-4. **JSON** را برگزینید و روی **Create** کلیک کنید
-5. فایل JSON دانلودشده را امن ذخیره کنید — این‌ها را دربر دارد:
-   - `client_id` — شناسه کلاینت شما
-   - `private_key` — راز کلاینت شما (کلید خصوصی)
+1. روی حساب سرویسی که تازه ساختید کلیک کنید و به زبانهٔ **Keys** بروید.
+2. روی **Add Key** > **Create new key** کلیک کنید، **JSON** را برگزینید و روی **Create** کلیک کنید.
+3. فایل JSON دانلودشده را امن نگه دارید. `client_email` آن شناسهٔ کلاینت OAuth شما و `private_key` آن کلید محرمانهٔ کلاینت OAuth شماست.
 
-### گام ۵: فعال کردن واگذاری در سطح دامنه
+### واگذاری در سطح دامنه را فعال کنید
 
-1. در جزئیات حساب سرویس، روی **Show Advanced Settings** کلیک کنید
-2. **Client ID** (شناسه عددی) را یادداشت کنید
-3. گزینه **Enable Google Workspace Domain-wide Delegation** را تیک بزنید
-4. روی **Save** کلیک کنید
+1. در جزئیات حساب سرویس، روی **Show Advanced Settings** کلیک کنید.
+2. **Client ID** عددی را یادداشت کنید.
+3. **Enable Google Workspace Domain-wide Delegation** را تیک بزنید و روی **Save** کلیک کنید.
 
-### گام ۶: مجاز کردن حساب سرویس در مدیریت Google Workspace
+### حساب سرویس را در مدیریت Google Workspace مجاز کنید
 
-1. به [کنسول مدیریت Google Workspace](https://admin.google.com) وارد شوید
-2. به **Security** > **Access and data control** > **API Controls** بروید
-3. روی **Manage Domain Wide Delegation** کلیک کنید
-4. روی **Add new** کلیک کنید
-5. **Client ID** از گام ۵ را وارد کنید
-6. برای **OAuth Scopes** این را وارد کنید: `https://mail.google.com/`
-7. روی **Authorize** کلیک کنید
+1. به [کنسول مدیریت Google Workspace](https://admin.google.com) وارد شوید.
+2. به **Security** > **Access and data control** > **API Controls** بروید و روی **Manage Domain Wide Delegation** کلیک کنید.
+3. روی **Add new** کلیک کنید، **Client ID** عددی گام پیش را وارد کنید، و `https://mail.google.com/` را در **OAuth Scopes** وارد کنید.
+4. روی **Authorize** کلیک کنید.
 
-توجه: ممکن است چند دقیقه تا ۲۴ ساعت طول بکشد تا واگذاری منتشر شود.
+اعمال واگذاری ممکن است از چند دقیقه تا ۲۴ ساعت طول بکشد.
 
-### گام ۷: پیکربندی در OneUptime
+### پیکربندی SMTP را برای Google Workspace بسازید
 
-در OneUptime، پیکربندی SMTPای با این تنظیمات بسازید یا ویرایش کنید:
+یک پیکربندی SMTP با این تنظیمات بسازید یا ویرایش کنید:
 
 | فیلد | مقدار |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hostname | `smtp.gmail.com` |
-| Port | `587` |
-| Username | نشانی ایمیل Google Workspaceای که از آن فرستاده می‌شود (برای نمونه `notifications@yourdomain.com`). حساب سرویس نقش این کاربر را جعل می‌کند. |
-| Authentication Type | `OAuth` |
-| OAuth Provider Type | `JWT Bearer` |
-| Client ID | مقدار `client_email` از JSON حساب سرویس شما (برای نمونه `your-service@your-project.iam.gserviceaccount.com`) |
-| Client Secret | مقدار `private_key` از JSON حساب سرویس شما (کل کلید، شامل `-----BEGIN PRIVATE KEY-----` و `-----END PRIVATE KEY-----`) |
-| Token URL | `https://oauth2.googleapis.com/token` |
-| Scope | `https://mail.google.com/` |
-| From Email | همان Username |
-| Require TLS | فعال |
+| --- | --- |
+| نام میزبان | `smtp.gmail.com` |
+| پورت | `587` |
+| نام کاربری | نشانی ایمیل Google Workspace که ایمیل از آن فرستاده می‌شود (برای نمونه `notifications@yourdomain.com`). حساب سرویس جای این کاربر را می‌گیرد. |
+| نوع احراز هویت | `OAuth` |
+| نوع ارائه‌دهنده OAuth | `JWT Bearer` |
+| شناسه کلاینت OAuth | `client_email` از JSON حساب سرویس (برای نمونه `your-service@your-project.iam.gserviceaccount.com`) |
+| کلید محرمانه کلاینت OAuth | `private_key` از JSON حساب سرویس (کل کلید، همراه با `-----BEGIN PRIVATE KEY-----` و `-----END PRIVATE KEY-----`) |
+| نشانی توکن OAuth | `https://oauth2.googleapis.com/token` |
+| دامنه دسترسی OAuth | `https://mail.google.com/` |
+| ایمیل فرستنده | همان نام کاربری |
+| الزام TLS | روشن |
 
-**مهم:** برای گوگل (JWT Bearer)، شناسه کلاینت همان **ایمیل حساب سرویس** (`client_email`) است، نه `client_id` عددی. حساب سرویس برای فرستادن ایمیل، نقش کاربر مشخص‌شده در فیلد Username را جعل می‌کند.
+سپس با **ارسال ایمیل آزمایشی** بررسی کنید.
+:::
 
----
+> [!IMPORTANT]
+> برای Google (JWT Bearer)، **شناسه کلاینت OAuth** همان **ایمیل حساب سرویس** (`client_email`) است، نه `client_id` عددی. حساب سرویس جای کاربر **نام کاربری** را می‌گیرد تا ایمیل بفرستد.
 
-## رفع اشکال
+## عیب‌یابی
 
-### Microsoft 365
-
-| مشکل | راه‌حل |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
-| «Authentication unsuccessful» | تأیید کنید service principal در Exchange ثبت شده و دسترسی صندوق پستی دارد |
-| «AADSTS700016: Application not found» | بررسی کنید شناسه کلاینت درست است و برنامه در مستأجر شما وجود دارد |
-| «AADSTS7000215: Invalid client secret» | راز کلاینت را دوباره تولید کنید — ممکن است منقضی شده باشد |
-| «The mailbox is not enabled for this operation» | برای اعطای دسترسی به صندوق پستی `Add-MailboxPermission` را اجرا کنید |
-
-### Google Workspace
+### خطاهای Microsoft 365
 
 | مشکل | راه‌حل |
-| --------------------------------------------------- | --------------------------------------------------------------------- |
-| «invalid_grant» | مطمئن شوید واگذاری در سطح دامنه درست پیکربندی و منتشر شده است |
-| «unauthorized_client» | تأیید کنید شناسه کلاینت در کنسول مدیریت Google Workspace مجاز شده است |
-| «access_denied» | بررسی کنید دامنه `https://mail.google.com/` مجاز شده باشد |
-| «Domain policy has disabled third-party Drive apps» | دسترسی API را در Google Workspace Admin > Security > API Controls فعال کنید |
+| --- | --- |
+| "Authentication unsuccessful" | بررسی کنید که اصل سرویس در Exchange ثبت شده و دسترسی صندوق دارد |
+| "AADSTS700016: Application not found" | بررسی کنید که شناسهٔ کلاینت درست است و برنامه در مستأجر شما وجود دارد |
+| "AADSTS7000215: Invalid client secret" | یک کلید محرمانهٔ کلاینت تازه بسازید؛ شاید قبلی منقضی شده باشد |
+| "The mailbox is not enabled for this operation" | `Add-MailboxPermission` را اجرا کنید تا دسترسی به صندوق داده شود |
 
-### عمومی
+### خطاهای Google Workspace
 
-- **پیکربندی خود را بیازمایید**: برای تأیید راه‌اندازی‌تان از دکمه «Send Test Email» در OneUptime استفاده کنید
-- **گزارش‌ها را بررسی کنید**: گزارش‌های OneUptime را برای پیام‌های خطای تفصیلی مرور کنید
-- **حافظه نهان توکن**: OneUptime توکن‌های OAuth را در حافظه نهان می‌گذارد و پیش از انقضا خودکار تازه‌شان می‌کند
+| مشکل | راه‌حل |
+| --- | --- |
+| "invalid_grant" | مطمئن شوید که واگذاری در سطح دامنه درست پیکربندی شده و اعمال شده است |
+| "unauthorized_client" | بررسی کنید که شناسهٔ کلاینت در کنسول مدیریت Google Workspace مجاز شده است |
+| "access_denied" | بررسی کنید که دامنهٔ دسترسی `https://mail.google.com/` مجاز شده است |
+| "Domain policy has disabled third-party Drive apps" | دسترسی API را در مدیریت Google Workspace، زیر Security > API Controls، فعال کنید |
 
----
+### مشکلات دیگر
+
+:::details "Cannot send email. Please check your SMTP config."
+**ارسال ایمیل آزمایشی** این را وقتی می‌گوید که سروری که با نام کاربری و رمز عبور، یا بدون ورود، کار می‌کند ایمیل را نپذیرد. **نام میزبان**، **پورت**، **نام کاربری** و **رمز عبور** را بررسی کنید. اگر سرور شما TLS ارائه نمی‌دهد، یا گواهی آن برای نام میزبانش معتبر نیست، **الزام TLS** را زیر **فیلدهای بیشتر** خاموش کنید و دوباره امتحان کنید. پاسخ خود سرور همراه آزمایش نگه داشته می‌شود: زبانهٔ **ایمیل** در **تنظیمات پروژه** > **اعلان‌ها** > **گزارش‌های اعلان** را باز کنید و در ردیف آن **مشاهده پیام وضعیت** را برگزینید.
+:::
+
+:::details "Cannot send email with OAuth authentication"
+ورود با OAuth شکست خورد، و پیام با خطایی که ارائه‌دهندهٔ شما برگرداند پایان می‌یابد. **شناسه کلاینت OAuth**، **کلید محرمانه کلاینت OAuth**، **نشانی توکن OAuth** و **دامنه دسترسی OAuth** را بررسی کنید، و اینکه برنامه دسترسی‌های بالا را دارد و رضایت مدیر داده شده است. اگر SMTP AUTH در مستأجر Microsoft 365 شما خاموش است، به‌جای آن **انتقال** را روی `Microsoft Graph` بگذارید.
+:::
+
+:::details "Microsoft Graph send failed"
+پیکربندی‌ای که **انتقال** آن `Microsoft Graph` است این را وقتی می‌گوید که Graph ایمیل را نپذیرد، و پس از آن خطای خود Microsoft می‌آید. بررسی کنید که برنامه دسترسی برنامهٔ **Mail.Send** را با رضایت مدیر دارد، که **دامنه دسترسی OAuth** برابر `https://graph.microsoft.com/.default` است، و که **ایمیل فرستنده** صندوقی دارای مجوز در مستأجر شماست.
+:::
+
+:::details "SMTP server host … could not be reached"
+OneUptime از وصل شدن به سرور ایمیل پروژه خودداری کرد. در OneUptime Cloud، نام میزبانی که ترجمه نمی‌شود، یا به نشانی خصوصی، loopback یا link-local ترجمه می‌شود، با این پیام رد می‌شود و پیام هرگز نمی‌گوید کدام بوده است: از نام میزبان عمومی سرور ایمیل استفاده کنید. در یک نصب خودمیزبان، و برای سرور ایمیلی که با نشانی IP داده شده، پیام به‌جای آن دلیل را می‌گوید. **ارسال ایمیل آزمایشی** آن را فقط برای پیکربندی OAuth نشان می‌دهد؛ برای بقیه، آن را زیر **مشاهده پیام وضعیت** در زبانهٔ **ایمیل** گزارش‌های اعلان پیدا کنید.
+:::
+
+:::details ایمیل آزمایشی نمی‌رسد
+**ایمیل فرستنده** را بررسی کنید: سرور شما باید فرستادن از آن را مجاز بداند. سپس پوشهٔ هرزنامهٔ گیرنده، و گزارش‌های سرور ایمیل خود را برای این تلاش بگردید.
+:::
 
 ## بهترین شیوه‌های امنیتی
 
-1. **اسرار را مرتب بچرخانید**: یادآور تقویمی بگذارید تا رازهای کلاینت را پیش از انقضا بچرخانید
-2. **از حساب‌های سرویس اختصاصی استفاده کنید**: به‌جای اشتراک با برنامه‌های دیگر، اعتبارنامه‌های جداگانه برای OneUptime بسازید
-3. **اصل کمترین امتیاز**: فقط کمترین دسترسی لازم را اعطا کنید (SMTP.SendAsApp برای مایکروسافت، دامنه mail.google.com برای گوگل)
-4. **مصرف را بپایید**: گزارش‌های ایمیل و ورودهای برنامه OAuth را برای فعالیت غیرعادی مرور کنید
-5. **ذخیره‌سازی امن**: هرگز رازهای کلاینت را در کنترل نسخه کامیت نکنید
+- **کلیدهای محرمانه را مرتب عوض کنید.** یادآوری بگذارید تا کلیدهای محرمانهٔ کلاینت را پیش از انقضا عوض کنید.
+- **از اعتبارنامه‌های اختصاصی استفاده کنید.** برای OneUptime اعتبارنامه‌های جداگانه بسازید، به‌جای اشتراک با برنامه‌های دیگر.
+- **کمترین دسترسی را بدهید.** فقط آنچه برای فرستادن لازم است بدهید: **SMTP.SendAsApp** برای Microsoft، و دامنهٔ دسترسی `https://mail.google.com/` برای Google.
+- **استفاده را زیر نظر بگیرید.** گزارش‌های ایمیل و ورودهای برنامهٔ OAuth را برای فعالیت غیرعادی بازبینی کنید.
+- **کلیدهای محرمانه را امن نگه دارید.** هرگز کلیدهای محرمانهٔ کلاینت را در کنترل نسخه کامیت نکنید.
 
----
+## مطالعهٔ بیشتر
 
-## منابع بیشتر
+- Microsoft: [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
+- Microsoft: [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
+- Google: [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
+- Google: [Gmail API Documentation](https://developers.google.com/gmail/api)
+- Google: [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)
 
-### Microsoft 365
+## گام‌های بعدی
 
-- [احراز هویت اتصال IMAP، ‏POP یا SMTP با OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
-- [ثبت یک برنامه در پلتفرم هویت مایکروسافت](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
-
-### Google Workspace
-
-- [استفاده از OAuth 2.0 برای برنامه‌های کارساز به کارساز](https://developers.google.com/identity/protocols/oauth2/service-account)
-- [مستندات Gmail API](https://developers.google.com/gmail/api)
-- [پروتکل XOAUTH2](https://developers.google.com/gmail/imap/xoauth2-protocol)
+:::cards
+- [تجمیع اعلان‌ها](/docs/emails/notification-rollup): OneUptime چگونه سیل ایمیل‌هایی را که به مالکان می‌رسد جمع می‌کند.
+- [مشترکان و اعلامیه‌ها](/docs/status-pages/subscribers): با پیکربندی SMTP پروژه به مشترکان صفحهٔ وضعیت ایمیل بفرستید.
+:::

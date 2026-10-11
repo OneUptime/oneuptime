@@ -27,7 +27,7 @@ Labels and owners are how you filter and group resources, who OneUptime notifies
 
 Every product with labels and owners has both, under its **Settings** (on Incidents, Alerts and Scheduled Maintenance, under **Rules**): monitors, incidents and incident episodes, alerts and alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, storage arrays, databases, queues, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks, network devices and SLOs.
 
-For example, monitor label rules are on **Monitors → Settings → Label Rules**, and incident label rules on **Incidents → Rules → Label Rules**. The Incidents and Alerts pages have an **Incident Rules** (or **Alert Rules**) tab and an **Episode Rules** tab.
+For example, monitor label rules are on **Monitors → Settings → Label Rules**, and incident label rules on **Incidents → Rules → Label Rules**. **Settings** and **Rules** start folded in the side menu: click the section's title to open it. The Incidents and Alerts pages have an **Incident Rules** (or **Alert Rules**) tab and an **Episode Rules** tab.
 
 ## Creating a rule
 
@@ -40,7 +40,7 @@ Open the product's **Label Rules** or **Owner Rules** page and click its create 
 
 ### Choose what the rule matches
 
-On the **Match** step, add one or more conditions. With two or more, choose **Match all** or **Match any**. A rule with no conditions matches every new resource.
+On the **Match** step, click **Add condition** for each condition the resource must meet. With two or more, choose **Match all** or **Match any**. A rule with no conditions matches every new resource.
 
 ### Choose what the rule adds
 
@@ -54,7 +54,7 @@ The **Name** is filled in from what you pick (_Add Production_, _Add Platform as
 
 ### Save the rule
 
-Finish the form. The rule starts enabled, and the list shows it with a green **Enabled** pill.
+On the last step, click the button named after the rule again, such as **Create Monitor Label Rule**. The rule starts enabled, and the list shows it with a green **Enabled** pill.
 :::
 
 A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). To pause a rule without deleting it, switch **Enabled** off on its edit form; the list then shows a red **Disabled** pill.

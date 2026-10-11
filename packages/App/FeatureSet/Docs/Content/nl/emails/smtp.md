@@ -1,283 +1,314 @@
-# SMTP-configuratie
+# SMTP
 
-OneUptime ondersteunt het verzenden van e-mails via aangepaste SMTP-servers met drie authenticatiemethoden:
+Verstuur de e-mail van OneUptime via uw eigen mailserver. Een project voegt SMTP-configuraties toe waarmee de statuspagina's van dat project hun e-mail versturen, en een zelf gehoste installatie stelt de server in via welke OneUptime al het andere verstuurt. Beide ondersteunen drie manieren van aanmelden:
 
-- **Gebruikersnaam en wachtwoord** - Traditionele SMTP-authenticatie
-- **OAuth 2.0** - Moderne authenticatie voor Microsoft 365 en Google Workspace
-- **Geen** - Voor relayservers waarvoor geen authenticatie vereist is
+- **Gebruikersnaam en wachtwoord**: de klassieke SMTP-authenticatie.
+- **OAuth 2.0**: voor Microsoft 365 en Google Workspace, waar basisauthenticatie vaak is uitgeschakeld.
+- **Geen**: voor relayservers die geen authenticatie vereisen.
 
-Het eerste gedeelte hieronder laat zien waar elke instelling staat. De rest van deze handleiding behandelt OAuth 2.0-authenticatie voor Microsoft 365 en Google Workspace.
+```mermaid title="Welke mailserver wat verstuurt"
+flowchart TB
+    SP["E-mail van een statuspagina"] --> Q{"Aangepaste SMTP-configuratie<br/>gekozen voor de pagina?"}
+    Q -->|"Ja"| P["De SMTP-configuratie<br/>van het project"]
+    Q -->|"Nee"| D["De eigen mailserver<br/>van OneUptime"]
+    E["Alle andere e-mail<br/>van OneUptime"] --> D
+```
+
+Bij een zelf gehoste installatie is de eigen mailserver van OneUptime de server die in het Admin Dashboard is ingesteld. Een statuspagina kiest haar SMTP-configuratie op haar pagina **Abonneeinstellingen**, in de kaart **Aangepaste SMTP**.
+
+:::cards
+- [Een mailserver toevoegen](#een-smtp-server-toevoegen): Twee stappen, met al het andere ingeklapt.
+- [Microsoft 365](#configuratie-voor-microsoft-365): OAuth met een app-registratie in Entra.
+- [Google Workspace](#configuratie-voor-google-workspace): OAuth met een serviceaccount.
+- [Problemen oplossen](#problemen-oplossen): Veelvoorkomende fouten en wat ze betekenen.
+:::
 
 ## Een SMTP-server toevoegen
 
-Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**. Bij een zelf gehoste installatie stelt u de server waarvandaan OneUptime zelf verzendt in via **Admin Dashboard > Instellingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen:
+Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**. Bij een zelf gehoste installatie stelt u de server via welke OneUptime zelf verstuurt in via **Admin Dashboard > Instellingen > Meldingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen.
 
-1. **Server**: de **Naam** (alleen projectconfiguraties), **Hostnaam**, **Poort** (een nieuwe configuratie begint op `587`), **Gebruikersnaam** en **Wachtwoord**.
-2. **Afzender**: de **E-mail van** en **Van naam** waarvandaan uw e-mails komen.
+:::steps
+### Het formulier openen
 
-Al het andere is ingeklapt onder **Meer velden** aan het eind van de stap Server. Zolang het ingeklapt is, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist."
+:::tabs
+@tab Project
+Klik via **Projectinstellingen > Meldingen > Meldingsinstellingen** op **SMTP Configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**.
+@tab Zelf gehoste instantie
+Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails** in het zijmenu (**Meldingen** is eerst ingeklapt). Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en zet **Type e-mailserver** op `Custom SMTP`. Klik daarna op **SMTP-config bewerken** in de kaart **Aangepaste e-mail- en SMTP-instellingen**, die eronder verschijnt.
+:::
+
+### De stap Server invullen
+
+Vul in de stap **Server** de **Naam** in (alleen bij projectconfiguraties), de **Hostnaam**, de **Poort** (een nieuwe projectconfiguratie begint op `587`), de **Gebruikersnaam** en het **Wachtwoord**.
+
+### Meer velden controleren
+
+Al het andere is ingeklapt onder **Meer velden**, aan het eind van de stap **Server**. Zolang die sectie is ingeklapt, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist." Open de sectie alleen als u een van de instellingen in de tabel hieronder moet wijzigen.
+
+### De stap Afzender invullen
+
+Vul in de stap **Afzender** de **E-mail van** en de **Van naam** in waarvan uw e-mails komen. Uw server moet verzenden vanaf dat adres toestaan.
+
+### Opslaan en een testmail sturen
+
+Sla de configuratie op. Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt. Daarvoor is de machtiging nodig om SMTP-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create SMTP Config** en **Read SMTP Config** in een aangepaste rol. Op OneUptime Cloud is ook het abonnement **Growth** nodig, net als voor het toevoegen van een configuratie. Voor anderen is de knop vergrendeld, en de tooltip zegt wat ervoor nodig is.
+
+De test vraagt om een **E-mail**-adres om naartoe te sturen, eerst het uwe. Controleer of het bericht aankomt.
+:::
+
+Dit zijn de instellingen onder **Meer velden**:
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Transport** | `SMTP` (standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden de hostnaam, poort, gebruikersnaam en het wachtwoord verborgen en de OAuth-velden getoond. |
+| **Transport** | `SMTP` (de standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden hostnaam, poort, gebruikersnaam en wachtwoord verborgen en de OAuth-velden getoond. |
 | **TLS vereisen** | Aan bij een nieuwe projectconfiguratie. E-mail wordt alleen verzonden via een versleutelde verbinding met een geldig certificaat. Als dit uit staat, wordt e-mail alleen versleuteld als de server dat aanbiedt, en wordt het certificaat niet gecontroleerd. Poort 465 is altijd versleuteld. |
-| **Authenticatietype** | `Username and Password` (standaard), `OAuth`, of `None` voor een relay zonder aanmelding. |
-| **OAuth-velden** | Providertype, client-ID, clientgeheim, token-URL en scope, getoond zodra OAuth of Microsoft Graph is gekozen. |
-| **Beschrijving** | Een notitie voor uw team (alleen projectconfiguraties). |
+| **Authenticatietype** | `Username and Password` (de standaard), `OAuth`, of `None` voor een relay die geen aanmelding vraagt. |
+| **OAuth-velden** | **OAuth-providertype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** en **OAuth-scope**, getoond zodra OAuth of Microsoft Graph is gekozen. |
+| **Beschrijving** | Een notitie voor uw team (alleen bij projectconfiguraties). |
 
-**Microsoft Graph.** Open **Meer velden**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in met de toepassingsmachtiging **Mail.Send**: de client-ID en het clientgeheim, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
+**Microsoft Graph.** Open **Meer velden**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in die de toepassingsmachtiging **Mail.Send** heeft: de client-ID en het clientgeheim ervan, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
 
-Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** op de rij of die werkt. Daarvoor is toestemming nodig om SMTP-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create SMTP Config** en **Read SMTP Config** in een eigen rol. Op OneUptime Cloud is ook het abonnement **Growth** nodig, net als voor het toevoegen van een configuratie. Voor iedereen anders is het vergrendeld en zegt de tooltip wat ervoor nodig is.
+> [!NOTE]
+> Op OneUptime Cloud moet de mailserver van een project via internet bereikbaar zijn: een host die naar een privé- of intern adres verwijst, wordt geweigerd. Bij een zelf gehoste installatie zijn privéadressen toegestaan, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is; loopback- en link-local-adressen worden altijd geweigerd. De eigen mailserver van de instantie wordt niet op deze manier gecontroleerd.
 
-## OAuth 2.0-authenticatie
+## Authenticatie met OAuth 2.0
 
-OAuth 2.0 biedt een veiligere manier om te authenticeren bij e-mailservers, met name voor enterprise-omgevingen die basisauthenticatie hebben uitgeschakeld. OneUptime ondersteunt twee OAuth-verlening typen:
+Met OAuth 2.0 meldt OneUptime zich zonder wachtwoord aan bij uw mailserver, wat zakelijke maildiensten steeds vaker vereisen. OneUptime ondersteunt twee OAuth-granttypen:
 
-- **Client Credentials** - Gebruikt door Microsoft 365 en de meeste OAuth-providers
-- **JWT Bearer** - Gebruikt door Google Workspace-serviceaccounts
+- **Client Credentials**: gebruikt door Microsoft 365 en de meeste OAuth-providers.
+- **JWT Bearer**: gebruikt door serviceaccounts van Google Workspace.
 
-### Vereiste velden voor OAuth
-
-Bij het configureren van SMTP met OAuth-authenticatie in OneUptime heeft u het volgende nodig:
-
-| Veld                    | Beschrijving                                                                             |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Hostnaam**            | SMTP-serveradres                                                                         |
-| **Poort**               | SMTP-poort (meestal 587 voor STARTTLS of 465 voor impliciete TLS)                        |
-| **Gebruikersnaam**      | Het e-mailadres om van te verzenden                                                      |
-| **Authenticatietype**   | Selecteer "OAuth"                                                                        |
-| **OAuth-providertype**  | Selecteer "Client Credentials" voor Microsoft 365, of "JWT Bearer" voor Google Workspace |
-| **Client-ID**           | Applicatie/Client ID van uw OAuth-provider (voor Google: e-mailadres van serviceaccount) |
-| **Client-secret**       | Clientgeheim van uw OAuth-provider (voor Google: privésleutel)                           |
-| **Token URL**           | OAuth token-eindpunt-URL                                                                 |
-| **Bereik**              | Vereiste OAuth-bereik(en) voor SMTP-toegang                                              |
-
-Het **Authenticatietype** en de OAuth-velden staan onder **Meer velden** in de stap Server van het formulier.
-
----
-
-## Microsoft 365-configuratie
-
-Om OAuth te gebruiken met Microsoft 365/Exchange Online, moet u een applicatie registreren in Microsoft Entra (Azure AD) en de juiste machtigingen configureren.
-
-### Stap 1: Een applicatie registreren in Microsoft Entra
-
-1. Meld u aan bij het [Microsoft Entra-beheercentrum](https://entra.microsoft.com)
-2. Navigeer naar **Identiteit** > **Applicaties** > **App-registraties**
-3. Klik op **Nieuwe registratie**
-4. Voer een naam in voor uw applicatie (bijv. "OneUptime SMTP")
-5. Selecteer bij **Ondersteunde accounttypen** de optie "Accounts alleen in deze organisatiemap"
-6. Laat **Omleidings-URI** leeg (niet nodig voor de client credentials-stroom)
-7. Klik op **Registreren**
-
-Noteer na de registratie de volgende waarden op de **Overzichtspagina**:
-
-- **Applicatie (client) ID** - Dit is uw Client ID
-- **Map (tenant) ID** - U heeft dit nodig voor de Token URL
-
-### Stap 2: Een clientgeheim aanmaken
-
-1. Ga in uw app-registratie naar **Certificaten en geheimen**
-2. Klik op **Nieuw clientgeheim**
-3. Voeg een beschrijving toe en selecteer een vervalperiode
-4. Klik op **Toevoegen**
-5. **Kopieer de geheimwaarde onmiddellijk** - deze wordt niet opnieuw getoond
-
-### Stap 3: SMTP API-machtigingen toevoegen
-
-1. Ga naar **API-machtigingen**
-2. Klik op **Een machtiging toevoegen**
-3. Selecteer **API's die mijn organisatie gebruikt**
-4. Zoek naar **Office 365 Exchange Online** en selecteer dit
-5. Selecteer **Applicatiemachtigingen**
-6. Zoek en vink **SMTP.SendAsApp** aan
-7. Klik op **Machtigingen toevoegen**
-8. Klik op **Beheerdersmachtiging verlenen voor [uw organisatie]** (vereist beheerdersrechten)
-
-### Stap 4: Serviceprincipal registreren in Exchange Online
-
-Voordat uw applicatie e-mails kan verzenden, moet u de serviceprincipal registreren in Exchange Online en postvakrechten verlenen.
-
-1. Installeer de Exchange Online PowerShell-module:
-
-```powershell
-Install-Module -Name ExchangeOnlineManagement -Force
+```mermaid title="Hoe OneUptime zich aanmeldt met OAuth"
+sequenceDiagram
+    participant O as OneUptime
+    participant T as Token-URL
+    participant M as Mailserver
+    O->>T: Vraagt een toegangstoken aan
+    T-->>O: Toegangstoken
+    Note over O: In de cache en vernieuwd<br/>voordat het verloopt
+    O->>M: Meldt zich aan met het token
+    O->>M: Verstuurt de e-mail
 ```
 
-2. Verbinding maken met Exchange Online:
+**Authenticatietype** en de OAuth-velden staan onder **Meer velden** in de stap Server van het formulier. Vul voor aanmelden met OAuth het volgende in:
+
+| Veld | Beschrijving |
+| --- | --- |
+| **Hostnaam** | Adres van de SMTP-server |
+| **Poort** | SMTP-poort (meestal 587 voor STARTTLS of 465 voor impliciete TLS) |
+| **Gebruikersnaam** | Het e-mailadres van de mailbox die verstuurt |
+| **Authenticatietype** | `OAuth` |
+| **OAuth-providertype** | `Client Credentials` voor Microsoft 365, of `JWT Bearer` voor Google Workspace |
+| **OAuth Client ID** | De applicatie-ID (client-ID) van uw OAuth-provider (bij Google: het e-mailadres van het serviceaccount) |
+| **OAuth Client Secret** | Het clientgeheim van uw OAuth-provider (bij Google: de privésleutel) |
+| **OAuth-token-URL** | Het OAuth-tokeneindpunt van uw provider |
+| **OAuth-scope** | De OAuth-scope die SMTP-toegang verleent |
+
+OneUptime bewaart OAuth-tokens in de cache en vernieuwt ze automatisch voordat ze verlopen.
+
+## Configuratie voor Microsoft 365
+
+Om OAuth met Microsoft 365 (Exchange Online) te gebruiken, registreert u een applicatie in Microsoft Entra, geeft u die machtiging om e-mail via SMTP te versturen en staat u haar toe de mailbox te gebruiken waarvandaan u verstuurt.
+
+:::steps
+### Een applicatie registreren in Microsoft Entra
+
+1. Meld u aan bij het [Microsoft Entra-beheercentrum](https://entra.microsoft.com).
+2. Ga naar **Identity** > **Applications** > **App registrations** en klik op **New registration**.
+3. Voer een naam in (bijvoorbeeld "OneUptime SMTP"), kies "Accounts in this organizational directory only" en laat **Redirect URI** leeg.
+4. Klik op **Register**.
+
+Noteer op de pagina **Overview** de **Application (client) ID** (uw client-ID) en de **Directory (tenant) ID** (voor de token-URL).
+
+### Een clientgeheim maken
+
+1. Ga in uw app-registratie naar **Certificates & secrets** en klik op **New client secret**.
+2. Voeg een beschrijving toe, kies een verloopperiode en klik op **Add**.
+3. **Kopieer de waarde van het geheim meteen**: die wordt niet opnieuw getoond.
+
+### De SMTP-machtiging toevoegen
+
+1. Ga naar **API permissions** en klik op **Add a permission**.
+2. Kies **APIs my organization uses** en zoek en selecteer daarna **Office 365 Exchange Online**.
+3. Kies **Application permissions**, vink **SMTP.SendAsApp** aan en klik op **Add permissions**.
+4. Klik op **Grant admin consent for [your organization]** (hiervoor zijn beheerdersrechten nodig).
+
+### De service-principal registreren in Exchange Online
+
+Voordat de applicatie e-mail kan versturen, registreert u haar service-principal in Exchange Online en geeft u die toegang tot de mailbox waarvandaan u verstuurt:
 
 ```powershell
+# Install and load the Exchange Online module, then connect
+Install-Module -Name ExchangeOnlineManagement -Force
 Import-Module ExchangeOnlineManagement
 Connect-ExchangeOnline -Organization <your-tenant-id>
-```
 
-3. Registreer de serviceprincipal (gebruik het Object-ID van **Enterprise-toepassingen**, niet App-registraties):
-
-```powershell
-# Zoek het Object-ID in Microsoft Entra > Enterprise-toepassingen > Uw app > Object-ID
+# Register the service principal. Use the Object ID from
+# Microsoft Entra > Enterprise Applications > your app (not App Registrations)
 New-ServicePrincipal -AppId <application-client-id> -ObjectId <enterprise-app-object-id>
-```
 
-4. Verleen de serviceprincipal toestemming om te verzenden als een specifiek postvak:
-
-```powershell
-# Volledige postvaktoegang verlenen aan de serviceprincipal
+# Give the service principal access to the sending mailbox
 Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal-id> -AccessRights FullAccess
 ```
 
-> **Opmerking:** Gebruik `Add-MailboxPermission` (niet `Add-RecipientPermission`). `Add-RecipientPermission` verleent alleen `SendAs` op de ontvanger en is niet voldoende voor de serviceprincipal om mail te verzenden via SMTP met OAuth — u krijgt dan een authenticatie-/machtigingsfout bij verzending. `Add-MailboxPermission` met `FullAccess` is de opdracht die daadwerkelijk werkt.
+> [!IMPORTANT]
+> Gebruik `Add-MailboxPermission`, niet `Add-RecipientPermission`. `Add-RecipientPermission` verleent alleen `SendAs` op de ontvanger, en dat is niet genoeg om de service-principal e-mail via SMTP met OAuth te laten versturen: het verzenden mislukt met een authenticatie- of machtigingsfout.
 
-### Stap 5: Configureren in OneUptime
+### De SMTP-configuratie in OneUptime maken
 
-Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
+Maak of bewerk een SMTP-configuratie met deze instellingen en vervang `<tenant-id>` door uw **Directory (tenant) ID**:
 
-| Veld                | Waarde                                                                                 |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| Hostnaam            | `smtp.office365.com`                                                                   |
-| Poort               | `587`                                                                                  |
-| Gebruikersnaam      | Het e-mailadres waarvoor u machtigingen heeft verleend (bijv. `sender@yourdomain.com`) |
-| Authenticatietype   | `OAuth`                                                                                |
-| OAuth Provider Type | `Client Credentials`                                                                   |
-| Client ID           | Uw Applicatie (client) ID uit stap 1                                                   |
-| Client Secret       | De geheimwaarde uit stap 2                                                             |
-| Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                      |
-| Bereik              | `https://outlook.office365.com/.default`                                               |
-| Van e-mail          | Gelijk aan gebruikersnaam                                                              |
-| TLS vereisen     | Ingeschakeld                                                                           |
+| Veld | Waarde |
+| --- | --- |
+| Hostnaam | `smtp.office365.com` |
+| Poort | `587` |
+| Gebruikersnaam | Het e-mailadres waaraan u de machtigingen hebt gegeven (bijv. `sender@yourdomain.com`) |
+| Authenticatietype | `OAuth` |
+| OAuth-providertype | `Client Credentials` |
+| OAuth Client ID | Uw **Application (client) ID** |
+| OAuth Client Secret | De waarde van het clientgeheim |
+| OAuth-token-URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
+| OAuth-scope | `https://outlook.office365.com/.default` |
+| E-mail van | Gelijk aan de gebruikersnaam |
+| TLS vereisen | Aan |
 
-Vervang `<tenant-id>` door uw Map (tenant) ID uit stap 1.
+Controleer de configuratie daarna met **Test-e-mail verzenden**.
+:::
 
----
+## Configuratie voor Google Workspace
 
-## Google Workspace-configuratie
+Google Workspace heeft een **serviceaccount** met domeinbrede delegatie nodig, dat e-mail verstuurt namens een gebruiker in uw domein. De SMTP-servers van Google ondersteunen geen eenvoudige client-credentials-flow voor Gmail.
 
-Google Workspace vereist een **serviceaccount** met domeinbrede delegatie om e-mails te verzenden namens gebruikers. Dit is noodzakelijk omdat de SMTP-servers van Google geen directe OAuth client credentials-stroom ondersteunen voor Gmail.
+### Voordat u met Google Workspace begint
 
-### Vereisten
+- Een Google Workspace-account. Persoonlijke Gmail-accounts ondersteunen dit niet.
+- Super Admin-toegang tot de beheerconsole van Google Workspace.
+- Toegang tot de Google Cloud Console.
 
-- Google Workspace-account (geen regulier Gmail - consument-Gmail-accounts ondersteunen dit niet)
-- Super Admin-toegang tot de Google Workspace-beheerconsole
-- Toegang tot de Google Cloud Console
+:::steps
+### Een Google Cloud-project maken
 
-### Stap 1: Een Google Cloud-project aanmaken
+1. Ga naar de [Google Cloud Console](https://console.cloud.google.com).
+2. Klik op de projectkiezer en kies **New Project**.
+3. Voer een projectnaam in, klik op **Create** en selecteer uw nieuwe project.
 
-1. Ga naar de [Google Cloud Console](https://console.cloud.google.com)
-2. Klik op de projectvervolgkeuzelijst en selecteer **Nieuw project**
-3. Voer een projectnaam in en klik op **Maken**
-4. Selecteer uw nieuwe project
+### De Gmail API inschakelen
 
-### Stap 2: De Gmail API inschakelen
+1. Ga naar **APIs & Services** > **Library**.
+2. Zoek naar "Gmail API", klik op **Gmail API** en daarna op **Enable**.
 
-1. Ga naar **API's en services** > **Bibliotheek**
-2. Zoek naar "Gmail API"
-3. Klik op **Gmail API** en vervolgens op **Inschakelen**
+### Een serviceaccount maken
 
-### Stap 3: Een serviceaccount aanmaken
+1. Ga naar **APIs & Services** > **Credentials**.
+2. Klik op **Create Credentials** > **Service account**.
+3. Voer een naam en een beschrijving in, klik op **Create and Continue**, sla de optionele stappen over en klik op **Done**.
 
-1. Ga naar **API's en services** > **Referenties**
-2. Klik op **Referenties maken** > **Serviceaccount**
-3. Voer een naam en beschrijving in voor het serviceaccount
-4. Klik op **Maken en doorgaan**
-5. Sla de optionele stappen over en klik op **Gereed**
+### Een sleutel voor het serviceaccount maken
 
-### Stap 4: Serviceaccountsleutels aanmaken
+1. Klik op het serviceaccount dat u net hebt gemaakt en ga naar het tabblad **Keys**.
+2. Klik op **Add Key** > **Create new key**, kies **JSON** en klik op **Create**.
+3. Bewaar het gedownloade JSON-bestand veilig. De `client_email` ervan is uw OAuth-client-ID, en de `private_key` uw OAuth-clientgeheim.
 
-1. Klik op het serviceaccount dat u zojuist hebt aangemaakt
-2. Ga naar het tabblad **Sleutels**
-3. Klik op **Sleutel toevoegen** > **Nieuwe sleutel aanmaken**
-4. Selecteer **JSON** en klik op **Maken**
-5. Sla het gedownloade JSON-bestand veilig op - het bevat:
-   - `client_id` - Uw Client ID
-   - `private_key` - Uw clientgeheim (de privésleutel)
+### Domeinbrede delegatie inschakelen
 
-### Stap 5: Domeinbrede delegatie inschakelen
+1. Klik in de details van het serviceaccount op **Show Advanced Settings**.
+2. Noteer de numerieke **Client ID**.
+3. Vink **Enable Google Workspace Domain-wide Delegation** aan en klik op **Save**.
 
-1. Klik in de serviceaccountdetails op **Geavanceerde instellingen weergeven**
-2. Noteer het **Client ID** (numeriek ID)
-3. Vink **Domeinbrede delegatie voor Google Workspace inschakelen** aan
-4. Klik op **Opslaan**
+### Het serviceaccount autoriseren in het beheer van Google Workspace
 
-### Stap 6: Het serviceaccount autoriseren in de Google Workspace-beheerconsole
+1. Meld u aan bij de [beheerconsole van Google Workspace](https://admin.google.com).
+2. Ga naar **Security** > **Access and data control** > **API Controls** en klik op **Manage Domain Wide Delegation**.
+3. Klik op **Add new**, voer de numerieke **Client ID** uit de vorige stap in en vul bij **OAuth Scopes** `https://mail.google.com/` in.
+4. Klik op **Authorize**.
 
-1. Meld u aan bij de [Google Workspace-beheerconsole](https://admin.google.com)
-2. Ga naar **Beveiliging** > **Toegang en gegevensbeheer** > **API-besturingselementen**
-3. Klik op **Domeinbrede delegatie beheren**
-4. Klik op **Nieuw toevoegen**
-5. Voer het **Client ID** uit stap 5 in
-6. Voer voor **OAuth-bereiken** in: `https://mail.google.com/`
-7. Klik op **Autoriseren**
+Het kan enkele minuten tot 24 uur duren voordat de delegatie werkt.
 
-Opmerking: Het kan enkele minuten tot 24 uur duren voordat de delegatie wordt doorgevoerd.
+### De SMTP-configuratie voor Google Workspace maken
 
-### Stap 7: Configureren in OneUptime
+Maak of bewerk een SMTP-configuratie met deze instellingen:
 
-Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
+| Veld | Waarde |
+| --- | --- |
+| Hostnaam | `smtp.gmail.com` |
+| Poort | `587` |
+| Gebruikersnaam | Het Google Workspace-e-mailadres waarvandaan wordt verstuurd (bijv. `notifications@yourdomain.com`). Het serviceaccount treedt op namens deze gebruiker. |
+| Authenticatietype | `OAuth` |
+| OAuth-providertype | `JWT Bearer` |
+| OAuth Client ID | De `client_email` uit de JSON van uw serviceaccount (bijv. `your-service@your-project.iam.gserviceaccount.com`) |
+| OAuth Client Secret | De `private_key` uit de JSON van uw serviceaccount (de hele sleutel, inclusief `-----BEGIN PRIVATE KEY-----` en `-----END PRIVATE KEY-----`) |
+| OAuth-token-URL | `https://oauth2.googleapis.com/token` |
+| OAuth-scope | `https://mail.google.com/` |
+| E-mail van | Gelijk aan de gebruikersnaam |
+| TLS vereisen | Aan |
 
-| Veld                | Waarde                                                                                                                                                |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hostnaam            | `smtp.gmail.com`                                                                                                                                      |
-| Poort               | `587`                                                                                                                                                 |
-| Gebruikersnaam      | Het Google Workspace-e-mailadres om van te verzenden (bijv. `notifications@yourdomain.com`). Deze gebruiker wordt nagebootst door het serviceaccount. |
-| Authenticatietype   | `OAuth`                                                                                                                                               |
-| OAuth Provider Type | `JWT Bearer`                                                                                                                                          |
-| Client ID           | Het `client_email` uit uw serviceaccount-JSON (bijv. `your-service@your-project.iam.gserviceaccount.com`)                                             |
-| Client Secret       | De `private_key` uit uw serviceaccount-JSON (de volledige sleutel inclusief `-----BEGIN PRIVATE KEY-----` en `-----END PRIVATE KEY-----`)             |
-| Token URL           | `https://oauth2.googleapis.com/token`                                                                                                                 |
-| Bereik              | `https://mail.google.com/`                                                                                                                            |
-| Van e-mail          | Gelijk aan gebruikersnaam                                                                                                                             |
-| TLS vereisen     | Ingeschakeld                                                                                                                                          |
+Controleer de configuratie daarna met **Test-e-mail verzenden**.
+:::
 
-**Belangrijk:** Voor Google (JWT Bearer) is de Client ID het **e-mailadres van het serviceaccount** (`client_email`), NIET het numerieke `client_id`. Het serviceaccount zal de gebruiker nabootsen die is opgegeven in het veld Gebruikersnaam om e-mails te verzenden.
+> [!IMPORTANT]
+> Bij Google (JWT Bearer) is de **OAuth Client ID** het **e-mailadres van het serviceaccount** (`client_email`), niet de numerieke `client_id`. Het serviceaccount treedt op namens de gebruiker in **Gebruikersnaam** om e-mail te versturen.
 
----
+## Problemen oplossen
 
-## Probleemoplossing
+### Fouten bij Microsoft 365
 
-### Microsoft 365
+| Probleem | Oplossing |
+| --- | --- |
+| "Authentication unsuccessful" | Controleer of de service-principal in Exchange is geregistreerd en machtigingen voor de mailbox heeft |
+| "AADSTS700016: Application not found" | Controleer of de client-ID klopt en of de app in uw tenant bestaat |
+| "AADSTS7000215: Invalid client secret" | Maak een nieuw clientgeheim: het oude is misschien verlopen |
+| "The mailbox is not enabled for this operation" | Voer `Add-MailboxPermission` uit om toegang tot de mailbox te verlenen |
 
-| Probleem                                        | Oplossing                                                                              |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| "Authentication unsuccessful"                   | Controleer of de serviceprincipal is geregistreerd in Exchange en postvakrechten heeft |
-| "AADSTS700016: Application not found"           | Controleer of het Client ID correct is en de app bestaat in uw tenant                  |
-| "AADSTS7000215: Invalid client secret"          | Genereer het clientgeheim opnieuw - het kan zijn verlopen                              |
-| "The mailbox is not enabled for this operation" | Voer `Add-MailboxPermission` uit om toegang tot het postvak te verlenen                |
+### Fouten bij Google Workspace
 
-### Google Workspace
+| Probleem | Oplossing |
+| --- | --- |
+| "invalid_grant" | Zorg dat de domeinbrede delegatie goed is ingesteld en al actief is |
+| "unauthorized_client" | Controleer of de client-ID is geautoriseerd in de beheerconsole van Google Workspace |
+| "access_denied" | Controleer of de scope `https://mail.google.com/` is geautoriseerd |
+| "Domain policy has disabled third-party Drive apps" | Schakel API-toegang in via het beheer van Google Workspace, onder Security > API Controls |
 
-| Probleem                                            | Oplossing                                                                                 |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| "invalid_grant"                                     | Zorg dat domeinbrede delegatie correct is geconfigureerd en doorgevoerd                   |
-| "unauthorized_client"                               | Controleer of het Client ID is geautoriseerd in de Google Workspace-beheerconsole         |
-| "access_denied"                                     | Controleer of het bereik `https://mail.google.com/` is geautoriseerd                      |
-| "Domain policy has disabled third-party Drive apps" | Schakel API-toegang in via Google Workspace Admin > Beveiliging > API-besturingselementen |
+### Andere problemen
 
-### Algemeen
+:::details "Cannot send email. Please check your SMTP config."
+**Test-e-mail verzenden** meldt dit wanneer een server waarbij u zich met gebruikersnaam en wachtwoord of helemaal niet aanmeldt, de e-mail niet aanneemt. Controleer **Hostnaam**, **Poort**, **Gebruikersnaam** en **Wachtwoord**. Als uw server geen TLS aanbiedt, of als zijn certificaat niet geldig is voor zijn hostnaam, zet u **TLS vereisen** uit onder **Meer velden** en probeert u het opnieuw. Het eigen antwoord van de server wordt bij de test bewaard: open het tabblad **E-mail** van **Projectinstellingen > Meldingen > Meldingslogboeken** en kies **Statusbericht bekijken** in de rij van de test.
+:::
 
-- **Test uw configuratie**: Gebruik de knop "Test-e-mail verzenden" in OneUptime om uw instelling te verifiëren
-- **Logboeken controleren**: Bekijk OneUptime-logboeken voor gedetailleerde foutmeldingen
-- **Token-caching**: OneUptime cachet OAuth-tokens en vernieuwt ze automatisch voor het verlopen
+:::details "Cannot send email with OAuth authentication"
+Het aanmelden met OAuth is mislukt, en de melding eindigt met de fout die uw provider teruggaf. Controleer **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** en **OAuth-scope**, of de applicatie de machtigingen hierboven heeft en of beheerderstoestemming is verleend. Als SMTP AUTH in uw Microsoft 365-tenant is uitgeschakeld, zet u **Transport** in plaats daarvan op `Microsoft Graph`.
+:::
 
----
+:::details "Microsoft Graph send failed"
+Een configuratie waarvan het **Transport** `Microsoft Graph` is, meldt dit wanneer Graph de e-mail niet aanneemt, gevolgd door de eigen fout van Microsoft. Controleer of de app de toepassingsmachtiging **Mail.Send** heeft met verleende beheerderstoestemming, of **OAuth-scope** `https://graph.microsoft.com/.default` is en of **E-mail van** een mailbox met licentie in uw tenant is.
+:::
 
-## Best practices voor beveiliging
+:::details "SMTP server host … could not be reached"
+OneUptime weigerde verbinding te maken met de mailserver van het project. Op OneUptime Cloud wordt een hostnaam die niet kan worden opgezocht, of die naar een privé-, loopback- of link-local-adres verwijst, geweigerd met deze melding, die nooit zegt welk geval het is: gebruik de openbare hostnaam van de mailserver. Bij een zelf gehoste installatie, en bij een mailserver die als IP-adres is opgegeven, zegt de melding in plaats daarvan waarom. **Test-e-mail verzenden** toont haar alleen bij een OAuth-configuratie; bij de andere vindt u haar via **Statusbericht bekijken** op het tabblad **E-mail** van de meldingslogboeken.
+:::
 
-1. **Roteer geheimen regelmatig**: Stel kalenderherinneringen in om clientgeheimen te roteren voordat ze verlopen
-2. **Gebruik speciale serviceaccounts**: Maak aparte referenties aan voor OneUptime in plaats van te delen met andere applicaties
-3. **Principe van minimale bevoegdheden**: Verleen alleen de minimaal benodigde machtigingen (SMTP.SendAsApp voor Microsoft, mail.google.com-bereik voor Google)
-4. **Gebruik controleren**: Bekijk e-maillogboeken en OAuth-applicatieaanmeldingen op ongebruikelijke activiteit
-5. **Veilige opslag**: Sla clientgeheimen nooit op in versiebeheer
+:::details De testmail komt niet aan
+Controleer **E-mail van**: uw server moet verzenden vanaf dat adres toestaan. Kijk daarna in de spammap van de ontvanger en in de logboeken van uw mailserver naar de poging.
+:::
 
----
+## Goede beveiligingspraktijken
 
-## Aanvullende bronnen
+- **Vervang geheimen regelmatig.** Stel herinneringen in om clientgeheimen te vervangen voordat ze verlopen.
+- **Gebruik aparte inloggegevens.** Maak eigen inloggegevens voor OneUptime in plaats van ze met andere applicaties te delen.
+- **Verleen zo min mogelijk rechten.** Verleen alleen wat verzenden nodig heeft: **SMTP.SendAsApp** bij Microsoft, de scope `https://mail.google.com/` bij Google.
+- **Houd het gebruik in de gaten.** Bekijk e-maillogboeken en aanmeldingen van OAuth-applicaties op ongebruikelijke activiteit.
+- **Bewaar geheimen veilig.** Zet clientgeheimen nooit in versiebeheer.
 
-### Microsoft 365
+## Verder lezen
 
-- [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
-- [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
+- Microsoft: [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
+- Microsoft: [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
+- Google: [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
+- Google: [Gmail API Documentation](https://developers.google.com/gmail/api)
+- Google: [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)
 
-### Google Workspace
+## Volgende stappen
 
-- [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
-- [Gmail API Documentation](https://developers.google.com/gmail/api)
-- [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)
+:::cards
+- [Meldingsoverzicht](/docs/emails/notification-rollup): Hoe OneUptime golven van e-mails aan eigenaren bundelt.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers): De e-mail aan de abonnees van een statuspagina versturen via een SMTP-configuratie van het project.
+:::
