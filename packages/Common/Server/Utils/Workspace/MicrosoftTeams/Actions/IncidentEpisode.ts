@@ -9,6 +9,7 @@ import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -385,31 +386,41 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       }
 
       /*
-       * Asked as the submit asks it, before the card is shown, and the card
-       * then offers the incident states the member may read.
+       * Asked as the submit asks it, before the card is shown, of the
+       * record as the submit reads it, with the state it is in. The card
+       * then offers the incident states the member may read that it may
+       * move into next (Common/Utils/StateMove), so it never offers a move
+       * its timeline would refuse.
        */
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: IncidentEpisodeStateTimeline,
-        action: "change the state of this incident episode",
-        resources: [
-          { service: IncidentEpisodeService, id: new ObjectID(actionValue) },
-        ],
-      });
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "change the state of this incident episode",
+          event: {
+            type: WorkspaceEventType.IncidentEpisode,
+            id: new ObjectID(actionValue),
+          },
+        });
 
-      const card: JSONObject | null =
-        await this.buildChangeIncidentEpisodeStateCard(
-          actionValue,
-          projectId,
-          databaseProps,
-        );
+      const stateOptions: WorkspaceEventStateOptions =
+        await WorkspaceMemberActions.findStateOptions({
+          event: episode,
+          props: databaseProps,
+        });
 
-      if (!card) {
+      if (stateOptions.options.length === 0) {
         await turnContext.sendActivity(
-          MicrosoftTeamsIncidentEpisodeActions.NO_STATES_MESSAGE,
+          stateOptions.hasNoLaterState
+            ? WorkspaceMemberActions.getNoLaterStateMessage(
+                WorkspaceEventType.IncidentEpisode,
+              )
+            : MicrosoftTeamsIncidentEpisodeActions.NO_STATES_MESSAGE,
         );
         return;
       }
+
+      const card: JSONObject = this.buildChangeIncidentEpisodeStateCard(actionValue, stateOptions.options);
 
       await turnContext.sendActivity({
         attachments: [
@@ -596,25 +607,14 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
   }
 
   /*
-   * The incident states the member may read, in the project's order; null
-   * when they may read none, for the caller to say so instead of an empty
-   * card.
+   * The card offering the incident states the episode may move into next,
+   * as the member may read them (WorkspaceMemberActions.findStateOptions),
+   * in the project's order.
    */
-  private static async buildChangeIncidentEpisodeStateCard(
+  private static buildChangeIncidentEpisodeStateCard(
     episodeId: string,
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<JSONObject | null> {
-    const incidentStates: Array<WorkspaceEventStateOption> =
-      await WorkspaceMemberActions.findStateOptions({
-        type: WorkspaceEventType.IncidentEpisode,
-        projectId: projectId,
-        props: props,
-      });
-
-    if (incidentStates.length === 0) {
-      return null;
-    }
+    incidentStates: Array<WorkspaceEventStateOption>,
+  ): JSONObject {
 
     const choices: Array<{ title: string; value: string }> = incidentStates.map(
       (state: WorkspaceEventStateOption) => {

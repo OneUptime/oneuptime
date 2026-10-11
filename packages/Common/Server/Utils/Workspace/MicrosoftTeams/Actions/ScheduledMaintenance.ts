@@ -9,6 +9,7 @@ import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -474,28 +475,41 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState: {
           /*
-           * Asked as the submit asks it, before the card is shown, and the
-           * card then offers the states the member may read.
+           * Asked as the submit asks it, before the card is shown, of the
+           * event as the submit reads it, with the state it is in. The card
+           * then offers the states the member may read that it may move into
+           * next (Common/Utils/StateMove), so it never offers a move its
+           * timeline would refuse.
            */
-          await WorkspaceActionAuthorization.assertCanCreate({
-            props: databaseProps,
-            modelType: ScheduledMaintenanceStateTimeline,
-            action: "change the state of this scheduled maintenance event",
-          });
+          const scheduledMaintenance: WorkspaceEventRecord =
+            await WorkspaceMemberActions.authorize({
+              props: databaseProps,
+              modelType: ScheduledMaintenanceStateTimeline,
+              action: "change the state of this scheduled maintenance event",
+              event: {
+                type: WorkspaceEventType.ScheduledMaintenance,
+                id: scheduledMaintenanceId,
+              },
+            });
 
-          const card: JSONObject | null =
-            await this.buildChangeScheduledMaintenanceStateCard(
-              scheduledMaintenanceId,
-              request.projectId,
-              databaseProps,
-            );
+          const stateOptions: WorkspaceEventStateOptions =
+            await WorkspaceMemberActions.findStateOptions({
+              event: scheduledMaintenance,
+              props: databaseProps,
+            });
 
-          if (!card) {
+          if (stateOptions.options.length === 0) {
             await turnContext.sendActivity(
-              MicrosoftTeamsScheduledMaintenanceActions.NO_STATES_MESSAGE,
+              stateOptions.hasNoLaterState
+                ? WorkspaceMemberActions.getNoLaterStateMessage(
+                    WorkspaceEventType.ScheduledMaintenance,
+                  )
+                : MicrosoftTeamsScheduledMaintenanceActions.NO_STATES_MESSAGE,
             );
             break;
           }
+
+          const card: JSONObject = this.buildChangeScheduledMaintenanceStateCard(scheduledMaintenanceId, stateOptions.options);
 
           await turnContext.sendActivity({
             attachments: [
@@ -643,24 +657,14 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
-   * The states the member may read, in the project's order; null when they
-   * may read none, for the caller to say so instead of an empty card.
+   * The card offering the states the event may move into next, as the
+   * member may read them (WorkspaceMemberActions.findStateOptions), in the
+   * project's order.
    */
-  private static async buildChangeScheduledMaintenanceStateCard(
+  private static buildChangeScheduledMaintenanceStateCard(
     scheduledMaintenanceId: ObjectID,
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<JSONObject | null> {
-    const scheduledMaintenanceStates: Array<WorkspaceEventStateOption> =
-      await WorkspaceMemberActions.findStateOptions({
-        type: WorkspaceEventType.ScheduledMaintenance,
-        projectId: projectId,
-        props: props,
-      });
-
-    if (scheduledMaintenanceStates.length === 0) {
-      return null;
-    }
+    scheduledMaintenanceStates: Array<WorkspaceEventStateOption>,
+  ): JSONObject {
 
     const choices: Array<{ title: string; value: string }> =
       scheduledMaintenanceStates.map((state: WorkspaceEventStateOption) => {

@@ -9,6 +9,7 @@ import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import AlertEpisodeStateTimeline from "../../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -377,31 +378,41 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       }
 
       /*
-       * Asked as the submit asks it, before the card is shown, and the card
-       * then offers the alert states the member may read.
+       * Asked as the submit asks it, before the card is shown, of the
+       * record as the submit reads it, with the state it is in. The card
+       * then offers the alert states the member may read that it may
+       * move into next (Common/Utils/StateMove), so it never offers a move
+       * its timeline would refuse.
        */
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: databaseProps,
-        modelType: AlertEpisodeStateTimeline,
-        action: "change the state of this alert episode",
-        resources: [
-          { service: AlertEpisodeService, id: new ObjectID(actionValue) },
-        ],
-      });
+      const episode: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
+          props: databaseProps,
+          modelType: AlertEpisodeStateTimeline,
+          action: "change the state of this alert episode",
+          event: {
+            type: WorkspaceEventType.AlertEpisode,
+            id: new ObjectID(actionValue),
+          },
+        });
 
-      const card: JSONObject | null =
-        await this.buildChangeAlertEpisodeStateCard(
-          actionValue,
-          projectId,
-          databaseProps,
-        );
+      const stateOptions: WorkspaceEventStateOptions =
+        await WorkspaceMemberActions.findStateOptions({
+          event: episode,
+          props: databaseProps,
+        });
 
-      if (!card) {
+      if (stateOptions.options.length === 0) {
         await turnContext.sendActivity(
-          MicrosoftTeamsAlertEpisodeActions.NO_STATES_MESSAGE,
+          stateOptions.hasNoLaterState
+            ? WorkspaceMemberActions.getNoLaterStateMessage(
+                WorkspaceEventType.AlertEpisode,
+              )
+            : MicrosoftTeamsAlertEpisodeActions.NO_STATES_MESSAGE,
         );
         return;
       }
+
+      const card: JSONObject = this.buildChangeAlertEpisodeStateCard(actionValue, stateOptions.options);
 
       await turnContext.sendActivity({
         attachments: [
@@ -585,24 +596,14 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   }
 
   /*
-   * The alert states the member may read, in the project's order; null when
-   * they may read none, for the caller to say so instead of an empty card.
+   * The card offering the alert states the episode may move into next, as
+   * the member may read them (WorkspaceMemberActions.findStateOptions), in
+   * the project's order.
    */
-  private static async buildChangeAlertEpisodeStateCard(
+  private static buildChangeAlertEpisodeStateCard(
     episodeId: string,
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<JSONObject | null> {
-    const alertStates: Array<WorkspaceEventStateOption> =
-      await WorkspaceMemberActions.findStateOptions({
-        type: WorkspaceEventType.AlertEpisode,
-        projectId: projectId,
-        props: props,
-      });
-
-    if (alertStates.length === 0) {
-      return null;
-    }
+    alertStates: Array<WorkspaceEventStateOption>,
+  ): JSONObject {
 
     const choices: Array<{ title: string; value: string }> = alertStates.map(
       (state: WorkspaceEventStateOption) => {
