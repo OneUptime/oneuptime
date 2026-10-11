@@ -4079,7 +4079,9 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
     expect(childRead).toBeDefined();
     expect(childRead![1]).toBe(true);
     expect(
-      Object.values(childRead![0].query.parentSiteId.objectLiteralParameters)[0],
+      Object.values(
+        childRead![0].query.parentSiteId.objectLiteralParameters,
+      )[0],
     ).toEqual([parentId.toString(), leafId.toString()]);
 
     // Every read the purge made counts the rows deleted before.
