@@ -29,8 +29,8 @@ flowchart TB
     Syslog --> Incident
 ```
 
-- A [network device](/docs/monitor/network-device-monitor) per box, polled by a probe that can reach it, with a **vendor template** that brings the right health OIDs and [SNMP tables](/docs/monitor/network-device-monitor#snmp-tables).
-- A **Network Device monitor** per device for alerting. Create it from the device's page so the [recommended alerts](/docs/monitor/network-device-monitor#recommended-alert-pack), including one per-row alert for each table that knows what healthy looks like, are filled in for you. For a fleet, an [alert policy](/docs/monitor/network-device-monitor#alert-policies) keeps one on every device.
+- A [network device](/docs/monitor/network-device-monitor) per box, polled by a probe that can reach it, with a vendor template that brings the right health OIDs and [SNMP tables](/docs/monitor/network-device-monitor#snmp-tables).
+- A Network Device monitor per device for alerting. Create it from the device's page so the [recommended alerts](/docs/monitor/network-device-monitor#recommended-alert-pack), including one per-row alert for each table that knows what healthy looks like, are filled in for you. For a fleet, an [alert policy](/docs/monitor/network-device-monitor#alert-policies) keeps one on every device.
 - For what a vendor reports only in its logs: syslog to the probe, a [log pipeline](/docs/telemetry/log-pipelines) to turn each line into attributes, [Logs monitors with Group By](/docs/monitor/logs-monitor#per-group-alerting-group-by) to alert once per tunnel or gateway, and [log recording rules](/docs/telemetry/log-recording-rules) to chart the numbers in those logs.
 
 ## Sophos Firewall (XGS / SFOS)
@@ -51,7 +51,7 @@ Sophos does not report gateway or SD-WAN health over SNMP, in any SFOS version: 
 :::steps
 1. On the firewall, turn on SNMP under **Administration → SNMP**: add an SNMPv3 user, or a v2c community, and allow the probe's address to query it.
 2. In OneUptime, go to **Network → Devices** and click **Add Device**. Type the firewall's management address, pick a probe that can reach it, and add the SNMP credentials under **SNMP**.
-3. On the device's **Settings** page, under **Polling & Data Collection**, apply the **Sophos Firewall (SFOS / XGS)** template from **Vendor Health Template** and add its tables from **Add a vendor's tables**. Or turn on **Auto-Apply Vendor Health Template**, and the first poll does both.
+3. On the device's **Settings** page, under **Polling & Data Collection**, apply the **Sophos Firewall (SFOS / XGS)** template from **Vendor Health Template** and add its tables from **Add a Vendor's Tables**. Or turn on **Auto-Apply Vendor Health Template**, and the first poll does both.
 :::
 
 After the next poll, the device's **SNMP Tables** page lists every IPsec connection with its status (active, inactive, partially active), and the CPU cores. SFOS numbers its cores from 196608, which is why CPU comes from a table rather than from a single `hrProcessorLoad.1`.
@@ -60,7 +60,7 @@ After the next poll, the device's **SNMP Tables** page lists every IPsec connect
 
 On the device's page, click **Create Monitor**. The recommended alerts include **IPsec Tunnels: row unhealthy**, an **SNMP Table Row Is Unhealthy** criteria on the `ipsec_tunnels` table with Row `*`: it opens one incident per tunnel that is not active, named after the tunnel, and resolves each one when its tunnel comes back.
 
-A tunnel Sophos reports as active only has its security associations up. To prove traffic crosses it, add a [Ping monitor](/docs/monitor/ping-monitor) from a probe at one site to a host on the far side of each tunnel, and draw the tunnel as a **Site Link** (**Network → Topology → Site Links**) between the two [sites](/docs/monitor/network-sites), bound to that monitor: the link on the map then takes the monitor's colour.
+A tunnel Sophos reports as active only has its security associations up. To prove traffic crosses it, add a [Ping monitor](/docs/monitor/ping-monitor) from a probe at one site to a host on the far side of each tunnel, and draw the tunnel as a site link under **Network → Topology → Site Links** between the two [sites](/docs/monitor/network-sites), bound to that monitor: the link on the map then takes the monitor's colour.
 
 ### WAN links
 

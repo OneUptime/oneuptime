@@ -229,7 +229,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     ),
   },
   "monitor/network-device-monitor": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },

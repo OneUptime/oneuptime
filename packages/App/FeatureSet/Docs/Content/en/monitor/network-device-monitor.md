@@ -280,7 +280,7 @@ Polling lives on the device's **Settings** page, on the **Polling & Data Collect
 | Collect Connected Endpoints | Also walk the ARP and bridge-forwarding tables to find what is plugged into the device: POS terminals, printers, phones, laptops. From an ARP table it also fills in the MAC address of devices registered at those addresses. Costs extra walks per poll. | Off |
 | OID Collection Template | A shared, named OID list the device collects. Editing the template changes every linked device on its next poll. | None |
 | Device-Specific Health OIDs | Extra OIDs only this device collects, on top of its template's. | None |
-| Auto-Apply Vendor Health Template | When the device's vendor is recognised and its own OID list is empty, fill the list from the vendor's template on the next poll. | Off; on for devices that auto import rules bring in |
+| Auto-Apply Vendor Health Template | When the device's vendor is recognised and its own OID list is empty, fill the list from the vendor's template on the next poll. | Off; on for devices discovery imports |
 | Device-Specific SNMP Tables | Extra [SNMP tables](#snmp-tables) only this device walks, on top of its template's. A table with the same key as a template table replaces it on this device. | None |
 
 Everything from **Walk Interfaces** down needs SNMP credentials: on a ping-only device those settings are kept and have no walk to apply to.
@@ -293,7 +293,7 @@ Mute an interface on the device's **Interfaces** page, for a lab port or a link 
 
 ### Vendor Health Templates
 
-In the **Health OIDs** editor, **Vendor Health Template** applies a prebuilt set of OIDs for the device's vendor. Many templates also ship [SNMP tables](#snmp-tables), added with **Add a vendor's tables** in the **SNMP Tables** editor.
+In the **Health OIDs** editor, **Vendor Health Template** applies a prebuilt set of OIDs for the device's vendor. Many templates also ship [SNMP tables](#snmp-tables), added with **Add a Vendor's Tables** in the **SNMP Tables** editor.
 
 | Vendor template | Health OIDs | SNMP tables |
 | --- | --- | --- |
@@ -398,7 +398,7 @@ Numbers are read as numbers, and text that starts with a number is read as that 
 
 Some vendor template columns also **adjust** the number they read, for MIBs that keep a value in a unit of their own: ArubaOS reports transmit power doubled (read × 0.5), Aruba Instant the noise floor without its sign (× −1), Aerohive the noise floor plus 256 (− 256), and Extreme's controller the channel width in 20 MHz steps (× 20). The adjusted number is what is shown, charted and compared, so **Noise Floor Greater Than -80** means the same on every vendor, and the table editor shows the arithmetic under the column.
 
-Tables come from an [OID Collection Template](#oid-collection-templates), shared by every linked device (up to 10 tables), or from the device itself under **Device-Specific SNMP Tables** (up to 10 more). They merge by key on every poll, template first, and a device table with the same key replaces the template's. Both editors offer **Add a vendor's tables**.
+Tables come from an [OID Collection Template](#oid-collection-templates), shared by every linked device (up to 10 tables), or from the device itself under **Device-Specific SNMP Tables** (up to 10 more). They merge by key on every poll, template first, and a device table with the same key replaces the template's. Both editors offer **Add a Vendor's Tables**.
 
 The probe walks each column as a subtree, within a 30-second budget shared by every table on the device. A table that cannot be walked says why and never fails the poll: the device's **SNMP Tables** page keeps its last good rows and says the latest walk failed, while criteria judge only what this walk produced, so a timeout is never read as an empty table. Every numeric cell is recorded as the metric `oneuptime.monitor.snmp.table.value`, with the attributes `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` and `snmpTableRowIndex`, so a dashboard can chart every tunnel's status or every radio's transmit power, and a Metrics monitor can group by `snmpTableRow`.
 
