@@ -2,15 +2,13 @@
 
 Find why a cloud environment is missing, filed in the wrong place, empty or duplicated. The sections are in the order these things fail, and each one rules out one layer, so work down from the top. The failures that belong to one platform are at the end of its page: [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs), [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run), [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) and [Other Cloud Platforms](/docs/telemetry/cloud-other-platforms).
 
-```mermaid title="Where to start"
+```mermaid title="Work down in this order"
 flowchart TB
-    token{"Does the token<br/>check answer 200?"} -->|"No"| fixToken["Check the token first"]
-    token -->|"Yes"| listed{"Is the environment under<br/>All Environments?"}
-    listed -->|"No"| missing["The environment does not appear"]
-    listed -->|"Under Hosts or<br/>Serverless only"| elsewhere["It appears somewhere else"]
-    listed -->|"Yes"| rows{"Does Instances<br/>list the tasks?"}
-    rows -->|"No"| identity["Instances is empty"]
-    rows -->|"Yes, no CPU"| metrics["CPU and memory are empty"]
+    token["Check the token"] --> appear["Does the environment appear?<br/>Check cloud.platform and egress"]
+    appear --> place["Under Hosts or Serverless?<br/>Fix the detectors"]
+    place --> instances["Instances empty?<br/>Add an instance identity"]
+    instances --> usage["No CPU or memory?<br/>Send container metrics"]
+    usage --> status["Disconnected or duplicated?<br/>Check the clock and the key"]
 ```
 
 ## Check the token first
@@ -88,7 +86,7 @@ An instance appears within a minute of the first signal that carries the attribu
 
 ## CPU and memory are empty
 
-The instances are listed, but the overview's **CPU** and **Memory** tiles, and the CPU and memory columns of **Instances**, are empty. These come from metrics, not traces: `container.cpu.utilization` and `container.memory.usage` (or `container.memory.usage.total`) data points whose resource carries the **same instance identity** as the traces, and `cloud.platform`.
+The instances are listed, but the overview's **CPU** and **Memory** tiles, and the CPU and memory columns of **Instances**, are empty. These come from metrics, not traces: `container.cpu.utilization` and `container.memory.usage` (or `container.memory.usage.total`) data points whose resource carries the same instance identity as the traces, and `cloud.platform`.
 
 - **On ECS,** the `awsecscontainermetrics` receiver in a sidecar collector supplies them as `ecs.task.cpu.utilized` and `ecs.task.memory.utilized`. Keep it in the `metrics` pipeline, and keep `resourcedetection` in that pipeline too, or the metrics arrive without `cloud.platform` and are filed elsewhere.
 - **On Cloud Run, Container Apps and the other platforms,** the platform does not show container usage to a sidecar. The tiles stay empty unless you send those metrics yourself: read the requests tiles instead.
@@ -96,7 +94,7 @@ The instances are listed, but the overview's **CPU** and **Memory** tiles, and t
 
 ## The environment shows Disconnected
 
-An environment shows **Disconnected** when no telemetry has arrived for it in **15 minutes**, and the next span, log or metric brings it back. Time when OneUptime itself was down or catching up does not count. While telemetry flows, the last-seen time can lag by up to five minutes, which is why the threshold is 15.
+An environment shows **Disconnected** when no telemetry has arrived for it in 15 minutes, and the next span, log or metric brings it back. Time when OneUptime itself was down or catching up does not count. While telemetry flows, the last-seen time can lag by up to five minutes, which is why the threshold is 15.
 
 - **A busy environment shows Disconnected:** the exporter stopped. Check the collector's logs for the `401` and egress errors above.
 - **A staging environment that scales to zero overnight** shows Disconnected until the first request in the morning, which is accurate.

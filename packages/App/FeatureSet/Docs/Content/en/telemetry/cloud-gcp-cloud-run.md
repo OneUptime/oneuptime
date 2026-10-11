@@ -14,16 +14,14 @@ Send the traces, logs and metrics of your Cloud Run services and jobs to OneUpti
 ```mermaid title="One Cloud Run service, two views in OneUptime"
 flowchart TB
     subgraph instance["Cloud Run instance"]
-        direction LR
         app["Your app"] -->|"OTLP to<br/>localhost:4318"| col["otel-collector<br/>(optional)"]
     end
-    secret["Secret Manager"] -->|"token"| col
-    col -->|"OTLP over HTTPS"| ou["OneUptime"]
+    col -->|"OTLP over HTTPS, with the<br/>token from Secret Manager"| ou["OneUptime"]
     ou -->|"cloud.platform"| env["Cloud Environment<br/>project and region"]
     ou -->|"faas.name"| fn["Serverless Functions<br/>one per service"]
 ```
 
-The OpenTelemetry **GCP resource detector** reads the metadata server and the `K_SERVICE` and `K_REVISION` environment variables, and sets:
+The OpenTelemetry GCP resource detector reads the metadata server and the `K_SERVICE` and `K_REVISION` environment variables, and sets:
 
 | Attribute          | Value on Cloud Run             | Used for                                                                                  |
 | ------------------ | ------------------------------ | ----------------------------------------------------------------------------------------- |
@@ -91,7 +89,7 @@ gcloud secrets add-iam-policy-binding oneuptime-ingestion-token \
 The collector's configuration adds the header name, so this secret holds just the token.
 :::
 
-Put the service's **runtime service account** in `--member`, not your own user. Without `roles/secretmanager.secretAccessor`, the revision fails to deploy with `Permission denied on secret`. If the service still runs as the default compute service account, grant the role to that account, and consider giving the service an account of its own: the default one is shared by everything in the project.
+Put the service's runtime service account in `--member`, not your own user. Without `roles/secretmanager.secretAccessor`, the revision fails to deploy with `Permission denied on secret`. If the service still runs as the default compute service account, grant the role to that account, and consider giving the service an account of its own: the default one is shared by everything in the project.
 
 ### Configure the service
 
@@ -161,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` with `"valid": true` means the token is accepted. `401` means it is unknown, revoked, disabled or expired. Then send one request to the service, and read the collector's logs in **Cloud Logging** (filter on the `otel-collector` container) for `401`, `connection refused` or `context deadline exceeded`. Within a minute, the environment appears under **Cloud → All Environments** as _GCP Cloud Run · us-central1 · my-project_, and the service under **Serverless Functions**.
+`200` with `"valid": true` means the token is accepted. `401` means it is unknown, revoked, disabled or expired. Then send one request to the service, and read the collector's logs in Cloud Logging (filter on the `otel-collector` container) for `401`, `connection refused` or `context deadline exceeded`. Within a minute, the environment appears under **Cloud → All Environments** as _GCP Cloud Run · us-central1 · my-project_, and the service under **Serverless Functions**.
 :::
 
 ## The service YAML with a sidecar
@@ -266,7 +264,7 @@ Only the container that receives requests (`app`) declares `ports`; a sidecar mu
 ## Networking
 
 - **By default**, a Cloud Run service reaches the internet directly, and exporting to `oneuptime.com` needs nothing more.
-- **With VPC egress: All traffic** (`--vpc-egress all-traffic`, through Direct VPC egress or a Serverless VPC Access connector), outbound traffic leaves through your VPC, which then needs **Cloud NAT** (or a route to a proxy) to reach the OneUptime host. With the default `private-ranges-only`, only private addresses use the VPC and OneUptime is reached directly.
+- **With VPC egress: All traffic** (`--vpc-egress all-traffic`, through Direct VPC egress or a Serverless VPC Access connector), outbound traffic leaves through your VPC, which then needs Cloud NAT (or a route to a proxy) to reach the OneUptime host. With the default `private-ranges-only`, only private addresses use the VPC and OneUptime is reached directly.
 - **Firewall egress rules** in the VPC must allow TCP 443 to the OneUptime host.
 - **A self-hosted OneUptime inside the VPC** is the reverse case: route traffic through the VPC (`private-ranges-only` or `all-traffic`), so `https://YOUR-ONEUPTIME-HOST/otlp` resolves there.
 

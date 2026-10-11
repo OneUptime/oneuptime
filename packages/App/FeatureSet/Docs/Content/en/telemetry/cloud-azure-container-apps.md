@@ -13,17 +13,14 @@ Send the traces, logs and metrics of your Azure Container Apps to OneUptime. Eve
 
 ```mermaid title="Where the attributes of a Container Apps replica come from"
 flowchart TB
-    subgraph replica["Container Apps replica"]
-        direction LR
-        app["Your app"] -->|"OTLP to<br/>localhost:4318"| col["otel-collector<br/>(optional)"]
-    end
-    detector["Azure detector:<br/>platform, replica"] --> col
-    manual["OTEL_RESOURCE_ATTRIBUTES:<br/>region, subscription"] --> col
-    col -->|"OTLP over HTTPS"| ou["OneUptime"]
+    detector["Azure detector:<br/>platform and replica"] --> exporter
+    manual["OTEL_RESOURCE_<br/>ATTRIBUTES: region<br/>and subscription"] --> exporter
+    exporter["Your app, or its<br/>sidecar collector"] -->|"OTLP over HTTPS"| ou["OneUptime"]
     ou --> env["Cloud Environment<br/>subscription and region"]
+    ou --> inst["Instances<br/>one row per replica"]
 ```
 
-Container Apps has resource detectors: the Collector's `azurecontainerapps` detector, and the Node.js (`@opentelemetry/resource-detector-azure`) and .NET (`OpenTelemetry.Resources.Azure`) ones. They read `CONTAINER_APP_NAME` and `CONTAINER_APP_REPLICA_NAME`, and set `cloud.provider`, `cloud.platform`, `service.name` and the replica ID. **None of them knows the region or the subscription**, so you set `cloud.region` and `cloud.account.id` yourself, in `OTEL_RESOURCE_ATTRIBUTES`.
+Container Apps has resource detectors: the Collector's `azurecontainerapps` detector, and the Node.js (`@opentelemetry/resource-detector-azure`) and .NET (`OpenTelemetry.Resources.Azure`) ones. They read `CONTAINER_APP_NAME` and `CONTAINER_APP_REPLICA_NAME`, and set `cloud.provider`, `cloud.platform`, `service.name` and the replica ID. None of them knows the region or the subscription, so you set `cloud.region` and `cloud.account.id` yourself, in `OTEL_RESOURCE_ATTRIBUTES`.
 
 | Attribute                         | Value                                                                     | Used for                                                     |
 | --------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -86,7 +83,7 @@ The collector adds the header name itself, so the secret holds just the token.
 
 In the portal: **Azure portal → Container Apps → your app → Settings → Secrets → + Add**. Type the key, pick the type **Container Apps secret**, paste the value and click **Add**.
 
-If you keep secrets in **Key Vault**, reference the secret instead of copying its value. The app's managed identity needs the **Key Vault Secrets User** role on the vault:
+If you keep secrets in Key Vault, reference the secret instead of copying its value. The app's managed identity needs the **Key Vault Secrets User** role on the vault:
 
 ```bash
 az containerapp secret set \
@@ -139,7 +136,11 @@ resource = Resource.create({"service.instance.id": os.environ.get("CONTAINER_APP
 
 Whichever detector you use, keep `cloud.region` and `cloud.account.id` in `OTEL_RESOURCE_ATTRIBUTES`: no Container Apps detector sets them, and the environment key needs them.
 
-In the portal instead: **Application → Containers → Edit and deploy**, select your container on the **Container** tab and click **Edit**. Under **Environment variables**, add each variable above with the source **Manual entry**, and `OTEL_EXPORTER_OTLP_HEADERS` with the source **Reference a secret**, pointing at `oneuptime-otlp-headers`.
+In the portal instead:
+
+1. Open **Application → Containers → Edit and deploy**, select your container on the **Container** tab and click **Edit**.
+2. Under **Environment variables**, add each variable above with the source **Manual entry**, and `OTEL_EXPORTER_OTLP_HEADERS` with the source **Reference a secret**, pointing at `oneuptime-otlp-headers`.
+3. Click **Save**.
 @tab Sidecar collector
 A sidecar runs in the same replica, so it sees the same `CONTAINER_APP_NAME` and `CONTAINER_APP_REPLICA_NAME`. Its `azurecontainerapps` detector turns them into `cloud.provider`, `cloud.platform`, `service.name` and `azure.container_app.instance.id`, and its `env` detector reads `cloud.region` and `cloud.account.id` from `OTEL_RESOURCE_ATTRIBUTES` in the collector's own environment. The application only exports to `http://localhost:4318`.
 
@@ -227,7 +228,11 @@ properties:
 
 `az containerapp show` does not export secret values, so add the `secrets` entry back by hand, or leave it out if you set the secret in the first step: an update keeps existing secrets. Container Apps adds up the CPU and memory of every container in a replica, so the sidecar's `resources` count against the app's.
 
-In the portal instead: on the **Container** tab, **+ Add** a container named `otel-collector` with the image `otel/opentelemetry-collector-contrib:latest` and the **Arguments override** `--config=env:OTEL_COLLECTOR_CONFIG`. Add the environment variables `ONEUPTIME_TOKEN` (**Reference a secret**: `oneuptime-token`), `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_COLLECTOR_CONFIG` (**Manual entry**, with the values above).
+In the portal instead:
+
+1. Open **Application → Containers → Edit and deploy**. On the **Container** tab, **+ Add** a container named `otel-collector` with the image `otel/opentelemetry-collector-contrib:latest` and the **Arguments override** `--config=env:OTEL_COLLECTOR_CONFIG`.
+2. Add its environment variables: `ONEUPTIME_TOKEN` (**Reference a secret**: `oneuptime-token`), `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_COLLECTOR_CONFIG` (**Manual entry**, with the values above).
+3. Click **Save**.
 :::
 
 If you host OneUptime yourself, use `https://YOUR-ONEUPTIME-HOST/otlp` as the endpoint.
@@ -255,7 +260,7 @@ Look for `Everything is ready`, and no `401` or `connection refused`. Within a m
 
 ## Use the environment's managed OpenTelemetry agent
 
-A Container Apps **environment** can run Azure's managed OpenTelemetry agent. It receives OTLP from every app in the environment and forwards it to an endpoint you configure, with no sidecar in each app. The agent exports over **OTLP/gRPC only**, so it cannot use the `/otlp` HTTP path. Point it at the OneUptime host on port 443 instead, where OneUptime serves OTLP/gRPC over TLS:
+A Container Apps environment can run Azure's managed OpenTelemetry agent. It receives OTLP from every app in the environment and forwards it to an endpoint you configure, with no sidecar in each app. The agent exports over **OTLP/gRPC only**, so it cannot use the `/otlp` HTTP path. Point it at the OneUptime host on port 443 instead, where OneUptime serves OTLP/gRPC over TLS:
 
 ```bash
 az containerapp env telemetry otlp add \

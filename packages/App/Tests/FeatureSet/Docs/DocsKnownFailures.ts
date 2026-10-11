@@ -293,7 +293,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "telemetry/cloud-environments": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/cloud-gcp-cloud-run": {
@@ -303,7 +302,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "telemetry/cloud-resources": {
-    uniqueHeadings: EN,
     translated: EVERY_TRANSLATION,
   },
   "telemetry/cloud-troubleshooting": {

@@ -16,10 +16,9 @@ What differs between these platforms is who sets the `cloud.*` attributes, and w
 
 ```mermaid title="Who sets the cloud attributes on each platform"
 flowchart TB
-    platform["Your platform"] --> detector{"Does a resource<br/>detector know it?"}
-    detector -->|"Yes, all of it"| all["Turn the detector on<br/>Elastic Beanstalk, App Engine"]
-    detector -->|"All but the<br/>subscription"| some["Turn the detector on, and<br/>add cloud.account.id<br/>App Service"]
-    detector -->|"No"| none["Set OTEL_RESOURCE_ATTRIBUTES<br/>App Runner, Container Instances"]
+    question{"Does a resource<br/>detector know<br/>the platform?"} -->|"Yes"| detector["Turn the detector on:<br/>Elastic Beanstalk,<br/>App Engine, App Service"]
+    question -->|"No"| manual["Set the attributes<br/>yourself: App Runner,<br/>Container Instances"]
+    detector --> account["App Service: add<br/>cloud.account.id<br/>yourself"]
 ```
 
 | Platform                  | `cloud.platform`            | `cloud.*` filled in by                                                                     | Instance identity                                           |
@@ -37,7 +36,7 @@ Every section below needs a **Server** ingestion key from **Project Settings →
 
 ## AWS Elastic Beanstalk
 
-`cloud.platform`: `aws_elastic_beanstalk`. The Beanstalk detector reads `/var/elasticbeanstalk/xray/environment.conf` on the instance and sets `cloud.platform`, `service.instance.id`, `service.version` and the environment name. It does **not** know the account or the region, so pair it with the EC2 detector, which does, and which also sets `host.id`.
+`cloud.platform`: `aws_elastic_beanstalk`. The Beanstalk detector reads `/var/elasticbeanstalk/xray/environment.conf` on the instance and sets `cloud.platform`, `service.instance.id`, `service.version` and the environment name. It does not know the account or the region, so pair it with the EC2 detector, which does, and which also sets `host.id`.
 
 Run an OpenTelemetry Collector on each instance, with this configuration:
 
@@ -150,7 +149,7 @@ env_variables:
 ```
 
 :::steps
-1. Store the whole header in **Secret Manager**: `printf '%s' "x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN" | gcloud secrets create oneuptime-otlp-headers --data-file=-`. Grant the App Engine service account (`my-project@appspot.gserviceaccount.com`) `roles/secretmanager.secretAccessor` on it.
+1. Store the whole header in Secret Manager: `printf '%s' "x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN" | gcloud secrets create oneuptime-otlp-headers --data-file=-`. Grant the App Engine service account (`my-project@appspot.gserviceaccount.com`) `roles/secretmanager.secretAccessor` on it.
 2. Put the secret into `app.yaml` in your deploy pipeline, keeping a placeholder in the committed file. Or read `projects/PROJECT_ID/secrets/oneuptime-otlp-headers/versions/latest` at start-up and pass it to the exporter's `headers` option in code.
 3. Deploy with `gcloud app deploy`. In the console, **App Engine → Versions** shows the new version, and **App Engine → Services** shows the service that appears under **Serverless Functions**.
 :::
@@ -175,7 +174,7 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 The SDK detectors spell the platform `azure.app_service`, with a dot; OneUptime rewrites it to `azure_app_service` when it receives it. In .NET, add `OpenTelemetry.Resources.Azure` and call `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Other languages add `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` to `OTEL_RESOURCE_ATTRIBUTES`, and take `service.instance.id` from `WEBSITE_INSTANCE_ID` in code.
 
 :::steps
-1. Turn on the app's **system-assigned managed identity** (**Settings → Identity**), and grant it **Key Vault Secrets User** on the vault. Store the whole header, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, as the secret `oneuptime-otlp-headers`.
+1. Turn on the app's system-assigned managed identity (**Settings → Identity**), and grant it **Key Vault Secrets User** on the vault. Store the whole header, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, as the secret `oneuptime-otlp-headers`.
 2. **Azure portal → App Services → your app → Settings → Environment variables** (**Configuration → Application settings** on older portals).
 3. **+ Add** each variable above. The value of `OTEL_EXPORTER_OTLP_HEADERS` is the Key Vault reference.
 4. Click **Apply**, then **Confirm**: the app restarts with the new settings. Deployment slots have their own settings: mark the token as a **deployment slot setting** if only one slot should send telemetry.

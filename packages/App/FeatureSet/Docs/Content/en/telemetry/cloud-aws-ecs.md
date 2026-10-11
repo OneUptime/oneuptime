@@ -14,13 +14,12 @@ Send the traces, logs and metrics of your Amazon ECS tasks to OneUptime, on the 
 ```mermaid title="An ECS task with a sidecar collector"
 flowchart TB
     subgraph task["ECS task"]
-        direction LR
-        app["Your app"] -->|"OTLP to<br/>localhost:4318"| col["otel-collector"]
+        app["Your app"] -->|"OTLP to<br/>localhost:4318"| col["otel-collector<br/>sidecar"]
         meta["Task metadata<br/>endpoint"] -->|"task id,<br/>CPU, memory"| col
     end
-    secret["Secrets Manager"] -->|"ONEUPTIME_TOKEN"| col
-    col -->|"OTLP over HTTPS"| ou["OneUptime"]
+    col -->|"OTLP over HTTPS, with the<br/>token from Secrets Manager"| ou["OneUptime"]
     ou --> env["Cloud Environment<br/>AWS ECS · us-east-1"]
+    ou --> inst["Instances<br/>one row per task"]
 ```
 
 - **The ECS detector names the environment.** The OpenTelemetry ECS resource detector, in the SDK or in a collector, reads the task metadata endpoint ECS gives every container and stamps the account, region and task on everything the task sends. Nothing is hard-coded.
@@ -90,7 +89,7 @@ Note the ARN the command prints. It ends in a random suffix, such as `oneuptime/
 
 ### Let the task read the secret
 
-The **task execution role** (the role ECS starts the task with, not the role your code runs as) needs to read the secret. Attach this policy to `ecsTaskExecutionRole`:
+The task execution role (the role ECS starts the task with, not the role your code runs as) needs to read the secret. Attach this policy to `ecsTaskExecutionRole`:
 
 ```json title="secret-access-policy.json"
 {
@@ -308,7 +307,7 @@ aws ecs register-task-definition --cli-input-json file://task-definition.rendere
 
 The task has to reach two things outside your VPC: Secrets Manager, to start, and OneUptime, to export.
 
-- **Fargate tasks in private subnets** need a route to the internet: a **NAT gateway** on the subnet's route table, or a public subnet with `assignPublicIp=ENABLED`. A task with neither hangs at `PENDING` on the secret, before the collector sends anything.
+- **Fargate tasks in private subnets** need a route to the internet: a NAT gateway on the subnet's route table, or a public subnet with `assignPublicIp=ENABLED`. A task with neither hangs at `PENDING` on the secret, before the collector sends anything.
 - **Security group egress** must allow TCP 443 to the OneUptime host: `oneuptime.com`, or your own host on the port it listens on. The default security group allows all egress; a locked-down one often does not. Telemetry needs no inbound rule.
 - **VPC interface endpoints** for `com.amazonaws.us-east-1.secretsmanager` (and `ecr.api`, `ecr.dkr` and S3 for image pulls) keep the AWS calls off the NAT path. OneUptime itself still needs the route to the internet.
 

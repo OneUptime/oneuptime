@@ -51,7 +51,7 @@ If you host OneUptime yourself, replace `https://oneuptime.com/otlp` with `https
 
 ## Connect Azure
 
-The `azure_monitor` receiver lists the resources of a subscription and reads their platform metrics every minute. With no `services` list it reads **every** resource type, so every resource in the subscription becomes a Cloud Resource.
+The `azure_monitor` receiver lists the resources of a subscription and reads their platform metrics every minute. With no `services` list it reads every resource type, so every resource in the subscription becomes a Cloud Resource.
 
 :::steps
 ### Create a Monitoring Reader service principal
@@ -430,7 +430,7 @@ Every data point from these receivers names one resource, and OneUptime keys the
 
 ### Azure
 
-Every data point carries its resource's Azure resource ID (`azuremonitor.resource_id`), so **every** resource the receiver reads becomes a Cloud Resource: the types below under a friendly name, any other under its Resource Manager type. The resource ID, region, subscription and resource group are all shown on the resource.
+Every data point carries its resource's Azure resource ID (`azuremonitor.resource_id`), so every resource the receiver reads becomes a Cloud Resource: the types below under a friendly name, any other under its Resource Manager type. The resource ID, region, subscription and resource group are all shown on the resource.
 
 :::details The Azure resource types with a friendly name
 | Resource type | Shown as | Model |
@@ -604,15 +604,15 @@ stateDiagram-v2
     state "Not reporting" as NotReporting
     state "Archived" as Archived
     [*] --> Reporting: first metric
-    Reporting --> NotReporting: an hour without a metric
+    Reporting --> NotReporting: an hour<br/>without a metric
     NotReporting --> Reporting: next metric
-    NotReporting --> Archived: 7 days without a metric
+    NotReporting --> Archived: 7 days<br/>without a metric
     Archived --> Reporting: reports again
 ```
 
 - **Reporting** means the provider sent a metric about the resource within the last hour; after an hour without one it reads **Not reporting**. Some resources are quiet by nature, such as a Key Vault nobody called or a bucket whose storage metrics CloudWatch publishes once a day, and come back with their next data point.
 - A resource that sends **no metric for 7 days** is archived automatically: an instance an Auto Scaling group replaced, a deleted volume, a bucket that is gone. It keeps its labels, owners and history under **Cloud → Advanced → Archived**, and is restored by itself the moment it reports again. A resource you archive yourself stays archived; one you restore while it is silent stays in the list until it reports.
-- **Deleting** a resource the provider still reports does not stick: it is discovered again from its next metrics. Archive it instead.
+- Deleting a resource the provider still reports does not stick: it is discovered again from its next metrics. Archive it instead.
 - Discovery stops creating resources when a project holds **5,000** live (not archived) ones, and logs a warning; archived resources do not count.
 
 Self-hosted installations can change these with environment variables on the app:
