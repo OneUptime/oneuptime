@@ -4,7 +4,34 @@ A status page is the public face of everything you monitor: one URL your custome
 
 When something breaks at 2am, the status page is the first thing your support queue links to. It is also the thing your subscribers get notified from — so it is worth setting up before you need it, not during the outage.
 
-Status pages live under **Status Pages** in the dashboard's left navigation, in the **essentials** group. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
+:::cards
+- [Create a status page](#creating-a-status-page): Two fields to start, everything else afterwards.
+- [Choose what it shows](#choosing-what-shows-on-the-page): Incidents, episodes, announcements, maintenance and uptime, in one card.
+- [Decide who can see it](#restricting-who-can-see-the-page): Anyone with the link, only people who sign in, or anyone with the password.
+- [Archive a status page](#archiving-a-status-page): Take a page offline without deleting it.
+:::
+
+## How it works
+
+```mermaid title="What a status page brings together"
+flowchart TB
+    subgraph project["Your project"]
+        direction LR
+        M["Monitors"]
+        E["Incidents and maintenance"]
+        A["Announcements"]
+    end
+    M --> R["Resources on the page"]
+    R --> P["Status page"]
+    E --> P
+    A --> P
+    P --> V["Visitors"]
+    P --> S["Subscribers"]
+```
+
+Status pages live under **Status Pages** in the **Products** menu of the top bar, among the essentials. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
+
+The page shows the monitors you put on it as its resources. Incidents and scheduled maintenance reach it through those monitors, and announcements are posted to it directly. Visitors read the page, and subscribers are told about each change on the channels they picked.
 
 ## At a glance
 
@@ -17,27 +44,35 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 
 ## Key terms
 
-| Term              | What it means                                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Status page**   | One public (or private) page, with its own branding, domains, resources and subscribers. The `StatusPage` model.                    |
-| **Resource**      | One row visitors see — a monitor or monitor group surfaced on the page with a display name and uptime options.                      |
-| **Group**         | A named section that holds resources. Groups nest inside other groups, and each level rolls up the status of everything beneath it. |
-| **Announcement**  | A message you post to one or more status pages, with a start time and an optional end time.                                         |
-| **Subscriber**    | Someone (or something) following the page over email, SMS, Slack, Microsoft Teams or a webhook.                                     |
-| **Custom domain** | A domain of yours — `status.example.com` — pointed at the page with a CNAME and an SSL certificate.                                 |
-| **Private user**  | An account that can log in to a private status page. Separate from your OneUptime project users.                                    |
+| Term | What it means |
+| --- | --- |
+| **Status page** | One public (or private) page, with its own branding, domains, resources and subscribers. The `StatusPage` model. |
+| **Resource** | One row visitors see — a monitor or monitor group surfaced on the page with a display name and uptime options. |
+| **Group** | A named section that holds resources. Groups nest inside other groups, and each level rolls up the status of everything beneath it. |
+| **Announcement** | A message you post to one or more status pages, with a start time and an optional end time. |
+| **Subscriber** | Someone (or something) following the page over email, SMS, Slack, Microsoft Teams or a webhook. |
+| **Custom domain** | A domain of yours — `status.example.com` — pointed at the page with a CNAME record. OneUptime issues its SSL certificate for free and renews it. |
+| **Private user** | An account that can log in to a private status page. Separate from your OneUptime project users. |
 
 ## Creating a status page
 
-1. Open **Status Pages → All Status Pages** and click **Create Status Page**.
-2. In the **Create New Status Page** modal, fill in **Name** (required, at least two characters) and, optionally, **Description**.
-3. Click **Create Status Page**.
+:::steps
+### Open the create form
+
+Open **Status Pages → All Status Pages** and click **Create Status Page**.
+
+### Name the page
+
+In the **Create New Status Page** modal, fill in **Name** (required, at least two characters) and, optionally, **Description**, then click **Create Status Page**.
 
 That's the whole create form. The list you land back on shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
 
-A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
+### Open the new page
 
-Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set.
+Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
+:::
+
+A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
 
 Next, in rough order of usefulness:
 
@@ -50,17 +85,17 @@ Next, in rough order of usefulness:
 
 Once a status page is open, its own left side menu is grouped into nine sections. Use this as a map for the rest of this documentation group.
 
-| Section               | What's in it                                                                                                                                   |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic**             | **Overview**, **Announcements**, **Owners**.                                                                                                   |
-| **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**.                       |
-| **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
-| **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
-| **Branding**          | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**.         |
-| **Security**          | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**.                                                             |
-| **AI**                | **MCP**.                                                                                                                                       |
-| **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
-| **Advanced**          | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**.                            |
+| Section | What's in it |
+| --- | --- |
+| **Basic** | **Overview**, **Announcements**, **Owners**. |
+| **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**. |
+| **Subscribers** | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
+| **Notification Logs** | **Notification Logs** — what was sent to subscribers. |
+| **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
+| **Security** | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**. |
+| **AI** | **MCP**. |
+| **Developer** | **Terraform**, **API**, **AI Assistants** — the page as code. |
+| **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**. |
 
 Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Advanced Settings** or **Email Subscribers**.
 
@@ -82,6 +117,7 @@ The public page is its own app, with a small set of routes:
 - `/announcements` and `/announcements/:id`.
 - `/scheduled-events` and `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
+- `/confirm-subscription/:id`, `/update-subscription/:id` and `/unsubscribe/:token` — the links in the messages subscribers get.
 - `/rss` — the feed.
 - `/login`, `/sso` and `/master-password` — only relevant on a private page.
 
@@ -97,7 +133,7 @@ The overview is the page most visitors ever see. Top to bottom it renders:
 2. **An overall status banner** — a single line summarizing whether all or only some resources are affected.
 3. **An overall uptime percent**, if you turned it on: at the end of the overall status banner, while every resource is operational. Off by default.
 4. **The resource groups**, each with its resources, their current status, and their uptime history bars.
-5. **Active Incidents**.
+5. **Active Incidents**, with the active episodes.
 6. **Scheduled Maintenance Events**.
 
 A brand-new page with nothing on it shows an empty state telling you to add resources from the dashboard — which is your cue to head to the **Resources** screen.
@@ -175,9 +211,9 @@ Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhit
 
 Two ways to surface status somewhere other than the page itself.
 
-**Embedded status badge.** Turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default) in the **Embedded Status Badge** card on **Status Pages → your page → Advanced → Embedded Status**. It pairs with an `embeddedOverallStatusToken` and serves the badge from `/badge/:statusPageId`, so you can drop the current overall status into your docs, your app's footer or a marketing page.
+**Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview** with snippets to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page.
 
-**RSS feed.** Every status page serves `/rss` — a feed titled "{status page name} Updates" whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
+**RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
 
 If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
 
@@ -192,12 +228,11 @@ Archive a status page to take it offline without deleting it. An archived status
 
 To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
-## Where to read next
+## Next steps
 
-- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — putting monitors on the page and organizing them into sections.
-- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — logo, favicon, footer, custom code, and pointing your own domain at the page.
-- [Subscribers & Announcements](/docs/status-pages/subscribers) — the five subscriber channels, double opt-in, and posting announcements.
-- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — a status page per client, site or region, and deciding per incident which of them hear about it.
-- [Public API](/docs/status-pages/public-api) — reading status page data programmatically.
-- [Incidents Overview](/docs/incidents/index) — the events that show up on the page.
-- [Incident States & Severities](/docs/incidents/states-and-severities) — what makes an incident appear on a status page and what takes it off.
+:::cards
+- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups): Put monitors on the page and organize them into sections.
+- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains): Your logo and colors, and the page on your own domain.
+- [Subscribers & Announcements](/docs/status-pages/subscribers): The five subscriber channels, and posting announcements.
+- [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience): A page per client, site or region, and which of them hear about each incident.
+:::

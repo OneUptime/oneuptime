@@ -9,6 +9,13 @@ Shared infrastructure used to make that hard. An incident reaches a status page 
 - A record of which pages were told that an incident was created, so a page you add later is told once and the others are not told again.
 - A **Will notify** summary that shows who will hear about an incident before you declare it or post a public note, and **Preview**, which shows what each page's subscribers will get.
 
+:::cards
+- [Set it up](#setting-up-one-page-per-audience): A page per audience, and the switch that keeps unscoped incidents off them.
+- [Limit an incident](#limiting-an-incident-to-status-pages): Pick the pages when you declare it, or later.
+- [Add or remove pages](#adding-and-removing-status-pages): Who is told about a page you add, and what removing one recalls.
+- [What every message carries](#what-every-message-carries): The values every page gets, and what they tell each audience.
+:::
+
 ## When to use it
 
 - **A managed service provider** with a status page per client, on monitors the clients share.
@@ -20,6 +27,18 @@ If your audience is happy to choose for itself, one page may be enough: let subs
 ## How an incident reaches a status page
 
 An incident reaches a status page through its monitors. A page shows an incident, and notifies its subscribers about it, when one of the page's resources is one of the incident's monitors, directly or through a monitor group on the page. Two settings narrow that:
+
+```mermaid title="Does this page show the incident?"
+flowchart TB
+    L{"Page lists a monitor of the incident?"} -->|"No"| X["Not shown, not notified"]
+    L -->|"Yes"| S{"Incident limited to pages?"}
+    S -->|"Yes"| P{"This page picked?"}
+    P -->|"Yes"| Y["Shown and notified"]
+    P -->|"No"| X
+    S -->|"No"| O{"Page shows only scoped incidents?"}
+    O -->|"No"| Y
+    O -->|"Yes"| X
+```
 
 - **Limit to these status pages** on the incident (`statusPages`). Left empty, the incident reaches every page that lists its monitors, as it always has. With pages picked, it reaches only the picked pages **among** the ones that list its monitors.
 - **Only Show Incidents Scoped to This Page** on the status page (`onlyShowScopedIncidents`, off by default). With it on, the page never shows, and never notifies anyone about, an incident that is not limited to specific status pages.
@@ -44,15 +63,43 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 
 ## Setting up one page per audience
 
-1. **Create a status page for each audience**, for example `Site 01` to `Site 10`. Make them private if the audience is internal (see [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page)). Subscribers of a private page can still unsubscribe without signing in, through the link in every message (see [Managing and canceling a subscription](/docs/status-pages/subscribers#managing-and-canceling-a-subscription)). Give them labels such as `Region East`, so the picker can add every page with a label in one click.
-2. **Put the shared monitor on each page** as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Resources → Monitor Rules** can do this for you from the monitor's labels.
-3. **Turn on Only Show Incidents Scoped to This Page** on each of those pages. It is in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**, under **Show Incidents**, and it saves the moment you flip it. From then on, nothing reaches a site page unless someone picks it.
-4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
-5. **Let responders read status pages.** The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty.
-6. **Decide what every message says.** At **Incidents → Settings → Custom Fields**, define the incident custom fields your team answers every time, for example `Impact` (a dropdown), `Expected Resolution` (a date and time) and `Acknowledgement` (a yes/no switch). Drag them into the **Order** you want them asked and listed in, and turn on **Show on Create** so the declare form asks for them, **Required on Create** where an answer is a must, and **Include in Subscriber Notifications** for the ones every audience may read. Those are then in the default email of every page. See [Custom fields](/docs/incidents/settings#custom-fields).
-7. **Optionally, brand each page's email.** On the **Scale** plan, give each page a **Custom SMTP Config** and link custom templates for the incident events; they can place any field with `{{incident.customFields.<key>}}`. While you write a template, **Live preview** under it shows it filled in with sample values. See [What a custom template needs](/docs/status-pages/subscribers#what-a-custom-template-needs), and [What every message carries](#what-every-message-carries) before you use `{{affectedStatusPages}}`.
-8. **Optionally, save incident templates with pages already picked.** A `Region East outage` template can carry the East site pages, and default answers for the custom fields.
-9. **Check each page's email before the first outage.** Start **Declare Incident** with the shared monitor and two of the site pages picked, and on the summary before you submit, open **Preview**, beside **Yes**: it shows the email each page's subscribers would get, and which template it uses and why. **Send test to me** sends one to your own inbox. Nobody else is sent anything until you declare the incident, so leave the form without submitting it when you are done. See [Who will be notified](#who-will-be-notified).
+:::steps
+### Create a status page for each audience
+
+Create one page per audience, for example `Site 01` to `Site 10`. Make them private if the audience is internal (see [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page)). Subscribers of a private page can still unsubscribe without signing in, through the link in every message (see [Managing and canceling a subscription](/docs/status-pages/subscribers#managing-and-canceling-a-subscription)). Give them labels such as `Region East`, so the picker can add every page with a label in one click.
+
+### Put the shared monitor on each page
+
+Add the shared monitor to each page as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Resources → Monitor Rules** can do this for you from the monitor's labels.
+
+### Turn on Only Show Incidents Scoped to This Page
+
+On each of those pages, turn it on. It is in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**, under **Show Incidents**, and it saves the moment you flip it. From then on, nothing reaches a site page unless someone picks it.
+
+### Add each audience's subscribers
+
+For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
+
+### Let responders read status pages
+
+The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty.
+
+### Decide what every message says
+
+At **Incidents → Settings → Custom Fields**, define the incident custom fields your team answers every time, for example `Impact` (a dropdown), `Expected Resolution` (a date and time) and `Acknowledgement` (a yes/no switch). Drag them into the **Order** you want them asked and listed in, and turn on **Show on Create** so the declare form asks for them, **Required on Create** where an answer is a must, and **Include in Subscriber Notifications** for the ones every audience may read. Those are then in the default email of every page. See [Custom fields](/docs/incidents/settings#custom-fields).
+
+### Brand each page's email (optional)
+
+On the **Scale** plan, give each page a **Custom SMTP Config** and link custom templates for the incident events; they can place any field with `{{incident.customFields.<key>}}`. While you write a template, **Live preview** under it shows it filled in with sample values. See [What a custom template needs](/docs/status-pages/subscribers#what-a-custom-template-needs), and [What every message carries](#what-every-message-carries) before you use `{{affectedStatusPages}}`.
+
+### Save incident templates with pages picked (optional)
+
+A `Region East outage` template can carry the East site pages, and default answers for the custom fields.
+
+### Check each page's email before the first outage
+
+Start **Declare Incident** with the shared monitor and two of the site pages picked, and on the summary before you submit, open **Preview**, beside **Yes**: it shows the email each page's subscribers would get, and which template it uses and why. **Send test to me** sends one to your own inbox. Nobody else is sent anything until you declare the incident, so leave the form without submitting it when you are done. See [Who will be notified](#who-will-be-notified).
+:::
 
 ## Limiting an incident to status pages
 
@@ -216,12 +263,11 @@ See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for t
 
 The workers that send subscriber notifications are what keep an incident to the pages it is limited to. While an upgrade to a version with this feature rolls out, a worker still on the previous version sends the notifications it picks up the way it always has: to every status page that lists the incident's monitors, including pages that only show incidents limited to them. So let the worker deployment finish rolling out, or scale the old workers to zero, before anyone limits an incident to status pages or turns on **Only Show Incidents Scoped to This Page**. With Helm, `migrate.hook: true` also runs the database migrations before any new pod starts.
 
-## Where to read next
+## Next steps
 
-- [Subscribers & Announcements](/docs/status-pages/subscribers) — the subscriber channels, and what each event sends.
-- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — putting monitors on a page.
-- [Status Pages Overview](/docs/status-pages/index) — private pages and the settings on **Advanced Settings**.
-- [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare form, step by step.
-- [Settings & Automation](/docs/incidents/settings) — incident custom fields and note templates.
-- [Incident States & Severities](/docs/incidents/states-and-severities) — what else keeps an incident off a status page.
-- [Manual Monitor](/docs/monitor/manual-monitor) — monitors whose status you set yourself.
+:::cards
+- [Subscribers & Announcements](/docs/status-pages/subscribers): The subscriber channels, and what each event sends.
+- [Declaring an Incident](/docs/incidents/declaring-incidents): The declare form, step by step.
+- [Incident States & Severities](/docs/incidents/states-and-severities): What else keeps an incident off a status page.
+- [Manual Monitor](/docs/monitor/manual-monitor): Monitors whose status you set yourself.
+:::

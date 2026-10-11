@@ -210,7 +210,7 @@ describe("states of your own", () => {
 
   test("name every place that reads the rule", () => {
     expect(text).toContain(
-      "Such an event is listed as ongoing on its status pages - on the overview, on the event's own page and in the RSS and Atom feeds - and in the **Ongoing** lists under **Scheduled Maintenance** and **Home**, their menu badges and the **Ongoing maintenance** tile on **Home**, and the Microsoft Teams app lists it as ongoing maintenance.",
+      "Such an event is listed as ongoing on its status pages - on the overview, on the event's own page and in the RSS feed - and in the **Ongoing** lists under **Scheduled Maintenance** and **Home**, their menu badges and the **Ongoing maintenance** tile on **Home**, and the Microsoft Teams app lists it as ongoing maintenance.",
     );
     expect(text).toContain(
       "Its monitors stay in maintenance, the network sites and telemetry series it covers stay silenced, and SLO burn-rate alerts on its monitors are held back. At its **Ends At** it is ended the way an ongoing event is, and its subscribers are told if **When the event ends** is on.",
