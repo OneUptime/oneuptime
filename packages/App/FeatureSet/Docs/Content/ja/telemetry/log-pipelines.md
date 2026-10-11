@@ -84,7 +84,7 @@ flowchart TB
 
 ## Key=Value Parser
 
-ファイアウォールなどのネットワーク機器は、各イベントを `key=value` のペアが並んだ 1 行として記録します。行にどのフィールドがどの順番で含まれるかはイベントによって異なるため、1 つの grok パターンでは表現できません。Key=Value Parser はパターンを必要としません。行を順に読み、見つけたペアを順番に関係なくすべてログの属性にします。属性になれば、検索や絞り込みができ、[ログ モニター](/docs/monitor/logs-monitor) で使えます。さらに [グループ化](/docs/monitor/logs-monitor) を使えば、トンネル、インターフェース、ユーザーごとに 1 回ずつアラートを出せます。
+ファイアウォールなどのネットワーク機器は、各イベントを `key=value` のペアが並んだ 1 行として記録します。行にどのフィールドがどの順番で含まれるかはイベントによって異なるため、1 つの grok パターンでは表現できません。Key=Value Parser はパターンを必要としません。行を順に読み、見つけたペアを順番に関係なくすべてログの属性にします。属性になれば、検索や絞り込みができ、[ログ モニター](/docs/monitor/logs-monitor) で使えます。さらに [グループ化](/docs/monitor/logs-monitor#グループごとのアラートgroup-by) を使えば、トンネル、インターフェース、ユーザーごとに 1 回ずつアラートを出せます。
 
 ### 設定
 
@@ -164,7 +164,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ### トンネルごとに 1 回アラートを出す
 
-フィールドを解析すれば、[ログ モニター](/docs/monitor/logs-monitor) で障害を数え、トンネルごとに別々のアラートを出せます。`sophos.log_component` = `IPSec` で、本文に `terminated` を含むものを絞り込み、`sophos.con_name` でグループ化します。[グループごとのアラート](/docs/monitor/logs-monitor) を参照してください。
+フィールドを解析すれば、[ログ モニター](/docs/monitor/logs-monitor) で障害を数え、トンネルごとに別々のアラートを出せます。`sophos.log_component` = `IPSec` で、本文に `terminated` を含むものを絞り込み、`sophos.con_name` でグループ化します。[グループごとのアラート](/docs/monitor/logs-monitor#グループごとのアラートgroup-by) を参照してください。
 
 ## Grok パーサー
 

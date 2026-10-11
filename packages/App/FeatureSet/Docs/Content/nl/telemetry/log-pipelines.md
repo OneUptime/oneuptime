@@ -84,7 +84,7 @@ De ernstwaarden zijn `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `Trace
 
 ## Key=Value Parser
 
-Firewalls en andere netwerkapparaten loggen elke gebeurtenis als één regel van `key=value`-paren. Welke velden een regel heeft, en in welke volgorde, hangt af van de gebeurtenis, dus geen enkel grok-patroon kan ze beschrijven. De Key=Value Parser heeft er geen nodig: hij loopt de regel door en maakt van elk gevonden paar een logboekattribuut, ongeacht de volgorde. Als attributen kunt u erop zoeken en filteren, ze gebruiken in een [logs-monitor](/docs/monitor/logs-monitor) en per tunnel, interface of gebruiker één keer waarschuwen met [Groeperen op](/docs/monitor/logs-monitor).
+Firewalls en andere netwerkapparaten loggen elke gebeurtenis als één regel van `key=value`-paren. Welke velden een regel heeft, en in welke volgorde, hangt af van de gebeurtenis, dus geen enkel grok-patroon kan ze beschrijven. De Key=Value Parser heeft er geen nodig: hij loopt de regel door en maakt van elk gevonden paar een logboekattribuut, ongeacht de volgorde. Als attributen kunt u erop zoeken en filteren, ze gebruiken in een [logs-monitor](/docs/monitor/logs-monitor) en per tunnel, interface of gebruiker één keer waarschuwen met [Groeperen op](/docs/monitor/logs-monitor#waarschuwingen-per-groep-group-by).
 
 ### Configuratie
 
@@ -164,7 +164,7 @@ Met de standaardinstellingen en een voorvoegsel `fortigate` levert dit `fortigat
 
 ### Eén keer per tunnel waarschuwen
 
-Met de geparste velden kan een [logs-monitor](/docs/monitor/logs-monitor) de storingen tellen en voor elke tunnel een aparte waarschuwing openen: filter op `sophos.log_component` = `IPSec` met een tekst die `terminated` bevat, en groepeer op `sophos.con_name`. Zie [Waarschuwingen per groep](/docs/monitor/logs-monitor).
+Met de geparste velden kan een [logs-monitor](/docs/monitor/logs-monitor) de storingen tellen en voor elke tunnel een aparte waarschuwing openen: filter op `sophos.log_component` = `IPSec` met een tekst die `terminated` bevat, en groepeer op `sophos.con_name`. Zie [Waarschuwingen per groep](/docs/monitor/logs-monitor#waarschuwingen-per-groep-group-by).
 
 ## Grok Parser
 

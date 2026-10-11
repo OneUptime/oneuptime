@@ -84,7 +84,7 @@ flowchart TB
 
 ## Key=Value Parser
 
-防火牆與其他網路設備會把每個事件記錄為一行 `key=value` 配對。一行包含哪些欄位、順序如何，取決於事件，因此單一 grok 模式無法描述它們。Key=Value Parser 不需要模式：它會走過整行，把找到的每個配對都變成日誌屬性，不論順序如何。成為屬性後，你就可以對它們進行搜尋與篩選，在 [日誌監控](/docs/monitor/logs-monitor) 中使用它們，並透過 [分組依據](/docs/monitor/logs-monitor) 依通道、介面或使用者各發出一次警示。
+防火牆與其他網路設備會把每個事件記錄為一行 `key=value` 配對。一行包含哪些欄位、順序如何，取決於事件，因此單一 grok 模式無法描述它們。Key=Value Parser 不需要模式：它會走過整行，把找到的每個配對都變成日誌屬性，不論順序如何。成為屬性後，你就可以對它們進行搜尋與篩選，在 [日誌監控](/docs/monitor/logs-monitor) 中使用它們，並透過 [分組依據](/docs/monitor/logs-monitor#依群組警示group-by) 依通道、介面或使用者各發出一次警示。
 
 ### 設定
 
@@ -164,7 +164,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ### 每個通道只警示一次
 
-剖析出欄位後，[日誌監控](/docs/monitor/logs-monitor) 就能計算失敗次數，並為每個通道分別發出警示：篩選 `sophos.log_component` = `IPSec` 且內文包含 `terminated` 的日誌，並依 `sophos.con_name` 分組。請參閱 [依群組警示](/docs/monitor/logs-monitor)。
+剖析出欄位後，[日誌監控](/docs/monitor/logs-monitor) 就能計算失敗次數，並為每個通道分別發出警示：篩選 `sophos.log_component` = `IPSec` 且內文包含 `terminated` 的日誌，並依 `sophos.con_name` 分組。請參閱 [依群組警示](/docs/monitor/logs-monitor#依群組警示group-by)。
 
 ## Grok Parser
 

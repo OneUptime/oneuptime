@@ -84,7 +84,7 @@ Los valores de gravedad son `Fatal`, `Error`, `Warning`, `Information`, `Debug`,
 
 ## Key=Value Parser
 
-Los firewalls y otros equipos de red registran cada evento como una línea de pares `key=value`. Qué campos tiene una línea, y en qué orden, depende del evento, así que ningún patrón grok único puede describirlos. El Key=Value Parser no lo necesita: recorre la línea y convierte cada par que encuentra en un atributo del registro, sea cual sea el orden. Una vez convertidos en atributos, puede buscarlos y filtrar por ellos, usarlos en un [monitor de registros](/docs/monitor/logs-monitor) y alertar una vez por túnel, interfaz o usuario con [Agrupar por](/docs/monitor/logs-monitor).
+Los firewalls y otros equipos de red registran cada evento como una línea de pares `key=value`. Qué campos tiene una línea, y en qué orden, depende del evento, así que ningún patrón grok único puede describirlos. El Key=Value Parser no lo necesita: recorre la línea y convierte cada par que encuentra en un atributo del registro, sea cual sea el orden. Una vez convertidos en atributos, puede buscarlos y filtrar por ellos, usarlos en un [monitor de registros](/docs/monitor/logs-monitor) y alertar una vez por túnel, interfaz o usuario con [Agrupar por](/docs/monitor/logs-monitor#alertas-por-grupo-group-by).
 
 ### Configuración
 
@@ -164,7 +164,7 @@ Con los ajustes predeterminados y un prefijo `fortigate`, esto da `fortigate.dev
 
 ### Alertar una vez por túnel
 
-Con los campos analizados, un [monitor de registros](/docs/monitor/logs-monitor) puede contar los fallos y abrir una alerta distinta para cada túnel: filtre por `sophos.log_component` = `IPSec` con un cuerpo que contenga `terminated` y agrupe por `sophos.con_name`. Consulte [Alertas por grupo](/docs/monitor/logs-monitor).
+Con los campos analizados, un [monitor de registros](/docs/monitor/logs-monitor) puede contar los fallos y abrir una alerta distinta para cada túnel: filtre por `sophos.log_component` = `IPSec` con un cuerpo que contenga `terminated` y agrupe por `sophos.con_name`. Consulte [Alertas por grupo](/docs/monitor/logs-monitor#alertas-por-grupo-group-by).
 
 ## Analizador Grok
 

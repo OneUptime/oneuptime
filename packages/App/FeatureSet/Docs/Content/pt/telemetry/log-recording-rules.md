@@ -172,7 +172,7 @@ Crie um monitor de **Métricas** (veja [Monitor de métricas](/docs/monitor/metr
 4. **Critérios:** Metric value **Greater Than** `150` abre um alerta.
 5. Se quiser, use os valores de agrupamento no título do alerta, por exemplo `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Com o agrupamento definido, cada gateway é uma série própria: se o WAN2 ficar lento, abre-se um alerta só para o WAN2, que se resolve sozinho quando o WAN2 se recupera. Veja [Alertas por série](/docs/monitor/metrics-monitor).
+Com o agrupamento definido, cada gateway é uma série própria: se o WAN2 ficar lento, abre-se um alerta só para o WAN2, que se resolve sozinho quando o WAN2 se recupera. Veja [Alertas por série](/docs/monitor/metrics-monitor#alertas-por-série-group-by).
 :::
 
 ## Bom saber

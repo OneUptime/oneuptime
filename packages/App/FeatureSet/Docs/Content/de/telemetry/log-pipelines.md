@@ -84,7 +84,7 @@ Die Schweregrade lauten `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `Tr
 
 ## Key=Value Parser
 
-Firewalls und andere Netzwerkgeräte protokollieren jedes Ereignis als eine Zeile aus `key=value`-Paaren. Welche Felder eine Zeile hat und in welcher Reihenfolge, hängt vom Ereignis ab, daher kann kein einzelnes Grok-Muster sie beschreiben. Der Key=Value Parser braucht keines: Er geht die Zeile durch und macht aus jedem gefundenen Paar ein Protokollattribut, unabhängig von der Reihenfolge. Als Attribute können Sie danach suchen und filtern, sie in einem [Logs-Monitor](/docs/monitor/logs-monitor) verwenden und mit [Gruppieren nach](/docs/monitor/logs-monitor) einmal pro Tunnel, Schnittstelle oder Benutzer warnen.
+Firewalls und andere Netzwerkgeräte protokollieren jedes Ereignis als eine Zeile aus `key=value`-Paaren. Welche Felder eine Zeile hat und in welcher Reihenfolge, hängt vom Ereignis ab, daher kann kein einzelnes Grok-Muster sie beschreiben. Der Key=Value Parser braucht keines: Er geht die Zeile durch und macht aus jedem gefundenen Paar ein Protokollattribut, unabhängig von der Reihenfolge. Als Attribute können Sie danach suchen und filtern, sie in einem [Logs-Monitor](/docs/monitor/logs-monitor) verwenden und mit [Gruppieren nach](/docs/monitor/logs-monitor#warnungen-pro-gruppe-group-by) einmal pro Tunnel, Schnittstelle oder Benutzer warnen.
 
 ### Konfiguration
 
@@ -164,7 +164,7 @@ Mit den Standardeinstellungen und dem Präfix `fortigate` ergibt das `fortigate.
 
 ### Einmal pro Tunnel warnen
 
-Mit den geparsten Feldern kann ein [Logs-Monitor](/docs/monitor/logs-monitor) die Ausfälle zählen und für jeden Tunnel eine eigene Warnung auslösen: Filtern Sie auf `sophos.log_component` = `IPSec` mit einem Text, der `terminated` enthält, und gruppieren Sie nach `sophos.con_name`. Siehe [Warnungen pro Gruppe](/docs/monitor/logs-monitor).
+Mit den geparsten Feldern kann ein [Logs-Monitor](/docs/monitor/logs-monitor) die Ausfälle zählen und für jeden Tunnel eine eigene Warnung auslösen: Filtern Sie auf `sophos.log_component` = `IPSec` mit einem Text, der `terminated` enthält, und gruppieren Sie nach `sophos.con_name`. Siehe [Warnungen pro Gruppe](/docs/monitor/logs-monitor#warnungen-pro-gruppe-group-by).
 
 ## Grok-Parser
 

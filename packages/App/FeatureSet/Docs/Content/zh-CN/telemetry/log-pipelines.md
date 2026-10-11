@@ -84,7 +84,7 @@ flowchart TB
 
 ## Key=Value Parser
 
-防火墙和其他网络设备把每个事件记录为一行 `key=value` 对。一行包含哪些字段、顺序如何，取决于事件，因此单个 grok 模式无法描述它们。Key=Value Parser 不需要模式：它遍历整行，把找到的每一对都变成日志属性，无论顺序如何。成为属性后，你就可以对它们进行搜索和过滤，在 [日志监控](/docs/monitor/logs-monitor) 中使用它们，并通过 [分组依据](/docs/monitor/logs-monitor) 按隧道、接口或用户各发出一次告警。
+防火墙和其他网络设备把每个事件记录为一行 `key=value` 对。一行包含哪些字段、顺序如何，取决于事件，因此单个 grok 模式无法描述它们。Key=Value Parser 不需要模式：它遍历整行，把找到的每一对都变成日志属性，无论顺序如何。成为属性后，你就可以对它们进行搜索和过滤，在 [日志监控](/docs/monitor/logs-monitor) 中使用它们，并通过 [分组依据](/docs/monitor/logs-monitor#按分组告警group-by) 按隧道、接口或用户各发出一次告警。
 
 ### 配置
 
@@ -164,7 +164,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ### 每个隧道只告警一次
 
-解析出字段后，[日志监控](/docs/monitor/logs-monitor) 就可以统计故障次数，并为每个隧道分别发出告警：过滤 `sophos.log_component` = `IPSec` 且正文包含 `terminated` 的日志，并按 `sophos.con_name` 分组。参阅 [按组告警](/docs/monitor/logs-monitor)。
+解析出字段后，[日志监控](/docs/monitor/logs-monitor) 就可以统计故障次数，并为每个隧道分别发出告警：过滤 `sophos.log_component` = `IPSec` 且正文包含 `terminated` 的日志，并按 `sophos.con_name` 分组。参阅 [按组告警](/docs/monitor/logs-monitor#按分组告警group-by)。
 
 ## Grok Parser
 

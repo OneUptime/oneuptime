@@ -172,7 +172,7 @@ API, MCP 또는 Terraform에서는 같은 규칙의 **정의** 가 다음과 같
 4. **기준:** Metric value **Greater Than** `150` 이면 알림이 열립니다.
 5. 필요하면 알림 제목에 그룹화 값을 사용하세요. 예: `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-그룹화 기준을 설정하면 게이트웨이마다 별도의 시리즈가 됩니다. WAN2가 느려지면 WAN2만의 알림이 열리고, WAN2가 회복되면 저절로 해결됩니다. [시리즈별 알림](/docs/monitor/metrics-monitor) 을 참고하세요.
+그룹화 기준을 설정하면 게이트웨이마다 별도의 시리즈가 됩니다. WAN2가 느려지면 WAN2만의 알림이 열리고, WAN2가 회복되면 저절로 해결됩니다. [시리즈별 알림](/docs/monitor/metrics-monitor#시리즈별-알림group-by) 을 참고하세요.
 :::
 
 ## 알아 두면 좋은 점
