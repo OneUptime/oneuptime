@@ -94,7 +94,7 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
   });
 });
 
-describe("a quoted key is read for inline material, but not as base64", () => {
+describe("a quoted key is read for a URL password, and stays a name", () => {
   test("a URL password in a JSON key is masked, on the agent as on the server", () => {
     const output: string =
       '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}';
@@ -112,7 +112,7 @@ describe("a quoted key is read for inline material, but not as base64", () => {
 
   test("a key that only looks like material stays a name", () => {
     const output: string =
-      '{\n  "AppSettings2FeatureFlagsEnabledForTenant1": "true",\n  "Path=": "/usr/bin"\n}';
+      '{\n  "AppSettings2FeatureFlagsEnabledForTenant1": "true",\n  "Path=": "/usr/bin",\n  "pods:list": "allow"\n}';
 
     expect(GenericOutputRedactor.redact(output).text).toBe(output);
     expect(GenericOutputRedactor.redact(output).redactionCount).toBe(0);

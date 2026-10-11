@@ -637,22 +637,26 @@ function maskInlineValue(value: string): string {
 
 /*
  * The part of a `key: value` line before its value. A key that may be free
- * text gets the inline rules. So does a quoted key, which can hold anything
- * - a URL with its password ("'postgres://app:hunter2@db': enabled"), a
- * flag and its value, a token - but for the base64 rules: a quoted key is
- * still a name, and a long one ("AppSettings2FeatureFlagsEnabledForTenant1")
- * would read as a run of base64. An ordinary key is returned as it is.
+ * text gets the inline rules. A quoted key is a name, read as one - the
+ * pair and base64 rules would take "secrets:list" or
+ * "AppSettings2FeatureFlagsEnabledForTenant1" apart - but it can hold a
+ * colon and "//", so a URL with its password, and that password is masked
+ * ("'postgres://app:hunter2@db': enabled"). An ordinary key is returned as
+ * it is.
  */
 function redactKeyPrefix(line: ParsedLine): { text: string; count: number } {
   const prefix: string = line.raw.slice(0, line.valueStart ?? 0);
 
-  if (line.keyKind !== "freeText" && line.keyKind !== "quoted") {
+  if (line.keyKind === "quoted") {
+    return maskUrlCredentials(prefix);
+  }
+
+  if (line.keyKind !== "freeText") {
     return { text: prefix, count: 0 };
   }
 
   const inline: { text: string; count: number } = applyInlineRules(
     prefix.slice(line.contentIndent),
-    line.keyKind === "freeText",
   );
 
   return {
@@ -1048,14 +1052,8 @@ function maskUrlCredentials(text: string): { text: string; count: number } {
   return { text: masked, count };
 }
 
-/*
- * The rules that apply to any line regardless of its YAML/JSON structure;
- * the base64 rules too unless `readBase64` is false.
- */
-function applyInlineRules(
-  text: string,
-  readBase64: boolean = true,
-): { text: string; count: number } {
+// The rules that apply to any line regardless of its YAML/JSON structure.
+function applyInlineRules(text: string): { text: string; count: number } {
   let count: number = 0;
   let result: string = text;
 
@@ -1116,10 +1114,6 @@ function applyInlineRules(
   apply(maskInlineSplitFlags(result));
 
   apply(maskToolPasswordFlags(result));
-
-  if (!readBase64) {
-    return { text: result, count };
-  }
 
   result = result.replace(
     BASE64_PADDED_REGEX,

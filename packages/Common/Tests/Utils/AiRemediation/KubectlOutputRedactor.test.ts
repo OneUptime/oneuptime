@@ -1255,23 +1255,20 @@ describe("KubectlOutputRedactor", () => {
      * URL password in one - a YAML key in quotes, any key of JSON - went to
      * the model as it was. The seeded corpus of the test below found it
      * ("'+g.-ap://:%:-@@':" is a quoted key with nothing after its colon)
-     * once it drew every text it asked for. A quoted key now gets the
-     * inline rules - a URL password, a flag's value, a token in it is
-     * masked - but for the base64 ones: it is still a name, and a long one
-     * must not read as a run of base64.
+     * once it drew every text it asked for. A quoted key is still a name,
+     * read as one, but a URL password in it is masked.
      */
-    it("masks a URL password, a pair and a token inside a quoted key, and leaves a name alone", () => {
+    it("masks a URL password inside a quoted key, and leaves a name alone", () => {
       const result: KubectlOutputRedaction = redact(
         lines(
           "  'postgres://app:hunter2@db:5432/app': enabled",
           '"https://ci:hunter2@registry.example.com": {',
           "'+g.-ap://:%:-@@':",
           '  "auth": "",',
-          '"--set db.password=hunter2": "failed",',
-          '"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U": 1,',
           '"name": "web"',
           "'Image pull secrets': <none>",
-          // Names that only look like base64 stay names.
+          // Names a pair rule or a base64 rule would take apart stay names.
+          '"pods:list": "allow",',
           '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
           '"Path=": "/usr/bin",',
         ),
@@ -1283,16 +1280,14 @@ describe("KubectlOutputRedactor", () => {
           `"https://ci:${MARKER}@registry.example.com": {`,
           `'+g.-ap://:${MARKER}@@':`,
           '  "auth": "",',
-          // The key names a password, so its value goes too.
-          `"--set db.password=${MARKER}": "${MARKER}",`,
-          '"[redacted-jwt]": 1,',
           '"name": "web"',
           "'Image pull secrets': <none>",
+          '"pods:list": "allow",',
           '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
           '"Path=": "/usr/bin",',
         ),
       );
-      expect(result.redactionCount).toBe(6);
+      expect(result.redactionCount).toBe(3);
     });
 
     /*
