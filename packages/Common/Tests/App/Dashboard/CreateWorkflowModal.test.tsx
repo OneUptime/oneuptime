@@ -1901,7 +1901,7 @@ describe("CreateWorkflowModal Jira templates", () => {
         expect(token).toHaveAttribute("spellcheck", "false");
 
         /*
-         * The site URL is not a secret, and masking it would hide the typo that
+         * The API URL is not a secret, and masking it would hide the typo that
          * sends every request to the wrong host.
          */
         const baseUrl: HTMLInputElement = getVariableInput("jiraBaseUrl");

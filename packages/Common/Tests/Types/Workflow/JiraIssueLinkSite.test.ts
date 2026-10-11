@@ -6,8 +6,7 @@
  * issue, and the private notes the comment and issue-change templates add.
  * #4676 read the link's site off the event's own REST URL (issue.self),
  * limited to a scheme, a host and a port. That URL comes with the request,
- * which anyone holding the workflow's URL writes, so the request chose the
- * site.
+ * so the request, not the workflow, chose the site.
  *
  * Each of those templates now asks for a Jira Site URL when a workflow is
  * created from it, and the link goes to that site whatever the event says.
@@ -335,7 +334,7 @@ const NOT_SITES: Array<[string, string]> = [
   ],
   [
     "a numeral a browser reads as digits and a dot",
-    `https://evil${String.fromCharCode(0x2488)}com`,
+    `https://acme${String.fromCharCode(0x2488)}example`,
   ],
   ["an unclosed IPv6 address", "http://[2001:db8::1"],
   ["a port that is not a number", "https://acme.atlassian.net:https"],

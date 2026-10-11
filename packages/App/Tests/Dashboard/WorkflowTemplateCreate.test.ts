@@ -1249,8 +1249,8 @@ describe("Jira templates", () => {
   /*
    * isSecret decides two things: the field is masked in the wizard, and the
    * stored value is scrubbed from run logs. The token is a reusable Jira
-   * credential, so it is secret wherever it is asked for. The site URL and
-   * project key are not, and masking them would only hide typos.
+   * credential, so it is secret wherever it is asked for. The site and API
+   * URLs and the project key are not, and masking them would only hide typos.
    */
   test("the API token is secret in every Jira template, and nothing else is", () => {
     for (const template of jiraTemplates()) {
@@ -1753,7 +1753,7 @@ describe("Jira templates", () => {
 
       /*
        * base64 ends its output with a line break, and a stray space in the
-       * site URL lands in the middle of every request URL built from it.
+       * API URL lands in the middle of every request URL built from it.
        * Either one surviving into the row breaks every call the workflow
        * makes.
        */

@@ -2481,11 +2481,11 @@ describe("Jira template variables", () => {
 
       expect({
         templateId: templateId,
-        asksForSite: names.includes("jiraBaseUrl"),
+        asksForApiUrl: names.includes("jiraBaseUrl"),
         asksForToken: names.includes("jiraBasicAuthToken"),
       }).toEqual({
         templateId: templateId,
-        asksForSite: specOf(templateId).nodes.some(isApiNode),
+        asksForApiUrl: specOf(templateId).nodes.some(isApiNode),
         asksForToken: specOf(templateId).nodes.some(isApiNode),
       });
     }
@@ -2572,7 +2572,7 @@ describe("Jira template variables", () => {
    * Every call is written as {{jiraBaseUrl}}/rest/api/3/..., so a trailing
    * slash doubles up and a missing scheme is not a URL at all.
    */
-  test("the site URL asks for https and no trailing slash", () => {
+  test("the API URL asks for https and no trailing slash", () => {
     const siteUrl: WorkflowTemplateVariable = templateOf(
       INCIDENT.templates.createIssue,
     ).variables.find((variable: WorkflowTemplateVariable) => {
@@ -2630,9 +2630,9 @@ describe("Jira template variables", () => {
   });
 
   /*
-   * The site and the token belong to the Jira calls and nowhere else; the
-   * project, issue type and OneUptime address only to the step that files the
-   * issue.
+   * The API URL and the token belong to the Jira calls and nowhere else; the
+   * Jira Site URL only to the scripts that link the issue; the project, issue
+   * type and OneUptime address only to the step that files the issue.
    */
   test("each variable is referenced only where it belongs", () => {
     const found: Array<string> = [];

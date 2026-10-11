@@ -3459,7 +3459,7 @@ describe.each(KINDS)(
  * stored the variable, the runner substitutes it into the script's arguments
  * beside the request body, and the script links the issue on that site
  * whatever the event's issue URL says. The event's URL comes with the
- * request, which anyone holding the workflow's URL writes.
+ * request, not from the workflow.
  */
 const OTHER_HOST_ISSUE_URL: string =
   "https://tracker.example/rest/api/2/issue/10040";

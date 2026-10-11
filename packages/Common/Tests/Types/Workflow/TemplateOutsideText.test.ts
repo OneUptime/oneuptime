@@ -1938,8 +1938,8 @@ describe("no text written from outside holds anything a renderer acts on", () =>
  * The link a note or a description gives to the issue is the template's
  * own: the issue's key, which matched ISSUE_KEY, on the site the workflow's
  * Jira Site URL names. The event cannot move it: its REST URL comes with the
- * request - anyone holding the workflow's URL can send one - so with the
- * setting the issue is linked on the configured site whatever that URL says.
+ * request, not from the workflow, so with the setting the issue is linked on
+ * the configured site whatever that URL says.
  *
  * Without the setting (a workflow whose arguments were edited to leave it
  * out), the site is read off the event's REST URL exactly as it was before:
@@ -2020,7 +2020,7 @@ const EVENT_URLS_THAT_ARE_NOT_SITES: Array<[string, string]> = [
   ["an unclosed IPv6 address", "http://[2001:db8::1/rest/api/2/issue/10040"],
   [
     "a numeral a browser reads as digits and a dot",
-    `https://evil${String.fromCharCode(0x2488)}com/rest/api/2/issue/10040`,
+    `https://acme${String.fromCharCode(0x2488)}com/rest/api/2/issue/10040`,
   ],
   [
     "a host longer than a site's address can be",

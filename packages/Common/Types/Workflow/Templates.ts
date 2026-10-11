@@ -719,10 +719,11 @@ const JIRA_BASE_URL: WorkflowTemplateVariable = {
  * as SITE takes. Nothing else fits, so a link built on it goes to that site,
  * and no page, query, user name or markup can ride along.
  *
- * One path segment, not more: Data Center runs under one (https://example.com/jira),
- * while the address of a page - what gets pasted from a browser's address
- * bar, https://acme.atlassian.net/jira/your-work or .../browse/OPS-17 - has
- * two or more, and is refused rather than turned into links that go nowhere.
+ * One path segment, not more: Data Center runs under one, such as
+ * https://example.com/jira, while the address of a page - what gets pasted
+ * from a browser's address bar, https://acme.atlassian.net/jira/your-work or
+ * .../browse/OPS-17 - has two or more, and is refused rather than turned
+ * into links that go nowhere.
  *
  * The create wizard checks a typed value with JIRA_SITE_URL_PATTERN, and the
  * scripts read the setting with the same source (SITE_SETTING), so a value
@@ -739,10 +740,9 @@ export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
  * The Jira site an issue's link goes to: the address people open Jira at.
  * The templates that bring Jira into OneUptime link the issue in the
  * description or note they write, and the event's own REST URL, which they
- * used to take the site from, comes with the request - anyone holding the
- * workflow's URL writes it. The workflow names its site here instead, and
- * the scripts link to that site whatever the event says (issueLink in their
- * helper block).
+ * used to take the site from, comes with the request rather than from the
+ * workflow. The workflow names its site here instead, and the scripts link
+ * to that site whatever the event says (issueLink in their helper block).
  */
 const JIRA_SITE_URL: WorkflowTemplateVariable = {
   name: "jiraSiteUrl",
