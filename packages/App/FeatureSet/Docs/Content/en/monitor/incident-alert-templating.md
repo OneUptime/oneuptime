@@ -3,7 +3,7 @@
 When a monitor's criteria declares an incident or creates an alert, it fills in the title, the description and the remediation notes from a template you write. Put `{{variable}}` placeholders in them, such as `{{monitorName}}` or `{{responseStatusCode}}`, and each incident says what went wrong, with the values from the check that opened it.
 
 :::cards
-- [Where you write a template](#where-you-write-a-template): Four places in a criteria's incident and alert.
+- [Where you write a template](#where-you-write-a-template): The title, description and remediation notes of a criteria's incident or alert.
 - [Basic usage](#basic-usage): Placeholders, paths into objects, and lists.
 - [Variables every monitor has](#variables-every-monitor-has): The monitor's name, and the resource that breached.
 - [Variables by monitor type](#variables-by-monitor-type): What each kind of check reports.
@@ -364,7 +364,7 @@ The screenshot then appears on the incident's or alert's page, on the status pag
 - PNG, JPEG, GIF and WebP screenshots are shown. `image/png` works for a JPEG screenshot (`page.screenshot({ type: "jpeg" })`) too.
 - One email carries at most 2 MB of images, and at most 20. An image that does not fit is replaced by a note with its alt text, so give each image alt text. A JPEG screenshot is much smaller than a PNG one, and one screenshot of the failing run usually says more than every screenshot of every run.
 - In Slack and Microsoft Teams the screenshot is shown where the description has it: an image on a line of its own takes that line's place, and an image in the middle of a sentence, a list or a table leaves its alt text there and is shown after it. Slack shows PNG, JPEG and GIF screenshots, at most 10 and 10 MB per message; the OneUptime app uploads each one to your Slack workspace, privately, and shows it in the message. Teams shows PNG, JPEG and GIF screenshots of up to 1 MB each inside the message's card, at most 10 and 2 MB per message.
-- Uploading to Slack needs the app's `files:write` permission. If your workspace connected Slack before OneUptime asked for it, connect Slack again in **Project Settings > Slack Integration** (on a self-hosted server, add the permission to your Slack app first - see [Slack Integration](/docs/self-hosted/slack-integration#images-in-messages)).
+- Uploading to Slack needs the app's `files:write` permission. If your workspace connected Slack before OneUptime asked for it, connect Slack again in **Project Settings → Workspace → Slack** (on a self-hosted server, add the permission to your Slack app first - see [Slack Integration](/docs/self-hosted/slack-integration#images-in-messages)).
 - A screenshot a chat cannot show - a WebP, one past those limits, one Slack or Teams refuses, or any screenshot in a message sent through an incoming webhook - is shown as its alt text, or "[image]" when it has none, so give each image alt text. The image's base64 never reaches the chat.
 - Only an image you write in the template is shown. An image in a value the monitored page or script reported - an error message, a log line - still shows as text (see [Values in descriptions and remediation notes](#values-in-descriptions-and-remediation-notes)).
 - OneUptime AI reads the text around a screenshot, not the screenshot. What an investigation, a drafted postmortem or note, a runbook's AI step or a workflow's AI step gives the model has a short note in the image's place, such as `[image omitted: PNG, 340 KB]`: a model reads text, not images, and a screenshot's base64 would be hundreds of thousands of tokens on every call. The investigation's activity says what was left out.
@@ -581,7 +581,7 @@ That is on purpose: a value the monitored system sent is placed as text, so it c
 :::
 
 :::details A screenshot does not show in Slack, Microsoft Teams or email
-Check the image's format and size against [Showing a screenshot](#showing-a-screenshot). In Slack, the OneUptime app needs the `files:write` permission: connect Slack again from **Project Settings** if your workspace connected it before OneUptime asked for it.
+Check the image's format and size against [Showing a screenshot](#showing-a-screenshot). In Slack, the OneUptime app needs the `files:write` permission: connect Slack again in **Project Settings → Workspace → Slack** if your workspace connected it before OneUptime asked for it.
 :::
 
 ## Next steps
