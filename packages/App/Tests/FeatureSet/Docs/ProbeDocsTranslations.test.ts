@@ -27,7 +27,9 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  diagramLabelLines,
   inlineCode,
+  labelLineWidth,
   listItemCount,
   navTitle,
   prose,
@@ -79,6 +81,25 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: CUSTOM_PROBE, navTitle: "Custom Probes" },
   { page: INGRESS, navTitle: "Incoming Request Ingress" },
 ];
+
+/*
+ * The Custom Probes diagram fills the 590px docs column, and fits it in
+ * every language only with its messages and notes broken into short lines
+ * (<br/>), between two participants: a sequence diagram draws each
+ * participant at least 150px wide, so a third column alone takes it past
+ * 590px. It is held to the widest label line measured to fit, in a browser
+ * with the docs' own font, in every language, counting a Chinese, Japanese
+ * or Korean character twice; the docs scroll a wider diagram rather than
+ * shrink it.
+ */
+const COLUMN_WIDE_DIAGRAMS: Record<
+  string,
+  { widestLine: number; participants: number }
+> = {
+  [CUSTOM_PROBE]: { widestLine: 28, participants: 2 },
+};
+
+const PARTICIPANT_LINE: RegExp = /^\s*(?:participant|actor)\s/;
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
@@ -285,7 +306,69 @@ describe("the lists this test keeps", () => {
   });
 });
 
+// The code of every diagram on the page, in this language.
+function diagramsOn(language: string, page: string): Array<string> {
+  return scanMarkdown(readPage(language, page))
+    .fences.filter((fence: { lang: string }): boolean => {
+      return fence.lang === "mermaid";
+    })
+    .map((fence: { code: string }): string => {
+      return fence.code;
+    });
+}
+
+// What makes the page's diagrams wide, in this language.
+function diagramWidth(
+  language: string,
+  page: string,
+): { widestLine: number; participants: number } {
+  const diagrams: Array<string> = diagramsOn(language, page);
+
+  return {
+    widestLine: Math.max(
+      ...diagrams.flatMap(diagramLabelLines).map(labelLineWidth),
+    ),
+    participants: Math.max(
+      ...diagrams.map((code: string): number => {
+        return code.split("\n").filter((line: string): boolean => {
+          return PARTICIPANT_LINE.test(line);
+        }).length;
+      }),
+    ),
+  };
+}
+
+// Whether the page's diagrams are no wider than the limits measured to fit.
+function fitsTheColumn(language: string, page: string): boolean {
+  const limit: { widestLine: number; participants: number } | undefined =
+    COLUMN_WIDE_DIAGRAMS[page];
+
+  if (!limit) {
+    return true;
+  }
+
+  const width: { widestLine: number; participants: number } = diagramWidth(
+    language,
+    page,
+  );
+
+  return (
+    width.widestLine <= limit.widestLine &&
+    width.participants <= limit.participants
+  );
+}
+
 describe("the English pages", () => {
+  it.each(PAGES)(
+    "$page draws its diagrams narrow enough for the 590px docs column",
+    (entry: TranslatedPage) => {
+      expect({
+        width: diagramWidth("en", entry.page),
+        fits: fitsTheColumn("en", entry.page),
+      }).toEqual({ width: diagramWidth("en", entry.page), fits: true });
+    },
+  );
+
   it.each(PAGES)("$page is titled as its nav link", (entry: TranslatedPage) => {
     expect(englishPage(entry.page).split("\n")[0]).toBe(`# ${entry.navTitle}`);
   });
@@ -375,6 +458,13 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           comparableFence,
         ),
       ).toEqual(scanMarkdown(english).fences.map(comparableFence));
+    });
+
+    it("draws its diagrams narrow enough for the 590px docs column", () => {
+      expect({
+        width: diagramWidth(language, entry.page),
+        fits: fitsTheColumn(language, entry.page),
+      }).toEqual({ width: diagramWidth(language, entry.page), fits: true });
     });
 
     it("keeps every piece of inline code: the variables, values and log lines", () => {
@@ -518,6 +608,18 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 });
 
 describe("the helpers, on these pages' shapes", () => {
+  it("measure a sequence diagram by its widest label line and its participants", () => {
+    expect(diagramWidth("en", CUSTOM_PROBE)).toEqual({
+      widestLine: labelLineWidth("The monitors to check"),
+      participants: 2,
+    });
+    expect(
+      diagramLabelLines(
+        "sequenceDiagram\n    participant P as Custom probe\n    participant S as Your services\n    O->>O: Update status, open incidents or alerts",
+      ).map(labelLineWidth),
+    ).toEqual([12, 13, 39]);
+  });
+
   it("draw a Products menu product by the menu's own title, and the rest as labels", () => {
     const monitors: string = (
       (dashboardLocale("de")["navbar"] as Record<string, unknown>)[

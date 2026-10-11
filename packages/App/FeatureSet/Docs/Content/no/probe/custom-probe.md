@@ -14,14 +14,13 @@ En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den
 ```mermaid title="Hva en egendefinert sonde gjør"
 sequenceDiagram
     participant P as Egendefinert sonde
-    participant S as Tjenestene dine
     participant O as OneUptime
-    P->>O: Jeg kjører (hvert minutt)
-    P->>O: Hvilke av overvåkerne mine skal sjekkes nå?
-    O-->>P: Overvåkerne som skal sjekkes
-    P->>S: Sjekk hver av dem
+    P->>O: Jeg kjører<br/>(hvert minutt)
+    P->>O: Hvilke av overvåkerne mine<br/>skal sjekkes nå?
+    O-->>P: Overvåkerne som<br/>skal sjekkes
+    Note over P: Sjekker hver av dem<br/>i nettverket ditt
     P->>O: Send resultatene
-    O->>O: Oppdater status, åpne hendelser eller varsler
+    Note over O: Oppdaterer status, åpner<br/>hendelser eller varsler
 ```
 
 - **Sonden kobler seg utover.** Hver forespørsel går fra sonden til `ONEUPTIME_URL` over HTTPS. Ingenting utenfra trenger å nå sonden.

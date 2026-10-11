@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Ja"| C["Bestätigt per E-Mail"]
     Q -->|"Nein"| S["Abonnent"]
     C --> S
-    E["Vorfall, Wartung oder Ankündigung"] --> N["Benachrichtigung"]
+    E["Vorfall, Wartung<br/>oder Ankündigung"] --> N["Benachrichtigung"]
     S --> N
-    N --> M["Nachricht mit Abmeldelink"]
+    N --> M["Nachricht mit<br/>Abmeldelink"]
 ```
 
 Jede Statusseite hat ihre eigenen Abonnenten. Ein Besucher trägt sich auf der Seite **Abonnieren** der Statusseite ein, wo eine E-Mail-Adresse erst über einen Link bestätigt, bevor sie etwas erfährt, oder Ihr Team fügt ihn im Dashboard hinzu. Von da an benachrichtigt jeder Vorfall, jedes geplante Wartungsereignis und jede Ankündigung, die die Seite erreicht, ihre Abonnenten, jeden auf dem Kanal, über den er sich eingetragen hat, und jede Nachricht trägt den Link, der das Abonnement kündigt.

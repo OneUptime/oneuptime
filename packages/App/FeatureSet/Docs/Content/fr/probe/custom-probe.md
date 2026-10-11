@@ -14,14 +14,13 @@ Une sonde personnalisée est un petit agent que vous exécutez dans votre propre
 ```mermaid title="Ce que fait une sonde personnalisée"
 sequenceDiagram
     participant P as Sonde personnalisée
-    participant S as Vos services
     participant O as OneUptime
-    P->>O: Je tourne (chaque minute)
-    P->>O: Lesquels de mes moniteurs sont dus ?
+    P->>O: Je tourne<br/>(chaque minute)
+    P->>O: Lesquels de mes moniteurs<br/>sont dus ?
     O-->>P: Les moniteurs à vérifier
-    P->>S: Vérifier chacun d'eux
+    Note over P: Vérifie chacun d'eux<br/>sur votre réseau
     P->>O: Envoyer les résultats
-    O->>O: Mettre à jour le statut, ouvrir des incidents ou des alertes
+    Note over O: Met à jour le statut, ouvre<br/>des incidents ou des alertes
 ```
 
 - **La sonde se connecte vers l'extérieur.** Chaque requête part de la sonde vers `ONEUPTIME_URL` en HTTPS. Rien ne doit joindre la sonde depuis l'extérieur de votre réseau.

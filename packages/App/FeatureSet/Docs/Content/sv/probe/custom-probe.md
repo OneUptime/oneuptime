@@ -14,14 +14,13 @@ En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontro
 ```mermaid title="Vad en anpassad sond gör"
 sequenceDiagram
     participant P as Anpassad sond
-    participant S as Dina tjänster
     participant O as OneUptime
-    P->>O: Jag körs (varje minut)
-    P->>O: Vilka av mina övervakare ska kontrolleras nu?
-    O-->>P: Övervakarna som ska kontrolleras
-    P->>S: Kontrollera var och en
+    P->>O: Jag körs<br/>(varje minut)
+    P->>O: Vilka av mina övervakare<br/>ska kontrolleras nu?
+    O-->>P: Övervakarna som<br/>ska kontrolleras
+    Note over P: Kontrollerar var och en<br/>i ditt nätverk
     P->>O: Skicka resultaten
-    O->>O: Uppdatera status, öppna incidenter eller larm
+    Note over O: Uppdaterar status, öppnar<br/>incidenter eller larm
 ```
 
 - **Sonden ansluter utåt.** Varje förfrågan går från sonden till `ONEUPTIME_URL` över HTTPS. Ingenting utifrån behöver nå sonden.

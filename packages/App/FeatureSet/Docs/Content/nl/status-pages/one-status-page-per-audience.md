@@ -33,12 +33,12 @@ Een incident bereikt een statuspagina via zijn monitoren. Een pagina toont een i
 
 ```mermaid title="Toont deze pagina het incident?"
 flowchart TB
-    L{"Vermeldt de pagina een monitor van het incident?"} -->|"Nee"| X["Niet getoond, niet gemeld"]
-    L -->|"Ja"| S{"Incident beperkt tot pagina's?"}
-    S -->|"Ja"| P{"Is deze pagina gekozen?"}
-    P -->|"Ja"| Y["Getoond en gemeld"]
+    L{"Vermeldt de pagina een<br/>monitor van het incident?"} -->|"Nee"| X["Niet getoond,<br/>niet gemeld"]
+    L -->|"Ja"| S{"Incident beperkt<br/>tot pagina's?"}
+    S -->|"Ja"| P{"Is deze pagina<br/>gekozen?"}
+    P -->|"Ja"| Y["Getoond<br/>en gemeld"]
     P -->|"Nee"| X
-    S -->|"Nee"| O{"Toont de pagina alleen beperkte incidenten?"}
+    S -->|"Nee"| O{"Toont de pagina alleen<br/>beperkte incidenten?"}
     O -->|"Nee"| Y
     O -->|"Ja"| X
 ```

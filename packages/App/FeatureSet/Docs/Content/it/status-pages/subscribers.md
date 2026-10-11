@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Sì"| C["Conferma via email"]
     Q -->|"No"| S["Iscritto"]
     C --> S
-    E["Incidente, manutenzione o annuncio"] --> N["Notifica"]
+    E["Incidente, manutenzione<br/>o annuncio"] --> N["Notifica"]
     S --> N
-    N --> M["Messaggio con un link di disiscrizione"]
+    N --> M["Messaggio con un link<br/>di disiscrizione"]
 ```
 
 Ogni pagina di stato ha i propri iscritti. Un visitatore si iscrive nella pagina **Iscriviti** della pagina di stato, dove un indirizzo email conferma con un link prima di ricevere qualsiasi cosa, oppure lo aggiunge il vostro team nella dashboard. Da quel momento ogni incidente, evento di manutenzione programmata e annuncio che raggiunge la pagina notifica i suoi iscritti, ciascuno sul canale con cui si è iscritto, e ogni messaggio porta il link che annulla l'iscrizione.

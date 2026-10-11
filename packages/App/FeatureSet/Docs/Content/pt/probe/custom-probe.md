@@ -14,14 +14,13 @@ Uma sonda personalizada é um pequeno agente que você executa dentro da sua pr�
 ```mermaid title="O que uma sonda personalizada faz"
 sequenceDiagram
     participant P as Sonda personalizada
-    participant S as Seus serviços
     participant O as OneUptime
-    P->>O: Estou rodando (a cada minuto)
-    P->>O: Quais dos meus monitores estão na hora?
+    P->>O: Estou rodando<br/>(a cada minuto)
+    P->>O: Quais dos meus monitores<br/>estão na hora?
     O-->>P: Os monitores a verificar
-    P->>S: Verificar cada um
+    Note over P: Verifica cada um<br/>na sua rede
     P->>O: Enviar os resultados
-    O->>O: Atualizar o status, abrir incidentes ou alertas
+    Note over O: Atualiza o status, abre<br/>incidentes ou alertas
 ```
 
 - **A sonda se conecta para fora.** Cada requisição vai da sonda para `ONEUPTIME_URL` por HTTPS. Nada precisa alcançar a sonda de fora da sua rede.

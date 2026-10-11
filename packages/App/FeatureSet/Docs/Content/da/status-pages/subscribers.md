@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Ja"| C["Bekræfter via e-mail"]
     Q -->|"Nej"| S["Abonnent"]
     C --> S
-    E["Hændelse, vedligeholdelse eller meddelelse"] --> N["Notifikation"]
+    E["Hændelse, vedligeholdelse<br/>eller meddelelse"] --> N["Notifikation"]
     S --> N
-    N --> M["Besked med et afmeldingslink"]
+    N --> M["Besked med<br/>et afmeldingslink"]
 ```
 
 Hver statusside har sine egne abonnenter. En besøgende tilmelder sig på statussidens side **Abonner**, hvor en e-mailadresse bekræfter med et link, før den hører noget, eller dit team tilføjer vedkommende på dashboardet. Derefter giver hver hændelse, hver planlagt vedligeholdelsesbegivenhed og hver meddelelse, der når siden, besked til dens abonnenter, hver på den kanal, de tilmeldte sig med, og hver besked har det link, der opsiger abonnementet.

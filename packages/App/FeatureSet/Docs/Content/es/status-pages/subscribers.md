@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Sí"| C["Confirma por correo"]
     Q -->|"No"| S["Suscriptor"]
     C --> S
-    E["Incidente, mantenimiento o anuncio"] --> N["Notificación"]
+    E["Incidente, mantenimiento<br/>o anuncio"] --> N["Notificación"]
     S --> N
-    N --> M["Mensaje con un enlace de baja"]
+    N --> M["Mensaje con un<br/>enlace de baja"]
 ```
 
 Cada página de estado tiene sus propios suscriptores. Un visitante se registra en la página **Suscribirse** de la página de estado, donde una dirección de correo electrónico se confirma con un enlace antes de recibir nada, o tu equipo lo añade en el panel. A partir de entonces, cada incidente, evento de mantenimiento programado y anuncio que llega a la página notifica a sus suscriptores, a cada uno por el canal con el que se registró, y cada mensaje lleva el enlace que cancela la suscripción.

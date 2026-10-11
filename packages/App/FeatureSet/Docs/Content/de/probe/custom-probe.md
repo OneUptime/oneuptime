@@ -14,14 +14,13 @@ Eine benutzerdefinierte Sonde ist ein kleiner Agent, den Sie in Ihrem eigenen Ne
 ```mermaid title="Was eine benutzerdefinierte Sonde tut"
 sequenceDiagram
     participant P as Benutzerdefinierte Sonde
-    participant S as Ihre Dienste
     participant O as OneUptime
-    P->>O: Ich laufe (jede Minute)
-    P->>O: Welche meiner Monitore sind fällig?
+    P->>O: Ich laufe<br/>(jede Minute)
+    P->>O: Welche meiner Monitore<br/>sind fällig?
     O-->>P: Die zu prüfenden Monitore
-    P->>S: Jeden einzelnen prüfen
+    Note over P: Prüft jeden einzelnen<br/>in Ihrem Netzwerk
     P->>O: Die Ergebnisse senden
-    O->>O: Status aktualisieren, Vorfälle oder Alarme öffnen
+    Note over O: Aktualisiert den Status,<br/>öffnet Vorfälle oder Alarme
 ```
 
 - **Die Sonde verbindet sich nach außen.** Jede Anfrage geht von der Sonde über HTTPS an `ONEUPTIME_URL`. Von außerhalb Ihres Netzwerks muss nichts die Sonde erreichen.

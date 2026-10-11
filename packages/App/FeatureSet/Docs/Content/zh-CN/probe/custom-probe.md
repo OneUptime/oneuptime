@@ -14,14 +14,13 @@
 ```mermaid title="自定义探测器做什么"
 sequenceDiagram
     participant P as 自定义探测器
-    participant S as 你的服务
     participant O as OneUptime
-    P->>O: 我在运行（每分钟）
-    P->>O: 我的哪些监视器到期了?
+    P->>O: 我在运行<br/>（每分钟）
+    P->>O: 我的哪些监视器<br/>到期了?
     O-->>P: 要检查的监视器
-    P->>S: 逐个检查
+    Note over P: 在你的网络中<br/>逐个检查
     P->>O: 发送结果
-    O->>O: 更新状态，打开事件或告警
+    Note over O: 更新状态，<br/>打开事件或告警
 ```
 
 - **探测器向外连接。** 每个请求都从探测器通过 HTTPS 发往 `ONEUPTIME_URL`。网络外部无需访问探测器。

@@ -33,12 +33,12 @@ An incident reaches a status page through its monitors. A page shows an incident
 
 ```mermaid title="Does this page show the incident?"
 flowchart TB
-    L{"Page lists a monitor of the incident?"} -->|"No"| X["Not shown, not notified"]
-    L -->|"Yes"| S{"Incident limited to pages?"}
-    S -->|"Yes"| P{"This page picked?"}
-    P -->|"Yes"| Y["Shown and notified"]
+    L{"Page lists a monitor<br/>of the incident?"} -->|"No"| X["Not shown,<br/>not notified"]
+    L -->|"Yes"| S{"Incident limited<br/>to pages?"}
+    S -->|"Yes"| P{"This page<br/>picked?"}
+    P -->|"Yes"| Y["Shown and<br/>notified"]
     P -->|"No"| X
-    S -->|"No"| O{"Page shows only scoped incidents?"}
+    S -->|"No"| O{"Page shows only<br/>scoped incidents?"}
     O -->|"No"| Y
     O -->|"Yes"| X
 ```

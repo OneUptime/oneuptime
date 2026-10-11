@@ -33,12 +33,12 @@ En incident når en statussida via sina monitorer. En sida visar en incident, oc
 
 ```mermaid title="Visar den här sidan incidenten?"
 flowchart TB
-    L{"Listar sidan en monitor från incidenten?"} -->|"Nej"| X["Inte visad, inte aviserad"]
-    L -->|"Ja"| S{"Incident begränsad till sidor?"}
-    S -->|"Ja"| P{"Är den här sidan vald?"}
-    P -->|"Ja"| Y["Visad och aviserad"]
+    L{"Listar sidan en monitor<br/>från incidenten?"} -->|"Nej"| X["Inte visad,<br/>inte aviserad"]
+    L -->|"Ja"| S{"Incident begränsad<br/>till sidor?"}
+    S -->|"Ja"| P{"Är den här sidan<br/>vald?"}
+    P -->|"Ja"| Y["Visad och<br/>aviserad"]
     P -->|"Nej"| X
-    S -->|"Nej"| O{"Visar sidan bara begränsade incidenter?"}
+    S -->|"Nej"| O{"Visar sidan bara<br/>begränsade incidenter?"}
     O -->|"Nej"| Y
     O -->|"Ja"| X
 ```

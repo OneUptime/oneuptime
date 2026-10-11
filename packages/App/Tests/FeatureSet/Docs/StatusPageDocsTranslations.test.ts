@@ -27,7 +27,9 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  diagramLabelLines,
   inlineCode,
+  labelLineWidth,
   listItemCount,
   navTitle,
   strayMarkers,
@@ -98,6 +100,20 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: SUBSCRIBERS, navTitle: "Subscribers & Announcements" },
   { page: AUDIENCE, navTitle: "One Status Page per Audience" },
 ];
+
+/*
+ * Each page's diagram fills the 590px docs column, and fits it in every
+ * language only with its labels broken into short lines (<br/>). Each is
+ * held to the widest label line measured to fit, in a browser with the
+ * docs' own font, in every language, counting a Chinese, Japanese or Korean
+ * character twice: a label put back on one line runs its diagram off the
+ * column, and the docs scroll it rather than shrink it.
+ */
+const WIDEST_DIAGRAM_LINE: Record<string, number> = {
+  [OVERVIEW]: 26,
+  [SUBSCRIBERS]: 27,
+  [AUDIENCE]: 27,
+};
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
@@ -683,6 +699,20 @@ function dashboardLabels(page: string): Array<string> {
   });
 }
 
+// The widest line of any label of the page's diagrams, in this language.
+function widestDiagramLine(language: string, page: string): number {
+  return Math.max(
+    ...scanMarkdown(readPage(language, page))
+      .fences.filter((fence: { lang: string }): boolean => {
+        return fence.lang === "mermaid";
+      })
+      .flatMap((fence: { code: string }): Array<string> => {
+        return diagramLabelLines(fence.code);
+      })
+      .map(labelLineWidth),
+  );
+}
+
 function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -868,6 +898,15 @@ describe("the English pages", () => {
   );
 
   it.each(PAGES)(
+    "$page breaks its diagram's labels to fit the 590px docs column",
+    (entry: TranslatedPage) => {
+      expect(widestDiagramLine("en", entry.page)).toBeLessThanOrEqual(
+        WIDEST_DIAGRAM_LINE[entry.page] as number,
+      );
+    },
+  );
+
+  it.each(PAGES)(
     "$page has no two headings with the same anchor",
     (entry: TranslatedPage) => {
       const slugs: Array<string> = scanMarkdown(
@@ -915,6 +954,15 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           comparableFence,
         ),
       ).toEqual(scanMarkdown(english).fences.map(comparableFence));
+    });
+
+    it("breaks its diagram's labels into lines short enough for the 590px docs column", () => {
+      const widest: number = widestDiagramLine(language, entry.page);
+
+      expect({
+        widest: widest,
+        fits: widest <= (WIDEST_DIAGRAM_LINE[entry.page] as number),
+      }).toEqual({ widest: widest, fits: true });
     });
 
     it("keeps every piece of inline code: the columns, fields, routes and values", () => {
@@ -1168,6 +1216,36 @@ describe("the helpers, on these pages' shapes", () => {
         `**${drawnActionLabel("de", "Status Pages")} → your page → ${drawnActionLabel("de", "Advanced")} → ${drawnActionLabel("de", "Advanced Settings")}**`,
       ),
     ).toBe(false);
+  });
+
+  it("read a diagram's label lines as it breaks them, and count a CJK character twice", () => {
+    expect(
+      diagramLabelLines(
+        'flowchart TB\n    A["Incidents, maintenance<br/>and announcements"] -->|"Yes"| B{"By email?"}',
+      ),
+    ).toEqual([
+      "Incidents, maintenance",
+      "and announcements",
+      "Yes",
+      "By email?",
+    ]);
+    expect(
+      diagramLabelLines(
+        "sequenceDiagram\n    participant P as Custom probe\n    P->>O: I am running<br/>(every minute)\n    O-->>P: The monitors\n    Note over O: Updates status",
+      ),
+    ).toEqual([
+      "Custom probe",
+      "I am running",
+      "(every minute)",
+      "The monitors",
+      "Updates status",
+    ]);
+    expect(labelLineWidth("Status page")).toBe(11);
+    expect(labelLineWidth("状态页")).toBe(6);
+    expect(labelLineWidth("상태 페이지")).toBe(11);
+    expect(widestDiagramLine("en", OVERVIEW)).toBe(
+      labelLineWidth("Incidents, maintenance"),
+    );
   });
 
   it("read the status page app's locale by key", () => {

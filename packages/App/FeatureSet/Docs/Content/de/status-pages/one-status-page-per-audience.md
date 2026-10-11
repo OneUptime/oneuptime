@@ -33,12 +33,12 @@ Ein Vorfall erreicht eine Statusseite über seine Monitore. Eine Seite zeigt ein
 
 ```mermaid title="Zeigt diese Seite den Vorfall?"
 flowchart TB
-    L{"Listet die Seite einen Monitor des Vorfalls auf?"} -->|"Nein"| X["Nicht gezeigt, nicht benachrichtigt"]
-    L -->|"Ja"| S{"Vorfall auf Seiten beschränkt?"}
-    S -->|"Ja"| P{"Diese Seite gewählt?"}
-    P -->|"Ja"| Y["Gezeigt und benachrichtigt"]
+    L{"Listet die Seite einen<br/>Monitor des Vorfalls auf?"} -->|"Nein"| X["Nicht gezeigt,<br/>nicht benachrichtigt"]
+    L -->|"Ja"| S{"Vorfall auf Seiten<br/>beschränkt?"}
+    S -->|"Ja"| P{"Diese Seite<br/>gewählt?"}
+    P -->|"Ja"| Y["Gezeigt und<br/>benachrichtigt"]
     P -->|"Nein"| X
-    S -->|"Nein"| O{"Zeigt die Seite nur beschränkte Vorfälle?"}
+    S -->|"Nein"| O{"Zeigt die Seite nur<br/>beschränkte Vorfälle?"}
     O -->|"Nein"| Y
     O -->|"Ja"| X
 ```

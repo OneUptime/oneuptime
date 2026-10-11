@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Yes"| C["Confirms by email"]
     Q -->|"No"| S["Subscriber"]
     C --> S
-    E["Incident, maintenance or announcement"] --> N["Notification"]
+    E["Incident, maintenance<br/>or announcement"] --> N["Notification"]
     S --> N
-    N --> M["Message with an unsubscribe link"]
+    N --> M["Message with an<br/>unsubscribe link"]
 ```
 
 Each status page keeps its own subscribers. A visitor signs up on the page's **Subscribe** page, where an email address confirms with a link before it hears anything, or your team adds them on the dashboard. From then on, every incident, scheduled maintenance event and announcement that reaches the page notifies its subscribers, each on the channel they signed up with, and every message carries the link that cancels the subscription.

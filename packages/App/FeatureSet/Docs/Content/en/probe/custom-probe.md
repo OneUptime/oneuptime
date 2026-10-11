@@ -14,14 +14,13 @@ A custom probe is a small agent you run inside your own network. It checks the m
 ```mermaid title="What a custom probe does"
 sequenceDiagram
     participant P as Custom probe
-    participant S as Your services
     participant O as OneUptime
-    P->>O: I am running (every minute)
-    P->>O: Which of my monitors are due?
+    P->>O: I am running<br/>(every minute)
+    P->>O: Which of my monitors<br/>are due?
     O-->>P: The monitors to check
-    P->>S: Check each one
+    Note over P: Checks each one<br/>on your network
     P->>O: Send the results
-    O->>O: Update status, open incidents or alerts
+    Note over O: Updates status, opens<br/>incidents or alerts
 ```
 
 - **The probe connects out.** Every request goes from the probe to `ONEUPTIME_URL` over HTTPS. Nothing has to reach the probe from outside your network.

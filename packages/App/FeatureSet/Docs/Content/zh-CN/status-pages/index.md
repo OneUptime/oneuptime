@@ -18,13 +18,11 @@ flowchart TB
     subgraph project["你的项目"]
         direction LR
         M["监视器"]
-        E["事件和维护"]
-        A["公告"]
+        E["事件、维护<br/>和公告"]
     end
     M --> R["页面上的资源"]
     R --> P["状态页"]
     E --> P
-    A --> P
     P --> V["访客"]
     P --> S["订阅者"]
 ```

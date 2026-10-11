@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Sim"| C["Confirma por e-mail"]
     Q -->|"Não"| S["Assinante"]
     C --> S
-    E["Incidente, manutenção ou anúncio"] --> N["Notificação"]
+    E["Incidente, manutenção<br/>ou anúncio"] --> N["Notificação"]
     S --> N
-    N --> M["Mensagem com um link de cancelamento"]
+    N --> M["Mensagem com um link<br/>de cancelamento"]
 ```
 
 Cada página de status mantém seus próprios assinantes. Um visitante se inscreve na página **Inscrever-se** da página de status, onde um endereço de e-mail confirma com um link antes de receber qualquer coisa, ou sua equipe o adiciona pelo painel. A partir daí, cada incidente, evento de manutenção programada e anúncio que chega à página notifica seus assinantes, cada um pelo canal com que se inscreveu, e toda mensagem traz o link que cancela a inscrição.

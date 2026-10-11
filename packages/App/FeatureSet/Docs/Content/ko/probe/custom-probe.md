@@ -14,14 +14,13 @@
 ```mermaid title="사용자 지정 프로브가 하는 일"
 sequenceDiagram
     participant P as 사용자 지정 프로브
-    participant S as 내 서비스
     participant O as OneUptime
-    P->>O: 실행 중입니다 (1분마다)
-    P->>O: 내 모니터 중 확인할 차례인 것은?
+    P->>O: 실행 중입니다<br/>(1분마다)
+    P->>O: 내 모니터 중<br/>확인할 차례인 것은?
     O-->>P: 확인할 모니터
-    P->>S: 각각 확인
+    Note over P: 네트워크에서<br/>각각 확인
     P->>O: 결과 전송
-    O->>O: 상태를 갱신하고 인시던트나 알림을 엽니다
+    Note over O: 상태를 갱신하고<br/>인시던트나 알림을 엽니다
 ```
 
 - **프로브는 바깥으로 연결합니다.** 모든 요청은 프로브에서 `ONEUPTIME_URL`(으)로 HTTPS를 통해 갑니다. 네트워크 밖에서 프로브에 닿아야 하는 것은 없습니다.

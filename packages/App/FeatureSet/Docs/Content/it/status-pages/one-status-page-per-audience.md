@@ -33,12 +33,12 @@ Un incidente raggiunge una pagina di stato tramite i suoi monitor. Una pagina mo
 
 ```mermaid title="Questa pagina mostra l'incidente?"
 flowchart TB
-    L{"La pagina elenca un monitor dell'incidente?"} -->|"No"| X["Né mostrato né notificato"]
-    L -->|"Sì"| S{"Incidente limitato a delle pagine?"}
-    S -->|"Sì"| P{"Questa pagina è scelta?"}
-    P -->|"Sì"| Y["Mostrato e notificato"]
+    L{"La pagina elenca un<br/>monitor dell'incidente?"} -->|"No"| X["Né mostrato<br/>né notificato"]
+    L -->|"Sì"| S{"Incidente limitato<br/>a delle pagine?"}
+    S -->|"Sì"| P{"Questa pagina<br/>è scelta?"}
+    P -->|"Sì"| Y["Mostrato<br/>e notificato"]
     P -->|"No"| X
-    S -->|"No"| O{"La pagina mostra solo incidenti limitati?"}
+    S -->|"No"| O{"La pagina mostra solo<br/>incidenti limitati?"}
     O -->|"No"| Y
     O -->|"Sì"| X
 ```

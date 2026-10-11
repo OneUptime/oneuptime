@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Oui"| C["Confirme par e-mail"]
     Q -->|"Non"| S["Abonné"]
     C --> S
-    E["Incident, maintenance ou annonce"] --> N["Notification"]
+    E["Incident, maintenance<br/>ou annonce"] --> N["Notification"]
     S --> N
-    N --> M["Message avec un lien de désabonnement"]
+    N --> M["Message avec un lien<br/>de désabonnement"]
 ```
 
 Chaque page de statut a ses propres abonnés. Un visiteur s'inscrit sur la page **S'abonner** de la page de statut, où une adresse e-mail se confirme par un lien avant de recevoir quoi que ce soit, ou votre équipe l'ajoute depuis le tableau de bord. Dès lors, chaque incident, événement de maintenance planifiée et annonce qui atteint la page notifie ses abonnés, chacun sur le canal par lequel il s'est inscrit, et chaque message porte le lien qui annule l'abonnement.

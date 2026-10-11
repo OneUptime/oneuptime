@@ -14,14 +14,13 @@ Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij c
 ```mermaid title="Wat een aangepaste sonde doet"
 sequenceDiagram
     participant P as Aangepaste sonde
-    participant S as Uw diensten
     participant O as OneUptime
-    P->>O: Ik draai (elke minuut)
-    P->>O: Welke van mijn monitors zijn aan de beurt?
+    P->>O: Ik draai<br/>(elke minuut)
+    P->>O: Welke van mijn monitors<br/>zijn aan de beurt?
     O-->>P: De te controleren monitors
-    P->>S: Elk ervan controleren
+    Note over P: Controleert elk ervan<br/>in uw netwerk
     P->>O: De resultaten sturen
-    O->>O: Status bijwerken, incidenten of meldingen openen
+    Note over O: Werkt de status bij, opent<br/>incidenten of meldingen
 ```
 
 - **De sonde maakt verbinding naar buiten.** Elk verzoek gaat van de sonde naar `ONEUPTIME_URL` via HTTPS. Niets hoeft de sonde van buiten uw netwerk te bereiken.

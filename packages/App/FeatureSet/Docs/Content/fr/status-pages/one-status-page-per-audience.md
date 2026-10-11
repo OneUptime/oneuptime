@@ -33,12 +33,12 @@ Un incident atteint une page de statut par ses moniteurs. Une page affiche un in
 
 ```mermaid title="Cette page affiche-t-elle l'incident ?"
 flowchart TB
-    L{"La page liste-t-elle un moniteur de l'incident ?"} -->|"Non"| X["Ni affiché ni notifié"]
-    L -->|"Oui"| S{"Incident limité à des pages ?"}
-    S -->|"Oui"| P{"Cette page est-elle choisie ?"}
-    P -->|"Oui"| Y["Affiché et notifié"]
+    L{"La page liste-t-elle un<br/>moniteur de l'incident ?"} -->|"Non"| X["Ni affiché<br/>ni notifié"]
+    L -->|"Oui"| S{"Incident limité<br/>à des pages ?"}
+    S -->|"Oui"| P{"Cette page<br/>est-elle choisie ?"}
+    P -->|"Oui"| Y["Affiché<br/>et notifié"]
     P -->|"Non"| X
-    S -->|"Non"| O{"La page n'affiche-t-elle que les incidents limités ?"}
+    S -->|"Non"| O{"La page n'affiche-t-elle<br/>que les incidents limités ?"}
     O -->|"Non"| Y
     O -->|"Oui"| X
 ```

@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Ja"| C["Bekräftar via e-post"]
     Q -->|"Nej"| S["Prenumerant"]
     C --> S
-    E["Incident, underhåll eller meddelande"] --> N["Avisering"]
+    E["Incident, underhåll<br/>eller meddelande"] --> N["Avisering"]
     S --> N
-    N --> M["Meddelande med en avregistreringslänk"]
+    N --> M["Meddelande med en<br/>avregistreringslänk"]
 ```
 
 Varje statussida har sina egna prenumeranter. En besökare registrerar sig på statussidans sida **Prenumerera**, där en e-postadress bekräftar med en länk innan den får något, eller så lägger ditt team till besökaren i instrumentpanelen. Därefter aviserar varje incident, varje schemalagd underhållshändelse och varje meddelande som når sidan dess prenumeranter, var och en via kanalen de registrerade sig med, och varje meddelande innehåller länken som avslutar prenumerationen.

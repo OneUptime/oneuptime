@@ -14,14 +14,13 @@ En brugerdefineret sonde er en lille agent, som du kører i dit eget netværk. D
 ```mermaid title="Hvad en brugerdefineret sonde gør"
 sequenceDiagram
     participant P as Brugerdefineret sonde
-    participant S as Dine tjenester
     participant O as OneUptime
-    P->>O: Jeg kører (hvert minut)
-    P->>O: Hvilke af mine overvågninger skal tjekkes nu?
-    O-->>P: De overvågninger, der skal tjekkes
-    P->>S: Tjek hver enkelt
+    P->>O: Jeg kører<br/>(hvert minut)
+    P->>O: Hvilke af mine overvågninger<br/>skal tjekkes nu?
+    O-->>P: De overvågninger,<br/>der skal tjekkes
+    Note over P: Tjekker hver enkelt<br/>i dit netværk
     P->>O: Send resultaterne
-    O->>O: Opdater status, åbn hændelser eller alarmer
+    Note over O: Opdaterer status, åbner<br/>hændelser eller alarmer
 ```
 
 - **Sonden forbinder udad.** Hver forespørgsel går fra sonden til `ONEUPTIME_URL` over HTTPS. Intet udefra behøver at kunne nå sonden.

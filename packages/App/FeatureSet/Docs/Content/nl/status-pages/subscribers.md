@@ -21,9 +21,9 @@ flowchart TB
     Q -->|"Ja"| C["Bevestigt via e-mail"]
     Q -->|"Nee"| S["Abonnee"]
     C --> S
-    E["Incident, onderhoud of aankondiging"] --> N["Melding"]
+    E["Incident, onderhoud<br/>of aankondiging"] --> N["Melding"]
     S --> N
-    N --> M["Bericht met een afmeldlink"]
+    N --> M["Bericht met<br/>een afmeldlink"]
 ```
 
 Elke statuspagina heeft haar eigen abonnees. Een bezoeker meldt zich aan op de pagina **Abonneren** van de statuspagina, waar een e-mailadres eerst met een link bevestigt voordat het iets ontvangt, of uw team voegt de bezoeker toe in het dashboard. Vanaf dan meldt elk incident, elke geplande onderhoudsgebeurtenis en elke aankondiging die de pagina bereikt het aan haar abonnees, elk via het kanaal waarmee ze zich hebben aangemeld, en elk bericht bevat de link waarmee het abonnement wordt opgezegd.

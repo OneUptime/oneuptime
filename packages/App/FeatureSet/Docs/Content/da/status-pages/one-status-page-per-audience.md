@@ -33,12 +33,12 @@ En hændelse når en statusside gennem sine monitorer. En side viser en hændels
 
 ```mermaid title="Viser denne side hændelsen?"
 flowchart TB
-    L{"Viser siden en monitor fra hændelsen?"} -->|"Nej"| X["Ikke vist, ingen besked"]
-    L -->|"Ja"| S{"Hændelse begrænset til sider?"}
-    S -->|"Ja"| P{"Er denne side valgt?"}
-    P -->|"Ja"| Y["Vist og underrettet"]
+    L{"Viser siden en monitor<br/>fra hændelsen?"} -->|"Nej"| X["Ikke vist,<br/>ingen besked"]
+    L -->|"Ja"| S{"Hændelse begrænset<br/>til sider?"}
+    S -->|"Ja"| P{"Er denne side<br/>valgt?"}
+    P -->|"Ja"| Y["Vist og<br/>underrettet"]
     P -->|"Nej"| X
-    S -->|"Nej"| O{"Viser siden kun begrænsede hændelser?"}
+    S -->|"Nej"| O{"Viser siden kun<br/>begrænsede hændelser?"}
     O -->|"Nej"| Y
     O -->|"Ja"| X
 ```

@@ -18,13 +18,11 @@ flowchart TB
     subgraph project["Ihr Projekt"]
         direction LR
         M["Monitore"]
-        E["Vorfälle und Wartungen"]
-        A["Ankündigungen"]
+        E["Vorfälle, Wartungen<br/>und Ankündigungen"]
     end
-    M --> R["Ressourcen auf der Seite"]
+    M --> R["Ressourcen<br/>auf der Seite"]
     R --> P["Statusseite"]
     E --> P
-    A --> P
     P --> V["Besucher"]
     P --> S["Abonnenten"]
 ```
