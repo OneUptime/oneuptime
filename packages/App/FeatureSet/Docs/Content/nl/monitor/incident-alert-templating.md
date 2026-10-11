@@ -417,7 +417,7 @@ Om de schermafbeelding van elke mislukte uitvoering te tonen, zet je de afbeeldi
 | `trapSourceIp` | Het adres waar de trap vandaan kwam. Alleen als een SNMP-trap de controle startte. | `string` |
 | `trapVarbinds` | De varbinds van de trap, elk als `{oid, value}`. Alleen als een SNMP-trap de controle startte. | `Array<Object>` |
 
-Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als het inloggegevens heeft, dus **`isOnline` is de enige variabele hierboven die een apparaat met alleen ping invult**: alle andere komen uit de SNMP-walk en blijven zonder die walk staan zoals ze geschreven zijn. Begin met `{{isOnline}}` en de naam van het apparaat in templates die mogelijk worden gebruikt voor apparaten zonder inloggegevens. Zie [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor#what-a-poll-actually-does) voor wat elk soort poll verzamelt.
+Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als het inloggegevens heeft, dus **`isOnline` is de enige variabele hierboven die een apparaat met alleen ping invult**: alle andere komen uit de SNMP-walk en blijven zonder die walk staan zoals ze geschreven zijn. Begin met `{{isOnline}}` en de naam van het apparaat in templates die mogelijk worden gebruikt voor apparaten zonder inloggegevens. Zie [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor#wat-een-poll-echt-doet) voor wat elk soort poll verzamelt.
 
 ### Databasegezondheidsmonitoren
 
