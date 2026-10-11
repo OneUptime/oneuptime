@@ -21,7 +21,10 @@ import path from "path";
  * OnCallDocsTranslations): the code exactly, the diagrams by how they are
  * built, the inline code, the shape of the tables and lists, the cards,
  * links that land on a heading of the page they open, and no emphasis
- * marker left on the page as the reader sees it (strayMarkers).
+ * marker left on the page as the reader sees it (strayMarkers). Two more
+ * read how wide a diagram's labels draw (diagramLabelLines,
+ * labelLineWidth), so a suite can hold a diagram that fills the 590px docs
+ * column to the label lines measured to fit it.
  *
  * Each is a plain function of the Markdown, so the suites can also show that
  * it catches the break it is there for. Suites import these rather than
@@ -124,6 +127,57 @@ export function diagramSkeleton(code: string): string {
         .trimEnd();
     })
     .join("\n");
+}
+
+const LABEL_BREAK: string = "<br/>";
+// A label in a flowchart: a node's text or a link's.
+const DIAGRAM_LABEL: RegExp = /"([^"]*)"/g;
+// A sequence diagram's participant and the name it is drawn under.
+const SEQUENCE_PARTICIPANT_NAME: RegExp =
+  /^\s*(?:participant|actor)\s+\S+\s+as\s+(.*)$/;
+// A sequence diagram's message ("P->>O: text") or note ("Note over P: text").
+const SEQUENCE_TEXT: RegExp =
+  /^\s*(?:Note\s[^:]*|[^\s:]*-[-x)>]*[^\s:]*):(.*)$/;
+// A character drawn about twice as wide as a Latin letter: Chinese, Japanese or Korean.
+const WIDE_CHARACTER: RegExp = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/;
+
+/*
+ * Every line of every label a diagram draws, as the diagram breaks them
+ * (<br/>): a flowchart's node and link labels; a sequence diagram's
+ * participant names, messages and notes.
+ */
+export function diagramLabelLines(code: string): Array<string> {
+  const labels: Array<string> = [];
+
+  if (code.trimStart().startsWith("sequenceDiagram")) {
+    for (const line of code.split("\n")) {
+      const label: string | undefined =
+        line.match(SEQUENCE_PARTICIPANT_NAME)?.[1] ||
+        line.match(SEQUENCE_TEXT)?.[1];
+
+      if (label !== undefined) {
+        labels.push(label.trim());
+      }
+    }
+  } else {
+    for (const match of Array.from(code.matchAll(DIAGRAM_LABEL))) {
+      labels.push(match[1] as string);
+    }
+  }
+
+  return labels.flatMap((label: string): Array<string> => {
+    return label.split(LABEL_BREAK);
+  });
+}
+
+/*
+ * How wide a line of a diagram's label draws, in Latin letters: a Chinese,
+ * Japanese or Korean character counts twice.
+ */
+export function labelLineWidth(line: string): number {
+  return Array.from(line).reduce((width: number, character: string): number => {
+    return width + (WIDE_CHARACTER.test(character) ? 2 : 1);
+  }, 0);
 }
 
 // A code block as a translation must keep it: code exactly, a diagram by its build.

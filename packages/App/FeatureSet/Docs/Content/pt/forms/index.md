@@ -57,7 +57,7 @@ Os formulários começam com esses dois, e mais tipos de registro virão.
 
 - **Um plano que inclua formulários.** No OneUptime Cloud, os formulários exigem o plano **Growth** ou superior. Veja [Plano](#plano).
 - **Permissão para criar formulários.** **Create Form** pertence aos proprietários e administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
-- **Num formulário de incidentes, uma severidade.** Todo incidente precisa de uma: de uma pergunta, das configurações do formulário ou do modelo de incidente dele. Sem ela, todo envio é recusado. Veja [O que um envio cria](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Num formulário de incidentes, uma severidade.** Todo incidente precisa de uma: de uma pergunta, das configurações do formulário ou do modelo de incidente dele. Sem ela, todo envio é recusado. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-incidente).
 
 ## Criar seu primeiro formulário
 
@@ -76,7 +76,7 @@ Em **Ao enviar**, confira como um envio vira um incidente ou evento e clique em 
 
 ### Adicionar modelos se as pessoas relatam os mesmos casos
 
-Em **Modelos**, salve um modelo para cada caso relatado com frequência: o formulário os lista acima das perguntas, se preenche a partir do escolhido e faz as perguntas como esse modelo manda; uma pergunta que um caso precisa pode ser obrigatória no modelo dele e oculta nos outros. Veja [Modelos](/docs/forms/building#templates).
+Em **Modelos**, salve um modelo para cada caso relatado com frequência: o formulário os lista acima das perguntas, se preenche a partir do escolhido e faz as perguntas como esse modelo manda; uma pergunta que um caso precisa pode ser obrigatória no modelo dele e oculta nos outros. Veja [Modelos](/docs/forms/building#modelos).
 
 ### Compartilhar o link
 
@@ -229,7 +229,7 @@ As perguntas, os modelos e as configurações são verificados sempre que são s
 
 ### Marca na API
 
-A marca de um formulário são os `logoFileId`, `logoAltText` e `faviconFileId` dele. Envie primeiro a imagem com `POST /api/file`, no projeto do formulário (com uma chave de API desse projeto, ou com login como membro dele e o id dele no cabeçalho `tenantid`), mandando o `name`, o `fileType`, como `image/png`, e os bytes em base64 em `file`, e defina o `_id` devolvido. Um envio para um projeto do qual você não é membro é recusado com "You can upload files only to a project you are a member of." Todo envio é privado: `isPublic` é definido pelo OneUptime, diga a solicitação o que disser. Cada imagem é verificada quando o formulário é salvo: precisa ter sido enviada no projeto do formulário, e um logotipo precisa ser uma imagem PNG, JPEG, GIF, WebP ou SVG de até 512 KB, e um favicon uma dessas ou um ICO de até 128 KB. Defina um id como `null` para voltar aos do OneUptime. Veja [Marca](/docs/forms/building#branding).
+A marca de um formulário são os `logoFileId`, `logoAltText` e `faviconFileId` dele. Envie primeiro a imagem com `POST /api/file`, no projeto do formulário (com uma chave de API desse projeto, ou com login como membro dele e o id dele no cabeçalho `tenantid`), mandando o `name`, o `fileType`, como `image/png`, e os bytes em base64 em `file`, e defina o `_id` devolvido. Um envio para um projeto do qual você não é membro é recusado com "You can upload files only to a project you are a member of." Todo envio é privado: `isPublic` é definido pelo OneUptime, diga a solicitação o que disser. Cada imagem é verificada quando o formulário é salvo: precisa ter sido enviada no projeto do formulário, e um logotipo precisa ser uma imagem PNG, JPEG, GIF, WebP ou SVG de até 512 KB, e um favicon uma dessas ou um ICO de até 128 KB. Defina um id como `null` para voltar aos do OneUptime. Veja [Marca](/docs/forms/building#marca).
 
 ### Ler os envios
 

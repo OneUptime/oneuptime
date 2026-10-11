@@ -57,7 +57,7 @@ Les formulaires commencent avec ces deux-là, et d'autres types d'enregistrement
 
 - **Un plan qui inclut les formulaires.** Sur OneUptime Cloud, les formulaires demandent le plan **Growth** ou supérieur. Voir [Plan](#plan).
 - **L'autorisation de créer des formulaires.** **Create Form** appartient aux propriétaires et administrateurs du projet, ainsi qu'aux rôles auxquels vous la donnez. Voir [Autorisations](#autorisations).
-- **Pour un formulaire d'incident, une gravité.** Chaque incident en a besoin d'une : issue d'une question, des paramètres du formulaire ou de son modèle d'incident. Sans elle, chaque soumission est refusée. Voir [Ce que crée une soumission](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **Pour un formulaire d'incident, une gravité.** Chaque incident en a besoin d'une : issue d'une question, des paramètres du formulaire ou de son modèle d'incident. Sans elle, chaque soumission est refusée. Voir [Ce que crée une soumission](/docs/forms/on-submit#comment-une-soumission-devient-un-incident).
 
 ## Créer votre premier formulaire
 
@@ -76,7 +76,7 @@ Dans **À la soumission**, vérifiez comment une soumission devient un incident 
 
 ### Ajouter des modèles si les mêmes cas reviennent
 
-Dans **Modèles**, enregistrez un modèle pour chaque cas souvent signalé : le formulaire les liste au-dessus de ses questions, se remplit à partir de celui qui est choisi et pose les questions comme ce modèle l'indique ; une question dont un cas a besoin peut être obligatoire dans son modèle et masquée dans les autres. Voir [Modèles](/docs/forms/building#templates).
+Dans **Modèles**, enregistrez un modèle pour chaque cas souvent signalé : le formulaire les liste au-dessus de ses questions, se remplit à partir de celui qui est choisi et pose les questions comme ce modèle l'indique ; une question dont un cas a besoin peut être obligatoire dans son modèle et masquée dans les autres. Voir [Modèles](/docs/forms/building#modèles).
 
 ### Partager le lien
 
@@ -229,7 +229,7 @@ Les questions, les modèles et les paramètres sont vérifiés à chaque enregis
 
 ### L'image de marque dans l'API
 
-L'image de marque d'un formulaire, ce sont ses `logoFileId`, `logoAltText` et `faviconFileId`. Téléversez d'abord l'image avec `POST /api/file`, dans le projet du formulaire (avec une clé d'API de ce projet, ou connecté en tant que membre avec son identifiant dans l'en-tête `tenantid`), en envoyant son `name`, son `fileType`, par exemple `image/png`, et les octets en base64 dans `file`, puis définissez l'`_id` qu'elle renvoie. Un téléversement dans un projet dont vous n'êtes pas membre est refusé avec "You can upload files only to a project you are a member of." Chaque téléversement est privé : `isPublic` est défini par OneUptime, quoi que dise la requête. Chaque image est vérifiée à l'enregistrement du formulaire : elle doit avoir été téléversée dans le projet du formulaire, et un logo doit être une image PNG, JPEG, GIF, WebP ou SVG de 512 Ko au plus, un favicon l'une de celles-ci ou un ICO de 128 Ko au plus. Définissez un identifiant à `null` pour revenir à ceux de OneUptime. Voir [Image de marque](/docs/forms/building#branding).
+L'image de marque d'un formulaire, ce sont ses `logoFileId`, `logoAltText` et `faviconFileId`. Téléversez d'abord l'image avec `POST /api/file`, dans le projet du formulaire (avec une clé d'API de ce projet, ou connecté en tant que membre avec son identifiant dans l'en-tête `tenantid`), en envoyant son `name`, son `fileType`, par exemple `image/png`, et les octets en base64 dans `file`, puis définissez l'`_id` qu'elle renvoie. Un téléversement dans un projet dont vous n'êtes pas membre est refusé avec "You can upload files only to a project you are a member of." Chaque téléversement est privé : `isPublic` est défini par OneUptime, quoi que dise la requête. Chaque image est vérifiée à l'enregistrement du formulaire : elle doit avoir été téléversée dans le projet du formulaire, et un logo doit être une image PNG, JPEG, GIF, WebP ou SVG de 512 Ko au plus, un favicon l'une de celles-ci ou un ICO de 128 Ko au plus. Définissez un identifiant à `null` pour revenir à ceux de OneUptime. Voir [Image de marque](/docs/forms/building#image-de-marque).
 
 ### Lire les soumissions
 

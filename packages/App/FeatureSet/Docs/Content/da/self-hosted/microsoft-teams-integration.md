@@ -34,7 +34,7 @@ sequenceDiagram
 
 En Incoming Webhook eller en Teams-workflow-URL erstatter ikke denne bots beskedendpoint.
 
-Videoopkald (et Teams-møde for en hændelse) bruger ikke denne bot: de kræver deres egen app-registrering, beskrevet i [Videoopkald](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Videoopkald (et Teams-møde for en hændelse) bruger ikke denne bot: de kræver deres egen app-registrering, beskrevet i [Videoopkald](/docs/workspace-connections/video-calls#forbind-med-ét-klik-på-en-selvhostet-server).
 
 ## Før du går i gang
 

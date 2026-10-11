@@ -33,6 +33,7 @@ import {
   INCIDENT_NOTE_TEMPLATE_VARIABLES,
   IncidentNoteTemplateVariableInfo,
 } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1223,9 +1224,13 @@ describe("incident custom fields docs", () => {
         expect(source).toContain(
           'strongTitle="Custom Templates Require Configuration"',
         );
+        // The status pages name it as their language's Dashboard draws it.
         expect(
           boldText(readPage(SUBSCRIBERS_PAGE, language)).has(
-            "Custom Templates Require Configuration",
+            drawnActionLabel(
+              language,
+              "Custom Templates Require Configuration",
+            ),
           ),
         ).toBe(true);
       },

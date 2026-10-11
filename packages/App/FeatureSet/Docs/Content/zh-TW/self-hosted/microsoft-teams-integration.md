@@ -34,7 +34,7 @@ sequenceDiagram
 
 Incoming Webhook 或 Teams 工作流程 URL 都無法取代此機器人的訊息端點。
 
-視訊通話（為事件召開的 Teams 會議）不使用此機器人：它需要另外的應用程式註冊，詳見 [視訊通話](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server)。
+視訊通話（為事件召開的 Teams 會議）不使用此機器人：它需要另外的應用程式註冊，詳見 [視訊通話](/docs/workspace-connections/video-calls#在自行託管的伺服器上一鍵連接)。
 
 ## 開始之前
 

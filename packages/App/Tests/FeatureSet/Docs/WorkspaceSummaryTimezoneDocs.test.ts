@@ -79,8 +79,9 @@ function toLatinDigits(text: string): string {
 }
 
 /*
- * The section that says what summaries are: the "## " section after the
- * page's "Testing a rule" one, which is the page's first.
+ * The section that says what summaries are: the one "## " section that
+ * names the API's `timezone` field, right after the page's "Testing a rule"
+ * section.
  */
 function findSummariesSection(lang: string, page: string): string {
   const sections: Array<string> = readPage(lang, page).split(/\n(?=## )/);
@@ -173,19 +174,31 @@ describe.each(LANGUAGES)("the %s pages", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
 
   it.each(PAGES)(
-    "%s has one Summaries section, right after Testing a rule",
+    "%s has one Summaries section, right after Testing a rule, where the English page has it",
     (page: string) => {
-      const headings: Array<string> = readPage(lang, page)
-        .split("\n")
-        .filter((line: string): boolean => {
-          return line.startsWith("## ");
-        });
+      const sectionHeadings: (language: string) => Array<string> = (
+        language: string,
+      ): Array<string> => {
+        return readPage(language, page)
+          .split("\n")
+          .filter((line: string): boolean => {
+            return line.startsWith("## ");
+          });
+      };
+
+      const englishHeadings: Array<string> = sectionHeadings("en");
+      const englishPlace: number = englishHeadings.indexOf("## Summaries");
+
+      // In English, Summaries follows Testing a rule (checked above too).
+      expect(englishPlace).toBeGreaterThan(0);
+      expect(englishHeadings[englishPlace - 1]).toBe("## Testing a rule");
 
       const section: string = findSummariesSection(lang, page);
       const heading: string = section.split("\n")[0]!;
 
-      // The page's first section is Testing a rule; Summaries is the second.
-      expect(headings.indexOf(heading)).toBe(1);
+      // A translation keeps the English sections, in the English order.
+      expect(sectionHeadings(lang)).toHaveLength(englishHeadings.length);
+      expect(sectionHeadings(lang).indexOf(heading)).toBe(englishPlace);
     },
   );
 

@@ -22,8 +22,9 @@ import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
  * The pages that describe those forms say so, in English and in Persian,
  * the two languages that describe them: nobody is sent looking for a Basic
  * Info step or an Inherit step, or told a rule's labels are optional. The
- * Persian SLO page names the form as the Persian Dashboard draws it; the
- * other Persian pages here keep the Dashboard's English names.
+ * Persian SLO page and status page overview name the form as the Persian
+ * Dashboard draws it; the Persian incident pages keep the Dashboard's
+ * English names.
  */
 
 const CONTENT_DIR: string = path.join(
@@ -58,7 +59,10 @@ const EVENT_PAGES: Array<string> = [
 const LANGUAGES: Array<string> = ["en", "fa"];
 
 // The pages here that name the Dashboard as their language's Dashboard draws it.
-const NAMED_AS_DRAWN: ReadonlyArray<string> = ["slo/label-and-owner-rules"];
+const NAMED_AS_DRAWN: ReadonlyArray<string> = [
+  "slo/label-and-owner-rules",
+  "status-pages/index",
+];
 
 // What a page in this language calls the Dashboard label written in English.
 function uiName(language: string, page: string, english: string): string {
@@ -157,11 +161,17 @@ describe.each(LANGUAGES)(
               )
             : read(language, page);
 
-        expect(content).toContain("**Match**");
-        expect(content).toContain("**Adds nothing**");
+        const bold: (english: string) => string = (english: string): string => {
+          return `**${uiName(language, page, english)}**`;
+        };
+
+        expect(content).toContain(bold("Match"));
+        expect(content).toContain(bold("Adds nothing"));
         expect(content).toContain(`](${GENERAL_PAGE_URL})`);
-        expect(content).not.toContain("**Basic Info**");
-        expect(content).not.toContain("**Match Criteria**, **Owners**");
+        expect(content).not.toContain(bold("Basic Info"));
+        expect(content).not.toContain(
+          `${bold("Match Criteria")}, ${bold("Owners")}`,
+        );
         expect(content).not.toMatch(
           /\*\*Owners\*\* and \*\*Inherit Owners\*\*/,
         );
