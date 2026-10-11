@@ -43,9 +43,10 @@ const REFERENCE_VALIDATION_BATCH_SIZE: number = 1000;
  * names it as its parent, or a site that names it as its type, deleted or
  * not. Those foreign keys (parentNetworkSiteTypeId and
  * NetworkSite.networkSiteTypeId, NO ACTION) would refuse the DELETE. See
- * NetworkSiteLeafPurge.
+ * NetworkSiteLeafPurge. NetworkSitePurgePostgres holds this list to the
+ * migrated foreign keys.
  */
-const SITE_TYPE_PURGE_SHAPE: LeafPurgeShape = {
+export const SITE_TYPE_PURGE_SHAPE: LeafPurgeShape = {
   rowsName: "network site types",
   parentColumn: "parentNetworkSiteTypeId",
   namedBy: [

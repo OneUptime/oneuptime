@@ -136,9 +136,10 @@ const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
  * it as its parent, deleted or not. That foreign key (parentSiteId, NO
  * ACTION) would refuse the DELETE. Devices, endpoints, status history, links,
  * assignment rules and maintenance links are SET NULL or CASCADE, so they
- * keep nothing. See NetworkSiteLeafPurge.
+ * keep nothing. See NetworkSiteLeafPurge. NetworkSitePurgePostgres holds this
+ * list to the migrated foreign keys.
  */
-const SITE_PURGE_SHAPE: LeafPurgeShape = {
+export const SITE_PURGE_SHAPE: LeafPurgeShape = {
   rowsName: "network sites",
   parentColumn: "parentSiteId",
   namedBy: [{ table: "NetworkSite", column: "parentSiteId" }],

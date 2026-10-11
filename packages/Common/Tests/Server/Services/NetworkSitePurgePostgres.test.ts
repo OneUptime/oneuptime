@@ -2,11 +2,19 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
-import NetworkSiteTypeService from "../../../Server/Services/NetworkSiteTypeService";
+import NetworkSiteService, {
+  SITE_PURGE_SHAPE,
+} from "../../../Server/Services/NetworkSiteService";
+import NetworkSiteTypeService, {
+  SITE_TYPE_PURGE_SHAPE,
+} from "../../../Server/Services/NetworkSiteTypeService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
 import { NETWORK_SITE_HIERARCHY_LOCK_NAMESPACE } from "../../../Server/Utils/NetworkSite/NetworkSiteHierarchyLock";
+import {
+  LeafPurgeShape,
+  NamingColumn,
+} from "../../../Server/Utils/NetworkSite/NetworkSiteLeafPurge";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
@@ -42,7 +50,9 @@ import { DataSource, Logger as QueryLogger } from "typeorm";
  *   - a site that a site row still names as its parent, and a site type that
  *     a site or a child type still names, stay - whether that row is live or
  *     deleted itself - since the foreign key (NO ACTION) would refuse the
- *     whole batch. Nothing fails: the job's loop simply finds nothing more;
+ *     whole batch. Nothing fails: the job's loop simply finds nothing more.
+ *     Those are the only migrated foreign keys that hold a site or a type,
+ *     and the purge counts exactly them;
  *   - a deleted tree goes from the leaves up, one level a call, each call
  *     choosing its leaves in one statement however many due rows wait, and
  *     the job's loop ends once a call removes nothing;
@@ -206,6 +216,12 @@ interface CopiedForeignKeyRow {
   column: string;
   referencedTable: string;
   onDelete: string;
+}
+
+interface HoldingForeignKeyRow {
+  table: string;
+  column: string;
+  referencedTable: string;
 }
 
 describePostgres(
@@ -601,6 +617,62 @@ describePostgres(
       // A device is left without its site; a site's status history goes with it.
       expect(onDeleteOf("NetworkDevice", "siteId")).toBe("n");
       expect(onDeleteOf("NetworkSiteStatusTimeline", "siteId")).toBe("c");
+    });
+
+    test("counts every migrated foreign key that holds a site or a site type as keeping it, and nothing else", async () => {
+      /*
+       * Every foreign key of the migrated schema that points at a site or a
+       * site type and refuses a DELETE while a row names it: NO ACTION ("a")
+       * or RESTRICT ("r"). CASCADE and SET NULL hold nothing. One the purge
+       * did not count would refuse its DELETE every day.
+       */
+      const holding: Array<HoldingForeignKeyRow> = await query(
+        `SELECT t.relname AS "table",
+                a.attname AS "column",
+                r.relname AS "referencedTable"
+           FROM pg_constraint c
+           JOIN pg_class t ON t.oid = c.conrelid
+           JOIN pg_namespace n ON n.oid = t.relnamespace
+           JOIN pg_class r ON r.oid = c.confrelid
+           JOIN pg_namespace rn ON rn.oid = r.relnamespace
+           JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+          WHERE n.nspname = 'public'
+            AND rn.nspname = 'public'
+            AND c.contype = 'f'
+            AND r.relname IN ('NetworkSite', 'NetworkSiteType')
+            AND c.confdeltype IN ('a', 'r')
+          ORDER BY t.relname, a.attname`,
+      );
+
+      const holdingColumns: (referencedTable: string) => Array<string> = (
+        referencedTable: string,
+      ): Array<string> => {
+        return holding
+          .filter((row: HoldingForeignKeyRow): boolean => {
+            return row.referencedTable === referencedTable;
+          })
+          .map((row: HoldingForeignKeyRow): string => {
+            return `${row.table}.${row.column}`;
+          })
+          .sort();
+      };
+
+      const countedColumns: (shape: LeafPurgeShape) => Array<string> = (
+        shape: LeafPurgeShape,
+      ): Array<string> => {
+        return shape.namedBy
+          .map((naming: NamingColumn): string => {
+            return `${naming.table}.${naming.column}`;
+          })
+          .sort();
+      };
+
+      expect(holdingColumns("NetworkSite")).toEqual(
+        countedColumns(SITE_PURGE_SHAPE),
+      );
+      expect(holdingColumns("NetworkSiteType")).toEqual(
+        countedColumns(SITE_TYPE_PURGE_SHAPE),
+      );
     });
 
     test("purges a site deleted 31 days ago, and keeps one deleted 29 days ago and one never deleted", async () => {
