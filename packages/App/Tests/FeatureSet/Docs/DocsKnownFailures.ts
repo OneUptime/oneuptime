@@ -104,6 +104,7 @@ const WORKSPACE_AND_FORMS_TO_TRANSLATE: Array<string> = except(
   "sv",
   "ru",
   "ja",
+  "ko",
 );
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
