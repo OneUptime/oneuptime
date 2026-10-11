@@ -1,4 +1,4 @@
-# SMTP Configuration
+# SMTP
 
 Send OneUptime's email through your own mail server. A project adds SMTP configs that its status pages send their email with, and a self-hosted installation sets the server OneUptime itself sends everything else from. Both support three ways of signing in:
 
