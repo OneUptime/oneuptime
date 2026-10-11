@@ -7,6 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Regression tests for the grey bars at the end of status.chainflip.io (root cause 1).
@@ -207,26 +208,16 @@ type ShuffleFunction = (
   seed: number,
 ) => Array<MonitorStatusTimeline>;
 
-/*
- * Fisher-Yates driven by a Park-Miller generator, so every run shuffles the same way. The
- * products stay well below 2^53, so plain arithmetic is exact.
- */
+// Fisher-Yates driven by a seeded generator, so every run shuffles the same way.
 const shuffleDeterministically: ShuffleFunction = (
   items: Array<MonitorStatusTimeline>,
   seed: number,
 ): Array<MonitorStatusTimeline> => {
-  const modulus: number = 2147483647;
+  const random: SeededRandom = seededRandom(seed);
   const shuffled: Array<MonitorStatusTimeline> = [...items];
 
-  let state: number = seed % modulus;
-
-  if (state <= 0) {
-    state += modulus - 1;
-  }
-
   for (let i: number = shuffled.length - 1; i > 0; i--) {
-    state = (state * 16807) % modulus;
-    const j: number = state % (i + 1);
+    const j: number = random(i + 1);
     const temp: MonitorStatusTimeline = shuffled[i]!;
     shuffled[i] = shuffled[j]!;
     shuffled[j] = temp;

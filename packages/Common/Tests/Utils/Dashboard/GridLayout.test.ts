@@ -6,6 +6,7 @@ import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 type RectSpec = Partial<GridRect> & { id: string };
 
@@ -48,15 +49,6 @@ function expectValidLayout(rects: Array<GridRect>): void {
     expect(r.width).toBeGreaterThanOrEqual(1);
     expect(r.height).toBeGreaterThanOrEqual(1);
   }
-}
-
-/** Deterministic PRNG so the property-style tests are reproducible. */
-function makeRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
 }
 
 describe("GridLayoutUtil.rectsOverlap", () => {
@@ -850,7 +842,7 @@ describe("GridLayoutUtil DashboardBaseComponent bridge", () => {
 
 describe("GridLayoutUtil property-style invariants", () => {
   test("random move/resize sequences always produce valid, in-bounds layouts", () => {
-    const random: () => number = makeRandom(20260807);
+    const random: () => number = seededRandom(20260807);
 
     const randomInt: (max: number) => number = (max: number): number => {
       return Math.floor(random() * max);
@@ -914,7 +906,7 @@ describe("GridLayoutUtil property-style invariants", () => {
   });
 
   test("normalize heals any random garbage into a valid layout", () => {
-    const random: () => number = makeRandom(777);
+    const random: () => number = seededRandom(777);
 
     for (let round: number = 0; round < 50; round++) {
       const garbage: Array<GridRect> = [];

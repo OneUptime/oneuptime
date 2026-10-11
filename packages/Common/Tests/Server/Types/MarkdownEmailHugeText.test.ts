@@ -35,6 +35,7 @@ import EmailInlineImages, {
 } from "../../../Server/Utils/Mail/EmailInlineImages";
 import logger from "../../../Server/Utils/Logger";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * EMAIL MARKDOWN OF ANY LENGTH.
@@ -411,17 +412,8 @@ describe("Markdown email renderer - Markdown of at most 64 KB", () => {
     "word ".repeat(400),
   ];
 
-  function makeRandom(seed: number): () => number {
-    let state: number = seed >>> 0;
-
-    return (): number => {
-      state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-      return state / 4294967296;
-    };
-  }
-
   test("renders exactly as marked alone does, for 400 texts", async () => {
-    const random: () => number = makeRandom(4559);
+    const random: () => number = seededRandom(4559);
 
     for (let run: number = 0; run < 400; run++) {
       const pieces: Array<string> = [];

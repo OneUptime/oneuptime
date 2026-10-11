@@ -27,6 +27,7 @@ import MonitorStepProxmoxMonitor from "../../../../Types/Monitor/MonitorStepProx
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
+import { seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -1592,21 +1593,6 @@ describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
     pushesPerNode: Array<number>;
     upValues: Array<number>; // every pve_up{pve.scope=node} row
     infoValues: Array<number>; // every pve_node_info{pve.scope=node} row
-  }
-
-  /*
-   * mulberry32: a small seeded PRNG, so every run explores the same
-   * cases and a failure reproduces.
-   */
-  function seededRandom(seed: number): Random {
-    let state: number = seed >>> 0;
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let t: number = state;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
   }
 
   function shuffled<T>(items: Array<T>, random: Random): Array<T> {

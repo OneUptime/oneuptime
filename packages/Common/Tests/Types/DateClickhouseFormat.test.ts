@@ -1,5 +1,6 @@
 import OneUptimeDate from "../../Types/Date";
 import moment from "moment-timezone";
+import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { afterAll, describe, expect, test } from "@jest/globals";
 
 /*
@@ -91,11 +92,7 @@ describe("OneUptimeDate.toClickhouseDateTime", () => {
      * Deterministic LCG so a failure is reproducible. 2000 samples spread
      * across ~200 years of epoch millis, including sub-second components.
      */
-    let seed: number = 42;
-    const nextRandom: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed / 2147483648;
-    };
+    const nextRandom: SeededRandom = seededRandom(42);
 
     const hundredYearsMs: number = 100 * 365.25 * 24 * 3600 * 1000;
 

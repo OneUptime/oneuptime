@@ -23,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 jest.mock("react-markdown", () => {
   return {
@@ -1049,20 +1050,6 @@ describe("applyInlineReferences — a citation can never become a link", () => {
  */
 
 describe("applyInlineReferences — generated trees", () => {
-  // Small deterministic PRNG so a failure is reproducible from its seed.
-  const createRandom: (seed: number) => () => number = (
-    seed: number,
-  ): (() => number) => {
-    let state: number = seed >>> 0;
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let value: number = state;
-      value = Math.imul(value ^ (value >>> 15), value | 1);
-      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-  };
-
   const FRAGMENTS: Array<string> = [
     "[C1]",
     "[C12]",
@@ -1245,7 +1232,8 @@ describe("applyInlineReferences — generated trees", () => {
   };
 
   test("never creates links or images, never leaves a citation link, and preserves the visible text", () => {
-    const random: Random = createRandom(20260914);
+    // Seeded, so a failure is reproducible from its seed.
+    const random: Random = seededRandom(20260914);
 
     for (let iteration: number = 0; iteration < 400; iteration++) {
       const tree: Node = randomTree(random);

@@ -16,8 +16,9 @@
  * THE STEP BUDGET IS NOT A CONVENIENCE. The original does not terminate on some
  * inputs: an event whose start has been pushed past its own end still matches
  * and still trims, so it re-splits the very segment it just created, forever.
- * Empirically, on an hourly grid with 3 priorities, 14 events settle in ~110
- * inner steps and 16 events do not finish in 50,000,000. That is the hang this
+ * Empirically, on an hourly grid with 3 priorities, about one input in seven
+ * of 14 events and one in five of 16 never finish (one ran 50,000,000 inner
+ * steps), while the rest settle in a few hundred. That is the hang this
  * rewrite removes, so the reference has to run under a budget or this suite
  * would hang instead. Inputs that exhaust the budget are counted and skipped,
  * and are covered by the invariant assertions below rather than by comparison.
@@ -27,6 +28,7 @@ import LayerUtil, {
 } from "../../../Types/OnCallDutyPolicy/Layer";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import OneUptimeDate from "../../../Types/Date";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 class ReferenceBudgetExceeded extends Error {}
@@ -183,15 +185,6 @@ function reference(events: PriorityCalendarEvents[]): CalendarEvent[] {
   return calendarEvents;
 }
 
-// Deterministic PRNG so any failure is reproducible from the seed alone.
-function makeRng(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-}
-
 const BASE_MS: number = Date.UTC(2026, 0, 5, 0, 0, 0);
 
 function clone(
@@ -339,7 +332,8 @@ function assertMergeInvariants(events: Array<CalendarEvent>): void {
 describe("removeOverlappingEvents agrees with the original implementation", () => {
   for (const shape of SHAPES) {
     test(shape.name, () => {
-      const rng: () => number = makeRng(0x5eed + shape.name.length);
+      // Seeded, so any failure is reproducible from the seed alone.
+      const rng: () => number = seededRandom(0x5eed + shape.name.length);
       let compared: number = 0;
       let skipped: number = 0;
 
@@ -436,36 +430,55 @@ describe("removeOverlappingEvents agrees with the original implementation", () =
 
   test("terminates on inputs the original implementation cannot finish", () => {
     /*
-     * 16 events on an hourly grid with 3 priorities is past the point where the
-     * original stops terminating (14 events settle in ~110 inner steps; 16 do
-     * not finish in 50,000,000). The rewrite must return, quickly, and with the
-     * merge invariants intact.
+     * About one input in five of 16 events on an hourly grid with 3
+     * priorities is one the original never finishes. The first three such
+     * inputs of a seed - each checked to exhaust the reference's budget - and
+     * the rewrite must return on each, quickly, and with the merge invariants
+     * intact.
      */
-    const rng: () => number = makeRng(0x5eed + 15);
-    const generated: Array<PriorityCalendarEvents> = generate(
-      {
-        name: "blowup",
-        gridSeconds: 3600,
-        maxSpanUnits: 5,
-        eventCount: 16,
-        priorities: 3,
-        exactMatch: false,
-      },
-      rng,
-    );
+    const rng: () => number = seededRandom(0x5eed + 15);
+    const unfinished: Array<Array<PriorityCalendarEvents>> = [];
 
-    expect(() => {
-      return reference(clone(generated));
-    }).toThrow(ReferenceBudgetExceeded);
+    for (let drawn: number = 0; drawn < 60 && unfinished.length < 3; drawn++) {
+      const generated: Array<PriorityCalendarEvents> = generate(
+        {
+          name: "blowup",
+          gridSeconds: 3600,
+          maxSpanUnits: 5,
+          eventCount: 16,
+          priorities: 3,
+          exactMatch: false,
+        },
+        rng,
+      );
 
-    const started: number = Date.now();
-    const actual: Array<CalendarEvent> =
-      new LayerUtil().removeOverlappingEvents(clone(generated));
-    const elapsedMs: number = Date.now() - started;
+      try {
+        reference(clone(generated));
+      } catch (err) {
+        if (!(err instanceof ReferenceBudgetExceeded)) {
+          throw err;
+        }
 
-    expect(actual.length).toBeGreaterThan(0);
-    assertMergeInvariants(actual);
-    expect(elapsedMs).toBeLessThan(1000);
+        unfinished.push(generated);
+      }
+    }
+
+    expect(unfinished).toHaveLength(3);
+
+    for (const generated of unfinished) {
+      expect(() => {
+        return reference(clone(generated));
+      }).toThrow(ReferenceBudgetExceeded);
+
+      const started: number = Date.now();
+      const actual: Array<CalendarEvent> =
+        new LayerUtil().removeOverlappingEvents(clone(generated));
+      const elapsedMs: number = Date.now() - started;
+
+      expect(actual.length).toBeGreaterThan(0);
+      assertMergeInvariants(actual);
+      expect(elapsedMs).toBeLessThan(1000);
+    }
   });
 
   test("degenerate and inverted intervals are dropped identically", () => {
