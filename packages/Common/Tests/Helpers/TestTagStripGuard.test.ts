@@ -31,8 +31,9 @@ import ts from "typescript";
  * Not a tag strip, and passed: a pattern for one element and all it holds
  * (an <svg> icon, an email's <style>), one that cuts a text at its first "<"
  * (a component's type arguments: "ModelTable<Incident>"), one that unwraps
- * a text known to start or end with a tag (anchored with ^ or $), and one of
- * single characters.
+ * a text known to start or end with a tag (anchored with ^ or $), one of
+ * single characters, and a replace that writes a "<" back - an escape, such
+ * as "</script" made "<\/script" inside a script.
  *
  * The test files are every file of code under a folder named Tests, tests or
  * __tests__, every *.test.* and *.spec.* file wherever it is, and all of
@@ -345,6 +346,24 @@ const namedPatternsOf: NamedPatternsOfFunction = (
 const STRIP_CALLS: ReadonlyArray<string> = ["replace", "replaceAll"];
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+type WritesMarkupBackFunction = (call: ts.CallExpression) => boolean;
+
+/*
+ * Whether a replace writes a "<" back where it matched: an escape, such as
+ * "</script" made "<\/script" inside a script, which takes no markup out.
+ */
+const writesMarkupBack: WritesMarkupBackFunction = (
+  call: ts.CallExpression,
+): boolean => {
+  const replacement: ts.Expression | undefined = call.arguments[1];
+
+  return (
+    replacement !== undefined &&
+    ts.isStringLiteralLike(replacement) &&
+    replacement.text.includes("<")
+  );
+};
+
 interface TagStrip {
   line: number;
   code: string;
@@ -391,7 +410,11 @@ const findTagStrips: FindTagStripsFunction = (
 
     const method: string = node.expression.name.text;
 
-    if (STRIP_CALLS.includes(method) && stripsWith(node)) {
+    if (
+      STRIP_CALLS.includes(method) &&
+      stripsWith(node) &&
+      !writesMarkupBack(node)
+    ) {
       found(node);
       return;
     }
@@ -740,6 +763,8 @@ describe("findTagStrips, on files written here", () => {
     ["a strip that leaves the >", 'text.replace(/<\\/?[a-z]+/gi, "");'],
     ["the literal tag", 'text.replace(/<script>/g, "");'],
     ["a tag or an entity", 'text.replace(/<[^>]*>|&[a-z]+;/g, "");'],
+    ["a replacement of words", 'text.replace(/<[^>]*>/g, "[tag]");'],
+    ["an entity in its place", 'text.replace(/<[^>]*>/g, "&lt;tag&gt;");'],
   ])("finds %s", (_shape: string, line: string) => {
     expect(linesOf(line)).toEqual([1]);
   });
@@ -831,6 +856,7 @@ describe("findTagStrips, on files written here", () => {
           // Escaping and unescaping are not taking markup out.
           'text.replace(/</g, "&lt;");',
           'text.replace(/&lt;/g, "<");',
+          'code.replace(/<\\/script/gi, "<\\\\/script");',
           // EJS tags in a template's source.
           'source.replace(/<%[\\s\\S]*?%>/g, "");',
           // Reading markup is not taking it out.
