@@ -448,9 +448,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/charts-and-time-ranges": {
-    translated: EVERY_TRANSLATION,
-  },
   "telemetry/claude-code": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
@@ -514,20 +511,11 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/kubernetes-cost": {
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/log-pipelines": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/log-recording-rules": {
-    translated: EVERY_TRANSLATION,
-  },
   "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/podman-host": {
     codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/profiles": {
     sameShape: EVERY_TRANSLATION,
   },
   "telemetry/proxmox": {
@@ -536,10 +524,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/queues": {
     translated: EVERY_TRANSLATION,
-  },
-  "telemetry/search-syntax": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/security-events": {
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -554,10 +538,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/session-replay": {
     pageLinks: ["fa"],
     codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/source-maps": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
