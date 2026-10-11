@@ -455,6 +455,15 @@ const SITE_ALPHABET: Array<string> = [
 
 /* ------------------------------ The setting ------------------------------ */
 
+// What a browser's URL parser reads in an address, as far as these tests ask.
+interface ParsedAddress {
+  scheme: boolean;
+  user: string;
+  query: string;
+  fragment: string;
+  oneSegmentAtMost: boolean;
+}
+
 describe("the Jira Site URL a workflow is created with", () => {
   test.each(SITES)("takes %s", (_case: string, typed: string, site: string) => {
     expect(JIRA_SITE_URL_PATTERN.test(typed)).toBe(true);
@@ -524,19 +533,18 @@ describe("the Jira Site URL a workflow is created with", () => {
       const outsideBrackets: string = rest.startsWith("[")
         ? rest.slice(rest.indexOf("]") + 1)
         : rest;
-      let parsed: Array<string | number> | null = null;
+      let parsed: ParsedAddress | null = null;
 
       try {
         const url: URL = new URL(text);
 
-        parsed = [
-          url.protocol,
-          url.username,
-          url.password,
-          url.search,
-          url.hash,
-          url.pathname.split("/").filter(Boolean).length,
-        ];
+        parsed = {
+          scheme: ["http:", "https:"].includes(url.protocol),
+          user: url.username + url.password,
+          query: url.search,
+          fragment: url.hash,
+          oneSegmentAtMost: url.pathname.split("/").filter(Boolean).length <= 1,
+        };
       } catch {
         unparsed++;
       }
@@ -546,15 +554,19 @@ describe("the Jira Site URL a workflow is created with", () => {
         forbidden: FORBIDDEN.test(outsideBrackets),
         slashes: rest.split("/").length - 1 <= 2,
         noEmptySegment: !rest.includes("//"),
-        parsed: parsed && parsed.slice(1),
-        scheme: parsed ? ["http:", "https:"].includes(String(parsed[0])) : true,
+        parsed: parsed,
       }).toEqual({
         text,
         forbidden: false,
         slashes: true,
         noEmptySegment: true,
-        parsed: parsed && ["", "", "", "", parsed[5]! <= 1 ? parsed[5] : -1],
-        scheme: true,
+        parsed: parsed && {
+          scheme: true,
+          user: "",
+          query: "",
+          fragment: "",
+          oneSegmentAtMost: true,
+        },
       });
     }
 

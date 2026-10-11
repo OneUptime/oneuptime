@@ -2086,7 +2086,14 @@ function expectOpenings(texts: LinkedTexts, expected: LinkedTexts): void {
 }
 
 describe("the link to a Jira issue, with the workflow's Jira Site URL", () => {
-  test.each([...EVENT_SITES, ...EVENT_URLS_THAT_ARE_NOT_SITES])(
+  test.each([
+    ...EVENT_SITES.map(
+      ([name, self]: [string, string, string]): [string, string] => {
+        return [name, self];
+      },
+    ),
+    ...EVENT_URLS_THAT_ARE_NOT_SITES,
+  ])(
     "an event whose issue URL is %s: the issue is linked on the configured site, and nothing else acts",
     async (_case: string, self: string) => {
       for (const [, kind] of KINDS) {
