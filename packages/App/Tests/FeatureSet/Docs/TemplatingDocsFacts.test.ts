@@ -217,12 +217,11 @@ function render(template: string, map: JSONObject): string {
   });
 }
 
-const PROBE: { projectId: ObjectID; monitorId: ObjectID; probeId: ObjectID } =
-  {
-    projectId: ObjectID.generate(),
-    monitorId: ObjectID.generate(),
-    probeId: ObjectID.generate(),
-  };
+const PROBE: { projectId: ObjectID; monitorId: ObjectID; probeId: ObjectID } = {
+  projectId: ObjectID.generate(),
+  monitorId: ObjectID.generate(),
+  probeId: ObjectID.generate(),
+};
 
 // A check of each kind with every field it can report filled in.
 const API_CHECK: JSONObject = {
@@ -263,7 +262,12 @@ const SNMP_CHECK: JSONObject = {
     failureCause: "",
     isTimeout: false,
     oidResponses: [
-      { oid: "1.3.6.1.2.1.1.3.0", name: "sysUpTime", value: 4242, type: "TimeTicks" },
+      {
+        oid: "1.3.6.1.2.1.1.3.0",
+        name: "sysUpTime",
+        value: 4242,
+        type: "TimeTicks",
+      },
     ],
     interfaces: [
       {
@@ -519,7 +523,12 @@ const TYPE_TABLES: Array<{
         componentGroupName: "API",
         componentName: "Login",
         componentStatuses: [
-          { name: "Login", status: "major_outage", description: "", groupName: "API" },
+          {
+            name: "Login",
+            status: "major_outage",
+            description: "",
+            groupName: "API",
+          },
         ],
       },
     },
@@ -683,17 +692,23 @@ describe("Incident & Alert Templating, against the code that fills in templates"
             })(),
           }),
         "### Every run of a synthetic monitor": synthetic,
-        "### A custom code check": storageMap(MonitorType.CustomJavaScriptCode, {
-          ...PROBE,
-          failureCause: "",
-          customCodeMonitorResponse: {
-            executionTimeInMS: 120,
-            result: "degraded",
-            scriptError: "",
-            logMessages: ["first", "last"],
+        "### A custom code check": storageMap(
+          MonitorType.CustomJavaScriptCode,
+          {
+            ...PROBE,
+            failureCause: "",
+            customCodeMonitorResponse: {
+              executionTimeInMS: 120,
+              result: "degraded",
+              scriptError: "",
+              logMessages: ["first", "last"],
+            },
           },
-        }),
-        "### A network device": storageMap(MonitorType.NetworkDevice, SNMP_CHECK),
+        ),
+        "### A network device": storageMap(
+          MonitorType.NetworkDevice,
+          SNMP_CHECK,
+        ),
         "### Alertmanager or Grafana alerts": storageMap(
           MonitorType.IncomingRequest,
           {
@@ -726,7 +741,11 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         for (const fence of scanMarkdown(sectionOf(heading)).fences) {
           const rendered: string = render(fence.code, maps[heading]!);
 
-          expect({ heading, fence: fence.info, left: rendered.match(PLACEHOLDER)?.[0] }).toEqual({
+          expect({
+            heading,
+            fence: fence.info,
+            left: rendered.match(PLACEHOLDER)?.[0],
+          }).toEqual({
             heading,
             fence: fence.info,
             left: undefined,
@@ -753,7 +772,9 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         ],
       });
 
-      expect(render(fenceTitled(screenshot, "Description template", 0), map)).toBe(
+      expect(
+        render(fenceTitled(screenshot, "Description template", 0), map),
+      ).toBe(
         "Timeout 30000ms exceeded\n\n![Login page](data:image/png;base64,iVBORw0KGgo=)",
       );
       expect(
@@ -778,7 +799,9 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         "channel",
       );
       expect(render("{{requestBody.note}}", map)).toBe("<!channel> look");
-      expect(sectionOf("### Values in descriptions and remediation notes")).toContain(
+      expect(
+        sectionOf("### Values in descriptions and remediation notes"),
+      ).toContain(
         "a Slack mention such as `<!channel>` in it shows as text instead of acting",
       );
     });
@@ -914,7 +937,10 @@ describe("Incident & Alert Templating, against the code that fills in templates"
     });
 
     it("a named OID is a variable of its own, and a ping-only device fills in isOnline alone", () => {
-      const walked: JSONObject = storageMap(MonitorType.NetworkDevice, SNMP_CHECK);
+      const walked: JSONObject = storageMap(
+        MonitorType.NetworkDevice,
+        SNMP_CHECK,
+      );
       const pingOnly: JSONObject = storageMap(MonitorType.NetworkDevice, {
         ...PROBE,
         isOnline: true,
@@ -990,7 +1016,10 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         resource.indexOf(
           "const monitor: Monitor | null = await MonitorService.findOneById({",
         ),
-        resource.indexOf("props: {", resource.indexOf("currentMonitorStatusId")),
+        resource.indexOf(
+          "props: {",
+          resource.indexOf("currentMonitorStatusId"),
+        ),
       );
 
       expect(load).toContain("monitorType: true,");
@@ -1056,7 +1085,11 @@ describe("Incident & Alert Templating, against the code that fills in templates"
           );
 
           for (const key of offered) {
-            expect({ monitorType, key, documented: documented.includes(key) }).toEqual({
+            expect({
+              monitorType,
+              key,
+              documented: documented.includes(key),
+            }).toEqual({
               monitorType,
               key,
               documented: true,
@@ -1067,7 +1100,9 @@ describe("Incident & Alert Templating, against the code that fills in templates"
     );
 
     it("the metric and infrastructure monitors are exactly the types with metricName", () => {
-      const section: string = sectionOf("### Metric and Infrastructure Monitors");
+      const section: string = sectionOf(
+        "### Metric and Infrastructure Monitors",
+      );
       const withMetricName: Array<string> = Object.values(MonitorType).filter(
         (monitorType: MonitorType): boolean => {
           return (
@@ -1094,14 +1129,18 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       expect(section).toContain(
         "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph and Storage Array monitors have one variable of their own:",
       );
-      expect(documentedVariables("### Metric and Infrastructure Monitors")).toEqual(
-        ["metricName"],
-      );
+      expect(
+        documentedVariables("### Metric and Infrastructure Monitors"),
+      ).toEqual(["metricName"]);
 
       const map: JSONObject = storageMap(MonitorType.Docker, {
         metricViewConfig: {
           queryConfigs: [
-            { metricQueryData: { filterData: { metricName: "container.cpu.time" } } },
+            {
+              metricQueryData: {
+                filterData: { metricName: "container.cpu.time" },
+              },
+            },
           ],
           formulaConfigs: [],
         },

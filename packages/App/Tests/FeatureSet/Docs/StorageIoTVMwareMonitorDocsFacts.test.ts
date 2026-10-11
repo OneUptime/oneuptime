@@ -269,20 +269,23 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
     ) as MonitorTypeCategory;
   const monitorStepForm: string = source(`${FORMS}/MonitorStep.tsx`);
 
-  it.each(CREATE_FACTS)("$page is titled as its nav link", (facts: CreateFacts) => {
-    const titles: Record<string, string> = {
-      [STORAGE]: "Storage Array Monitor",
-      [IOT]: "IoT Device Monitor",
-      [VMWARE]: "VMware Monitor",
-    };
+  it.each(CREATE_FACTS)(
+    "$page is titled as its nav link",
+    (facts: CreateFacts) => {
+      const titles: Record<string, string> = {
+        [STORAGE]: "Storage Array Monitor",
+        [IOT]: "IoT Device Monitor",
+        [VMWARE]: "VMware Monitor",
+      };
 
-    expect(englishPage(facts.page).split("\n")[0]).toBe(
-      `# ${titles[facts.page]}`,
-    );
-    expect(source("packages/App/FeatureSet/Docs/Utils/Nav.ts")).toContain(
-      `title: "${titles[facts.page]}",\n        url: "/docs/${facts.page}",`,
-    );
-  });
+      expect(englishPage(facts.page).split("\n")[0]).toBe(
+        `# ${titles[facts.page]}`,
+      );
+      expect(source("packages/App/FeatureSet/Docs/Utils/Nav.ts")).toContain(
+        `title: "${titles[facts.page]}",\n        url: "/docs/${facts.page}",`,
+      );
+    },
+  );
 
   it.each(CREATE_FACTS)(
     "$page picks $pickerTitle under Infrastructure, behind More monitor types, or by its search word",
@@ -351,7 +354,9 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
   it.each(CREATE_FACTS)(
     "$page says which window a new monitor starts with",
     (facts: CreateFacts) => {
-      expect(DEFAULT_CONFIGS[facts.page]!.rollingTime).toBe(facts.defaultWindow);
+      expect(DEFAULT_CONFIGS[facts.page]!.rollingTime).toBe(
+        facts.defaultWindow,
+      );
       expect(englishPage(facts.page)).toContain(
         `The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **${facts.defaultWindow}**`,
       );
@@ -375,11 +380,13 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
         source(
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
         ),
-      ).toContain(`          MonitorType.${facts.monitorType === MonitorType.IoTDevice ? "IoTDevice" : facts.monitorType === MonitorType.StorageArray ? "StorageArray" : "VMware"},\n`);
-      // Created on the create page, a monitor of these types has no interval of its own.
-      expect(MonitorTypeHelper.doesMonitorTypeHaveInterval(facts.monitorType)).toBe(
-        false,
+      ).toContain(
+        `          MonitorType.${facts.monitorType === MonitorType.IoTDevice ? "IoTDevice" : facts.monitorType === MonitorType.StorageArray ? "StorageArray" : "VMware"},\n`,
       );
+      // Created on the create page, a monitor of these types has no interval of its own.
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveInterval(facts.monitorType),
+      ).toBe(false);
       expect(englishPage(facts.page)).toContain(
         "Every minute it runs its query over that",
       );
@@ -494,9 +501,9 @@ describe("the criteria of these monitors", () => {
           },
         ),
       ).toEqual([CheckOn.MetricValue]);
-      expect(CriteriaFilterUtil.getDefaultCheckOnByMonitorType(monitorType)).toBe(
-        CheckOn.MetricValue,
-      );
+      expect(
+        CriteriaFilterUtil.getDefaultCheckOnByMonitorType(monitorType),
+      ).toBe(CheckOn.MetricValue);
     }
 
     /*
@@ -554,9 +561,11 @@ describe("the criteria of these monitors", () => {
         ]);
       }
 
-      expect(rows.map((row: Array<string>) => {
-        return row[0];
-      })).toEqual(
+      expect(
+        rows.map((row: Array<string>) => {
+          return row[0];
+        }),
+      ).toEqual(
         proxmoxRows.map((row: Array<string>) => {
           return row[0];
         }),
@@ -755,18 +764,20 @@ describe("the IoT Device templates", () => {
     );
   });
 
-  it.each(templates.map((template: IoTAlertTemplate) => {
-    return [template.name, template] as [string, IoTAlertTemplate];
-  }))(
+  it.each(
+    templates.map((template: IoTAlertTemplate) => {
+      return [template.name, template] as [string, IoTAlertTemplate];
+    }),
+  )(
     "%s: the metric, aggregation, group-by and window the template builds",
     (_name: string, template: IoTAlertTemplate) => {
       const criteria: BuiltCriteria = built(template);
       const row: TemplateRow = rows.find((candidate: TemplateRow) => {
         return candidate.name === template.name;
       }) as TemplateRow;
-      const aggregation: string = (row.watches.match(
-        /\b(Avg|Max|Min|Sum)\b/,
-      ) as RegExpMatchArray)[1]!;
+      const aggregation: string = (
+        row.watches.match(/\b(Avg|Max|Min|Sum)\b/) as RegExpMatchArray
+      )[1]!;
 
       expect(row.watches.match(INLINE_CODE)?.[1]).toBe(criteria.metricName);
       expect(AGGREGATION_WORDS[aggregation]).toBe(criteria.aggregation);
@@ -778,9 +789,11 @@ describe("the IoT Device templates", () => {
     },
   );
 
-  it.each(templates.map((template: IoTAlertTemplate) => {
-    return [template.name, template] as [string, IoTAlertTemplate];
-  }))(
+  it.each(
+    templates.map((template: IoTAlertTemplate) => {
+      return [template.name, template] as [string, IoTAlertTemplate];
+    }),
+  )(
     "%s: fires and recovers at the thresholds the template sets",
     (_name: string, template: IoTAlertTemplate) => {
       const criteria: BuiltCriteria = built(template);
@@ -838,9 +851,9 @@ describe("the IoT Device templates", () => {
         continue;
       }
 
-      expect(built(template).fire.metricMonitorOptions?.metricAggregationType).toBe(
-        EvaluateOverTimeType.AllValues,
-      );
+      expect(
+        built(template).fire.metricMonitorOptions?.metricAggregationType,
+      ).toBe(EvaluateOverTimeType.AllValues);
     }
 
     const page: string = englishPage(IOT);
@@ -868,7 +881,10 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
       }),
     ).toEqual(
       getAllIoTMetrics().map((metric: IoTMetricDefinition): Array<string> => {
-        return [`\`${metric.metricName}\``, metric.unit ? `\`${metric.unit}\`` : "—"];
+        return [
+          `\`${metric.metricName}\``,
+          metric.unit ? `\`${metric.unit}\`` : "—",
+        ];
       }),
     );
   });
@@ -890,7 +906,9 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
     expect(englishPage(IOT)).toContain(
       "A custom metric is not grouped: it judges the fleet as a whole.",
     );
-    expect(englishPage(IOT)).toContain("Picking a metric sets it to **Device**.");
+    expect(englishPage(IOT)).toContain(
+      "Picking a metric sets it to **Device**.",
+    );
   });
 
   it("names the filters as the form draws them, and the worker applies all three", () => {
@@ -936,9 +954,9 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
     expect(devices).toContain(
       'UPDATE "IoTDevice" SET "isUp" = false, "updatedAt" = now() WHERE "iotFleetId" = $1 AND "lastSeenAt" < $2',
     );
-    expect(
-      source(`${DASHBOARD_SRC}/Pages/IoT/View/SideMenu.tsx`),
-    ).toContain('title: "Device Registry"');
+    expect(source(`${DASHBOARD_SRC}/Pages/IoT/View/SideMenu.tsx`)).toContain(
+      'title: "Device Registry"',
+    );
     expect(englishPage(IOT)).toContain(
       "A registered device is also kept in the fleet's inventory as offline, where an unregistered one is removed after 15 minutes of silence.",
     );
@@ -971,9 +989,11 @@ describe("the VMware templates", () => {
     );
   });
 
-  it.each(templates.map((template: VMwareAlertTemplate) => {
-    return [template.name, template] as [string, VMwareAlertTemplate];
-  }))(
+  it.each(
+    templates.map((template: VMwareAlertTemplate) => {
+      return [template.name, template] as [string, VMwareAlertTemplate];
+    }),
+  )(
     "%s: fires above its threshold, recovers where the template recovers, over the window the row gives",
     (_name: string, template: VMwareAlertTemplate) => {
       const criteria: BuiltCriteria = built(template);
@@ -999,9 +1019,9 @@ describe("the VMware templates", () => {
         );
       }
 
-      const aggregation: string = (row.watches.match(
-        /\b(Avg|Max|Min|Sum)\b/,
-      ) as RegExpMatchArray)[1]!;
+      const aggregation: string = (
+        row.watches.match(/\b(Avg|Max|Min|Sum)\b/) as RegExpMatchArray
+      )[1]!;
 
       expect(AGGREGATION_WORDS[aggregation]).toBe(criteria.aggregation);
 
@@ -1023,7 +1043,9 @@ describe("the VMware templates", () => {
 });
 
 describe("the VMware page against the form and the agents", () => {
-  const form: string = source(`${FORMS}/VMwareMonitor/VMwareMonitorStepForm.tsx`);
+  const form: string = source(
+    `${FORMS}/VMwareMonitor/VMwareMonitorStepForm.tsx`,
+  );
 
   it("names each filter as the form draws it, with the attribute it matches", () => {
     const rows: Array<Array<string>> = tableBody(
@@ -1047,7 +1069,10 @@ describe("the VMware page against the form and the agents", () => {
         },
       );
 
-      expect({ title, attribute: row?.[2]?.includes(`\`${attribute}\``) }).toEqual({
+      expect({
+        title,
+        attribute: row?.[2]?.includes(`\`${attribute}\``),
+      }).toEqual({
         title,
         attribute: true,
       });
@@ -1132,7 +1157,9 @@ describe("the Storage Array page against the form and the agent", () => {
   });
 
   it("states how often the agent reads each endpoint", () => {
-    const fa: string = source("agents/StorageArrayAgent/otel-collector-config.yaml");
+    const fa: string = source(
+      "agents/StorageArrayAgent/otel-collector-config.yaml",
+    );
     const fb: string = source(
       "agents/StorageArrayAgent/otel-collector-config.flashblade.yaml",
     );
@@ -1140,9 +1167,13 @@ describe("the Storage Array page against the form and the agent", () => {
       config: string,
       metricsPath: string,
     ): string => {
-      const at: number = config.indexOf(`metrics_path: /metrics/${metricsPath}`);
+      const at: number = config.indexOf(
+        `metrics_path: /metrics/${metricsPath}`,
+      );
 
-      return (config.slice(at).match(/scrape_interval: (\S+)/) as RegExpMatchArray)[1]!;
+      return (
+        config.slice(at).match(/scrape_interval: (\S+)/) as RegExpMatchArray
+      )[1]!;
     };
 
     expect(intervalOf(fa, "array")).toBe("60s");
@@ -1165,7 +1196,9 @@ describe("the Storage Array page against the form and the agent", () => {
     expect(rows.length).toBe(4);
 
     for (const row of rows) {
-      const metricName: string = (row[0]!.match(INLINE_CODE) as RegExpMatchArray)[1]!;
+      const metricName: string = (
+        row[0]!.match(INLINE_CODE) as RegExpMatchArray
+      )[1]!;
 
       expect({
         metricName,

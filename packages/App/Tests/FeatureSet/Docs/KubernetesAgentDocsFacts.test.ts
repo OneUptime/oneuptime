@@ -152,7 +152,11 @@ const DEFAULTS: Array<{ option: string; page: string; chart: unknown }> = [
   { option: "ebpf.features.spanMetrics", page: "on", chart: true },
   { option: "ebpf.features.serviceGraph", page: "on", chart: true },
   { option: "ebpf.features.networkMetrics", page: "on", chart: true },
-  { option: "ebpf.features.networkInterZoneMetrics", page: "off", chart: false },
+  {
+    option: "ebpf.features.networkInterZoneMetrics",
+    page: "off",
+    chart: false,
+  },
   { option: "ebpf.features.tcpStats", page: "on", chart: true },
   { option: "ebpf.contextPropagation", page: "off", chart: false },
   {
@@ -222,13 +226,15 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
   );
 
   it("kube-state-metrics: off, bundled by default, or an endpoint of your own", () => {
-    expect(rowsFor("kubeStateMetrics.enabled").map((row: Array<string>) => {
-      return row[1];
-    })).toEqual(["off", "`false`"]);
+    expect(
+      rowsFor("kubeStateMetrics.enabled").map((row: Array<string>) => {
+        return row[1];
+      }),
+    ).toEqual(["off", "`false`"]);
     expect(valueAt("kubeStateMetrics.enabled")).toBe(false);
     expect(valueAt("kubeStateMetrics.mode")).toBe("bundled");
     expect(english).toContain(
-        "`kubeStateMetrics.mode: bundled` (the default) runs a small kube-state-metrics for you; `external` reads one you already run, at `kubeStateMetrics.endpoint`.",
+      "`kubeStateMetrics.mode: bundled` (the default) runs a small kube-state-metrics for you; `external` reads one you already run, at `kubeStateMetrics.endpoint`.",
     );
   });
 
@@ -453,7 +459,9 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     expect(commands.length).toBeGreaterThan(8);
 
     for (const command of commands) {
-      const release: string = (command.match(HELM_RELEASE_COMMAND) as RegExpMatchArray)[2]!;
+      const release: string = (
+        command.match(HELM_RELEASE_COMMAND) as RegExpMatchArray
+      )[2]!;
 
       expect(["oneuptime-agent", "oneuptime-agent-ns-a"]).toContain(release);
     }
@@ -464,7 +472,10 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         block.includes("helm upgrade oneuptime-agent ") ||
         block.includes("helm uninstall")
       ) {
-        expect({ block, namespace: block.includes("oneuptime-kubernetes-agent") }).toEqual({
+        expect({
+          block,
+          namespace: block.includes("oneuptime-kubernetes-agent"),
+        }).toEqual({
           block,
           namespace: true,
         });
@@ -510,7 +521,9 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
     });
 
     it("lists what is on by default as the chart's values set it", () => {
-      const rows: Array<Array<string>> = tableAfter("## What the chart installs");
+      const rows: Array<Array<string>> = tableAfter(
+        "## What the chart installs",
+      );
       const onByDefault: Record<string, string> = {};
 
       for (const row of rows) {

@@ -356,7 +356,7 @@ const OPTION_DETAIL: RegExp = /\s*[(（].*$/;
  */
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
-const DIGIT_GROUP: RegExp = /(\d)[\s  .](\d{3})(?!\d)/g;
+const DIGIT_GROUP: RegExp = /(\d)[\s\u00a0\u202f.](\d{3})(?!\d)/g;
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -743,9 +743,9 @@ describe("the lists this test keeps", () => {
     for (const link of LINKS_INTO_THESE_PAGES) {
       expect({
         link,
-        linked: englishPage(link.from).split(
-          `](/docs/${link.to}#${link.anchor})`,
-        ).length - 1,
+        linked:
+          englishPage(link.from).split(`](/docs/${link.to}#${link.anchor})`)
+            .length - 1,
         heading: anchorInLanguage("en", link.to, link.anchor),
       }).toEqual({ link, linked: link.count, heading: link.anchor });
     }
@@ -850,7 +850,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       tables(english).forEach((table: Array<Array<string>>, index: number) => {
         table.forEach((row: Array<string>, rowIndex: number) => {
           if (rowIndex > 0 && ONLY_CODE.test(row[0] as string)) {
-            expect({ table: index, row: rowIndex, cell: translated[index]?.[rowIndex]?.[0] }).toEqual({
+            expect({
+              table: index,
+              row: rowIndex,
+              cell: translated[index]?.[rowIndex]?.[0],
+            }).toEqual({
               table: index,
               row: rowIndex,
               cell: row[0],
@@ -994,8 +998,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
 
     it("lists every template under the name the picker shows, with its numbers, severity and category as drawn", () => {
-      const templates: { heading: string; names: () => Array<string> } | undefined =
-        TEMPLATE_TABLES[entry.page];
+      const templates:
+        | { heading: string; names: () => Array<string> }
+        | undefined = TEMPLATE_TABLES[entry.page];
 
       if (!templates) {
         return;
@@ -1074,9 +1079,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
     }
 
-    expect(
-      getAllStorageArrayAlertTemplates().length,
-    ).toBeGreaterThan(0);
+    expect(getAllStorageArrayAlertTemplates().length).toBeGreaterThan(0);
   });
 
   describe("links into these pages from other pages", () => {
@@ -1095,9 +1098,8 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
         expect(anchor).not.toBeNull();
         expect(
-          readPage(language, link.from).split(
-            `](/docs/${link.to}#${anchor})`,
-          ).length - 1,
+          readPage(language, link.from).split(`](/docs/${link.to}#${anchor})`)
+            .length - 1,
         ).toBe(link.count);
       },
     );
@@ -1157,7 +1159,15 @@ describe("the helpers, on these pages' shapes", () => {
       "```",
     ].join("\n");
 
-    expect(lineShape(englishPage)).toEqual(["#", "", "|", "|", "```", "", "```"]);
+    expect(lineShape(englishPage)).toEqual([
+      "#",
+      "",
+      "|",
+      "|",
+      "```",
+      "",
+      "```",
+    ]);
     expect(lineShape(shifted)).not.toEqual(lineShape(englishPage));
   });
 
