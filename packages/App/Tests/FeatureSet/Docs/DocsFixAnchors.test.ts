@@ -53,16 +53,26 @@ const run: (args: Array<string>) => SpawnSyncReturns<string> = (
   );
 };
 
-// The counts the script reports, by name.
+/*
+ * The counts the script reports, by name: "  repointed       : 2 across 1
+ * files" is { repointed: 2 }.
+ */
 const countsOf: (output: string) => Record<string, number> = (
   output: string,
 ): Record<string, number> => {
   const counts: Record<string, number> = {};
 
-  for (const [, name, count] of output.matchAll(
-    /^\s+(\w[\w ]*?)\s+:\s+(\d+)/gm,
-  )) {
-    counts[name!.trim()] = Number(count);
+  for (const line of output.split("\n")) {
+    const colon: number = line.indexOf(" : ");
+
+    if (colon === -1) {
+      continue;
+    }
+
+    counts[line.slice(0, colon).trim()] = parseInt(
+      line.slice(colon + 3).trim(),
+      10,
+    );
   }
 
   return counts;
