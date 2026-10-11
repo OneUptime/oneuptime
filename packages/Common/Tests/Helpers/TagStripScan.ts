@@ -17,8 +17,8 @@ import ts from "typescript";
  *     ee/ checked out - so an ee/ test cannot copy a tag strip past core's
  *     guard.
  *
- * So both read with one detector, it lives here, under Common/Tests, where
- * ee's suite reaches it through the "Common/..." specifier. It imports
+ * So that both read with one detector, it lives here, under Common/Tests,
+ * where ee's suite reaches it through the "Common/..." specifier. It imports
  * nothing but node's fs and path and the TypeScript parser: nothing of App's,
  * and core never imports ee/.
  */
