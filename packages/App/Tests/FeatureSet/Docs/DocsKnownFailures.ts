@@ -275,7 +275,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "self-hosted/private-network-access": {
-    translated: EVERY_TRANSLATION_BUT_FA,
+    translated: ["ja", "ko", "zh-CN", "zh-TW", "hi"],
   },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
