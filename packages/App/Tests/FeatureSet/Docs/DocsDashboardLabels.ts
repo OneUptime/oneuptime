@@ -1,3 +1,7 @@
+import {
+  createTranslator,
+  translateNamedAction,
+} from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
 
@@ -214,4 +218,41 @@ export const dashboardLabel: DashboardLabelFunction = (
   }
 
   return drawnDashboardLabel(language, english);
+};
+
+const CREATE_PREFIX: string = "Create ";
+
+/*
+ * A table's create button, as the Dashboard draws it in this language: a
+ * ModelTable names its button "Create <its singularName>" and draws it with
+ * translateCreateAction - the whole phrase when the locale words it, else
+ * the locale's "Create {{itemName}}" with the thing's name in it.
+ *
+ * The Dashboard's translator reads a value that is still the English as no
+ * wording at all. drawnDashboardLabel takes such a value as the label, so
+ * where a locale still holds "Create Twilio Config" as the English it names
+ * the English phrase, while the Italian screen reads "Crea: Configurazione
+ * Twilio". A page that names a table's create button reads it here.
+ */
+export const drawnCreateButton: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  if (!english.startsWith(CREATE_PREFIX)) {
+    throw new Error(`Not a create button: ${english}`);
+  }
+
+  const locale: Record<string, unknown> = dashboardLocale(language);
+
+  return translateNamedAction(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
+
+      return typeof value === "string" ? value : undefined;
+    }, language),
+    {
+      template: "Create {{itemName}}",
+      itemName: english.slice(CREATE_PREFIX.length),
+    },
+  );
 };

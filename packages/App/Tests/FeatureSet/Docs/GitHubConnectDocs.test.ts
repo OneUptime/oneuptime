@@ -174,20 +174,19 @@ describe("the English guide's troubleshooting", () => {
     },
   );
 
-  test("quotes the whole sentence for a link that cannot be used", () => {
+  test("quotes the whole sentence for a link that cannot be used, in the table's first column", () => {
     expect(CONNECT_LINK_INVALID).toBe(
       "This connection link is invalid, has expired, or has already been used. Please start again.",
     );
-    expect(readGuide("en")).toContain(`**"${CONNECT_LINK_INVALID}":**`);
+    expect(readGuide("en")).toContain(`| **"${CONNECT_LINK_INVALID}"** |`);
   });
 
   test("quotes the refusal of someone who may not connect, as the server words it", () => {
     const message: string = serverMessage("GITHUB_CONNECT_PERMISSION_MESSAGE");
-    const quoted: string = message.replace(/\.$/, "");
 
-    expect(quoted).toBe(
-      "You do not have permission to add code repositories to this project",
+    expect(message).toBe(
+      "You do not have permission to add code repositories to this project.",
     );
-    expect(readGuide("en")).toContain(`**"${quoted}":**`);
+    expect(readGuide("en")).toContain(`| **"${message}"** |`);
   });
 });

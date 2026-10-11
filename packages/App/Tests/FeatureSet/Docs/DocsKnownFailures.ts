@@ -148,15 +148,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
   },
-  "installation/docker-compose": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "installation/local-development": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "installation/sizing": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "installation/upgrading": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -321,12 +312,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION,
   },
-  "self-hosted/github-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/microsoft-teams-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "self-hosted/private-network-access": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -337,12 +322,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "self-hosted/sendgrid-inbound-email": {
     codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/slack-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/twilio-integration": {
     sameShape: EVERY_TRANSLATION,
   },
   "slo/burn-rate-alerts": {

@@ -232,16 +232,18 @@ The [private network access setting](/docs/self-hosted/private-network-access) c
 
 ### Connecting did not finish
 
-When GitHub sends you back and the installation was not connected, **Code Repositories** says **GitHub was not connected**, with one sentence saying why, in your language. It never shows what GitHub itself answered: that is in the OneUptime server log, with the reason. The sentences are:
+When GitHub sends you back and the installation was not connected, **Code Repositories** says **GitHub was not connected**, with one sentence saying why, in your language. The rest of the page loads as usual, so you can connect again right there. It never shows what GitHub itself answered: that is in the OneUptime server log, with the reason.
 
-- **"This connection link is invalid, has expired, or has already been used. Please start again.":** Start again from **Code Repositories** and finish on GitHub within 15 minutes, in the same browser. Installing the app from its page on GitHub does not connect it to a project: start from **Code Repositories** in OneUptime.
-- **"You do not have permission to add code repositories to this project":** Connecting needs permission to add code repositories (see [Connect repositories](#connect-repositories)). Ask a project admin to grant it. It is asked again when GitHub sends you back, so a permission taken away in the meantime ends the connection here too.
-- **"Connecting GitHub needs the ... plan.":** On OneUptime Cloud, code repositories need the plan the sentence names. Upgrade the project's plan, then connect again.
-- **"GitHub did not confirm who installed the app, so the installation could not be checked.":** Turn on **Request user authorization (OAuth) during installation** in the GitHub App's settings (see [Create the GitHub App](#create-the-github-app)), then connect again.
-- **"OneUptime could not confirm that your GitHub account can manage this installation.":** The GitHub account that finished the installation does not administer it. Install the app with an account that owns the organization or user it is installed on, or ask an owner to.
-- **"GitHub did not send an installation back.":** When an organization member requests the app instead of installing it, an owner of the organization has to approve the request first. Connect again once they have.
-- **"The GitHub App is not set up on this OneUptime server.":** Set both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` (see [Configure OneUptime](#configure-oneuptime)) and restart OneUptime.
-- **"OneUptime could not finish connecting. Please try again.":** GitHub answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the GitHub App's settings.
+| The page says | What to do |
+| --- | --- |
+| **"This connection link is invalid, has expired, or has already been used. Please start again."** | The link works once, for 15 minutes, in the browser that started it. Start again from **Code Repositories** and finish on GitHub within 15 minutes, in the same browser. Installing the app from its page on GitHub does not connect it to a project. |
+| **"You do not have permission to add code repositories to this project."** | Connecting needs permission to add code repositories (see [Connect repositories](#connect-repositories)). Ask a project admin to grant it. It is asked again when GitHub sends you back, so a permission taken away in the meantime ends the connection here too. |
+| **"Connecting GitHub needs the ... plan."** | On OneUptime Cloud, code repositories need the plan the sentence names. Upgrade the project's plan, then connect again. |
+| **"GitHub did not confirm who installed the app, so the installation could not be checked."** | Turn on **Request user authorization (OAuth) during installation** in the GitHub App's settings (see [Create the GitHub App](#create-the-github-app)), then connect again. |
+| **"OneUptime could not confirm that your GitHub account can manage this installation."** | The GitHub account that finished the installation does not administer it. Install the app with an account that owns the organization or user it is installed on, or ask an owner to. |
+| **"GitHub did not send an installation back."** | When an organization member requests the app instead of installing it, an owner of the organization has to approve the request first. Connect again once they have. |
+| **"The GitHub App is not set up on this OneUptime server."** | Set both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` (see [Configure OneUptime](#configure-oneuptime)) and restart OneUptime. |
+| **"OneUptime could not finish connecting. Please try again."** | GitHub answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the GitHub App's settings. |
 
 ### Other problems
 
@@ -254,7 +256,7 @@ Check that the app's **Callback URL** is `https://your-oneuptime-domain.com/api/
 :::
 
 :::details GitHub's Recent Deliveries show "Invalid webhook signature"
-The webhook secret in the GitHub App and `GITHUB_APP_WEBHOOK_SECRET` differ, or a proxy changed the request body. Set the same secret in both, and make sure the gateway forwards the body unchanged.
+The webhook secret in the GitHub App and `GITHUB_APP_WEBHOOK_SECRET` differ, `GITHUB_APP_WEBHOOK_SECRET` is not set, or a proxy changed the request body. Set the same secret in both, restart OneUptime, and make sure the gateway forwards the body unchanged.
 :::
 
 :::details Webhook events are not received
