@@ -3517,7 +3517,7 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
       .spyOn(NetworkSiteService, "findBy")
       .mockResolvedValueOnce([deletedDistrict()]);
 
-    // Refused here, in words, rather than by the foreign key at the DELETE.
+    // Refused here with the message a live child gets, not by the foreign key at the DELETE.
     await expect(
       (NetworkSiteService as any).onBeforeDelete({
         query: { _id: DISTRICT_ID.toString() },

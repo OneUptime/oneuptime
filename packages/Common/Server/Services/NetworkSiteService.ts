@@ -2089,8 +2089,10 @@ export class Service extends ProjectReferencesService<Model> {
      *
      * A child deleted before counts too: its row still names its parent, and
      * the foreign key (parentSiteId, NO ACTION) would refuse the DELETE
-     * anyway. Refusing here says why, as the retention purge's own leaf check
-     * (hardDeleteClosedLeafBatch) counts the same rows.
+     * anyway, with the database's generic "records still reference it"
+     * message. Refusing here gives the answer a live child gets, and counts
+     * the same rows as the retention purge's leaf check
+     * (hardDeleteClosedLeafBatch).
      */
     for (
       let parentIdOffset: number = 0;

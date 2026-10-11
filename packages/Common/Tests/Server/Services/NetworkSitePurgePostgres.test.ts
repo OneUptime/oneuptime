@@ -692,7 +692,8 @@ describePostgres(
       expect(siteTypes.has(parentOfRecent)).toBe(true);
     });
 
-    test("refuses in words, not at the foreign key, a delete of a site whose only child was deleted before", async () => {
+    // Without the hook's count, the foreign key refuses these with the generic "records still reference it".
+    test("refuses a delete of a site whose only child was deleted before, with the message a live child gets", async () => {
       const projectId: string = await addProject();
       const parent: string = await addSite({ projectId });
       const deletedChild: string = await addSite({
@@ -725,7 +726,7 @@ describePostgres(
       expect(locksHeld.size).toBe(0);
     });
 
-    test("refuses in words, not at the foreign key, a delete of a site type only deleted rows still name", async () => {
+    test("refuses a delete of a site type only deleted rows still name, with the message a live row gets", async () => {
       const projectId: string = await addProject();
       const usedByDeletedSite: string = await addSiteType({ projectId });
       await addSite({

@@ -1273,8 +1273,10 @@ export class Service extends ProjectReferencesService<Model> {
       /*
        * Child types and sites deleted before count too: their rows still
        * name this type, and the foreign keys (NO ACTION) would refuse the
-       * DELETE anyway. Refusing here says why, as the retention purge's own
-       * in-use check (hardDeleteClosedLeafBatch) counts the same rows.
+       * DELETE anyway, with the database's generic "records still reference
+       * it" message. Refusing here gives the answer a live row gets, and
+       * counts the same rows as the retention purge's in-use check
+       * (hardDeleteClosedLeafBatch).
        */
       while (true) {
         const childTypes: Array<Model> = await this.findByWithDeleted({
