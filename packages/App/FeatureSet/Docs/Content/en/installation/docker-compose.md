@@ -1,4 +1,4 @@
-# Deploy OneUptime with Docker Compose
+# Docker Compose
 
 Run a complete, free OneUptime instance on one Linux server with Docker Compose. This page takes you from a fresh server to a running instance, then covers HTTPS, production hardening, backups, updates and removal.
 
@@ -160,7 +160,7 @@ The first start takes several minutes: Docker downloads the images and OneUptime
 
 Open `http://` followed by your `HOST` (for example `http://localhost`) and sign up. The first account on a new instance becomes its master admin, who can open the Admin Dashboard at `/admin`.
 
-Anyone who can reach the page can sign up after you. To stop that, open the Admin Dashboard, go to **Settings → Authentication** and turn off **Let people sign up**. People you invite to a project can still create their account.
+Anyone who can reach the page can sign up after you. To stop that, open the Admin Dashboard, go to **Settings > Authentication** and turn off **Let people sign up**. People you invite to a project can still create their account.
 :::
 
 ## Set up HTTPS
@@ -316,10 +316,10 @@ Docker Compose runs one copy of every service on one server, which suits small t
 | --- | --- |
 | **Secrets** | No value in `config.env` is still a `please-change-this-to-random-value` placeholder. See [Generate random secrets](#generate-random-secrets). |
 | **HTTPS** | People reach OneUptime over HTTPS and `HTTP_PROTOCOL=https` is set. See [Set up HTTPS](#set-up-https). |
-| **Sign-ups** | Once your team has accounts, turn off **Let people sign up** under **Settings → Authentication** in the Admin Dashboard. |
+| **Sign-ups** | Once your team has accounts, turn off **Let people sign up** under **Settings > Authentication** in the Admin Dashboard. |
 | **Firewall** | Only ports 80 and 443 (and SSH) are open to the internet. PostgreSQL is published on port 5400 for backups: close it with your cloud provider's firewall, because `ufw` rules do not apply to ports Docker publishes. |
 | **Backups** | PostgreSQL is backed up every day and the copies leave the server. See [Back up and restore](#back-up-and-restore). |
-| **Email** | SMTP is set up under **Settings → Emails** in the Admin Dashboard, so OneUptime can send invitations and notifications. |
+| **Email** | A mail server is set up under **Settings > Notifications > Emails** in the Admin Dashboard, so OneUptime can send invitations and notifications. See [SMTP](/docs/emails/smtp). |
 | **Disk** | Free space is watched. ClickHouse grows with the telemetry you keep (see [Sizing & Capacity Planning](/docs/installation/sizing)); each container's log is capped at 1000 MB. |
 | **Updates** | OneUptime is updated at least once a week. Releases ship often. See [Update OneUptime](#update-oneuptime). |
 | **High availability** | If you need it, move to the [Helm chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime) on Kubernetes. |
@@ -348,7 +348,7 @@ A backup on the same disk as the database does not survive the loss of that disk
 
 ClickHouse keeps your telemetry in the `oneuptime_clickhouse` Docker volume, and no script backs it up. If you need to keep that telemetry, back up the volume with a ClickHouse tool such as [clickhouse-backup](https://github.com/Altinity/clickhouse-backup), or copy it while OneUptime is stopped.
 
-To restore PostgreSQL, set the `DATABASE_RESTORE_*` values in `config.env` (including `DATABASE_RESTORE_PASSWORD` and the `DATABASE_RESTORE_FILENAME` to restore) and run `bash restore.sh`.
+To restore PostgreSQL, set the `DATABASE_RESTORE_*` values in `config.env`: `DATABASE_RESTORE_PASSWORD` to the value of `DATABASE_PASSWORD`, as for backups, and `DATABASE_RESTORE_FILENAME` to the backup to restore, such as `db-31.backup`. Then run `bash restore.sh`. The database it restores into has to exist already; on a running installation it does.
 
 > [!CAUTION]
 > `restore.sh` drops every object in the backup from the target database before recreating it. It asks before it starts; check the database name it shows.
@@ -432,7 +432,7 @@ When an order fails, the app logs an error that starts with `CoreSSL:EnsurePrima
 :::
 
 :::details The bundled probe shows Disconnected after you moved the ingress port
-The Admin Dashboard lists the probe under **Settings → Global Probes**. It reaches OneUptime at `GLOBAL_PROBE_1_ONEUPTIME_URL`, which is `http://localhost` (port 80) by default. Set it to the ingress's new port, for example `http://localhost:8080`, set `ONEUPTIME_RUNNER_ONEUPTIME_URL` the same way, and restart OneUptime.
+The Admin Dashboard lists the probe under **Settings > Monitoring > Global Probes**. It reaches OneUptime at `GLOBAL_PROBE_1_ONEUPTIME_URL`, which is `http://localhost` (port 80) by default. Set it to the ingress's new port, for example `http://localhost:8080`, set `ONEUPTIME_RUNNER_ONEUPTIME_URL` the same way, and restart OneUptime.
 :::
 
 ## Next steps

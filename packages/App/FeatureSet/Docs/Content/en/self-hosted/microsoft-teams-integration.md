@@ -34,6 +34,8 @@ sequenceDiagram
 
 An Incoming Webhook or a Teams Workflow URL does not replace this bot's messaging endpoint.
 
+Video calls (a Teams meeting for an incident) do not use this bot: they need an app registration of their own, described in [Video Calls](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+
 ## Before you begin
 
 - An Azure subscription, for the Azure Bot resource.
@@ -268,11 +270,11 @@ The confusing part is that alert cards keep arriving in Teams, which makes the i
 | OneUptime posts an alert card to a channel | OneUptime calls Microsoft, authenticating with your client secret | **No** |
 | You tap a button on that card | Azure Bot Service POSTs to `/api/microsoft-bot/messages` | **Yes** |
 | You type `help` to the bot | Azure Bot Service POSTs to `/api/microsoft-bot/messages` | **Yes** |
-| A chat registers under **Chats** | Azure Bot Service POSTs a bot activity to `/api/microsoft-bot/messages` | **Yes** |
+| A chat registers under **Microsoft Teams Chats** | Azure Bot Service POSTs a bot activity to `/api/microsoft-bot/messages` | **Yes** |
 
 So a working alert verifies that particular outbound send; it does not verify every Graph permission or the inbound bot endpoint. Interactive features require successful inbound bot activity processing.
 
-OneUptime records chats from bot activities, such as the app being installed, the bot being added to the conversation, or a message sent to the bot in that chat. All arrive over the same inbound endpoint. An empty **Chats** list after adding the app and messaging it means no chat has been recorded for that project; check incoming requests, authentication errors, and tenant/project mapping. Clicking **Refresh Chats** re-reads OneUptime's stored chats, and re-reads the name of each stored group chat from Microsoft.
+OneUptime records chats from bot activities, such as the app being installed, the bot being added to the conversation, or a message sent to the bot in that chat. All arrive over the same inbound endpoint. An empty **Microsoft Teams Chats** list after adding the app and messaging it means no chat has been recorded for that project; check incoming requests, authentication errors, and tenant/project mapping. Clicking **Refresh Chats** re-reads OneUptime's stored chats, and re-reads the name of each stored group chat from Microsoft.
 
 **Diagnose it in this order:**
 
@@ -344,7 +346,7 @@ Installation is per team. Adding OneUptime to one team does nothing for any othe
 
 ### "Test Rule" passes but real notifications never arrive
 
-Check which destinations the rule actually has enabled. A rule only exercises what it is configured for: with **Create Microsoft Teams Channel** on, the test creates a channel and posts into that channel, which proves the bot can post _to the team that channel was created in_ — and nothing about any other team. Notification Logs (**Settings > Notification Logs**) records every test send, including the raw error from Microsoft when one fails.
+Check which destinations the rule actually has enabled. A rule only exercises what it is configured for: with **Create Microsoft Teams Channel** on, the test creates a channel and posts into that channel, which proves the bot can post _to the team that channel was created in_ — and nothing about any other team. **Project Settings > Notifications > Notification Logs** records every test send, including the raw error from Microsoft when one fails.
 
 ### "Sorry, I couldn't find your project configuration"
 

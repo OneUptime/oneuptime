@@ -55,12 +55,18 @@ const readPage: (language: string) => string = (language: string): string => {
   return fs.readFileSync(path.join(CONTENT_DIR, language, PAGE), "utf8");
 };
 
-// Everything from the heading to the end of the page.
+// Everything from the heading to the next section (Next steps).
 const sectionOf: (language: string) => string = (language: string): string => {
   const page: string = readPage(language);
   const start: number = page.indexOf(HEADINGS[language]!);
 
-  return start === -1 ? "" : page.slice(start);
+  if (start === -1) {
+    return "";
+  }
+
+  const end: number = page.indexOf("\n## ", start + 1);
+
+  return end === -1 ? page.slice(start) : page.slice(start, end);
 };
 
 describe("the self-hosted Twilio guide explains how phone numbers are verified", () => {
@@ -69,7 +75,7 @@ describe("the self-hosted Twilio guide explains how phone numbers are verified",
   });
 
   it.each(LANGUAGES)(
-    "%s: has the section once, as the guide's last, after testing delivery",
+    "%s: has the section once, as the guide's last step, after testing delivery and before Next steps",
     (language: string) => {
       const page: string = readPage(language);
       const heading: string = HEADINGS[language]!;
@@ -82,8 +88,10 @@ describe("the self-hosted Twilio guide explains how phone numbers are verified",
           return line.startsWith("## ");
         });
 
-      expect(headings[headings.length - 1]).toBe(heading);
-      expect(headings).toHaveLength(5);
+      // Five numbered sections, then the page's Next steps cards.
+      expect(headings).toHaveLength(6);
+      expect(headings[headings.length - 2]).toBe(heading);
+      expect(page.slice(page.indexOf(heading))).toContain(":::cards");
     },
   );
 
