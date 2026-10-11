@@ -21,8 +21,8 @@ flowchart LR
         collector["Cluster-Collector"]
         ai["Kubernetes-KI-Agent"]
     end
-    nodes -->|"Logs, Metriken,<br/>Traces"| oneuptime["OneUptime"]
-    collector -->|"Metriken, Ereignisse"| oneuptime
+    nodes -->|"Logs,<br/>Metriken,<br/>Traces"| oneuptime["OneUptime"]
+    collector -->|"Metriken,<br/>Ereignisse"| oneuptime
     ai <-->|"nur lesendes<br/>kubectl"| oneuptime
 ```
 

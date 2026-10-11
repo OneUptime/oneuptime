@@ -22,13 +22,13 @@ flowchart TB
         device["デバイス"] --> gateway["ゲートウェイまたは<br/>OpenTelemetry SDK"]
         device2["デバイス"] --> mqtt["OneUptime MQTT"]
     end
-    gateway -->|"OTLP による IoT メトリクス"| oneuptime["OneUptime"]
+    gateway -->|"OTLP による<br/>IoT メトリクス"| oneuptime["OneUptime"]
     mqtt --> oneuptime
     oneuptime -->|"最初のデータ"| registered["フリートを登録"]
     oneuptime --> monitor["IoT デバイス モニター"]
     monitor -->|"毎分、デバイスごと"| criteria{"条件に一致?"}
-    criteria -->|"はい"| incident["そのデバイスの<br/>インシデントまたはアラート"]
-    criteria -->|"いいえ"| online["モニターはオンライン"]
+    criteria -->|"はい"| incident["そのデバイスの<br/>インシデント<br/>またはアラート"]
+    criteria -->|"いいえ"| online["モニターは<br/>オンライン"]
 ```
 
 ## 始める前に

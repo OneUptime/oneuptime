@@ -25,9 +25,9 @@ flowchart TB
     gateway -->|"métricas IoT via OTLP"| oneuptime["OneUptime"]
     mqtt --> oneuptime
     oneuptime -->|"primeiros dados"| registered["Frota registrada"]
-    oneuptime --> monitor["Monitor de dispositivos IoT"]
-    monitor -->|"a cada minuto, por dispositivo"| criteria{"Critérios atendidos?"}
-    criteria -->|"sim"| incident["Incidente ou alerta<br/>para esse dispositivo"]
+    oneuptime --> monitor["Monitor de<br/>dispositivos IoT"]
+    monitor -->|"a cada minuto,<br/>por dispositivo"| criteria{"Critérios<br/>atendidos?"}
+    criteria -->|"sim"| incident["Incidente ou<br/>alerta para esse<br/>dispositivo"]
     criteria -->|"não"| online["Monitor online"]
 ```
 

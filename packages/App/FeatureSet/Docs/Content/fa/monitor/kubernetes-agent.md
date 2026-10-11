@@ -19,7 +19,7 @@ flowchart LR
         direction TB
         nodes["هر گره Linux:<br/>گردآورنده گره، eBPF"]
         collector["گردآورنده خوشه"]
-        ai["عامل AI در Kubernetes"]
+        ai["عامل AI<br/>در Kubernetes"]
     end
     nodes -->|"لاگ‌ها، متریک‌ها،<br/>ترِیس‌ها"| oneuptime["OneUptime"]
     collector -->|"متریک‌ها، رویدادها"| oneuptime

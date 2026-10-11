@@ -26,8 +26,8 @@ flowchart TB
     mqtt --> oneuptime
     oneuptime -->|"primi dati"| registered["Flotta registrata"]
     oneuptime --> monitor["Monitor dispositivi IoT"]
-    monitor -->|"ogni minuto, per dispositivo"| criteria{"Criteri soddisfatti?"}
-    criteria -->|"sì"| incident["Incidente o avviso<br/>per quel dispositivo"]
+    monitor -->|"ogni minuto,<br/>per dispositivo"| criteria{"Criteri<br/>soddisfatti?"}
+    criteria -->|"sì"| incident["Incidente o<br/>avviso per quel<br/>dispositivo"]
     criteria -->|"no"| online["Monitor online"]
 ```
 

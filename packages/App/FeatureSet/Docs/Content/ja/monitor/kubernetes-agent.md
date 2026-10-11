@@ -17,12 +17,12 @@ OneUptime Kubernetes エージェントは Helm チャートで、クラスタ�
 flowchart LR
     subgraph cluster["あなたのクラスター"]
         direction TB
-        nodes["すべての Linux ノード:<br/>ノードコレクター、eBPF"]
-        collector["クラスターコレクター"]
-        ai["Kubernetes AI エージェント"]
+        nodes["すべての<br/>Linux ノード:<br/>ノードコレクター、<br/>eBPF"]
+        collector["クラスター<br/>コレクター"]
+        ai["Kubernetes<br/>AI エージェント"]
     end
-    nodes -->|"ログ、メトリクス、<br/>トレース"| oneuptime["OneUptime"]
-    collector -->|"メトリクス、イベント"| oneuptime
+    nodes -->|"ログ、<br/>メトリクス、<br/>トレース"| oneuptime["OneUptime"]
+    collector -->|"メトリクス、<br/>イベント"| oneuptime
     ai <-->|"読み取り専用の<br/>kubectl"| oneuptime
 ```
 

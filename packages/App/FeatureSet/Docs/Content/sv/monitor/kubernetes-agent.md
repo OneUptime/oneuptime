@@ -21,8 +21,8 @@ flowchart LR
         collector["Kluster-collector"]
         ai["Kubernetes AI-agent"]
     end
-    nodes -->|"loggar, mätvärden,<br/>spår"| oneuptime["OneUptime"]
-    collector -->|"mätvärden, händelser"| oneuptime
+    nodes -->|"loggar,<br/>mätvärden,<br/>spår"| oneuptime["OneUptime"]
+    collector -->|"mätvärden,<br/>händelser"| oneuptime
     ai <-->|"skrivskyddad<br/>kubectl"| oneuptime
 ```
 

@@ -19,10 +19,10 @@ flowchart LR
         direction TB
         nodes["Cada nó Linux:<br/>coletor de nó, eBPF"]
         collector["Coletor do cluster"]
-        ai["Agente de IA do Kubernetes"]
+        ai["Agente de IA<br/>do Kubernetes"]
     end
     nodes -->|"logs, métricas,<br/>traces"| oneuptime["OneUptime"]
-    collector -->|"métricas, eventos"| oneuptime
+    collector -->|"métricas,<br/>eventos"| oneuptime
     ai <-->|"kubectl somente<br/>leitura"| oneuptime
 ```
 

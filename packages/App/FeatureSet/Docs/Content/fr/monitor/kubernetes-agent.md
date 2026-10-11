@@ -17,12 +17,12 @@ Le chart exécute quelques workloads dans son propre namespace. Chacun envoie ce
 flowchart LR
     subgraph cluster["Votre cluster"]
         direction TB
-        nodes["Chaque nœud Linux :<br/>collecteur de nœud, eBPF"]
+        nodes["Chaque nœud Linux :<br/>collecteur de nœud,<br/>eBPF"]
         collector["Collecteur de cluster"]
         ai["Agent IA Kubernetes"]
     end
-    nodes -->|"journaux, métriques,<br/>traces"| oneuptime["OneUptime"]
-    collector -->|"métriques, événements"| oneuptime
+    nodes -->|"journaux,<br/>métriques,<br/>traces"| oneuptime["OneUptime"]
+    collector -->|"métriques,<br/>événements"| oneuptime
     ai <-->|"kubectl en<br/>lecture seule"| oneuptime
 ```
 

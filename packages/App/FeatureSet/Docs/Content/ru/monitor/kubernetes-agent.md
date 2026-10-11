@@ -22,7 +22,7 @@ flowchart LR
         ai["ИИ-агент Kubernetes"]
     end
     nodes -->|"логи, метрики,<br/>трассировки"| oneuptime["OneUptime"]
-    collector -->|"метрики, события"| oneuptime
+    collector -->|"метрики,<br/>события"| oneuptime
     ai <-->|"kubectl только<br/>для чтения"| oneuptime
 ```
 

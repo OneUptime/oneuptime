@@ -23,9 +23,9 @@ flowchart TB
     end
     agent -->|"OTLP による purefa と<br/>purefb のメトリクス"| oneuptime["OneUptime"]
     oneuptime -->|"最初のデータ"| registered["アレイを登録"]
-    oneuptime --> monitor["ストレージアレイ モニター"]
+    oneuptime --> monitor["ストレージアレイ<br/>モニター"]
     monitor -->|"毎分"| criteria{"条件に一致?"}
-    criteria -->|"はい"| incident["インシデントまたはアラート"]
+    criteria -->|"はい"| incident["インシデント<br/>またはアラート"]
     criteria -->|"いいえ"| online["モニターはオンライン"]
 ```
 

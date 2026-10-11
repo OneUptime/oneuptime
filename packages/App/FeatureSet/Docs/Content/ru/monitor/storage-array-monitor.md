@@ -22,10 +22,10 @@ flowchart TB
         array["FlashArray или FlashBlade"] --> agent["OneUptime Storage<br/>Array Agent"]
     end
     agent -->|"метрики purefa и purefb<br/>по OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"первые данные"| registered["Массив зарегистрирован"]
-    oneuptime --> monitor["Монитор системы хранения"]
-    monitor -->|"каждую минуту"| criteria{"Критерии выполнены?"}
-    criteria -->|"да"| incident["Инцидент или оповещение"]
+    oneuptime -->|"первые данные"| registered["Массив<br/>зарегистрирован"]
+    oneuptime --> monitor["Монитор системы<br/>хранения"]
+    monitor -->|"каждую минуту"| criteria{"Критерии<br/>выполнены?"}
+    criteria -->|"да"| incident["Инцидент или<br/>оповещение"]
     criteria -->|"нет"| online["Монитор в сети"]
 ```
 
