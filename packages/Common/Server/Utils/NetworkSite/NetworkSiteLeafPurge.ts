@@ -385,11 +385,11 @@ export default class NetworkSiteLeafPurge {
       });
     const howMany: string =
       rows.length > ROWS_NAMED_IN_LOG
-        ? `More than ${ROWS_NAMED_IN_LOG}`
+        ? `more than ${ROWS_NAMED_IN_LOG}`
         : `${rows.length}`;
 
     logger.warn(
-      `Retention purge: ${howMany} ${batch.shape.rowsName} due for purge stay, because other rows still name them: a live row, a row deleted too recently, or a cycle of parents that a row outside it names. Ids: ${ids.join(", ")}`,
+      `Retention purge kept the ${batch.shape.rowsName} due for purge that other rows still name: a live row, a row deleted too recently, or a cycle of parents that a row outside it names. Count: ${howMany}. Ids: ${ids.join(", ")}`,
     );
   }
 
