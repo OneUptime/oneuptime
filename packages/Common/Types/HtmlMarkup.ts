@@ -37,6 +37,13 @@
  * "?", text anywhere else, and kept. What it returns then holds no "<" that
  * starts markup.
  *
+ * Markdown read as plain text, for an SMS or an email's subject
+ * (Markdown.convertToPlainText), reads markup more narrowly still, through
+ * removeMarkupFromText (MARKUP IN TEXT, below): a tag ends at its first ">"
+ * and holds no "<", and a "<" that no ">" ends that way is text, and kept.
+ * Taking a tag out can join the text either side of it into another, so
+ * that one goes too, until none is left - in one walk as well.
+ *
  * It reads a text in time that grows with its length alone. A tag's end is
  * looked for from its "<", which reads each tag once; but looking ahead from
  * every "<" that never closes would read the rest of the text again for each
@@ -509,6 +516,326 @@ export const removeHtmlMarkup: RemoveHtmlMarkupFunction = (
   html: string,
 ): string => {
   return replaceHtmlMarkup(html, NOTHING);
+};
+
+/*
+ * MARKUP IN TEXT (removeMarkupFromText).
+ *
+ * Markdown a person wrote is read as plain text for an SMS or an email's
+ * subject (Markdown.convertToPlainText). The HTML typed in it comes out,
+ * and a "<" that is the writer's own text - "a < b", "latency <200ms",
+ * "x <y" - stays as it was written. So markup is read narrowly there:
+ *
+ *   - A tag is a "<", an ASCII letter (or "/" and one, for an end tag) and
+ *     what follows, up to the first ">". A comment, a declaration or a
+ *     processing instruction is "<!" or "<?" and what follows, up to the
+ *     first ">".
+ *   - Neither holds a "<". A "<" that reaches another "<", or the end of
+ *     the text, before a ">" starts nothing and stays, as does a "<" before
+ *     anything else ("<3", "<=", "< b", "<>").
+ *
+ * And it takes markup out completely. Taking a tag out joins the text on
+ * either side of it, and that can make another one - "<scr<script>ipt>",
+ * "<<b>script>", "<b<i>x</i>>" - which is taken out too, and so on until
+ * none is left. What it returns holds no markup it would take out, so
+ * reading it again changes nothing. That is what taking every tag out, and
+ * then again until the text stops changing, gives; but that takes a pass
+ * for each tag nested in another's name, and a text can nest thousands.
+ * This reads the text once, in time that grows with its length alone:
+ *
+ *   - the text up to the first "<" that a ">" follows is kept;
+ *   - from there every "<" is remembered, the innermost last, with what it
+ *     can still start, read from what has been kept after it;
+ *   - at a ">", the innermost "<" starts markup or it does not. Markup is
+ *     taken out, with all that was kept after its "<", and the "<" before
+ *     it reads on as if it had never been there. A "<" that starts nothing
+ *     is text for good, and so is every "<" before it, as each of them
+ *     would need it gone first.
+ */
+export interface MarkupInTextReading {
+  /*
+   * Characters no tag holds: a "<" whose tag reaches one before its ">"
+   * starts nothing. A comment, a declaration or a processing instruction
+   * holds any character but "<" and ">".
+   */
+  tagCannotHold?: ((code: number) => boolean) | undefined;
+  /*
+   * The most characters markup holds after its first one - the first letter
+   * of a tag's name, or the "!" or "?" - up to its ">": a "<" that reaches
+   * further starts nothing. No limit when not given.
+   */
+  maxLength?: number | undefined;
+}
+
+// What a remembered "<" can still start, read from what was kept after it.
+enum MarkupStart {
+  // Nothing has been kept after it yet.
+  Unread,
+  // "</": an end tag, if a letter comes next.
+  Slash,
+  // "<" and a letter, or "</" and a letter.
+  Tag,
+  // "<!" or "<?": a comment, a declaration or a processing instruction.
+  Comment,
+  // Nothing: the "<" is text.
+  Nothing,
+}
+
+const EXCLAMATION_MARK: number = 0x21;
+const QUESTION_MARK: number = 0x3f;
+
+type IsAsciiLetterFunction = (code: number) => boolean;
+
+const isAsciiLetter: IsAsciiLetterFunction = (code: number): boolean => {
+  return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a);
+};
+
+type WithRoomForFunction = (values: Int32Array, size: number) => Int32Array;
+
+// `values`, or a copy of them with room for `size`: twice the room it had.
+const withRoomFor: WithRoomForFunction = (
+  values: Int32Array,
+  size: number,
+): Int32Array => {
+  if (size <= values.length) {
+    return values;
+  }
+
+  const grown: Int32Array = new Int32Array(Math.max(size, values.length * 2));
+
+  grown.set(values);
+
+  return grown;
+};
+
+export type RemoveMarkupFromTextFunction = (
+  text: string,
+  reading?: MarkupInTextReading | undefined,
+) => string;
+
+/**
+ * `text` with every tag, comment, declaration and processing instruction
+ * taken out completely, read narrowly (see MARKUP IN TEXT above): a "<"
+ * that starts none of them is text, and stays. What it returns holds no
+ * markup it would take out. The text between them is kept exactly as it
+ * is, entities included.
+ */
+export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
+  text: string,
+  reading?: MarkupInTextReading | undefined,
+): string => {
+  const firstOpen: number = text.indexOf("<");
+  const lastClose: number = text.lastIndexOf(">");
+
+  // With no ">" after the first "<", nothing ends: there is no markup.
+  if (firstOpen === -1 || lastClose < firstOpen) {
+    return text;
+  }
+
+  const tagCannotHold: ((code: number) => boolean) | undefined =
+    reading?.tagCannotHold;
+  const maxLength: number = reading?.maxLength ?? Number.POSITIVE_INFINITY;
+
+  // The text kept for good.
+  let kept: string = "";
+  /*
+   * The text kept after that, from the outermost "<" that may still start
+   * markup: pieces of `text`, piece n from pieceStarts[n] to pieceEnds[n].
+   * Typed arrays, so a text that nests a million tags costs a few
+   * megabytes, not a million objects.
+   */
+  let pieceStarts: Int32Array = new Int32Array(16);
+  let pieceEnds: Int32Array = new Int32Array(16);
+  let pieces: number = 0;
+  /*
+   * Every "<" in those pieces, the innermost last: where it is, the piece
+   * that holds it, what it can still start, and how many characters after
+   * its first it holds. Only the innermost one's is ever read on.
+   */
+  let openAts: Int32Array = new Int32Array(16);
+  let openPieces: Int32Array = new Int32Array(16);
+  let openStarts: Int32Array = new Int32Array(16);
+  let openLengths: Int32Array = new Int32Array(16);
+  let opens: number = 0;
+  let removed: boolean = false;
+
+  // Keeps the text from `from` to `to`, after what was kept before it.
+  const keep: (from: number, to: number) => void = (
+    from: number,
+    to: number,
+  ): void => {
+    if (from === to) {
+      return;
+    }
+
+    if (pieces > 0 && pieceEnds[pieces - 1] === from) {
+      pieceEnds[pieces - 1] = to;
+      return;
+    }
+
+    pieceStarts = withRoomFor(pieceStarts, pieces + 1);
+    pieceEnds = withRoomFor(pieceEnds, pieces + 1);
+    pieceStarts[pieces] = from;
+    pieceEnds[pieces] = to;
+    pieces++;
+  };
+
+  // Keeps the "<" at `at`, and remembers it as the innermost.
+  const remember: (at: number) => void = (at: number): void => {
+    keep(at, at + 1);
+
+    openAts = withRoomFor(openAts, opens + 1);
+    openPieces = withRoomFor(openPieces, opens + 1);
+    openStarts = withRoomFor(openStarts, opens + 1);
+    openLengths = withRoomFor(openLengths, opens + 1);
+    openAts[opens] = at;
+    openPieces[opens] = pieces - 1;
+    openStarts[opens] = MarkupStart.Unread;
+    openLengths[opens] = 0;
+    opens++;
+  };
+
+  /*
+   * Reads on what the innermost "<" can start, through the text from
+   * `from` to `to` kept after it, which holds no "<" or ">".
+   */
+  const readOn: (from: number, to: number) => void = (
+    from: number,
+    to: number,
+  ): void => {
+    const innermost: number = opens - 1;
+    let start: number = openStarts[innermost]!;
+    let at: number = from;
+
+    if (start === MarkupStart.Unread && at < to) {
+      const code: number = text.charCodeAt(at);
+
+      at++;
+
+      if (isAsciiLetter(code)) {
+        start = MarkupStart.Tag;
+      } else if (code === SLASH) {
+        start = MarkupStart.Slash;
+      } else if (code === EXCLAMATION_MARK || code === QUESTION_MARK) {
+        start = MarkupStart.Comment;
+      } else {
+        start = MarkupStart.Nothing;
+      }
+    }
+
+    if (start === MarkupStart.Slash && at < to) {
+      start = isAsciiLetter(text.charCodeAt(at))
+        ? MarkupStart.Tag
+        : MarkupStart.Nothing;
+      at++;
+    }
+
+    if (start === MarkupStart.Tag || start === MarkupStart.Comment) {
+      const length: number = openLengths[innermost]! + (to - at);
+
+      if (length > maxLength) {
+        start = MarkupStart.Nothing;
+      } else if (start === MarkupStart.Tag && tagCannotHold) {
+        for (; at < to; at++) {
+          if (tagCannotHold(text.charCodeAt(at))) {
+            start = MarkupStart.Nothing;
+            break;
+          }
+        }
+      }
+
+      openLengths[innermost] = length;
+    }
+
+    openStarts[innermost] = start;
+  };
+
+  // Every "<" remembered is text: what was kept from it on is kept for good.
+  const settle: () => void = (): void => {
+    for (let piece: number = 0; piece < pieces; piece++) {
+      kept += text.slice(pieceStarts[piece]!, pieceEnds[piece]!);
+    }
+
+    pieces = 0;
+    opens = 0;
+  };
+
+  let index: number = 0;
+  // The first "<" and ">" at or after `index` (-1: none), looked up lazily.
+  let nextOpen: number = firstOpen;
+  let nextClose: number = -1;
+
+  // No markup can end after the last ">".
+  while (index <= lastClose) {
+    if (nextOpen !== -1 && nextOpen < index) {
+      nextOpen = text.indexOf("<", index);
+    }
+
+    if (opens === 0) {
+      // With no "<" that a ">" follows, the rest is text.
+      if (nextOpen === -1 || nextOpen > lastClose) {
+        break;
+      }
+
+      kept += text.slice(index, nextOpen);
+      remember(nextOpen);
+      index = nextOpen + 1;
+      continue;
+    }
+
+    if (nextClose < index) {
+      nextClose = text.indexOf(">", index);
+    }
+
+    // The next "<" or ">". What comes before it is kept, and read on.
+    const next: number =
+      nextOpen !== -1 && nextOpen < nextClose ? nextOpen : nextClose;
+
+    keep(index, next);
+    readOn(index, next);
+
+    const start: number = openStarts[opens - 1]!;
+
+    if (start === MarkupStart.Nothing) {
+      // That "<" is text, and so is every "<" before it.
+      settle();
+      index = next;
+      continue;
+    }
+
+    if (next === nextOpen) {
+      remember(next);
+      index = next + 1;
+      continue;
+    }
+
+    if (start === MarkupStart.Tag || start === MarkupStart.Comment) {
+      // Markup: out it goes, with all that was kept after its "<".
+      opens--;
+      pieces = openPieces[opens]! + 1;
+      pieceEnds[pieces - 1] = openAts[opens]!;
+      removed = true;
+
+      // A piece that began with that "<" holds nothing now.
+      if (pieceStarts[pieces - 1] === pieceEnds[pieces - 1]) {
+        pieces--;
+      }
+    } else {
+      // "<>" or "</>" is text, and so is every "<" before it.
+      keep(next, next + 1);
+      settle();
+    }
+
+    index = next + 1;
+  }
+
+  if (!removed) {
+    return text;
+  }
+
+  settle();
+
+  return kept + text.slice(index);
 };
 
 export default removeHtmlMarkup;
