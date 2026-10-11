@@ -1,65 +1,90 @@
-# 將 Serilog 日誌傳送至 OneUptime
+# Serilog (.NET)
 
-## 概觀
+[Serilog](https://serilog.net) 是 .NET 最常用的結構化日誌程式庫。透過官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) 接收器（sink），應用程式經由 Serilog 記錄的每個事件，都會透過 OpenTelemetry Protocol（OTLP）傳送到 OneUptime，並可在 **產品 → 日誌** 中搜尋，連同其結構化屬性、嚴重性與追蹤關聯。
 
-[Serilog](https://serilog.net) 是 .NET 上最受歡迎的結構化日誌函式庫。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，透過 OpenTelemetry Protocol (OTLP) 來擷取 Serilog 日誌。設定完成後，您的應用程式透過 Serilog 寫入的每一筆日誌事件都會被傳送到 OneUptime，並在 **產品 → 日誌** 中變成可搜尋的內容，包含結構化屬性、嚴重程度，以及 trace/span 關聯。
+不需要安裝任何 OneUptime 專用的套件：接收器連線的就是 OneUptime 為所有 OpenTelemetry 資料提供的同一個 OTLP 端點。主控台應用程式、Worker 服務、ASP.NET Core 應用程式，以及其他任何在 .NET 上執行的程式都適用。
 
-不需要安裝任何 OneUptime 專屬套件 — 此 sink 與 OneUptime 為所有 OpenTelemetry 資料所公開的同一個 OTLP 端點溝通。這適用於主控台應用程式、worker 服務、ASP.NET Core 應用程式，以及任何在 .NET 上執行的程式。
+:::cards
+- [設定接收器](#設定接收器): 安裝兩個套件，並在程式碼或 `appsettings.json` 中設定。
+- [例外](#例外): 記錄下來的例外會成為例外中的問題。
+- [疑難排解](#疑難排解): 收不到日誌時要檢查什麼。
+:::
 
-## 先決條件
+## 運作方式
 
-- **註冊 OneUptime 帳號** – 您可以在[這裡](https://oneuptime.com)註冊免費帳號。請注意，雖然帳號是免費的，但日誌擷取是付費功能。您可以在[這裡](https://oneuptime.com/pricing)找到更多關於定價的詳細資訊。
-- **建立 OneUptime 專案** – 擁有帳號後，從 OneUptime 儀表板建立一個專案。如果您需要協助，請透過 support@oneuptime.com 與我們聯絡。
-- **建立 Telemetry 擷取權杖（Ingestion Token）** – 您需要一個權杖來驗證您的日誌。
+```mermaid title="從 Serilog 到 OneUptime"
+flowchart TB
+    app["你的 .NET 應用程式用 Serilog 記錄日誌"] --> sink["OpenTelemetry 接收器批次收集事件"]
+    sink -->|"OTLP/HTTP + 擷取金鑰"| ingest["OneUptime /otlp/v1/logs"]
+    ingest --> logs["帶有屬性的日誌"]
+    ingest -->|"例外屬性"| exceptions["例外"]
+```
 
-註冊 OneUptime 並建立專案後，點選導覽列中的「產品」，再點選「專案設定」。
+接收器會批次收集日誌事件，並在背景傳送。每個具名屬性都會成為日誌的一個屬性；用 Serilog 記錄的例外送達時，會帶著 OneUptime 用來產生問題的屬性。
 
-在 Telemetry Ingestion Key 頁面上，點選「建立擷取金鑰」以建立權杖。
+## 開始之前
 
-![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
+- 一個 OneUptime 專案。在 OneUptime Cloud 上，遙測資料依擷取的 GB 計費（請參閱[價格](https://oneuptime.com/pricing)），而且 Free 方案的專案必須先新增付款方式才能傳送遙測資料。
+- 一個正在使用或可以使用 Serilog 的 .NET 應用程式。
+- 一個用來驗證日誌的遙測擷取金鑰。如果還沒有，請依下列步驟建立：
 
-建立權杖後，點選「檢視」以檢視該權杖。
+:::steps
+### 開啟擷取金鑰
 
-![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
+前往 **產品 → 專案設定**，在側邊選單中展開 **遙測與 APM**，然後選擇 **擷取金鑰**。
 
-## 您需要從 OneUptime 取得的內容
+![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
 
-| 設定      | 值                                                  |
-| --------- | --------------------------------------------------- |
-| OTLP 端點 | `https://oneuptime.com/otlp`                        |
-| 驗證標頭  | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| 服務名稱  | 您的服務應顯示的名稱，例如 `my-service`             |
+### 建立金鑰
 
-> **自行託管 OneUptime？** 請將 `https://oneuptime.com/otlp` 替換為 `https://YOUR-ONEUPTIME-HOST/otlp`（如果您沒有終止 TLS，則為 `http://...`）。其餘的一切維持不變。
+點選 **建立擷取金鑰**。對話框已經填好金鑰名稱，並選好 **伺服器**（應用程式或 Collector 傳送資料時使用的金鑰類型），因此直接點選 **建立擷取金鑰** 即可建立，也可以先重新命名。
 
-此 sink 使用 OTLP 的 **HTTP/protobuf** 協定，並會自動將 `/v1/logs` 路徑附加到端點上，因此它最終 POST 的 URL 為 `https://oneuptime.com/otlp/v1/logs`。您只需要提供基礎的 `/otlp` 端點。
+### 複製機密
 
-## 步驟 1 — 安裝 NuGet 套件
+新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰**：這就是下方範例中的 `YOUR_TELEMETRY_INGESTION_TOKEN`。
 
-將 Serilog 與 OpenTelemetry sink 加入您的專案：
+![顯示密鑰金鑰的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
+
+## 你需要從 OneUptime 取得的資訊
+
+| 設定 | 值 |
+| ------------- | ------------------------------------------------------------ |
+| OTLP 端點 | `https://oneuptime.com/otlp` |
+| 驗證標頭 | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
+| 服務名稱 | 服務要顯示的名稱，例如 `my-service` |
+
+> [!NOTE]
+> 自行託管 OneUptime？請把 `https://oneuptime.com/otlp` 換成 `https://YOUR-ONEUPTIME-HOST/otlp`（如果不終止 TLS，則使用 `http://...`）。其他一切保持不變。
+
+協定設為 `HttpProtobuf` 時，接收器會在端點後面加上 `/v1/logs` 路徑，因此它最後傳送到的 URL 是 `https://oneuptime.com/otlp/v1/logs`。你只需要提供基礎的 `/otlp` 端點。
+
+## 設定接收器
+
+:::steps
+### 安裝 NuGet 套件
+
+把 Serilog 與 OpenTelemetry 接收器加入專案：
 
 ```bash
 dotnet add package Serilog
 dotnet add package Serilog.Sinks.OpenTelemetry
 ```
 
-如果您要透過 `appsettings.json` 設定此 sink（見下方），請同時加入：
+如果要透過 `appsettings.json` 設定接收器，還要加入 `Serilog.Settings.Configuration`。ASP.NET Core 應用程式則加入 `Serilog.AspNetCore`，它會把 Serilog 接入主機與要求管線：
 
 ```bash
 dotnet add package Serilog.Settings.Configuration
-```
-
-對於 ASP.NET Core 應用程式，`Serilog.AspNetCore` 套件會將 Serilog 接入主機與請求管線：
-
-```bash
 dotnet add package Serilog.AspNetCore
 ```
 
-## 步驟 2 — 在程式碼中設定此 sink
+### 配置接收器
 
-最直接的方式是在應用程式啟動時設定 Serilog。將此 sink 指向您的 OneUptime OTLP 端點，將協定設定為 `HttpProtobuf`，將您的擷取權杖以標頭形式傳入，並使用 `service.name` 為日誌加上標籤。
+把接收器指向你的 OneUptime OTLP 端點，將協定設為 `HttpProtobuf`，以標頭傳入擷取權杖，並為日誌加上 `service.name`。可以在程式碼、`appsettings.json` 或 ASP.NET Core 主機中設定：
 
-```csharp
+:::tabs
+@tab 在程式碼中
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -99,14 +124,10 @@ finally
     Log.CloseAndFlush();
 }
 ```
+@tab appsettings.json
+把接收器的設定寫進 `appsettings.json`：
 
-> **重要：** 此 sink 會將日誌事件分批並以非同步方式傳送。請務必在應用程式結束前呼叫 `Log.CloseAndFlush()`（或處置該 logger），否則最後一批日誌可能會遺失。在 ASP.NET Core 中，`Serilog.AspNetCore` 會在正常關閉時為您處理此事。
-
-## 步驟 3 — 從 appsettings.json 設定（替代方案）
-
-如果您偏好以設定檔取代程式碼，請使用 `Serilog.Settings.Configuration`，並將 sink 設定放在 `appsettings.json` 中：
-
-```json
+```json title="appsettings.json"
 {
   "Serilog": {
     "Using": ["Serilog.Sinks.OpenTelemetry"],
@@ -131,9 +152,9 @@ finally
 }
 ```
 
-然後從設定檔建立 logger：
+接著從設定建立記錄器：
 
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Microsoft.Extensions.Configuration;
 
@@ -145,14 +166,10 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(configuration)
     .CreateLogger();
 ```
+@tab ASP.NET Core
+ASP.NET Core（.NET 6 以上的最小裝載）請使用 `Serilog.AspNetCore`，讓 Serilog 取代預設的記錄器，並同時記錄架構與要求的日誌：
 
-> 請將權杖排除在原始碼控制之外。請從環境變數或機密儲存區參照它，並在啟動時將其注入設定中，而不要將其提交到 `appsettings.json`。
-
-## ASP.NET Core 整合
-
-對於 ASP.NET Core（.NET 6+ 最小化主機），請使用 `Serilog.AspNetCore`，讓 Serilog 取代預設 logger，並同時擷取框架與請求日誌：
-
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -178,17 +195,25 @@ builder.Host.UseSerilog((context, services, configuration) =>
         });
 });
 
-// Logs one summary event per HTTP request.
 var app = builder.Build();
+
+// Logs one summary event per HTTP request.
 app.UseSerilogRequestLogging();
 
 app.MapGet("/", () => "Hello World");
 app.Run();
 ```
+:::
 
-## 寫入日誌
+> [!IMPORTANT]
+> 接收器會批次收集日誌事件並非同步傳送。應用程式結束前，請務必呼叫 `Log.CloseAndFlush()`（或釋放記錄器），否則最後一批日誌可能會遺失。在 ASP.NET Core 中，`Serilog.AspNetCore` 會在正常關閉時替你完成這件事。
 
-設定完成後，像平常一樣使用 Serilog。結構化屬性會被保留，並在 OneUptime 中變成可搜尋的屬性：
+> [!TIP]
+> 不要把權杖放進原始碼版本控制。請從環境變數或機密儲存區讀取，並在啟動時注入設定，而不是提交到 `appsettings.json`。
+
+### 寫入日誌
+
+照常使用 Serilog。結構化屬性會保留下來，並成為 OneUptime 中可搜尋的屬性：
 
 ```csharp
 Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
@@ -197,11 +222,16 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-每個具名屬性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都會以日誌屬性的形式傳送，因此您可以在 **產品 → 日誌** 探索器中對它們進行篩選與搜尋。
+每個具名屬性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都會以日誌屬性傳送，因此可以在 **產品 → 日誌** 瀏覽器中依它們篩選與搜尋。
 
-## 例外狀況
+### 確認日誌已送達
 
-當您使用 Serilog 記錄例外狀況時，此 sink 會將 OpenTelemetry 的 `exception.type`、`exception.message` 與 `exception.stacktrace` 屬性附加到該日誌記錄上：
+執行應用程式並寫入幾筆日誌事件。幾秒內，它們就會出現在 **產品 → 日誌** 中，以及 **產品 → 服務** 下你的服務頁面上；服務以你設定的 `service.name`（`my-service`）命名。它們的結構化屬性可以當作篩選條件使用。
+:::
+
+## 例外
+
+用 Serilog 記錄例外時，接收器會在日誌記錄上附加 OpenTelemetry 的 `exception.type`、`exception.message` 與 `exception.stacktrace` 屬性：
 
 ```csharp
 try
@@ -214,24 +244,47 @@ catch (Exception ex)
 }
 ```
 
-OneUptime 會偵測這些屬性，並自動將該錯誤匯整到 **例外**（Issues）檢視中，依指紋（fingerprint）分組並歸屬到正確的服務。由 trace 與 log 同時回報的錯誤會合併成單一 issue。如需了解偵測的運作方式，請參閱[從日誌偵測的例外狀況](/docs/telemetry/open-telemetry)。
+OneUptime 會偵測這些屬性，依指紋把錯誤歸併為 **例外** 中的問題，並關聯到正確的服務。同時由追蹤與日誌回報的錯誤會合併成一個問題。偵測的運作方式請參閱[來自日誌的例外](/docs/telemetry/open-telemetry#來自日誌的例外)。
 
-## Trace 關聯
+## 追蹤關聯
 
-如果您的應用程式同時也透過 OpenTelemetry .NET SDK 進行 trace 檢測，那麼在使用中 span 內發出的 Serilog 日誌事件，會自動標記上目前的 `TraceId` 與 `SpanId`（這是此 sink 預設 `IncludedData` 的一部分）。這讓 OneUptime 能夠將一行日誌直接連結到它發生時所在的 trace，因此您可以從日誌跳轉到周邊的請求，再跳回來。
+如果你的應用程式也用 OpenTelemetry .NET SDK 做了追蹤檢測，那麼在作用中的 span 內產生的 Serilog 事件，會自動帶上目前的 `TraceId` 與 `SpanId`（這屬於接收器預設的 `IncludedData`）。這樣 OneUptime 就能把一行日誌直接關聯到它所在的追蹤，你可以從日誌跳到所屬的要求，再跳回來。
 
-## 驗證
-
-1. 執行您的應用程式並產生幾筆日誌事件。
-2. 開啟 OneUptime，前往 **遙測**，選擇您的服務（`my-service`），並開啟 **日誌**。
-3. 您應該會在幾秒內看到您的 Serilog 事件出現，並可使用其結構化屬性作為篩選條件。
+若也要傳送追蹤與指標，請參閱 [OpenTelemetry 快速入門](/docs/telemetry/open-telemetry#快速入門) 中的 .NET 設定。
 
 ## 疑難排解
 
-- **沒有任何日誌出現** – 仔細檢查 `x-oneuptime-token` 的值，並確認它屬於您正在檢視的專案。確認端點為 `https://oneuptime.com/otlp`（僅基礎路徑 — 請勿自行附加 `/v1/logs`）。
-- **日誌只在應用程式結束時才出現，或最後幾筆日誌遺失** – 請確保 `Log.CloseAndFlush()` 會在關閉時執行。此 sink 會將事件分批，因此若行程在未清空（flush）的情況下被終止，緩衝中的日誌就會遺失。
-- **`401 Unauthorized` / 沒有任何內容被擷取** – 權杖遺漏或無效。請確認標頭鍵正好是 `x-oneuptime-token`。
-- **服務名稱錯誤** – 請在 `ResourceAttributes`（程式碼）或 `resourceAttributes`（appsettings.json）中設定 `service.name`。若未設定，日誌會回退到預設／未知的服務。
-- **連線到自行託管執行個體時發生連線錯誤** – 請確認協定與您的端點配置（scheme）相符（`https://` 對比 `http://`），且您的 OneUptime 主機可從應用程式連線到。
+:::details 沒有出現日誌
+仔細檢查 `x-oneuptime-token` 的值，確認它屬於你正在檢視的專案。確認端點是 `https://oneuptime.com/otlp`（只寫基礎路徑，不要自己加上 `/v1/logs`）。要查看接收器失敗的原因，可在啟動時以 `Serilog.Debugging.SelfLog.Enable(Console.Error)` 開啟 Serilog 自身的錯誤輸出：它會印出 OneUptime 回應的狀態碼。
+:::
 
-如果您有任何問題或需要協助，請透過 support@oneuptime.com 與我們聯絡。
+:::details 日誌只在應用程式結束時出現，或最後的日誌遺失
+確保關閉時會執行 `Log.CloseAndFlush()`。接收器會批次收集事件，所以如果程序在排清之前被強制結束，緩衝區中的日誌就會遺失。
+:::
+
+:::details 回應 401 Unauthorized，什麼都沒有擷取
+金鑰缺少、未知或已過期。確認標頭名稱正好是 `x-oneuptime-token`，而且值是該金鑰的 **密鑰金鑰**。
+:::
+
+:::details 回應 402 或 422，什麼都沒有擷取
+`402`：在 OneUptime Cloud 上，專案使用 Free 方案且沒有付款方式。請在 **專案設定 → 帳單與發票 → 帳單** 中新增。`422`：金鑰已停用，或是瀏覽器金鑰。請在金鑰的設定中重新開啟 **已啟用**，或建立一個 **伺服器** 金鑰。
+:::
+
+:::details 日誌歸到錯誤的服務名稱下
+在 `ResourceAttributes`（程式碼）或 `resourceAttributes`（appsettings.json）中設定 `service.name`。沒有設定的話，日誌會歸到接收器改為傳送的暫用名稱下，而不是你的服務名稱。
+:::
+
+:::details 連線到自行託管的執行個體時發生錯誤
+確認協定與端點的配置（`https://` 或 `http://`）一致，而且應用程式可以連到你的 OneUptime 主機。
+:::
+
+如有任何問題或需要協助，請寄信至 support@oneuptime.com。
+
+## 後續步驟
+
+:::cards
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 也從 .NET 傳送追蹤與指標。
+- [日誌管道](/docs/telemetry/log-pipelines): 在日誌送達時剖析並豐富它們。
+- [日誌監控](/docs/monitor/logs-monitor): 出現符合的日誌時發出警示。
+- [搜尋語法](/docs/telemetry/search-syntax): 依 Serilog 屬性篩選。
+:::
