@@ -261,8 +261,7 @@ describe("the lists this test keeps", () => {
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
           return (
-            !isActionLabel(span) &&
-            !(PROSE_LEADS[page] || []).includes(span)
+            !isActionLabel(span) && !(PROSE_LEADS[page] || []).includes(span)
           );
         },
       );
@@ -538,10 +537,27 @@ describe("the helpers, on these pages' shapes", () => {
     );
   });
 
-  it("draw the probe table's create button from the Create template", () => {
-    expect(drawnLabel("en", CUSTOM_PROBE, "Create Probe")).toBe(
-      "Create Probe",
+  it("write a Persian path as bold segments joined by '>', and every other language's as one bold span", () => {
+    const segments: Array<string> = ["Monitors", "Settings", "Probes"];
+
+    expect(writtenPath("fa", segments)).toBe(
+      segments
+        .map((_segment: string, index: number): string => {
+          return `**${drawnPathSegment("fa", segments, index)}**`;
+        })
+        .join(" > "),
     );
+    expect(writtenPath("fa", segments)).not.toContain("→");
+    expect(writtenPath("de", segments)).toBe(
+      `**${drawnPath("de", segments)}**`,
+    );
+    expect(writtenPath("en", segments)).toBe(
+      "**Monitors → Settings → Probes**",
+    );
+  });
+
+  it("draw the probe table's create button from the Create template", () => {
+    expect(drawnLabel("en", CUSTOM_PROBE, "Create Probe")).toBe("Create Probe");
     expect(drawnLabel("de", CUSTOM_PROBE, "Create Probe")).toBe(
       drawnCreateButton("de", "Create Probe"),
     );
