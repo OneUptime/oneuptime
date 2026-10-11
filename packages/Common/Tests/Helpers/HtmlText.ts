@@ -71,7 +71,7 @@ const AS_EVERY_CLIENT_SHOWS: HtmlMarkupReplacer = (markup: string): string => {
  * is read as part of the email - its markup a space each, its words kept -
  * since Outlook shows it, where markupAsSpaces hides the comment whole, as
  * every other client does. For a check that no client shows a word: a
- * product name a white-label licence takes out.
+ * product name a licence takes out of the email.
  */
 export const markupAsSpacesWithOutlookContent: HtmlTextFunction = (
   html: string,
