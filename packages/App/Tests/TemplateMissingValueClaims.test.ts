@@ -42,7 +42,8 @@ const SCANNED_ROOTS: Array<string> = [
 
 const ENGLISH_DOCS: string = "packages/App/FeatureSet/Docs/Content/en";
 const DOCS_CONTENT: string = "packages/App/FeatureSet/Docs/Content";
-const DASHBOARD_LOCALES: string = "packages/App/FeatureSet/Dashboard/src/Locales";
+const DASHBOARD_LOCALES: string =
+  "packages/App/FeatureSet/Dashboard/src/Locales";
 
 function isScannedFile(relative: string, name: string): boolean {
   if (name.includes(".test.") || name.endsWith(".d.ts")) {

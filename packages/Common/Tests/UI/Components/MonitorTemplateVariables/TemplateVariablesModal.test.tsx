@@ -88,7 +88,9 @@ describe("TemplateVariablesModal - syntax tips", () => {
   });
 
   test("is shown for every monitor type", () => {
-    for (const monitorType of Object.values(MonitorType) as Array<MonitorType>) {
+    for (const monitorType of Object.values(
+      MonitorType,
+    ) as Array<MonitorType>) {
       const { unmount } = render(
         <TemplateVariablesModal
           monitorType={monitorType}

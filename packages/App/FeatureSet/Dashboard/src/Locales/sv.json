@@ -10807,7 +10807,6 @@
   "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional).": "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional).",
   "Filter by the acting host": "Filter by the acting host",
   "Filter by the acting principal": "Filter by the acting principal",
-  "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set.": "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set.",
   "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource.": "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource.",
   "Filter by trace ID": "Filter by trace ID",
   "Filter dashboards by labels. Leave empty to skip the filter.": "Filter dashboards by labels. Leave empty to skip the filter.",
@@ -12856,7 +12855,6 @@
   "Missing or malformed value": "Missing or malformed value",
   "Missing project or service information for context.": "Missing project or service information for context.",
   "Missing project or user context.": "Missing project or user context.",
-  "Missing values render as empty strings — they will not break the template.": "Missing values render as empty strings — they will not break the template.",
   "Mistral": "Mistral",
   "Mobile": "Mobile",
   "Mobile (iOS / Android)": "Mobile (iOS / Android)",
@@ -28052,5 +28050,7 @@
   "Azure OpenAI / Microsoft Foundry": "Azure OpenAI / Microsoft Foundry",
   "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "Krävs för OpenAI, Azure OpenAI / Microsoft Foundry (en av resursens nycklar), Anthropic, Groq och Mistral. Valfri för Ollama och OpenAI-kompatibla servrar (t.ex. vLLM) som inte kräver autentisering.",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "Det specifika modell- eller distributionsnamnet som ska användas (t.ex. gpt-5.1 för OpenAI, claude-sonnet-5-5 för Anthropic, namnet på din distribution för Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile för Groq, mistral-large-latest för Mistral). Krävs för OpenAI-kompatibla leverantörer — det måste matcha en modell som din server tillhandahåller.",
-  "Twilio Configs": "Twilio-konfigurationer"
+  "Twilio Configs": "Twilio-konfigurationer",
+  "A variable with no value is left as written, so a mistyped name shows in the text.": "En variabel utan värde står kvar som den är skriven, så ett felskrivet namn syns i texten.",
+  "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "Filtrera efter enhets-ID — den råa datapunktsetiketten `device.id` (valfritt). Varje filter du anger måste stämma."
 }
