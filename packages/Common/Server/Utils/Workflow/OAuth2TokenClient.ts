@@ -5,6 +5,7 @@ import Exception from "../../../Types/Exception/Exception";
 import {
   HtmlMarkupReading,
   HtmlMarkupReplacer,
+  isWhitespace,
   replaceHtmlMarkup,
 } from "../../../Types/HtmlMarkup";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
@@ -15,6 +16,7 @@ import {
   RESERVED_OAUTH2_TOKEN_REQUEST_PARAMETERS,
 } from "../../../Types/Workflow/WorkflowVariableOAuth";
 import API from "../../../Utils/API";
+import { neutralizeChatControlSequences } from "../../../Utils/Markdown/MarkdownEscape";
 import DataSourceEgressGuard, {
   EgressGuardOptions,
 } from "../DataSource/EgressGuard";
@@ -53,32 +55,24 @@ const MIN_REDACTABLE_SECRET_LENGTH: number = 4;
 // A form-encoded token response, which older endpoints send whatever Accept says.
 const FORM_ENCODED_TOKEN_BODY: RegExp = /^(access_token|error)=/;
 
-/*
- * Where an error page's script and style elements start, and where the end
- * tag that closes each one starts: the element's name, then whitespace, a
- * "/" or the ">", as a browser reads one - "<script>", "<style media=x>",
- * "</script >", "</style foo>"; not "<scripture>". What the elements hold
- * is code and rules, not words anybody reads.
- */
-const SCRIPT_START: RegExp = /<script(?=[\s/>])/gi;
-const SCRIPT_END: RegExp = /<\/script(?=[\s/>])/gi;
-const STYLE_START: RegExp = /<style(?=[\s/>])/gi;
-const STYLE_END: RegExp = /<\/style(?=[\s/>])/gi;
-
-// What may be whitespace past ASCII, as \s reads it.
-const WHITESPACE_CHARACTER: RegExp = /\s/;
-
-// A tag or comment, as a space: the words either side of it stay apart.
+// A tag, a comment or a whole element, as a space: the words either side stay apart.
 const MARKUP_AS_SPACE: HtmlMarkupReplacer = (): string => {
   return " ";
 };
 
 /*
- * The answer may be plain text rather than HTML - an error's description,
- * an address, a gateway's message - so a "<" is read as a browser reads it:
- * "expires_in must be < 3600" keeps its "<".
+ * How the answer is read (see HtmlMarkupReading). It may be plain text
+ * rather than HTML - an error's description, an address, a gateway's
+ * message - so a "<" is read as a browser reads it: "expires_in must be <
+ * 3600" keeps its "<". And a page's script and style elements go whole,
+ * what they hold included: code and rules, not words anybody reads. The
+ * walk finds them, so a "<script" in a comment, in a quoted value or
+ * inside a style element starts nothing.
  */
-const READ_LESS_THAN_AS_TEXT: HtmlMarkupReading = { lessThanAsText: true };
+const ANSWER_READING: HtmlMarkupReading = {
+  lessThanAsText: true,
+  rawTextElements: true,
+};
 
 export interface OAuth2TokenRequestConfig {
   grantType: OAuth2GrantType;
@@ -182,90 +176,46 @@ const redactSecrets: RedactFunction = (
   return result;
 };
 
-type WithoutElementsFunction = (
-  html: string,
-  start: RegExp,
-  end: RegExp,
-) => string;
-
-/*
- * The text with each element that `start` opens and `end` closes - the
- * element and all it holds, to the ">" of the first end tag after its start
- * - as a space. The text is read once: an element that never ends, and
- * every one after it, is left for the markup walk, which takes its tags out
- * and keeps what it holds. A single /<script[\s\S]*?<\/script>/ pass missed
- * an end tag written "</script >", and looked for an end again from every
- * start that had none, which took time that grew with the square of the
- * text: about a second for 160,000 characters of "<script".
- */
-const withoutElements: WithoutElementsFunction = (
-  html: string,
-  start: RegExp,
-  end: RegExp,
-): string => {
-  let text: string = "";
-  let index: number = 0;
-
-  for (;;) {
-    start.lastIndex = index;
-    const opened: RegExpExecArray | null = start.exec(html);
-
-    if (!opened) {
-      break;
-    }
-
-    end.lastIndex = opened.index + opened[0].length;
-    const closed: RegExpExecArray | null = end.exec(html);
-    const closedAt: number = closed
-      ? html.indexOf(">", closed.index + closed[0].length)
-      : -1;
-
-    if (closedAt === -1) {
-      break;
-    }
-
-    text += `${html.slice(index, opened.index)} `;
-    index = closedAt + 1;
-  }
-
-  return text + html.slice(index);
-};
-
 type IsGapFunction = (code: number) => boolean;
 
-// Whether a character is whitespace (as \s reads it) or a control character.
+// Whether a character is a control character or whitespace (as \s reads it).
 const isGap: IsGapFunction = (code: number): boolean => {
-  if (code <= 0x20 || code === 0x7f) {
-    return true;
-  }
-
-  return code >= 0x80 && WHITESPACE_CHARACTER.test(String.fromCharCode(code));
+  return code <= 0x1f || code === 0x7f || isWhitespace(code);
 };
 
-type CollapseGapsFunction = (text: string) => string;
+type CollapseGapsFunction = (text: string, longest: number) => string;
 
 /*
  * The words of the text, one space between each: every run of whitespace
- * and control characters is one space, and there is none at either end. A
- * loop rather than a pattern with a quantifier, which an answer a megabyte
- * long must not be read with (AGENTS.md, "Megabyte-long values").
+ * and control characters is one space, and there is none at either end -
+ * read only until more than `longest` characters are kept, which is all a
+ * quote needs to know it must be cut. A loop rather than a pattern with a
+ * quantifier, which an answer a megabyte long must not be read with
+ * (AGENTS.md, "Megabyte-long values").
  */
-const collapseGaps: CollapseGapsFunction = (text: string): string => {
-  const words: Array<string> = [];
+const collapseGaps: CollapseGapsFunction = (
+  text: string,
+  longest: number,
+): string => {
+  let collapsed: string = "";
   let wordStart: number = -1;
 
   for (let index: number = 0; index <= text.length; index++) {
     if (index === text.length || isGap(text.charCodeAt(index))) {
       if (wordStart !== -1) {
-        words.push(text.slice(wordStart, index));
+        collapsed += `${collapsed ? " " : ""}${text.slice(wordStart, index)}`;
         wordStart = -1;
+
+        if (collapsed.length > longest) {
+          return collapsed;
+        }
       }
     } else if (wordStart === -1) {
       wordStart = index;
     }
   }
 
-  return words.join(" ");
+  return collapsed;
 };
 
 type ExcerptFunction = (
@@ -290,14 +240,19 @@ type ExcerptFunction = (
  * written to the workflow run log. Every tag and comment is read out by
  * replaceHtmlMarkup (Common/Types/HtmlMarkup), the walk the rest of the
  * product reads HTML with: a tag ends at the first ">" outside a quoted
- * attribute value, a comment at its "-->", and a "<" that starts markup
- * that never ends is dropped on its own. A "<" that starts nothing - "x <
- * 3600", "<= 5" - is text, as in a browser (lessThanAsText), and stays. It
- * used to be one pass of /<[^>]*>/, which kept an unclosed tag ("<img src=x
- * ..." with no ">" after it) as it came, and the rest of an attribute value
- * or a comment after a ">" inside it. So no "<" that starts markup reaches
- * the message, whatever shows it. Entities are left as they are: they are
- * text, and nothing here reads them into markup.
+ * attribute value, a comment at its "-->", a script or style element at
+ * its end tag, and a "<" that starts markup that never ends is dropped on
+ * its own. A "<" that starts nothing - "x < 3600", "<= 5" - is text, as in
+ * a browser (ANSWER_READING), and stays. It used to be one pass of
+ * /<[^>]*>/, which kept an unclosed tag ("<img src=x ..." with no ">" after
+ * it) as it came, and the rest of an attribute value or a comment after a
+ * ">" inside it; and a pattern for script and style elements, run first,
+ * that took a "<script" in a comment or a quoted value for one. So no "<"
+ * that starts markup reaches the message, and a chat mention that Slack
+ * would act on ("<@U123>", "<#C123>") is broken with an invisible word
+ * joiner, as everywhere outside text is placed - whatever shows it.
+ * Entities are left as they are: they are text, and nothing here reads
+ * them into markup.
  *
  * An answer may be up to a megabyte (OAUTH2_TOKEN_RESPONSE_MAX_BYTES), and
  * every step reads it in time that grows with its length alone: the single
@@ -310,25 +265,18 @@ const toExcerpt: ExcerptFunction = (
 ): string => {
   const plain: string = collapseGaps(
     replaceHtmlMarkup(
-      withoutElements(
-        withoutElements(
-          redactSecrets(text || "", secrets),
-          SCRIPT_START,
-          SCRIPT_END,
-        ),
-        STYLE_START,
-        STYLE_END,
-      ),
+      redactSecrets(text || "", secrets),
       MARKUP_AS_SPACE,
-      READ_LESS_THAN_AS_TEXT,
+      ANSWER_READING,
     ),
+    RESPONSE_EXCERPT_MAX_LENGTH,
   );
 
-  if (plain.length <= RESPONSE_EXCERPT_MAX_LENGTH) {
-    return plain;
-  }
-
-  return `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`;
+  return neutralizeChatControlSequences(
+    plain.length <= RESPONSE_EXCERPT_MAX_LENGTH
+      ? plain
+      : `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`,
+  );
 };
 
 type GetOAuthErrorHintFunction = (

@@ -430,6 +430,12 @@ describe("the note script's own walk", () => {
     "a < b > c & d",
     LONG_LINE_BREAK,
     "a<br   >b",
+    "<p>a<<!-- x > y -->b</p>",
+    "<<!-- a > b -->c<br>",
+    "x<<<!-- y > z -->w<br>",
+    "a<<br>b",
+    "ls -la  \n\n\n\nfoo & bar",
+    '<?xml version="1.0"?> AT&amp;T',
   ];
   // The leftovers again, each inside a paragraph of a note's HTML.
   const leftoversInParagraphs: Array<string> = SINGLE_PASS_LEFTOVERS.map(
@@ -496,13 +502,17 @@ describe("the note script's own walk", () => {
   test("reads markup exactly as removeHtmlMarkup does wherever no '<' is text", () => {
     /*
      * HTML an editor writes has no "<" that is text: it writes "&lt;". On
-     * such text - every run of "<" before what starts markup - both
-     * readings agree.
+     * such text - every "<" alone, before what starts markup - both
+     * readings agree. (Before a run of "<", the default reading starts
+     * markup at the run's first "<", and a browser at its last.)
      */
     const htmlOnly: Array<string> = cases.filter((html: string): boolean => {
       return Array.from(html.matchAll(LESS_THAN_RUN)).every(
         (run: RegExpMatchArray): boolean => {
-          return STARTS_MARKUP.test(html.charAt(run.index! + run[0].length));
+          return (
+            run[0].length === 1 &&
+            STARTS_MARKUP.test(html.charAt(run.index! + run[0].length))
+          );
         },
       );
     });
@@ -543,7 +553,29 @@ describe("the note script's own walk", () => {
     }
   });
 
+  test("reads a run of '<' before a comment as the comment, from the run's last '<'", () => {
+    for (const [html, text] of [
+      ["<p>a<<!-- x > y -->b</p>", "ab\n"],
+      ["<<!-- a > b -->c<br>", "c\n"],
+      ["x<<<!-- y > z -->w<br>", "xw\n"],
+      ["a<<br>b", "a\nb"],
+    ]) {
+      expect(readings.text[cases.indexOf(html!)]).toBe(text);
+    }
+  });
+
+  test("reads a note whose only markup is a processing instruction as HTML", () => {
+    expect(readings.text[cases.indexOf('<?xml version="1.0"?> AT&amp;T')]).toBe(
+      " AT&T",
+    );
+  });
+
   test("reads a note with no tag as plain text: only its entities are read", () => {
+    // Its spaces and blank lines stay as they were written, too.
+    expect(readings.text[cases.indexOf("ls -la  \n\n\n\nfoo & bar")]).toBe(
+      "ls -la  \n\n\n\nfoo & bar",
+    );
+
     for (const [plain, text] of [
       ["R&D: latency < 200ms", "R&D: latency < 200ms"],
       [

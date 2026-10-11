@@ -249,10 +249,11 @@ const LEFTOVER_PAGES: Array<[string, string, string]> = [
     "<html><body>Error <img src=x onerror=alert(1)",
     "Error img src=x onerror=alert(1)",
   ],
+  // As a browser reads it: one tag named "scr<script", then text.
   [
-    "a tag inside a tag's name, around a script element",
+    "a tag inside a tag's name, before a script's end tag",
     "<scr<script>ipt>alert(1)</script>",
-    "scr",
+    "ipt>alert(1)",
   ],
   ["an unclosed end tag", "error <b>bold</b", "error bold/b"],
   ["an overlapping comment", "<!<!---->--", "--"],
@@ -369,6 +370,22 @@ describe("script and style elements", () => {
       "<p>a</p><script>x</script",
       "a x/script",
     ],
+    // Found by the walk, so a "<script" in a comment or a value starts nothing.
+    [
+      "a script start in a comment",
+      "<!-- <script> -->visible<!-- </script> -->",
+      "visible",
+    ],
+    [
+      "a script start in a quoted value",
+      "<p title='<script>'>visible</p></script>",
+      "visible",
+    ],
+    [
+      "a script start inside a style element",
+      "<style>/*<script>*/</style>visible<script>y</script>",
+      "visible",
+    ],
     [
       "elements whose names only start like script and style",
       "<scripture>The verse</scripture> <styles>matter</styles> invalid_client <script>x()</script>",
@@ -421,7 +438,7 @@ describe("whatever the answer", () => {
     expect(withMarkup).toEqual([]);
   });
 
-  test("markup is read exactly as replaceHtmlMarkup reads it, each tag and comment a space", () => {
+  test("markup is read exactly as replaceHtmlMarkup reads it, each tag, comment and element a space", () => {
     const differences: Array<[string, string, string]> = [];
 
     for (const text of [
@@ -429,18 +446,13 @@ describe("whatever the answer", () => {
       ...SINGLE_PASS_LEFTOVERS,
       ...WELL_FORMED_MARKUP,
     ]) {
-      if (text.toLowerCase().includes("</script>")) {
-        // A closed script element goes with what it holds; see above.
-        continue;
-      }
-
       const quote: string = quoteOfPage(text);
       const walked: string = replaceHtmlMarkup(
         text,
         (): string => {
           return " ";
         },
-        { lessThanAsText: true },
+        { lessThanAsText: true, rawTextElements: true },
       )
         .replace(WHITESPACE_RUN, " ")
         .trim();
@@ -596,6 +608,16 @@ describe("secrets the token endpoint echoes", () => {
       ),
     ).toBe(
       "The token endpoint answered HTTP 400: Rejected [REDACTED] for tenant acme. Check the Token URL.",
+    );
+  });
+
+  test("a chat mention in the answer is broken, so no chat tool acts on it", () => {
+    expect(quoteOfPage("hi <@U0123ABC> and <#C0123> and <!here> there")).toBe(
+      "hi <" +
+        WORD_JOINER +
+        "@U0123ABC> and <" +
+        WORD_JOINER +
+        "#C0123> and there",
     );
   });
 

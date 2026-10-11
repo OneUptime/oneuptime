@@ -65,10 +65,10 @@ const NO_QUOTE: number = -1;
 const COMMENT_OPEN: string = "<!--";
 const COMMENT_CLOSE: string = "-->";
 
-type IsWhitespaceFunction = (code: number) => boolean;
+export type IsWhitespaceFunction = (code: number) => boolean;
 
 // Whether a character code is whitespace as \s reads it.
-const isWhitespace: IsWhitespaceFunction = (code: number): boolean => {
+export const isWhitespace: IsWhitespaceFunction = (code: number): boolean => {
   if (code < 128) {
     // Tab, line feed, vertical tab, form feed, carriage return, space.
     return (code >= 0x09 && code <= 0x0d) || code === 0x20;
@@ -189,23 +189,37 @@ const findTagEnds: FindTagEndsFunction = (
 export type HtmlMarkupReplacer = (markup: string) => string;
 
 /*
- * How a "<" is read. By default every "<" opens markup, which suits HTML a
- * renderer or a chat client writes: a "<" that is text is "&lt;" there.
+ * How markup is read.
+ *
+ * By default every "<" opens markup, which suits HTML a renderer or a chat
+ * client writes: a "<" that is text is "&lt;" there.
  *
  * lessThanAsText reads a "<" as a browser reads one, for text that may be
  * plain rather than HTML - an OAuth error's description, a note written
  * through an API: it starts markup only before an ASCII letter, "/", "!" or
  * "?". Anywhere else - "x < y", "<= 5", "<3", a "<" at the end - it is
  * text, and stays. A run of "<" goes with the character after its last one:
- * in "<<b>" the run starts a tag, read from its first "<", so a "<" that
- * stays is never left next to what could start a tag once markup after it
- * is taken out. What the walk returns then holds no "<" that starts markup.
+ * before markup, the markup starts at the run's last "<" ("<<!-- c -->" is a
+ * comment) and the "<" before it go on their own, so a "<" that stays is
+ * never left next to what could start a tag once markup after it is taken
+ * out. What the walk returns then holds no "<" that starts markup.
+ *
+ * rawTextElements reads script and style elements - HTML's raw text
+ * elements, what they hold never shown - as markup whole: from the start
+ * tag to the ">" of the first end tag of the same name after it ("</script>",
+ * "</script >", "</style foo>"), and `replace` is given the whole element.
+ * Their tags are found by the walk, so a "<script" inside a comment or a
+ * quoted value is not one, and nothing a style holds starts a script. A
+ * start tag that no end tag follows is an ordinary tag, and what follows it
+ * stays text.
  */
 export interface HtmlMarkupReading {
   lessThanAsText?: boolean | undefined;
+  rawTextElements?: boolean | undefined;
 }
 
 const LESS_THAN: number = 0x3c;
+const SLASH: number = 0x2f;
 
 type StartsMarkupFunction = (code: number) => boolean;
 
@@ -217,10 +231,124 @@ const startsMarkup: StartsMarkupFunction = (code: number): boolean => {
   return (
     (code >= 0x41 && code <= 0x5a) ||
     (code >= 0x61 && code <= 0x7a) ||
-    code === 0x2f ||
+    code === SLASH ||
     code === 0x21 ||
     code === 0x3f
   );
+};
+
+type KeepTextLessThansFunction = (html: string, firstOpen: number) => string;
+
+/*
+ * The text read with lessThanAsText when no markup in it can end - no ">"
+ * comes after its first "<": each run of "<" before what starts markup goes,
+ * and every other "<" stays. One loop, and nothing allocated but the text.
+ */
+const keepTextLessThans: KeepTextLessThansFunction = (
+  html: string,
+  firstOpen: number,
+): string => {
+  let text: string = html.slice(0, firstOpen);
+  let index: number = firstOpen;
+
+  for (;;) {
+    const open: number = html.indexOf("<", index);
+
+    if (open === -1) {
+      return text + html.slice(index);
+    }
+
+    text += html.slice(index, open);
+
+    let runEnd: number = open + 1;
+
+    while (html.charCodeAt(runEnd) === LESS_THAN) {
+      runEnd++;
+    }
+
+    if (!startsMarkup(html.charCodeAt(runEnd))) {
+      text += html.slice(open, runEnd);
+    }
+
+    index = runEnd;
+  }
+};
+
+// A raw text element, by name, and where its end tag starts.
+interface RawTextElement {
+  name: string;
+  endTag: RegExp;
+}
+
+const RAW_TEXT_ELEMENTS: ReadonlyArray<RawTextElement> = [
+  { name: "script", endTag: /<\/script(?=[\s/>])/gi },
+  { name: "style", endTag: /<\/style(?=[\s/>])/gi },
+];
+
+type RawTextElementOfFunction = (html: string, open: number) => number;
+
+/*
+ * Which raw text element the start tag at `open` starts - its index in
+ * RAW_TEXT_ELEMENTS - or -1: "<script" or "<style", in any letter case,
+ * where the name then ends, at whitespace, a "/" or the ">".
+ */
+const rawTextElementOf: RawTextElementOfFunction = (
+  html: string,
+  open: number,
+): number => {
+  return RAW_TEXT_ELEMENTS.findIndex((element: RawTextElement): boolean => {
+    const nameEnd: number = open + 1 + element.name.length;
+    const after: number = html.charCodeAt(nameEnd);
+
+    return (
+      html.slice(open + 1, nameEnd).toLowerCase() === element.name &&
+      (after === GREATER_THAN || after === SLASH || isWhitespace(after))
+    );
+  });
+};
+
+/*
+ * The first end tag of one raw text element at or after where it was last
+ * looked for: where its name starts, and just past its ">" (-1 when there is
+ * none). Kept so the text after a start tag that no end tag follows is not
+ * searched again for every later start tag.
+ */
+interface RawTextElementEnd {
+  from: number;
+  nameAt: number;
+  end: number;
+}
+
+type FindRawTextElementEndFunction = (
+  html: string,
+  endTag: RegExp,
+  from: number,
+  last: RawTextElementEnd | undefined,
+) => RawTextElementEnd;
+
+const findRawTextElementEnd: FindRawTextElementEndFunction = (
+  html: string,
+  endTag: RegExp,
+  from: number,
+  last: RawTextElementEnd | undefined,
+): RawTextElementEnd => {
+  // The walk only moves forward, so the last answer holds until it is passed.
+  if (last && from >= last.from && (last.end === -1 || from <= last.nameAt)) {
+    return last;
+  }
+
+  endTag.lastIndex = from;
+
+  const found: RegExpExecArray | null = endTag.exec(html);
+  const close: number = found
+    ? html.indexOf(">", found.index + found[0].length)
+    : -1;
+
+  return {
+    from: from,
+    nameAt: found ? found.index : -1,
+    end: close === -1 ? -1 : close + 1,
+  };
 };
 
 export type ReplaceHtmlMarkupFunction = (
@@ -235,10 +363,12 @@ export type ReplaceHtmlMarkupFunction = (
  * first ">" outside a quoted value, a comment at its "-->", and a "<" whose
  * markup never ends is dropped on its own (`replace` is not asked about it).
  * The text between them is kept exactly as it is, entities included.
+ * `reading` can read a "<" as a browser does, and script and style
+ * elements whole (see HtmlMarkupReading).
  *
  * What `replace` returns is put in place as it is: when it holds no "<",
- * neither does the result - or, read with lessThanAsText (see
- * HtmlMarkupReading), no "<" that starts markup.
+ * neither does the result - or, read with lessThanAsText, no "<" that
+ * starts markup.
  */
 export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
   html: string,
@@ -246,6 +376,7 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
   reading?: HtmlMarkupReading | undefined,
 ): string => {
   const lessThanAsText: boolean = Boolean(reading?.lessThanAsText);
+  const rawTextElements: boolean = Boolean(reading?.rawTextElements);
   const firstOpen: number = html.indexOf("<");
 
   if (firstOpen === -1) {
@@ -253,8 +384,10 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
   }
 
   // With no ">" after the first "<", no markup ends: every "<" goes alone.
-  if (!lessThanAsText && html.lastIndexOf(">") < firstOpen) {
-    return html.split("<").join("");
+  if (html.lastIndexOf(">") < firstOpen) {
+    return lessThanAsText
+      ? keepTextLessThans(html, firstOpen)
+      : html.split("<").join("");
   }
 
   /*
@@ -274,6 +407,8 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
    * whose "<" are dropped one by one is measured once.
    */
   let lessThanRunEnd: number = -1;
+  // The end tag last found for each raw text element.
+  const rawTextElementEnds: Array<RawTextElementEnd | undefined> = [];
   let text: string = html.slice(0, firstOpen);
   let index: number = firstOpen;
 
@@ -301,6 +436,12 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
         index = lessThanRunEnd;
         continue;
       }
+
+      // The markup starts at the run's last "<"; the ones before it go.
+      if (open < lessThanRunEnd - 1) {
+        index = lessThanRunEnd - 1;
+        continue;
+      }
     }
 
     let end: number;
@@ -317,14 +458,34 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
       }
 
       end = commentClose === -1 ? -1 : commentClose + COMMENT_CLOSE.length;
-    } else if (tagEnds !== null) {
-      end = tagEnds[open + 1 - tagEndsFrom]!;
     } else {
-      end = scanTagEnd(html, open + 1);
+      if (tagEnds !== null) {
+        end = tagEnds[open + 1 - tagEndsFrom]!;
+      } else {
+        end = scanTagEnd(html, open + 1);
 
-      if (end === -1) {
-        tagEnds = findTagEnds(html, open + 1);
-        tagEndsFrom = open + 1;
+        if (end === -1) {
+          tagEnds = findTagEnds(html, open + 1);
+          tagEndsFrom = open + 1;
+        }
+      }
+
+      const element: number =
+        rawTextElements && end !== -1 ? rawTextElementOf(html, open) : -1;
+
+      if (element !== -1) {
+        const elementEnd: RawTextElementEnd = findRawTextElementEnd(
+          html,
+          RAW_TEXT_ELEMENTS[element]!.endTag,
+          end,
+          rawTextElementEnds[element],
+        );
+
+        rawTextElementEnds[element] = elementEnd;
+
+        if (elementEnd.end !== -1) {
+          end = elementEnd.end;
+        }
       }
     }
 

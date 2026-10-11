@@ -4448,15 +4448,15 @@ const MAX_NOTE_LENGTH = 30000;
 // "&lt;b&gt;" stays text and is never a tag. A tag ends at the first ">" outside a quoted value, a
 // comment at its "-->", and a "<" is read as a browser reads it: it starts markup only before a
 // letter, "/", "!" or "?", and is text anywhere else ("latency < 200ms"); markup that never ends
-// loses only its "<". It is the reading OneUptime's own code uses (replaceHtmlMarkup, reading "<"
-// as text where a browser does), so no tag is left in the text and none can form from what is left.
-// A note with no tag at all is plain text - written through the API, or by the older editor - and
-// only its entities are read.
+// loses only its "<", and a run of "<" before markup starts it at its last "<". It is the reading
+// OneUptime's own code uses (replaceHtmlMarkup, reading "<" as text where a browser does), so no
+// tag is left in the text and none can form from what is left. A note with no tag at all is plain
+// text - written through the API, or by the older editor - and only its entities are read.
 const LINE_BREAK = /^<\s*br\s*\/?>$/i;
 const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
 // Longer than a line break or the end of a block is ever written. A longer tag is neither.
 const LONGEST_BREAK_TAG = 256;
-const TAG_START = /<[a-z!\/]/i;
+const TAG_START = /<[a-z!\/?]/i;
 const WHITESPACE = /\s/;
 // What a tag or comment becomes in the text: a new line for a line break or the end of a block.
 const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
@@ -4546,6 +4546,11 @@ const replaceMarkup = (html, replace) => {
       at = runEnd;
       continue;
     }
+    // The markup starts at the run's last "<"; the ones before it go.
+    if (open < runEnd - 1) {
+      at = runEnd - 1;
+      continue;
+    }
     let end = -1;
     if (html.startsWith('<!--', open)) {
       // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
@@ -4570,7 +4575,7 @@ const replaceMarkup = (html, replace) => {
     }
   }
 };
-// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it.
+// Whether the text holds a tag: a "<" and a letter, "!", "/" or "?", and a ">" somewhere after it.
 const hasTag = (text) => {
   const start = text.search(TAG_START);
   return start !== -1 && text.indexOf('>', start + 2) !== -1;
@@ -4607,9 +4612,9 @@ const tidyLines = (text) => {
 };
 const htmlToText = (value) => {
   const text = asText(value);
-  const isHtml = hasTag(text);
-  if (!isHtml && text.indexOf('&') === -1) return text;
-  return tidyLines(readEntities(isHtml ? replaceMarkup(text, markupAsText) : text));
+  // Plain text: nothing in it is markup, and only its entities are read.
+  if (!hasTag(text)) return readEntities(text);
+  return tidyLines(readEntities(replaceMarkup(text, markupAsText)));
 };
 
 // ---- Placing it in a note ----

@@ -19,7 +19,8 @@ import { describe, expect, it } from "@jest/globals";
  *
  * lessThanAsText reads a "<" as a browser does: it starts markup only
  * before an ASCII letter, "/", "!" or "?"; anywhere else it is text, and
- * kept. A run of "<" goes with the character after its last one. These
+ * kept. A run of "<" goes with the character after its last one: before
+ * markup, the markup starts at the run's last "<" and the others go. These
  * tests hold it to that:
  *
  *   - a "<" a browser shows as text stays, exactly where it was;
@@ -49,8 +50,8 @@ const MARKUP_START: RegExp = /<[A-Za-z/!?]/;
 /*
  * The same reading, made another way: each run of "<" that a browser reads
  * as text is set aside as a private-use mark (which the walk reads as an
- * ordinary character), the markup is taken out by removeHtmlMarkup, and
- * the marks are put back.
+ * ordinary character), each run before markup is cut to its last "<", the
+ * markup is taken out by removeHtmlMarkup, and the marks are put back.
  */
 const TEXT_LESS_THAN_MARK: string = "\uE001";
 const LESS_THAN_RUN: RegExp = /<+/g;
@@ -61,7 +62,7 @@ function setAsideReading(html: string): string {
     LESS_THAN_RUN,
     (run: string, offset: number, whole: string): string => {
       return STARTS_MARKUP.test(whole.charAt(offset + run.length))
-        ? run
+        ? "<"
         : TEXT_LESS_THAN_MARK.repeat(run.length);
     },
   );
@@ -110,6 +111,8 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
     ["a run before a tag", "<<b>x", "x"],
     ["a run before a tag that never closes", "<<<b", "b"],
     ["a run before a comment", "a<<!-- c -->b", "ab"],
+    ["a run before a comment holding '>'", "<<!-- a > b -->c", "c"],
+    ["a longer run before a comment", "x<<<!-- y > z -->w", "xw"],
   ])("reads %s as markup", (_case: string, html: string, text: string) => {
     expect(readAsBrowser(html)).toBe(text);
     expect(readAsBrowser(html)).not.toMatch(MARKUP_START);
@@ -128,6 +131,21 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
 
     expect(seen).toEqual(["<br/>", "<!-- c -->"]);
     expect(text).toBe("x < y | z <= 3 | <3");
+  });
+
+  it("gives the replacer markup from a run's last '<'", () => {
+    const seen: Array<string> = [];
+
+    replaceHtmlMarkup(
+      "a<<br>b<<<!-- c > d -->e",
+      (markup: string): string => {
+        seen.push(markup);
+        return "";
+      },
+      AS_TEXT,
+    );
+
+    expect(seen).toEqual(["<br>", "<!-- c > d -->"]);
   });
 
   describe("whatever it is given", () => {
@@ -182,13 +200,18 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
     });
 
     it("reads text with no '<' a browser shows as text exactly as by default", () => {
-      // Every run of "<" in it comes before what starts markup.
+      /*
+       * Every "<" in it is alone, before what starts markup. (Before a run
+       * of "<", the default reading starts markup at the run's first "<",
+       * and a browser at its last.)
+       */
       const withoutTextLessThan: Array<string> = generated.filter(
         (text: string): boolean => {
           return Array.from(text.matchAll(LESS_THAN_RUN)).every(
             (run: RegExpMatchArray): boolean => {
-              return STARTS_MARKUP.test(
-                text.charAt(run.index! + run[0].length),
+              return (
+                run[0].length === 1 &&
+                STARTS_MARKUP.test(text.charAt(run.index! + run[0].length))
               );
             },
           );
