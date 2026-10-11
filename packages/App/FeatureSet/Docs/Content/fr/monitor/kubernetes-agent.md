@@ -1,13 +1,65 @@
-# Installer l'agent Kubernetes
+# Agent Kubernetes (installation Helm)
 
-L'agent Kubernetes OneUptime collecte les métriques du cluster, les événements, les journaux de pods, les **traces d'applications (HTTP/gRPC via eBPF)** et les **métriques des nœuds au niveau du système d'exploitation** depuis votre cluster Kubernetes et les transmet à OneUptime. Il est distribué sous forme de chart Helm et installé en une seule commande — l'auto-instrumentation eBPF est activée par défaut, vous voyez donc les traces au niveau du service et les métriques RED sans modification de code. Les **flame graphs CPU continus (profileur eBPF)** sont également disponibles — activez-les avec `--set profiling.enabled=true` lorsque vous souhaitez plus de télémétrie.
+L'agent Kubernetes de OneUptime est un chart Helm qui collecte les métriques, les événements et les journaux de pods de votre cluster, les traces applicatives capturées avec eBPF et les métriques système de chaque nœud, et les envoie à OneUptime. Un seul `helm install` le met en place, sans aucune modification du code de vos applications. Les [moniteurs Kubernetes](/docs/monitor/kubernetes-monitor) alertent sur ce qu'il envoie.
 
-## Démarrage rapide
+:::cards
+- [Installer l'agent](#installer-lagent): Quatre étapes avec Helm.
+- [Choisir un preset](#choisir-un-preset): Clusters standard, GKE Autopilot ou EKS Fargate.
+- [Options courantes](#options-courantes): Les réglages que la plupart des clusters modifient.
+- [Dépannage](#dépannage): Un script de diagnostic, et les problèmes habituels.
+:::
+
+## Ce que le chart installe
+
+Le chart exécute quelques workloads dans son propre namespace. Chacun envoie ce qu'il collecte à votre URL OneUptime via OTLP, avec la clé d'ingestion que vous lui donnez.
+
+```mermaid title="De votre cluster à OneUptime"
+flowchart LR
+    subgraph cluster["Votre cluster"]
+        direction TB
+        nodes["Chaque nœud Linux :<br/>collecteur de nœud, eBPF"]
+        collector["Collecteur de cluster"]
+        ai["Agent IA Kubernetes"]
+    end
+    nodes -->|"journaux, métriques,<br/>traces"| oneuptime["OneUptime"]
+    collector -->|"métriques, événements"| oneuptime
+    ai <-->|"kubectl en<br/>lecture seule"| oneuptime
+```
+
+| Workload | Type | Ce qu'il fait | Actif par défaut |
+| --- | --- | --- | --- |
+| Collecteur de cluster | Deployment | Les métriques du cluster, les événements Kubernetes et les spécifications complètes des pods, nœuds et workloads, depuis l'API Kubernetes. | Oui |
+| Collecteur de nœud | DaemonSet | Les journaux de pods depuis `/var/log/pods`, les métriques kubelet et cAdvisor, et les métriques système du nœud. | Oui |
+| Instrumentation eBPF (OBI) | DaemonSet | Les traces HTTP, gRPC, SQL et Redis et les métriques de requêtes de chaque pod, et la carte des services. | Oui |
+| Agent IA Kubernetes | Deployment | Permet à OneUptime AI d'exécuter `kubectl` en lecture seule pendant qu'il enquête sur un incident ou une alerte de ce cluster. | Oui |
+| Lecteur de journaux | Deployment | Les journaux de pods via l'API Kubernetes, là où le collecteur de nœud ne peut pas les lire. | Avec les presets `gke-autopilot` et `eks-fargate` |
+| Profileur eBPF | DaemonSet | Des flame graphs CPU continus de chaque processus. | Non |
+| kube-state-metrics | Deployment | Les phases des pods, les raisons d'attente des conteneurs et les quotas de ressources. | Non |
+
+Chaque image de l'agent ne fonctionne que sous Linux, donc chaque workload est épinglé aux nœuds Linux.
+
+## Avant de commencer
+
+- **Une clé d'ingestion.** Créez-en une dans OneUptime sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. L'agent l'envoie dans l'en-tête `x-oneuptime-token`, donc une clé d'API de projet ne fonctionne pas ici.
+- **Helm 3** et un accès `kubectl` au cluster. Les mises à niveau utilisent `--reset-then-reuse-values`, qui nécessite Helm 3.14 ou une version ultérieure.
+- **Un nom pour le cluster**, unique dans votre projet. Le chart refuse de s'installer sans nom : deux clusters portant le même nom apparaîtraient comme un seul.
+- **Du HTTPS sortant** depuis le cluster vers votre URL OneUptime.
+
+## Installer l'agent
+
+:::steps
+### Ajouter le dépôt Helm
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com
 helm repo update
+```
 
+### Installer le chart
+
+Remplacez l'URL par votre URL OneUptime, et les deux espaces réservés par votre clé d'ingestion et le nom du cluster :
+
+```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --create-namespace \
@@ -16,24 +68,37 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
 ```
 
-Votre cluster apparaîtra dans OneUptime en quelques minutes.
+Cela utilise le preset `standard`. Sur GKE Autopilot ou EKS Fargate, [choisissez plutôt leur preset](#choisir-un-preset).
 
-## Choisissez le preset adapté à votre cluster
+### Vérifier que les pods tournent
 
-Les différentes distributions Kubernetes ont des contraintes différentes — notamment la possibilité pour les charges de travail de monter des volumes `hostPath`. Plutôt que de vous obliger à lire la documentation de sécurité, le chart expose une seule option de premier niveau : `preset`.
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent
+```
 
-| Preset                  | À utiliser pour                                                            | Collecte de logs                              | Notes                                                                                                                         |
-| ----------------------- | -------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `standard` (par défaut) | Auto-géré, **EKS sur EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet lisant `/var/log/pods` via hostPath | Surcharge la plus faible. hostPath est disponible sur ces plateformes.                                                        |
-| `gke-autopilot`         | **GKE Autopilot**                                                          | Lecteur d'API Kubernetes (Deployment)         | hostPath est bloqué sur Autopilot. Définit un contexte de sécurité renforcé qui passe les Pod Security Standards d'Autopilot. |
-| `eks-fargate`           | **EKS Fargate**                                                            | Lecteur d'API Kubernetes (Deployment)         | Identique à `gke-autopilot`. Fargate bloque hostPath et les DaemonSets.                                                       |
+Chaque pod devrait atteindre `Running` en une ou deux minutes.
 
-Si vous n'êtes pas sûr, laissez `preset` non défini — vous obtenez les valeurs par défaut `standard`. Si votre cluster rejette l'installation avec une erreur de politique de sécurité de Pod mentionnant `hostPath`, basculez vers `gke-autopilot` (ou `eks-fargate` sur EKS Fargate) et réinstallez.
+### Trouver le cluster dans OneUptime
 
-### Exemples
+Ouvrez **Produits → Infrastructure → Kubernetes → Tous les clusters**. Le cluster apparaît sous son nom en quelques minutes, et ses nœuds, pods et workloads se remplissent.
+:::
 
-**GKE Standard, EKS sur EC2, auto-géré ou AKS :**
+## Choisir un preset
 
+Certaines plateformes Kubernetes ne permettent pas à un workload de monter un volume `hostPath` ni d'exécuter un DaemonSet, ce qu'utilise le collecteur de nœud. Le réglage `preset` choisit ce qui fonctionne sur la vôtre :
+
+| Preset | À utiliser pour | Journaux de pods | Sur chaque nœud |
+| --- | --- | --- | --- |
+| `standard` (par défaut) | Autogéré, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Le collecteur de nœud lit `/var/log/pods` | Métriques kubelet, cAdvisor et système |
+| `gke-autopilot` | **GKE Autopilot** | Le lecteur de journaux les lit via l'API Kubernetes | Métriques kubelet et cAdvisor, sans `hostPath` |
+| `eks-fargate` | **EKS Fargate** | Le lecteur de journaux les lit via l'API Kubernetes | Rien : Fargate n'exécute aucun DaemonSet |
+
+En cas de doute, laissez `preset` vide pour obtenir `standard`. Si l'installation échoue avec une erreur Pod Security qui mentionne `hostPath`, réinstallez avec `gke-autopilot`, ou `eks-fargate` sur EKS Fargate.
+
+GKE Autopilot et EKS Fargate refusent aussi les pods privilégiés, dont l'instrumentation eBPF a besoin, donc désactivez-la à cet endroit avec `--set ebpf.enabled=false` :
+
+:::tabs
+@tab Standard
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --create-namespace \
@@ -41,192 +106,272 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
-
-**GKE Autopilot :**
-
+@tab GKE Autopilot
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot
+  --set preset=gke-autopilot \
+  --set ebpf.enabled=false
 ```
-
-**EKS Fargate :**
-
+@tab EKS Fargate
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate
+  --set preset=eks-fargate \
+  --set ebpf.enabled=false
+```
+:::
+
+## Étiqueter le cluster avec des labels
+
+Les labels que vous passez à l'installation sont attachés au cluster, ainsi qu'aux services et aux hôtes que cet agent signale. `--set oneuptime.labels.<key>=<value>` devient un label de projet nommé `<key>:<value>` :
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent \
+  --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set oneuptime.labels.team=payments \
+  --set oneuptime.labels.env=production \
+  --set oneuptime.labels.region=us-east-1
 ```
 
-## En quoi les deux modes de collecte de logs diffèrent
+Ou gardez-les dans un fichier de valeurs :
 
-Sous le capot, `preset` définit `logs.mode` — et vous pouvez également définir cela directement si vous devez remplacer la valeur par défaut du preset.
+```yaml title="values.yaml"
+oneuptime:
+  url: https://oneuptime.com
+  apiKey: <YOUR_API_KEY>
+  labels:
+    team: payments
+    env: production
+    region: us-east-1
+clusterName: prod
+```
 
-### Mode DaemonSet (`logs.mode: daemonset`)
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  -f values.yaml
+```
 
-Un DaemonSet exécute un pod OpenTelemetry Collector par nœud. Il lit les fichiers de logs sous `/var/log/pods/` via un volume hostPath et les transfère via OTLP.
+Chaque enregistrement que cet agent envoie - journaux, métriques, traces et profils - porte alors `team:payments`, `env:production` et `region:us-east-1`. Chaque label est un attribut de ressource `oneuptime.label.<key>=<value>`, et OneUptime transforme en label chaque attribut qui commence par `oneuptime.label.`. Les labels sont comparés sans tenir compte de la casse, donc un label `Production` existant est réutilisé, pas dupliqué. L'agent ne supprime jamais un label que vous avez ajouté dans OneUptime.
 
-- **Avantages :** surcharge la plus faible, mise à l'échelle linéaire avec les nœuds, aucune charge sur le serveur d'API Kubernetes, gère la rotation des logs.
-- **Inconvénients :** nécessite hostPath, nécessite la capacité de planifier des DaemonSets — tous deux indisponibles sur GKE Autopilot et EKS Fargate.
+## Journaux de pods
 
-### Mode API (`logs.mode: api`)
+`preset` définit `logs.mode`, que vous pouvez aussi définir vous-même :
 
-Un Deployment à réplique unique (l'image `oneuptime/kubernetes-log-tailer`) utilise l'API Kubernetes pour diffuser les logs des conteneurs — le même endpoint que `kubectl logs -f` utilise. Pas de hostPath, pas d'accès à l'hôte, pas de DaemonSet.
+| `logs.mode` | Comment les journaux sont lus | Avantages | Points d'attention |
+| --- | --- | --- | --- |
+| `daemonset` | Un collecteur de nœud par nœud suit les fichiers sous `/var/log/pods`. | Surcoût minimal, évolue avec les nœuds, aucune charge sur le serveur d'API Kubernetes, suit la rotation des journaux. | Nécessite `hostPath` et des DaemonSets. |
+| `api` | Un lecteur de journaux diffuse le journal de chaque conteneur depuis l'API Kubernetes, comme le fait `kubectl logs -f`. | Fonctionne là où `hostPath` est bloqué ou où le Pod Security Standard `restricted` s'applique. | Chaque flux de conteneur est une connexion de longue durée au serveur d'API. Un réplica gère quelques milliers de conteneurs. |
+| `disabled` | Rien. | Pour les applications qui envoient déjà leurs journaux autrement. | |
 
-- **Avantages :** fonctionne sur GKE Autopilot, EKS Fargate et tout cluster qui bloque hostPath ou applique le Pod Security Standard `restricted`.
-- **Inconvénients :** Chaque flux de conteneur est une connexion de longue durée à kube-apiserver. Une réplique gère confortablement quelques milliers de conteneurs. Pour les très grands clusters, répartissez des releases distinctes avec des règles include de portée podLogs dans namespaceFilters.rules.
+Pour désactiver la collecte des journaux, définissez `--set logs.enabled=false` et envoyez plutôt les journaux applicatifs avec les SDK [OpenTelemetry](/docs/telemetry/open-telemetry). Les métriques ne sont pas affectées : le collecteur de nœud continue de tourner.
 
-### Lequel devez-vous utiliser ?
+### Clusters multi-OS (pools de nœuds Windows)
 
-Si hostPath fonctionne, utilisez DaemonSet. Partout ailleurs, utilisez le mode API. Le paramètre `preset` choisit le bon pour vous.
+Les nœuds Windows n'exécutent jamais de pod de l'agent. Les données de niveau cluster sur eux et leurs pods arrivent quand même, car elles viennent de l'API Kubernetes : conditions des nœuds, phases des pods, événements Kubernetes et kube-state-metrics. Ce qui manque aux nœuds Windows, c'est ce qui est collecté sur le nœud : métriques système, métriques kubelet et cAdvisor, traces eBPF, profils et, en mode de journaux `daemonset`, journaux de pods.
 
-Vous pouvez également désactiver entièrement la collecte de logs avec `--set logs.enabled=false` et envoyer les logs d'application via les SDK OpenTelemetry à la place. Consultez la documentation [OpenTelemetry](/docs/telemetry/open-telemetry).
+Pour collecter aussi les journaux des pods sur les nœuds Windows, activez le mode hybride :
 
-## Traces d'applications et requêtes HTTP via eBPF (activé par défaut)
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set logs.windowsPods.enabled=true
+```
 
-Le chart livre un DaemonSet exécutant [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) sur chaque nœud. OBI charge des programmes eBPF dans le noyau Linux et surveille le trafic au niveau des sockets pour reconstruire les appels HTTP/HTTPS, gRPC et SQL/Redis depuis chaque pod du nœud — pas de modification de code, pas de SDK, pas de sidecar. Le trafic capturé est exporté sous forme de traces OTLP et de métriques de requête/latence directement vers OneUptime.
+Le lecteur de journaux tourne alors à côté des collecteurs de nœud, uniquement pour les pods des nœuds Windows. Les pods Linux conservent la lecture de fichiers, moins coûteuse, et les deux se partagent les pods selon l'OS du nœud, donc aucune ligne de journal n'est envoyée deux fois.
 
-Après l'installation, vos services commencent à apparaître sous **Produits → Traces** et dans la carte de services en une minute ou deux, avec `k8s.cluster.name` défini sur votre `clusterName` afin que vous puissiez filtrer par cluster.
+- **Version de l'image du lecteur.** La répartition limitée à Windows est intégrée à l'image `kubernetes-log-tailer`. Une image plus ancienne l'ignore et suit *tous* les pods, en envoyant deux fois les journaux de chaque pod Linux. N'épinglez pas `logs.api.image.tag` sur une version plus ancienne que la version du chart, et si un nœud a pu mettre en cache une ancienne image `release`, ajoutez `--set logs.api.image.pullPolicy=Always` à la mise à niveau.
+- **Filtrage par gravité.** Avec `filters.logs.minSeverity` défini, une ligne sans gravité reconnaissable est supprimée sur le chemin du collecteur de nœud mais conservée sur celui du lecteur de journaux - voir [Filtrage par gravité des journaux](/docs/telemetry/kubernetes-agent#filtrage-par-gravité-des-journaux). Les pods Windows peuvent alors envoyer davantage de lignes sans niveau que les pods Linux.
 
-### Quand le désactiver
+## Traces applicatives avec eBPF
 
-eBPF est **activé par défaut**. Vous devez le désactiver (`--set ebpf.enabled=false`) si :
+Le chart exécute [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) sur chaque nœud. OBI charge des programmes eBPF dans le noyau Linux et observe le trafic réseau de chaque pod, ce qui lui permet de reconstituer les appels HTTP et HTTPS, gRPC, et SQL et Redis sans aucune modification de vos applications : pas de SDK, pas de sidecar. Il les envoie à OneUptime sous forme de traces et de métriques de requêtes.
 
-- Vous installez sur **GKE Autopilot** ou **EKS Fargate**. Ces plateformes bloquent les pods privilégiés, et OBI a besoin du mode privilégié pour charger les programmes eBPF.
-- Vos nœuds exécutent un noyau plus ancien que **Linux 5.8** sans backports BTF. (Les distributions modernes — Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+ — sont compatibles.)
-- Vous expédiez déjà des traces via le SDK OpenTelemetry depuis vos applications et ne voulez pas de doublons.
+Vos services apparaissent sous **Produits → Traces** et sur la carte des services en une ou deux minutes, avec `k8s.cluster.name` défini sur le nom du cluster, ce qui permet de filtrer par cluster.
 
-### Ce qui est émis
+### Quand désactiver eBPF
 
-OBI extrait plusieurs familles de signaux du trafic capturé. Toutes sont activées par défaut ; chacune peut être désactivée indépendamment avec `--set ebpf.features.<key>=false` :
+eBPF est activé par défaut. Désactivez-le avec `--set ebpf.enabled=false` lorsque :
 
-| Signal                                  | Par défaut | Ce qu'il ajoute                                                                                                                                                                                              |
-| --------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ebpf.features.httpMetrics`             | activé     | Métriques RED HTTP/gRPC — taux de requêtes, histogrammes de latence, comptages d'erreurs — par service.                                                                                                      |
-| `ebpf.features.spanMetrics`             | activé     | Métriques de span : nombre d'appels et durée par service, route/opération, type de span et statut — `traces.span.metrics.calls`, `traces.span.metrics.duration` (secondes).                                  |
-| `ebpf.features.serviceGraph`            | activé     | Métriques de liens service-à-service (appelant → appelé, taux de requêtes + latence). Alimente la carte de services.                                                                                         |
-| `ebpf.features.networkMetrics`          | activé     | Compteurs d'octets et de paquets de flux TCP/UDP pod-à-pod avec métadonnées k8s. Fait apparaître chaque paire de pods qui communiquent, y compris ceux exécutant des protocoles qu'OBI ne peut pas analyser. |
-| `ebpf.features.networkInterZoneMetrics` | désactivé  | Variante inter-zones des métriques réseau. Double la cardinalité ; ne vaut la peine d'être activé que si vous utilisez réellement la planification basée sur les zones.                                      |
-| `ebpf.features.tcpStats`                | activé     | Statistiques TCP au niveau du nœud : histogrammes RTT, comptages de connexions échouées, retransmissions.                                                                                                    |
+- Le cluster est **GKE Autopilot** ou **EKS Fargate**. Ils refusent les pods privilégiés, et OBI doit être privilégié pour charger ses programmes.
+- Les nœuds exécutent un noyau antérieur à **Linux 5.8** sans BTF. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 et les versions ultérieures conviennent.
+- Vos applications envoient déjà des traces avec un SDK OpenTelemetry, et vous ne les voulez pas en double.
 
-OBI peut également propager le contexte de trace au travers des frontières de services, de sorte que le span côté pod B soit lié à la même trace que la requête sortante du pod A — sans aucune modification du SDK dans l'une ou l'autre des applications. **C'est désactivé par défaut ; activez-le avec `--set ebpf.contextPropagation=true`.**
+### Ce qu'envoie eBPF
 
-| Option                     | Par défaut | Description                                                                                                                                                                                        |
-| -------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | désactivé  | Injecte un `traceparent` W3C dans le trafic sortant pour que les spans soient liés entre services. Désactivé par défaut — lisez d'abord l'avertissement ci-dessous. Aucune exigence de noyau supplémentaire ; aucune version de noyau ne la rend inerte. |
-| `ebpf.contextPropagationMode` | headers | Comment le `traceparent` est injecté : `headers` (en-têtes de requête HTTP/1.1, le plus restreint), `tcp` (option TCP via Linux Traffic Control) ou `all` (les deux). Lu uniquement lorsque `contextPropagation` est à true. |
-| `ebpf.trackRequestHeaders` | activé     | Suivi des en-têtes de requête côté noyau pour que la propagation fonctionne également sur les serveurs HTTP simples (non-Go, non-TLS). Ne prend effet que lorsque `contextPropagation` est à true. |
+OBI envoie plusieurs types de signaux. Chacun peut être désactivé avec `--set ebpf.features.<key>=false` :
 
-> **⚠️ Pourquoi c'est désactivé par défaut.** Tous les modes de propagation modifient du trafic déjà en vol : les requêtes HTTP en clair sont élargies sur place dans le noyau, tandis que TLS et TCP brut se voient ajouter une option TCP depuis un hook Traffic Control. Si la comptabilité d'octets de la connexion n'est pas corrigée exactement, le flux se désynchronise — le symptôme rapporté est que les transferts passant par un proxy L7 comme nginx se bloquent au milieu du corps dès que la réponse dépasse ~64 Ko, alors que les petites requêtes continuent de fonctionner, ce qui ressemble à un bug applicatif plutôt qu'à un bug de l'agent. Les traces, les métriques RED et la carte des services n'en dépendent pas ; pour relier les traces entre services, un SDK OpenTelemetry qui propage l'en-tête en espace utilisateur sans réécriture noyau est l'option la plus sûre.
+| Réglage | Par défaut | Ce qu'il ajoute |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | activé | Des métriques de requêtes HTTP et gRPC par service : taux de requêtes, histogrammes de latence et erreurs. |
+| `ebpf.features.spanMetrics` | activé | Des métriques de spans : appels et durée par service, route ou opération, type de span et statut - `traces.span.metrics.calls` et `traces.span.metrics.duration` (secondes). |
+| `ebpf.features.serviceGraph` | activé | Le taux et la latence de chaque appel d'un service à un autre, qui dessinent la carte des services. |
+| `ebpf.features.networkMetrics` | activé | Les octets et paquets entre chaque paire de pods, sur TCP et UDP, avec leurs noms Kubernetes. Montre chaque paire de pods qui communiquent, même via des protocoles qu'OBI ne sait pas lire. |
+| `ebpf.features.networkInterZoneMetrics` | désactivé | La même chose entre zones. Double le nombre de séries : activez-le seulement si vous planifiez par zone. |
+| `ebpf.features.tcpStats` | activé | Des statistiques TCP par nœud : temps d'aller-retour, connexions échouées et retransmissions. |
 
-### Corrélation log ↔ trace
+### Relier les traces entre les services
 
-Également activée par défaut. L'enrichisseur de logs d'OBI intercepte les écritures stdout des pods depuis les processus instrumentés et :
+OBI peut aussi propager la trace à travers un appel : lorsque le pod A appelle le pod B via HTTP ou gRPC, le span côté B rejoint la trace de A, sans SDK dans aucune des deux applications. **C'est désactivé par défaut.** Activez-le avec `--set ebpf.contextPropagation=true`, après avoir lu l'avertissement ci-dessous.
 
-- Pour les **logs au format JSON** : injecte les champs `trace_id` et `span_id` dans la ligne (les valeurs existantes dans le log sont préservées). Le DaemonSet filelog élève ensuite ces champs vers les emplacements natifs trace_id/span_id du LogRecord, de sorte qu'un clic sur un span dans la vue de trace saute vers ses logs dans OneUptime — et qu'un clic sur une ligne de log saute vers sa trace parente.
-- Pour les **logs non-JSON** : la ligne est préservée inchangée — toujours collectée, simplement non liée automatiquement.
+| Option | Par défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | désactivé | Écrit un `traceparent` W3C dans le trafic sortant, afin que les spans se relient entre les services. |
+| `ebpf.contextPropagationMode` | `headers` | Comment : `headers` (en-têtes de requête HTTP/1.1, le plus restreint), `tcp` (une option TCP, via Linux Traffic Control) ou `all` (les deux). Lu uniquement lorsque `contextPropagation` est activé. |
+| `ebpf.trackRequestHeaders` | activé | Suit les en-têtes de requête dans le noyau, pour que le côté récepteur trouve le `traceparent` aussi sur les serveurs HTTP simples. N'a d'effet que lorsque `contextPropagation` est activé. |
 
-| Option                       | Par défaut | Description                                                                                                                  |
-| ---------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.logToTraceCorrelation` | activé     | Active l'enrichisseur de logs OBI et l'élévation du trace_id du pipeline filelog. Définir sur `false` pour ignorer les deux. |
+> [!WARNING]
+> Chaque mode de propagation modifie un trafic déjà en vol. Pour le HTTP simple, OBI agrandit la requête sortante dans le noyau pour y loger l'en-tête ; pour le TLS et le TCP brut, il ajoute une option TCP depuis un hook Traffic Control, en réécrivant le paquet et sa somme de contrôle. Si le décompte d'octets de la connexion n'est alors pas corrigé exactement, le flux se **désynchronise** : les transferts via un proxy comme nginx se bloquent en cours de route, dès qu'une réponse dépasse environ 64 Ko, jusqu'à l'expiration de la connexion. Les petites requêtes continuent de fonctionner, donc cela ressemble à un bug de l'application ou du proxy. Aucune version du noyau ne fait disparaître la réécriture. Les traces, les métriques de requêtes et la carte des services fonctionnent toutes sans elle ; un SDK OpenTelemetry dans vos services relie les traces sans aucune réécriture dans le noyau. Si vous l'activez, essayez-la d'abord sur un cluster hors production, et vérifiez les gros transferts à travers votre proxy.
 
-Mises en garde :
+### Relier les journaux aux traces
 
-- **Les logs doivent être en JSON pour que trace_id apparaisse.** Basculez votre logger vers un formateur JSON — `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json`, etc.
-- **Un stdout mis en mémoire tampon casse la corrélation** car l'appel système `write()` est déclenché sur un thread différent de celui qui a traité la requête. Corrections courantes :
-  - **Python** : définir `PYTHONUNBUFFERED=1` (le runtime met stdout en buffer par blocs lorsqu'il n'est pas un TTY).
-  - **.NET** : au démarrage, `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`. Microsoft.Extensions.Logging `AddConsole()` et les sinks asynchrones de Serilog ne fonctionneront pas non plus — basculez vers un writer de console synchrone (le `WriteTo.Console()` par défaut de Serilog convient).
-- Greenlet / gevent, Tornado, et autres runtimes asynchrones personnalisés ne sont pas couverts.
+**Désactivé par défaut.** Lorsqu'il est activé, OBI attache une sonde à l'appel système `write()` de chaque processus qu'il instrumente, et :
 
-### Réglages
+- Une **ligne de journal JSON** reçoit les champs `trace_id` et `span_id` (les champs que la ligne a déjà sont conservés). Le collecteur de nœud les déplace vers les champs de trace propres de l'enregistrement de journal, donc les journaux d'un span sont à un clic dans OneUptime, tout comme la trace d'une ligne de journal.
+- **Toute autre ligne de journal** est collectée sans changement, sans le lien.
 
-| Option                 | Par défaut                                                 | Description                                                                                                                            |
-| ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.enabled`         | `true`                                                     | Interrupteur principal. Définir sur `false` pour ignorer entièrement le DaemonSet eBPF.                                                |
-| `ebpf.image.tag`       | `v0.14.0`                                                  | Tag d'image OBI. OBI est pré-1.0 ; épinglez à une version connue comme bonne et retestez lors des mises à jour.                        |
-| `ebpf.autoTargetExe`   | `*`                                                        | Glob des exécutables à instrumenter. Restreignez ceci (par exemple `*/python,*/java`) si vous voulez délimiter l'auto-instrumentation. |
-| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI lui-même) | Globs séparés par des virgules à ignorer.                                                                                              |
-| `ebpf.logLevel`        | `info`                                                     | `debug`, `info`, `warn` ou `error`. Définir sur `debug` lors du dépannage.                                                             |
-| `ebpf.printTraces`     | `false`                                                    | Imprime les spans sur le stdout d'OBI en plus de l'export OTLP — utile pour vérifier la capture pendant l'installation.                |
-| `ebpf.resources.*`     | requêtes `100m / 256Mi`, limites `1000m / 1Gi`             | Augmentez pour les clusters à fort trafic.                                                                                             |
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set ebpf.logToTraceCorrelation=true
+```
 
-Pour vérifier qu'OBI est en cours d'exécution et voit du trafic :
+| Option | Par défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `ebpf.logToTraceCorrelation` | `false` | Active l'enrichisseur de journaux d'OBI et la remontée de `trace_id` par le collecteur de nœud. |
+| `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Les processus que touche l'enrichisseur. Chaque entrée est un sélecteur [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) d'OBI, avec des champs comme `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` et `cmd_args`. |
+
+#### Agents APM qui plantent avec
+
+L'enrichisseur réécrit le tampon de sortie de l'application **à l'intérieur du processus** : lorsqu'un processus ciblé appelle `write()`, OBI efface les octets d'origine et écrit une copie enrichie. Les agents APM qui se chargent via `LD_PRELOAD` et enveloppent eux-mêmes `write()` n'y survivent pas :
+
+| Agent APM | Bibliothèque | Ce qui se passe |
+| --- | --- | --- |
+| Dynatrace OneAgent | `liboneagentproc.so` | L'application plante avec SIGSEGV (code de sortie 139). Le propre `write()` du watchdog Dynatrace dépasse sa limite de 10 secondes et le OneAgent redémarre en boucle. |
+| New Relic | `libnewrelic*.so` | Le même type de plantage. |
+| AppDynamics | `libappdynamics*.so` | Le même type de plantage. |
+| Datadog | `libdd*.so` | Le même type de plantage. |
+| Instana | `libinstana*.so` | Le même type de plantage. |
+
+**Les applications .NET sont les plus exposées :** l'agent .NET de Dynatrace se charge toujours via `LD_PRELOAD`, et le journal console de Microsoft.Extensions.Logging n'utilise pas de tampon, donc chaque ligne prend ce chemin. Les applications Python et Go ne sont généralement pas concernées.
+
+Pour l'utiliser à côté de l'un de ces agents, pointez `logEnricher.services` uniquement vers les pods qui n'en ont pas. L'enrichisseur ne sait pas exclure, donc listez ceux à enrichir :
+
+```yaml title="values.yaml"
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      # Enrich only pods with the apm-agent=none label
+      - service:
+          - k8s_pod_labels:
+              apm-agent: "none"
+```
+
+Ou choisissez par runtime. Le chargement par `LD_PRELOAD` de Dynatrace cible .NET, donc enrichir uniquement Python, Go, Ruby et Node.js l'évite :
+
+```yaml title="values.yaml"
+ebpf:
+  logToTraceCorrelation: true
+  logEnricher:
+    services:
+      - service:
+          - languages: "python,go,ruby,nodejs"
+```
+
+#### Les journaux doivent être en JSON et sans tampon
+
+- **Seules les lignes JSON reçoivent un `trace_id`.** Passez le logger à un format JSON : `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json` et autres.
+- **Une sortie avec tampon rompt le lien**, car le `write()` se produit alors sur un autre thread que la requête. En **Python**, définissez `PYTHONUNBUFFERED=1`. En **.NET**, appelez `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })` au démarrage ; `AddConsole()` de Microsoft.Extensions.Logging et les sinks asynchrones de Serilog ne fonctionnent pas, le simple `WriteTo.Console()` de Serilog fonctionne.
+- Greenlet, gevent, Tornado et les autres runtimes asynchrones personnalisés ne sont pas pris en charge.
+
+### Régler eBPF
+
+| Option | Par défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `ebpf.enabled` | `true` | Exécute le DaemonSet eBPF. `false` le laisse de côté. |
+| `ebpf.image.tag` | `v0.14.0` | L'image OBI. OBI est antérieur à la 1.0 : épinglez une version que vous avez testée, et testez à nouveau avant de la changer. |
+| `ebpf.autoTargetExe` | `*` | Des globs des exécutables à instrumenter, séparés par des virgules. Restreignez-le, comme `*/python,*/java`, pour instrumenter moins de runtimes. |
+| `ebpf.excludeExePaths` | Shells, plomberie du cluster, sidecars de service mesh, agents CNI, navigateurs, ClickHouse, collecteurs et OBI lui-même | Des globs des exécutables à ignorer, séparés par des virgules. Un glob trop large ignore aussi vos propres binaires. |
+| `ebpf.logLevel` | `info` | `debug`, `info`, `warn` ou `error`. |
+| `ebpf.printTraces` | `false` | Affiche aussi les spans dans le journal d'OBI, pour vérifier ce qu'il capture. |
+| `ebpf.resources.*` | `100m` de CPU et `512Mi` de mémoire demandés, limites de `2000m` et `2Gi` | Augmentez-les pour les nœuds à fort trafic ou avec de nombreux processus de courte durée. |
+
+Pour vérifier qu'OBI tourne et voit du trafic :
 
 ```bash
 kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## Profilage CPU continu (désactivé par défaut)
+## Profilage CPU continu
 
-Un DaemonSet séparé exécute le [profileur eBPF OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — empaqueté sous l'image `otel/opentelemetry-collector-ebpf-profiler`. Il échantillonne les piles on-CPU à 19Hz sur tous les runtimes supportés (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) et expédie des profils OTLP vers OneUptime, où ils apparaissent sous **Produits → Profils de performance** et sous forme de flame graphs liés aux spans de trace individuels.
+Le [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) peut aussi tourner sur chaque nœud, sous la forme de l'image `otel/opentelemetry-collector-ebpf-profiler`. Il échantillonne ce que chaque processus exécute, 19 fois par seconde, en Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C, C++ et Rust, et envoie les profils à OneUptime. Ils apparaissent sous **Produits → Profils de performance**, et sous forme de flame graph sur chaque span de trace.
 
-Le profilage est **désactivé par défaut** — il est plus lourd que l'auto-instrumentation OBI (plus de CPU par nœud, empreinte mémoire plus importante) et tous les clusters ne souhaitent pas de flame graphs en permanence. Activez-le lorsque vous voulez une télémétrie plus riche : `--set profiling.enabled=true`.
+**Le profilage est désactivé par défaut :** il coûte plus de CPU et de mémoire par nœud que l'instrumentation eBPF. Activez-le avec `--set profiling.enabled=true`.
 
-Lorsque l'auto-instrumentation eBPF est également activée (`ebpf.enabled: true`, la valeur par défaut), chaque échantillon CPU est corrélé avec le contexte de trace d'OBI via une carte bpffs partagée — de sorte que les flame graphs portent trace_id/span_id et que l'interface utilisateur OneUptime peut vous afficher un flame graph par span.
+Avec l'instrumentation eBPF également activée (le comportement par défaut), chaque échantillon porte la trace à laquelle il appartient, donc un span a son propre flame graph. Pour cela, le chart demande à OBI de garder disponible le contexte de trace en cours (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), ce qui coûte un peu aux applications instrumentées à chaque changement de contexte asynchrone. Définissez `profiling.obiProcessContext=false` pour avoir des flame graphs sans le lien vers les spans.
 
-Prérequis :
+Le profilage nécessite **Linux 5.10** ou une version ultérieure, et un pod privilégié avec les ID de processus du nœud : il ne peut pas tourner sur GKE Autopilot ni sur EKS Fargate. Sur des nœuds qui sont eux-mêmes des conteneurs, comme kind ou k3d, il ne sait pas distinguer les processus, et presque aucun échantillon n'est relié à un span.
 
-- **Noyau Linux 5.10+** (légèrement plus récent que le 5.8 dont OBI a besoin).
-- Pod privilégié avec hostPID — mêmes contraintes que le DaemonSet d'auto-instrumentation eBPF. Ne peut pas fonctionner sur GKE Autopilot, EKS Fargate ou d'autres environnements verrouillés.
+| Option | Par défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `profiling.enabled` | `false` | Exécute le DaemonSet du profileur. |
+| `profiling.image.tag` | `0.152.0` | L'image du profileur. Elle est antérieure à la 1.0 : épinglez une version que vous avez testée. |
+| `profiling.samplesPerSecond` | `19` | Le nombre d'échantillons par seconde. 19 évite de s'aligner sur les fréquences de minuterie courantes. |
+| `profiling.offCpuThreshold` | `0` | Une valeur au-dessus de 0 et jusqu'à 1 profile aussi le temps passé hors du CPU, ce qui montre la contention de verrous et les E/S bloquantes, avec un surcoût. |
+| `profiling.tracers` | `""` (chaque runtime) | Les traceurs de langage à charger, séparés par des virgules, comme `go,python`. |
+| `profiling.obiProcessContext` | `true` | Relie les échantillons aux traces d'OBI, et demande à OBI de garder le contexte de trace disponible pour cela. |
 
-Réglages :
+## Autres collectes de données
 
-| Option                        | Par défaut                 | Description                                                                                                                                                        |
-| ----------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `profiling.enabled`           | `false`                    | Interrupteur principal. Désactivé par défaut ; activez-le pour les flame graphs CPU continus.                                                                      |
-| `profiling.image.tag`         | `0.152.0`                  | Tag d'image `otel/opentelemetry-collector-ebpf-profiler`. Le profileur est pré-1.0 ; épinglez à une version connue comme bonne.                                    |
-| `profiling.samplesPerSecond`  | `19`                       | Fréquence d'échantillonnage en Hz. Valeur par défaut amont ; évite l'aliasing accidentel avec les fréquences de minuteur courantes.                                |
-| `profiling.offCpuThreshold`   | `0`                        | (0–1] active le profilage off-CPU — diagnostique la contention de verrous et les E/S bloquantes. Désactivé par défaut car cela ajoute une surcharge de tracepoint. |
-| `profiling.tracers`           | `""` _(tous les runtimes)_ | Liste séparée par des virgules de traceurs de langage à charger.                                                                                                   |
-| `profiling.obiProcessContext` | `true`                     | Corrèle les échantillons avec le contexte de trace d'OBI pour la liaison trace ↔ profil.                                                                          |
-
-## Autres collectes de données (métriques hôte, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
-
-Le chart peut également collecter :
-
-| `<key>.enabled`                   | Par défaut | Ce qu'il ajoute                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hostMetrics`                     | activé     | Métriques OS par nœud depuis `/proc` et `/sys` — profondeur de file d'attente d'E/S de disque, utilisation des inodes du système de fichiers, compteurs d'erreurs NIC, statistiques de pagination, charge moyenne. Vit à l'intérieur du DaemonSet collecteur de logs (pas de pods supplémentaires).                                                                                                                                                 |
-| `kubeletstats.utilizationMetrics` | activé     | Métriques de saturation — CPU/mémoire des conteneurs et des pods exprimés en pourcentage de la requête et de la limite. Huit familles de métriques dérivées qui alimentent les moniteurs « CPU/Memory vs Request » et « CPU/Memory vs Limit ». Même scrape que le récepteur `kubeletstats` existant, pas de pods supplémentaires. Toujours 0 lorsqu'un pod n'a pas de requête/limite définie.                                                       |
-| `kubeletstats.volumeMetrics`      | activé     | Utilisation du disque par PVC (`k8s.volume.available`, `k8s.volume.capacity`). Alimente le moniteur « PVC Low Disk Space ». Une série par PVC par pod — limité pour la plupart des clusters, plus lourd sur les charges de travail avec état comportant des milliers de PVC.                                                                                                                                                                        |
-| `cadvisor`                        | activé     | Scrape l'endpoint `/metrics/cadvisor` du kubelet depuis le pod DaemonSet de chaque nœud pour les métriques de conteneur que `kubeletstats` ne traduit pas : throttling CFS (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) et événements OOM kill (`container_oom_events_total`). Une allowlist de relabel ignore tout le reste au niveau du récepteur afin que la cardinalité reste bornée.                       |
-| `kubeStateMetrics`                | désactivé  | Récupère les métriques d'état du cluster depuis kube-state-metrics : phases des pods (Pending / Terminating), raisons d'attente des conteneurs (CrashLoopBackOff, ImagePullBackOff) et utilisation des quotas de ressources. `mode: bundled` (par défaut) déploie un petit Deployment KSM pour vous ; `mode: external` scrape un KSM existant via `endpoint`. Désactivé par défaut car le mode bundled ajoute un Deployment à l'empreinte du chart. |
-| `auditLogs`                       | désactivé  | Lit `/var/log/kubernetes/audit.log` depuis l'hôte. Capture chaque requête de l'API Kubernetes — qui a fait quoi à quelle ressource. Clusters auto-gérés uniquement — K8s managés (EKS, GKE, AKS, DOKS) acheminent les audit logs vers le puits du fournisseur cloud.                                                                                                                                                                                |
-| `csi`                             | désactivé  | Découvre automatiquement les pods étiquetés `app=csi-driver` (ou `app.kubernetes.io/component=csi-driver`) et scrape leur port Prometheus `metrics` — latence d'attachement/détachement de volume, échecs de provisionnement, IOPS.                                                                                                                                                                                                                 |
-| `coreDns`                         | désactivé  | Scrape le service CoreDNS du cluster sur `:9153/metrics`. Fait apparaître le taux de requêtes, la latence, le taux de hit cache, les comptages d'erreurs — coupables courants de la latence P99.                                                                                                                                                                                                                                                    |
+| Option | Par défaut | Ce qu'elle ajoute |
+| --- | --- | --- |
+| `hostMetrics.enabled` | activé | Les métriques système de chaque nœud depuis `/proc` et `/sys` : files d'attente d'E/S disque, inodes des systèmes de fichiers, erreurs des interfaces réseau, pagination et charge moyenne. Tourne dans le collecteur de nœud, sans pod supplémentaire. |
+| `kubeletstats.utilizationMetrics.enabled` | activé | Le CPU et la mémoire des conteneurs et des pods en pourcentage de leur demande et de leur limite, que lisent les moniteurs de saturation CPU et mémoire. Toujours 0 pour un pod sans demande ni limite. |
+| `kubeletstats.volumeMetrics.enabled` | activé | L'espace libre et total de chaque PVC (`k8s.volume.available`, `k8s.volume.capacity`), que lit le moniteur PVC Low Disk Space. Une série par PVC et par pod. |
+| `cadvisor.enabled` | activé | Le bridage du CPU et les arrêts OOM depuis le `/metrics/cadvisor` de chaque kubelet : `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` et `container_oom_events_total`, et rien d'autre. |
+| `kubeStateMetrics.enabled` | désactivé | Les phases des pods (Pending, Terminating), les pods qui ne peuvent pas être planifiés, les raisons d'attente des conteneurs (CrashLoopBackOff, ImagePullBackOff) et l'utilisation des quotas de ressources, depuis kube-state-metrics. `kubeStateMetrics.mode: bundled` (par défaut) exécute un petit kube-state-metrics pour vous ; `external` lit celui que vous exécutez déjà, à `kubeStateMetrics.endpoint`. |
+| `auditLogs.enabled` | désactivé | Le journal d'audit Kubernetes, `/var/log/kubernetes/audit.log` : chaque requête à l'API, par qui, sur quoi. Clusters autogérés uniquement : les clusters gérés (EKS, GKE, AKS, DOKS) l'envoient au fournisseur cloud. |
+| `csi.enabled` | désactivé | Les métriques des pilotes de stockage CSI, depuis les pods étiquetés `app=csi-driver` ou `app.kubernetes.io/component=csi-driver` : temps d'attachement et de détachement des volumes, échecs de provisionnement, IOPS. |
+| `coreDns.enabled` | désactivé | Les métriques de CoreDNS sur `:9153/metrics` : taux de requêtes, latence, succès du cache et erreurs. |
+| `controlPlane.enabled` | désactivé | etcd, le serveur d'API, l'ordonnanceur et le gestionnaire de contrôleurs. Clusters autogérés uniquement : les clusters gérés ne les exposent pas. |
+| `cost.enabled` | désactivé | Ce que coûte chaque workload. Voir [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost). |
 
 ## Options courantes
 
-| Option                                    | Par défaut                       | Description                                                                                                                                                                                                                   |
-| ----------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preset`                                  | (vide — traité comme `standard`) | Voir le tableau ci-dessus.                                                                                                                                                                                                    |
-| `oneuptime.url`                           | _(requis)_                       | URL de votre instance OneUptime.                                                                                                                                                                                              |
-| `oneuptime.apiKey`                        | _(requis)_                       | Clé API du projet (Paramètres → Clés API).                                                                                                                                                                                    |
-| `clusterName`                             | _(requis)_                       | Nom unique pour ce cluster. Estampillé comme `k8s.cluster.name` sur chaque enregistrement.                                                                                                                                    |
-| `namespaceFilters.rules`                  | Exclure kube-system de podLogs et ebpfDiscovery | Règles include/exclude par portée pour podLogs, ebpfDiscovery, metrics et traces. Les motifs acceptent * et exclude l'emporte toujours. |
-| `logs.enabled`                            | `true`                           | Activer ou désactiver la collecte de logs.                                                                                                                                                                                    |
-| `logs.mode`                               | (dérivé de `preset`)             | `daemonset`, `api` ou `disabled`. Remplace le preset.                                                                                                                                                                         |
-| `logs.api.replicas`                       | `1`                              | Nombre de répliques du Deployment de lecture de logs (mode API uniquement).                                                                                                                                                   |
-| `ebpf.enabled`                            | `true`                           | Capture automatiquement les traces HTTP/gRPC depuis chaque pod via OpenTelemetry eBPF Instrumentation. Voir la section ci-dessus.                                                                                             |
-| `profiling.enabled`                       | `false`                          | Flame graphs CPU continus via le profileur eBPF OpenTelemetry. Désactivé par défaut ; activez-le pour plus de télémétrie. Voir la section ci-dessus.                                                                          |
-| `hostMetrics.enabled`                     | `true`                           | Métriques OS par nœud.                                                                                                                                                                                                        |
-| `kubeletstats.utilizationMetrics.enabled` | `true`                           | Saturation CPU/mémoire des conteneurs et des pods (% de la requête et de la limite). Pas de scrape supplémentaire — dérivé des données kubeletstats.                                                                          |
-| `kubeletstats.volumeMetrics.enabled`      | `true`                           | Utilisation du disque par PVC (`k8s.volume.available`, `k8s.volume.capacity`).                                                                                                                                                |
-| `cadvisor.enabled`                        | `true`                           | Scrape le `/metrics/cadvisor` du kubelet de ce nœud pour les compteurs de throttling CFS + OOM kill. Allowlistée à 3 métriques.                                                                                               |
-| `kubeStateMetrics.enabled`                | `false`                          | Récupère les phases des pods, les raisons d'attente des conteneurs (CrashLoopBackOff / ImagePullBackOff) et l'utilisation des ResourceQuota depuis kube-state-metrics. Voir `kubeStateMetrics.mode` pour bundled vs external. |
-| `auditLogs.enabled`                       | `false`                          | Collecte des audit logs Kubernetes (clusters auto-gérés).                                                                                                                                                                     |
-| `csi.enabled`                             | `false`                          | Métriques Prometheus des pilotes CSI.                                                                                                                                                                                         |
-| `coreDns.enabled`                         | `false`                          | Métriques Prometheus CoreDNS.                                                                                                                                                                                                 |
-| `controlPlane.enabled`                    | `false`                          | Scrape etcd / api-server / scheduler / controller-manager. Clusters auto-gérés uniquement — les offres managées (EKS/GKE/AKS) n'exposent généralement pas ces endpoints.                                                      |
+| Option | Par défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `oneuptime.url` | (obligatoire) | Votre URL OneUptime. |
+| `oneuptime.apiKey` | (obligatoire) | La clé d'ingestion, depuis **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. Envoyée dans l'en-tête `x-oneuptime-token` ; une clé d'API de projet ne fonctionne pas. |
+| `clusterName` | (obligatoire) | Le nom du cluster, unique dans le projet. Chaque enregistrement le porte sous `k8s.cluster.name`. |
+| `preset` | (vide : `standard`) | `standard`, `gke-autopilot` ou `eks-fargate`. Voir [Choisir un preset](#choisir-un-preset). |
+| `oneuptime.labels` | `{}` | Des labels pour chaque enregistrement de cet agent. Voir [Étiqueter le cluster avec des labels](#étiqueter-le-cluster-avec-des-labels). |
+| `namespaceFilters.rules` | Exclut `kube-system` de `podLogs` et `ebpfDiscovery` | Des règles qui incluent ou excluent des namespaces, pour `podLogs`, `ebpfDiscovery`, `metrics` et `traces`. Les motifs peuvent utiliser `*`, et l'exclusion l'emporte toujours. |
+| `filters.logs.minSeverity` | `""` | Supprime les lignes de journaux de pods sous ce niveau : `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` ou `FATAL`. |
+| `filters.metrics.exclude` | `[]` | Les noms de métriques à supprimer. |
+| `sampling.traces.percentage` | `100` | La part des traces à conserver, de 0 à 100. Les traces sont conservées ou supprimées en entier. |
+| `logs.enabled` | `true` | Collecte les journaux de pods. |
+| `logs.mode` | (selon `preset`) | `daemonset`, `api` ou `disabled`. Remplace le preset. |
+| `logs.windowsPods.enabled` | `false` | Suit aussi les pods des nœuds Windows. Voir [Clusters multi-OS](#clusters-multi-os-pools-de-nœuds-windows). |
+| `logs.api.replicas` | `1` | Les réplicas du lecteur de journaux, en mode `api`. |
+| `ebpf.enabled` | `true` | Les traces eBPF et les métriques de requêtes. Voir [Traces applicatives avec eBPF](#traces-applicatives-avec-ebpf). |
+| `profiling.enabled` | `false` | Les flame graphs CPU. Voir [Profilage CPU continu](#profilage-cpu-continu). |
+| `kubeStateMetrics.enabled` | `false` | L'état du cluster depuis kube-state-metrics. |
+| `aiAgent.enabled` | `true` | L'agent IA Kubernetes. Voir [Agent IA Kubernetes](/docs/telemetry/kubernetes-agent) pour ce qu'il peut faire. |
 
-Consultez le [`values.yaml` du chart](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) pour la liste complète.
+Le [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) du chart liste et explique chaque option, et [Agent Kubernetes](/docs/telemetry/kubernetes-agent) couvre le filtrage, l'échantillonnage et la réduction du volume de données.
 
 ## Mise à niveau
 
@@ -237,7 +382,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --reset-then-reuse-values
 ```
 
-`--reset-then-reuse-values` (Helm 3.14+) conserve les valeurs que vous avez définies (préréglage, nom du cluster, filtres) et prend toutes les autres valeurs dans le nouveau chart ; transmettez par-dessus tout nouveau remplacement `--set`. Avec Helm 3.13 ou antérieur, mettez plutôt à niveau avec les valeurs que vous avez définies :
+`--reset-then-reuse-values` (Helm 3.14 et ultérieur) conserve les valeurs que vous avez définies - le preset, le nom du cluster, les filtres - et prend toutes les autres valeurs du nouveau chart. Ajoutez tout nouveau `--set` après lui. Avec Helm 3.13 ou antérieur, mettez plutôt à niveau avec les valeurs que vous avez définies :
 
 ```bash
 helm repo update
@@ -246,9 +391,10 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
   --namespace oneuptime-kubernetes-agent -f values.yaml
 ```
 
-N'utilisez pas `--reuse-values` : il conserve aussi les valeurs par défaut du chart depuis lequel vous mettez à niveau, si bien que les valeurs par défaut d'un chart plus récent (dont son image eBPF) ne s'appliquent jamais. Quand une release tourne avec les valeurs par défaut d'un chart plus ancien, les notes que Helm affiche après l'installation ou la mise à niveau se terminent par un avertissement et la commande qui le corrige.
+Ne mettez pas à niveau avec `--reuse-values` : il conserve aussi les valeurs par défaut du chart depuis lequel vous mettez à niveau, de sorte que les valeurs par défaut d'un chart plus récent, dont son image eBPF, ne s'appliquent jamais. Lorsqu'une release tourne avec les valeurs par défaut d'un ancien chart, les notes que Helm affiche après l'installation ou la mise à niveau se terminent par un avertissement et la commande qui corrige le problème.
 
-> **Les métriques de span eBPF changent de nom.** `ebpf.features.spanMetrics` envoie désormais `traces.span.metrics.calls` et `traces.span.metrics.duration` (secondes) au lieu de `traces_spanmetrics_calls_total` et `traces_spanmetrics_latency` : les mêmes séries, sous les noms qu'OBI conserve (OBI a déprécié les anciens). Un tableau de bord, un graphique ou un moniteur de métriques basé sur un ancien nom ne reçoit plus de nouvelles données après la mise à niveau, sans aucune erreur : passez-le au nouveau nom, et mettez aussi à jour les entrées de `filters.metrics` qui citent un ancien nom.
+> [!WARNING]
+> **Les métriques de spans eBPF ont de nouveaux noms.** `ebpf.features.spanMetrics` envoie désormais `traces.span.metrics.calls` et `traces.span.metrics.duration` (secondes) au lieu de `traces_spanmetrics_calls_total` et `traces_spanmetrics_latency` : les mêmes séries, sous les noms qu'OBI conserve (il a rendu les anciens obsolètes). Un tableau de bord, un graphique ou un moniteur de métriques sur un ancien nom ne reçoit plus de nouvelles données après la mise à niveau, sans erreur - passez-le au nouveau nom, et mettez à jour toute entrée de `filters.metrics` qui nomme un ancien nom.
 
 ## Désinstallation
 
@@ -259,45 +405,68 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ## Dépannage
 
-### L'installation échoue avec « hostPath volumes are not allowed »
+:::details Le cluster apparaît comme Disconnected, ou aucune donnée n'arrive
+Exécutez le script de diagnostic du chart. Il vérifie les pods, la clé d'ingestion et la sortie du cluster, demande à OneUptime si la clé est acceptée, et affiche un seul verdict. Il ne fait que lire, et ne modifie rien :
 
-Votre cluster bloque hostPath. Basculez vers un preset en mode API :
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+  | bash -s -- -n oneuptime-kubernetes-agent
+```
+
+La cause habituelle, surtout après une réinstallation, est une clé d'ingestion erronée ou révoquée : OneUptime la refuse, et le collecteur abandonne chaque lot tandis que ses pods restent `Running`.
+:::
+
+:::details L'installation échoue avec « hostPath volumes are not allowed »
+Le cluster bloque `hostPath`. Passez à un preset qui lit les journaux via l'API Kubernetes, et désactivez eBPF :
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot   # or eks-fargate
+  --set preset=gke-autopilot \
+  --set ebpf.enabled=false
 ```
 
-### Aucun log n'apparaît dans OneUptime
+Sur EKS Fargate, utilisez `--set preset=eks-fargate`.
+:::
 
-Vérifiez les pods de l'agent :
+:::details Des pods de l'agent restent en ImagePullBackOff sur des nœuds Windows
+Les anciens charts planifiaient les DaemonSets de l'agent sur les nœuds Windows, où leurs images Linux ne peuvent jamais être tirées. Exécutez `helm upgrade` : le chart actuel épingle chaque workload aux nœuds Linux, et les pods bloqués disparaissent. Pour collecter les journaux des pods sur les nœuds Windows, voir [Clusters multi-OS](#clusters-multi-os-pools-de-nœuds-windows).
+:::
+
+:::details Aucun journal n'arrive dans OneUptime
+Vérifiez les pods de l'agent et leurs journaux :
 
 ```bash
 kubectl get pods -n oneuptime-kubernetes-agent
 kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
-En mode API, le pod log-tailer expose `/healthz` sur le port 13133 — interrogez-le via `kubectl port-forward` pour un instantané de statut d'export.
+En mode `api`, le lecteur de journaux répond sur `/healthz`, port 13133, avec l'état de ses exports : atteignez-le avec `kubectl port-forward`.
+:::
 
-### Le pod du DaemonSet eBPF est en `CrashLoopBackOff` ou ne parvient pas à démarrer
-
-Vérifiez les logs du pod OBI :
+:::details Les pods eBPF sont en CrashLoopBackOff, ou ne démarrent pas
+Lisez le journal d'OBI :
 
 ```bash
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-Causes courantes :
+- **Le noyau est trop ancien, ou n'a pas de BTF.** OBI nécessite Linux 5.8 ou ultérieur avec BTF ; vérifiez avec `uname -r` sur un nœud. Si vous ne pouvez pas le mettre à niveau, désactivez eBPF avec `--set ebpf.enabled=false`.
+- **Les pods privilégiés sont refusés.** Certains clusters les refusent même en dehors d'Autopilot et de Fargate. Désactivez eBPF.
+- **OBI tourne, mais aucune trace n'arrive.** Définissez `--set ebpf.printTraces=true` et relisez le journal d'OBI. Des spans à cet endroit signifient que l'export vers OneUptime échoue : vérifiez l'URL et la clé d'ingestion. L'absence de spans peut signifier que le trafic est chiffré par une bibliothèque TLS qu'OBI ne sait pas lire, comme une bibliothèque liée statiquement.
+:::
 
-- **Noyau trop ancien ou BTF manquant.** OBI a besoin de Linux 5.8+ avec BTF. Vérifiez avec `uname -r` sur un nœud. Si vous ne pouvez pas mettre à niveau, désactivez eBPF : `--set ebpf.enabled=false`.
-- **Les pods privilégiés sont bloqués.** Certains clusters rejettent les pods privilégiés même en dehors d'Autopilot/Fargate. Désactivez eBPF.
-- **Pas de traces dans le tableau de bord mais OBI est en cours d'exécution.** Définissez `--set ebpf.printTraces=true` et vérifiez le stdout d'OBI — si vous y voyez des spans, le problème est la livraison OTLP (vérifiez `OTEL_EXPORTER_OTLP_ENDPOINT` et votre URL/clé API OneUptime). Si vous ne voyez pas de spans, le trafic qu'OBI surveille peut être entièrement chiffré par une bibliothèque TLS qu'OBI ne peut pas intercepter (par exemple, une implémentation TLS liée statiquement qu'il ne reconnaît pas).
+:::details Les gros transferts se bloquent après l'activation du lien entre traces
+C'est `ebpf.contextPropagation` qui réécrit le trafic : voir l'avertissement dans [Relier les traces entre les services](#relier-les-traces-entre-les-services). Désactivez-le avec `--set ebpf.contextPropagation=false`.
+:::
 
-### Mon cluster a trop de pods pour une seule réplique de log-tailer (mode API uniquement)
+:::details Des applications plantent avec le code de sortie 139 après l'activation du lien entre journaux
+Un agent APM qui se charge via `LD_PRELOAD` est dans les mêmes pods : voir [Agents APM qui plantent avec](#agents-apm-qui-plantent-avec). Désactivez `ebpf.logToTraceCorrelation`, ou pointez `ebpf.logEnricher.services` vers des pods sans cet agent.
+:::
 
-Mettez à l'échelle horizontalement en partitionnant les namespaces. Déployez une fois par groupe de namespaces :
+:::details Un seul lecteur de journaux ne suffit pas pour le cluster (mode api)
+Répartissez les namespaces entre plusieurs releases, chacune installée avec ses propres règles de namespaces :
 
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
@@ -306,4 +475,14 @@ helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   ...
 ```
 
-Alternativement, augmentez `logs.api.replicas` — mais notez que chaque réplique traite tous les namespaces autorisés, donc pour la déduplication, vous avez toujours besoin du sharding par namespace.
+Augmenter `logs.api.replicas` ajoute des lecteurs, mais chacun lit chaque namespace autorisé, donc vous devez quand même répartir les namespaces pour éviter les doublons.
+:::
+
+## Étapes suivantes
+
+:::cards
+- [Surveillance Kubernetes](/docs/monitor/kubernetes-monitor): Alerter sur ce que l'agent envoie.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Le filtrage, l'échantillonnage, l'agent IA, et la réduction du volume de données.
+- [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost): Voir ce que coûte chaque workload.
+- [Surveillance des traces](/docs/monitor/traces-monitor): Alerter sur les traces que capture eBPF.
+:::
