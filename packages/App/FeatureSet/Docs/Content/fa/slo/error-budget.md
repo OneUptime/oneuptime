@@ -117,8 +117,8 @@ stateDiagram-v2
     state "سالم" as Healthy
     state "At Risk" as AtRisk
     state "Budget Exhausted" as Exhausted
-    Healthy --> AtRisk: در آستانه یا پایین‌تر
-    AtRisk --> Healthy: ۵ واحد بالاتر از آستانه
+    Healthy --> AtRisk: در آستانه<br/>یا پایین‌تر
+    AtRisk --> Healthy: ۵ واحد بالاتر<br/>از آستانه
     AtRisk --> Exhausted: در ۰٪ یا پایین‌تر
     Healthy --> Exhausted: در ۰٪ یا پایین‌تر
     Exhausted --> AtRisk: بازگشت ۲٪ بودجه
