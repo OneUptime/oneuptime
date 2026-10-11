@@ -511,7 +511,11 @@ const YOUR_PAGE: Record<string, string> = {
 
 const ONLY_CODE: RegExp = /^`[^`]+`$/;
 const FULL_STOP: RegExp = /[.。．।]$/;
-const SENTENCE_END: RegExp = /^(.*?[.。．।])(\s|$)/;
+/*
+ * A message's first sentence: up to a Latin or Devanagari full stop that a
+ * space or the end follows, or up to a CJK full stop, which no space follows.
+ */
+const SENTENCE_END: RegExp = /^(.*?(?:[.।](?=\s|$)|[。．]))/;
 
 const statusPageLocales: Map<string, Record<string, unknown>> = new Map();
 
@@ -1123,6 +1127,27 @@ describe("the helpers, on these pages' shapes", () => {
         key: "Not scheduled yet. Edit the schedule to set when reports go out.",
       }),
     ).toBe("Not scheduled yet");
+  });
+
+  it("end a message's first sentence at this language's full stop, with or without a space after it", () => {
+    const lead: FlatLookupLabel = {
+      english: "Not scheduled yet",
+      key: "Not scheduled yet. Edit the schedule to set when reports go out.",
+    };
+
+    for (const language of ["ja", "zh-CN", "zh-TW", "hi", "ko", "fa"]) {
+      const message: string = flatLabel(language, lead.key).trim();
+      const drawn: string = drawnMessageLead(language, lead);
+
+      // The lead is the message's first sentence: a full stop and a second sentence follow it.
+      expect(drawn.length).toBeGreaterThan(0);
+      expect(message.startsWith(drawn)).toBe(true);
+      expect(message.slice(drawn.length)).toMatch(/^[.。．।]\s*\S/);
+    }
+
+    expect(drawnMessageLead("ja", lead)).toBe("まだスケジュールされていません");
+    expect(drawnMessageLead("zh-CN", lead)).toBe("尚未安排");
+    expect(drawnMessageLead("hi", lead)).toBe("अभी शेड्यूल नहीं है");
   });
 
   it("match a path's placeholder with this language's word for it", () => {
