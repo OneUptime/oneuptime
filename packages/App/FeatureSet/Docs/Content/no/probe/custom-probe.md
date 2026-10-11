@@ -286,8 +286,10 @@ Sonden leser innstillingene sine fra miljøet når den starter: endre en, og sta
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Nye forsøk etter det første forsøket på en mislykket sjekk, brukt når et trinn ikke angir sitt eget antall, altså opptil 4 forsøk. `0` slår av nye forsøk. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Frist for å sjekke én overvåker, deretter oppgis sjekken og prøves igjen i neste syklus. Standarden øker når tidsgrensen for syntetiske skript heves, så et skript aldri blir avbrutt. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til syntetiske overvåkere, i millisekunder. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sett til `true` for å kjøre Chromium i syntetiske overvåkere inne i sin egen sandkasse. Slå den bare på når sondens container kjører med en seccomp-profil som tillater sandkassen, som Playwrights: uten en kan ikke Chromium starte. Så lenge den er av, logger sonden en advarsel ved oppstart. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til Custom Code-overvåkere, i millisekunder. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sett til `true` for at Website-, API-, External Status Page- og Custom Code-overvåkere på denne sonden skal kunne nå private adresser. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hvor mange nettverksenheter sonden poller samtidig. Øk den for en sonde som poller mange enheter. |
 
 Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet og disken deres), står på siden [Syntetisk overvåking](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ En sonde lager bare utgående tilkoblinger, med mindre du slår på en lytter el
 | Helsesjekker | `PORT` | På, TCP 3874 | `/status/live` og `/status/ready` |
 
 I en container kan en port bare nås fra andre maskiner med vertsnettverk eller når du publiserer den.
+
+Syslog-mottakeren videresender høyst `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` meldinger i minuttet, `600` som standard, forkaster resten og logger hvor mange den forkastet.
 
 `PROBE_NAME` og `PROBE_DESCRIPTION` leses bare av sonder som registrerer seg selv med `REGISTER_PROBE_KEY`, som sondene en selvhostet installasjon kjører for alle prosjekter. En egendefinert sonde henter navnet og beskrivelsen sin fra dashbordet.
 

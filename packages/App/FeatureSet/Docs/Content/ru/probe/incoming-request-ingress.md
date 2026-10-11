@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | Ответ | `200` с пустым объектом JSON (`{}`), отправляется до пересылки запроса. Как и в OneUptime, он отправляется, что бы ни случилось дальше: его получает и запрос с неверным секретным ключом. |
 | Методы | `POST` пересылается как `POST`. `GET` и `HEAD` пересылаются как `GET`. На остальные методы зонд отвечает `404`. |
-| Заголовки | Все, кроме hop-by-hop заголовков (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). Зонд добавляет `OneUptime-Probe-Id`. |
+| Заголовки | Все, кроме hop-by-hop заголовков (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) и `Content-Encoding`: зонд пересылает тело без сжатия. Зонд добавляет `OneUptime-Probe-Id`. |
 | Тело | Тела JSON и форм размером до 50 МБ, как при отправке напрямую в OneUptime. Как и там, любое другое тело приходит в монитор пустым. |
 | Повторы | Если пересылка не удалась, зонд повторяет её до `PROBE_INGRESS_FORWARD_RETRY_LIMIT` раз, ожидая 2 с, затем 4 с, затем 8 с, и никогда не дольше 15 с. Потом он записывает ошибку и отбрасывает запрос. |
 | Прокси | Пересылка идёт через прокси зонда, когда задана `HTTP_PROXY_URL` или `HTTPS_PROXY_URL`. |

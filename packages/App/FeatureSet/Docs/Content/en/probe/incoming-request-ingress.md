@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | The answer | `200` with an empty JSON object (`{}`), sent before the request is forwarded. As on OneUptime, it is sent whatever happens next: a wrong secret key gets it too. |
 | Methods | `POST` is forwarded as `POST`. `GET`, and `HEAD`, are forwarded as `GET`. Other methods get a `404` from the probe. |
-| Headers | All of them except the hop-by-hop ones (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). The probe adds `OneUptime-Probe-Id`. |
+| Headers | All of them except the hop-by-hop ones (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) and `Content-Encoding`, as the probe forwards the body uncompressed. The probe adds `OneUptime-Probe-Id`. |
 | The body | JSON and form bodies of up to 50 MB, as when you send to OneUptime directly. As there, any other body reaches the monitor empty. |
 | Retries | When a forward fails, the probe tries again up to `PROBE_INGRESS_FORWARD_RETRY_LIMIT` times, waiting 2 s, then 4 s, then 8 s, and never more than 15 s. Then it logs the failure and drops the request. |
 | Proxies | The forward goes through the probe's proxy when `HTTP_PROXY_URL` or `HTTPS_PROXY_URL` is set. |

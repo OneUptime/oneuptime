@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | 応答 | 空の JSON オブジェクト (`{}`) 付きの `200` を、リクエストを転送する前に返します。OneUptime と同じく、その後に何が起きても返すので、間違ったシークレットキーでも受け取ります。 |
 | メソッド | `POST` は `POST` として転送します。 `GET` と `HEAD` は `GET` として転送します。ほかのメソッドにはプローブが `404` を返します。 |
-| ヘッダー | ホップバイホップのヘッダー (`Host`、 `Connection`、 `Content-Length`、 `Transfer-Encoding`、 `Keep-Alive`、 `Proxy-Authenticate`、 `Proxy-Authorization`、 `TE`、 `Trailer`、 `Upgrade`) を除くすべて。プローブは `OneUptime-Probe-Id` を追加します。 |
+| ヘッダー | ホップバイホップのヘッダー (`Host`、 `Connection`、 `Content-Length`、 `Transfer-Encoding`、 `Keep-Alive`、 `Proxy-Authenticate`、 `Proxy-Authorization`、 `TE`、 `Trailer`、 `Upgrade`) と `Content-Encoding` を除くすべて (プローブはボディを非圧縮で転送します)。プローブは `OneUptime-Probe-Id` を追加します。 |
 | ボディ | 最大 50 MB の JSON とフォームのボディ。OneUptime に直接送る場合と同じです。直接送る場合と同様に、それ以外のボディは空としてモニターに届きます。 |
 | 再試行 | 転送に失敗すると、プローブは最大 `PROBE_INGRESS_FORWARD_RETRY_LIMIT` 回再試行し、2 秒、4 秒、8 秒と待ちますが、15 秒を超えることはありません。その後、失敗をログに出してリクエストを破棄します。 |
 | プロキシ | `HTTP_PROXY_URL` または `HTTPS_PROXY_URL` が設定されていると、転送はプローブのプロキシを経由します。 |

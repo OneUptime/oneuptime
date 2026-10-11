@@ -286,8 +286,10 @@ The probe reads its settings from its environment when it starts: change one, th
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Retries after the first attempt of a failed monitor check, used when a step does not set its own retry count, so up to 4 attempts. `0` turns retries off. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Deadline for checking one monitor, after which the check is abandoned and retried next cycle. The default grows when the synthetic script timeout is raised, so a script is never cut short. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Timeout for synthetic monitor scripts, in milliseconds. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Set to `true` to run Chromium, in synthetic monitors, inside its own sandbox. Turn it on only when the probe's container runs with a seccomp profile that allows the sandbox, such as Playwright's: without one, Chromium cannot start. While it is off, the probe logs a warning at startup. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Timeout for custom code monitor scripts, in milliseconds. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Set to `true` to let Website, API, External Status Page and Custom Code monitors on this probe reach private addresses. See [Private Network Access](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | How many network devices the probe polls at once. Raise it for a probe that polls many devices. |
 
 The limits a synthetic monitor runs within (how many run at once, their memory and their disk) are on the [Synthetic Monitor](/docs/monitor/synthetic-monitor) page.
 
@@ -339,6 +341,8 @@ A probe makes outbound connections only, unless you turn on a listener, or keep 
 | Health checks | `PORT` | On, TCP 3874 | `/status/live` and `/status/ready` |
 
 Inside a container, a port is reachable from other machines only with host networking or when you publish it.
+
+The syslog receiver forwards at most `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages a minute, `600` by default, drops the rest, and logs how many it dropped.
 
 `PROBE_NAME` and `PROBE_DESCRIPTION` are read only by probes that register themselves with `REGISTER_PROBE_KEY`, such as the probes a self-hosted installation runs for every project. A custom probe takes its name and description from the dashboard.
 

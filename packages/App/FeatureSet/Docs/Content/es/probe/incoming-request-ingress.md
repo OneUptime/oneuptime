@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | La respuesta | `200` con un objeto JSON vacío (`{}`), enviada antes de reenviar la solicitud. Como en OneUptime, se envía pase lo que pase después: una clave secreta equivocada también la recibe. |
 | Los métodos | `POST` se reenvía como `POST`. `GET`, y `HEAD`, se reenvían como `GET`. Los demás métodos reciben un `404` de la sonda. |
-| Las cabeceras | Todas salvo las de salto a salto (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). La sonda añade `OneUptime-Probe-Id`. |
+| Las cabeceras | Todas salvo las de salto a salto (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) y `Content-Encoding`, porque la sonda reenvía el cuerpo sin comprimir. La sonda añade `OneUptime-Probe-Id`. |
 | El cuerpo | Los cuerpos JSON y de formulario de hasta 50 MB, como cuando envía directamente a OneUptime. Como allí, cualquier otro cuerpo llega vacío al monitor. |
 | Los reintentos | Cuando un reenvío falla, la sonda lo reintenta hasta `PROBE_INGRESS_FORWARD_RETRY_LIMIT` veces, esperando 2 s, luego 4 s, luego 8 s, y nunca más de 15 s. Después registra el fallo y descarta la solicitud. |
 | Los proxies | El reenvío pasa por el proxy de la sonda cuando `HTTP_PROXY_URL` o `HTTPS_PROXY_URL` está definida. |

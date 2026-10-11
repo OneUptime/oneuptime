@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | Het antwoord | `200` met een leeg JSON-object (`{}`), gestuurd voordat het verzoek wordt doorgestuurd. Net als bij OneUptime wordt het gestuurd wat er daarna ook gebeurt: ook een verkeerde geheime sleutel krijgt het. |
 | Methoden | `POST` wordt doorgestuurd als `POST`. `GET`, en `HEAD`, worden doorgestuurd als `GET`. Andere methoden krijgen een `404` van de sonde. |
-| Headers | Alle, behalve de hop-by-hop-headers (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). De sonde voegt `OneUptime-Probe-Id` toe. |
+| Headers | Alle, behalve de hop-by-hop-headers (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) en `Content-Encoding`, omdat de sonde de body ongecomprimeerd doorstuurt. De sonde voegt `OneUptime-Probe-Id` toe. |
 | De body | JSON- en formulierbody's tot 50 MB, net als wanneer u rechtstreeks naar OneUptime stuurt. Net als daar komt elke andere body leeg bij de monitor aan. |
 | Herhalingen | Mislukt het doorsturen, dan probeert de sonde het tot `PROBE_INGRESS_FORWARD_RETRY_LIMIT` keer opnieuw en wacht daarbij 2 s, dan 4 s, dan 8 s, en nooit langer dan 15 s. Daarna logt hij de fout en laat het verzoek vallen. |
 | Proxy's | Het doorsturen gaat via de proxy van de sonde als `HTTP_PROXY_URL` of `HTTPS_PROXY_URL` is ingesteld. |

@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | پاسخ | `200` با یک شیء JSON خالی (`{}`)، که پیش از جلو فرستادن درخواست ارسال می‌شود. مثل OneUptime، هر چه پس از آن پیش بیاید فرستاده می‌شود: یک کلید مخفی نادرست هم آن را می‌گیرد. |
 | متدها | `POST` به‌صورت `POST` جلو فرستاده می‌شود. `GET`، و `HEAD`، به‌صورت `GET` جلو فرستاده می‌شوند. متدهای دیگر از پراب `404` می‌گیرند. |
-| سرآیندها | همهٔ آن‌ها جز سرآیندهای hop-by-hop (`Host`، `Connection`، `Content-Length`، `Transfer-Encoding`، `Keep-Alive`، `Proxy-Authenticate`، `Proxy-Authorization`، `TE`، `Trailer`، `Upgrade`). پراب `OneUptime-Probe-Id` را می‌افزاید. |
+| سرآیندها | همهٔ آن‌ها جز سرآیندهای hop-by-hop (`Host`، `Connection`، `Content-Length`، `Transfer-Encoding`، `Keep-Alive`، `Proxy-Authenticate`، `Proxy-Authorization`، `TE`، `Trailer`، `Upgrade`) و `Content-Encoding`، چون پراب بدنه را فشرده‌نشده ارسال می‌کند. پراب `OneUptime-Probe-Id` را می‌افزاید. |
 | بدنه | بدنه‌های JSON و فرم تا ۵۰ مگابایت، همان‌طور که وقتی مستقیم به OneUptime می‌فرستید. مثل آنجا، هر بدنهٔ دیگری خالی به مانیتور می‌رسد. |
 | تلاش دوباره | وقتی جلو فرستادن شکست بخورد، پراب تا `PROBE_INGRESS_FORWARD_RETRY_LIMIT` بار دوباره تلاش می‌کند و ۲ ثانیه، سپس ۴ ثانیه، سپس ۸ ثانیه صبر می‌کند، و هرگز بیش از ۱۵ ثانیه نه. سپس شکست را ثبت می‌کند و درخواست را کنار می‌گذارد. |
 | پراکسی‌ها | وقتی `HTTP_PROXY_URL` یا `HTTPS_PROXY_URL` تنظیم شده باشد، جلو فرستادن از پراکسی پراب می‌گذرد. |

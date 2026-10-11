@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | Die Antwort | `200` mit einem leeren JSON-Objekt (`{}`), gesendet, bevor die Anfrage weitergeleitet wird. Wie bei OneUptime wird sie gesendet, egal was danach geschieht: Auch ein falscher geheimer Schlüssel bekommt sie. |
 | Methoden | `POST` wird als `POST` weitergeleitet. `GET` und `HEAD` werden als `GET` weitergeleitet. Andere Methoden bekommen von der Sonde ein `404`. |
-| Header | Alle außer den Hop-by-Hop-Headern (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). Die Sonde fügt `OneUptime-Probe-Id` hinzu. |
+| Header | Alle außer den Hop-by-Hop-Headern (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) und `Content-Encoding`, da die Sonde den Body unkomprimiert weiterleitet. Die Sonde fügt `OneUptime-Probe-Id` hinzu. |
 | Der Body | JSON- und Formular-Bodies bis 50 MB, wie wenn Sie direkt an OneUptime senden. Wie dort kommt jeder andere Body leer beim Monitor an. |
 | Wiederholungen | Schlägt eine Weiterleitung fehl, versucht es die Sonde bis zu `PROBE_INGRESS_FORWARD_RETRY_LIMIT`-mal erneut und wartet dabei 2 s, dann 4 s, dann 8 s, nie mehr als 15 s. Danach protokolliert sie den Fehler und verwirft die Anfrage. |
 | Proxys | Die Weiterleitung läuft über den Proxy der Sonde, wenn `HTTP_PROXY_URL` oder `HTTPS_PROXY_URL` gesetzt ist. |

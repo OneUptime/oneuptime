@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | La risposta | `200` con un oggetto JSON vuoto (`{}`), inviata prima di inoltrare la richiesta. Come su OneUptime, viene inviata qualunque cosa accada dopo: anche una chiave segreta sbagliata la riceve. |
 | I metodi | `POST` viene inoltrato come `POST`. `GET`, e `HEAD`, vengono inoltrati come `GET`. Gli altri metodi ricevono un `404` dalla sonda. |
-| Le intestazioni | Tutte tranne quelle hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). La sonda aggiunge `OneUptime-Probe-Id`. |
+| Le intestazioni | Tutte tranne quelle hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) e `Content-Encoding`, perché la sonda inoltra il corpo non compresso. La sonda aggiunge `OneUptime-Probe-Id`. |
 | Il corpo | Corpi JSON e di form fino a 50 MB, come quando invii direttamente a OneUptime. Come lì, qualsiasi altro corpo arriva vuoto al monitor. |
 | I nuovi tentativi | Quando un inoltro fallisce, la sonda riprova fino a `PROBE_INGRESS_FORWARD_RETRY_LIMIT` volte, aspettando 2 s, poi 4 s, poi 8 s, e mai più di 15 s. Poi registra l'errore e scarta la richiesta. |
 | I proxy | L'inoltro passa dal proxy della sonda quando `HTTP_PROXY_URL` o `HTTPS_PROXY_URL` è impostata. |

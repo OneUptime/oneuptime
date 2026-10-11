@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | La réponse | `200` avec un objet JSON vide (`{}`), envoyée avant que la requête soit transmise. Comme sur OneUptime, elle est envoyée quoi qu'il arrive ensuite : une clé secrète erronée la reçoit aussi. |
 | Les méthodes | `POST` est transmise en `POST`. `GET`, et `HEAD`, sont transmises en `GET`. Les autres méthodes reçoivent un `404` de la sonde. |
-| Les en-têtes | Tous, sauf les en-têtes hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). La sonde ajoute `OneUptime-Probe-Id`. |
+| Les en-têtes | Tous, sauf les en-têtes hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) et `Content-Encoding`, car la sonde transmet le corps décompressé. La sonde ajoute `OneUptime-Probe-Id`. |
 | Le corps | Les corps JSON et de formulaire jusqu'à 50 Mo, comme quand vous envoyez directement à OneUptime. Comme là-bas, tout autre corps arrive vide au moniteur. |
 | Les nouvelles tentatives | Quand une transmission échoue, la sonde réessaie jusqu'à `PROBE_INGRESS_FORWARD_RETRY_LIMIT` fois, en attendant 2 s, puis 4 s, puis 8 s, et jamais plus de 15 s. Ensuite elle journalise l'échec et abandonne la requête. |
 | Les proxys | La transmission passe par le proxy de la sonde quand `HTTP_PROXY_URL` ou `HTTPS_PROXY_URL` est défini. |

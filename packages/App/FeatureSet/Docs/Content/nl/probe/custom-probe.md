@@ -286,8 +286,10 @@ De sonde leest zijn instellingen bij het starten uit zijn omgeving: wijzig er ee
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Herhalingen na de eerste poging van een mislukte monitorcontrole, gebruikt als een stap geen eigen aantal instelt, dus tot 4 pogingen. `0` zet herhalingen uit. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Termijn voor het controleren van één monitor, waarna de controle wordt opgegeven en de volgende cyclus opnieuw wordt geprobeerd. De standaard groeit wanneer de time-out voor synthetische scripts wordt verhoogd, zodat een script nooit wordt afgebroken. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Time-out voor scripts van synthetische monitors, in milliseconden. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Zet op `true` om Chromium in synthetische monitors in zijn eigen sandbox te laten draaien. Zet het alleen aan als de container van de sonde draait met een seccomp-profiel dat de sandbox toestaat, zoals dat van Playwright: zonder zo'n profiel kan Chromium niet starten. Zolang het uit staat, logt de sonde bij het opstarten een waarschuwing. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Time-out voor scripts van Custom Code-monitors, in milliseconden. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Zet op `true` zodat Website-, API-, External Status Page- en Custom Code-monitors op deze sonde privéadressen mogen bereiken. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hoeveel netwerkapparaten de sonde tegelijk bevraagt. Verhoog het voor een sonde die veel apparaten bevraagt. |
 
 De limieten waarbinnen een synthetische monitor draait (hoeveel tegelijk, hun geheugen en hun schijf) staan op de pagina [Synthetische monitor](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ Een sonde maakt alleen uitgaande verbindingen, tenzij u een listener inschakelt 
 | Gezondheidscontroles | `PORT` | Aan, TCP 3874 | `/status/live` en `/status/ready` |
 
 In een container is een poort vanaf andere machines alleen bereikbaar met hostnetwerk of wanneer u hem publiceert.
+
+De syslog-ontvanger stuurt hoogstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` berichten per minuut door, standaard `600`, laat de rest vallen en logt hoeveel hij heeft laten vallen.
 
 `PROBE_NAME` en `PROBE_DESCRIPTION` worden alleen gelezen door sondes die zich zelf registreren met `REGISTER_PROBE_KEY`, zoals de sondes die een zelf gehoste installatie voor elk project draait. Een aangepaste sonde neemt zijn naam en beschrijving over uit het dashboard.
 

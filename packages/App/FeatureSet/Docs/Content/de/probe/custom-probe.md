@@ -286,8 +286,10 @@ Die Sonde liest ihre Einstellungen beim Start aus ihrer Umgebung: Ändern Sie ei
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Wiederholungen nach dem ersten Versuch einer fehlgeschlagenen Monitorprüfung, wenn ein Schritt keine eigene Anzahl setzt, also bis zu 4 Versuche. `0` schaltet Wiederholungen aus. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Frist für die Prüfung eines Monitors, nach der die Prüfung aufgegeben und im nächsten Zyklus wiederholt wird. Der Standard wächst, wenn das Zeitlimit für synthetische Skripte erhöht wird, damit ein Skript nie abgeschnitten wird. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Zeitlimit für Skripte synthetischer Monitore, in Millisekunden. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Auf `true` setzen, damit Chromium in synthetischen Monitoren in seiner eigenen Sandbox läuft. Schalten Sie es nur ein, wenn der Container der Sonde mit einem seccomp-Profil läuft, das die Sandbox erlaubt, etwa dem von Playwright: ohne ein solches kann Chromium nicht starten. Solange es aus ist, schreibt die Sonde beim Start eine Warnung ins Log. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Zeitlimit für Skripte von Custom-Code-Monitoren, in Millisekunden. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Auf `true` setzen, damit Website-, API-, External-Status-Page- und Custom-Code-Monitore auf dieser Sonde private Adressen erreichen dürfen. Siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Wie viele Netzwerkgeräte die Sonde gleichzeitig abfragt. Erhöhen Sie den Wert für eine Sonde, die viele Geräte abfragt. |
 
 Die Grenzen, in denen ein synthetischer Monitor läuft (wie viele gleichzeitig laufen, ihr Speicher und ihr Plattenplatz), stehen auf der Seite [Synthetische Überwachung](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ Eine Sonde baut nur ausgehende Verbindungen auf, es sei denn, Sie schalten einen
 | Health-Checks | `PORT` | An, TCP 3874 | `/status/live` und `/status/ready` |
 
 In einem Container ist ein Port von anderen Maschinen aus nur mit Host-Networking erreichbar oder wenn Sie ihn veröffentlichen.
+
+Der Syslog-Empfänger leitet höchstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` Nachrichten pro Minute weiter, standardmäßig `600`, verwirft den Rest und schreibt ins Log, wie viele er verworfen hat.
 
 `PROBE_NAME` und `PROBE_DESCRIPTION` werden nur von Sonden gelesen, die sich mit `REGISTER_PROBE_KEY` selbst registrieren, etwa die Sonden, die eine selbst gehostete Installation für jedes Projekt betreibt. Eine benutzerdefinierte Sonde übernimmt Name und Beschreibung aus dem Dashboard.
 

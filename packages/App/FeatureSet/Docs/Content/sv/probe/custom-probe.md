@@ -286,8 +286,10 @@ Sonden läser sina inställningar från sin miljö när den startar: ändra en o
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Nya försök efter det första försöket på en misslyckad kontroll, som används när ett steg inte anger sitt eget antal, alltså upp till 4 försök. `0` stänger av nya försök. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Tidsfrist för att kontrollera en övervakare, varefter kontrollen överges och görs om i nästa cykel. Standardvärdet växer när tidsgränsen för syntetiska skript höjs, så att ett skript aldrig avbryts. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgräns för syntetiska övervakares skript, i millisekunder. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sätt till `true` för att köra Chromium i syntetiska övervakare inuti sin egen sandlåda. Slå bara på den när sondens container körs med en seccomp-profil som tillåter sandlådan, till exempel Playwrights: utan en kan Chromium inte starta. Så länge den är avslagen loggar sonden en varning vid start. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgräns för Custom Code-övervakares skript, i millisekunder. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sätt till `true` för att Website-, API-, External Status Page- och Custom Code-övervakare på den här sonden ska få nå privata adresser. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hur många nätverksenheter sonden pollar samtidigt. Höj den för en sond som pollar många enheter. |
 
 Gränserna som en syntetisk övervakare körs inom (hur många samtidigt, deras minne och deras disk) finns på sidan [Syntetisk övervakning](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ En sond gör bara utgående anslutningar, om du inte slår på en lyssnare eller
 | Hälsokontroller | `PORT` | På, TCP 3874 | `/status/live` och `/status/ready` |
 
 I en container kan en port bara nås från andra maskiner med värdnätverk eller när du publicerar den.
+
+Syslog-mottagaren vidarebefordrar högst `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` meddelanden per minut, `600` som standard, kastar resten och loggar hur många den kastade.
 
 `PROBE_NAME` och `PROBE_DESCRIPTION` läses bara av sonder som registrerar sig själva med `REGISTER_PROBE_KEY`, som de sonder en självhostad installation kör för alla projekt. En anpassad sond hämtar sitt namn och sin beskrivning från instrumentpanelen.
 

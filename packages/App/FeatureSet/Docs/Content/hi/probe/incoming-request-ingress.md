@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | जवाब | खाली JSON ऑब्जेक्ट (`{}`) के साथ `200`, अनुरोध आगे भेजने से पहले। OneUptime की तरह, आगे कुछ भी हो, यह भेजा जाता है: गलत सीक्रेट कुंजी को भी यही मिलता है। |
 | मेथड | `POST` को `POST` के रूप में भेजा जाता है। `GET`, और `HEAD`, को `GET` के रूप में भेजा जाता है। बाकी मेथड को प्रोब से `404` मिलता है। |
-| हेडर | हॉप-बाय-हॉप हेडर (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) को छोड़कर सभी। प्रोब `OneUptime-Probe-Id` जोड़ता है। |
+| हेडर | हॉप-बाय-हॉप हेडर (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) और `Content-Encoding` को छोड़कर सभी, क्योंकि प्रोब बॉडी को बिना कंप्रेशन के आगे भेजता है। प्रोब `OneUptime-Probe-Id` जोड़ता है। |
 | बॉडी | 50 MB तक की JSON और फ़ॉर्म बॉडी, जैसे OneUptime को सीधे भेजने पर। वहाँ की तरह, कोई भी दूसरी बॉडी मॉनिटर तक खाली पहुँचती है। |
 | पुनः प्रयास | आगे भेजना विफल होने पर प्रोब `PROBE_INGRESS_FORWARD_RETRY_LIMIT` बार तक दोबारा कोशिश करता है, 2 सेकंड, फिर 4 सेकंड, फिर 8 सेकंड रुककर, और कभी 15 सेकंड से ज़्यादा नहीं। फिर वह विफलता लॉग करता है और अनुरोध छोड़ देता है। |
 | प्रॉक्सी | `HTTP_PROXY_URL` या `HTTPS_PROXY_URL` सेट होने पर आगे भेजना प्रोब की प्रॉक्सी से होता है। |

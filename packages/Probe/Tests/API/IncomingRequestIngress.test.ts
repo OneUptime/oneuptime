@@ -20,7 +20,14 @@ import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
-import ingressRouter, { getForwardUrl } from "../../API/IncomingRequestIngress";
+import ingressRouter, {
+  createIngressApp,
+  getForwardUrl,
+  INGRESS_BODY_LIMIT,
+} from "../../API/IncomingRequestIngress";
+import http from "http";
+import { AddressInfo } from "net";
+import zlib from "zlib";
 
 /*
  * The probe's ingress is a PROXY sitting between a customer's device and
@@ -352,6 +359,31 @@ describe("the headers it passes on", () => {
     expect(forwarded["Content-Length"]).toBeUndefined();
   });
 
+  /*
+   * The listener inflates a compressed body while it parses it, and the
+   * forward carries the parsed body uncompressed. A copied
+   * "Content-Encoding: gzip" made OneUptime try to gunzip plain JSON and
+   * refuse it, so a compressed heartbeat was retried and then dropped.
+   */
+  test("strips Content-Encoding, because the body it forwards is never the compressed one", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await callIngress({
+      headers: {
+        "content-encoding": "gzip",
+        "Content-Encoding": "deflate",
+        "content-type": "application/json",
+      },
+    });
+    await flush();
+
+    const forwarded: Headers = readForward(spy)["headers"] as Headers;
+
+    expect(forwarded["content-encoding"]).toBeUndefined();
+    expect(forwarded["Content-Encoding"]).toBeUndefined();
+    expect(forwarded["content-type"]).toBe("application/json");
+  });
+
   test("joins a repeated header rather than forwarding an array", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 
@@ -568,4 +600,219 @@ describe("when the forward fails", () => {
 
     expect(result.nextError).toBeUndefined();
   });
+});
+
+/*
+ * The listener as a device reaches it: the real app, on a port of its own,
+ * with the body parsers it runs in production. The tests above call the
+ * route handler with a body already in hand; these send bytes, so they hold
+ * what the parsers do - which bodies are read, how large, and how a
+ * compressed one is passed on - and which methods are answered at all.
+ */
+describe("the listener, over HTTP", () => {
+  let server: http.Server;
+  let port: number = 0;
+
+  interface SentRequest {
+    method: string;
+    path?: string;
+    headers?: Record<string, string>;
+    body?: Buffer | string;
+  }
+
+  interface Answer {
+    statusCode: number;
+    body: string;
+  }
+
+  type SendFunction = (request: SentRequest) => Promise<Answer>;
+
+  const send: SendFunction = (request: SentRequest): Promise<Answer> => {
+    return new Promise(
+      (resolve: (answer: Answer) => void, reject: (err: Error) => void) => {
+        const outgoing: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: port,
+            method: request.method,
+            path: request.path ?? "/heartbeat/super-secret-key",
+            headers: request.headers ?? {},
+          },
+          (response: http.IncomingMessage) => {
+            const chunks: Array<Buffer> = [];
+            response.on("data", (chunk: Buffer) => {
+              chunks.push(chunk);
+            });
+            response.on("end", () => {
+              resolve({
+                statusCode: response.statusCode ?? 0,
+                body: Buffer.concat(chunks).toString("utf8"),
+              });
+            });
+          },
+        );
+        outgoing.on("error", reject);
+        if (request.body !== undefined) {
+          outgoing.write(request.body);
+        }
+        outgoing.end();
+      },
+    );
+  };
+
+  // The forward is fire-and-forget: wait for it rather than for a fixed time.
+  type ForwardedFunction = (
+    spy: ApiFetchSpy,
+  ) => Promise<Record<string, unknown>>;
+
+  const forwarded: ForwardedFunction = async (
+    spy: ApiFetchSpy,
+  ): Promise<Record<string, unknown>> => {
+    for (let i: number = 0; i < 200 && spy.mock.calls.length === 0; i++) {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+    }
+
+    return readForward(spy);
+  };
+
+  beforeEach(async () => {
+    server = createIngressApp().listen(0, "127.0.0.1");
+    await new Promise((resolve: (value: unknown) => void) => {
+      server.once("listening", resolve);
+    });
+    port = (server.address() as AddressInfo).port;
+  });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    await new Promise((resolve: (value: unknown) => void) => {
+      server.close(resolve);
+    });
+  });
+
+  test("reads JSON and form bodies up to OneUptime's own 50 MB", () => {
+    expect(INGRESS_BODY_LIMIT).toBe("50mb");
+  });
+
+  test("answers a JSON heartbeat with 200 and an empty JSON object, and forwards the body", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "healthy", version: "1.2.3" }),
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(JSON.parse(answer.body)).toEqual({});
+    expect((await forwarded(spy))["data"]).toEqual({
+      status: "healthy",
+      version: "1.2.3",
+    });
+  });
+
+  test("inflates a gzip JSON body, and forwards it parsed and without Content-Encoding", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+      },
+      body: zlib.gzipSync(JSON.stringify({ status: "healthy" })),
+    });
+
+    const forward: Record<string, unknown> = await forwarded(spy);
+    const headerNames: Array<string> = Object.keys(
+      forward["headers"] as Headers,
+    ).map((name: string): string => {
+      return name.toLowerCase();
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(forward["data"]).toEqual({ status: "healthy" });
+    expect(headerNames).not.toContain("content-encoding");
+    expect(headerNames).toContain("content-type");
+  });
+
+  test("reads a form body into its fields", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await send({
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "status=healthy&version=1.2.3",
+    });
+
+    expect((await forwarded(spy))["data"]).toEqual({
+      status: "healthy",
+      version: "1.2.3",
+    });
+  });
+
+  /*
+   * OneUptime reads only JSON and form bodies, so any other body reaches the
+   * monitor empty. The listener used to read application/octet-stream too,
+   * under express.raw's 100 KB default: a larger one was answered 413, not
+   * the 200 a device is promised, and was never forwarded at all.
+   */
+  test.each([
+    ["application/octet-stream", 200 * 1024],
+    ["text/plain", 200 * 1024],
+    ["application/octet-stream", 16],
+  ])(
+    "answers 200 to a %s body of %i bytes and forwards it empty, as OneUptime would read it",
+    async (contentType: string, size: number) => {
+      const spy: ApiFetchSpy = mockForwardSucceeds();
+
+      const answer: Answer = await send({
+        method: "POST",
+        headers: { "Content-Type": contentType },
+        body: Buffer.alloc(size, 7),
+      });
+
+      expect(answer.statusCode).toBe(200);
+      expect((await forwarded(spy))["data"]).toEqual({});
+    },
+  );
+
+  test("forwards a HEAD request as a GET", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    const answer: Answer = await send({ method: "HEAD" });
+
+    expect(answer.statusCode).toBe(200);
+    expect(String((await forwarded(spy))["method"])).toMatch(/^get$/i);
+  });
+
+  test.each(["PUT", "PATCH", "DELETE"])(
+    "answers %s with a 404 and forwards nothing",
+    async (method: string) => {
+      const spy: ApiFetchSpy = mockForwardSucceeds();
+
+      const answer: Answer = await send({ method: method });
+
+      expect(answer.statusCode).toBe(404);
+      expect(spy.mock.calls.length).toBe(0);
+    },
+  );
+
+  test.each([
+    "/heartbeat/super-secret-key",
+    "/incoming-request/super-secret-key",
+  ])(
+    "forwards %s under the incoming-request-ingest prefix",
+    async (path: string) => {
+      const spy: ApiFetchSpy = mockForwardSucceeds();
+
+      await send({ method: "GET", path: path });
+
+      expect(String((await forwarded(spy))["url"])).toBe(
+        "https://oneuptime.example.com/incoming-request-ingest/incoming-request/super-secret-key",
+      );
+    },
+  );
 });

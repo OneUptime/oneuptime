@@ -286,8 +286,10 @@ Docker Engine 27 以降は、ネットワーク用の IPv6 サブネットを選
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | 失敗したモニターチェックの最初の試行の後の再試行回数。ステップが独自の回数を設定していないときに使われ、最大 4 回の試行になります。 `0` で再試行をオフにします。 |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | 1 つのモニターをチェックする期限。過ぎるとチェックは打ち切られ、次のサイクルで再試行されます。合成スクリプトのタイムアウトを上げるとデフォルトも伸びるので、スクリプトが途中で切られることはありません。 |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | 合成モニターのスクリプトのタイムアウト (ミリ秒)。 |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | `true` にすると、合成モニターの Chromium を専用のサンドボックス内で実行します。プローブのコンテナーが、Playwright のものなど、サンドボックスを許可する seccomp プロファイルで動いている場合にだけオンにしてください。そのようなプロファイルがないと Chromium は起動できません。オフの間は、プローブが起動時に警告をログに出します。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code モニターのスクリプトのタイムアウト (ミリ秒)。 |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true` にすると、このプローブの Website、API、External Status Page、Custom Code のモニターがプライベートアドレスに届けるようになります。 [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。 |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | プローブが同時にポーリングするネットワークデバイスの数。多くのデバイスをポーリングするプローブでは値を上げてください。 |
 
 合成モニターが動作する上限 (同時に動く数、メモリ、ディスク) は [合成モニター](/docs/monitor/synthetic-monitor) のページにあります。
 
@@ -339,6 +341,8 @@ Docker Engine 27 以降は、ネットワーク用の IPv6 サブネットを選
 | ヘルスチェック | `PORT` | オン、TCP 3874 | `/status/live` と `/status/ready` |
 
 コンテナー内では、ホストネットワークを使うか公開しない限り、ポートに他のマシンから届くことはありません。
+
+Syslog レシーバーが転送するメッセージは 1 分あたり最大 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 件 (既定値は `600`) で、残りは破棄され、破棄した件数がログに出ます。
 
 `PROBE_NAME` と `PROBE_DESCRIPTION` を読むのは、 `REGISTER_PROBE_KEY` で自分自身を登録するプローブ (セルフホストのインストールがすべてのプロジェクト向けに実行するプローブなど) だけです。カスタムプローブは、名前と説明をダッシュボードから受け取ります。
 

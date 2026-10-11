@@ -286,8 +286,10 @@ La sonda legge le sue impostazioni dal proprio ambiente all'avvio: modificane un
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Nuovi tentativi dopo il primo tentativo di un controllo fallito, usati quando un passaggio non imposta il proprio numero, quindi fino a 4 tentativi. `0` disattiva i nuovi tentativi. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Scadenza per controllare un monitor, dopo la quale il controllo viene abbandonato e ripetuto al ciclo successivo. Il valore predefinito cresce quando si alza il timeout degli script sintetici, così uno script non viene mai interrotto. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Timeout degli script dei monitor sintetici, in millisecondi. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Impostala su `true` per eseguire Chromium, nei monitor sintetici, nella sua sandbox. Attivala solo quando il container della sonda gira con un profilo seccomp che consente la sandbox, come quello di Playwright: senza, Chromium non può avviarsi. Finché è disattivata, la sonda scrive un avviso nel log all'avvio. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Timeout degli script dei monitor Custom Code, in millisecondi. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Impostala su `true` per permettere ai monitor Website, API, External Status Page e Custom Code di questa sonda di raggiungere indirizzi privati. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Quanti dispositivi di rete la sonda interroga contemporaneamente. Aumentala per una sonda che interroga molti dispositivi. |
 
 I limiti entro cui gira un monitor sintetico (quanti contemporaneamente, la loro memoria e il loro disco) sono nella pagina [Monitor sintetico](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ Una sonda apre solo connessioni in uscita, a meno che tu non attivi un listener,
 | Controlli di salute | `PORT` | Attivo, TCP 3874 | `/status/live` e `/status/ready` |
 
 In un container, una porta è raggiungibile da altre macchine solo con la rete dell'host o se la pubblichi.
+
+Il ricevitore syslog inoltra al massimo `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messaggi al minuto, `600` per impostazione predefinita, scarta il resto e scrive nel log quanti ne ha scartati.
 
 `PROBE_NAME` e `PROBE_DESCRIPTION` vengono letti solo dalle sonde che si registrano da sole con `REGISTER_PROBE_KEY`, come le sonde che un'installazione self-hosted esegue per tutti i progetti. Una sonda personalizzata prende nome e descrizione dalla dashboard.
 

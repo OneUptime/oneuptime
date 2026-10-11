@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | Svaret | `200` med et tomt JSON-objekt (`{}`), sendt før forespørselen sendes videre. Som hos OneUptime sendes det uansett hva som skjer etterpå: også en feil hemmelig nøkkel får det. |
 | Metoder | `POST` sendes videre som `POST`. `GET`, og `HEAD`, sendes videre som `GET`. Andre metoder får `404` fra sonden. |
-| Headere | Alle unntatt hop-by-hop-headerne (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). Sonden legger til `OneUptime-Probe-Id`. |
+| Headere | Alle unntatt hop-by-hop-headerne (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) og `Content-Encoding`, siden sonden videresender bodyen ukomprimert. Sonden legger til `OneUptime-Probe-Id`. |
 | Body | JSON- og skjema-bodyer på opptil 50 MB, som når du sender direkte til OneUptime. Som der kommer enhver annen body tom frem til overvåkeren. |
 | Nye forsøk | Når en videresending feiler, prøver sonden igjen opptil `PROBE_INGRESS_FORWARD_RETRY_LIMIT` ganger og venter 2 s, så 4 s, så 8 s, og aldri mer enn 15 s. Deretter logger den feilen og forkaster forespørselen. |
 | Proxyer | Videresendingen går gjennom sondens proxy når `HTTP_PROXY_URL` eller `HTTPS_PROXY_URL` er satt. |

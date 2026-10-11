@@ -162,7 +162,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | --- | --- |
 | 回應 | 在轉送請求之前，傳回帶空 JSON 物件（`{}`）的 `200`。與 OneUptime 一樣，無論之後發生什麼都會傳回：錯誤的秘密金鑰也會收到它。 |
 | 方法 | `POST` 以 `POST` 轉送。`GET` 和 `HEAD` 以 `GET` 轉送。其他方法會從探測器收到 `404`。 |
-| 標頭 | 除逐跳標頭（`Host`、`Connection`、`Content-Length`、`Transfer-Encoding`、`Keep-Alive`、`Proxy-Authenticate`、`Proxy-Authorization`、`TE`、`Trailer`、`Upgrade`）之外的全部標頭。探測器會加上 `OneUptime-Probe-Id`。 |
+| 標頭 | 除逐跳標頭（`Host`、`Connection`、`Content-Length`、`Transfer-Encoding`、`Keep-Alive`、`Proxy-Authenticate`、`Proxy-Authorization`、`TE`、`Trailer`、`Upgrade`）和 `Content-Encoding` 之外的全部標頭，因為探測器轉送的是未壓縮的本文。探測器會加上 `OneUptime-Probe-Id`。 |
 | 本文 | 最大 50 MB 的 JSON 和表單本文，與直接傳給 OneUptime 時相同。同樣地，其他本文到達監測器時為空。 |
 | 重試 | 轉送失敗時，探測器最多重試 `PROBE_INGRESS_FORWARD_RETRY_LIMIT` 次，依序等待 2 秒、4 秒、8 秒，最長不超過 15 秒。之後記錄失敗並捨棄該請求。 |
 | Proxy | 設定了 `HTTP_PROXY_URL` 或 `HTTPS_PROXY_URL` 時，轉送會經過探測器的 Proxy。 |

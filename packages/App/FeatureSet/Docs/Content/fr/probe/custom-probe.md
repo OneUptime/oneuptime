@@ -286,8 +286,10 @@ La sonde lit ses réglages dans son environnement au démarrage : modifiez-en un
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Nouvelles tentatives après la première tentative d'une vérification échouée, utilisées quand une étape ne fixe pas son propre nombre, soit jusqu'à 4 tentatives. `0` désactive les nouvelles tentatives. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Délai pour vérifier un moniteur, après lequel la vérification est abandonnée et retentée au cycle suivant. La valeur par défaut augmente quand le délai des scripts synthétiques est relevé, pour qu'un script ne soit jamais interrompu. |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Délai des scripts des moniteurs synthétiques, en millisecondes. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Réglez sur `true` pour exécuter Chromium, dans les moniteurs synthétiques, dans son propre bac à sable. Ne l'activez que si le conteneur de la sonde tourne avec un profil seccomp qui autorise le bac à sable, comme celui de Playwright : sans lui, Chromium ne peut pas démarrer. Tant qu'elle est désactivée, la sonde écrit un avertissement dans son journal au démarrage. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Délai des scripts des moniteurs Custom Code, en millisecondes. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Réglez sur `true` pour permettre aux moniteurs Website, API, External Status Page et Custom Code de cette sonde de joindre des adresses privées. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access). |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Nombre d'appareils réseau que la sonde interroge à la fois. Augmentez-le pour une sonde qui interroge de nombreux appareils. |
 
 Les limites dans lesquelles tourne un moniteur synthétique (combien tournent à la fois, leur mémoire et leur disque) figurent sur la page [Surveillance synthétique](/docs/monitor/synthetic-monitor).
 
@@ -339,6 +341,8 @@ Une sonde n'ouvre que des connexions sortantes, sauf si vous activez un écouteu
 | Contrôles de santé | `PORT` | Activé, TCP 3874 | `/status/live` et `/status/ready` |
 
 Dans un conteneur, un port n'est joignable depuis d'autres machines qu'avec le réseau de l'hôte ou si vous le publiez.
+
+Le récepteur syslog transmet au plus `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages par minute, `600` par défaut, rejette le reste et note dans son journal combien il en a rejeté.
 
 `PROBE_NAME` et `PROBE_DESCRIPTION` ne sont lus que par les sondes qui s'enregistrent elles-mêmes avec `REGISTER_PROBE_KEY`, comme les sondes qu'une installation auto-hébergée exécute pour tous les projets. Une sonde personnalisée prend son nom et sa description dans le tableau de bord.
 

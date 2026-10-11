@@ -286,8 +286,10 @@ Docker Engine 27 及更新版本會為該網路選擇一個 IPv6 子網路，並
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | 監測器檢查首次失敗後的重試次數，在步驟沒有設定自己的重試次數時使用，因此最多嘗試 4 次。`0` 會關閉重試。 |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | 檢查一個監測器的期限，超過後放棄本次檢查並在下一個週期重試。提高合成指令碼逾時時，預設值也會隨之增加，因此指令碼永遠不會被中途截斷。 |
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | 合成監測器指令碼的逾時時間，單位為毫秒。 |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | 設為 `true` 後，合成監測器中的 Chromium 會在它自己的沙箱中執行。只有在探測器的容器使用允許沙箱的 seccomp 設定檔（例如 Playwright 的設定檔）執行時才開啟它：沒有這樣的設定檔，Chromium 無法啟動。關閉時，探測器會在啟動時記錄一則警告。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 監測器指令碼的逾時時間，單位為毫秒。 |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | 設為 `true` 後，此探測器上的 Website、API、External Status Page 和 Custom Code 監測器可以連到私有位址。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。 |
+| `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 探測器同時輪詢的網路裝置數量。輪詢裝置很多的探測器可以調高它。 |
 
 合成監測器執行時的限制（同時執行的數量、記憶體和磁碟）請見 [合成監控](/docs/monitor/synthetic-monitor) 頁面。
 
@@ -339,6 +341,8 @@ Docker Engine 27 及更新版本會為該網路選擇一個 IPv6 子網路，並
 | 健康檢查 | `PORT` | 開啟，TCP 3874 | `/status/live` 和 `/status/ready` |
 
 在容器中，只有使用主機網路或發佈連接埠時，其他機器才能連到該連接埠。
+
+Syslog 接收器每分鐘最多轉送 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 則訊息，預設 `600` 則，捨棄其餘的訊息，並記錄捨棄了多少則。
 
 `PROBE_NAME` 和 `PROBE_DESCRIPTION` 只由使用 `REGISTER_PROBE_KEY` 自行註冊的探測器讀取，例如自行託管的安裝為所有專案執行的探測器。自訂探測器的名稱和描述取自儀表板。
 
