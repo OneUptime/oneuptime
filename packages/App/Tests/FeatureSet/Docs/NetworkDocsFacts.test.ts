@@ -2,9 +2,7 @@ import {
   DEVICE_SNMP_FACET_OPTIONS,
   DEVICE_STATUS_FACET_OPTIONS,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
-import {
-  DIAGNOSTIC_TIMEOUT_IN_MS,
-} from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
+import { DIAGNOSTIC_TIMEOUT_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import {
   NO_MONITOR_QUALIFIER,
   NO_PROBE_QUALIFIER,
@@ -377,20 +375,24 @@ describe("the Network Device Monitor page: adding a device", () => {
       "public snmpPort?:",
     );
 
-    expect(DEVICE).toContain(`| SNMP Port | The UDP port the agent listens on. | No, ${port} by default |`);
+    expect(DEVICE).toContain(
+      `| SNMP Port | The UDP port the agent listens on. | No, ${port} by default |`,
+    );
   });
 });
 
 describe("the Network Device Monitor page: a device's status", () => {
   it("quotes the verdicts the status filter offers", () => {
-    expect(
-      firstColumn(tableAfter(DEVICE, "| Verdict | Means |")),
-    ).toEqual(labelsOf(DEVICE_STATUS_FACET_OPTIONS));
+    expect(firstColumn(tableAfter(DEVICE, "| Verdict | Means |"))).toEqual(
+      labelsOf(DEVICE_STATUS_FACET_OPTIONS),
+    );
   });
 
   it("quotes the qualifiers the lists draw beside a verdict", () => {
     expect(
-      firstColumn(tableAfter(DEVICE, "| Qualifier | Shown when | What to do |")),
+      firstColumn(
+        tableAfter(DEVICE, "| Qualifier | Shown when | What to do |"),
+      ),
     ).toEqual([
       "Stale",
       NO_PROBE_QUALIFIER.text,
@@ -403,13 +405,17 @@ describe("the Network Device Monitor page: a device's status", () => {
     const values: Array<string> = labelsOf(DEVICE_SNMP_FACET_OPTIONS);
 
     expect(values.length).toBe(3);
-    expect(DEVICE).toContain(`an **SNMP** filter with three values: **${values[0]}**`);
+    expect(DEVICE).toContain(
+      `an **SNMP** filter with three values: **${values[0]}**`,
+    );
 
     for (const value of values) {
       expect(DEVICE).toContain(`**${value}** (`);
     }
 
-    expect(DEVICE).toContain(`reads **${NO_SNMP_INTERFACES_LABEL.text}** rather than \`0 / 0\``);
+    expect(DEVICE).toContain(
+      `reads **${NO_SNMP_INTERFACES_LABEL.text}** rather than \`0 / 0\``,
+    );
   });
 
   it("offers the two monitoring methods the Settings form offers, Probe by default", () => {
@@ -419,9 +425,9 @@ describe("the Network Device Monitor page: a device's status", () => {
       },
     );
 
-    expect(firstColumn(tableAfter(DEVICE, "| Method | What it means |"))).toEqual(
-      methods,
-    );
+    expect(
+      firstColumn(tableAfter(DEVICE, "| Method | What it means |")),
+    ).toEqual(methods);
     expect(
       declaredDefault(NETWORK_DEVICE_MODEL, "public monitoringMethod?:"),
     ).toBe("NetworkDeviceMonitoringMethod.Probe");
@@ -468,7 +474,10 @@ describe("the Network Device Monitor page: polling", () => {
 
   it("polls every 5 minutes unless told otherwise", () => {
     expect(
-      declaredDefault(NETWORK_DEVICE_MODEL, "public pollingIntervalInMinutes?:"),
+      declaredDefault(
+        NETWORK_DEVICE_MODEL,
+        "public pollingIntervalInMinutes?:",
+      ),
     ).toBe(documentedDefault("Polling Interval (Minutes)"));
   });
 
@@ -624,17 +633,16 @@ describe("the Network Device Monitor page: vendor templates", () => {
         sysDescr: "EAP245(EU) v3.0",
       })?.id,
     ).not.toBe("tplink-omada-eap");
-    expect(DEVICE).toContain(
-      "except TP-Link's, which you apply yourself",
-    );
+    expect(DEVICE).toContain("except TP-Link's, which you apply yourself");
   });
 
   it("gives the Sophos tunnel status column the page uses as its example", () => {
-    const tunnels: SnmpTableDefinition | undefined = SnmpVendorTemplateUtil.getById(
-      "sophos-sfos",
-    )?.tables?.find((table: SnmpTableDefinition): boolean => {
-      return table.key === "ipsec_tunnels";
-    });
+    const tunnels: SnmpTableDefinition | undefined =
+      SnmpVendorTemplateUtil.getById("sophos-sfos")?.tables?.find(
+        (table: SnmpTableDefinition): boolean => {
+          return table.key === "ipsec_tunnels";
+        },
+      );
     const statusColumn: string = "1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9";
 
     expect(
@@ -642,7 +650,9 @@ describe("the Network Device Monitor page: vendor templates", () => {
         return column.oid === statusColumn;
       }),
     ).toBe(true);
-    expect(DEVICE).toContain(`\`${statusColumn}\` for a Sophos tunnel's status`);
+    expect(DEVICE).toContain(
+      `\`${statusColumn}\` for a Sophos tunnel's status`,
+    );
   });
 });
 
@@ -650,7 +660,10 @@ describe("the Network Device Monitor page: alerting", () => {
   it("lists every criteria the Network Device monitor offers, and no other", () => {
     expect(
       firstColumn(
-        tableAfter(DEVICE, "| Filter type | What it checks | On a ping-only poll |"),
+        tableAfter(
+          DEVICE,
+          "| Filter type | What it checks | On a ping-only poll |",
+        ),
       ).sort(),
     ).toEqual(
       CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
@@ -699,7 +712,11 @@ describe("the Network Device Monitor page: alerting", () => {
   it.each([
     ["sophos-sfos", "IPsec Tunnels: row unhealthy", true],
     ["extreme-wireless-controller", "Access Points: row unhealthy", true],
-    ["extreme-fabric-engine", "Fabric Adjacencies (IS-IS): row unhealthy", true],
+    [
+      "extreme-fabric-engine",
+      "Fabric Adjacencies (IS-IS): row unhealthy",
+      true,
+    ],
     ["extreme-exos", "Power Supplies: row unhealthy", false],
   ])(
     "%s's table health item %s is an incident: %s",
@@ -728,7 +745,9 @@ describe("the Network Device Monitor page: alerting", () => {
         "App/FeatureSet/Workers/Jobs/NetworkAlertPolicy/ReconcilePolicies.ts",
       ),
     ).toContain("schedule: EVERY_FIVE_MINUTE,");
-    expect(DEVICE).toContain("a sweep every five minutes brings larger changes in");
+    expect(DEVICE).toContain(
+      "a sweep every five minutes brings larger changes in",
+    );
   });
 });
 
@@ -821,9 +840,12 @@ describe("the Network Device Monitor page: discovery", () => {
     ["10.0.0.5/32", 1],
     ["10.0.0.5", 1],
     ["10.16-22.0-255.51-66", 28672],
-  ])("%s sweeps %i addresses, as the page counts them", (target: string, hosts: number) => {
-    expect(ScanTargetUtil.countHosts(target)).toBe(hosts);
-  });
+  ])(
+    "%s sweeps %i addresses, as the page counts them",
+    (target: string, hosts: number) => {
+      expect(ScanTargetUtil.countHosts(target)).toBe(hosts);
+    },
+  );
 
   it("skips a /24's network and broadcast addresses, and keeps an octet range's", () => {
     expect(DEVICE).toContain("so a `/24` sweeps 254 hosts");
@@ -833,9 +855,7 @@ describe("the Network Device Monitor page: discovery", () => {
 
   it("refuses a reversed range", () => {
     expect(ScanTargetUtil.isValid("10.22-16.0.1")).toBe(false);
-    expect(DEVICE).toContain(
-      "`10.22-16.0.1` is refused as a reversed range",
-    );
+    expect(DEVICE).toContain("`10.22-16.0.1` is refused as a reversed range");
   });
 
   it("caps a scan where the scan target check does", () => {
@@ -869,8 +889,16 @@ describe("the Network Device Monitor page: discovery", () => {
   });
 
   it("asks NetBIOS names only of private and carrier-grade NAT addresses", () => {
-    for (const address of ["10.0.0.5", "172.16.0.5", "192.168.1.5", "100.64.0.5"]) {
-      expect({ address, asked: isNetbiosQueryableIPv4Address(address) }).toEqual({
+    for (const address of [
+      "10.0.0.5",
+      "172.16.0.5",
+      "192.168.1.5",
+      "100.64.0.5",
+    ]) {
+      expect({
+        address,
+        asked: isNetbiosQueryableIPv4Address(address),
+      }).toEqual({
         address,
         asked: true,
       });
@@ -1032,7 +1060,8 @@ describe("the Network Sites page", () => {
 
   it("documents the CSV columns the importer reads, and its example imports", () => {
     const example: string = SITES.slice(
-      SITES.indexOf('```csv title="sites.csv"\n') + '```csv title="sites.csv"\n'.length,
+      SITES.indexOf('```csv title="sites.csv"\n') +
+        '```csv title="sites.csv"\n'.length,
     ).split("\n```")[0] as string;
     const types: Array<NetworkSiteTypeOption> = [
       { id: "region", name: "Region", parentNetworkSiteTypeId: null },
@@ -1073,9 +1102,11 @@ describe("the Network Vendor Guides page", () => {
 
       for (const key of keys) {
         expect(
-          (template!.tables || []).some((table: SnmpTableDefinition): boolean => {
-            return table.key === key;
-          }),
+          (template!.tables || []).some(
+            (table: SnmpTableDefinition): boolean => {
+              return table.key === key;
+            },
+          ),
         ).toBe(true);
         expect(VENDORS).toContain(`\`${key}\``);
       }
@@ -1092,9 +1123,7 @@ describe("the Network Vendor Guides page", () => {
     expect(VENDORS).toContain(
       `It listens on UDP ${probeDefault("PROBE_SYSLOG_RECEIVER_PORT")} by default`,
     );
-    expect(VENDORS).toContain(
-      "The probe's syslog receiver is off by default",
-    );
+    expect(VENDORS).toContain("The probe's syslog receiver is off by default");
   });
 
   it("tells Fabric Engine from EXOS by the description it quotes", () => {

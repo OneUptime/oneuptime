@@ -148,9 +148,7 @@ function headlineForms(language: string, key: string): Array<string> {
 
   const forms: Array<string> = Object.keys(dashboardLocale(language))
     .filter((candidate: string): boolean => {
-      return (
-        candidate === key || candidate.replace(PLURAL_SUFFIX, "") === key
-      );
+      return candidate === key || candidate.replace(PLURAL_SUFFIX, "") === key;
     })
     .map((candidate: string): string => {
       return localeValue(language, candidate);

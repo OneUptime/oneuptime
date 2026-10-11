@@ -185,9 +185,7 @@ export function verdictPatterns(
   const locale: Record<string, unknown> = dashboardLocale(language);
   const forms: Array<string> = Object.keys(locale)
     .filter((candidate: string): boolean => {
-      return (
-        candidate === key || candidate.replace(PLURAL_SUFFIX, "") === key
-      );
+      return candidate === key || candidate.replace(PLURAL_SUFFIX, "") === key;
     })
     .map((candidate: string): string => {
       return localeValue(language, candidate);
