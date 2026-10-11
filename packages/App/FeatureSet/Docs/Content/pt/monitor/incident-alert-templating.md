@@ -417,7 +417,7 @@ Para mostrar a captura de tela de cada execução que falhou, coloque a imagem e
 | `trapSourceIp` | O endereço de onde veio o trap. Só quando um trap SNMP disparou a verificação. | `string` |
 | `trapVarbinds` | Os varbinds do trap, cada um como `{oid, value}`. Só quando um trap SNMP disparou a verificação. | `Array<Object>` |
 
-Um dispositivo de rede recebe ping a cada coleta e só é varrido por SNMP quando tem credenciais, então **`isOnline` é a única variável acima que um dispositivo só com ping preenche**: todas as outras vêm da varredura SNMP e, sem ela, ficam como escritas. Comece com `{{isOnline}}` e o nome do dispositivo nos modelos que possam ser usados para dispositivos sem credenciais. Veja [Monitor de dispositivos de rede](/docs/monitor/network-device-monitor#what-a-poll-actually-does) para o que cada tipo de coleta reúne.
+Um dispositivo de rede recebe ping a cada coleta e só é varrido por SNMP quando tem credenciais, então **`isOnline` é a única variável acima que um dispositivo só com ping preenche**: todas as outras vêm da varredura SNMP e, sem ela, ficam como escritas. Comece com `{{isOnline}}` e o nome do dispositivo nos modelos que possam ser usados para dispositivos sem credenciais. Veja [Monitor de dispositivos de rede](/docs/monitor/network-device-monitor#o-que-uma-sondagem-realmente-faz) para o que cada tipo de coleta reúne.
 
 ### Monitores de saúde de banco de dados
 
