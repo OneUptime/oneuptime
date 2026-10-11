@@ -76,9 +76,10 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
     "data:\n  password: aHVudGVyMg==\n  user: YWRtaW4=",
     "kind: Secret\ndata:\n  x: eQ==",
     "line with\r\nwindows endings DB_TOKEN=abc",
-    // A URL password in a quoted key, and keys that only look like material.
+    // Material in a quoted key, and keys that only look like material.
     '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}',
     "  'postgres://app:hunter2@db:5432/app': enabled",
+    '"--set db.password=hunter2": "failed"',
     '{"AppSettings2FeatureFlagsEnabledForTenant1": "true", "Path=": "x"}',
   ];
 
@@ -93,7 +94,7 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
   });
 });
 
-describe("a quoted key is read for a URL password", () => {
+describe("a quoted key is read for inline material, but not as base64", () => {
   test("a URL password in a JSON key is masked, on the agent as on the server", () => {
     const output: string =
       '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}';
