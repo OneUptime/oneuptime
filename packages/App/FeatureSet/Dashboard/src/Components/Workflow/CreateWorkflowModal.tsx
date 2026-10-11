@@ -91,6 +91,16 @@ enum WizardStep {
   Configure = "configure",
 }
 
+interface ConfigureStepState {
+  values: WorkflowTemplateVariableValues;
+  typedVariableNames: Array<string>;
+}
+
+const EMPTY_CONFIGURATION: ConfigureStepState = {
+  values: {},
+  typedVariableNames: [],
+};
+
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -108,20 +118,19 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [nameError, setNameError] = useState<string>("");
-  const [variableValues, setVariableValues] =
-    useState<WorkflowTemplateVariableValues>({});
+  /*
+   * What is typed into the Configure step, and the settings someone has typed
+   * into. A setting prefilled from another (WorkflowTemplateVariable.
+   * prefilledFrom) takes what is typed there until it is typed into itself:
+   * the Jira API URL is the Jira Site URL on most sites, so it is typed once,
+   * and changed only where it differs (editTemplateVariable). One state, so
+   * each edit reads both as they stand, however edits are batched.
+   */
+  const [configuration, setConfiguration] =
+    useState<ConfigureStepState>(EMPTY_CONFIGURATION);
+  const variableValues: WorkflowTemplateVariableValues = configuration.values;
   const [variableErrors, setVariableErrors] =
     useState<WorkflowTemplateVariableErrors>({});
-  /*
-   * The settings someone has typed into. A setting prefilled from another
-   * (WorkflowTemplateVariable.prefilledFrom) takes what is typed there until
-   * it is in this list: the Jira API URL is the Jira Site URL on most sites,
-   * so it is typed once, and changed only where it differs. Emptying a
-   * setting takes it off the list (editTemplateVariable).
-   */
-  const [typedVariableNames, setTypedVariableNames] = useState<Array<string>>(
-    [],
-  );
   const [pickerState, setPickerState] = useState<WorkflowTemplatePickerState>(
     INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
   );
@@ -179,9 +188,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     if (!isSameStart) {
       setName(template ? template.workflowName : "");
       setDescription(template ? template.workflowDescription : "");
-      setVariableValues({});
+      setConfiguration(EMPTY_CONFIGURATION);
       setVariableErrors({});
-      setTypedVariableNames([]);
     }
 
     setNameError("");
@@ -458,16 +466,35 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                   error={variableErrors[variable.name]}
                   dataTestId={inputId}
                   onChange={(value: string) => {
-                    const edit: TemplateVariableEdit = editTemplateVariable({
-                      template: selectedTemplate as WorkflowTemplate,
-                      values: variableValues,
-                      typedVariableNames: typedVariableNames,
-                      variableName: variable.name,
-                      value: value,
-                    });
+                    type EditFunction = (
+                      state: ConfigureStepState,
+                    ) => TemplateVariableEdit;
 
-                    setVariableValues(edit.values);
-                    setTypedVariableNames(edit.typedVariableNames);
+                    const editOf: EditFunction = (
+                      state: ConfigureStepState,
+                    ): TemplateVariableEdit => {
+                      return editTemplateVariable({
+                        template: selectedTemplate as WorkflowTemplate,
+                        values: state.values,
+                        typedVariableNames: state.typedVariableNames,
+                        variableName: variable.name,
+                        value: value,
+                      });
+                    };
+
+                    setConfiguration(
+                      (current: ConfigureStepState): ConfigureStepState => {
+                        const next: TemplateVariableEdit = editOf(current);
+
+                        return {
+                          values: next.values,
+                          typedVariableNames: next.typedVariableNames,
+                        };
+                      },
+                    );
+
+                    // The messages under the fields this edit changes go.
+                    const edit: TemplateVariableEdit = editOf(configuration);
 
                     if (
                       edit.changedVariableNames.some((name: string) => {
