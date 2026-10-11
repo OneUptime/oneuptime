@@ -3884,24 +3884,6 @@ const linkedCase = (search, ${kind.noun}Id) => {
   }
   return { row: rows[0], caseId: guidOf(rows[0].incidentid), caseNumber: defuse(caseNumberOf(rows[0])) };
 };
-// Dynamics 365 keeps a note written in its rich-text editor as HTML. Breaks and the ends of
-// blocks become line breaks, other tags nothing, and entities their characters.
-const htmlToText = (value) => {
-  const text = asText(value);
-  if (!/<[a-zA-Z!\/][^>]*>/.test(text) && text.indexOf('&') === -1) return text;
-  return text
-    .replace(/<\s*br\s*\/?>/gi, '\n')
-    .replace(/<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&amp;/gi, '&')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n');
-};
 // What a Dataverse webhook or a Power Automate flow says happened, and to which row. A webhook
 // posts the plug-in execution context: MessageName names the event, and PrimaryEntityName and
 // PrimaryEntityId the row - or, for the Close message, the IncidentResolution it carries. A flow
@@ -4433,6 +4415,19 @@ return { proceed: true, noteId: event.id };
 /*
  * Dynamics 365 -> OneUptime: turns a note on a linked case into the text of
  * a private note, and names the record it belongs on.
+ *
+ * A note written in Dynamics 365's rich-text editor is HTML, and the person
+ * who wrote it - an agent, or a customer through a portal - saw it as text.
+ * The private note it becomes is Markdown, which the dashboard renders and
+ * which is posted, as a feed item, to the project's Slack and Microsoft
+ * Teams channels. So the script reads the HTML the way OneUptime's own code
+ * reads HTML (removeHtmlMarkup / replaceHtmlMarkup in Common/Types/
+ * HtmlMarkup), reads entities only after that, and places what Dynamics 365
+ * users wrote the way OneUptime places any text from outside
+ * (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in
+ * it acts. A script runs in the workflow sandbox, which can import nothing,
+ * so it carries its own copy of both; DynamicsNoteMarkup.test.ts holds the
+ * copies to the originals.
  */
 const dynamicsReadCaseNoteScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -4446,6 +4441,260 @@ const dynamicsReadCaseNoteScript: DynamicsKindScriptFunction = (
 // The longest note this writes. Longer notes are cut, and end in an ellipsis.
 const MAX_NOTE_LENGTH = 30000;
 
+// ---- Reading a note's HTML ----
+// Dynamics 365 keeps a note written in its rich-text editor as HTML. It is read as the text it
+// shows: every tag and comment comes out whole - a line break, and the end of a block, as a new
+// line; anything else as nothing - and only then are entities read, once, so text that was
+// "&lt;b&gt;" stays text and is never a tag. A tag ends at the first ">" outside a quoted value, a
+// comment at its "-->", and a "<" is read as a browser reads it: it starts markup only before a
+// letter, "/", "!" or "?", and is text anywhere else ("latency < 200ms"); markup that never ends
+// loses only its "<", and a run of "<" before markup starts it at its last "<". It is the reading
+// OneUptime's own code uses (replaceHtmlMarkup, reading "<" as text where a browser does), so no
+// tag is left in the text and none can form from what is left. A note with no tag at all is plain
+// text - written through the API, or by the older editor - and only its entities are read.
+const LINE_BREAK = /^<\s*br\s*\/?>$/i;
+const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
+// Longer than a line break or the end of a block is ever written. A longer tag is neither.
+const LONGEST_BREAK_TAG = 256;
+const TAG_START = /<[a-z!\/]/i;
+const WHITESPACE = /\s/;
+// What a tag or comment becomes in the text: a new line for a line break or the end of a block.
+const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
+// Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
+const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
+// Where the tag whose name starts at body ends: just past its first ">" outside a quoted value, or
+// -1 when it never ends. A quote opens a value only after an "=" and any whitespace.
+const scanTagEnd = (html, body) => {
+  let quote = '';
+  let valueNext = false;
+  for (let at = body; at < html.length; at++) {
+    const character = html.charAt(at);
+    if (quote) {
+      if (character === quote) quote = '';
+    } else if (character === '>') {
+      return at + 1;
+    } else if (valueNext && (character === '"' || character === "'")) {
+      quote = character;
+      valueNext = false;
+    } else if (character === '=') {
+      valueNext = true;
+    } else if (!WHITESPACE.test(character)) {
+      valueNext = false;
+    }
+  }
+  return -1;
+};
+// scanTagEnd for every position from "from" on, worked out once from the end of the text. Once one
+// tag is found never to end, every later tag's end is looked up here, so a note full of "<" that
+// never close takes no longer to read than any other.
+const tagEndsFrom = (html, from) => {
+  const size = html.length - from;
+  const ends = new Int32Array(size + 1);
+  // The same, read from just after an "=", where a quote opens a value.
+  const valueEnds = new Int32Array(size + 1);
+  let nextDoubleQuote = -1;
+  let nextSingleQuote = -1;
+  ends[size] = -1;
+  valueEnds[size] = -1;
+  for (let entry = size - 1; entry >= 0; entry--) {
+    const at = from + entry;
+    const character = html.charAt(at);
+    if (character === '>') {
+      ends[entry] = at + 1;
+      valueEnds[entry] = at + 1;
+    } else if (character === '=') {
+      ends[entry] = valueEnds[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else if (character === '"' || character === "'") {
+      const close = character === '"' ? nextDoubleQuote : nextSingleQuote;
+      ends[entry] = ends[entry + 1];
+      // A quoted value runs to the next quote of its kind; the tag goes on after it.
+      valueEnds[entry] = close === -1 ? -1 : ends[close - from + 1];
+      if (character === '"') nextDoubleQuote = at;
+      else nextSingleQuote = at;
+    } else if (WHITESPACE.test(character)) {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = ends[entry + 1];
+    }
+  }
+  return ends;
+};
+// The text of the HTML with every tag and comment replaced by what replace(markup) returns.
+const replaceMarkup = (html, replace) => {
+  let ends = null;
+  let endsFrom = 0;
+  // Where the first "-->" at or after the last comment looked for one is: -2 before the first.
+  let commentClose = -2;
+  // Where the run of "<" the last "<" read is part of ends, so a run is measured once.
+  let runEnd = -1;
+  let text = '';
+  let at = 0;
+  for (;;) {
+    const open = html.indexOf('<', at);
+    if (open === -1) return text + html.slice(at);
+    text += html.slice(at, open);
+    // A run of "<" goes with what follows its last one: it is text unless that starts markup.
+    if (open >= runEnd) {
+      runEnd = open + 1;
+      while (html.charAt(runEnd) === '<') runEnd++;
+    }
+    if (!startsMarkup(html.charCodeAt(runEnd))) {
+      text += html.slice(open, runEnd);
+      at = runEnd;
+      continue;
+    }
+    // The markup starts at the run's last "<"; the ones before it go.
+    if (open < runEnd - 1) {
+      at = runEnd - 1;
+      continue;
+    }
+    let end = -1;
+    if (html.startsWith('<!--', open)) {
+      // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
+      if (commentClose === -2 || (commentClose !== -1 && commentClose < open + 2)) {
+        commentClose = html.indexOf('-->', open + 2);
+      }
+      end = commentClose === -1 ? -1 : commentClose + 3;
+    } else if (ends) {
+      end = ends[open + 1 - endsFrom];
+    } else {
+      end = scanTagEnd(html, open + 1);
+      if (end === -1) {
+        ends = tagEndsFrom(html, open + 1);
+        endsFrom = open + 1;
+      }
+    }
+    if (end === -1) {
+      at = open + 1;
+    } else {
+      text += replace(html.slice(open, end));
+      at = end;
+    }
+  }
+};
+// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
+// "<?" alone - a PHP or XML snippet written through the API - does not make a note HTML.
+const hasTag = (text) => {
+  const start = text.search(TAG_START);
+  return start !== -1 && text.indexOf('>', start + 2) !== -1;
+};
+const readEntities = (text) => text
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;|&apos;/gi, "'")
+  // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
+  .replace(/&amp;/gi, '&');
+// The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
+// and indexOf rather than patterns with quantifiers, which a long note is not read with.
+const tidyLines = (text) => {
+  const lines = text.split('\n');
+  for (let index = 0; index < lines.length - 1; index++) {
+    const line = lines[index];
+    let end = line.length;
+    while (end > 0 && (line.charAt(end - 1) === ' ' || line.charAt(end - 1) === '\t')) end--;
+    lines[index] = line.slice(0, end);
+  }
+  const tidy = lines.join('\n');
+  let result = '';
+  let at = 0;
+  for (;;) {
+    const run = tidy.indexOf('\n\n\n', at);
+    if (run === -1) return result + tidy.slice(at);
+    let end = run + 3;
+    while (tidy.charAt(end) === '\n') end++;
+    result += tidy.slice(at, run) + '\n\n';
+    at = end;
+  }
+};
+const htmlToText = (value) => {
+  const text = asText(value);
+  // Plain text: nothing in it is markup, and only its entities are read.
+  if (!hasTag(text)) return readEntities(text);
+  return tidyLines(readEntities(replaceMarkup(text, markupAsText)));
+};
+
+// ---- Placing it in a note ----
+// A private note is Markdown. The dashboard renders it, and it is posted as a feed item to the
+// project's Slack and Microsoft Teams channels. What Dynamics 365 users wrote is text - Dynamics 365
+// showed it as text - so it is placed the way OneUptime places text from outside everywhere else
+// (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in it acts there. An
+// invisible word joiner (U+2060) goes after each "<" with no whitespace after it (a tag, a comment,
+// an address, a chat mention), after each "!" before "[" (an image), after each "]" that a link goes
+// on from or that ends the text, and before each "mermaid" in what follows the first run of three
+// backticks or tildes on a line (a diagram).
+const JOINER = '\u2060';
+const NUMERIC_REFERENCE = /^&#(?:[xX]([0-9a-fA-F]{1,32})|([0-9]{1,32}));/;
+// Where the first run of three or more backticks or tildes on a line ends, or -1 when it has none.
+const fenceRunEndOf = (line) => {
+  const backticks = line.indexOf('\x60\x60\x60');
+  const tildes = line.indexOf('~~~');
+  const start = backticks === -1 ? tildes : tildes === -1 ? backticks : Math.min(backticks, tildes);
+  if (start === -1) return -1;
+  let end = start;
+  while (line.charAt(end) === line.charAt(start)) end++;
+  return end;
+};
+// Where each "mermaid" after a line's first fence run starts, read as the dashboard reads a fence's
+// language: numeric character references decoded, in any letter case. One right after a joiner is
+// already broken.
+const mermaidWordsOf = (line) => {
+  let at = fenceRunEndOf(line);
+  if (at === -1) return [];
+  while (line.charAt(at) === ' ' || line.charAt(at) === '\t') at++;
+  const characters = [];
+  const starts = [];
+  while (at < line.length) {
+    const reference = line.charAt(at) === '&' ? NUMERIC_REFERENCE.exec(line.slice(at, at + 36)) : null;
+    if (reference) {
+      const code = reference[1] ? parseInt(reference[1], 16) : parseInt(reference[2], 10);
+      const isCharacter = code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
+      characters.push(isCharacter ? String.fromCodePoint(code) : '\ufffd');
+      starts.push(at);
+      at += reference[0].length;
+    } else {
+      characters.push(line.charAt(at));
+      starts.push(at);
+      at++;
+    }
+  }
+  const words = [];
+  let index = 0;
+  while (index + 7 <= characters.length) {
+    let length = 0;
+    while (length < 7 && characters[index + length].toLowerCase() === 'mermaid'.charAt(length)) length++;
+    if (length < 7) {
+      index++;
+    } else {
+      if (index === 0 || characters[index - 1] !== JOINER) words.push(starts[index]);
+      index += 7;
+    }
+  }
+  return words;
+};
+const asNoteText = (value) => {
+  const text = asText(value)
+    .replace(/!(?=\[)/g, '!' + JOINER)
+    .replace(/\](?=[([:])/g, ']' + JOINER)
+    .split('\n')
+    .map((line) => {
+      let placed = '';
+      let cursor = 0;
+      for (const word of mermaidWordsOf(line)) {
+        placed += line.slice(cursor, word) + JOINER;
+        cursor = word;
+      }
+      return placed + line.slice(cursor);
+    })
+    .join('\n');
+  return text.replace(/<(?![\s\u2060])/g, '<' + JOINER).replace(/\]$/, ']' + JOINER);
+};
+
+// ---- Reading the note ----
 const note = readJson(args.note) || {};
 if (!guidOf(note.annotationid)) return skip('Dynamics 365 did not return the note.');
 
@@ -4477,11 +4726,13 @@ if (!subject && !text) {
   return skip('The note on Dynamics 365 case ' + caseNumber + (attachment ? ' is the attachment ' + attachment + ', with no text to copy.' : ' is empty.'));
 }
 
+// Everything that came from Dynamics 365 - the author's name, the case number, the title, the text
+// and the attachment's name - is placed as text (asNoteText); the link to the case is the template's.
 const author = formatted(note, '_createdby_value') || 'Someone';
-const lines = [FROM_DYNAMICS + ': ' + author + ' added a note to case [' + caseNumber + '](' + caseUrlOf(args.dynamicsUrl, guidOf(caseRow.incidentid)) + ').'];
-if (subject) lines.push('', subject);
-if (text) lines.push('', text);
-if (attachment) lines.push('', 'Attachment, left in Dynamics 365: ' + attachment);
+const lines = [FROM_DYNAMICS + ': ' + asNoteText(author) + ' added a note to case [' + asNoteText(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, guidOf(caseRow.incidentid)) + ').'];
+if (subject) lines.push('', asNoteText(subject));
+if (text) lines.push('', asNoteText(text));
+if (attachment) lines.push('', 'Attachment, left in Dynamics 365: ' + asNoteText(attachment));
 
 return {
   proceed: true,
