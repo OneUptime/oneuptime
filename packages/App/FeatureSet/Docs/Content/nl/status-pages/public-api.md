@@ -43,7 +43,7 @@ Een geldig gevormd ID waar geen statuspagina bij hoort, volgt hetzelfde pad als 
 | Zelf gehoste OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | Een eigen domein van de pagina | `https://status.example.com/status-page-api` |
 
-Waar een pad hieronder `{statusPageIdOrDomain}` zegt, kun je het ID van de pagina sturen of een van haar geverifieerde eigen domeinen, zoals `status.example.com`. Het beschikbaarheidsendpoint neemt alleen het ID.
+Waar een pad hieronder `{statusPageIdOrDomain}` zegt, kun je het ID van de pagina sturen of een van haar geverifieerde eigen domeinen, zoals `status.example.com`. Het beschikbaarheidsendpoint neemt alleen het ID, en beantwoordt een domein met `401`.
 
 ## Endpoints
 

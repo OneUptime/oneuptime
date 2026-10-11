@@ -71,11 +71,12 @@ Fügen Sie einen `<match>`-Abschnitt hinzu, der Datensätze an OneUptime sendet.
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` sendet jeden Puffer-Flush als ein JSON-Array, und `flush_interval 10s` sendet alle 10 Sekunden einen Batch.
+`json_array true` sendet jeden Chunk des Puffers als ein JSON-Array, und `flush_interval 10s` sendet den Puffer alle 10 Sekunden. `chunk_limit_size 900k` hält jede Anfrage unter 1 MB, dem Höchstwert, den OneUptime an diesem Endpunkt annimmt.
 
 ### Fluentd neu starten
 
@@ -119,6 +120,7 @@ Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluent
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ Der Ingestion-Schlüssel fehlt, ist unbekannt oder abgelaufen. Prüfen Sie den W
 
 :::details Fluentd protokolliert `402` oder `422`
 `402`: In OneUptime Cloud ist das Projekt im Free-Plan und hat keine Zahlungsmethode. Fügen Sie eine unter **Projekteinstellungen → Abrechnung und Rechnungen → Abrechnung** hinzu. `422`: Der Schlüssel ist deaktiviert, oder es ist ein Browser-Schlüssel. Schalten Sie **Aktiviert** in den Einstellungen des Schlüssels wieder ein, oder erstellen Sie einen **Server**-Schlüssel.
+:::
+
+:::details Fluentd protokolliert `413`
+Die Anfrage ist größer als 1 MB, der Höchstwert, den OneUptime an diesem Endpunkt annimmt. Setzen Sie `chunk_limit_size 900k` im Abschnitt `<buffer>`, wie in der Konfiguration oben.
 :::
 
 :::details Logs kommen unter dem Dienst `Fluentd` an

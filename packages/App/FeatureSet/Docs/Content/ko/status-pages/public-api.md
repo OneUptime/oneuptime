@@ -43,7 +43,7 @@ flowchart TB
 | 자체 호스팅 OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | 페이지의 사용자 지정 도메인 | `https://status.example.com/status-page-api` |
 
-아래 경로에 `{statusPageIdOrDomain}`이 있는 곳에는 페이지 ID나 검증된 사용자 지정 도메인(예: `status.example.com`) 중 하나를 보낼 수 있습니다. 가동률 엔드포인트는 ID만 받습니다.
+아래 경로에 `{statusPageIdOrDomain}`이 있는 곳에는 페이지 ID나 검증된 사용자 지정 도메인(예: `status.example.com`) 중 하나를 보낼 수 있습니다. 가동률 엔드포인트는 ID만 받으며, 도메인에는 `401`로 응답합니다.
 
 ## 엔드포인트
 

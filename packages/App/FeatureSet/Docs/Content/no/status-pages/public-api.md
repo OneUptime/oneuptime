@@ -43,7 +43,7 @@ En velformet ID som ingen statusside har, går samme vei som en privat side og f
 | Selvhostet OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | Et egendefinert domene for siden | `https://status.example.com/status-page-api` |
 
-Der en sti nedenfor sier `{statusPageIdOrDomain}`, kan du sende ID-en til siden eller et av de verifiserte egendefinerte domenene, for eksempel `status.example.com`. Oppetidsendepunktet tar bare ID-en.
+Der en sti nedenfor sier `{statusPageIdOrDomain}`, kan du sende ID-en til siden eller et av de verifiserte egendefinerte domenene, for eksempel `status.example.com`. Oppetidsendepunktet tar bare ID-en, og svarer på et domene med `401`.
 
 ## Endepunkter
 

@@ -43,7 +43,7 @@ An ID that is well formed but belongs to no status page goes down the same path 
 | Self-hosted OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | A custom domain of the page | `https://status.example.com/status-page-api` |
 
-Wherever a path below says `{statusPageIdOrDomain}`, you can send the page's ID or one of its verified custom domains, such as `status.example.com`. The uptime endpoint takes the ID only.
+Wherever a path below says `{statusPageIdOrDomain}`, you can send the page's ID or one of its verified custom domains, such as `status.example.com`. The uptime endpoint takes the ID only, and answers a domain with `401`.
 
 ## Endpoints
 

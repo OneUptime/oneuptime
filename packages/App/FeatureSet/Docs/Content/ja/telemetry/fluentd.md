@@ -71,11 +71,12 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` はバッファーのフラッシュごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにまとめて送ります。
+`json_array true` はバッファーのチャンクごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにバッファーを送ります。`chunk_limit_size 900k` は各リクエストを、このエンドポイントで OneUptime が受け付ける上限の 1 MB 未満に保ちます。
 
 ### Fluentd を再起動する
 
@@ -119,6 +120,7 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ Fluentd のログも、ほかのログと同じように [ログパイプライ�
 
 :::details Fluentd が `402` または `422` を記録する
 `402`: OneUptime Cloud で、プロジェクトが Free プランで支払い方法がありません。**プロジェクト設定 → 請求と請求書 → 請求** で追加してください。`422`: キーが無効化されているか、ブラウザーキーです。キーの設定で **有効** をオンに戻すか、**サーバー** キーを作成してください。
+:::
+
+:::details Fluentd が `413` を記録する
+リクエストが、このエンドポイントで OneUptime が受け付ける上限の 1 MB を超えています。上の設定と同じように、`<buffer>` セクションに `chunk_limit_size 900k` を設定してください。
 :::
 
 :::details ログが `Fluentd` サービスで届く

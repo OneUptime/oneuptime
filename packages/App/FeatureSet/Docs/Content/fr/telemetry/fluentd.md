@@ -71,11 +71,12 @@ Ajoutez une section `<match>` qui envoie les enregistrements à OneUptime. Rempl
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` envoie chaque vidage du tampon comme un seul tableau JSON, et `flush_interval 10s` envoie un lot toutes les 10 secondes.
+`json_array true` envoie chaque bloc du tampon comme un seul tableau JSON, et `flush_interval 10s` envoie le tampon toutes les 10 secondes. `chunk_limit_size 900k` maintient chaque requête sous 1 Mo, le maximum qu'accepte OneUptime sur ce point de terminaison.
 
 ### Redémarrer Fluentd
 
@@ -119,6 +120,7 @@ Cette configuration reçoit des enregistrements par le protocole forward de Flue
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ La clé d'ingestion est absente, inconnue ou expirée. Vérifiez la valeur de `x
 
 :::details Fluentd journalise `402` ou `422`
 `402` : sur OneUptime Cloud, le projet est sur le forfait Free et n'a pas de moyen de paiement. Ajoutez-en un sous **Paramètres du projet → Facturation et factures → Facturation**. `422` : la clé est désactivée, ou c'est une clé Navigateur. Réactivez **Activé** dans les réglages de la clé, ou créez une clé **Serveur**.
+:::
+
+:::details Fluentd journalise `413`
+La requête dépasse 1 Mo, le maximum qu'accepte OneUptime sur ce point de terminaison. Définissez `chunk_limit_size 900k` dans la section `<buffer>`, comme dans la configuration ci-dessus.
 :::
 
 :::details Les logs arrivent sous le service `Fluentd`

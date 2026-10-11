@@ -71,11 +71,12 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true`는 버퍼를 비울 때마다 하나의 JSON 배열로 보내고, `flush_interval 10s`는 10초마다 한 묶음을 보냅니다.
+`json_array true`는 버퍼의 청크마다 하나의 JSON 배열로 보내고, `flush_interval 10s`는 10초마다 버퍼를 보냅니다. `chunk_limit_size 900k`는 각 요청을 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB 미만으로 유지합니다.
 
 ### Fluentd 다시 시작
 
@@ -119,6 +120,7 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ Fluentd 로그도 다른 로그처럼 [로그 파이프라인](/docs/telemetry/l
 
 :::details Fluentd가 `402` 또는 `422`를 기록함
 `402`: OneUptime Cloud에서 프로젝트가 Free 플랜이고 결제 수단이 없습니다. **프로젝트 설정 → 결제 및 청구서 → 결제**에서 추가하세요. `422`: 키가 비활성화되었거나 브라우저 키입니다. 키 설정에서 **활성화됨**을 다시 켜거나 **서버** 키를 만드세요.
+:::
+
+:::details Fluentd가 `413`을 기록함
+요청이 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB를 넘습니다. 위 구성처럼 `<buffer>` 섹션에 `chunk_limit_size 900k`를 설정하세요.
 :::
 
 :::details 로그가 `Fluentd` 서비스로 들어옴

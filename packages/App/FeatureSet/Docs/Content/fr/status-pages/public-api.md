@@ -43,7 +43,7 @@ Un ID bien formé qui n'appartient à aucune page de statut suit le même chemin
 | OneUptime auto-hébergé | `https://<your-oneuptime-host>/status-page-api` |
 | Un domaine personnalisé de la page | `https://status.example.com/status-page-api` |
 
-Partout où un chemin ci-dessous indique `{statusPageIdOrDomain}`, vous pouvez envoyer l'ID de la page ou l'un de ses domaines personnalisés vérifiés, comme `status.example.com`. Le point de terminaison de disponibilité n'accepte que l'ID.
+Partout où un chemin ci-dessous indique `{statusPageIdOrDomain}`, vous pouvez envoyer l'ID de la page ou l'un de ses domaines personnalisés vérifiés, comme `status.example.com`. Le point de terminaison de disponibilité n'accepte que l'ID, et répond `401` à un domaine.
 
 ## Points de terminaison
 

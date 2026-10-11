@@ -71,11 +71,12 @@ Voeg een `<match>`-sectie toe die records naar OneUptime stuurt. Vervang `YOUR_S
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` stuurt elke flush van de buffer als één JSON-array, en `flush_interval 10s` stuurt elke 10 seconden een batch.
+`json_array true` stuurt elke chunk van de buffer als één JSON-array, en `flush_interval 10s` stuurt de buffer elke 10 seconden. `chunk_limit_size 900k` houdt elk request onder 1 MB, het meeste dat OneUptime op dit endpoint aanneemt.
 
 ### Fluentd herstarten
 
@@ -119,6 +120,7 @@ Deze configuratie ontvangt records via het forward-protocol van Fluentd op poort
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ De ingestiesleutel ontbreekt, is onbekend of verlopen. Controleer de waarde van 
 
 :::details Fluentd logt `402` of `422`
 `402`: in OneUptime Cloud zit het project op het Free-abonnement en heeft het geen betaalmethode. Voeg er een toe onder **Projectinstellingen → Facturering en facturen → Facturering**. `422`: de sleutel is uitgeschakeld, of het is een browsersleutel. Zet **Ingeschakeld** weer aan in de instellingen van de sleutel, of maak een **Server**-sleutel.
+:::
+
+:::details Fluentd logt `413`
+Het request is groter dan 1 MB, het meeste dat OneUptime op dit endpoint aanneemt. Zet `chunk_limit_size 900k` in de sectie `<buffer>`, zoals in de configuratie hierboven.
 :::
 
 :::details Logs komen binnen onder de service `Fluentd`

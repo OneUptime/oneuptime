@@ -43,7 +43,7 @@ Un ID ben formato che non appartiene a nessuna pagina di stato segue lo stesso p
 | OneUptime self-hosted | `https://<your-oneuptime-host>/status-page-api` |
 | Un dominio personalizzato della pagina | `https://status.example.com/status-page-api` |
 
-Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID della pagina o uno dei suoi domini personalizzati verificati, come `status.example.com`. L'endpoint della disponibilità accetta solo l'ID.
+Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID della pagina o uno dei suoi domini personalizzati verificati, come `status.example.com`. L'endpoint della disponibilità accetta solo l'ID, e a un dominio risponde `401`.
 
 ## Endpoint
 

@@ -43,7 +43,7 @@ flowchart TB
 | Собственная установка OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | Собственный домен страницы | `https://status.example.com/status-page-api` |
 
-Там, где в пути ниже стоит `{statusPageIdOrDomain}`, можно передать ID страницы или один из её проверенных собственных доменов, например `status.example.com`. Адрес времени работы принимает только ID.
+Там, где в пути ниже стоит `{statusPageIdOrDomain}`, можно передать ID страницы или один из её проверенных собственных доменов, например `status.example.com`. Адрес времени работы принимает только ID, а на домен отвечает `401`.
 
 ## Адреса
 

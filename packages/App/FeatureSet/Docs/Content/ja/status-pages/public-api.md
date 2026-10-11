@@ -43,7 +43,7 @@ flowchart TB
 | セルフホストの OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | ページのカスタムドメイン | `https://status.example.com/status-page-api` |
 
-以下のパスに `{statusPageIdOrDomain}` とある箇所には、ページの ID か、検証済みのカスタムドメイン (`status.example.com` など) のいずれかを指定できます。稼働率のエンドポイントは ID だけを受け付けます。
+以下のパスに `{statusPageIdOrDomain}` とある箇所には、ページの ID か、検証済みのカスタムドメイン (`status.example.com` など) のいずれかを指定できます。稼働率のエンドポイントは ID だけを受け付け、ドメインには `401` を返します。
 
 ## エンドポイント
 

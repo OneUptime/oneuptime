@@ -173,8 +173,9 @@ const PROSE: Record<string, Array<string>> = {};
  * Fluentd's 10-second flush, and the status page API's 14-day lists,
  * 15-second overview and 90-day uptime range. A translation writes each as
  * often as the English page does, in its own digits (the Persian pages
- * write Persian ones). The syslog page's 1 MB is not held here: several
- * languages write "one" as 1 ("1 つのリクエスト"), so the count says nothing.
+ * write Persian ones). The 1 MB the Syslog and Fluentd pages give is not
+ * held here: several languages write "one" as 1 ("1 つのリクエスト"), so the
+ * count says nothing; the facts suite holds it to the ingress instead.
  */
 const PROSE_NUMBERS: Record<string, Array<string>> = {
   [FLUENTD]: ["10"],

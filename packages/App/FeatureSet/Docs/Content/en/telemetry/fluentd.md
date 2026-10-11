@@ -71,11 +71,12 @@ Add a `<match>` section that sends records to OneUptime. Replace `YOUR_SERVICE_T
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` sends each buffer flush as one JSON array, and `flush_interval 10s` sends a batch every 10 seconds.
+`json_array true` sends each buffer chunk as one JSON array, and `flush_interval 10s` sends the buffer every 10 seconds. `chunk_limit_size 900k` keeps each request under 1 MB, the most OneUptime accepts on this endpoint.
 
 ### Restart Fluentd
 
@@ -119,6 +120,7 @@ This configuration receives records over Fluentd's forward protocol on port `242
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ The ingestion key is missing, unknown or expired. Check the `x-oneuptime-token` 
 
 :::details Fluentd logs `402` or `422`
 `402`: on OneUptime Cloud, the project is on the Free plan and has no payment method. Add one under **Project Settings → Billing and Invoices → Billing**. `422`: the key is disabled, or it is a Browser key. Turn **Enabled** back on in the key's settings, or create a **Server** key.
+:::
+
+:::details Fluentd logs `413`
+The request is over 1 MB, the most OneUptime accepts on this endpoint. Set `chunk_limit_size 900k` in the `<buffer>` section, as in the configuration above.
 :::
 
 :::details Logs arrive under the `Fluentd` service

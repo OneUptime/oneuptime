@@ -43,7 +43,7 @@ Ett välformat ID som ingen statussida har går samma väg som en privat sida oc
 | OneUptime i egen drift | `https://<your-oneuptime-host>/status-page-api` |
 | En anpassad domän för sidan | `https://status.example.com/status-page-api` |
 
-Där en sökväg nedan säger `{statusPageIdOrDomain}` kan du skicka sidans ID eller en av dess verifierade anpassade domäner, till exempel `status.example.com`. Drifttidsendpointen tar bara ID:t.
+Där en sökväg nedan säger `{statusPageIdOrDomain}` kan du skicka sidans ID eller en av dess verifierade anpassade domäner, till exempel `status.example.com`. Drifttidsendpointen tar bara ID:t och svarar på en domän med `401`.
 
 ## Endpoints
 

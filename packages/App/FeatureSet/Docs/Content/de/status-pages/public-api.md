@@ -43,7 +43,7 @@ Eine gültig geformte ID, zu der es keine Statusseite gibt, nimmt denselben Weg 
 | Selbst gehostetes OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | Eine eigene Domain der Seite | `https://status.example.com/status-page-api` |
 
-Wo ein Pfad unten `{statusPageIdOrDomain}` sagt, können Sie die ID der Seite oder eine ihrer verifizierten eigenen Domains senden, etwa `status.example.com`. Der Verfügbarkeits-Endpunkt nimmt nur die ID.
+Wo ein Pfad unten `{statusPageIdOrDomain}` sagt, können Sie die ID der Seite oder eine ihrer verifizierten eigenen Domains senden, etwa `status.example.com`. Der Verfügbarkeits-Endpunkt nimmt nur die ID und beantwortet eine Domain mit `401`.
 
 ## Endpunkte
 

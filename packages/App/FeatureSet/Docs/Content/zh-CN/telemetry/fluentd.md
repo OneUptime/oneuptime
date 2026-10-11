@@ -71,11 +71,12 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` 让每次刷新缓冲区时都以一个 JSON 数组发送，`flush_interval 10s` 则每 10 秒发送一批。
+`json_array true` 让缓冲区的每个块都以一个 JSON 数组发送，`flush_interval 10s` 则每 10 秒发送一次缓冲区。`chunk_limit_size 900k` 让每个请求都小于 1 MB，这是 OneUptime 在这个端点上接受的上限。
 
 ### 重启 Fluentd
 
@@ -119,6 +120,7 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ Fluentd 日志会像其他日志一样经过你的[日志管道](/docs/telemetry
 
 :::details Fluentd 记录了 `402` 或 `422`
 `402`：在 OneUptime Cloud 上，项目处于 Free 套餐且没有付款方式。请在 **项目设置 → 账单和发票 → 账单** 中添加。`422`：密钥已被禁用，或者是浏览器密钥。请在密钥的设置中重新打开 **已启用**，或者创建一个 **服务器** 密钥。
+:::
+
+:::details Fluentd 记录了 `413`
+请求超过了 1 MB，这是 OneUptime 在这个端点上接受的上限。请像上面的配置那样，在 `<buffer>` 部分设置 `chunk_limit_size 900k`。
 :::
 
 :::details 日志归到了 `Fluentd` 服务下

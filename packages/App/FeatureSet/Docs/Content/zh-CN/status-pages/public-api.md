@@ -43,7 +43,7 @@ flowchart TB
 | 自托管 OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | 页面的自定义域名 | `https://status.example.com/status-page-api` |
 
-下面路径中写着 `{statusPageIdOrDomain}` 的地方，可以传入页面 ID 或它的某个已验证的自定义域名，例如 `status.example.com`。可用率端点只接受 ID。
+下面路径中写着 `{statusPageIdOrDomain}` 的地方，可以传入页面 ID 或它的某个已验证的自定义域名，例如 `status.example.com`。可用率端点只接受 ID，对域名会返回 `401`。
 
 ## 端点
 

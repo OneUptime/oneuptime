@@ -71,11 +71,12 @@ Legg til en `<match>`-seksjon som sender poster til OneUptime. Erstatt `YOUR_SER
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` sender hver tømming av bufferen som én JSON-matrise, og `flush_interval 10s` sender en bunke hvert 10. sekund.
+`json_array true` sender hver chunk i bufferen som én JSON-matrise, og `flush_interval 10s` sender bufferen hvert 10. sekund. `chunk_limit_size 900k` holder hver request under 1 MB, det meste OneUptime tar imot på dette endepunktet.
 
 ### Start Fluentd på nytt
 
@@ -119,6 +120,7 @@ Denne konfigurasjonen tar imot poster over forward-protokollen til Fluentd på p
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ Inntaksnøkkelen mangler, er ukjent eller utløpt. Sjekk verdien av `x-oneuptime
 
 :::details Fluentd logger `402` eller `422`
 `402`: I OneUptime Cloud er prosjektet på Free-planen og har ingen betalingsmetode. Legg til en under **Prosjektinnstillinger → Fakturering og fakturaer → Fakturering**. `422`: Nøkkelen er deaktivert, eller det er en nettlesernøkkel. Slå **Aktivert** på igjen i nøkkelens innstillinger, eller opprett en **Server**-nøkkel.
+:::
+
+:::details Fluentd logger `413`
+Requesten er over 1 MB, det meste OneUptime tar imot på dette endepunktet. Sett `chunk_limit_size 900k` i `<buffer>`-seksjonen, som i konfigurasjonen ovenfor.
 :::
 
 :::details Loggene kommer under tjenesten `Fluentd`

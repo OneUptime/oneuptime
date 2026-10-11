@@ -71,11 +71,12 @@ Adicione uma seção `<match>` que envie os registros ao OneUptime. Troque `YOUR
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` envia cada descarga do buffer como um único array JSON, e `flush_interval 10s` envia um lote a cada 10 segundos.
+`json_array true` envia cada bloco do buffer como um único array JSON, e `flush_interval 10s` envia o buffer a cada 10 segundos. `chunk_limit_size 900k` mantém cada requisição abaixo de 1 MB, o máximo que o OneUptime aceita neste endpoint.
 
 ### Reiniciar o Fluentd
 
@@ -119,6 +120,7 @@ Esta configuração recebe registros pelo protocolo forward do Fluentd na porta 
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -154,6 +156,10 @@ A chave de ingestão está ausente, é desconhecida ou expirou. Confira o valor 
 
 :::details O Fluentd registra `402` ou `422`
 `402`: no OneUptime Cloud, o projeto está no plano Free e não tem método de pagamento. Adicione um em **Configurações do projeto → Cobrança e faturas → Cobrança**. `422`: a chave está desativada, ou é uma chave de navegador. Ligue de novo **Habilitado** nas configurações da chave, ou crie uma chave **Servidor**.
+:::
+
+:::details O Fluentd registra `413`
+A requisição passa de 1 MB, o máximo que o OneUptime aceita neste endpoint. Defina `chunk_limit_size 900k` na seção `<buffer>`, como na configuração acima.
 :::
 
 :::details Os logs chegam ao serviço `Fluentd`

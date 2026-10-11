@@ -43,7 +43,7 @@ Un ID bien formado que no pertenece a ninguna página de estado sigue el mismo c
 | OneUptime autoalojado | `https://<your-oneuptime-host>/status-page-api` |
 | Un dominio personalizado de la página | `https://status.example.com/status-page-api` |
 
-Donde una ruta de abajo diga `{statusPageIdOrDomain}`, puedes enviar el ID de la página o uno de sus dominios personalizados verificados, como `status.example.com`. El endpoint de disponibilidad solo acepta el ID.
+Donde una ruta de abajo diga `{statusPageIdOrDomain}`, puedes enviar el ID de la página o uno de sus dominios personalizados verificados, como `status.example.com`. El endpoint de disponibilidad solo acepta el ID, y responde a un dominio con `401`.
 
 ## Endpoints
 

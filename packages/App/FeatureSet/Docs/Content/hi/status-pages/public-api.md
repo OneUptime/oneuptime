@@ -43,7 +43,7 @@ flowchart TB
 | सेल्फ़-होस्टेड OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | पृष्ठ का कोई कस्टम डोमेन | `https://status.example.com/status-page-api` |
 
-नीचे जहां भी पाथ में `{statusPageIdOrDomain}` लिखा है, वहां आप पृष्ठ की ID या उसका कोई सत्यापित कस्टम डोमेन भेज सकते हैं, जैसे `status.example.com`। अपटाइम एंडपॉइंट सिर्फ़ ID लेता है।
+नीचे जहां भी पाथ में `{statusPageIdOrDomain}` लिखा है, वहां आप पृष्ठ की ID या उसका कोई सत्यापित कस्टम डोमेन भेज सकते हैं, जैसे `status.example.com`। अपटाइम एंडपॉइंट सिर्फ़ ID लेता है, और डोमेन मिलने पर `401` लौटाता है।
 
 ## एंडपॉइंट
 

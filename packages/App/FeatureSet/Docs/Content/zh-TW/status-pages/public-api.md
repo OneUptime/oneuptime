@@ -43,7 +43,7 @@ flowchart TB
 | 自行託管的 OneUptime | `https://<your-oneuptime-host>/status-page-api` |
 | 頁面的自訂網域 | `https://status.example.com/status-page-api` |
 
-下方路徑中寫著 `{statusPageIdOrDomain}` 的地方，可以傳入頁面 ID 或它的某個已驗證自訂網域，例如 `status.example.com`。運作率端點只接受 ID。
+下方路徑中寫著 `{statusPageIdOrDomain}` 的地方，可以傳入頁面 ID 或它的某個已驗證自訂網域，例如 `status.example.com`。運作率端點只接受 ID，對網域會傳回 `401`。
 
 ## 端點
 
