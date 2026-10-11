@@ -417,7 +417,7 @@ För att visa skärmbilden från varje misslyckad körning lägger du bilden i e
 | `trapSourceIp` | Adressen som trapen kom från. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapVarbinds` | Trapens varbinds, var och en som `{oid, value}`. Bara när en SNMP-trap utlöste kontrollen. | `Array<Object>` |
 
-En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när den har inloggningsuppgifter, så **`isOnline` är den enda variabeln ovan som en enhet med bara ping fyller i**: alla andra kommer från SNMP-genomgången och blir kvar som de skrevs utan den. Börja med `{{isOnline}}` och enhetens namn i mallar som kan användas för enheter utan inloggningsuppgifter. Se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor#what-a-poll-actually-does) för vad varje typ av avsökning samlar in.
+En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när den har inloggningsuppgifter, så **`isOnline` är den enda variabeln ovan som en enhet med bara ping fyller i**: alla andra kommer från SNMP-genomgången och blir kvar som de skrevs utan den. Börja med `{{isOnline}}` och enhetens namn i mallar som kan användas för enheter utan inloggningsuppgifter. Se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor#vad-en-avsökning-faktiskt-gör) för vad varje typ av avsökning samlar in.
 
 ### Monitorer för databashälsa
 
