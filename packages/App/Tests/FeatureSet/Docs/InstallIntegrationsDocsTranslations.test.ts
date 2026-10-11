@@ -503,8 +503,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
 /*
  * Bold leads that may read the same in a translation: names of products and
  * tools, sizes and status codes, and words several languages borrow from
- * English (Firewall, Backups, Updates). Every other lead is the page's own
- * English, which a translation translates.
+ * English (Firewall, Backups, Updates; "clusters", "instances" and "nodes"
+ * after a number in French, Portuguese and Dutch). Every other lead is the
+ * page's own English, which a translation translates.
  */
 const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "Git",
@@ -513,6 +514,9 @@ const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "Firewall",
   "Backups",
   "Updates",
+  "10 clusters",
+  "3 instances",
+  "3 nodes",
   "ClickHouse",
   "PostgreSQL",
   "Valkey",

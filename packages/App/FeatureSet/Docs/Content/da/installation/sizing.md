@@ -1,108 +1,154 @@
 # Dimensionering og kapacitetsplanlægning
 
-Denne vejledning hjælper dig med at dimensionere en selvhostet OneUptime-installation på Kubernetes (Helm). Den dækker de tre datalagre, som OneUptime afhænger af — **PostgreSQL**, **Valkey** og **ClickHouse** — plus applikationscomputerkraften, og giver dig udgangsniveauer, du kan justere, når du har rigtige tal.
+Planlæg CPU, hukommelse og disk til en selvhostet OneUptime på Kubernetes med [Helm-chartet](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionér de tre datalagre – **ClickHouse**, **PostgreSQL** og **Valkey** – og applikationen hver for sig, start fra et af niveauerne nedenfor, og justér, når du har rigtige tal.
 
-> **Læs dette først:** Helm-charten leveres med **ingen CPU/hukommelses-requests eller -limits sat** og små **25 Gi** standardvolumener til PostgreSQL og ClickHouse. Disse standarder findes, så charten kan installeres og køre på enhver klynge — de er **ikke** produktionsdimensionering. Til alt ud over en hurtig prøve bør du sætte ressourcer og lagring eksplicit ved hjælp af tallene nedenfor.
+> [!IMPORTANT]
+> Chartets standardværdier er ikke en produktionsdimensionering. De tjenester, det kører som standard, sætter **ingen CPU- eller hukommelses-requests eller -grænser**, og PostgreSQL og ClickHouse får små volumener på **25 Gi**, så chartet kan installeres på ethvert cluster. Til alt ud over en prøve sætter du selv ressourcer og lager med tallene på denne side.
 
-Hvis du i stedet kører enkelt-server Docker Compose-installationen, er dimensionering enklere — se [Docker Compose](/docs/installation/docker-compose) (anbefalet: 16 GB RAM, 8 kerner, 400 GB disk).
+Kører du i stedet Docker Compose-installationen på en enkelt server? Den er enklere at dimensionere: Se [kravene](/docs/installation/docker-compose#requirements) (16 GB hukommelse, 8 kerner og 400 GB disk anbefales).
 
-## Hvad driver hvert datalager
+:::cards
+- [Hvad der får hvert datalager til at vokse](#what-drives-each-datastore): Tre lagre, der vokser med tre forskellige ting.
+- [Startniveauer](#starting-tiers): Små, mellemstore og store udgangspunkter.
+- [Høj tilgængelighed](#high-availability): Replikaer og failover for hvert datalager.
+- [Opbevaring](#retention-and-how-it-affects-storage): Indstillingen, der ganger din disk.
+:::
 
-OneUptime kræver tre datalagre i produktion. De skalerer på helt forskellige input, så dimensionér dem uafhængigt af hinanden.
+## Dimensionér din installation
 
-| Datalager      | Hvad det lagrer                                                                                                          | Hvad der driver dets størrelse                                                                          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| **ClickHouse** | Al telemetri — logs, metrics, traces, exceptions, profiler                                                               | Telemetri-**ingestionsrate × opbevaring**. Dette er ~95 % af din lagring og den dominerende omkostning. |
-| **PostgreSQL** | Konfiguration og tilstand — monitorer, hændelser, alarmer, brugere, teams, projekter, workflows, statussider, dashboards | **Antal entiteter og historik**, ikke telemetri-volumen. Vokser langsomt.                               |
-| **Valkey**     | Cache, arbejdskøer og sessioner                                                                                          | **Kødybde og aktive sessioner**. Hukommelsesbundet og beskeden. Ikke en kilde til sandhed.              |
+:::steps
+1. Find ud af, hvor meget telemetri du sender: antal GB logs, metrikker og traces om dagen. Mål det på en lille installation, hvis du kan.
+2. Beslut, hvor mange dage du vil gemme det. Opbevaringen ganger ClickHouses disk (se [Opbevaring](#retention-and-how-it-affects-storage)).
+3. Beregn ClickHouses disk med [lagerformlen](#storage-formula) og derefter PostgreSQL's og Valkeys ud fra deres egne afsnit.
+4. Vælg det [startniveau](#starting-tiers), der ligger tættest på dine tal, og sæt dets CPU, hukommelse og lager i dine Helm-values.
+5. Slå [høj tilgængelighed](#high-availability) til for de datalagre, der har brug for det, og følg så det faktiske forbrug og justér.
+:::
 
-Objektlagring (S3/MinIO) er **ikke** påkrævet for, at OneUptime kan køre. Det bruges kun valgfrit til database**sikkerhedskopier** (via CloudNativePG Barman-plugin'et til PostgreSQL eller `clickhouse-backup` til ClickHouse). OneUptime flytter ikke telemetri i lag til objektlagring — se afsnittet "Opbevaring og hvordan den påvirker lagring" nedenfor.
+## Hvad der får hvert datalager til at vokse
 
-## ClickHouse — den dominerende driver
+OneUptime skal bruge tre datalagre i produktion. Hvert vokser med noget forskelligt, så dimensionér dem uafhængigt af hinanden.
 
-Næsten al din lagring og en stor andel af din RAM vil gå til ClickHouse, fordi hver loglinje, hvert metrikpunkt, hvert trace-span og hver exception lever der.
-
-### Lagringsformel
-
+```mermaid title="Hvad hvert datalager vokser med"
+flowchart TB
+    Tel["Logs, metrikker, traces"] -->|"indtagelseshastighed × opbevaring"| CH[("ClickHouse")]
+    State["Monitorer, hændelser, brugere"] -->|"antal objekter og historik"| PG[("PostgreSQL")]
+    Work["Køer, cache, sessioner"] -->|"kødybde"| VK[("Valkey")]
 ```
+
+| Datalager | Hvad det gemmer | Hvad der bestemmer størrelsen |
+| --- | --- | --- |
+| **ClickHouse** | Al telemetri – logs, metrikker, traces, exceptions, profiler | Telemetri: **indtagelseshastighed × opbevaring**. Det er ~95 % af dit lager og den største omkostning. |
+| **PostgreSQL** | Konfiguration og tilstand – monitorer, hændelser, alarmer, brugere, teams, projekter, workflows, statussider, dashboards | **Antal objekter og historik**, ikke telemetrimængden. Vokser langsomt. |
+| **Valkey** | Cache, arbejdskøer og sessioner | **Kødybde og aktive sessioner**. Hukommelsesbundet og beskedent. Ikke en autoritativ datakilde. |
+
+OneUptime har aldrig brug for objektlager (S3, MinIO) for at køre, og det flytter ikke ældre telemetri til objektlager. Du skal kun bruge objektlager, hvis du vælger backups til objektlager: Barman Cloud-pluginet til CloudNativePG eller [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) til ClickHouse. Chartets egen CloudNativePG-backup (`postgresOperator.cnpg.backup`) tager volumen-snapshots og kræver intet objektlager. CloudNativePG sletter aldrig gamle snapshots: Ryd selv op i dem, ellers bliver de ved med at vokse.
+
+## ClickHouse – den største faktor
+
+Næsten hele dit lager og en stor del af din hukommelse går til ClickHouse, fordi hver loglinje, hvert metrikpunkt, hvert trace-span og hver exception ligger der.
+
+### Lagerformel
+
+```text
 ClickHouse disk ≈ (daily raw telemetry GB ÷ compression) × retention days × replicas × 1.3 (headroom)
 ```
 
-Komprimering afhænger af signalet:
+Komprimeringen afhænger af signalet:
 
-- **Logs** komprimerer godt — cirka **5:1**.
-- **Metrics** komprimerer mindre — cirka **2:1** — og høj label-**kardinalitet** oppuster både disk og RAM hurtigere end rå volumen gør. Hold labels lav-kardinale.
-- **Traces** ligger midt imellem, afhængigt af span-attributter.
+| Signal | Typisk komprimering | Hvad der ændrer den |
+| --- | --- | --- |
+| Logs | Cirka 5:1 | Logs komprimeres godt. |
+| Metrikker | Cirka 2:1 | Høj **kardinalitet** af labels puster disk og hukommelse hurtigere op end den rå mængde. Hold kardinaliteten af labels lav. |
+| Traces | Midt imellem | De span-attributter, du sender. |
 
-### Gennemregnet eksempel
+### Regneeksempel
 
-En flåde på **10 klynger**, hver med ~10 noder / ~100 pods ved INFO-niveau-verbositet, producerer cirka **50–150 GB rå logs pr. klynge over 30 dage** (≈ 1,7–5 GB/dag pr. klynge). På tværs af flåden, med metrics og traces tilføjet og efter komprimering, kan du budgettere med cirka **5–15 GB/dag komprimeret telemetri**.
+En flåde på **10 clustere**, hver med cirka 10 noder og 100 pods, der logger på INFO-niveau, producerer groft regnet **50–150 GB rå logs pr. cluster over 30 dage** (cirka 1,7–5 GB om dagen pr. cluster). For hele flåden, med metrikker og traces lagt til og efter komprimering, så budgettér med groft regnet **5–15 GB komprimeret telemetri om dagen**.
 
-| Opbevaring | Enkelt replika | 2 replikaer + 30 % headroom |
-| ---------- | -------------- | --------------------------- |
-| 30 dage    | ~150–450 GB    | **~0.4–1.2 TB**             |
-| 90 dage    | ~0.45–1.35 TB  | **~1.2–3.5 TB**             |
+| Opbevaring | Én replika | 2 replikaer + 30 % reserve |
+| --- | --- | --- |
+| 30 dage | ~150–450 GB | **~0,4–1,2 TB** |
+| 90 dage | ~0,45–1,35 TB | **~1,2–3,5 TB** |
 
-Lagring skalerer **lineært med opbevaring** — et 90-dages vindue koster ~3× et 30-dages vindue.
+Lageret vokser **lineært med opbevaringen**: Et vindue på 90 dage koster cirka tre gange så meget som et på 30.
 
-### RAM og disktype
+### Hukommelse og disktype
 
-- **Brug NVMe/SSD.** Telemetri er skrivetung med stødvise aggregeringslæsninger; ClickHouse på roterende disk vil have det svært.
-- **Giv ClickHouse rigelig RAM.** Aggregeringsforespørgsler er hukommelsesintensive. Som tommelfingerregel skal du dimensionere RAM til en betydelig brøkdel (25–50 %) af dit _varme_ (nyligt forespurgte) komprimerede datasæt, med et praktisk minimum på 16 GB for enhver reel produktionsflåde.
-- **Hold styr på metrik-kardinalitet.** Det er den enkeltstørste løftestang på både ClickHouse RAM og disk. Håndhæv lav-kardinale label-konventioner i indsamlingslaget og hold øje med antallet af aktive serier.
+- **Brug NVMe eller SSD.** Telemetri er skrivetung med udbrud af aggregeringslæsninger; ClickHouse har det svært på roterende diske.
+- **Giv ClickHouse rigeligt med hukommelse.** Aggregeringsforespørgsler bruger meget hukommelse. Som tommelfingerregel dimensionerer du hukommelsen til 25–50 % af dine *varme* (nyligt forespurgte) komprimerede data, med en praktisk nedre grænse på 16 GB for enhver rigtig produktionsflåde.
+- **Hold styr på metrikkernes kardinalitet.** Den er den største enkeltstående løftestang for både ClickHouses hukommelse og disk. Håndhæv labelkonventioner med lav kardinalitet, hvor du indsamler metrikker, og hold øje med antallet af aktive serier.
 
-## PostgreSQL — konfiguration og tilstand
+## PostgreSQL – konfiguration og tilstand
 
-PostgreSQL lagrer din konfiguration og driftstilstand, ikke telemetri, så det vokser langsomt og forbliver lille i forhold til ClickHouse. Selv store installationer er typisk i størrelsesordenen tiere af GB. Standardvolumen på **25 Gi** er fin til små installationer; planlæg 50–100 GB til større med headroom til hændelses-/alarmhistorik.
+PostgreSQL gemmer din konfiguration og driftstilstand, ikke telemetri, så det vokser langsomt og forbliver lille ved siden af ClickHouse. Selv store installationer ligger typisk i titalsvis af GB. Standardvolumenet på **25 Gi** er fint til små installationer; planlæg 50–100 GB til større, med plads til historikken for hændelser og alarmer.
 
-Hvis du kører mange applikations-, worker- og probe-replikaer, kan antallet af databaseforbindelser blive flaskehalsen, før lagring gør det. OneUptimes Helm-chart inkluderer en valgfri **PgBouncer** forbindelses-pooler (`pgbouncer.enabled`) til netop dette — aktivér den til installationer med mange replikaer.
+Med mange replikaer af app, workers og probes kan databaseforbindelserne slippe op før lageret. Hver pod åbner som standard op til 50 forbindelser, og det medfølgende PostgreSQL tillader 500. Netop derfor indeholder chartet en valgfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): Slå den til for installationer med mange replikaer.
 
-## Valkey — cache, køer og sessioner
+## Valkey – cache, køer og sessioner
 
-Cache-laget kører [Valkey](https://valkey.io), den BSD-licenserede fork af Redis 7.2, og bruges som cache, arbejdskø og session-lager. Enhver server, der taler Redis-protokollen, kan træde i stedet; dimensioneringen nedenfor gælder i begge tilfælde. Det er **hukommelsesbundet**, og persistens er **deaktiveret som standard** (Redis er her ikke en kilde til sandhed — det kan genopbygges). Dimensionér det efter forventet kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Bemærk, at standard-eviction-politikken er `noeviction`, så hvis køer hober sig op under vedvarende overbelastning, bør du overvåge Redis-hukommelsen.
+Cachelaget kører [Valkey](https://valkey.io), det BSD-licenserede fork af Redis 7.2, som cache, arbejdskø og sessionslager. Enhver server med Redis-protokollen kan træde i stedet, og dimensioneringen nedenfor gælder begge veje. Det er **hukommelsesbundet**, og persistens er **slået fra som standard**: Det er ikke en autoritativ datakilde og kan genopbygges. Dimensionér det efter kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Dets eviction-politik er `noeviction`, så hold øje med hukommelsen, hvis køer hober sig op under vedvarende belastning.
 
-## Applikationscomputerkraft
+## Applikationens regnekraft
 
-Ud over datalagrene skal du dimensionere de tilstandsløse arbejdsbelastninger (ingress, web/API, workers og probes). Alle har som standard **1 replika** uden ressourcegrænser — sæt dem eksplicit. Charten medfølger med **KEDA**, så workers og probes kan autoskalere på kødybde; aktivér det til variabel belastning. Workers skalerer med telemetri-/ingestionsbehandlingsvolumen, og probes skalerer med antallet af aktive monitorer.
+Ud over datalagrene dimensionerer du de tilstandsløse workloads. Hver kører **uden ressource-requests eller -grænser**, indtil du sætter dem, og med én replika, undtagen telemetry writeren, der kører med to.
 
-## Udgangsniveauer
+| Workload | Values-nøgle | Vokser med |
+| --- | --- | --- |
+| App: dashboard, API og indtagelse | `app` | Brugere, API-kald og indkommende telemetri |
+| Workers, når de er skilt fra appen | `worker` | Telemetri og behandling af baggrundsjob |
+| Probes | `probes` | Antallet af aktive monitorer |
+| Ingress-gateway | `nginx` | Mængden af forespørgsler |
+| Telemetry writer, når den er slået til | `telemetryWriter` | Ikke med belastningen: Den samler hver telemetri-indsættelse i ClickHouse, så den dimensioneres efter, hvad ClickHouse kan klare |
 
-Vælg det niveau, der er tættest på dit miljø, som udgangspunkt, og hold derefter øje med det faktiske forbrug (`kubectl top pods`, ClickHouse/Postgres diskvækst) og justér.
+Chartet indeholder **KEDA**, så appen, workers, probes og Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
 
-- **Small / PoC** — 1–3 klynger, ≤30 noder, ≤5 GB/dag rå telemetri, 30-dages opbevaring.
-- **Medium / Production fleet** — ~10 klynger, ~100 noder, 10–30 GB/dag rå telemetri, 30–90-dages opbevaring.
-- **Large / Multi-fleet** — 50+ klynger, 500+ noder, 100+ GB/dag rå telemetri, 90-dages opbevaring.
+## Startniveauer
 
-|                       | Small / PoC                  | Medium / Production fleet    | Large / Multi-fleet                              |
-| --------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
-| **ClickHouse**        | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
-| **PostgreSQL**        | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Valkey**            | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
-| **Retention assumed** | 30 dage                      | 30–90 dage                   | 90 dage                                          |
+Vælg det niveau, der ligger tættest på dit miljø, som udgangspunkt, følg så det faktiske forbrug (`kubectl top pods`, diskvæksten i ClickHouse og PostgreSQL), og justér.
 
-Disse dimensionerer OneUptime-**backend'en**. OneUptime-collectorerne, der kører på hver overvåget klynge, dimensioneres separat — se dimensioneringsniveauerne for [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
+- **Lille / PoC** – 1–3 clustere, ≤30 noder, ≤5 GB/dag rå telemetri, 30 dages opbevaring.
+- **Mellem / Produktionsflåde** – ~10 clustere, ~100 noder, 10–30 GB/dag rå telemetri, 30–90 dages opbevaring.
+- **Stor / Flere flåder** – 50+ clustere, 500+ noder, 100+ GB/dag rå telemetri, 90 dages opbevaring.
+
+| | Lille / PoC | Mellem / Produktionsflåde | Stor / Flere flåder |
+| --- | --- | --- | --- |
+| **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardet** |
+| **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD | 4 vCPU / 8 GB / 100 GB SSD | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer) |
+| **Valkey** | 1 vCPU / 2 GB | 2 vCPU / 4 GB | 4 vCPU / 8–16 GB |
+| **Forudsat opbevaring** | 30 dage | 30–90 dage | 90 dage |
+
+Disse niveauer dimensionerer OneUptimes backend. Den agent, du installerer på hvert overvåget cluster, er beskrevet på siden [Kubernetes-agent](/docs/telemetry/kubernetes-agent), som også viser, hvordan du skærer ned på den datamængde, den sender.
 
 ## Høj tilgængelighed
 
-Chartens indbyggede datalagre kører som **enkeltinstanser** som standard. For produktions-HA:
+Chartets indbyggede datalagre kører som standard som **enkeltinstanser**. Til høj tilgængelighed i produktion:
 
-- **PostgreSQL** — aktivér den medfølgende [CloudNativePG](https://cloudnative-pg.io)-operator (`postgresOperator.cnpg.enabled`) med **3 instanser** (1 primær + 2 varme standbys) for automatisk failover.
-- **ClickHouse** — aktivér den medfølgende [Altinity](https://github.com/Altinity/clickhouse-operator)-operator (`clickhouseOperator.altinity.enabled`) med **≥2 replikaer pr. shard** og **3 ClickHouse Keeper**-noder for quorum. Tilføj shards, når en enkelt nodes disk eller RAM bliver begrænsningen.
-- **Valkey** — charten har ingen replikering i charten. For HA skal du pege OneUptime mod en **ekstern administreret Redis** (eller en AI/cluster-installation).
+| Datalager | Til høj tilgængelighed |
+| --- | --- |
+| **PostgreSQL** | Slå den medfølgende [CloudNativePG](https://cloudnative-pg.io)-operator til (`postgresOperator.cnpg.enabled`) med **3 instanser** (`postgresOperator.cnpg.instances`): en primær og to hot standbys med automatisk failover. |
+| **ClickHouse** | Slå den medfølgende [Altinity](https://github.com/Altinity/clickhouse-operator)-operator til (`clickhouseOperator.altinity.enabled`) med **2 eller flere replikaer pr. shard** (`clickhouseOperator.altinity.cluster.replicasCount`). Dens medfølgende ClickHouse Keeper kører på **3 noder** for quorum. Tilføj shards (`shardsCount`), når én nodes disk eller hukommelse bliver grænsen. |
+| **Valkey** | Chartet replikerer det ikke. Peg OneUptime på et eksternt administreret Redis eller Valkey med automatisk failover (`externalValkey`). OneUptime forbinder til én enkelt vært og port, så brug tjenestens primære endpoint, ikke et i cluster-tilstand. |
 
-## Opbevaring og hvordan den påvirker lagring
+> [!WARNING]
+> Slår du en af operatorerne til for en eksisterende installation, starter en ny, tom database: Ingen af dem kopierer dataene fra den enkeltinstansdatabase, den erstatter. Migrér dine data, som chartets vejledninger beskriver – for [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) og for [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
-Telemetri-opbevaring håndhæves som en **ClickHouse TTL konfigureret i dage**, sat **pr. projekt** og forfinelig **pr. signal** (logs, metrics, traces, profiler) og pr. bucket (for eksempel efter log-sværhedsgrad). Den hardkodede standard er 15 dage.
+## Opbevaring, og hvordan den påvirker lageret
 
-Fordi opbevaring direkte multiplicerer ClickHouse-lagring, bør du beslutte den, før du dimensionerer disk. OneUptime arkiverer eller lagdeler **ikke** automatisk gammel telemetri til objektlagring — for flerårig compliance-opbevaring skal du udvide opbevaringsvinduet og dimensionere ClickHouse-lagring til at matche (eller eksportere til et eksternt arkiv efter eget valg).
+Opbevaring af telemetri er en **ClickHouse-TTL talt i dage**. Hver udgave har projektets standard under **Projektindstillinger > Telemetri og APM > Dataopbevaring** (**Standardopbevaring (dage)**); når intet er sat, er den 15 dage. [Enterprise Edition](/docs/self-hosted/enterprise) tilføjer tilsidesættelser: pr. signal (logs, traces, metrikker, profiler), pr. log-alvorlighed og trace-status og pr. tjeneste eller ressource.
 
-## Mål, før du forpligter dig
+Logs og metrikker slettes én dag ad gangen, ved den første midnat (ClickHouse-servertid) efter deres opbevaring udløber, så ClickHouse slipper for at omskrive hver dag af dem hvert par timer, mens den udløber. Lige før midnat ligger der stadig op til én dag mere end opbevaringsvinduet på disken: Dimensionér logs og metrikker til **opbevaringsdage + 1**.
 
-Telemetri-volumen varierer enormt med applikationens log-verbositet, antal namespaces, scrape-interval og hvorvidt DEBUG-logning er aktiveret nogetsteds. Behandl niveauerne ovenfor som udgangspunkter: **instrumentér dit miljø i mindst fire uger**, mål den faktiske GB/dag pr. signal, og dimensionér derefter opbevaring og lagring ud fra rigtige data.
+Fordi opbevaringen ganger ClickHouses lager, skal du beslutte den, før du dimensionerer disken. OneUptime arkiverer **ikke** gammel telemetri og flytter den heller ikke til objektlager. Til flerårig opbevaring af compliance-hensyn forlænger du opbevaringsvinduet og dimensionerer ClickHouses lager derefter, eller du eksporterer til et eksternt arkiv efter eget valg.
 
-## Relateret
+## Mål, før du binder dig
 
-- [Docker Compose](/docs/installation/docker-compose) — enkelt-server dimensionering
-- [Selvhostet arkitektur](/docs/self-hosted/architecture) — hvordan komponenterne passer sammen
-- [Kubernetes Agent](/docs/telemetry/kubernetes-agent) — collector (data-plane) dimensionering
-- [Helm-chart på Artifact Hub](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+Telemetrimængden svinger enormt med applikationslogs' detaljeringsgrad, antallet af namespaces, scrape-intervallet og om DEBUG-logning er slået til et sted. Brug niveauerne ovenfor som udgangspunkter: **indsaml fra dit miljø i mindst fire uger**, mål de faktiske GB om dagen for hvert signal, og dimensionér så opbevaring og lager ud fra rigtige data.
+
+## Næste trin
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Krav til en installation på en enkelt server.
+- [Selvhostet arkitektur](/docs/self-hosted/architecture): Hvordan komponenterne hænger sammen.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Collectoren, der sender et clusters telemetri.
+- [Enterprise Edition](/docs/self-hosted/enterprise): Tilsidesættelser af opbevaring og de andre Enterprise-funktioner.
+:::
