@@ -4288,14 +4288,21 @@ If you need to report an incident or check historical incidents, please visit th
           projectId.toString(),
       );
 
-      // Get scheduled maintenance events
+      /*
+       * The events still to come: waiting for their start, in the scheduled
+       * state or a state of the project's own placed after Scheduled and
+       * before Ongoing, such as "Confirmed" (Common/Utils/
+       * ScheduledMaintenanceStart.isWaitingToStart).
+       */
       const scheduledEvents: Array<ScheduledMaintenance> =
         await ScheduledMaintenanceService.findBy({
           query: {
             projectId: projectId,
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
+            currentScheduledMaintenanceStateId: QueryHelper.any(
+              await ScheduledMaintenanceStateService.getWaitingToStartScheduledMaintenanceStateIds(
+                projectId,
+              ),
+            ),
             isVisibleOnStatusPage: true, // Only show events visible on status page
           },
           select: {

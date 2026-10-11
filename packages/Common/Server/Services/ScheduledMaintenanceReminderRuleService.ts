@@ -4,11 +4,10 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import Label from "../../Models/DatabaseModels/Label";
-import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -100,27 +99,16 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     try {
-      const openStates: Array<ScheduledMaintenanceState> =
-        await ScheduledMaintenanceStateService.findBy({
-          query: {
-            projectId: projectId,
-            isResolvedState: false,
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const openStateIds: Array<ObjectID> = openStates
-        .map((state: ScheduledMaintenanceState) => {
-          return state.id!;
-        })
-        .filter(Boolean);
+      /*
+       * Open until it is completed: every state but the completed state and
+       * the states of the project's own placed after it, such as "Archived"
+       * (ScheduledMaintenanceStartUtil.isComplete) - the rule that stops the
+       * reminders themselves.
+       */
+      const openStateIds: Array<ObjectID> =
+        await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+          projectId,
+        );
 
       if (openStateIds.length === 0) {
         return;

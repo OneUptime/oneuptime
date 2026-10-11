@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/react-native-replay",
-  "version": "14.0.33",
+  "version": "14.0.34",
   "description": "Privacy-first OneUptime session replay recorder for React Native applications.",
   "repository": {
     "type": "git",

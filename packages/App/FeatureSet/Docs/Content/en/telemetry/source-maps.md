@@ -23,16 +23,11 @@ Upload your build's source maps to OneUptime and the Exceptions dashboard resolv
 Maps are uploaded to OneUptime over an authenticated API and are **never fetched from your site**, so you can (and should) keep building with `hidden-source-map` (webpack) or `sourcemap: 'hidden'` (Vite / Rollup) and never publish the `.map` files next to your bundles.
 
 ```mermaid title="How a minified frame is resolved"
-sequenceDiagram
-    participant CI as CI pipeline
-    participant App as Web app
-    participant OU as OneUptime
-    participant You as You
-    CI->>OU: Upload maps for a service and release
-    App->>OU: Exception with minified frames
-    You->>OU: Open the exception
-    OU->>OU: Find the maps for its service, release and bundle
-    OU-->>You: Original file, line and function
+flowchart TB
+    ci["CI pipeline"] -->|"uploads maps for a<br/>service and release"| ou["OneUptime"]
+    app["Web app"] -->|"sends an exception<br/>with minified frames"| ou
+    ou -->|"you open the exception"| find["Find the maps for its<br/>service, release and bundle"]
+    find --> original["Original file, line and function"]
 ```
 
 ## How matching works

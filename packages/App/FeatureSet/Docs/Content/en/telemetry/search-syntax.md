@@ -1,4 +1,4 @@
-# Telemetry Search Syntax
+# Search Syntax
 
 The search box above the Logs, Traces, Metrics and Exceptions explorers speaks one query language. A query is a list of filters separated by spaces, and **every filter must match** — there is no implicit OR between filters. Use this page as a reference while you search.
 
@@ -51,13 +51,13 @@ flowchart TB
 | `@attribute:value` | An OpenTelemetry attribute on the row | `@http.status_code:500` |
 | bare words | The message (logs), span name (traces), metric name (metrics) or exception message (exceptions) | `connection refused` |
 
-A bare `key:value` whose key is not a known field is treated as an attribute, so `k8s.pod:api-0` and `@k8s.pod:api-0` mean the same thing. Prefixing with `@` is never wrong and always means "look in the attributes".
+A bare `key:value` whose key is not a known field is treated as an attribute, so `k8s.pod:api-0` and `@k8s.pod:api-0` mean the same thing. Prefixing with `@` always means "look in the attributes", with one exception: on the Exceptions explorer, `@type:`, `@service:`, `@env:` and `@class:` still filter those fields.
 
 Text that merely happens to contain a colon stays text — `https://example.com` and `12:30` are searched for as words, not read as filters.
 
 ## Matching values
 
-Everything in this table works on both a field and an attribute.
+Everything in this table works on any attribute and on most built-in fields; [Fields by signal](#fields-by-signal) notes the fields that read a value more simply.
 
 | You type | It matches |
 | --- | --- |
@@ -66,7 +66,7 @@ Everything in this table works on both a field and an attribute.
 | `@k:*c` | anything ending with `c` |
 | `@k:a*c` | starts with `a` and ends with `c` |
 | `@k:a?c` | `?` is exactly one character — `abc`, `axc`, but not `ac` |
-| `@k:*` | the attribute is present, with any value |
+| `@k:*` | the attribute is present and not empty |
 | `@k:~abc` | contains `abc` anywhere |
 | `@k:!abc` | anything except `abc` |
 | `@k:>100` | greater than 100. Also `>=`, `<`, `<=` |
@@ -111,6 +111,8 @@ A leading `-` inverts any filter, including the ones above:
 | `-@k:>100` | 100 or less |
 | `-@k:~abc` | does not contain `abc` |
 
+On the Traces explorer, `-` excludes attributes only. `-status:error` is read as text to find in span names, and finds nothing; ask for the values you want instead, such as `status:(ok OR unset)`.
+
 ## Fields by signal
 
 Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are the same field.
@@ -120,21 +122,23 @@ Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are th
 | Field | Aliases | Notes |
 | --- | --- | --- |
 | `severity` | `level` | `fatal`, `error`, `warning` (or `warn`), `info` (or `information`), `debug`, `trace`, `unspecified` — any casing |
-| `service` | | Service name |
+| `service` | | Service name, written in full, in any casing |
 | `trace` | | Trace ID |
 | `span` | | Span ID |
 | `message` | `msg`, `log`, `body` | The log line. Bare words search this too |
 
 ### Traces
 
+Trace fields take a plain value or an any-of list such as `status:(ok OR unset)`, and `duration` also takes `>` and `<`. Wildcards, `~`, `!` and a leading `-` work only on attributes here.
+
 | Field | Notes |
 | --- | --- |
 | `service` | Service name |
-| `name` | Span name. Bare words search this too |
+| `name` | Span name. A single value matches any part of it. Bare words search this too |
 | `status` | `ok`, `error`, `unset` (unset = no error status set, the OpenTelemetry default) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Milliseconds, e.g. `duration:>500` |
-| `statusMessage` | Status message text |
+| `duration` | Milliseconds: `duration:>500`, `duration:<200` or an exact value |
+| `statusMessage` | Status message text. A single value matches any part of it |
 | `hasException` | `true` or `false` |
 | `trace`, `span` | IDs |
 
@@ -142,8 +146,8 @@ Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are th
 
 | Field | Notes |
 | --- | --- |
-| `name` | Metric name. Bare words search this too |
-| `service` | Service name |
+| `name` | Metric name. A plain value matches any part of it, so `name:http.server` finds `http.server.request.duration`. Bare words search this too |
+| `service` | Service name. A plain value matches any part of it |
 
 ### Exceptions
 
@@ -151,7 +155,7 @@ Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are th
 | --- | --- | --- |
 | `type` | `exceptionType` | Exception type, e.g. `type:TypeError` |
 | `env` | `environment` | Environment, from the `deployment.environment` resource attribute |
-| `service` | | Service name |
+| `service` | | Service name. A plain value matches any part of it |
 | `class` | `errorClass` | Whose fault the error is: `code-fault`, `user-error`, `expected-denial`, `infrastructure` or `unknown` |
 
 Bare words search the exception message.
@@ -167,7 +171,7 @@ severity:error service:api          # both must hold
 severity:error AND service:api      # identical
 ```
 
-There is no OR **between** filters. To match either of two values for the same key, use the any-of form:
+There is no OR or NOT **between** filters: `OR` and `NOT` written there are skipped, so `NOT severity:debug` means the same as `severity:debug`. Exclude with a leading `-` (`-severity:debug`), and to match either of two values for the same key, use the any-of form:
 
 ```text
 @http.method:(GET OR POST)
@@ -176,13 +180,13 @@ There is no OR **between** filters. To match either of two values for the same k
 Two filters on the same key are ANDed, which is how a range or a two-sided pattern is written:
 
 ```text
-@duration:>=100 @duration:<=500
+@http.status_code:>=500 @http.status_code:<=599
 @k:a* @k:*z
 ```
 
 ## Chips and the search box
 
-Pressing Enter on a `key:value` term turns it into a chip above the results. A chip carries the value exactly as it was typed, so a wildcard stays a wildcard. Clicking a value in the facet sidebar adds the same kind of chip, with its value escaped — a stored value that happens to contain `*` filters for that literal value, not as a pattern.
+Pressing Enter on a `key:value` term applies it, usually as a chip above the results. A chip carries the value exactly as it was typed, so a wildcard stays a wildcard. A term a chip cannot carry, such as an excluded `-key:value`, stays in the search box and filters from there. Clicking a value in the facet sidebar adds the same kind of chip, with its value escaped — a stored value that happens to contain `*` filters for that literal value, not as a pattern.
 
 Chips are part of the saved view and the page URL, so a filter survives a refresh, a bookmark and a shared link.
 

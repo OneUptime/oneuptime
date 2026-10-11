@@ -1,190 +1,232 @@
-# Docker Monitor
+# Docker मॉनिटर
 
-Docker monitoring आपको अपने Docker hosts और उन पर चलने वाले containers की health और performance monitor करने की अनुमति देता है। OneUptime एक pre-configured OpenTelemetry Collector (**OneUptime Docker Agent**) के माध्यम से metrics और container logs एकत्र करता है और उन्हें आपके configured criteria के विरुद्ध evaluate करता है।
+Docker मॉनिटर एक Docker होस्ट पर चल रहे कंटेनरों की निगरानी करता है और आपको बताता है जब कोई कंटेनर गर्म चलता है, मेमोरी खत्म कर देता है या क्रैश-लूप में फँस जाता है। यह उन मेट्रिक्स को पढ़ता है जो OneUptime Docker एजेंट होस्ट से भेजता है, इसलिए बाहर से कुछ भी जाँचा नहीं जाता: एजेंट इंस्टॉल करें, फिर किसी टेम्पलेट या अपनी क्वेरी से मॉनिटर बनाएं।
 
-## Overview
+:::cards
+- [मॉनिटर बनाएं](#docker-मॉनिटर-बनाएं): डैशबोर्ड में छह चरण।
+- [टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट): छह तैयार अलर्ट, हर कंटेनर के लिए एक घटना।
+- [मेट्रिक्स](#इकट्ठा-किए-गए-मेट्रिक्स): एजेंट क्या इकट्ठा करता है, और हर मेट्रिक का क्या मतलब है।
+- [लॉग](#इकट्ठा-किए-गए-लॉग): कंटेनर लॉग, और उनके लिए ज़रूरी लॉग ड्राइवर।
+:::
 
-Docker monitors आपके hosts के metrics और logs का उपयोग करके आपके container workloads में visibility प्रदान करते हैं। यह आपको सक्षम बनाता है:
+## यह कैसे काम करता है
 
-- Docker host और per-container health monitor करें
-- containers में CPU, memory, network, block I/O और process counts track करें
-- container restarts, crashes और CPU throttling detect करें
-- native OpenTelemetry format में structured container logs stream करें
-- high CPU, high memory, restart loops और अधिक पर alert करें
+OneUptime Docker एजेंट होस्ट पर एक कंटेनर के रूप में चलता है। हर 30 सेकंड में यह Docker Engine API से कंटेनर आँकड़े पढ़ता है, कंटेनरों की लॉग फ़ाइलों को फ़ॉलो करता है, और दोनों को OTLP पर OneUptime भेजता है। किसी होस्ट से आया पहला डेटा उसे OneUptime में पंजीकृत करता है।
 
-## Docker Monitor बनाना
+Docker मॉनिटर एक होस्ट से बंधा होता है। हर मिनट यह उस होस्ट के कंटेनर मेट्रिक्स पर अपनी क्वेरी चलाता है और परिणाम की तुलना अपने मानदंडों से करता है।
 
-1. OneUptime Dashboard में **मॉनिटर** पर जाएं
-2. **मॉनिटर बनाएं** पर क्लिक करें
-3. monitor type के रूप में **Docker** चुनें
-4. monitor करने के लिए Docker host और resource scope चुनें
-5. metric queries और aggregation configure करें
-6. आवश्यकतानुसार monitoring criteria configure करें
+```mermaid title="Docker होस्ट से घटना तक"
+flowchart TB
+    subgraph host["आपका Docker होस्ट"]
+        direction LR
+        containers["कंटेनर"] --> agent["OneUptime Docker एजेंट"]
+    end
+    agent -->|"OTLP पर मेट्रिक्स और लॉग"| oneuptime["OneUptime"]
+    oneuptime -->|"पहला डेटा"| registered["Docker होस्ट पंजीकृत"]
+    oneuptime --> monitor["Docker मॉनिटर"]
+    monitor -->|"हर मिनट"| criteria{"मानदंड पूरा हुआ?"}
+    criteria -->|"हाँ"| incident["घटना या अलर्ट"]
+    criteria -->|"नहीं"| online["मॉनिटर ऑनलाइन"]
+```
 
-## Configuration Options
+## शुरू करने से पहले
 
-### Docker Host
+- **Docker एजेंट इंस्टॉल करें**, होस्ट पर। [Docker एजेंट गाइड](/docs/telemetry/docker-host) इंस्टॉल करना, अपग्रेड करना और जाँचना बताती है।
+- **जाँचें कि होस्ट पंजीकृत है।** पहला डेटा आते ही यह एजेंट के `DOCKER_HOST_NAME` के नाम से **उत्पाद → बुनियादी ढांचा → Docker → सभी होस्ट** के अंतर्गत दिखता है।
+- **कंटेनर लॉग के लिए** कंटेनरों को Docker के `json-file` लॉग ड्राइवर के साथ चलाएं। [लॉग ड्राइवर की आवश्यकता](#लॉग-ड्राइवर-की-आवश्यकता) देखें।
 
-monitor करने के लिए Docker host चुनें। Hosts को पहली बार auto-registered किया जाता है जब OneUptime Docker Agent उनसे telemetry ship करता है — आपको उन्हें manually बनाने की आवश्यकता नहीं है।
+## Docker मॉनिटर बनाएं
 
-### Resource Scope
+:::steps
+### नया मॉनिटर शुरू करें
 
-उस level को चुनें जिस पर resources monitor करने हैं:
+**मॉनिटर** पर जाएं और **मॉनिटर बनाएं** पर क्लिक करें।
 
-| Scope     | विवरण                                                           |
-| --------- | --------------------------------------------------------------- |
-| Host      | सभी containers में aggregated, पूरे Docker host को monitor करें |
-| Container | नाम या image से एक specific container monitor करें              |
+### Docker Container चुनें
 
-### Metric Queries
+**मॉनिटर प्रकार** के अंतर्गत **और मॉनिटर प्रकार** पर क्लिक करें और **बुनियादी ढांचा** के अंतर्गत **Docker Container** चुनें, या खोज बॉक्स में `docker` टाइप करें। एक **नाम** दर्ज करें – यह घटना और अलर्ट के शीर्षकों में उपयोग होता है – और **अगला** पर क्लिक करें।
 
-evaluate करने के लिए एक या अधिक metric queries configure करें। प्रत्येक query निर्दिष्ट करती है:
+### होस्ट चुनें
 
-- **Metric name** — query करने के लिए container metric
-- **एकत्रीकरण** — metric values को कैसे aggregate करें (Avg, Sum, Max, Min)
-- **फ़िल्टर** — additional attribute-based filtering (जैसे container name, image, या host से)
-- **इसके अनुसार समूहित करें** — वैकल्पिक रूप से `resource.container.name` से group करें ताकि प्रत्येक container को स्वतंत्र रूप से evaluate किया जाए
+**Docker मॉनिटर कॉन्फ़िगरेशन** के अंतर्गत **Docker होस्ट** से होस्ट चुनें। हर वह होस्ट जिसने डेटा भेजा है, सूची में है।
 
-आप **formulas** भी बना सकते हैं जो mathematical expressions का उपयोग करके कई metric queries को combine करती हैं।
+### तय करें कि किस पर नज़र रखनी है
 
-### Rolling Time Window
+तीन टैब में से एक चुनें:
 
-metric evaluation के लिए time window चुनें:
+- **Quick Setup** – किसी [टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट) पर क्लिक करें। यह मेट्रिक, एकत्रीकरण, समय सीमा और थ्रेशोल्ड सेट करता है, और नीचे के मानदंडों को अपने मानदंडों से बदल देता है। आप अब भी **समय सीमा** बदल सकते हैं।
+- **Custom Metric** – **Docker मेट्रिक** से एक मेट्रिक चुनें, फिर **एकत्रीकरण** और **समय सीमा** सेट करें। **कंटेनर नाम** और **कंटेनर इमेज** इसे कुछ कंटेनरों तक सीमित करते हैं।
+- **उन्नत** – **मेट्रिक्स चुनें** के अंतर्गत खुद क्वेरी और सूत्र बनाएं। हर कंटेनर का अलग से आकलन करने के लिए **Group by** `resource.container.name` का उपयोग करें।
 
-- Past 1 Minute
-- Past 5 Minutes
-- Past 10 Minutes
-- Past 15 Minutes
-- Past 30 Minutes
-- Past 60 Minutes
+### मानदंड जाँचें
 
-## Collected Metrics
+**मॉनिटर मानदंड** के अंतर्गत हर मानदंड खोलें और उसका **मीट्रिक**, **एकत्रीकरण**, **शर्त** और **Threshold** जाँचें। टेम्पलेट इन्हें भर देता है। **Custom Metric** या **उन्नत** के साथ मॉनिटर [डिफ़ॉल्ट मानदंडों](#डिफ़ॉल्ट-मानदंड) से शुरू होता है, जो सिर्फ़ मेट्रिक के शून्य पर गिरने को पकड़ते हैं, इसलिए अपना थ्रेशोल्ड सेट करें।
 
-Docker Agent OpenTelemetry `docker_stats` receiver उपयोग करता है, जो configurable interval पर Docker Engine API को scrape करता है (default हर 30 seconds)।
+### मॉनिटर बनाएं
+
+**मॉनिटर बनाएं** पर क्लिक करें। OneUptime मॉनिटर का पेज खोलता है और हर मिनट उसका मूल्यांकन करता है। यह जो घटनाएं और अलर्ट खोलता है, वे होस्ट के **घटनाएं** और **अलर्ट** पेजों पर भी दिखते हैं।
+:::
+
+> [!TIP]
+> एक साथ कई टेम्पलेट सेट करने के लिए **उत्पाद → बुनियादी ढांचा → Docker** से होस्ट खोलें और **Recommendations** पर जाएं। अपने चाहे टेम्पलेट और जिन्हें पेज करना है उन्हें चुनें, और OneUptime हर टेम्पलेट के लिए एक मॉनिटर बनाता है।
+
+## मॉनिटर सेटिंग्स
+
+| फ़ील्ड | टैब | यह क्या करता है |
+| --- | --- | --- |
+| **Docker होस्ट** | सभी | आवश्यक। हर क्वेरी को होस्ट के `resource.host.name` तक सीमित करता है। OneUptime हर क्वेरी में `resource.container.runtime = docker` भी जोड़ता है। |
+| **Docker मेट्रिक** | Custom Metric | एजेंट के कैटलॉग से एक मेट्रिक, CPU, मेमोरी, नेटवर्क, ब्लॉक I/O और कंटेनर के रूप में समूहित। |
+| **कंटेनर नाम** | Custom Metric, उन्नत | वैकल्पिक। `resource.container.name` से सटीक मिलान, उदाहरण के लिए `my-container`। |
+| **कंटेनर इमेज** | Custom Metric, उन्नत | वैकल्पिक। `resource.container.image.name` से सटीक मिलान, उदाहरण के लिए `nginx:latest`। |
+| **एकत्रीकरण** | Custom Metric | नमूनों को कैसे जोड़ा जाए: **औसत**, **अधिकतम**, **न्यूनतम**, **योग** या **गणना**। मेट्रिक के सामान्य एकत्रीकरण से शुरू होता है। |
+| **समय सीमा** | सभी | वह चलती विंडो जिसे क्वेरी पढ़ती है, **Past 1 Minute** से **Past 365 Days** तक। नया मॉनिटर **Past 1 Minute** से शुरू होता है; टेम्पलेट अपनी विंडो सेट करते हैं। |
+| **मेट्रिक्स चुनें** | उन्नत | क्वेरी बिल्डर: **मीट्रिक**, **Aggregate by**, **Filter by attributes**, **Group by**, साथ में क्वेरी जोड़ने के लिए **मीट्रिक जोड़ें** और **सूत्र जोड़ें**। |
+
+## तैयार अलर्ट टेम्पलेट
+
+**Quick Setup** छह टेम्पलेट देता है। हर एक पूरा मॉनिटर बनाता है: `resource.container.name` के अनुसार समूहित एक क्वेरी, एक मानदंड जो ट्रिगर होता है और एक जो ठीक होता है। हर कंटेनर का अलग से आकलन होता है, इसलिए एक व्यस्त कंटेनर दूसरे को नहीं छिपाता, और सीमा पार करने वाले हर कंटेनर को अपनी घटना और अपना अलर्ट मिलता है। थ्रेशोल्ड शुरुआती बिंदु हैं जिन्हें आप संपादित कर सकते हैं।
+
+जब तक तालिका कुछ और न कहे, मानदंड तभी ट्रिगर होता है जब शर्त उसकी विंडो के हर मिनट में सही हो, और थ्रेशोल्ड से 10% आगे ठीक होता है ताकि सीमा पर मंडराता मान बार-बार न बदले।
+
+| टेम्पलेट | गंभीरता | किस पर नज़र रखता है | कब ट्रिगर होता है | कब ठीक होता है |
+| --- | --- | --- | --- | --- |
+| High Container CPU Usage | Warning | `container.cpu.utilization`, प्रति कंटेनर Max, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
+| High Container Memory Usage | Warning | `container.memory.percent`, प्रति कंटेनर Max, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
+| Container Restart Loop | गंभीर | प्रति कंटेनर `container.restarts` की वृद्धि, पिछले 15 मिनट | विंडो में 3 से अधिक रीस्टार्ट (योग) | 2.7 या उससे कम |
+| Container CPU Throttling | Warning | प्रति कंटेनर ms में `container.cpu.throttling_data.throttled_time` की वृद्धि, पिछले 5 मिनट | विंडो में 1000 ms से अधिक (योग) | 900 ms या उससे कम |
+| High Container Process Count | Warning | `container.pids.count`, प्रति कंटेनर Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
+| Container Down (Low Uptime) | गंभीर | `container.uptime`, प्रति कंटेनर Min, पिछला 1 मिनट | 0 के बराबर | 0 से ऊपर |
+
+**गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।
+
+> [!NOTE]
+> `container.cpu.utilization` वही संख्या है जो `docker stats` दिखाता है: 100% एक पूरा CPU कोर है, पूरा होस्ट नहीं, इसलिए दो कोर उपयोग करने वाला कंटेनर 200 दिखाता है। कई कोर वाले होस्ट पर 80 का थ्रेशोल्ड एक CPU बजट है, मशीन का हिस्सा नहीं।
+
+> [!NOTE]
+> `container.memory.percent` कंटेनर की मेमोरी सीमा सेट होने पर उससे भाग देता है, और सेट न होने पर **होस्ट** की कुल मेमोरी से। किसी सीमा-उल्लंघन को आने वाले out-of-memory किल के रूप में देखने से पहले जाँचें कि कंटेनर `--memory` के साथ शुरू हुआ था या नहीं।
+
+> [!WARNING]
+> `container.restarts` और `container.cpu.throttling_data.throttled_time` सिर्फ़ बढ़ते हैं, इसलिए ये दोनों टेम्पलेट इस पर अलर्ट देते हैं कि वे विंडो में कितना बढ़े: हर मिनट एक Maximum और एक Minimum क्वेरी, जिन्हें एक सूत्र घटाता है और जोड़ता है। एजेंट के 30-सेकंड स्क्रेप पर यह असली गतिविधि का लगभग आधा देखता है, और थ्रेशोल्ड इसे पहले से ध्यान में रखते हैं। अगर आप एजेंट का `collection_interval` 60 सेकंड या उससे अधिक कर देते हैं, तो हर मिनट में एक ही नमूना रहता है और दोनों टेम्पलेट अलर्ट देना बंद कर देते हैं।
+
+> [!CAUTION]
+> **Container Down (Low Uptime)** ऐसे कंटेनर को नहीं पकड़ सकता जो रुककर रुका ही रहता है। एजेंट सिर्फ़ चल रहे कंटेनरों की रिपोर्ट करता है, इसलिए रुका हुआ कंटेनर कोई डेटा नहीं भेजता और उसका अपटाइम कभी 0 नहीं दिखता। जिस सेवा को चलते रहना ज़रूरी है, उसके लिए वह जो सेवा देती है उसकी भी निगरानी करें – उदाहरण के लिए [API मॉनिटर](/docs/monitor/api-monitor) से।
+
+## इकट्ठा किए गए मेट्रिक्स
+
+एजेंट हर 30 सेकंड में Docker सॉकेट के विरुद्ध OpenTelemetry `docker_stats` रिसीवर का उपयोग करता है। हर कंटेनर के मेट्रिक्स उसकी पहचान को रिसोर्स एट्रिब्यूट के रूप में रखते हैं: `resource.container.name`, `resource.container.image.name`, `resource.container.id`, `resource.container.runtime` (`docker`) और `resource.host.name`।
 
 ### CPU
 
-| Metric                                            | विवरण                                             |
-| ------------------------------------------------- | ------------------------------------------------- |
-| `container.cpu.utilization`                       | host CPU के percentage के रूप में CPU utilization |
-| `container.cpu.usage.total`                       | container द्वारा consumed cumulative CPU time     |
-| `container.cpu.throttling_data.throttled_time`    | container को cgroups द्वारा throttle किया गया समय |
-| `container.cpu.throttling_data.throttled_periods` | throttling periods की संख्या                      |
+| मेट्रिक | विवरण |
+| --- | --- |
+| `container.cpu.utilization` | CPU उपयोग, जहाँ 100% एक पूरा CPU कोर है (`docker stats` का CPU% कॉलम)। |
+| `container.cpu.usage.total` | कंटेनर शुरू होने के बाद से उपयोग किया गया CPU समय, नैनोसेकंड में। जीवनभर का काउंटर। |
+| `container.cpu.throttling_data.throttled_time` | शुरू होने के बाद से कंटेनर को उसकी CPU सीमा द्वारा थ्रॉटल किए जाने के नैनोसेकंड। जीवनभर का काउंटर। |
+| `container.cpu.throttling_data.throttled_periods` | कंटेनर शुरू होने के बाद से थ्रॉटलिंग अवधियाँ। जीवनभर का काउंटर। |
 
-### Memory
+### मेमोरी
 
-| Metric                         | विवरण                                       |
-| ------------------------------ | ------------------------------------------- |
-| `container.memory.usage.total` | bytes में वर्तमान memory usage              |
-| `container.memory.usage.limit` | bytes में memory limit                      |
-| `container.memory.percent`     | limit के percentage के रूप में memory usage |
+| मेट्रिक | विवरण |
+| --- | --- |
+| `container.memory.usage.total` | उपयोग में मेमोरी, बाइट में। |
+| `container.memory.usage.limit` | मेमोरी सीमा, बाइट में। |
+| `container.memory.percent` | कंटेनर की सीमा के प्रतिशत के रूप में मेमोरी उपयोग, या कंटेनर की कोई सीमा न होने पर होस्ट की कुल मेमोरी के प्रतिशत के रूप में। |
 
-### Network
+### नेटवर्क
 
-| Metric                                | विवरण                 |
-| ------------------------------------- | --------------------- |
-| `container.network.io.usage.rx_bytes` | प्राप्त कुल bytes     |
-| `container.network.io.usage.tx_bytes` | transmitted कुल bytes |
+| मेट्रिक | विवरण |
+| --- | --- |
+| `container.network.io.usage.rx_bytes` | प्राप्त बाइट। जीवनभर का काउंटर। |
+| `container.network.io.usage.tx_bytes` | भेजे गए बाइट। जीवनभर का काउंटर। |
 
-### Block I/O
+### ब्लॉक I/O
 
-| Metric                                               | विवरण                          |
-| ---------------------------------------------------- | ------------------------------ |
-| `container.blockio.io_service_bytes_recursive.read`  | block devices से read bytes    |
-| `container.blockio.io_service_bytes_recursive.write` | block devices पर written bytes |
+| मेट्रिक | विवरण |
+| --- | --- |
+| `container.blockio.io_service_bytes_recursive.read` | ब्लॉक डिवाइस से पढ़े गए बाइट। |
+| `container.blockio.io_service_bytes_recursive.write` | ब्लॉक डिवाइस पर लिखे गए बाइट। |
 
-### Container Info
+### कंटेनर
 
-| Metric                 | विवरण                                 |
-| ---------------------- | ------------------------------------- |
-| `container.uptime`     | seconds में Container uptime          |
-| `container.restarts`   | container restart होने की संख्या      |
-| `container.pids.count` | container के अंदर processes की संख्या |
+| मेट्रिक | विवरण |
+| --- | --- |
+| `container.uptime` | कंटेनर शुरू होने के बाद के सेकंड। सिर्फ़ चल रहे कंटेनर इसकी रिपोर्ट करते हैं। |
+| `container.restarts` | बनने के बाद से कंटेनर कितनी बार रीस्टार्ट हुआ। जीवनभर का काउंटर। |
+| `container.pids.count` | कंटेनर में कार्य। cgroup का pids कंट्रोलर प्रक्रियाओं के साथ थ्रेड भी गिनता है। |
 
-## Monitoring Criteria
+**Docker मेट्रिक** सूची `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` और नेटवर्क पैकेट काउंटर भी देती है। साथ आने वाला एजेंट कॉन्फ़िगरेशन इन्हें चालू नहीं करता, इसलिए इन पर कुछ बनाने से पहले होस्ट का **मेट्रिक्स** पेज जाँचें। `container.cpu.throttling_data.throttled_periods` सूची में नहीं है; इसे **उन्नत** से क्वेरी करें।
 
-### उपलब्ध Check Types
+## मॉनिटरिंग मानदंड
 
-| Check Type   | विवरण                                       |
-| ------------ | ------------------------------------------- |
-| Metric Value | configured metric query या formula का value |
+मानदंड मॉनिटर की किसी क्वेरी या सूत्र की तुलना एक थ्रेशोल्ड से करता है। Docker मॉनिटर के मानदंडों में **फ़िल्टर प्रकार** नहीं होता: हर नियम इन फ़ील्ड के साथ मेट्रिक मान जाँचता है।
 
-### Aggregation Types
+| फ़ील्ड | यह क्या करता है |
+| --- | --- |
+| **मीट्रिक** | जाँचने के लिए क्वेरी या सूत्र, उसके वेरिएबल नाम से। |
+| **एकत्रीकरण** | विंडो के मान एक उत्तर कैसे बनते हैं: **औसत**, **योग**, **Maximum Value**, **Minimum Value**, **All Values** (हर मान को मेल खाना चाहिए) या **Any Value** (एक काफ़ी है)। |
+| **शर्त** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** या **Equal To** – या कोई विसंगति शर्त: **Anomalously High**, **Anomalously Low** या **Anomalous**। |
+| **Threshold** | तुलना के लिए मान। मेट्रिक की कोई इकाई होने पर इसके बगल में इकाइयों की सूची होती है। विसंगति शर्तों के लिए नहीं दिखता। |
+| **संवेदनशीलता** | सिर्फ़ विसंगति शर्तें। **निम्न** (4σ), **मध्यम** (3σ, डिफ़ॉल्ट) या **उच्च** (2σ)। |
+| **बेसलाइन विंडो** | सिर्फ़ विसंगति शर्तें। 14 दिन (डिफ़ॉल्ट), 28, 60 या 90 दिन का इतिहास। |
+| **यदि कोई डेटा नहीं** | **और फ़ील्ड** के अंतर्गत। जब विंडो में कोई नमूना न हो तब क्या हो: **Ignore** (डिफ़ॉल्ट), **Treat As Zero** या **ट्रिगर**। |
 
-| Aggregation   | विवरण                                   |
-| ------------- | --------------------------------------- |
-| Average       | time window पर average value            |
-| Sum           | सभी values का sum                       |
-| Maximum Value | time window में highest value           |
-| Minimum Value | time window में lowest value            |
-| All Values    | सभी values criteria से match होनी चाहिए |
-| Any Value     | कम से कम एक value match होनी चाहिए      |
+विसंगति शर्तें हर मान की तुलना बेसलाइन में सप्ताह के उसी घंटे से करती हैं। जब तक बेसलाइन विंडो में पर्याप्त इतिहास न हो, वे "Learning" स्थिति में रहती हैं और कुछ नहीं बनातीं।
 
-### Filter Types
+हर मानदंड यह भी बताता है कि मेल खाने पर क्या करना है: मॉनिटर की स्थिति बदलना, अलर्ट बनाना या घटना घोषित करना। मानदंड ऊपर से नीचे जाँचे जाते हैं, और जो पहले मेल खाता है वही तय करता है।
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+### डिफ़ॉल्ट मानदंड
 
-Baseline anomaly detection (कोई threshold नहीं — form इसके बजाय **Sensitivity** और **Baseline Window** दिखाता है और प्रत्येक sample की तुलना सप्ताह के उसी घंटे की baseline से करता है):
+जो मॉनिटर आप टेम्पलेट से नहीं बनाते, वह दो मानदंडों से शुरू होता है:
 
-- **Anomalously High** — Value अपेक्षित range से ऊपर जाती है
-- **Anomalously Low** — Value अपेक्षित range से नीचे जाती है
-- **Anomalous** — Value किसी भी दिशा में अपेक्षित range से बाहर जाती है
+| क्रम | मानदंड | कब मेल खाता है | फिर |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | पहली क्वेरी का कोई भी मान `0` है | मॉनिटर को **ऑफ़लाइन** चिह्नित करता है और घटना "_monitor name_ is offline" घोषित करता है, जो मॉनिटर ठीक होने पर अपने आप सुलझ जाती है। |
+| 2 | Check if _monitor name_ is online | कोई भी मान `0` से ऊपर है | मॉनिटर को **कार्यरत** चिह्नित करता है। |
 
-जब तक कम से कम चुनी गई Baseline Window जितना history न हो, anomaly conditions कोई alert नहीं बनातीं (Learning state)।
+> [!IMPORTANT]
+> चुप्पी किसी भी मानदंड से मेल नहीं खाती: डेटा भेजना बंद करने वाला होस्ट मॉनिटर को वैसा ही छोड़ देता है जैसा वह था। डेटा रुकने पर सूचना पाने के लिए किसी मानदंड पर **यदि कोई डेटा नहीं** को **ट्रिगर** पर सेट करें। जिस समय OneUptime खुद डेटा प्राप्त नहीं कर रहा था, वह कभी "कोई डेटा नहीं" नहीं माना जाता: जिस जाँच की विंडो में ऐसा समय हो, वह इसके बजाय प्रतीक्षा करती है, जैसा कि [जब OneUptime डेटा प्राप्त नहीं कर रहा हो](/docs/monitor/when-oneuptime-is-not-receiving) में बताया गया है।
 
-## Pre-built Alert Templates
+## इकट्ठा किए गए लॉग
 
-OneUptime सामान्य Docker monitoring scenarios के लिए templates प्रदान करता है:
+एजेंट हर कंटेनर की `*-json.log` फ़ाइल को भी फ़ॉलो करता है और हर पंक्ति को OpenTelemetry लॉग रिकॉर्ड के रूप में भेजता है, जिसमें ये होते हैं:
 
-| Template               | विवरण                                    | Threshold | Aggregation           |
-| ---------------------- | ---------------------------------------- | --------- | --------------------- |
-| High Container CPU     | प्रति container CPU utilization          | > 90%     | Max (प्रति container) |
-| High Container Memory  | limit के percent के रूप में Memory usage | > 85%     | Max (प्रति container) |
-| High CPU Throttling    | CPU throttled periods                    | > 0       | Max (प्रति container) |
-| Container Restart Loop | Container restart count                  | > 3       | Sum                   |
-| Container Down         | Container uptime 0 पर reset              | = 0       | Min                   |
+| फ़ील्ड | मान |
+| --- | --- |
+| `resource.host.name` | होस्ट, `DOCKER_HOST_NAME` से। |
+| `resource.container.id` | पूरा कंटेनर ID। |
+| `resource.container.runtime` | हमेशा `docker`। |
+| `attributes["log.iostream"]` | `stdout` या `stderr`। |
+| `severityText` / `severityNumber` | पंक्ति में जहाँ लेवल हो, वहाँ के लेवल कीवर्ड से पढ़ा जाता है (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`)। बिना लेवल वाली पंक्ति अपनी स्ट्रीम पर निर्भर करती है: `stderr` का मतलब `ERROR`, `stdout` का मतलब `INFO`। |
+| `body` | कंटेनर द्वारा लिखी गई पंक्ति। व्हाइटस्पेस या बंद ब्रैकेट से शुरू होने वाली पंक्तियाँ, जैसे स्टैक-ट्रेस फ़्रेम, पिछली पंक्ति से जोड़ दी जाती हैं। |
+| `time` | पंक्ति के लिए Docker डेमन का टाइमस्टैम्प। |
 
-> नोट: CPU, memory और throttling templates **Max** aggregation का उपयोग करते हैं जो `resource.container.name` से grouped होती है। यह एक single hot container के signal को एक ही host पर कई idle containers द्वारा dilute होने से रोकता है।
+लॉग होस्ट के **लॉग** पेज पर और हर कंटेनर के पेज पर दिखते हैं।
 
-## Collected Logs
+### लॉग ड्राइवर की आवश्यकता
 
-Metrics के अलावा, Docker Agent OpenTelemetry filelog receiver के माध्यम से हर container की `*-json.log` फ़ाइल को tail करता है और native OTLP log format में log records ship करता है। प्रत्येक log record इनसे enriched होता है:
+एजेंट सिर्फ़ उन कंटेनरों के लॉग पढ़ सकता है जो Docker के `json-file` लॉग ड्राइवर का उपयोग करते हैं। यह Docker का डिफ़ॉल्ट है, लेकिन कोई कंटेनर या पूरा डेमन दूसरा ड्राइवर उपयोग कर सकता है:
 
-- `resource.host.name` — Docker host identifier
-- `resource.container.id` — पूर्ण container ID
-- `resource.container.runtime` — हमेशा `docker`
-- `attributes["log.iostream"]` — `stdout` या `stderr`
-- `severityText` / `severityNumber` — लाइन में मौजूद level keyword से पढ़ा जाता है (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); जिन लाइनों में कोई पहचान योग्य level नहीं है वे stream पर fallback करती हैं: `stderr` → `ERROR`, `stdout` → `INFO`
-- `body` — container process द्वारा emit की गई raw log line
-- `time` — line के लिए Docker daemon का timestamp
+| ड्राइवर | एजेंट क्या देखता है |
+| --- | --- |
+| `json-file` | हर पंक्ति। |
+| `local` | कुछ नहीं: फ़ाइल बाइनरी है, और एजेंट उसे पार्स नहीं कर सकता। |
+| `journald`, `syslog`, `fluentd`, `gelf`, `awslogs`, `splunk`, … | कुछ नहीं: लॉग कहीं और जाते हैं, इसलिए फ़ॉलो करने के लिए कोई फ़ाइल नहीं है। |
+| `none` | कुछ नहीं: लॉग फेंक दिए जाते हैं। |
 
-Logs Docker host के **लॉग** tab पर और प्रत्येक container की detail page पर दिखाई देते हैं।
-
-### Log Driver Requirement
-
-**Docker Agent केवल उन containers से logs ingest करता है जो Docker के `json-file` log driver का उपयोग करते हैं।** यह Docker का default है, लेकिन इसे per-container या globally override किया जा सकता है:
-
-- **`local`** driver — binary protobuf chunks को `/var/lib/docker/containers/<id>/local-logs/container.log` पर लिखता है। filelog receiver इस format को parse नहीं कर सकता।
-- **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`**, आदि — logs को remote destination पर भेजते हैं; tail करने के लिए कोई फ़ाइल नहीं।
-- **`none`** — logs पूरी तरह discard करता है।
-
-यदि उपरोक्त में से कोई भी उपयोग में है, तो आपको Docker host page पर metrics दिखाई देंगे लेकिन **लॉग** tab खाली होगा (या केवल Docker Agent के अपने logs होंगे)।
-
-**एक specific container का log driver जांचें:**
+किसी कंटेनर का ड्राइवर और डेमन का डिफ़ॉल्ट जाँचें:
 
 ```bash
 docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
-```
-
-**daemon default जांचें:**
-
-```bash
 docker info --format '{{.LoggingDriver}}'
 ```
 
-**एक Docker Compose service को sensible rotation के साथ `json-file` पर switch करें:**
+`json-file` पर स्विच करें। Docker कंटेनर बनाते समय उसका लॉग ड्राइवर तय करता है, इसलिए बदलाव के बाद हर कंटेनर को फिर से बनाएं – रीस्टार्ट पुराना ड्राइवर ही रखता है।
 
-```yaml
+:::tabs
+@tab Docker Compose
+हर सेवा पर ड्राइवर सेट करें, रोटेशन के साथ:
+
+```yaml title="docker-compose.yml"
 services:
   my-app:
     image: my-app:latest
@@ -195,9 +237,15 @@ services:
         max-file: "5"
 ```
 
-**daemon default switch करें** (बाद में बनाए गए हर container पर लागू होता है) `/etc/docker/daemon.json` संपादित करके:
+फिर सेवा को फिर से बनाएं:
 
-```json
+```bash
+docker compose up -d --force-recreate <service>
+```
+@tab Docker डेमन
+इसके बाद बनने वाले हर कंटेनर के लिए `json-file` को डिफ़ॉल्ट बनाएं:
+
+```json title="/etc/docker/daemon.json"
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -207,45 +255,45 @@ services:
 }
 ```
 
-फिर Docker daemon restart करें और affected containers **recreate** करें। Docker container create time पर log driver bind करता है, इसलिए एक existing container अपना पुराना driver तब तक रखता है जब तक इसे remove और recreate न किया जाए:
+Docker डेमन को रीस्टार्ट करें, फिर हर कंटेनर को हटाकर फिर से बनाएं:
 
 ```bash
-# Docker Compose
-docker compose up -d --force-recreate <service>
-
-# Plain docker
 docker rm -f <container>
 docker run ... <image>
 ```
-
-## Setup Requirements
-
-Docker monitoring उपयोग करने के लिए, आपको:
-
-1. आप जो monitor करना चाहते हैं उस हर Docker host पर OneUptime Docker Agent install करें
-2. `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` और `DOCKER_HOST_NAME` को environment variables के रूप में pass करें
-3. सुनिश्चित करें कि आप जिन containers को observe करना चाहते हैं वे `json-file` log driver उपयोग करते हैं (ऊपर देखें)
-
-Agent Docker Hub पर `oneuptime/docker-agent:release` के रूप में published है। पूरे `docker run` और `docker compose` उदाहरणों के लिए [Docker Agent installation guide](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) देखें।
+:::
 
 ## समस्या निवारण
 
-### Metrics दिखाई देते हैं लेकिन Logs tab खाली है
+:::details होस्ट Docker होस्ट सूची में नहीं है
+होस्ट एजेंट के डेटा से अपने आप पंजीकृत होते हैं। जाँचें कि एजेंट कंटेनर चल रहा है और होस्ट **उत्पाद → बुनियादी ढांचा → Docker → सभी होस्ट** के अंतर्गत दिख रहा है। [Docker एजेंट गाइड](/docs/telemetry/docker-host) में होस्ट पर चलाने वाली जाँचें हैं।
+:::
 
-आपके containers लगभग निश्चित रूप से `json-file` log driver उपयोग नहीं कर रहे। ऊपर [Log Driver Requirement](#log-driver-requirement) section में diagnostic commands चलाएं और किसी भी container को switch करें जिन्हें उनके logs ship करने की आवश्यकता है।
+:::details मेट्रिक्स आते हैं लेकिन लॉग पेज खाली है
+कंटेनर लगभग निश्चित रूप से `json-file` लॉग ड्राइवर का उपयोग नहीं कर रहे। [लॉग ड्राइवर की आवश्यकता](#लॉग-ड्राइवर-की-आवश्यकता) में दिए कमांड से उन्हें जाँचें, जिन कंटेनरों के लॉग चाहिए उन्हें स्विच करें, और उन्हें फिर से बनाएं।
+:::
 
-### Filelog receiver `no files match the configured criteria` log करता है
+:::details एजेंट "no files match the configured criteria" लॉग करता है
+एजेंट `/var/lib/docker/containers/*/*-json.log` खोजता है और उसे कुछ नहीं मिला। या तो होस्ट पर कोई कंटेनर `json-file` का उपयोग नहीं करता, या एजेंट का `/var/lib/docker/containers` माउंट (`-v /var/lib/docker/containers:/var/lib/docker/containers:ro`) गायब या खाली है, या एजेंट macOS के Docker Desktop पर चलता है, जिसकी कंटेनर फ़ाइलें उसकी Linux VM के अंदर होती हैं।
+:::
 
-इसका मतलब है कि include glob `/var/lib/docker/containers/*/*-json.log` agent start होने पर किसी भी फ़ाइल से match नहीं हुआ। या तो:
+:::details डेटा गलत होस्ट नाम के तहत आता है
+OneUptime किसी होस्ट को `resource.host.name` से पहचानता है, जिसे एजेंट `DOCKER_HOST_NAME` से लेता है। पहले डेटा के बाद `DOCKER_HOST_NAME` बदलने से पहला होस्ट नया नाम नहीं पाता, बल्कि दूसरा होस्ट बन जाता है, और मॉनिटर उसी नाम से बंधा रहता है जिससे वह बनाया गया था।
+:::
 
-1. इस host पर कोई container `json-file` उपयोग नहीं कर रहा, या
-2. bind mount `-v /var/lib/docker/containers:/var/lib/docker/containers:ro` missing है या एक खाली directory की ओर point कर रहा है, या
-3. Agent Linux VM के container directory के expose किए बिना macOS के लिए Docker Desktop पर चल रहा है।
+:::details CPU अलर्ट कभी ट्रिगर नहीं होता
+**High Container CPU Usage** टेम्पलेट की तरह क्वेरी को `resource.container.name` के अनुसार समूहित करें और **अधिकतम** से एकत्र करें। व्यस्त होस्ट पर सभी कंटेनरों का औसत निष्क्रिय कंटेनरों के कारण नीचे खिंच जाता है। याद रखें कि 100% का मतलब एक पूरा कोर है, इसलिए जिस कंटेनर को कई कोर की अनुमति है, उसे ऊँचे थ्रेशोल्ड की ज़रूरत है।
+:::
 
-### Logs arrive हो रहे हैं लेकिन गलत host name के अंतर्गत grouped हैं
+:::details रीस्टार्ट-लूप या थ्रॉटलिंग टेम्पलेट ने अलर्ट देना बंद कर दिया
+दोनों मापते हैं कि एक ही मिनट के दो नमूनों के बीच कोई काउंटर कितना बढ़ा। अगर एजेंट का `collection_interval` 60 सेकंड या उससे अधिक है, तो हर मिनट में एक नमूना रहता है, वृद्धि हमेशा 0 पढ़ी जाती है, और कोई भी टेम्पलेट ट्रिगर नहीं होता। एजेंट का डिफ़ॉल्ट 30 सेकंड ही रखें।
+:::
 
-OneUptime Docker hosts को `resource.host.name` से auto-register करता है, जो `DOCKER_HOST_NAME` environment variable से लिया जाता है। पहले telemetry batch के बाद `DOCKER_HOST_NAME` बदलने से existing one का नाम बदलने के बजाय एक second host row बन जाएगी।
+## अगले चरण
 
-### "High CPU" के लिए Incidents fire नहीं हो रहे
-
-सुनिश्चित करें कि metric query का aggregation **Max** है (Avg नहीं) और यह `resource.container.name` से group करता है। एक busy host पर सभी containers में Avg, idle containers द्वारा diluted होता है और शायद ही कभी threshold cross करता है।
+:::cards
+- [Docker एजेंट](/docs/telemetry/docker-host): वह एजेंट इंस्टॉल, अपग्रेड और ठीक करें जिसे यह मॉनिटर पढ़ता है।
+- [Podman मॉनिटर](/docs/monitor/podman-monitor): Podman होस्ट के लिए वही मॉनिटर।
+- [Docker Swarm मॉनिटर](/docs/monitor/docker-swarm-monitor): किसी Swarm क्लस्टर के कार्यों पर नज़र रखें।
+- [घटनाओं का अवलोकन](/docs/incidents/index): किसी मानदंड के घटना घोषित करने के बाद क्या होता है।
+:::
