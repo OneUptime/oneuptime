@@ -67,7 +67,7 @@ Duas coisas ficam de fora:
 
 ### Ligar os registros de auditoria
 
-Os registros de auditoria são um recurso Enterprise: eles exigem o plano **Enterprise** no OneUptime Cloud, ou a Enterprise Edition em uma instalação auto-hospedada. Em outros planos, a página **Registros de auditoria** do SLO explica como obtê-lo. Em uma instalação auto-hospedada, o registro de auditoria para de gravar sem uma licença válida (depois do teste de 14 dias, ou 30 dias depois que uma licença expira), e volta assim que uma licença é ativada (veja [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). As páginas **Registros de auditoria** avisam quando ele não está gravando.
+Os registros de auditoria são um recurso Enterprise: eles exigem o plano **Enterprise** no OneUptime Cloud, ou a Enterprise Edition em uma instalação auto-hospedada. Em outros planos, a página **Registros de auditoria** do SLO explica como obtê-lo. Em uma instalação auto-hospedada, o registro de auditoria para de gravar sem uma licença válida (depois do teste de 14 dias, ou 30 dias depois que uma licença expira), e volta assim que uma licença é ativada (veja [When a license expires or is missing](/docs/self-hosted/enterprise#quando-uma-licença-expira-ou-está-ausente)). As páginas **Registros de auditoria** avisam quando ele não está gravando.
 
 Os registros de auditoria também ficam desligados por padrão em todo projeto. Para ligá-los:
 

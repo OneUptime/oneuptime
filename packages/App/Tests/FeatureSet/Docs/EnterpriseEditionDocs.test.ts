@@ -69,6 +69,9 @@ const PAGE_TITLE: string = "Enterprise Edition";
 const PAGE_RELATIVE_PATH: string = "self-hosted/enterprise";
 const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;
 
+// The English anchor of the page's section on a lapsed or missing license.
+const LAPSE_ANCHOR: string = "when-a-license-expires-or-is-missing";
+
 const UPSELL_SOURCE_FILES: Array<string> = [
   "App/FeatureSet/Dashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade.tsx",
   "App/FeatureSet/AdminDashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade.tsx",
@@ -263,8 +266,9 @@ function listItemsOf(markdown: string): Array<string> {
   return items;
 }
 
-function headingSlugs(markdown: string): Set<string> {
-  const slugs: Set<string> = new Set<string>();
+// The text of a page's headings, in order, outside fenced code.
+function headingTexts(markdown: string): Array<string> {
+  const texts: Array<string> = [];
   let inFence: boolean = false;
 
   for (const line of markdown.split("\n")) {
@@ -280,11 +284,57 @@ function headingSlugs(markdown: string): Set<string> {
     const match: RegExpMatchArray | null = line.match(HEADING_PATTERN);
 
     if (match) {
-      slugs.add(slugify(match[1]!));
+      texts.push(match[1]!);
     }
   }
 
-  return slugs;
+  return texts;
+}
+
+function headingSlugs(markdown: string): Set<string> {
+  return new Set<string>(
+    headingTexts(markdown).map((text: string): string => {
+      return slugify(text);
+    }),
+  );
+}
+
+/*
+ * The anchor an English heading of this page has for a reader of a
+ * language. A translation keeps the English page's headings in their order
+ * (PermissionsAndSelfHostedDocsTranslations.test.ts holds it to that), so it
+ * is the anchor of the heading in the English one's place, the one
+ * LocalizeAnchors points that language's links at. Where the page is not
+ * translated, the reader is served the English page, and its anchor.
+ */
+function anchorInLanguage(lang: string, englishAnchor: string): string {
+  const at: number = headingTexts(readPage()).findIndex(
+    (text: string): boolean => {
+      return slugify(text) === englishAnchor;
+    },
+  );
+
+  if (at < 0) {
+    throw new Error(`The ${PAGE_TITLE} page has no #${englishAnchor}`);
+  }
+
+  if (
+    !fs.existsSync(path.join(CONTENT_DIR, lang, `${PAGE_RELATIVE_PATH}.md`))
+  ) {
+    return englishAnchor;
+  }
+
+  const heading: string | undefined = headingTexts(
+    readContent(lang, PAGE_RELATIVE_PATH),
+  )[at];
+
+  if (!heading) {
+    throw new Error(
+      `The ${lang} ${PAGE_TITLE} page has no heading in the place of #${englishAnchor}`,
+    );
+  }
+
+  return slugify(heading);
 }
 
 function docsLinks(markdown: string): Array<string> {
@@ -1366,7 +1416,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         ]),
       });
       expect(licensing[1]).toContain(
-        "(/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)",
+        `(${PAGE_URL}#${anchorInLanguage(lang, LAPSE_ANCHOR)})`,
       );
       expect(section).toContain("`404`");
       expect(section).not.toContain(
@@ -1881,8 +1931,6 @@ describe("The status pages overview says who gets status page SSO, OIDC and SCIM
  */
 describe("The SLO audit logs page says recording stops with the license", () => {
   const SLO_AUDIT_LOGS_PAGE: string = "slo/feed-and-audit-logs";
-  const LAPSE_ANCHOR: string =
-    "/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing";
 
   // The paragraph that says audit logs need the **Enterprise** plan or edition.
   const turningOnSection: (lang: string) => string = (lang: string): string => {
@@ -1902,13 +1950,15 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     (lang: string) => {
       const paragraph: string = turningOnSection(lang);
 
-      expect(paragraph).toContain(`](${LAPSE_ANCHOR})`);
+      expect(paragraph).toContain(
+        `](${PAGE_URL}#${anchorInLanguage(lang, LAPSE_ANCHOR)})`,
+      );
       // The trial, then the grace period after an expiry (Persian digits too).
       expect(statedDayCounts(paragraph)).toEqual([
         ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
         ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
       ]);
-      expect(unresolvedDocsLinks(paragraph)).toEqual([]);
+      expect(unresolvedDocsLinks(paragraph, lang)).toEqual([]);
     },
   );
 

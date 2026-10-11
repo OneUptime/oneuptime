@@ -272,7 +272,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "self-hosted/enterprise": {
-    translated: EVERY_TRANSLATION,
+    translated: except(EVERY_TRANSLATION, "de", "fr", "es", "it", "pt"),
   },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
