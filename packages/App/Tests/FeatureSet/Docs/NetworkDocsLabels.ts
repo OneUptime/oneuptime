@@ -1,3 +1,4 @@
+import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { dashboardLocale, drawnActionLabel } from "./DocsDashboardLabels";
 
 /*
@@ -212,4 +213,82 @@ export function isVerdict(
   return verdictPatterns(language, english).some((pattern: RegExp): boolean => {
     return pattern.test(sentence);
   });
+}
+
+// A heading line outside code: "## Alerting", "### Transceivers".
+const HEADING_LINE: RegExp = /^(#{1,6}) \S/;
+const FENCE_LINE: RegExp = /^\s*```/;
+
+// The headings of a page after its title.
+function sectionHeadings(markdown: string): Array<DocsHeading> {
+  return scanMarkdown(markdown).headings.filter(
+    (heading: DocsHeading): boolean => {
+      return heading.line !== 1;
+    },
+  );
+}
+
+/*
+ * The anchor of the heading of a page in a language that sits where the
+ * English page's heading with this anchor sits.
+ */
+export function anchorInLanguage(
+  language: string,
+  page: string,
+  englishAnchor: string,
+): string | null {
+  const english: Array<DocsHeading> = sectionHeadings(readPage("en", page));
+  const index: number = english.findIndex((heading: DocsHeading): boolean => {
+    return heading.slug === englishAnchor;
+  });
+
+  if (index < 0) {
+    return null;
+  }
+
+  return sectionHeadings(readPage(language, page))[index]?.slug || null;
+}
+
+/*
+ * The section of a page in a language that sits where the English page's
+ * section under `englishHeading` sits: from that heading to the next heading
+ * of its level or higher. The translations lie line for line beside the
+ * English page (NetworkDocsTranslations holds them to it), so the section is
+ * the lines the English section takes.
+ */
+export function sectionInLanguage(
+  language: string,
+  page: string,
+  englishHeading: string,
+): string {
+  const english: Array<string> = readPage("en", page).split("\n");
+  const start: number = english.indexOf(englishHeading);
+
+  if (start < 0) {
+    throw new Error(`The English ${page} has no heading "${englishHeading}"`);
+  }
+
+  const level: number = englishHeading.indexOf(" ");
+  let inFence: boolean = false;
+  let end: number = english.length;
+
+  for (let index: number = start + 1; index < english.length; index++) {
+    const line: string = english[index] as string;
+
+    if (FENCE_LINE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    const heading: RegExpMatchArray | null = inFence
+      ? null
+      : line.match(HEADING_LINE);
+
+    if (heading && (heading[1] as string).length <= level) {
+      end = index;
+      break;
+    }
+  }
+
+  return readPage(language, page).split("\n").slice(start, end).join("\n");
 }

@@ -429,7 +429,7 @@ Ce que chaque constructeur Wi-Fi rapporte par SNMP, et ce que seul son cloud pos
 | HPE Aruba | Points d'accès sous AOS 10, gérés par Aruba Central | — | Joignabilité (ping) | Radios, SSID et clients : l'API d'Aruba Central |
 | Extreme Networks | Points d'accès IQ Engine (HiveOS) | Extreme Networks IQ Engine (HiveOS) Access Points | Canal, puissance d'émission et bruit de fond de chaque radio ; SSID ; CPU, mémoire, clients, température | Vues des clients et de la flotte dans ExtremeCloud IQ |
 | Extreme Networks | ExtremeCloud IQ Controller (anciennement Extreme Campus Controller) et contrôleurs ExtremeWireless | Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless) | État et clients de chaque point d'accès ; bande, canal, largeur, bruit de fond et temps d'antenne occupé de chaque radio ; WLAN avec clients | — |
-| TP-Link | Points d'accès Omada (EAP) | TP-Link Omada Access Points (EAP) | Le nombre de clients, sur un firmware doté de la MIB client EAP de TP-Link | Radios, canaux et SSID : l'API du contrôleur Omada |
+| TP-Link | Points d'accès Omada (EAP) | TP-Link Omada Access Points (EAP) | Le nombre de clients, sur un firmware doté de la MIB client EAP de TP-Link | Radios, canaux et SSID : l'API d'Omada Controller |
 | Juniper | Points d'accès Mist | — | Joignabilité (ping) ; points d'accès qui tombent et reviennent, via les webhooks de Mist | Tout le reste : l'API cloud de Mist |
 
 Les modèles sont trouvés à partir du `sysObjectID` et du `sysDescr` de chaque équipement, si bien que l'application automatique, **Selon le constructeur de chaque appareil** de l'action groupée **Appliquer le modèle constructeur** et la page Wi-Fi les choisissent sans qu'on le leur dise, sauf celui de TP-Link, que vous appliquez vous-même. Pour activer SNMP, par constructeur :
@@ -440,7 +440,7 @@ Les modèles sont trouvés à partir du `sysObjectID` et du `sysDescr` de chaque
 - **HPE Aruba Mobility Controller** : ajoutez le contrôleur ; les points d'accès de campus ne répondent pas eux-mêmes au SNMP.
 - **Extreme IQ Engine** : activez SNMP dans la politique réseau qu'ExtremeCloud IQ pousse vers les points d'accès, et ajoutez chaque point d'accès.
 - **Extreme Wireless Controller** : activez SNMP dans les paramètres d'administration du contrôleur et ajoutez le contrôleur.
-- **TP-Link Omada** : activez SNMP pour le site dans le contrôleur Omada (Network Config → SNMP), ajoutez les points d'accès, et appliquez le modèle depuis leur page Paramètres ou avec **Appliquer le modèle constructeur**.
+- **TP-Link Omada** : activez SNMP pour le site dans Omada Controller (Network Config → SNMP), ajoutez les points d'accès, et appliquez le modèle depuis leur page Paramètres ou avec **Appliquer le modèle constructeur**.
 - **Juniper Mist** : les points d'accès Mist ne répondent pas au SNMP. Ajoutez-les comme équipements seulement pingués pour la joignabilité, et envoyez le webhook `device-updowns` de Mist à un [moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor) pour qu'un point d'accès qui passe hors ligne devienne un incident.
 
 La table d'un contrôleur garde jusqu'à 250 lignes : sur un contrôleur de plus de 250 points d'accès ou radios, les autres ne sont pas listés, et la table le dit. Ses nombres de points d'accès et de clients sont des OID de santé, ils comptent donc tout.

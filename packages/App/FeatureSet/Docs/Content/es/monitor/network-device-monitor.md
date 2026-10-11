@@ -429,7 +429,7 @@ Lo que cada fabricante de Wi-Fi informa por SNMP, y lo que solo tiene su nube:
 | HPE Aruba | Puntos de acceso con AOS 10, gestionados por Aruba Central | — | Accesibilidad (ping) | Radios, SSID y clientes: la API de Aruba Central |
 | Extreme Networks | Puntos de acceso IQ Engine (HiveOS) | Extreme Networks IQ Engine (HiveOS) Access Points | Canal, potencia de transmisión y ruido de fondo de cada radio; SSID; CPU, memoria, clientes, temperatura | Vistas de clientes y de flota en ExtremeCloud IQ |
 | Extreme Networks | ExtremeCloud IQ Controller (antes Extreme Campus Controller) y controladores ExtremeWireless | Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless) | Estado y clientes de cada punto de acceso; banda, canal, ancho, ruido de fondo y tiempo de aire ocupado de cada radio; WLAN con clientes | — |
-| TP-Link | Puntos de acceso Omada (EAP) | TP-Link Omada Access Points (EAP) | El número de clientes, en firmware con la MIB de clientes EAP de TP-Link | Radios, canales y SSID: la API del controlador Omada |
+| TP-Link | Puntos de acceso Omada (EAP) | TP-Link Omada Access Points (EAP) | El número de clientes, en firmware con la MIB de clientes EAP de TP-Link | Radios, canales y SSID: la API de Omada Controller |
 | Juniper | Puntos de acceso Mist | — | Accesibilidad (ping); puntos de acceso que caen y vuelven, mediante los webhooks de Mist | Todo lo demás: la API en la nube de Mist |
 
 Las plantillas se emparejan a partir del `sysObjectID` y el `sysDescr` de cada dispositivo, así que la aplicación automática, **Según el fabricante de cada dispositivo** de la acción masiva **Aplicar plantilla del fabricante** y la página Wi-Fi las eligen sin que se lo digas, salvo la de TP-Link, que aplicas tú. Para activar SNMP, por fabricante:
@@ -440,7 +440,7 @@ Las plantillas se emparejan a partir del `sysObjectID` y el `sysDescr` de cada d
 - **HPE Aruba Mobility Controller**: añade el controlador; los puntos de acceso de campus no responden a SNMP por sí mismos.
 - **Extreme IQ Engine**: activa SNMP en la política de red que ExtremeCloud IQ envía a los puntos de acceso, y añade cada punto de acceso.
 - **Extreme Wireless Controller**: activa SNMP en los ajustes de administración del controlador y añade el controlador.
-- **TP-Link Omada**: activa SNMP para el sitio en el controlador Omada (Network Config → SNMP), añade los puntos de acceso, y aplica la plantilla desde su página de Ajustes o con **Aplicar plantilla del fabricante**.
+- **TP-Link Omada**: activa SNMP para el sitio en Omada Controller (Network Config → SNMP), añade los puntos de acceso, y aplica la plantilla desde su página de Ajustes o con **Aplicar plantilla del fabricante**.
 - **Juniper Mist**: los puntos de acceso Mist no responden a SNMP. Añádelos como dispositivos solo con ping para la accesibilidad, y envía el webhook `device-updowns` de Mist a un [monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor) para que un punto de acceso que se desconecta se convierta en un incidente.
 
 La tabla de un controlador conserva hasta 250 filas: en un controlador con más de 250 puntos de acceso o radios, el resto no se lista, y la tabla lo indica. Sus recuentos de puntos de acceso y de clientes son OID de salud, así que cuentan todo.

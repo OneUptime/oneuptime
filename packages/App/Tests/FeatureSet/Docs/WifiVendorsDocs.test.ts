@@ -5,6 +5,8 @@ import {
   WIFI_VENDORS_DOCS_PATH,
   getWifiTemplates,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/WifiTemplateAdvice";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { NETWORK_DEVICE_PAGE, sectionInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -12,7 +14,7 @@ import path from "path";
 /*
  * The network device guide's "Supported Wi-Fi Vendors" table answers the
  * customer's question - which wireless vendors does OneUptime support - in
- * English and in Persian, the guide's two languages. It names every Wi-Fi
+ * every docs language. It names every Wi-Fi
  * vendor template by the label the dashboard shows (markdown is not
  * compiled, so a renamed template would otherwise leave the guide pointing
  * at a dropdown entry that is not there), says what each vendor reports
@@ -31,19 +33,8 @@ function read(language: string, page: string): string {
 
 const DEVICE_GUIDE: string = "monitor/network-device-monitor.md";
 
-// The section's table rows, from the heading to the next heading.
-function supportedVendorsSection(markdown: string, heading: string): string {
-  const start: number = markdown.indexOf(heading);
-  expect(start).toBeGreaterThan(-1);
-
-  const next: number = markdown.indexOf("\n### ", start + heading.length);
-  return markdown.substring(start, next === -1 ? undefined : next);
-}
-
-const SECTION_HEADINGS: Record<string, string> = {
-  en: "### Supported Wi-Fi Vendors",
-  fa: "### فروشندگان Wi-Fi پشتیبانی‌شده",
-};
+// The English section's heading; a translation's section sits on its lines.
+const SECTION_HEADING: string = "### Supported Wi-Fi Vendors";
 
 const TEMPLATE_LABELS_IN_TABLE: Array<string> = [
   ...getWifiTemplates().map((template: SnmpVendorTemplate) => {
@@ -52,12 +43,13 @@ const TEMPLATE_LABELS_IN_TABLE: Array<string> = [
   SnmpVendorTemplateUtil.getById("tplink-omada-eap")!.label,
 ];
 
-describe.each(["en", "fa"])(
+describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
   "the %s network device guide's Wi-Fi vendors",
   (language: string) => {
-    const section: string = supportedVendorsSection(
-      read(language, DEVICE_GUIDE),
-      SECTION_HEADINGS[language]!,
+    const section: string = sectionInLanguage(
+      language,
+      NETWORK_DEVICE_PAGE,
+      SECTION_HEADING,
     );
 
     test.each(TEMPLATE_LABELS_IN_TABLE)(
@@ -158,7 +150,7 @@ describe("the English guide", () => {
   });
 
   test("pages for an access point gone from its controller", () => {
-    expect(guide).toContain('"Access Points: row\nunhealthy"');
+    expect(guide).toContain('"Access Points: row unhealthy"');
   });
 });
 

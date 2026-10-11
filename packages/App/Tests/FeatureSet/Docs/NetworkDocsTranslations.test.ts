@@ -33,6 +33,7 @@ import {
   PATH_SEPARATOR,
   PERSIAN_PATH_SEPARATOR,
   VERDICT_HEADLINES,
+  anchorInLanguage,
   drawnNetworkLabel,
   drawnPath,
   drawnStart,
@@ -441,27 +442,6 @@ function sections(markdown: string): Array<DocsHeading> {
       return heading.line !== 1;
     },
   );
-}
-
-/*
- * The anchor of the heading of a page in a language that sits where the
- * English page's heading with this anchor sits.
- */
-function anchorInLanguage(
-  language: string,
-  page: string,
-  englishAnchor: string,
-): string | null {
-  const english: Array<DocsHeading> = sections(englishPage(page));
-  const index: number = english.findIndex((heading: DocsHeading): boolean => {
-    return heading.slug === englishAnchor;
-  });
-
-  if (index < 0) {
-    return null;
-  }
-
-  return sections(readPage(language, page))[index]?.slug || null;
 }
 
 interface LinkIntoPage {
