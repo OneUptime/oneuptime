@@ -11,8 +11,7 @@ import Express, {
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { AddressInfo } from "net";
 import { createServer, Server } from "http";
-import fs from "fs";
-import path from "path";
+import { readPage } from "./DocsContentSupport";
 import type * as Path from "path";
 import type * as FileSystem from "fs";
 
@@ -135,11 +134,6 @@ afterAll(async () => {
 const OVERVIEW_OPENING: string =
   "A form is a page that anyone with its link can fill in, without a OneUptime account.";
 
-const CONTENT_DIR: string = path.resolve(
-  __dirname,
-  "../../../FeatureSet/Docs/Content",
-);
-
 /*
  * A sentence's end: a full stop or a Hindi danda before a space, or the
  * ideographic full stop Japanese and Chinese write with no space after it.
@@ -150,10 +144,7 @@ const FIRST_SENTENCE: RegExp = /^.*?(?:[.।](?=\s|$)|。)/u;
 type OverviewOpeningFunction = (lang: string) => string;
 
 const overviewOpeningIn: OverviewOpeningFunction = (lang: string): string => {
-  const markdown: string = fs.readFileSync(
-    path.join(CONTENT_DIR, lang, "forms", "index.md"),
-    "utf8",
-  );
+  const markdown: string = readPage(lang, "forms/index");
   const opening: string =
     markdown
       .split("\n")
@@ -216,9 +207,7 @@ describe("the old Incident Forms page", () => {
         if (prefix === "/docs") {
           expect(content).toContain(overviewTitleIn(lang));
         } else {
-          expect(content.startsWith(`# ${overviewTitleIn(lang)}\n`)).toBe(
-            true,
-          );
+          expect(content.startsWith(`# ${overviewTitleIn(lang)}\n`)).toBe(true);
         }
       }
     },

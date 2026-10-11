@@ -470,10 +470,7 @@ interface AutoName {
 const INHERIT_LABELS_TEMPLATE: string = "Inherit labels from {{sources}}";
 
 // A rule that only inherits, named as ResourceRuleForm.getInheritingRuleName names it.
-function inheritingName(
-  translator: Translator,
-  terms: Array<string>,
-): string {
+function inheritingName(translator: Translator, terms: Array<string>): string {
   const isTranslated: boolean = translator.hasTranslation(
     INHERIT_LABELS_TEMPLATE,
   );
@@ -532,7 +529,7 @@ const AUTO_NAMES: Record<string, Array<AutoName>> = {
 
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // A menu path in one bold span: "Monitors → Settings → Label Rules".
 const PATH_SEPARATOR: RegExp = / (?:→|>) /;
@@ -557,7 +554,11 @@ function appLocale(app: string, language: string): Record<string, unknown> {
   }
 
   const locale: Record<string, unknown> = readLocale(
-    path.join(PACKAGES_DIR, `App/FeatureSet/${app}/src/Locales`, `${language}.json`),
+    path.join(
+      PACKAGES_DIR,
+      `App/FeatureSet/${app}/src/Locales`,
+      `${language}.json`,
+    ),
   );
 
   localeCache.set(key, locale);
@@ -639,6 +640,11 @@ function boldLabels(markdown: string): Array<string> {
   return boldSpans(prose(markdown));
 }
 
+// How many times a text holds a piece of text.
+function occurrences(text: string, needle: string): number {
+  return needle ? text.split(needle).length - 1 : 0;
+}
+
 function isPermissionOrRole(name: string): boolean {
   return PermissionHelper.getAllPermissionProps().some(
     (props: { title: string }): boolean => {
@@ -654,7 +660,10 @@ function listed(
   return lists[page] || [];
 }
 
-function keysOf<T>(lists: Record<string, Record<string, T>>, page: string): Array<string> {
+function keysOf<T>(
+  lists: Record<string, Record<string, T>>,
+  page: string,
+): Array<string> {
   return Object.keys(lists[page] || {});
 }
 
@@ -675,7 +684,11 @@ function escapeRegex(text: string): string {
  * "Notifications > Emails", which the Admin Dashboard's side menu holds),
  * the Dashboard's otherwise.
  */
-function drawnSegments(language: string, page: string, english: string): Array<string> {
+function drawnSegments(
+  language: string,
+  page: string,
+  english: string,
+): Array<string> {
   const segments: Array<string> = english.split(PATH_SEPARATOR);
   const isAdmin: boolean =
     segments[0] === "Admin Dashboard" ||
@@ -1304,6 +1317,55 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    /*
+     * As often as the English page does, too: a label named in two places
+     * (a card in the lead and again in the step that opens it) is named in
+     * both, so one of them cannot drift to other words.
+     */
+    it("names each Dashboard and Admin Dashboard label as often as the English page does", () => {
+      const translated: string = prose(readPage(language, entry.page));
+      const source: string = prose(english);
+      const exceptions: Array<string> = notDashboardLabels(entry.page);
+      const drawnAs: Array<[string, string]> = [
+        ...boldLabels(english)
+          .filter((label: string): boolean => {
+            return isDashboardLabel(label) && !exceptions.includes(label);
+          })
+          .map((label: string): [string, string] => {
+            return [label, drawnLabel(language, entry.page, label)];
+          }),
+        ...listed(ADMIN_LABELS, entry.page).map(
+          (label: string): [string, string] => {
+            return [label, adminLabel(language, label)];
+          },
+        ),
+      ];
+      // A permission the page also names as a button counts in either form.
+      const named: (label: string, drawn: string) => number = (
+        label: string,
+        drawn: string,
+      ): number => {
+        return (
+          occurrences(translated, `**${drawn}**`) +
+          (listed(ALSO_DRAWN, entry.page).includes(label) && drawn !== label
+            ? occurrences(translated, `**${label}**`)
+            : 0)
+        );
+      };
+      const tooFew: Array<string> = drawnAs
+        .filter(([label, drawn]: [string, string]): boolean => {
+          return named(label, drawn) < occurrences(source, `**${label}**`);
+        })
+        .map(([label, drawn]: [string, string]): string => {
+          return `${label} -> ${drawn}: ${named(label, drawn)} of ${occurrences(
+            source,
+            `**${label}**`,
+          )}`;
+        });
+
+      expect(tooFew).toEqual([]);
+    });
+
     it("writes every menu path segment by segment, as the screens draw them", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = pathsOf(entry.page)
@@ -1344,7 +1406,9 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       for (const button of Object.values(PLURAL_BUTTONS[entry.page] || {})) {
         const label: string = pluralButton(language, button);
 
-        if (!toLatinDigits(translated).includes(`**${toLatinDigits(label)}**`)) {
+        if (
+          !toLatinDigits(translated).includes(`**${toLatinDigits(label)}**`)
+        ) {
           missing.push(label);
         }
       }
@@ -1354,7 +1418,9 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
 
     it("names a rule the way the Dashboard fills its name in, in this language", () => {
       const translator: Translator = dashboardTranslator(language);
-      const italics: Array<string> = italicNames(readPage(language, entry.page));
+      const italics: Array<string> = italicNames(
+        readPage(language, entry.page),
+      );
       const missing: Array<string> = (AUTO_NAMES[entry.page] || [])
         .map((name: AutoName): string => {
           return name.name(translator);
@@ -1450,7 +1516,13 @@ describe("the helpers, on these pages' shapes", () => {
     expect(adminLabel("de", "Emails")).toBe("E-Mails");
     expect(adminLabel("de", "Edit Server")).toBe("Server bearbeiten");
     expect(adminLabel("ja", "Email Server Type")).toBe("メールサーバーの種類");
-    expect(drawnSegments("de", SMTP, "Admin Dashboard > Settings > Notifications > Emails")).toEqual([
+    expect(
+      drawnSegments(
+        "de",
+        SMTP,
+        "Admin Dashboard > Settings > Notifications > Emails",
+      ),
+    ).toEqual([
       "Admin Dashboard",
       "Einstellungen",
       "Benachrichtigungen",
@@ -1476,14 +1548,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(inheritingName(german, ["Monitors", "Hosts"])).toBe(
       "Beschriftungen erben von: Monitore, Hosts",
     );
-    expect(inheritingName(dashboardTranslator("en"), ["Monitors", "Hosts"])).toBe(
-      "Inherit labels from monitors, hosts",
-    );
+    expect(
+      inheritingName(dashboardTranslator("en"), ["Monitors", "Hosts"]),
+    ).toBe("Inherit labels from monitors, hosts");
   });
 
   it("read italic names written with underscores or asterisks", () => {
     expect(
-      italicNames("Named _Add Production_ or *Production hinzufügen*, never x_y_z."),
+      italicNames(
+        "Named _Add Production_ or *Production hinzufügen*, never x_y_z.",
+      ),
     ).toEqual(["Add Production", "Production hinzufügen"]);
   });
 
