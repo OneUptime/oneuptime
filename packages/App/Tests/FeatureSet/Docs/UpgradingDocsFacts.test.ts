@@ -69,6 +69,15 @@ function source(relativePath: string): string {
   return fs.readFileSync(path.join(REPO_DIR, relativePath), "utf8");
 }
 
+/*
+ * The enterprise Health dashboards are in ee/, which core CI removes before
+ * the App tests run: the page is held to them wherever the checkout has ee/.
+ * A dashboard file moved inside ee/ still fails the check.
+ */
+function hasEnterpriseEdition(): boolean {
+  return fs.existsSync(path.join(REPO_DIR, "ee"));
+}
+
 function yamlOf(relativePath: string): Record<string, unknown> {
   return jsYaml.load(source(relativePath)) as Record<string, unknown>;
 }
@@ -524,6 +533,10 @@ describe("Upgrading from 12 → 13: the cache rename, held to the code", () => {
       'title="Valkey"',
     );
 
+    if (!hasEnterpriseEdition()) {
+      return;
+    }
+
     const valkeyHealth: string = source(
       `${ENTERPRISE_ADMIN_HEALTH}/RedisHealth.tsx`,
     );
@@ -557,6 +570,10 @@ describe("Upgrading from 12 → 13: the cache rename, held to the code", () => {
     expect(source("packages/App/API/AdminHealth.ts")).toMatch(
       /components: \{[\s\S]*?redis: redisStats,/,
     );
+
+    if (!hasEnterpriseEdition()) {
+      return;
+    }
 
     const dashboards: string = source(
       `${ENTERPRISE_SERVER_HEALTH}/HealthDashboards.ts`,
