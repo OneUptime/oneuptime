@@ -2,11 +2,19 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
-import NetworkSiteTypeService from "../../../Server/Services/NetworkSiteTypeService";
+import NetworkSiteService, {
+  SITE_PURGE_SHAPE,
+} from "../../../Server/Services/NetworkSiteService";
+import NetworkSiteTypeService, {
+  SITE_TYPE_PURGE_SHAPE,
+} from "../../../Server/Services/NetworkSiteTypeService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
 import { NETWORK_SITE_HIERARCHY_LOCK_NAMESPACE } from "../../../Server/Utils/NetworkSite/NetworkSiteHierarchyLock";
+import {
+  LeafPurgeShape,
+  NamingColumn,
+} from "../../../Server/Utils/NetworkSite/NetworkSiteLeafPurge";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
@@ -21,7 +29,7 @@ import {
 } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { DataSource } from "typeorm";
+import { DataSource, Logger as QueryLogger } from "typeorm";
 
 /*
  * THE RETENTION PURGE REMOVES DELETED NETWORK SITES AND SITE TYPES, AGAINST
@@ -31,27 +39,36 @@ import { DataSource } from "typeorm";
  * service, as OneUptime, to hard delete the rows deleted more than 30 days
  * ago. NetworkSiteService and NetworkSiteTypeService answer that open,
  * every-project call with a closed batch of their own
- * (hardDeleteClosedLeafBatch): the rows nothing in the table names any more,
- * deleted by their ids inside the hierarchy lock. These are the services'
- * real paths - the batch, DatabaseService.hardDeleteBy and the delete hooks -
- * on real rows, with the foreign keys the migrations declare:
+ * (hardDeleteClosedLeafBatch, over NetworkSiteLeafPurge): the rows nothing in
+ * the table names any more, chosen in one query and deleted by their ids
+ * inside the hierarchy lock. These are the services' real paths - the batch,
+ * DatabaseService.hardDeleteBy and the delete hooks - on real rows, with the
+ * foreign keys the migrations declare:
  *
  *   - a row deleted more than 30 days ago is purged; one deleted 29 days ago,
  *     and one never deleted, stay;
  *   - a site that a site row still names as its parent, and a site type that
  *     a site or a child type still names, stay - whether that row is live or
  *     deleted itself - since the foreign key (NO ACTION) would refuse the
- *     whole batch. Nothing fails: the job's loop simply finds nothing more;
- *   - a deleted tree goes from the leaves up, one level a call, and the
- *     job's loop ends once a call removes nothing;
+ *     whole batch. Nothing fails: the job's loop simply finds nothing more.
+ *     Those are the only migrated foreign keys that hold a site or a type,
+ *     and the purge counts exactly them;
+ *   - a deleted tree goes from the leaves up, one level a call, each call
+ *     choosing its leaves in one statement however many due rows wait, and
+ *     the job's loop ends once a call removes nothing;
+ *   - a cycle of deleted rows that nothing outside it names goes whole, in
+ *     one delete; a cycle something else names, or one with a row deleted
+ *     too recently, stays;
+ *   - the due rows that stay are logged once a run, by id;
  *   - devices keep their row, unassigned, and a site's status history goes
  *     with it (SET NULL and CASCADE, as declared);
  *   - every purged site's project is locked for the delete, and the lock is
  *     given back.
  *
  * The locks are held in memory (Semaphore stubbed, as in
- * SsoFilterWritesPostgres). The in-memory suites (NetworkSiteService,
- * NetworkSiteTypeService) cover the batch's reads and the lock.
+ * SsoFilterWritesPostgres). The in-memory suites (NetworkSiteLeafPurge,
+ * NetworkSiteService, NetworkSiteTypeService) cover the batch's reads and the
+ * lock.
  *
  * Opt in with RUN_POSTGRES_NETWORK_SITE_PURGE_TESTS=true against a database
  * the registered migrations have been applied to, e.g.
@@ -201,6 +218,12 @@ interface CopiedForeignKeyRow {
   onDelete: string;
 }
 
+interface HoldingForeignKeyRow {
+  table: string;
+  column: string;
+  referencedTable: string;
+}
+
 describePostgres(
   "the retention purge of network sites and site types, on Postgres",
   () => {
@@ -213,6 +236,33 @@ describePostgres(
     // Every hierarchy lock taken ("namespace:key"), and the ones not yet given back.
     let locksTaken: Array<string>;
     let locksHeld: Set<string>;
+
+    // The log line the purge writes when due rows stay.
+    let warnSpy: jest.SpyInstance;
+
+    // The statements sent while a count runs (purgeOnceCounting), or null.
+    let statements: Array<string> | null = null;
+
+    const queryCounter: QueryLogger = {
+      logQuery: (sql: string): void => {
+        statements?.push(sql);
+      },
+      logQueryError: (): void => {
+        return undefined;
+      },
+      logQuerySlow: (): void => {
+        return undefined;
+      },
+      logSchemaBuild: (): void => {
+        return undefined;
+      },
+      logMigration: (): void => {
+        return undefined;
+      },
+      log: (): void => {
+        return undefined;
+      },
+    };
 
     const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
@@ -314,6 +364,103 @@ describePostgres(
       );
     };
 
+    /*
+     * Points a row at its parent once both exist: how a write from outside
+     * the app closes a cycle the forms would refuse.
+     */
+    const setParent: (data: {
+      table: string;
+      column: string;
+      id: string;
+      parentId: string;
+    }) => Promise<void> = async (data: {
+      table: string;
+      column: string;
+      id: string;
+      parentId: string;
+    }): Promise<void> => {
+      await query(
+        `UPDATE "${schema}"."${data.table}" SET "${data.column}" = $2 WHERE "_id" = $1`,
+        [data.id, data.parentId],
+      );
+    };
+
+    /*
+     * `count` sites deleted 31 days ago, each the parent of a live site: due
+     * rows that wait, every call, for the child that names them.
+     */
+    const addWaitingSites: (data: {
+      projectId: string;
+      count: number;
+    }) => Promise<void> = async (data: {
+      projectId: string;
+      count: number;
+    }): Promise<void> => {
+      await query(
+        `INSERT INTO "${schema}"."NetworkSite" ("_id", "projectId", "name", "slug", "version", "deletedAt")
+         SELECT gen_random_uuid(), $1, 'Waiting ' || n, 'waiting-' || n, 1, now() - interval '31 days'
+           FROM generate_series(1, $2::int) AS n`,
+        [data.projectId, data.count],
+      );
+      await query(
+        `INSERT INTO "${schema}"."NetworkSite" ("_id", "projectId", "name", "slug", "version", "parentSiteId")
+         SELECT gen_random_uuid(), $1, 'Live child of ' || "_id", 'live-child-' || "_id", 1, "_id"
+           FROM "${schema}"."NetworkSite" WHERE "name" LIKE 'Waiting %'`,
+        [data.projectId],
+      );
+    };
+
+    interface CountedCall {
+      removed: number;
+      statements: Array<string>;
+    }
+
+    // One call of the job's purge, with every statement it sent.
+    const purgeOnceCounting: (
+      service: DatabaseService<any>,
+    ) => Promise<CountedCall> = async (
+      service: DatabaseService<any>,
+    ): Promise<CountedCall> => {
+      const sent: Array<string> = [];
+      statements = sent;
+
+      try {
+        return { removed: await purgeOnce(service), statements: sent };
+      } finally {
+        statements = null;
+      }
+    };
+
+    // The job's loop, counted call by call.
+    const purgeUntilDoneCounting: (
+      service: DatabaseService<any>,
+    ) => Promise<Array<CountedCall>> = async (
+      service: DatabaseService<any>,
+    ): Promise<Array<CountedCall>> => {
+      const calls: Array<CountedCall> = [];
+
+      do {
+        if (calls.length === MAX_PURGE_CALLS) {
+          throw new Error(
+            `The retention job's loop did not end after ${MAX_PURGE_CALLS} calls`,
+          );
+        }
+
+        calls.push(await purgeOnceCounting(service));
+      } while (calls[calls.length - 1]!.removed > 0);
+
+      return calls;
+    };
+
+    // The statement that chose a call's leaves among the sites.
+    const choosesSiteLeaves: (sql: string) => boolean = (
+      sql: string,
+    ): boolean => {
+      return sql.includes(
+        'NOT EXISTS (SELECT 1 FROM "NetworkSite" AS "leafPurgeNamingRow0" WHERE "leafPurgeNamingRow0"."parentSiteId" = "NetworkSite"."_id")',
+      );
+    };
+
     beforeAll(async () => {
       database = new DataSource({
         type: "postgres",
@@ -332,6 +479,7 @@ describePostgres(
         schema,
         synchronize: false,
         extra: { options: `-c search_path=${schema},public` },
+        logger: queryCounter,
       });
       await database.initialize();
 
@@ -399,11 +547,17 @@ describePostgres(
         database,
       );
 
-      for (const silenced of ["debug", "info", "warn"]) {
+      for (const silenced of ["debug", "info"]) {
         getJestSpyOn(logger, silenced).mockImplementation((): void => {
           return undefined;
         });
       }
+
+      // Spies outlive a test here: start each with no calls.
+      warnSpy = getJestSpyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
+      warnSpy.mockClear();
 
       // The hierarchy locks, held in memory.
       getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
@@ -463,6 +617,62 @@ describePostgres(
       // A device is left without its site; a site's status history goes with it.
       expect(onDeleteOf("NetworkDevice", "siteId")).toBe("n");
       expect(onDeleteOf("NetworkSiteStatusTimeline", "siteId")).toBe("c");
+    });
+
+    test("counts every migrated foreign key that holds a site or a site type as keeping it, and nothing else", async () => {
+      /*
+       * Every foreign key of the migrated schema that points at a site or a
+       * site type and refuses a DELETE while a row names it: NO ACTION ("a")
+       * or RESTRICT ("r"). CASCADE and SET NULL hold nothing. One the purge
+       * did not count would refuse its DELETE every day.
+       */
+      const holding: Array<HoldingForeignKeyRow> = await query(
+        `SELECT t.relname AS "table",
+                a.attname AS "column",
+                r.relname AS "referencedTable"
+           FROM pg_constraint c
+           JOIN pg_class t ON t.oid = c.conrelid
+           JOIN pg_namespace n ON n.oid = t.relnamespace
+           JOIN pg_class r ON r.oid = c.confrelid
+           JOIN pg_namespace rn ON rn.oid = r.relnamespace
+           JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+          WHERE n.nspname = 'public'
+            AND rn.nspname = 'public'
+            AND c.contype = 'f'
+            AND r.relname IN ('NetworkSite', 'NetworkSiteType')
+            AND c.confdeltype IN ('a', 'r')
+          ORDER BY t.relname, a.attname`,
+      );
+
+      const holdingColumns: (referencedTable: string) => Array<string> = (
+        referencedTable: string,
+      ): Array<string> => {
+        return holding
+          .filter((row: HoldingForeignKeyRow): boolean => {
+            return row.referencedTable === referencedTable;
+          })
+          .map((row: HoldingForeignKeyRow): string => {
+            return `${row.table}.${row.column}`;
+          })
+          .sort();
+      };
+
+      const countedColumns: (shape: LeafPurgeShape) => Array<string> = (
+        shape: LeafPurgeShape,
+      ): Array<string> => {
+        return shape.namedBy
+          .map((naming: NamingColumn): string => {
+            return `${naming.table}.${naming.column}`;
+          })
+          .sort();
+      };
+
+      expect(holdingColumns("NetworkSite")).toEqual(
+        countedColumns(SITE_PURGE_SHAPE),
+      );
+      expect(holdingColumns("NetworkSiteType")).toEqual(
+        countedColumns(SITE_TYPE_PURGE_SHAPE),
+      );
     });
 
     test("purges a site deleted 31 days ago, and keeps one deleted 29 days ago and one never deleted", async () => {
@@ -791,6 +1001,294 @@ describePostgres(
 
       expect((await idsIn("NetworkSite")).has(site)).toBe(false);
       expect((await idsIn("NetworkSiteType")).has(siteType)).toBe(false);
+    });
+
+    /*
+     * The purge chose its leaves by reading every due row from the start, a
+     * page of a thousand at a time with a child query per page, on every
+     * call: a deep tree cost about depth x due rows reads in one run. It now
+     * chooses them in one statement, so a call costs the same whether 1 or
+     * 1,500 due sites wait.
+     */
+    test("purges a deep deleted tree in a call per level, each call choosing its leaves in one statement, however many due sites wait", async () => {
+      const projectId: string = await addProject();
+
+      // Six levels of deleted sites, each level deleted after the one above it.
+      const addDeletedChain: () => Promise<Array<string>> = async (): Promise<
+        Array<string>
+      > => {
+        const chain: Array<string> = [];
+
+        for (let level: number = 0; level < 6; level++) {
+          chain.push(
+            await addSite({
+              projectId,
+              parentId: chain[level - 1],
+              deletedDaysAgo: 40 - level,
+            }),
+          );
+        }
+
+        return chain;
+      };
+
+      const alone: Array<string> = await addDeletedChain();
+      const aloneCalls: Array<CountedCall> =
+        await purgeUntilDoneCounting(NetworkSiteService);
+
+      // Again, beside more due sites than the old scan's page, each waiting for its live child.
+      await addWaitingSites({ projectId, count: 1500 });
+      const crowded: Array<string> = await addDeletedChain();
+      const crowdedCalls: Array<CountedCall> =
+        await purgeUntilDoneCounting(NetworkSiteService);
+
+      for (const calls of [aloneCalls, crowdedCalls]) {
+        // A level a call, the deepest first, and a last call that finds nothing.
+        expect(
+          calls.map((call: CountedCall): number => {
+            return call.removed;
+          }),
+        ).toEqual([1, 1, 1, 1, 1, 1, 0]);
+
+        // Each call chose its leaves in one statement, none of them paged.
+        for (const call of calls) {
+          expect(call.statements.filter(choosesSiteLeaves)).toHaveLength(1);
+        }
+      }
+
+      // The 1,500 waiting sites cost no statement: each call sent as many as it did alone.
+      expect(
+        crowdedCalls.map((call: CountedCall): number => {
+          return call.statements.length;
+        }),
+      ).toEqual(
+        aloneCalls.map((call: CountedCall): number => {
+          return call.statements.length;
+        }),
+      );
+
+      const sites: Set<string> = await idsIn("NetworkSite");
+
+      for (const chainSite of [...alone, ...crowded]) {
+        expect(sites.has(chainSite)).toBe(false);
+      }
+
+      // The waiting sites stay, with their children, and the last call said so once.
+      expect(sites.size).toBe(3000);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(String(warnSpy.mock.calls[0]![0])).toContain(
+        "Count: more than 100.",
+      );
+    });
+
+    test("purges a cycle of sites deleted long ago that nothing outside it names, whole, in the locks of all its projects", async () => {
+      const firstProjectId: string = await addProject();
+      const secondProjectId: string = await addProject();
+
+      // Two sites in two projects that name each other: only a write from outside the app can.
+      const first: string = await addSite({
+        projectId: firstProjectId,
+        deletedDaysAgo: 40,
+      });
+      const second: string = await addSite({
+        projectId: secondProjectId,
+        parentId: first,
+        deletedDaysAgo: 35,
+      });
+      await setParent({
+        table: "NetworkSite",
+        column: "parentSiteId",
+        id: first,
+        parentId: second,
+      });
+
+      // A site that names itself, and a cycle of three.
+      const selfNamed: string = await addSite({
+        projectId: firstProjectId,
+        deletedDaysAgo: 31,
+      });
+      await setParent({
+        table: "NetworkSite",
+        column: "parentSiteId",
+        id: selfNamed,
+        parentId: selfNamed,
+      });
+
+      const ringStart: string = await addSite({
+        projectId: firstProjectId,
+        deletedDaysAgo: 50,
+      });
+      const ringMiddle: string = await addSite({
+        projectId: firstProjectId,
+        parentId: ringStart,
+        deletedDaysAgo: 45,
+      });
+      const ringEnd: string = await addSite({
+        projectId: firstProjectId,
+        parentId: ringMiddle,
+        deletedDaysAgo: 40,
+      });
+      await setParent({
+        table: "NetworkSite",
+        column: "parentSiteId",
+        id: ringStart,
+        parentId: ringEnd,
+      });
+
+      // No row is a leaf: all six go in one delete, and the loop ends.
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([6, 0]);
+      expect((await idsIn("NetworkSite")).size).toBe(0);
+
+      expect([...new Set<string>(locksTaken)].sort()).toEqual(
+        [firstProjectId, secondProjectId]
+          .map((projectId: string): string => {
+            return `${NETWORK_SITE_HIERARCHY_LOCK_NAMESPACE}:${projectId}`;
+          })
+          .sort(),
+      );
+      expect(locksHeld.size).toBe(0);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test("keeps a deleted cycle that a site outside it names, fails nothing, and logs its sites once, by id", async () => {
+      const projectId: string = await addProject();
+      const first: string = await addSite({ projectId, deletedDaysAgo: 40 });
+      const second: string = await addSite({
+        projectId,
+        parentId: first,
+        deletedDaysAgo: 40,
+      });
+      await setParent({
+        table: "NetworkSite",
+        column: "parentSiteId",
+        id: first,
+        parentId: second,
+      });
+      const outsider: string = await addSite({ projectId, parentId: first });
+
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([0]);
+
+      const sites: Set<string> = await idsIn("NetworkSite");
+      expect([
+        sites.has(first),
+        sites.has(second),
+        sites.has(outsider),
+      ]).toEqual([true, true, true]);
+      expect(locksTaken).toEqual([]);
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const message: string = String(warnSpy.mock.calls[0]![0]).toLowerCase();
+      expect(message).toContain("count: 2.");
+      expect(message).toContain(first.toLowerCase());
+      expect(message).toContain(second.toLowerCase());
+      expect(message).not.toContain(outsider.toLowerCase());
+    });
+
+    test("keeps a cycle with a site deleted too recently, and purges it whole once every site in it is due", async () => {
+      const projectId: string = await addProject();
+      const due: string = await addSite({ projectId, deletedDaysAgo: 40 });
+      const recent: string = await addSite({
+        projectId,
+        parentId: due,
+        deletedDaysAgo: 29,
+      });
+      await setParent({
+        table: "NetworkSite",
+        column: "parentSiteId",
+        id: due,
+        parentId: recent,
+      });
+
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([0]);
+      expect((await idsIn("NetworkSite")).size).toBe(2);
+
+      // Only the due site waits, and only it is logged.
+      const message: string = String(warnSpy.mock.calls[0]![0]).toLowerCase();
+      expect(message).toContain("count: 1.");
+      expect(message).toContain(due.toLowerCase());
+
+      await query(
+        `UPDATE "${schema}"."NetworkSite" SET "deletedAt" = $2 WHERE "_id" = $1`,
+        [recent, daysAgo(31)],
+      );
+
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([2, 0]);
+      expect((await idsIn("NetworkSite")).size).toBe(0);
+    });
+
+    test("purges a cycle of deleted site types nothing names, and keeps one a site still uses until that site is gone", async () => {
+      const projectId: string = await addProject();
+
+      const closedFirst: string = await addSiteType({
+        projectId,
+        deletedDaysAgo: 40,
+      });
+      const closedSecond: string = await addSiteType({
+        projectId,
+        parentId: closedFirst,
+        deletedDaysAgo: 40,
+      });
+      await setParent({
+        table: "NetworkSiteType",
+        column: "parentNetworkSiteTypeId",
+        id: closedFirst,
+        parentId: closedSecond,
+      });
+
+      const usedFirst: string = await addSiteType({
+        projectId,
+        deletedDaysAgo: 40,
+      });
+      const usedSecond: string = await addSiteType({
+        projectId,
+        parentId: usedFirst,
+        deletedDaysAgo: 40,
+      });
+      await setParent({
+        table: "NetworkSiteType",
+        column: "parentNetworkSiteTypeId",
+        id: usedFirst,
+        parentId: usedSecond,
+      });
+      const site: string = await addSite({
+        projectId,
+        siteTypeId: usedFirst,
+        deletedDaysAgo: 31,
+      });
+
+      // Site types alone: the closed cycle goes, the one the site names stays.
+      expect(await purgeUntilDone(NetworkSiteTypeService)).toEqual([2, 0]);
+      let siteTypes: Set<string> = await idsIn("NetworkSiteType");
+      expect([
+        siteTypes.has(closedFirst),
+        siteTypes.has(closedSecond),
+        siteTypes.has(usedFirst),
+        siteTypes.has(usedSecond),
+      ]).toEqual([false, false, true, true]);
+
+      // The job's order: the site goes, then its type's cycle.
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([1, 0]);
+      expect(await purgeUntilDone(NetworkSiteTypeService)).toEqual([2, 0]);
+
+      siteTypes = await idsIn("NetworkSiteType");
+      expect(siteTypes.size).toBe(0);
+      expect((await idsIn("NetworkSite")).has(site)).toBe(false);
+    });
+
+    test("logs the sites that stay only in the call that finds nothing more: once a run", async () => {
+      const projectId: string = await addProject();
+      const leaf: string = await addSite({ projectId, deletedDaysAgo: 31 });
+      const waiting: string = await addSite({ projectId, deletedDaysAgo: 31 });
+      await addSite({ projectId, parentId: waiting });
+
+      expect(await purgeUntilDone(NetworkSiteService)).toEqual([1, 0]);
+      expect((await idsIn("NetworkSite")).has(leaf)).toBe(false);
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const message: string = String(warnSpy.mock.calls[0]![0]).toLowerCase();
+      expect(message).toContain("count: 1.");
+      expect(message).toContain(waiting.toLowerCase());
+      expect(message).not.toContain(leaf.toLowerCase());
     });
   },
 );
