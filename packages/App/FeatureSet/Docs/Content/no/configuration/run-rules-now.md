@@ -28,7 +28,7 @@ For å kjøre en regel trenger du tillatelse til å redigere regelen **og** til 
 > [!IMPORTANT]
 > En tillatelse som er begrenset til bestemte etiketter, eller til ressurser du eier, er ikke nok: en kjøring kan endre alle ressursene i prosjektet. Teamenes blokkeringslister gjelder som overalt ellers, og en blokkering begrenset til noen etiketter teller også: en kjøring ville endre ressursene som har de etikettene, så en blokkering med etiketter på redigering av ressursene en regel endrer, avviser kjøringen.
 
-Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Run Now** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules).
+Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Run Now** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
 
 ## Kjøre én regel
 
