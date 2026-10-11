@@ -39,6 +39,7 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventStateOption,
+  WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -972,38 +973,47 @@ export default class SlackIncidentActions {
 
     /*
      * Asked as the submit asks it, before the form is shown: someone who may
-     * not change the state of this incident is told so now. The form then
-     * offers the states they may read, read with their own permissions, as
-     * the dashboard's state panel lists them for them.
+     * not change the state of this incident is told so now. The incident is read
+     * as the submit reads it, with the state it is in, and the form offers
+     * the states they may read that it may move into next - by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove) - so it
+     * never offers a move the timeline would refuse.
      */
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
+    const authorized: SlackAuthorizedEvent | null =
+      await SlackActionAuthorization.authorizeEvent({
         requester: data.slackRequest,
         modelType: IncidentStateTimeline,
         action: SlackIncidentActions.CHANGE_STATE_ACTION,
-        resources: [
-          { service: IncidentService, id: new ObjectID(actionValue) },
-        ],
+        event: {
+          type: WorkspaceEventType.Incident,
+          id: new ObjectID(actionValue),
+        },
       });
 
-    if (!props) {
+    if (!authorized) {
+      return;
+    }
+
+    const stateOptions: WorkspaceEventStateOptions =
+      await WorkspaceMemberActions.findStateOptions({
+        event: authorized.event,
+        props: authorized.props,
+      });
+
+    if (stateOptions.options.length === 0) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: stateOptions.hasNoLaterState
+          ? WorkspaceMemberActions.getNoLaterStateMessage(
+              WorkspaceEventType.Incident,
+            )
+          : SlackIncidentActions.NO_STATES_MESSAGE,
+      });
       return;
     }
 
     const incidentStates: Array<WorkspaceEventStateOption> =
-      await WorkspaceMemberActions.findStateOptions({
-        type: WorkspaceEventType.Incident,
-        projectId: data.slackRequest.projectId!,
-        props: props,
-      });
-
-    if (incidentStates.length === 0) {
-      await SlackActionAuthorization.sendRefusal({
-        requester: data.slackRequest,
-        message: SlackIncidentActions.NO_STATES_MESSAGE,
-      });
-      return;
-    }
+      stateOptions.options;
 
     const dropdownOptions: Array<DropdownOption> = incidentStates.map(
       (state: WorkspaceEventStateOption) => {

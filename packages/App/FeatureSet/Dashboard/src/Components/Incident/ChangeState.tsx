@@ -558,8 +558,10 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             id: state.id?.toString() || "",
             name: state.name || "",
             color: state.color || Black,
+            order: state.order,
           };
         })}
+        stateList={StateListType.IncidentState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentIncidentState?.id?.toString()}

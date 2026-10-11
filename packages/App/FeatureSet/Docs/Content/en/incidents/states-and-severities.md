@@ -115,14 +115,20 @@ You cannot set the three flags from this form — they belong to the seeded rows
 
 ## Order is a real constraint, not a display preference
 
-The order is enforced when a state change is written, not just when the list is drawn:
+The order is enforced when a state change is written, not just when the list is drawn. One rule holds every state change of an incident, an alert, an incident or alert episode and a scheduled maintenance event, whoever makes it — the dashboard, Slack, Microsoft Teams, the API, Terraform, a workflow or OneUptime itself — and whether it is sent as a row of the record's state timeline or as an update of its current state:
 
-- **Backwards transitions are rejected.** Moving an incident to a state that sits earlier in the order than its current state fails with an error naming both states.
+- **Backwards transitions are rejected.** Moving an incident to a state that sits earlier in the order than its current state fails with an error naming both states: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." An episode is held to it exactly as the incidents it groups are, in its own name ("Episode cannot transition to …"), so a resolved episode is not moved back to an earlier state — nor, through it, are its incidents. An update that would move a record back is refused before anything is saved.
 - **Re-selecting the current state is rejected.** Setting an incident to the state it is already in fails with "Incident state cannot be same as previous state."
 - **A backdated row cannot duplicate its neighbor.** Inserting a timeline row whose state matches the row that follows it is refused too.
-- **The header buttons follow the flagged states' position in the order.** **Acknowledge** and **Resolve** are offered based on where the current state sits in the order-sorted list. A custom state placed *after* the resolved state never shows a **Resolve** button, because an incident in it already counts as resolved.
+- **The header buttons follow the flagged states' position in the order.** **Acknowledge** and **Resolve** are offered based on where the current state sits in the order-sorted list. A custom state placed *after* the resolved state never shows a **Resolve** button, because an incident in it already counts as resolved. The header's state menu, and the change-state form in Slack and Microsoft Teams, offer only the states after the current one; for a record in the last state of the list, Slack and Teams say "There is no later state to move this incident to." instead of opening an empty form.
 
 So when you add a state, put it where an incident would genuinely pass through it. Ordering it wrong does not just look odd — it makes transitions impossible. Moving a state later changes how the incidents already in it count, the moment you drop it.
+
+An episode moves its incidents only where they can go. When an episode changes state, each of its incidents is moved with it only if the incident's own order allows the move: an incident already in that state, or past it — resolved on its own, or in a state of yours after the resolved state — is left where it is.
+
+One move goes back up the list: a grouping rule's reopen. A rule set to reopen recently resolved episodes reopens a resolved episode when a matching incident arrives within its window, moving the episode back to your created state. That is OneUptime's own move — nothing you send can ask for it — and it does not reopen the episode's incidents.
+
+To put right a state set by mistake, delete its row on the record's state timeline page (see [The state timeline](#the-state-timeline)). The record goes back to the state of its latest remaining row; an episode whose resolving row you delete is open again, and its resolved time is cleared.
 
 Through the API and Terraform the order is the `order` column: lower numbers come first. A state created without one goes just above the resolved state; one created or updated with a number takes that place, and the states in the way step down. Numbers nobody else holds are kept as written, so a Terraform-managed state reads back the number it was given.
 

@@ -336,3 +336,15 @@ That list only shrinks:
   `monitor/website-monitor passes "sameShape" in de now: delete "de" ...`.
 - Never add an entry. A page that breaks a rule it kept fails the suites with
   its line and what is wrong: fix the page.
+
+### Translation suites
+
+Each group of pages has a suite that holds its translations to the English
+pages, such as `Tests/FeatureSet/Docs/TelemetryDocsTranslations.test.ts`. A
+new suite imports its checks from
+`Tests/FeatureSet/Docs/DocsTranslationChecks.ts` (`strayMarkers`, `prose`,
+`boldSpans`, `tableShape` and the rest) instead of copying them, and reads a
+rendered page's text with `stripHtmlTags` from
+`Tests/FeatureSet/Docs/DocsHtmlText.ts`, never with a tag-stripping regular
+expression of its own: one pass of `/<[^>]*>/g` is what code scanning
+reports as incomplete sanitization. `DocsTagStripGuard` fails on a copy.
