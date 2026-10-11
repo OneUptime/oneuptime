@@ -1,40 +1,68 @@
-# Serilog ログを OneUptime に送信する
+# Serilog (.NET)
 
-## 概要
+[Serilog](https://serilog.net) は .NET で最も広く使われている構造化ログのライブラリです。公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使うと、アプリケーションが Serilog で記録するすべてのイベントが OpenTelemetry Protocol (OTLP) で OneUptime に送られ、構造化プロパティ、重大度、トレースとの関連付けとともに **製品 → ログ** で検索できるようになります。
 
-[Serilog](https://serilog.net) は .NET 向けで最も人気のある構造化ロギングライブラリです。OneUptime は、公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使用して、OpenTelemetry Protocol (OTLP) 経由で Serilog ログを取り込みます。設定が完了すると、アプリケーションが Serilog を通じて書き込むすべてのログイベントが OneUptime に送信され、**製品 → ログ** で検索可能になります。構造化されたプロパティ、重大度、トレース/スパンの相関も含まれます。
+OneUptime 専用のパッケージは不要です。シンクは、OneUptime がすべての OpenTelemetry データ向けに公開している同じ OTLP エンドポイントと通信します。コンソールアプリ、ワーカーサービス、ASP.NET Core アプリなど、.NET で動くものなら何でも使えます。
 
-インストールが必要な OneUptime 固有のパッケージはありません。シンクは、OneUptime がすべての OpenTelemetry データ向けに公開しているのと同じ OTLP エンドポイントと通信します。これは、コンソールアプリ、ワーカーサービス、ASP.NET Core アプリ、その他 .NET 上で動作するあらゆるものに対して機能します。
+:::cards
+- [シンクを設定する](#シンクを設定する): 2 つのパッケージをインストールし、コードまたは `appsettings.json` で構成します。
+- [例外](#例外): 記録された例外は、例外の課題になります。
+- [トラブルシューティング](#トラブルシューティング): ログが届かないときに確認すること。
+:::
 
-## 前提条件
+## 仕組み
 
-- **OneUptime アカウントにサインアップする** – 無料アカウントは[こちら](https://oneuptime.com)からサインアップできます。アカウント自体は無料ですが、ログの取り込みは有料機能であることにご注意ください。料金の詳細は[こちら](https://oneuptime.com/pricing)でご確認いただけます。
-- **OneUptime プロジェクトを作成する** – アカウントを取得したら、OneUptime ダッシュボードからプロジェクトを作成します。サポートが必要な場合は、support@oneuptime.com までお問い合わせください。
-- **Telemetry Ingestion Token を作成する** – ログを認証するためにトークンが必要です。
+```mermaid title="Serilog から OneUptime へ"
+flowchart TB
+    app["Serilog でログを書く .NET アプリ"] --> sink["OpenTelemetry シンクがイベントをまとめる"]
+    sink -->|"OTLP/HTTP + 取り込みキー"| ingest["OneUptime /otlp/v1/logs"]
+    ingest --> logs["プロパティが属性になったログ"]
+    ingest -->|"例外の属性"| exceptions["例外"]
+```
 
-OneUptime にサインアップしてプロジェクトを作成したら、ナビゲーションバーの「製品」をクリックし、「プロジェクト設定」をクリックします。
+シンクはログイベントをまとめて、バックグラウンドで送信します。名前付きプロパティはそれぞれログの属性になり、Serilog で記録した例外は、OneUptime が課題に変える属性を付けて届きます。
 
-Telemetry Ingestion Key ページで「取り込みキーを作成」をクリックしてトークンを作成します。
+## 始める前に
 
-![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
+- OneUptime プロジェクト。OneUptime Cloud では、テレメトリは取り込んだ GB 単位で課金されます ([料金](https://oneuptime.com/pricing) を参照)。また Free プランのプロジェクトは、テレメトリを送る前に支払い方法を登録する必要があります。
+- Serilog を使っている、または使える .NET アプリケーション。
+- ログを認証するためのテレメトリ取り込みキー。まだない場合は次の手順で作成します。
 
-トークンを作成したら、「表示」をクリックしてトークンを表示します。
+:::steps
+### 取り込みキーを開く
 
-![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
+**製品 → プロジェクト設定** に移動し、サイドメニューで **テレメトリと APM** を開いて **取り込みキー** を選びます。
+
+![プロジェクト設定のテレメトリ取り込みキーのページ](/docs/static/images/TelemetryIngestionKeys.png)
+
+### キーを作成する
+
+**取り込みキーを作成** をクリックします。ダイアログにはキーの名前が入力済みで、**サーバー** (アプリケーションや Collector が送信に使う種類のキー) が選ばれているので、そのまま **取り込みキーを作成** をクリックして作成するか、先に名前を変更します。
+
+### シークレットをコピーする
+
+新しいキーは専用のページで開きます。その **シークレットキー** をコピーしてください。これが下の例の `YOUR_TELEMETRY_INGESTION_TOKEN` です。
+
+![シークレットキーが表示されたテレメトリ取り込みキーのページ](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
 ## OneUptime から必要なもの
 
-| 設定                | 値                                                  |
-| ------------------- | --------------------------------------------------- |
-| OTLP エンドポイント | `https://oneuptime.com/otlp`                        |
-| 認証ヘッダー        | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
-| サービス名          | サービスが表示される名前。例: `my-service`          |
+| 設定 | 値 |
+| ------------- | ------------------------------------------------------------ |
+| OTLP エンドポイント | `https://oneuptime.com/otlp` |
+| 認証ヘッダー | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
+| サービス名 | サービスを表示したい名前 (例: `my-service`) |
 
-> **OneUptime をセルフホストしていますか？** `https://oneuptime.com/otlp` を `https://YOUR-ONEUPTIME-HOST/otlp` に置き換えてください（TLS を終端していない場合は `http://...`）。それ以外はすべて同じままです。
+> [!NOTE]
+> OneUptime をセルフホストしていますか? `https://oneuptime.com/otlp` を `https://YOUR-ONEUPTIME-HOST/otlp` (TLS を終端していない場合は `http://...`) に置き換えてください。ほかはすべて同じです。
 
-シンクは OTLP の **HTTP/protobuf** プロトコルを使用し、エンドポイントに `/v1/logs` パスを自動的に付加します。そのため、最終的にポストする URL は `https://oneuptime.com/otlp/v1/logs` となります。指定する必要があるのはベースの `/otlp` エンドポイントだけです。
+プロトコルを `HttpProtobuf` にすると、シンクはエンドポイントに `/v1/logs` のパスを付け加えるので、実際の送信先 URL は `https://oneuptime.com/otlp/v1/logs` になります。指定するのはベースの `/otlp` エンドポイントだけです。
 
-## ステップ 1 — NuGet パッケージをインストールする
+## シンクを設定する
+
+:::steps
+### NuGet パッケージをインストールする
 
 Serilog と OpenTelemetry シンクをプロジェクトに追加します。
 
@@ -43,23 +71,20 @@ dotnet add package Serilog
 dotnet add package Serilog.Sinks.OpenTelemetry
 ```
 
-シンクを `appsettings.json` から設定する場合（後述）は、次も追加します。
+`appsettings.json` からシンクを構成する場合は、`Serilog.Settings.Configuration` も追加します。ASP.NET Core アプリでは、Serilog をホストとリクエストパイプラインに組み込む `Serilog.AspNetCore` を追加します。
 
 ```bash
 dotnet add package Serilog.Settings.Configuration
-```
-
-ASP.NET Core アプリの場合、`Serilog.AspNetCore` パッケージは Serilog をホストおよびリクエストパイプラインに組み込みます。
-
-```bash
 dotnet add package Serilog.AspNetCore
 ```
 
-## ステップ 2 — コードでシンクを設定する
+### シンクを構成する
 
-最も直接的な方法は、アプリケーション起動時に Serilog を設定することです。シンクを OneUptime の OTLP エンドポイントに向け、プロトコルを `HttpProtobuf` に設定し、取り込みトークンをヘッダーとして渡し、`service.name` でログにタグを付けます。
+シンクの送信先を OneUptime の OTLP エンドポイントにし、プロトコルを `HttpProtobuf` に設定し、取り込みトークンをヘッダーとして渡し、ログに `service.name` を付けます。構成はコード、`appsettings.json`、または ASP.NET Core のホストで行えます。
 
-```csharp
+:::tabs
+@tab コードで
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -99,14 +124,10 @@ finally
     Log.CloseAndFlush();
 }
 ```
+@tab appsettings.json
+シンクの設定を `appsettings.json` に書きます。
 
-> **重要:** シンクはログイベントをバッチ処理し、非同期で送信します。アプリケーションが終了する前に必ず `Log.CloseAndFlush()` を呼び出す（またはロガーを破棄する）ようにしてください。そうしないと、最後のログのバッチが失われる可能性があります。ASP.NET Core では、`Serilog.AspNetCore` がグレースフルシャットダウン時にこれを自動的に処理します。
-
-## ステップ 3 — appsettings.json から設定する（代替方法）
-
-コードよりも設定ファイルを好む場合は、`Serilog.Settings.Configuration` を使用し、シンクの設定を `appsettings.json` に記述します。
-
-```json
+```json title="appsettings.json"
 {
   "Serilog": {
     "Using": ["Serilog.Sinks.OpenTelemetry"],
@@ -131,9 +152,9 @@ finally
 }
 ```
 
-次に、設定からロガーをビルドします。
+次に、構成からロガーを作成します。
 
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Microsoft.Extensions.Configuration;
 
@@ -145,14 +166,10 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(configuration)
     .CreateLogger();
 ```
+@tab ASP.NET Core
+ASP.NET Core (.NET 6 以降の最小ホスティング) では `Serilog.AspNetCore` を使います。これで Serilog が既定のロガーを置き換え、フレームワークとリクエストのログも記録します。
 
-> トークンはソース管理の外に保管してください。`appsettings.json` にコミットするのではなく、環境変数やシークレットストアから参照し、起動時に設定へ注入するようにしてください。
-
-## ASP.NET Core との統合
-
-ASP.NET Core（.NET 6 以降の最小ホスティング）の場合は、`Serilog.AspNetCore` を使用して Serilog がデフォルトのロガーを置き換え、フレームワークとリクエストのログも併せてキャプチャするようにします。
-
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -178,17 +195,25 @@ builder.Host.UseSerilog((context, services, configuration) =>
         });
 });
 
-// Logs one summary event per HTTP request.
 var app = builder.Build();
+
+// Logs one summary event per HTTP request.
 app.UseSerilogRequestLogging();
 
 app.MapGet("/", () => "Hello World");
 app.Run();
 ```
+:::
 
-## ログの書き込み
+> [!IMPORTANT]
+> シンクはログイベントをまとめて非同期に送信します。アプリケーションが終了する前に必ず `Log.CloseAndFlush()` を呼ぶ (またはロガーを破棄する) ようにしてください。そうしないと、最後のログのまとまりが失われることがあります。ASP.NET Core では、正常なシャットダウン時に `Serilog.AspNetCore` がこれを行います。
 
-設定が完了したら、通常どおり Serilog を使用します。構造化されたプロパティは保持され、OneUptime で検索可能な属性になります。
+> [!TIP]
+> トークンはソース管理に入れないでください。環境変数やシークレットストアから読み込み、起動時に構成に渡すようにし、`appsettings.json` にコミットしないでください。
+
+### ログを書く
+
+Serilog はいつもどおりに使います。構造化プロパティは保たれ、OneUptime で検索できる属性になります。
 
 ```csharp
 Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
@@ -197,11 +222,16 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-名前付きの各プロパティ（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）はログ属性として送信されるため、**製品 → ログ** エクスプローラーでそれらをフィルタリングおよび検索できます。
+名前付きプロパティ (`OrderId`、`CustomerId`、`Amount`、`LatencyMs`) はそれぞれログの属性として送られるので、**製品 → ログ** のエクスプローラーで絞り込みや検索に使えます。
+
+### ログが届くことを確認する
+
+アプリケーションを実行して、いくつかログイベントを書きます。数秒後には **製品 → ログ** と、**製品 → サービス** のサービスのページに表示されます。サービス名は、設定した `service.name` (`my-service`) です。構造化プロパティはフィルターとして使えます。
+:::
 
 ## 例外
 
-Serilog で例外をログに記録すると、シンクは OpenTelemetry の `exception.type`、`exception.message`、`exception.stacktrace` 属性をログレコードに付加します。
+Serilog で例外を記録すると、シンクはログレコードに OpenTelemetry の `exception.type`、`exception.message`、`exception.stacktrace` の属性を付けます。
 
 ```csharp
 try
@@ -214,24 +244,47 @@ catch (Exception ex)
 }
 ```
 
-OneUptime はこれらの属性を検出し、エラーを **例外**（Issues）ビューに自動的にまとめます。フィンガープリントごとにグループ化され、適切なサービスに紐付けられます。トレースとログの両方から報告されたエラーは、単一の Issue にまとめられます。検出の仕組みの詳細については、[ログからの例外](/docs/telemetry/open-telemetry)を参照してください。
+OneUptime はこれらの属性を検出し、エラーをフィンガープリントごとに **例外** の課題としてまとめ、正しいサービスに紐付けます。トレースとログの両方から報告されたエラーは 1 つの課題にまとめられます。検出の仕組みは [ログからの例外](/docs/telemetry/open-telemetry#ログからの例外) を参照してください。
 
-## トレースの相関
+## トレースとの関連付け
 
-アプリケーションがトレース用に OpenTelemetry .NET SDK でも計装されている場合、アクティブなスパン内で発行された Serilog ログイベントには、現在の `TraceId` と `SpanId` が自動的に刻印されます（これはシンクのデフォルトの `IncludedData` の一部です）。これにより、OneUptime はログ行を、それが発生したトレースに直接リンクできるため、ログから周囲のリクエストへ、そしてその逆へとジャンプできます。
+アプリケーションがトレース用の OpenTelemetry .NET SDK でも計装されている場合、アクティブなスパンの中で出力された Serilog のイベントには、現在の `TraceId` と `SpanId` が自動的に付きます (シンクの既定の `IncludedData` に含まれています)。これにより OneUptime はログ行を、それが発生したトレースに直接結び付けられるので、ログから周囲のリクエストへ、またその逆へと移動できます。
 
-## 検証
-
-1. アプリケーションを実行し、いくつかのログイベントを生成します。
-2. OneUptime を開き、**テレメトリ** に移動して、サービス（`my-service`）を選択し、**ログ** を開きます。
-3. 数秒以内に Serilog のイベントが表示され、その構造化プロパティがフィルターとして利用できるはずです。
+トレースとメトリクスも送るには、[OpenTelemetry のクイックスタート](/docs/telemetry/open-telemetry#クイックスタート) の .NET の設定を参照してください。
 
 ## トラブルシューティング
 
-- **ログが表示されない** – `x-oneuptime-token` の値を再確認し、表示しているプロジェクトに属していることを確認してください。エンドポイントが `https://oneuptime.com/otlp` であることを確認してください（ベースパスのみ。自分で `/v1/logs` を付加しないでください）。
-- **アプリ終了時にのみログが表示される、または最後のログが欠落する** – シャットダウン時に `Log.CloseAndFlush()` が実行されることを確認してください。シンクはイベントをバッチ処理するため、フラッシュせずにプロセスが終了されると、バッファされたログは失われます。
-- **`401 Unauthorized` / 何も取り込まれない** – トークンが欠落しているか無効です。ヘッダーキーが正確に `x-oneuptime-token` であることを確認してください。
-- **サービス名が誤っている** – `ResourceAttributes`（コード）または `resourceAttributes`（appsettings.json）に `service.name` を設定してください。設定しないと、ログはデフォルト/不明なサービスにフォールバックします。
-- **セルフホストインスタンスへの接続エラー** – プロトコルがエンドポイントのスキーム（`https://` か `http://` か）と一致していること、およびアプリケーションから OneUptime ホストに到達可能であることを確認してください。
+:::details ログが表示されない
+`x-oneuptime-token` の値を確認し、表示中のプロジェクトのものであることを確かめてください。エンドポイントが `https://oneuptime.com/otlp` であることを確認します (ベースのパスだけで、`/v1/logs` は自分で付けません)。シンクが失敗する理由を見るには、起動時に `Serilog.Debugging.SelfLog.Enable(Console.Error)` で Serilog 自身のエラー出力をオンにします。OneUptime が返したステータスコードが表示されます。
+:::
 
-ご質問やサポートが必要な場合は、support@oneuptime.com までお問い合わせください。
+:::details アプリの終了時にしかログが表示されない、または最後のログが欠ける
+シャットダウン時に `Log.CloseAndFlush()` が実行されるようにしてください。シンクはイベントをまとめて送るので、フラッシュせずにプロセスが強制終了されると、バッファー内のログは失われます。
+:::
+
+:::details 401 Unauthorized で、何も取り込まれない
+キーがない、不明、または期限切れです。ヘッダー名が正確に `x-oneuptime-token` で、値がキーの **シークレットキー** であることを確認してください。
+:::
+
+:::details 402 または 422 で、何も取り込まれない
+`402`: OneUptime Cloud で、プロジェクトが Free プランで支払い方法がありません。**プロジェクト設定 → 請求と請求書 → 請求** で追加してください。`422`: キーが無効化されているか、ブラウザーキーです。キーの設定で **有効** をオンに戻すか、**サーバー** キーを作成してください。
+:::
+
+:::details ログが間違ったサービス名で届く
+`ResourceAttributes` (コード) または `resourceAttributes` (appsettings.json) に `service.name` を設定してください。設定がないと、ログはサービスの名前ではなく、シンクが代わりに送る仮の名前で保存されます。
+:::
+
+:::details セルフホストのインスタンスへの接続エラー
+プロトコルがエンドポイントのスキーム (`https://` か `http://`) と合っていること、そしてアプリケーションから OneUptime のホストに到達できることを確認してください。
+:::
+
+ご質問やサポートが必要な場合は、support@oneuptime.com までご連絡ください。
+
+## 次のステップ
+
+:::cards
+- [OpenTelemetry](/docs/telemetry/open-telemetry): .NET からトレースとメトリクスも送ります。
+- [ログパイプライン](/docs/telemetry/log-pipelines): 届いたログを解析し、情報を付け加えます。
+- [ログ モニター](/docs/monitor/logs-monitor): 一致するログが現れたらアラートを出します。
+- [検索構文](/docs/telemetry/search-syntax): Serilog のプロパティで絞り込みます。
+:::

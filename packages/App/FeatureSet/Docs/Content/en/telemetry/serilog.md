@@ -1,4 +1,4 @@
-# Send Serilog Logs to OneUptime
+# Serilog (.NET)
 
 [Serilog](https://serilog.net) is the most popular structured logging library for .NET. With the official [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink, every event your application logs through Serilog is shipped to OneUptime over the OpenTelemetry Protocol (OTLP), and becomes searchable in **Products → Logs** with its structured properties, severity and trace correlation.
 
@@ -24,7 +24,7 @@ The sink batches log events and sends them in the background. Each named propert
 
 ## Before you begin
 
-- A OneUptime project. On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing).
+- A OneUptime project. On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing) — and a project on the Free plan needs a payment method before it can send telemetry.
 - A .NET application that uses, or can use, Serilog.
 - A telemetry ingestion key to authenticate your logs. If you do not have one:
 
@@ -244,7 +244,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime detects these attributes and rolls the error into the **Exceptions** (Issues) view automatically, grouped by fingerprint and attributed to the right service. An error reported by both a trace and a log collapses into a single issue. See [Exceptions from logs](/docs/telemetry/open-telemetry#exceptions-from-logs) for details on how detection works.
+OneUptime detects these attributes and groups the error into an issue under **Exceptions**, by fingerprint and attributed to the right service. An error reported by both a trace and a log collapses into a single issue. See [Exceptions from logs](/docs/telemetry/open-telemetry#exceptions-from-logs) for details on how detection works.
 
 ## Trace correlation
 
@@ -255,7 +255,7 @@ To send traces and metrics as well, see the .NET setup in the [OpenTelemetry qui
 ## Troubleshooting
 
 :::details No logs appear
-Double-check the `x-oneuptime-token` value and confirm it belongs to the project you are viewing. Verify the endpoint is `https://oneuptime.com/otlp` (base path only — do not append `/v1/logs` yourself).
+Double-check the `x-oneuptime-token` value and confirm it belongs to the project you are viewing. Verify the endpoint is `https://oneuptime.com/otlp` (base path only — do not append `/v1/logs` yourself). To see why the sink fails, turn on Serilog's own error output at startup with `Serilog.Debugging.SelfLog.Enable(Console.Error)`: it prints the status code OneUptime answers with.
 :::
 
 :::details Logs appear only when the app exits, or the last logs are missing
@@ -263,7 +263,11 @@ Ensure `Log.CloseAndFlush()` runs on shutdown. The sink batches events, so buffe
 :::
 
 :::details 401 Unauthorized, and nothing is ingested
-The token is missing or invalid. Confirm the header key is exactly `x-oneuptime-token`, and that the key is enabled and has not expired.
+The key is missing, unknown or expired. Confirm the header name is exactly `x-oneuptime-token`, and that its value is the key's **Secret Key**.
+:::
+
+:::details 402 or 422, and nothing is ingested
+`402`: on OneUptime Cloud, the project is on the Free plan and has no payment method. Add one under **Project Settings → Billing and Invoices → Billing**. `422`: the key is disabled, or it is a Browser key. Turn **Enabled** back on in the key's settings, or create a **Server** key.
 :::
 
 :::details Logs arrive under the wrong service name

@@ -244,7 +244,7 @@
     "Packet Capture": "抓包",
     "OpenTelemetry": "OpenTelemetry",
     "Serilog (.NET)": "Serilog (.NET)",
-    "FluentBit": "FluentBit",
+    "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",
     "Host OpenTelemetry Collector": "主机 OpenTelemetry Collector",
