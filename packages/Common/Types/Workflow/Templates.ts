@@ -4508,7 +4508,8 @@ const WHITESPACE = /\s/;
 const PRE_START = /^<pre[\s\/>]/i;
 const PRE_END = /^<\/pre\s*>$/i;
 // Marks of where a pre element starts and ends, in the text read out of HTML until withoutIndent
-// takes them out: control characters, which no note or description keeps.
+// takes them out: control characters, which clean() drops from every note and description. One a
+// note holds before that only changes which of its lines keep their indentation.
 const PRE_START_MARK = '\u0002';
 const PRE_END_MARK = '\u0003';
 // What a tag or comment becomes in the text: a new line for a line break or the end of a block, and
@@ -4694,9 +4695,8 @@ const hasTag = (text) => {
 // What a character reference reads as, as a browser reads it. By name: the five every editor writes,
 // in any letter case as always, and by their exact names the Latin-1 characters (the names of 160 to
 // 255, in order) and the typographic ones an email writes. By number: Windows-1252's characters for
-// 128 to 159, as a browser reads them. A no-break space is a space, as &nbsp; always was; a soft
-// hyphen, a joiner or a direction mark, which nobody sees, is nothing; and a number that is no
-// character is the replacement character. Any other name stays as it was written.
+// 128 to 159, as a browser reads them. A no-break space is a space, as &nbsp; always was, and a
+// number that is no character is the replacement character. Any other name stays as it was written.
 const BASIC_NAMES = { nbsp: ' ', lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
 const LATIN_1_NAMES = [
   'nbsp', 'iexcl', 'cent', 'pound', 'curren', 'yen', 'brvbar', 'sect', 'uml', 'copy', 'ordf', 'laquo', 'not', 'shy', 'reg', 'macr',
@@ -4718,11 +4718,9 @@ const WINDOWS_1252 = [
   0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0,
   0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178,
 ];
-const UNSEEN = [173, 8204, 8205, 8206, 8207];
 const characterOf = (number) => {
   const code = number >= 128 && number <= 159 ? WINDOWS_1252[number - 128] : number;
   if (code === 160) return ' ';
-  if (UNSEEN.indexOf(code) !== -1) return '';
   return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd';
 };
 // One reference at the start of a slice: by number in hexadecimal or decimal, or by name.

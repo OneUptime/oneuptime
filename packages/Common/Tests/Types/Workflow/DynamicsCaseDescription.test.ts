@@ -560,9 +560,9 @@ const RICH_DESCRIPTIONS: Array<[string, string, string]> = [
     "&rsquo; and &amp;lt; and &nbsp;",
   ],
   [
-    "a soft hyphen, a joiner and direction marks, which nobody sees",
-    "<p>co&shy;operate&zwj;x&lrm;y&rlm;z&#173;w</p>",
-    "cooperatexyzw",
+    "a soft hyphen, joiners and direction marks, as a browser keeps them",
+    "<p>co&shy;operate &#x1F468;&zwj;&#x1F469; &#1605;&zwnj;&#1740; x&lrm;y&rlm;z&#173;w</p>",
+    "co\u00adoperate \u{1F468}\u200d\u{1F469} \u0645\u200c\u06cc x\u200ey\u200fz\u00adw",
   ],
   [
     "a flow's HTML that starts with bold",
@@ -1236,8 +1236,7 @@ function asABrowserShows(text: string): string {
 
 /*
  * Where the reading reads a reference other than as a browser shows it, on
- * purpose: a no-break space is a space, as &nbsp; always was; a soft hyphen,
- * a joiner or a direction mark, which nobody sees, is nothing; and a number
+ * purpose: a no-break space is a space, as &nbsp; always was, and a number
  * Windows-1252 has no character for is the replacement character, not a
  * control character.
  */
@@ -1248,10 +1247,6 @@ function asTheReadingShows(browserText: string): string {
 
       if (code === 0xa0) {
         return " ";
-      }
-
-      if (code === 0xad || (code >= 0x200c && code <= 0x200f)) {
-        return "";
       }
 
       return code >= 0x80 && code <= 0x9f ? "\ufffd" : character;
@@ -1332,11 +1327,13 @@ describe("references, as a browser reads them", () => {
     expect(read).toHaveLength(references.length);
     expect(
       references
-        .filter((reference: string, index: number): boolean => {
-          return read[index] !== asTheReadingShows(asABrowserShows(reference));
-        })
         .map((reference: string, index: number): string => {
-          return `${reference} -> ${JSON.stringify(read[references.indexOf(reference)])} (index ${index})`;
+          return read[index] === asTheReadingShows(asABrowserShows(reference))
+            ? ""
+            : `${reference} (entry ${index}) -> ${JSON.stringify(read[index])}`;
+        })
+        .filter((difference: string): boolean => {
+          return difference !== "";
         }),
     ).toEqual([]);
   });
