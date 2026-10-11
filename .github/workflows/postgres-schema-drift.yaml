@@ -1295,6 +1295,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InstanceReceivingPeriodPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, NetworkSiteType, NetworkSite,
+      # NetworkDevice and NetworkSiteStatusTimeline tables, with the foreign
+      # keys between them, into an isolated schema and runs the retention
+      # job's purge (HardDeleteItemsInDatabase): sites and site types deleted
+      # more than 30 days ago are removed from the leaves up, one level a
+      # call, until a call removes nothing; one that a site or child type
+      # still names - live, or deleted too recently to purge - stays, and
+      # nothing fails on a foreign key.
+      - name: Test the retention purge of network sites and site types on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_SITE_PURGE_TESTS: "true"
+          NETWORK_SITE_PURGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_SITE_PURGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_SITE_PURGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkSitePurgePostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

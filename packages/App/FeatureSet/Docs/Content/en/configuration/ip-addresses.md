@@ -39,13 +39,27 @@ curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
 
 ## Self-hosted OneUptime
 
-On your own instance, this page and the `/ip-whitelist` endpoint show the addresses in the instance's `IP_WHITELIST` setting, a comma-separated list. With the Helm chart, set it with the `ipWhitelist` value:
+On your own instance, this page and the `/ip-whitelist` endpoint show the addresses in the instance's `IP_WHITELIST` setting, a comma-separated list. List the addresses your own probes send their checks from.
+
+:::tabs
+@tab Kubernetes
+Set the Helm chart's `ipWhitelist` value:
 
 ```yaml title="values.yaml"
 ipWhitelist: "203.0.113.1,203.0.113.2"
 ```
+@tab Docker Compose
+`config.env` does not pass it on to the app. Add it to the environment of the `app` service in a `docker-compose.override.yml` next to `docker-compose.yml`, then start OneUptime again:
 
-When nothing is set, this page shows **No IP addresses configured.** and the endpoint returns an empty `ipWhitelist` array. List the addresses your own probes send their checks from.
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      IP_WHITELIST: "203.0.113.1,203.0.113.2"
+```
+:::
+
+When nothing is set, this page shows **No IP addresses configured.** and the endpoint returns an empty `ipWhitelist` array.
 
 ## Next steps
 

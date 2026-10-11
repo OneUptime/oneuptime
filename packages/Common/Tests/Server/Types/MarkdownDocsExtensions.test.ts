@@ -155,6 +155,35 @@ describe("splitDocsTabs", () => {
     expect(docsTabKey("  Docker   Compose ")).toBe("docker compose");
     expect(docsTabKey("Node.js")).toBe("node.js");
   });
+
+  /*
+   * Markup in a label is not part of its key: "@tab <b>Docker</b>" is the
+   * Docker tab. The key reads the label through removeHtmlMarkup, one walk
+   * that leaves no "<"; one pass of /<[^>]*>/ kept an unclosed tag, the end
+   * of a comment holding ">", and the end of a quoted value holding ">".
+   */
+  test("matches labels on their words, markup aside", () => {
+    expect(docsTabKey("<b>Docker</b> Compose")).toBe("docker compose");
+    expect(docsTabKey("Docker <!-- the default -->")).toBe("docker");
+  });
+
+  test.each([
+    ["an unclosed tag", "Docker <b", "docker b"],
+    ["a comment holding '>'", "<!-- a > b -->Docker", "docker"],
+    [
+      "a quoted value holding '>'",
+      '<span title="x > y">Docker</span>',
+      "docker",
+    ],
+    ["a tag inside a tag's name", "<scr<script>ipt>Docker", "ipt>docker"],
+    ["an overlapping comment", "<!<!---->--Docker", "--docker"],
+  ])(
+    "keys a label holding %s on its text, with no '<' left",
+    (_case: string, label: string, key: string) => {
+      expect(docsTabKey(label)).toBe(key);
+      expect(docsTabKey(label)).not.toContain("<");
+    },
+  );
 });
 
 describe("the docs renderer's components", () => {
@@ -285,6 +314,25 @@ describe("the docs renderer's components", () => {
 
       expect(html).not.toContain("<img src=x");
       expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    });
+
+    test("keys a label with markup in it on its words, the same on its tab and its panel", async () => {
+      const html: string = await docs(
+        ":::tabs\n@tab <b>Docker</b> <!-- default -->\nx\n@tab Docker <i\ny\n:::",
+      );
+      const keys: Array<string> = Array.from(
+        html.matchAll(/data-docs-tab="([^"]*)"/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+
+      // Two tabs, each key on its button and its panel.
+      expect(keys).toEqual(["docker", "docker i", "docker", "docker i"]);
+      // The labels are still shown as they were written, escaped.
+      expect(html).toContain(
+        "&lt;b&gt;Docker&lt;/b&gt; &lt;!-- default --&gt;",
+      );
     });
   });
 

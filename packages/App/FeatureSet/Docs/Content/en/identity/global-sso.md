@@ -1,4 +1,4 @@
-# Global SSO (Instance-wide Single Sign-On)
+# Global SSO
 
 Global SSO lets a OneUptime **instance administrator** (master admin) configure a SAML 2.0 or OpenID Connect (OIDC) identity provider **once**, at the instance level, and connect it to any project on the server. Instead of every project owner configuring their own identity provider, a master admin sets up one that serves the whole instance.
 
@@ -29,9 +29,9 @@ For a single project's own provider, see [SSO](/docs/identity/sso).
 
 :::tabs
 @tab SAML
-Sign in as a master admin and open **Admin** > **Settings** > **Global SSO**.
+Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Authentication** > **Global SSO**.
 @tab OpenID Connect
-Sign in as a master admin and open **Admin** > **Settings** > **Global OIDC**.
+Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Authentication** > **Global OIDC**.
 :::
 
 ### Create the provider
@@ -96,7 +96,7 @@ Two switches on the provider change this. Both start off, folded under **More fi
 
 ## Enforcing SSO
 
-Configuring a global provider does not force anyone to use it; password login still works. To require SSO, use the **Require SSO for Login** controls:
+Configuring a global provider does not force anyone to use it; password login still works. To require SSO, turn the requirement on for a project or for the whole instance:
 
 - **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
 - **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.

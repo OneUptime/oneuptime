@@ -64,7 +64,7 @@ const LANGUAGES: ReadonlyArray<string> = [
 
 // "More fields" as each language's guides word the folded section.
 const MORE_FIELDS: RegExp =
-  /\*\*(More fields|Weitere Felder|Plus de champs|Más campos|Altri campi|Mais campos|Meer velden|Flere felter|Flere felt|Fler fält|Дополнительные поля|その他の項目|추가 필드|更多字段|更多欄位|और फ़ील्ड)\*\*/g;
+  /\*\*(More fields|Weitere Felder|Plus de champs|Más campos|Altri campi|Mais campos|Meer velden|Flere felter|Flere felt|Fler fält|Дополнительные поля|その他の項目|추가 필드|更多字段|更多欄位|और फ़ील्ड|فیلدهای بیشتر)\*\*/g;
 
 function readSource(key: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, SOURCES[key]!), "utf8");

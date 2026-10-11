@@ -1,27 +1,60 @@
-# فرستادن داده Syslog به OneUptime
+# Syslog
 
-## نمای کلی
+OneUptime، syslog را از راه HTTPS می‌پذیرد. پیام‌های RFC 5424 یا RFC 3164 را با کلید دریافت داده‌تان به `/syslog/v1/logs` بفرستید تا هرکدام به یک لاگ قابل جستجو تبدیل شود، با اولویت، facility، شدت، میزبان، برنامه و داده‌های ساختاریافته‌اش به‌صورت attribute. از آن برای ارسال از rsyslog، syslog-ng یا هر رله‌ای که بتواند درخواست HTTP بفرستد استفاده کنید.
 
-سرویس OpenTelemetry Ingest اکنون محموله‌های بومی Syslog را می‌پذیرد. می‌توانید پیام‌ها را از هر منبع سازگار با RFC3164 یا RFC5424 مستقیماً از طریق HTTPS به OneUptime بفرستید. OneUptime اولویت، facility، شدت، داده ساختاریافته و بدنه پیام syslog را تجزیه می‌کند و سپس همه‌چیز را به‌صورت لاگ‌های قابل جستجو ذخیره می‌کند.
+:::cards
+- [فرستادن یک پیام آزمایشی](#فرستادن-یک-پیام-آزمایشی): فقط یک درخواست `curl`.
+- [ارسال از rsyslog](#ارسال-از-rsyslog): هرچه یک سرور یا رله دریافت می‌کند را بفرستید.
+- [attributeهای تجزیه‌شده](#attributeهای-تجزیهشده): آنچه OneUptime از هر پیام بیرون می‌کشد.
+- [عیب‌یابی](#عیبیابی): درخواست‌های ردشده و سرویس‌های نامنتظر.
+:::
 
-## پیش‌نیازها
+## چگونه کار می‌کند
 
-- **توکن دریافت تله‌متری** — یکی را از مسیر _Project Settings → Telemetry & APM → Ingestion Keys_ بسازید و مقدار `x-oneuptime-token` را کپی کنید.
-- **ارجاع‌دهنده syslog** — هر ابزاری که بتواند درخواست HTTP POST بفرستد (برای نمونه `curl`، `rsyslog` با `omhttp`، یا `syslog-ng` با افزونه مقصد HTTP).
-- **نام سرویس (اختیاری)** — هدر `x-oneuptime-service-name` را تنظیم کنید تا لاگ‌های ورودی زیر یک سرویس تله‌متری مشخص گروه‌بندی شوند. اگر نباشد، OneUptime به `APP-NAME` در syslog، نام میزبان یا `Syslog` بازمی‌گردد.
-
-## نقطه پایانی
-
+```mermaid title="از منبع‌های syslog تا OneUptime"
+flowchart TB
+    subgraph sources["منبع‌های syslog"]
+        direction LR
+        servers["سرورهای Linux"]
+        devices["فایروال‌ها و سوییچ‌ها"]
+    end
+    servers --> relay["rsyslog یا syslog-ng"]
+    devices -->|"syslog روی UDP یا TCP"| relay
+    relay -->|"HTTPS POST + کلید دریافت داده"| endpoint["OneUptime /syslog/v1/logs"]
+    endpoint --> parse["اولویت، سرآیند و داده‌های<br/>ساختاریافته تجزیه می‌شوند"]
+    parse --> logs["لاگ‌ها"]
 ```
+
+OneUptime به‌محض اینکه پیام‌ها را از درخواست خواند پاسخ می‌دهد، و کمی بعد آن‌ها را تجزیه و ذخیره می‌کند. متن پیام در بدنهٔ لاگ می‌ماند و همهٔ چیزهای دیگر به attribute تبدیل می‌شوند.
+
+> [!TIP]
+> دستگاه‌های شبکه‌ای که با یک پراب OneUptime پایش می‌کنید می‌توانند syslog خود را بی‌واسطهٔ رله، از راه UDP مستقیم به پراب بفرستند؛ آنگاه لاگ‌ها روی همان دستگاه در OneUptime نمایش داده می‌شوند. [راهنماهای سازندگان تجهیزات شبکه (Sophos، Extreme، Cambium)](/docs/monitor/network-vendor-guides) را ببینید.
+
+## پیش از شروع
+
+- **یک پروژهٔ OneUptime** – در OneUptime Cloud هزینهٔ تله‌متری بر پایهٔ هر گیگابایت دریافت‌شده محاسبه می‌شود، و پروژه‌ای که روی پلن Free است پیش از ارسال تله‌متری به یک روش پرداخت نیاز دارد.
+- **کلید دریافت دادهٔ تله‌متری** – یک کلید **سرور** در **محصولات → تنظیمات پروژه → تله‌متری و APM → کلیدهای دریافت داده** بسازید و **کلید محرمانه** آن را کپی کنید. آن را در سرآیند `x-oneuptime-token` می‌فرستید.
+- **ابزار ارسال syslog** – هر ابزاری که بتواند درخواست HTTP POST بفرستد (برای نمونه `curl`، `rsyslog` از راه `omhttp`، یا `syslog-ng` با مقصد HTTP خودش).
+- **نام سرویس (اختیاری)** – سرآیند `x-oneuptime-service-name` را تنظیم کنید تا لاگ‌های ورودی زیر یک سرویس تله‌متری مشخص گروه‌بندی شوند. اگر آن را نگذارید، OneUptime به‌ترتیب از `APP-NAME` در syslog، نام میزبان یا `Syslog` استفاده می‌کند.
+
+## نقطهٔ پایانی
+
+```http
 POST https://oneuptime.com/syslog/v1/logs
 ```
 
-- اگر OneUptime را خودمیزبانی می‌کنید، `oneuptime.com` را با میزبان خود جایگزین کنید.
-- همیشه هدر `x-oneuptime-token` را در درخواست بگنجانید.
+| سرآیند | الزامی | مقدار |
+| --- | --- | --- |
+| `x-oneuptime-token` | بله | کلید دریافت دادهٔ شما. |
+| `Content-Type` | بله، برای بدنهٔ JSON | `application/json` |
+| `x-oneuptime-service-name` | خیر | سرویسی که لاگ‌ها به آن تعلق دارند. |
+| `Content-Encoding` | خیر | `gzip`، برای بدنهٔ فشرده. |
 
-## بدنه درخواست
+اگر OneUptime را خودتان میزبانی می‌کنید، به‌جای `oneuptime.com` میزبان خودتان را بنویسید.
 
-رشته‌های Syslog جداشده با خط جدید یا یک محموله JSON با آرایه `messages` بفرستید. هر دو قالب RFC3164 (BSD) و RFC5424 پشتیبانی می‌شوند.
+## بدنهٔ درخواست
+
+یک بار JSON با آرایهٔ `messages` بفرستید. هر دو قالب RFC 5424 و RFC 3164 (BSD) پشتیبانی می‌شوند و می‌توانید آن‌ها را در یک درخواست با هم بفرستید:
 
 ```json
 {
@@ -32,13 +65,18 @@ POST https://oneuptime.com/syslog/v1/logs
 }
 ```
 
-### نوع‌های محتوای پشتیبانی‌شده
+### قالب‌های پشتیبانی‌شدهٔ بدنه
 
-- `application/json` — توصیه‌شده.
-- `text/plain` — پیام‌های جداشده با خط جدید.
-- `application/octet-stream` — محموله‌های خام. فشرده‌سازی gzip (`Content-Encoding: gzip`) هم پذیرفته می‌شود.
+| بدنه | چگونه بفرستید |
+| --- | --- |
+| یک شیء JSON با آرایهٔ `messages` | `Content-Type: application/json`؛ پیشنهادشده. |
+| یک آرایهٔ JSON از پیام‌ها | `Content-Type: application/json`. |
+| یک شیء JSON با یک `message` | `Content-Type: application/json`. مقداری که چند خط دارد به‌صورت چند پیام خوانده می‌شود. |
+| پیام‌هایی که با خط جدید از هم جدا شده‌اند | با gzip فشرده شده و با `Content-Encoding: gzip` فرستاده می‌شوند. |
 
-## آزمایش سریع با curl
+بدنهٔ متن سادهٔ فشرده‌نشده با gzip خوانده نمی‌شود و درخواست با `400` رد می‌شود. بدنه‌ای که با gzip فشرده شده باشد همیشه به‌صورت پیام‌های جداشده با خط جدید خوانده می‌شود، پس بدنهٔ JSON را فشرده نکنید. هر درخواست را زیر ۱ مگابایت نگه دارید: ingress در OneUptime سقف پیش‌فرض nginx برای اندازهٔ بدنهٔ درخواست را برای این نقطهٔ پایانی بالا نمی‌برد.
+
+## فرستادن یک پیام آزمایشی
 
 ```bash
 curl \
@@ -53,140 +91,165 @@ curl \
   }'
 ```
 
-## ارجاع از rsyslog
+پاسخ `200` یعنی پیام پذیرفته شده است. **محصولات → لاگ‌ها** را باز کنید: لاگ در سرویس `production-web` با بدنهٔ `502 on /api/login`، شدت `Error` و attributeهای بخش [attributeهای تجزیه‌شده](#attributeهای-تجزیهشده) نمایش داده می‌شود.
 
-1. ماژول خروجی HTTP را نصب کنید:
-   ```bash
-   sudo apt-get install rsyslog-omhttp
-   ```
-2. مقصد را به `/etc/rsyslog.d/oneuptime.conf` اضافه کنید:
+## ارسال از rsyslog
 
-   ```
-   module(load="omhttp")
+rsyslog با ماژول خروجی HTTP خود، `omhttp`، به OneUptime می‌فرستد.
 
-   template(name="OneUptimeJson" type="list") {
-     constant(value="{\"messages\":[\"")
-     property(name="rawmsg")
-     constant(value="\"]}")
-   }
+:::steps
+### مطمئن شوید `omhttp` در دسترس است
 
-   action(
-     type="omhttp"
-     server="oneuptime.com"
-     serverport="443"
-     usehttps="on"
-     endpoint="/syslog/v1/logs"
-     header="Content-Type: application/json"
-     header="x-oneuptime-token: YOUR_TELEMETRY_KEY"
-     header="x-oneuptime-service-name: rsyslog-demo"
-     template="OneUptimeJson"
-   )
-   ```
+پیکربندی زیر آن را با `module(load="omhttp")` بارگذاری می‌کند. اگر rsyslog گزارش داد که نمی‌تواند ماژول را بارگذاری کند، بسته‌ای را که `omhttp` را برای توزیع شما فراهم می‌کند نصب کنید.
 
-3. rsyslog را راه‌اندازی مجدد کنید:
-   ```bash
-   sudo systemctl restart rsyslog
-   ```
+### مقصد OneUptime را اضافه کنید
 
-## کاربردهای رایجی که از پیش می‌بینیم
+فایل `/etc/rsyslog.d/oneuptime.conf` را بسازید. قالب، هر پیام را به‌صورت یک خط RFC 5424 بازسازی می‌کند و آن را در بدنهٔ JSON که OneUptime انتظار دارد می‌پیچد:
 
-### ۱. تجهیزات شبکه و امنیت
-
-بیشتر تجهیزات شبکه هنوز تغییرهای پیکربندی، برخوردهای ACL و تشخیص تهدید را فقط از طریق syslog ارائه می‌دهند. رله موجود خود (Palo Alto، Fortinet، Cisco ASA، Juniper، pfSense و دیگران) را مستقیماً به OneUptime بدهید، یا یک رله داخلی نگه دارید و از طریق HTTPS ارجاع دهید:
-
-```bash
-# rsyslog snippet that batches messages into JSON and posts to OneUptime
+```text title="/etc/rsyslog.d/oneuptime.conf"
 module(load="omhttp")
 
-template(name="OneUptimeJSON" type="list") {
-  constant(value="{\"messages\":[\"")
-  property(name="rawmsg")
-  constant(value="\"]}")
-}
+template(name="OneUptimeJson" type="string"
+         string="{\"messages\":[\"<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg:::json%\"]}")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: perimeter-firewall"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=[
+    "x-oneuptime-token: YOUR_TELEMETRY_KEY",
+    "x-oneuptime-service-name: rsyslog-demo"
+  ]
+  template="OneUptimeJson"
 )
 ```
 
-### ۲. سرورهای Linux و کارهای cron
+`restpath` مسیر را بدون اسلش آغازین می‌گیرد. `omhttp` به‌طور پیش‌فرض یک `Content-Type` از نوع JSON می‌فرستد، که دقیقاً همان چیزی است که این قالب می‌سازد.
 
-بسیاری از کارهای cron و دیمن‌های قدیمی هنوز فقط از طریق facility مربوط به کرنل/syslog لاگ می‌کنند. ارجاع `/var/log/syslog` یا مدخل‌های journald، ردپاهای عملیاتی را در یک جا نگه می‌دارد. میزبان‌های systemd می‌توانند به پل journald → syslog تکیه کنند:
+### پیکربندی را بررسی و rsyslog را دوباره راه‌اندازی کنید
 
 ```bash
-# /etc/rsyslog.d/oneuptime.conf
-module(load="imjournal" StateFile="imjournal.state")
-module(load="omhttp")
+sudo rsyslogd -N1
+sudo systemctl restart rsyslog
+```
+
+`rsyslogd -N1` پیکربندی را بدون راه‌اندازی rsyslog اعتبارسنجی می‌کند. پس از راه‌اندازی دوباره، پیام‌های تازه در **محصولات → لاگ‌ها** در سرویس `rsyslog-demo` نمایش داده می‌شوند.
+:::
+
+این action هر پیامی را که rsyslog رسیدگی می‌کند ارسال می‌کند: برنامه‌های محلی، ژورنال systemd اگر rsyslog آن را بخواند، و هرچه از شبکه دریافت کند.
+
+### رله کردن syslog دستگاه‌های شبکه
+
+فایروال‌ها، سوییچ‌ها و دیگر دستگاه‌ها اغلب syslog را فقط از راه UDP یا TCP می‌فرستند. آن‌ها را به سمت یک رلهٔ rsyslog بفرستید و بگذارید رله از راه HTTPS ارسال کند. یک شنونده به پیکربندی رله، پیش از `action`، اضافه کنید:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+module(load="imudp")
+input(type="imudp" port="514")
+```
+
+`x-oneuptime-service-name` را روی نامی مانند `perimeter-firewall` بگذارید، یا سرآیند را حذف کنید تا لاگ‌های هر دستگاه بر پایهٔ نام میزبانش گروه‌بندی شوند. بسیاری از دستگاه‌ها پیام خود را به‌صورت جفت‌های `key=value` می‌نویسند؛ یک [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) آن‌ها را به attribute تبدیل می‌کند.
+
+:::details فرستادن دسته‌ای به‌جای یک درخواست برای هر پیام
+rsyslog می‌تواند پیام‌ها را دسته‌ای کند و با gzip فشرده کند، که OneUptime آن را به‌صورت پیام‌های جداشده با خط جدید می‌خواند. قالب و action را با این‌ها جایگزین کنید:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+template(name="OneUptimeLine" type="string"
+         string="<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg%")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: linux-fleet"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=["x-oneuptime-token: YOUR_TELEMETRY_KEY"]
+  template="OneUptimeLine"
+  batch="on"
+  batch.format="newline"
+  compress="on"
 )
 ```
 
-چون کدهای شدت را نگاشت می‌کنیم، می‌توانید روی `syslog.severity.name = "error"` هشدار بدهید یا بر اساس `syslog.hostname` تفکیک کنید تا ماشین‌های پرنوفه را سریع جدا کنید.
+`compress="on"` را نگه دارید: OneUptime پیام‌های جداشده با خط جدید را فقط از بدنه‌ای که با gzip فشرده شده باشد می‌خواند.
+:::
 
-### ۳. کنترلرهای ingress در Kubernetes و گره‌های لبه
+### ابزارهای ارسال دیگر
 
-اگر از پیش Fluent Bit یا Fluentd را اجرا می‌کنید، آن‌ها را برای لاگ‌های کانتینر نگه دارید و یک مقصد سبک syslog برای میزبان‌ها یا تجهیزات لبه اضافه کنید. ورودی `syslog` در Fluent Bit با خروجی HTTP جفت می‌شود:
+- **syslog-ng** – از مقصد HTTP آن با همان نشانی، همان سرآیندها و همان بدنهٔ JSON استفاده کنید.
+- **Fluent Bit** – syslog را با ورودی `syslog` در Fluent Bit دریافت کنید و مثل هر لاگ دیگری ارسال کنید. [Fluent Bit](/docs/telemetry/fluentbit) را ببینید.
 
-```ini
-[INPUT]
-    Name              syslog
-    Mode              tcp
-    Listen            0.0.0.0
-    Port              5140
+## attributeهای تجزیه‌شده
 
-[OUTPUT]
-    Name              http
-    Match             *
-    Host              oneuptime.com
-    Port              443
-    URI               /syslog/v1/logs
-    Format            json
-    json_date_key     time
-    Header            Content-Type application/json
-    Header            x-oneuptime-token <TOKEN>
-    Header            x-oneuptime-service-name edge-ingress
-    tls               On
-```
+OneUptime به‌طور خودکار این attributeها را به هر ورودی لاگ اضافه می‌کند:
 
-این راه‌اندازی به شما امکان می‌دهد syslog را از کارگرهای فیزیکی یا متعادل‌کننده‌های بار سخت‌افزاری دریافت کنید، بی‌آنکه پشته لاگ دیگری بسازید.
+| attribute | مقدار | از پیام آزمایشی |
+| --- | --- | --- |
+| `syslog.priority` | اولویت، `<PRI>` | `34` |
+| `syslog.facility.code`، `syslog.facility.name` | facility، برگرفته از اولویت | `4`، `security` |
+| `syslog.severity.code`، `syslog.severity.name` | شدت، برگرفته از اولویت | `2`، `critical` |
+| `syslog.version` | نسخهٔ RFC 5424 | `1` |
+| `syslog.hostname` | `HOSTNAME` | `web-01` |
+| `syslog.appName` | `APP-NAME`، یا برچسب RFC 3164 | `nginx` |
+| `syslog.processId` | `PROCID` | `7421` |
+| `syslog.messageId` | `MSGID` | `ID47` |
+| `syslog.structured.raw` | دادهٔ ساختاریافتهٔ RFC 5424، همان‌گونه که فرستاده شده | `[env@32473 host="web-01"]` |
+| `syslog.structured.*` | هر پارامتر دادهٔ ساختاریافته، به‌صورت تخت | `syslog.structured.env_32473.host` = `web-01` |
+| `syslog.raw` | پیام اصلی، برای ردگیری | کل خط |
 
-### ۴. آرشیو انطباق بدون انتظار
+این attributeها در کاوشگر **محصولات → لاگ‌ها** قابل جستجو می‌شوند؛ برای نمونه `@syslog.severity.name:error` یا `@syslog.hostname:web-01`. [نحو جستجو](/docs/telemetry/search-syntax) را ببینید.
 
-لازم است لاگ‌های دیوار آتش را برای PCI یا SOX نگه دارید؟ آن‌ها را مستقیم به OneUptime بفرستید، یک سیاست نگهداری بلندمدت روی سرویس تله‌متری اعمال کنید و از یک جا به ذخیره‌سازی سرد خروجی بگیرید. دیگر خبری از خروجی گرفتن از چند رله syslog نیست.
+خود پیام در بدنهٔ لاگ می‌ماند. فایروال‌هایی مانند Sophos XGS و Fortinet FortiGate آن را به‌صورت جفت‌های `key=value` می‌نویسند (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`)؛ برای اینکه این جفت‌ها هم به attribute تبدیل شوند، یک پردازشگر **Key=Value Parser** در یک [خط لولهٔ لاگ](/docs/telemetry/log-pipelines#keyvalue-parser) اضافه کنید.
 
-## ویژگی‌های تجزیه‌شده
+### شدت
 
-OneUptime به‌صورت خودکار این ویژگی‌ها را به هر مدخل لاگ اضافه می‌کند:
+| شدت syslog | کد | شدت در OneUptime |
+| --- | --- | --- |
+| Emergency، Alert | `0`، `1` | `Fatal` |
+| Critical، Error | `2`، `3` | `Error` |
+| Warning | `4` | `Warning` |
+| Notice، Informational | `5`، `6` | `Information` |
+| Debug | `7` | `Debug` |
+| پیام بدون اولویت | — | `Unspecified` |
 
-- `syslog.priority`، `syslog.facility.code`، `syslog.facility.name`
-- `syslog.severity.code`، `syslog.severity.name`
-- `syslog.hostname`، `syslog.appName`، `syslog.processId`، `syslog.messageId`
-- `syslog.structured.*` (داده ساختاریافته RFC5424 که تخت شده است)
-- `syslog.raw` (پیام اصلی برای ردیابی‌پذیری)
+پیامی که مُهر زمانی ندارد با زمانی ذخیره می‌شود که OneUptime آن را دریافت کرده است.
 
-این ویژگی‌ها درون کاوشگر **Products → Logs** قابل جستجو می‌شوند.
+### سرویس
 
-## رفع اشکال
+هر لاگ زیر یک سرویس تله‌متری ثبت می‌شود که OneUptime نخستین باری که داده‌ای برسد آن را می‌سازد. سرویس، نخستین مورد موجود از میان این‌هاست:
 
-- **HTTP 401 یا نتایج خالی** — بررسی کنید هدر `x-oneuptime-token` متعلق به پروژه‌ای باشد که لاگ‌ها را دریافت می‌کند.
-- **هیچ لاگی ظاهر نمی‌شود** — مطمئن شوید بدنه درخواست واقعاً خطوط syslog دارد. بدنه‌های خالی با HTTP 400 رد می‌شوند.
-- **نام سرویس غیرمنتظره** — برای بازنویسی منطق تشخیص پیش‌فرض، `x-oneuptime-service-name` را تنظیم کنید.
-- **جهش‌های بزرگ** — دسته‌بندی تا ۱۰۰۰ خط در هر درخواست پشتیبانی می‌شود. جهش‌های بزرگ‌تر در صف قرار می‌گیرند و به‌صورت ناهم‌گام پردازش می‌شوند.
+1. سرآیند `x-oneuptime-service-name`؛
+2. `APP-NAME` پیام (یا برچسب آن)؛
+3. نام میزبان پیام؛
+4. `Syslog`.
+
+## عیب‌یابی
+
+:::details HTTP 401
+کلید وجود ندارد، ناشناخته است یا منقضی شده است. بررسی کنید که سرآیند `x-oneuptime-token` **کلید محرمانه** یکی از کلیدهای دریافت دادهٔ پروژه‌ای را داشته باشد که باید لاگ‌ها را دریافت کند.
+:::
+
+:::details HTTP 402 یا 422
+`402`: در OneUptime Cloud، پروژه روی پلن Free است و روش پرداخت ندارد. یکی در **تنظیمات پروژه → صورت‌حساب و فاکتورها → صورت‌حساب** اضافه کنید. `422`: کلید غیرفعال است، یا کلید مرورگر است. **فعال** را در تنظیمات کلید دوباره روشن کنید، یا یک کلید **سرور** بسازید.
+:::
+
+:::details HTTP 400، یا هیچ لاگی نمایش داده نمی‌شود
+مطمئن شوید بدنهٔ درخواست واقعاً خط‌های syslog دارد، به‌صورت JSON با `Content-Type: application/json`. بدنه‌های خالی، و بدنه‌های متن ساده‌ای که با gzip فشرده نشده‌اند، با HTTP 400 رد می‌شوند.
+:::
+
+:::details HTTP 413
+درخواست بزرگ‌تر از اندازه‌ای است که ingress می‌پذیرد. در هر درخواست پیام‌های کمتری بفرستید.
+:::
+
+:::details لاگ‌ها با نام سرویسی نامنتظر می‌رسند
+`x-oneuptime-service-name` را تنظیم کنید تا منطق تشخیص پیش‌فرض، که نخست `APP-NAME` و سپس نام میزبان را به کار می‌برد، کنار گذاشته شود.
+:::
+
+## گام‌های بعدی
+
+:::cards
+- [خط‌های لوله لاگ](/docs/telemetry/log-pipelines): پیام‌های `key=value` را به attribute تجزیه کنید.
+- [قواعد ضبط لاگ](/docs/telemetry/log-recording-rules): عددهای درون syslog را به متریک تبدیل کنید.
+- [مانیتور لاگ‌ها](/docs/monitor/logs-monitor): وقتی پیام‌های syslog منطبق می‌رسند هشدار بدهید.
+:::

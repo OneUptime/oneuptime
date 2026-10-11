@@ -126,18 +126,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "configuration/ip-addresses": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "configuration/label-and-owner-rules": {
-    translated: EVERY_TRANSLATION,
-  },
-  "configuration/label-rule-import-export": {
-    translated: EVERY_TRANSLATION,
-  },
-  "configuration/run-rules-now": {
-    translated: EVERY_TRANSLATION,
-  },
   "dashboards/authoring": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -151,14 +139,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "emails/smtp": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
   "forms/building": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/index": {
     translated: EVERY_TRANSLATION,
   },
   "forms/on-submit": {
@@ -166,17 +147,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
-  },
-  "identity/global-sso": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "identity/scim": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "identity/sso": {
-    uniqueHeadings: except(EVERY_TRANSLATION, "de"),
-    sameShape: EVERY_TRANSLATION,
   },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
@@ -304,9 +274,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
   },
-  "permissions/reference": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "probe/custom-probe": {
     title: EVERY_LANGUAGE,
     uniqueHeadings: except(EVERY_LANGUAGE, "de"),
@@ -408,9 +375,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "status-pages/one-status-page-per-audience": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "status-pages/public-api": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/subscribers": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -467,12 +431,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/fluentbit": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/fluentd": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/gemini-cli-and-copilot": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
@@ -508,9 +466,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/serilog": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/serverless-functions": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -522,9 +477,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/storage-arrays": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/syslog": {
-    sameShape: EVERY_TRANSLATION,
   },
   "telemetry/threat-intelligence": {
     codeLanguage: EN,

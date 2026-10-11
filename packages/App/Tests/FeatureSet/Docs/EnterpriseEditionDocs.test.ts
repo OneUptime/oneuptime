@@ -222,9 +222,14 @@ function docsLinks(markdown: string): Array<string> {
 /*
  * A /docs/<category>/<page>[#anchor] link resolves when the English page
  * exists (the docs server falls back to English for every language) and,
- * with an anchor, when a heading on that page slugifies to it.
+ * with an anchor, when a heading on the page the reader is served
+ * slugifies to it: the page in the reader's language when it has one (a
+ * translated heading has a translated anchor), else the English page.
  */
-function unresolvedDocsLinks(markdown: string): Array<string> {
+function unresolvedDocsLinks(
+  markdown: string,
+  language: string = "en",
+): Array<string> {
   const unresolved: Array<string> = [];
 
   for (const link of docsLinks(markdown)) {
@@ -239,7 +244,19 @@ function unresolvedDocsLinks(markdown: string): Array<string> {
       continue;
     }
 
-    if (anchor && !headingSlugs(fs.readFileSync(file, "utf8")).has(anchor)) {
+    const translated: string = path.join(
+      CONTENT_DIR,
+      language,
+      `${relativePath}.md`,
+    );
+    const served: string = fs.existsSync(translated) ? translated : file;
+
+    if (
+      anchor &&
+      !headingSlugs(fs.readFileSync(served, "utf8")).has(
+        decodeURIComponent(anchor),
+      )
+    ) {
       unresolved.push(link);
     }
   }
@@ -1539,7 +1556,7 @@ describe("Identity docs carry an edition note in every language", () => {
           page: page,
           linked: intro.includes(`](${PAGE_URL})`),
         }).toEqual({ page: page, linked: true });
-        expect(unresolvedDocsLinks(content)).toEqual([]);
+        expect(unresolvedDocsLinks(content, lang)).toEqual([]);
       }
 
       // SSO and SCIM are on the Scale plan on OneUptime Cloud.

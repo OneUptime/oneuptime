@@ -19,7 +19,7 @@ Each role and permission has a row with these columns:
 
 ## Roles
 
-{{PERMISSION_ROLE_COUNT}} roles, each bundling a product area at Admin, Member or Viewer level. These are what **Add Role** offers on a team's **Permissions** page and on an API key's page.
+{{PERMISSION_ROLE_COUNT}} roles. Four of them reach the whole project: Project Owner, Project Admin, Project Member and Viewer. Each of the others covers one product area, such as incidents or monitors, at Admin, Member or Viewer level. These are what **Add Role** offers on a team's **Permissions** page and on an API key's page.
 
 {{PERMISSION_ROLE_TABLES}}
 

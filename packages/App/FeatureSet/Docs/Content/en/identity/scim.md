@@ -1,6 +1,6 @@
-# SCIM (System for Cross-domain Identity Management)
+# SCIM
 
-OneUptime supports the SCIM v2.0 protocol for automatic user provisioning and deprovisioning. Your identity provider (IdP) — Microsoft Entra ID, Okta or any other SCIM system — adds people to your OneUptime projects and private status pages when you assign them, and removes them when you unassign them.
+SCIM (System for Cross-domain Identity Management) provisions and deprovisions people automatically. Your identity provider (IdP) — Microsoft Entra ID, Okta or any other SCIM 2.0 system — adds people to your OneUptime projects and private status pages when you assign them, and removes them when you unassign them.
 
 > [!NOTE]
 > **Edition:** SCIM is part of the OneUptime Enterprise Edition. On OneUptime Cloud it is available on the **Scale** plan and above. Self-hosted installations need the Enterprise Edition image and a license. See [Enterprise Edition](/docs/self-hosted/enterprise). Without a valid license (after the 14-day trial, or 30 days after a license expires), SCIM requests are refused until a license is activated.
@@ -87,8 +87,8 @@ Status Page SCIM allows identity providers to provision and deprovision Status P
 :::steps
 1. **Navigate to Status Page Settings**
 
-   - Go to your OneUptime status page
-   - Navigate to **Status Page** > **Security** > **SCIM**
+   - Open **Status Pages** and select your status page
+   - Navigate to **Security** > **SCIM**
 
 2. **Configure SCIM Settings**
 

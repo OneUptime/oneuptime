@@ -4,6 +4,7 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 import ObjectID from "Common/Types/ObjectID";
+import { htmlAsText } from "Common/Tests/Helpers/HtmlText";
 
 /*
  * The SLA note reminders fill {{incidentTitle}} into a rule's note template
@@ -155,13 +156,7 @@ async function runTick(title: string): Promise<Array<string>> {
 
 // The text a reader sees once the note is rendered, as the emails render it.
 function readText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, "")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
+  return htmlAsText(html);
 }
 
 afterEach(() => {

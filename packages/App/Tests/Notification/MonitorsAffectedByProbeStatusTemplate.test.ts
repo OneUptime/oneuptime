@@ -12,6 +12,11 @@ import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  decodeHtmlEntities,
+  htmlAsText,
+  visibleText,
+} from "Common/Tests/Helpers/HtmlText";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
@@ -196,46 +201,6 @@ function renderSubject(content: ProbeMonitorsNotificationContent): string {
   ).toString();
 }
 
-/*
- * Decode once, like an HTML attribute or text node. Handlebars escapes "="
- * and quotes as numeric references as well as the named ones.
- */
-function decodeHtml(value: string): string {
-  const named: Record<string, string> = {
-    amp: "&",
-    quot: '"',
-    apos: "'",
-    lt: "<",
-    gt: ">",
-    nbsp: " ",
-  };
-
-  return value.replace(
-    /&(#x[0-9a-f]+|#\d+|amp|quot|apos|lt|gt|nbsp);/gi,
-    (entity: string, code: string): string => {
-      if (code.startsWith("#")) {
-        const hex: boolean = code[1]?.toLowerCase() === "x";
-        return String.fromCodePoint(
-          parseInt(code.slice(hex ? 2 : 1), hex ? 16 : 10),
-        );
-      }
-      return named[code.toLowerCase()] ?? entity;
-    },
-  );
-}
-
-// The words a reader sees: tags dropped, entities decoded, whitespace collapsed.
-function visibleText(html: string): string {
-  return decodeHtml(
-    html
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<!--[\s\S]*?-->/g, " ")
-      .replace(/<[^>]*>/g, " "),
-  )
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 interface Anchor {
   href: string;
   text: string;
@@ -248,8 +213,10 @@ function anchors(html: string): Array<Anchor> {
       const attributes: string = match[1] ?? "";
 
       return {
-        href: decodeHtml(attributes.match(/\bhref="([^"]*)"/i)?.[1] ?? ""),
-        text: decodeHtml((match[2] ?? "").replace(/<[^>]*>/g, "")).trim(),
+        href: decodeHtmlEntities(
+          attributes.match(/\bhref="([^"]*)"/i)?.[1] ?? "",
+        ),
+        text: htmlAsText(match[2] ?? "").trim(),
         isButton: attributes.includes("st-Button-link"),
       };
     },
@@ -308,7 +275,7 @@ function detailFields(html: string): Dictionary<string> {
   for (const match of html.matchAll(
     /<p class="st-DetailCard-label"[^>]*>([^<]*)<\/p>\s*<div class="st-DetailCard-value"[^>]*>([^<]*)<\/div>/g,
   )) {
-    fields[decodeHtml(match[1] ?? "").trim()] = decodeHtml(
+    fields[decodeHtmlEntities(match[1] ?? "").trim()] = decodeHtmlEntities(
       match[2] ?? "",
     ).trim();
   }
@@ -319,7 +286,7 @@ function detailFields(html: string): Dictionary<string> {
 function headings(html: string): Array<string> {
   return Array.from(html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)).map(
     (match: RegExpMatchArray): string => {
-      return decodeHtml(match[1] ?? "").trim();
+      return decodeHtmlEntities(match[1] ?? "").trim();
     },
   );
 }

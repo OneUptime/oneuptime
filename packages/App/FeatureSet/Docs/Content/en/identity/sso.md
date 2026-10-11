@@ -1,4 +1,4 @@
-# SSO (Single Sign-On)
+# SSO
 
 Single sign-on (SSO) lets the people in your project sign in to OneUptime with your organization's identity provider (IdP), over SAML 2.0 or OpenID Connect. You manage access, passwords and multi-factor authentication in one place, and you can require SSO for everyone in the project.
 
@@ -39,12 +39,10 @@ OneUptime reads only a few things from the assertion your IdP sends:
 | Name ID | The person's email address. It must be a valid email address. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | The person's name, used when OneUptime creates their account. Optional. |
 
-People who sign in for the first time join the provider's **Teams**. SSO integration gives you:
+People who sign in for the first time join the provider's **Teams**, which decide what they can do: see [Roles and teams for SSO users](#roles-and-teams-for-sso-users).
 
-- **Centralized authentication**: people sign in with their existing corporate credentials.
-- **Enhanced security**: your IdP's multi-factor authentication and security policies apply.
-- **Simplified user management**: access is managed from your existing identity management system.
-- **Less password fatigue**: nobody needs a separate OneUptime password.
+> [!NOTE]
+> On OneUptime Cloud, the first time someone signs in to the project with one of its SAML or OIDC providers, OneUptime emails them a link instead of signing them in. They open it, confirm that the project's single sign-on may sign them in, and continue to sign in. The link works for 24 hours. This happens once per project, and again if they leave the project and come back. Self-hosted installations sign people in straight away.
 
 ## Setting Up SSO
 
@@ -73,7 +71,7 @@ You need permission to add SSO providers — **Project Owner**, **Project Admin*
    - A new provider starts switched off. Once your IdP has these two values, edit the provider and turn **Enabled** on
 
 4. **Test the provider**
-   - Open the link in the **Test Single Sign On (SSO)** card. You are sent to your identity provider's sign-in page, then back to OneUptime, signed in
+   - Open the link in the **Test Single Sign On (SSO)** card and pick the provider on the page it opens. You are sent to your identity provider's sign-in page, then back to OneUptime, signed in
    - Once it works, you can [require SSO](#requiring-sso-for-your-project) for the project
 :::
 
@@ -125,7 +123,7 @@ Keycloak is a popular open-source identity and access management solution. You n
 
 5. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card. You should be sent to your Keycloak sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to your Keycloak sign-in page and back to OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud identity service. You need a tenant that supports enterprise applications with SAML SSO, and admin access to both Entra ID and OneUptime.
@@ -175,7 +173,7 @@ Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud i
 
 7. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card. You should be sent to the Microsoft sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to the Microsoft sign-in page and back to OneUptime.
 :::
 @tab Okta
 Okta is a widely used identity platform with SAML SSO. You need an Okta organization with admin access, and admin access to OneUptime.
@@ -219,7 +217,7 @@ Okta is a widely used identity platform with SAML SSO. You need an Okta organiza
 
 6. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card. You should be sent to the Okta sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to the Okta sign-in page and back to OneUptime.
 :::
 @tab Other
 OneUptime's SSO uses SAML 2.0 and works with any compliant identity provider:
@@ -238,13 +236,19 @@ OneUptime's SSO uses SAML 2.0 and works with any compliant identity provider:
 A project can also sign in through an OpenID Connect provider, such as Google Workspace, Okta, Microsoft Entra ID, Auth0 or Keycloak. You need permission to add OIDC providers (**Project Owner**, **Project Admin** or **Create Project OIDC**) and, on OneUptime Cloud, the **Scale** plan.
 
 :::steps
-1. Register an app (an OIDC client) with your identity provider and copy its **Issuer URL**, **Client ID** and **Client Secret**.
+1. Register an app (an OIDC client) with your identity provider that may use the authorization code flow with PKCE, and copy its **Issuer URL**, **Client ID** and **Client Secret**.
 2. In OneUptime, go to **Project Settings** > **Security** > **OIDC** and click **Create OIDC**.
 3. Enter a **Name** (what people see on the sign-in page), the **Issuer URL**, the **Client ID** and the **Client Secret**. You can paste the provider's discovery URL into **Issuer URL** instead.
 4. On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description ("Sign in with" and the name). Change them only if your provider needs it. Only teams you could invite someone to are accepted: a team that gives more access than you have is named under **Teams**.
 5. Save. The **OIDC Configuration** dialog opens with the **Redirect URI**: add it to your app's allowed redirect URIs. A new provider starts switched off, so then edit it and turn **Enabled** on.
 6. Use the link on the **Test OpenID Connect (OIDC)** card to sign in through the provider before you require SSO for the project.
 :::
+
+## Roles and teams for SSO users
+
+OneUptime does not map roles or groups from your identity provider. What someone can do comes from the teams they are in: a provider adds newcomers to its **Teams**, and you manage teams and their permissions in OneUptime, as [Users, Teams & Permissions](/docs/permissions/index) describes. To keep team membership in step with your identity provider, use [SCIM](/docs/identity/scim).
+
+A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.
 
 ## Requiring SSO for Your Project
 
@@ -314,6 +318,10 @@ A status page's **SSO** and **OIDC** pages list its own providers the same way. 
 The provider is switched off, or the link is for a provider that no longer exists. A new provider starts switched off: edit it and turn **Enabled** on.
 :::
 
+:::details "No teams added."
+The person is not in the project yet, and the provider has no **Teams** to add them to. Edit the provider and pick at least one team, such as your project's members team.
+:::
+
 :::details "Issuer URL does not match"
 The issuer in your IdP's assertion is not the provider's **Issuer**. Copy it again from your IdP — the Keycloak realm URL, the **Microsoft Entra Identifier**, or Okta's Identity Provider Issuer — so the two match exactly.
 :::
@@ -346,8 +354,10 @@ Entra ID and Okta sign in only people assigned to the application. Assign the us
 Check that **Valid Redirect URIs** and **Assertion Consumer Service POST Binding URL** are set as above, on the client in the right realm.
 :::
 
-## Roles and teams for SSO users
+## Next steps
 
-OneUptime does not map roles or groups from your identity provider. What someone can do comes from the teams they are in: a provider adds newcomers to its **Teams**, and you manage teams and their permissions in OneUptime, as [Users, Teams & Permissions](/docs/permissions/index) describes. To keep team membership in step with your identity provider, use [SCIM](/docs/identity/scim).
-
-A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.
+:::cards
+- [Global SSO](/docs/identity/global-sso): One identity provider for every project on a self-hosted instance.
+- [SCIM](/docs/identity/scim): Let your identity provider add and remove people automatically.
+- [Users, Teams & Permissions](/docs/permissions/index): What the teams newcomers join let them do.
+:::

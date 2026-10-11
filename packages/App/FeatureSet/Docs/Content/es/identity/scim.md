@@ -1,364 +1,329 @@
-# SCIM (Sistema de gestión de identidades entre dominios)
+# SCIM
 
-OneUptime admite el protocolo SCIM v2.0 para el aprovisionamiento y desaprovisionamiento automatizado de usuarios. SCIM permite que los proveedores de identidad (IdP) como Azure AD, Okta y otros sistemas de identidad empresarial gestionen automáticamente el acceso de los usuarios a los proyectos y páginas de estado de OneUptime.
+SCIM (System for Cross-domain Identity Management) aprovisiona y desaprovisiona personas automáticamente. Tu proveedor de identidad (IdP) — Microsoft Entra ID, Okta o cualquier otro sistema SCIM 2.0 — añade personas a tus proyectos de OneUptime y a tus páginas de estado privadas cuando se las asignas, y las quita cuando retiras la asignación.
 
-> **Edición:** SCIM forma parte de OneUptime Enterprise Edition. En OneUptime Cloud está disponible en el plan **Scale** y superiores. Las instalaciones autoalojadas necesitan la imagen de Enterprise Edition y una licencia. Consulta [Enterprise Edition](/docs/self-hosted/enterprise). Sin una licencia válida (después de la prueba de 14 días, o 30 días después de que caduque una licencia), las solicitudes SCIM se rechazan hasta que se active una licencia.
+> [!NOTE]
+> **Edición:** SCIM forma parte de la Enterprise Edition de OneUptime. En OneUptime Cloud está disponible a partir del plan **Scale**. Las instalaciones autoalojadas necesitan la imagen de la Enterprise Edition y una licencia. Consulta [Edición Enterprise](/docs/self-hosted/enterprise). Sin una licencia válida (tras la prueba de 14 días, o 30 días después de que caduque una licencia), las solicitudes SCIM se rechazan hasta que se activa una licencia.
 
-## Información general
+:::cards
+- [Configurar SCIM de proyecto](#configurar-scim-de-proyecto): Crear una conexión y dar a tu IdP su URL y su token.
+- [Configurar SCIM de página de estado](#configurar-scim-de-página-de-estado): Aprovisionar los usuarios privados de una página de estado.
+- [Conectar tu proveedor de identidad](#configurar-tu-proveedor-de-identidad): Paso a paso para Microsoft Entra ID y Okta.
+- [Preguntas frecuentes](#preguntas-frecuentes): Usuarios existentes, desaprovisionamiento, cambios de correo.
+:::
 
-La integración SCIM proporciona los siguientes beneficios:
+## Cómo funciona
 
-- **Aprovisionamiento automatizado de usuarios**: Crea automáticamente usuarios en OneUptime cuando se les asigna en tu IdP
-- **Desaprovisionamiento automatizado de usuarios**: Elimina automáticamente usuarios de OneUptime cuando se les desasigna en tu IdP
-- **Sincronización de atributos de usuario**: Mantiene sincronizada la información del usuario entre tu IdP y OneUptime
-- **Gestión centralizada del acceso**: Gestiona el acceso a OneUptime desde tu sistema de gestión de identidades existente
+Tu proveedor de identidad llama al endpoint SCIM de OneUptime, autenticado con un token bearer, cada vez que asignas, cambias o retiras a alguien. Lo que cambia la solicitud depende de dónde esté la conexión:
+
+```mermaid title="Qué cambia SCIM en OneUptime"
+flowchart TB
+    IdP["Tu proveedor de identidad"] -->|"solicitudes SCIM,<br/>token bearer"| P["Conexión SCIM del proyecto"]
+    IdP -->|"solicitudes SCIM,<br/>token bearer"| S["Conexión SCIM de la página de estado"]
+    P --> Q{"¿Grupos push activados?"}
+    Q -->|"No"| T["Los usuarios entran y salen<br/>de los equipos predeterminados"]
+    Q -->|"Sí"| G["Los grupos se convierten en equipos,<br/>la membresía los sigue"]
+    S --> U["Usuarios privados añadidos<br/>y eliminados"]
+```
+
+La integración de SCIM ofrece estas ventajas:
+
+- **Aprovisionamiento automático de usuarios**: los usuarios se crean en OneUptime cuando se les asigna en tu IdP.
+- **Desaprovisionamiento automático de usuarios**: los usuarios se quitan de OneUptime cuando se retira su asignación en tu IdP.
+- **Sincronización de atributos de usuario**: la información de los usuarios se mantiene igual en tu IdP y en OneUptime.
+- **Gestión centralizada del acceso**: el acceso a OneUptime se gestiona desde tu sistema de gestión de identidades actual.
+
+SCIM y el [SSO](/docs/identity/sso) son independientes: SCIM decide quién está en un proyecto, el SSO cómo inician sesión. La mayoría de las organizaciones usan ambos.
 
 ## SCIM para proyectos
 
-El SCIM de proyectos permite que los proveedores de identidad gestionen los miembros del equipo en los proyectos de OneUptime.
+El SCIM de proyecto permite a los proveedores de identidad gestionar los miembros de los equipos en los proyectos de OneUptime.
 
-### Configuración del SCIM de proyectos
+### Configurar SCIM de proyecto
 
-Solo un propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o ver o restablecer su token Bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto.
+Solo un propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o ver o restablecer su token bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto.
+:::steps
+1. **Ir a los ajustes del proyecto**
 
-1. **Navegar a la configuración del proyecto**
+   - Abre tu proyecto de OneUptime
+   - Ve a **Ajustes del proyecto** > **Seguridad** > **SCIM**
 
-   - Ve a tu proyecto de OneUptime
-   - Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
+2. **Configurar los ajustes de SCIM**
 
-2. **Configurar los ajustes SCIM**
-
-   - Ingresa un **Nombre**. El campo **Equipos predeterminados** empieza con el equipo de miembros de tu proyecto: los nuevos usuarios se agregan a estos equipos
-   - En **Más campos**, **Aprovisionar usuarios automáticamente** (agregar usuarios cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar usuarios cuando se les desasigna en tu IdP) están activados, y **Habilitar grupos push** está desactivado. Cámbialos allí si lo necesitas
-   - Guarda. El diálogo con la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP se abre de inmediato
+   - Introduce un **Nombre**. **Equipos predeterminados** empieza con el equipo de miembros de tu proyecto: los usuarios nuevos se añaden a estos equipos
+   - En **Más campos**, **Aprovisionar usuarios automáticamente** (añadir usuarios cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (quitar usuarios cuando se retira su asignación en tu IdP) están activados, y **Habilitar grupos push** está desactivado. Cámbialos ahí si lo necesitas
+   - Guarda. El cuadro de diálogo con la **SCIM Base URL** y el **Bearer Token** para la configuración de tu IdP se abre al instante
 
 3. **Configurar tu proveedor de identidad**
-   - Usa la URL base de SCIM: `https://oneuptime.com/scim/v2/{scimId}`
-   - Configura la autenticación de token de portador con el token proporcionado
-   - Asigna los atributos de usuario (el correo electrónico es obligatorio)
 
-### Puntos de conexión SCIM del proyecto
+   - Usa la **SCIM Base URL** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/scim/v2/<scim-id>`; una instalación autoalojada muestra su propio host
+   - Configura la autenticación con token bearer usando el **Bearer Token** del cuadro de diálogo
+   - Asigna los atributos de usuario (el correo es obligatorio). [Configurar tu proveedor de identidad](#configurar-tu-proveedor-de-identidad) tiene los detalles para Microsoft Entra ID y Okta
+:::
 
-- **Configuración del proveedor de servicios**: `GET /scim/v2/{scimId}/ServiceProviderConfig`
-- **Esquemas**: `GET /scim/v2/{scimId}/Schemas`
-- **Tipos de recursos**: `GET /scim/v2/{scimId}/ResourceTypes`
-- **Listar usuarios**: `GET /scim/v2/{scimId}/Users`
-- **Obtener usuario**: `GET /scim/v2/{scimId}/Users/{userId}`
-- **Crear usuario**: `POST /scim/v2/{scimId}/Users`
-- **Actualizar usuario**: `PUT /scim/v2/{scimId}/Users/{userId}` o `PATCH /scim/v2/{scimId}/Users/{userId}`
-- **Eliminar usuario**: `DELETE /scim/v2/{scimId}/Users/{userId}`
-- **Listar grupos**: `GET /scim/v2/{scimId}/Groups`
-- **Obtener grupo**: `GET /scim/v2/{scimId}/Groups/{groupId}`
-- **Crear grupo**: `POST /scim/v2/{scimId}/Groups`
-- **Actualizar grupo**: `PUT /scim/v2/{scimId}/Groups/{groupId}` o `PATCH /scim/v2/{scimId}/Groups/{groupId}`
-- **Eliminar grupo**: `DELETE /scim/v2/{scimId}/Groups/{groupId}`
+Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la conexión. **Restablecer token Bearer** sustituye el token; actualiza tu proveedor de identidad con el nuevo.
 
-### Ciclo de vida del usuario SCIM del proyecto
+### Cómo se aprovisiona un usuario de proyecto
 
-1. **Asignación de usuario en el IdP**: Cuando se asigna un usuario a OneUptime en tu IdP
-2. **Aprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para crear el usuario
-3. **Membresía en el equipo**: El usuario se agrega automáticamente a los equipos predeterminados configurados. En OneUptime Cloud, una persona que ya tenía una cuenta de OneUptime recibe en cambio una invitación y se une cuando la acepta (consulta las preguntas frecuentes más abajo)
-4. **Acceso concedido**: El usuario ahora puede acceder al proyecto de OneUptime
-5. **Desasignación de usuario**: Cuando se desasigna al usuario en el IdP
-6. **Desaprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para eliminar al usuario
-7. **Acceso revocado**: El usuario pierde el acceso al proyecto
+```mermaid title="La vida de un usuario con el SCIM de proyecto"
+sequenceDiagram
+    participant IdP as Proveedor de identidad
+    participant O as OneUptime
+    IdP->>O: Crear el usuario, cuando lo asignas
+    Note over O: Añadido a los equipos predeterminados.<br/>En OneUptime Cloud, una cuenta existente<br/>recibe una invitación en su lugar
+    IdP->>O: Actualizar el usuario, cuando cambia su perfil
+    IdP->>O: Eliminar o desactivar, cuando retiras la asignación
+    Note over O: Quitado de los equipos predeterminados
+```
+
+Quien ya tenía una cuenta de OneUptime se une cuando acepta la invitación en OneUptime Cloud (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.
 
 ## SCIM para páginas de estado
 
-El SCIM de páginas de estado permite que los proveedores de identidad gestionen suscriptores de páginas de estado privadas.
+El SCIM de página de estado permite a los proveedores de identidad aprovisionar y desaprovisionar los usuarios privados de páginas de estado, que pueden acceder a las páginas de estado privadas.
 
-### Configuración del SCIM de páginas de estado
+### Configurar SCIM de página de estado
 
-1. **Navegar a la configuración de la página de estado**
+:::steps
+1. **Ir a los ajustes de la página de estado**
 
-   - Ve a tu página de estado de OneUptime
-   - Navega a **Página de estado** > **Seguridad** > **SCIM**
+   - Abre **Páginas de estado** y selecciona tu página de estado
+   - Ve a **Seguridad** > **SCIM**
 
-2. **Configurar los ajustes SCIM**
+2. **Configurar los ajustes de SCIM**
 
-   - Ingresa un **Nombre**. En **Más campos**, **Aprovisionar usuarios automáticamente** (agregar suscriptores cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar suscriptores cuando se les desasigna en tu IdP) están activados. Cámbialos allí si lo necesitas
-   - Guarda. El diálogo con la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP se abre de inmediato
+   - Introduce un **Nombre**. En **Más campos**, **Aprovisionar usuarios automáticamente** (añadir usuarios privados cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar usuarios privados cuando se retira su asignación en tu IdP) están activados. Cámbialos ahí si lo necesitas
+   - Guarda. El cuadro de diálogo con la **SCIM Base URL** y el **Bearer Token** para la configuración de tu IdP se abre al instante
 
 3. **Configurar tu proveedor de identidad**
-   - Usa la URL base de SCIM: `https://oneuptime.com/status-page-scim/v2/{scimId}`
-   - Configura la autenticación de token de portador con el token proporcionado
-   - Asigna los atributos de usuario (el correo electrónico es obligatorio)
 
-### Puntos de conexión SCIM de la página de estado
+   - Usa la **SCIM Base URL** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
+   - Configura la autenticación con token bearer usando el token proporcionado
+   - Asigna los atributos de usuario (el correo es obligatorio)
+:::
 
-- **Configuración del proveedor de servicios**: `GET /status-page-scim/v2/{scimId}/ServiceProviderConfig`
-- **Esquemas**: `GET /status-page-scim/v2/{scimId}/Schemas`
-- **Tipos de recursos**: `GET /status-page-scim/v2/{scimId}/ResourceTypes`
-- **Listar usuarios**: `GET /status-page-scim/v2/{scimId}/Users`
-- **Obtener usuario**: `GET /status-page-scim/v2/{scimId}/Users/{userId}`
-- **Crear usuario**: `POST /status-page-scim/v2/{scimId}/Users`
-- **Actualizar usuario**: `PUT /status-page-scim/v2/{scimId}/Users/{userId}` o `PATCH /status-page-scim/v2/{scimId}/Users/{userId}`
-- **Eliminar usuario**: `DELETE /status-page-scim/v2/{scimId}/Users/{userId}`
+Para volver a ver las URL, selecciona **Mostrar URLs del endpoint SCIM** en la fila de la conexión.
 
-### Ciclo de vida del usuario SCIM de la página de estado
+El SCIM de página de estado solo admite usuarios. No admite grupos ni su aprovisionamiento.
 
-1. **Asignación de usuario en el IdP**: Cuando se asigna un usuario a la página de estado de OneUptime en tu IdP
-2. **Aprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para crear el suscriptor
-3. **Acceso concedido**: El usuario ahora puede acceder a la página de estado privada
-4. **Desasignación de usuario**: Cuando se desasigna al usuario en el IdP
-5. **Desaprovisionamiento SCIM**: El IdP llama a la API SCIM de OneUptime para eliminar al suscriptor
-6. **Acceso revocado**: El usuario pierde el acceso a la página de estado
+### Cómo se aprovisiona un usuario privado
 
-## Configuración del proveedor de identidad
+```mermaid title="La vida de un usuario privado con el SCIM de página de estado"
+sequenceDiagram
+    participant IdP as Proveedor de identidad
+    participant O as OneUptime
+    IdP->>O: Crear el usuario, cuando lo asignas
+    Note over O: El usuario privado puede acceder<br/>a la página de estado privada
+    IdP->>O: Eliminar, o poner active en false
+    Note over O: Usuario privado y sus<br/>sesiones eliminados
+```
 
-### Microsoft Entra ID (anteriormente Azure AD)
+> [!WARNING]
+> El desaprovisionamiento elimina de forma permanente al usuario privado de la página de estado y todas sus sesiones en esa página de estado. Si el usuario se vuelve a asignar más adelante, se aprovisiona como un usuario privado nuevo. Cuando **Desaprovisionar usuarios automáticamente** está desactivado, las actualizaciones que ponen `active` en `false` se ignoran y las solicitudes DELETE se rechazan.
 
-Microsoft Entra ID proporciona gestión de identidades empresarial con sólidas capacidades de aprovisionamiento SCIM. Sigue estos pasos detallados para configurar el aprovisionamiento SCIM con OneUptime.
+## Configurar tu proveedor de identidad
 
-#### Prerrequisitos
+Cada proveedor de abajo empieza creando una conexión SCIM de proyecto en OneUptime y luego conecta tu proveedor de identidad a ella.
 
-- Inquilino de Microsoft Entra ID con licencia Premium P1 o P2 (requerida para el aprovisionamiento automático)
-- Cuenta de OneUptime con plan Scale o superior
-- Acceso de administrador tanto a Microsoft Entra ID como a OneUptime
+### Microsoft Entra ID (antes Azure AD)
 
-#### Paso 1: Obtener la configuración SCIM de OneUptime
+Microsoft Entra ID ofrece gestión de identidades de nivel empresarial con aprovisionamiento SCIM. Necesitas:
+
+- Un tenant de Microsoft Entra ID con licencia Premium P1 o P2 (necesaria para el aprovisionamiento automático).
+- Un proyecto de OneUptime en el plan **Scale** o superior en OneUptime Cloud.
+- Acceso de administrador a Microsoft Entra ID y a OneUptime.
+
+:::steps
+#### Crear la conexión SCIM para Entra ID
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
-3. Haz clic en **Crear configuración SCIM**
-4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Microsoft Entra ID")
+2. Ve a **Ajustes del proyecto** > **Seguridad** > **SCIM**
+3. Haz clic en **Crear SCIM**
+4. Introduce un nombre descriptivo (por ejemplo, "Microsoft Entra ID Provisioning")
 5. Revisa las opciones:
-   - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los nuevos usuarios se agregan a estos equipos
+   - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los usuarios nuevos se añaden a estos equipos
    - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
-   - **Habilitar grupos push**: en **Más campos**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Entra ID
+   - **Habilitar grupos push**: en **Más campos**; actívalo si quieres gestionar la membresía de los equipos con grupos de Entra ID
 6. Guarda la configuración
-7. Copia la **URL base de SCIM** y el **Token de portador** del diálogo que se abre - los necesitarás para Entra ID
+7. Copia la **SCIM Base URL** y el **Bearer Token** del cuadro de diálogo que se abre; los necesitarás para Entra ID
 
-#### Paso 2: Crear una aplicación empresarial en Microsoft Entra ID
+#### Crear una aplicación empresarial en Entra ID
 
-1. Inicia sesión en el [centro de administración de Microsoft Entra](https://entra.microsoft.com)
-2. Navega a **Identidad** > **Aplicaciones** > **Aplicaciones empresariales**
-3. Haz clic en **+ Nueva aplicación**
-4. Haz clic en **+ Crear tu propia aplicación**
-5. Ingresa un nombre (por ejemplo, "OneUptime")
-6. Selecciona **Integrar cualquier otra aplicación que no encuentres en la galería (no de galería)**
-7. Haz clic en **Crear**
+1. Inicia sesión en el [Microsoft Entra admin center](https://entra.microsoft.com)
+2. Ve a **Identity** > **Applications** > **Enterprise applications**
+3. Haz clic en **+ New application** y luego en **+ Create your own application**
+4. Introduce un nombre (por ejemplo, "OneUptime")
+5. Selecciona **Integrate any other application you don't find in the gallery (Non-gallery)** y haz clic en **Create**
 
-#### Paso 3: Configurar el aprovisionamiento SCIM
+#### Conectar Entra ID con OneUptime
 
-1. En tu aplicación empresarial OneUptime, ve a **Aprovisionamiento**
-2. Haz clic en **Comenzar**
-3. Establece el **Modo de aprovisionamiento** en **Automático**
-4. En **Credenciales de administrador**:
-   - **URL del inquilino**: Ingresa la URL base de SCIM de OneUptime (por ejemplo, `https://oneuptime.com/api/identity/scim/v2/{your-scim-id}`)
-   - **Token secreto**: Ingresa el token de portador de OneUptime
-5. Haz clic en **Probar conexión** para verificar la configuración
-6. Haz clic en **Guardar**
+1. En tu aplicación empresarial de OneUptime, ve a **Provisioning** y haz clic en **Get started**
+2. Establece **Provisioning Mode** en **Automatic**
+3. En **Admin Credentials**, establece **Tenant URL** en la **SCIM Base URL** de OneUptime (por ejemplo, `https://oneuptime.com/identity/scim/v2/<scim-id>`) y **Secret Token** en el **Bearer Token**
+4. Haz clic en **Test Connection** para comprobar la configuración y luego en **Save**
 
-#### Paso 4: Configurar asignaciones de atributos
+#### Asignar los atributos de usuario en Entra ID
 
-1. En la sección de aprovisionamiento, haz clic en **Asignaciones**
-2. Haz clic en **Aprovisionar usuarios de Azure Active Directory**
-3. Configura las siguientes asignaciones de atributos:
+1. En la sección Provisioning, haz clic en **Mappings** y luego en **Provision Azure Active Directory Users**
+2. Configura las siguientes asignaciones de atributos, quita las que no necesites y haz clic en **Save**:
 
-| Atributo de Azure AD                                          | Atributo SCIM de OneUptime     | Requerido   |
-| ------------------------------------------------------------- | ------------------------------ | ----------- |
-| `userPrincipalName`                                           | `userName`                     | Sí          |
-| `mail`                                                        | `emails[type eq "work"].value` | Recomendado |
-| `displayName`                                                 | `displayName`                  | Recomendado |
-| `givenName`                                                   | `name.givenName`               | Opcional    |
-| `surname`                                                     | `name.familyName`              | Opcional    |
-| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | Recomendado |
+| Atributo de Azure AD                                          | Atributo SCIM de OneUptime     | Obligatorio  |
+| ------------------------------------------------------------- | ------------------------------ | ------------ |
+| `userPrincipalName`                                           | `userName`                     | Sí           |
+| `mail`                                                        | `emails[type eq "work"].value` | Recomendado  |
+| `displayName`                                                 | `displayName`                  | Recomendado  |
+| `givenName`                                                   | `name.givenName`               | Opcional     |
+| `surname`                                                     | `name.familyName`              | Opcional     |
+| `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | Recomendado  |
 
-4. Elimina las asignaciones que no sean necesarias para simplificar el aprovisionamiento
-5. Haz clic en **Guardar**
+#### Asignar los grupos en Entra ID (opcional)
 
-#### Paso 5: Configurar el aprovisionamiento de grupos (opcional)
+Si activaste **Habilitar grupos push** en OneUptime:
 
-Si habilitaste **Grupos de Push** en OneUptime:
-
-1. Vuelve a **Asignaciones**
-2. Haz clic en **Aprovisionar grupos de Azure Active Directory**
-3. Habilita el aprovisionamiento de grupos estableciendo **Habilitado** en **Sí**
-4. Configura las siguientes asignaciones de atributos:
+1. Vuelve a **Mappings** y haz clic en **Provision Azure Active Directory Groups**
+2. Establece **Enabled** en **Yes**
+3. Configura las siguientes asignaciones de atributos y haz clic en **Save**:
 
 | Atributo de Azure AD | Atributo SCIM de OneUptime |
 | -------------------- | -------------------------- |
 | `displayName`        | `displayName`              |
 | `members`            | `members`                  |
 
-5. Haz clic en **Guardar**
+#### Asignar usuarios y grupos en Entra ID
 
-#### Paso 6: Asignar usuarios y grupos
+1. En tu aplicación empresarial de OneUptime, ve a **Users and groups**
+2. Haz clic en **+ Add user/group**, selecciona los usuarios y grupos que se aprovisionarán en OneUptime y haz clic en **Assign**
 
-1. En tu aplicación empresarial OneUptime, ve a **Usuarios y grupos**
-2. Haz clic en **+ Agregar usuario/grupo**
-3. Selecciona los usuarios y/o grupos que deseas aprovisionar en OneUptime
-4. Haz clic en **Asignar**
+#### Iniciar el aprovisionamiento en Entra ID
 
-#### Paso 7: Iniciar el aprovisionamiento
-
-1. Ve a **Aprovisionamiento** > **Información general**
-2. Haz clic en **Iniciar aprovisionamiento**
-3. El ciclo de aprovisionamiento inicial comenzará (esto puede tardar hasta 40 minutos para la primera sincronización)
-4. Monitorea los **Registros de aprovisionamiento** para detectar cualquier error
-
-#### Solución de problemas con Microsoft Entra ID
-
-- **Error en la prueba de conexión**: Verifica que la URL base de SCIM incluya el prefijo `/api/identity` y que el token de portador sea correcto
-- **Usuarios que no se aprovisionan**: Comprueba que los usuarios estén asignados a la aplicación y que las asignaciones de atributos sean correctas
-- **Errores de aprovisionamiento**: Revisa los registros de aprovisionamiento en Entra ID para mensajes de error específicos
-- **Retrasos en la sincronización**: El aprovisionamiento inicial puede tardar hasta 40 minutos; las sincronizaciones posteriores ocurren cada 40 minutos
-
----
+1. Ve a **Provisioning** > **Overview** y haz clic en **Start provisioning**
+2. Empieza el ciclo de aprovisionamiento inicial; la primera sincronización puede tardar hasta 40 minutos
+3. Revisa los **Provisioning logs** en busca de errores. Las personas que asignaste aparecen en los equipos del proyecto en OneUptime
+:::
 
 ### Okta
 
-Okta proporciona una gestión de identidades flexible con excelente soporte SCIM. Sigue estos pasos detallados para configurar el aprovisionamiento SCIM con OneUptime.
+Okta ofrece una gestión de identidades flexible con compatibilidad con SCIM. Necesitas:
 
-#### Prerrequisitos
+- Un tenant de Okta con aprovisionamiento (la función Lifecycle Management).
+- Un proyecto de OneUptime en el plan **Scale** o superior en OneUptime Cloud.
+- Acceso de administrador a Okta y a OneUptime.
 
-- Inquilino de Okta con capacidades de aprovisionamiento (función de gestión del ciclo de vida)
-- Cuenta de OneUptime con plan Scale o superior
-- Acceso de administrador tanto a Okta como a OneUptime
-
-#### Paso 1: Obtener la configuración SCIM de OneUptime
+:::steps
+#### Crear la conexión SCIM para Okta
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
-3. Haz clic en **Crear configuración SCIM**
-4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Okta")
+2. Ve a **Ajustes del proyecto** > **Seguridad** > **SCIM**
+3. Haz clic en **Crear SCIM**
+4. Introduce un nombre descriptivo (por ejemplo, "Okta Provisioning")
 5. Revisa las opciones:
-   - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los nuevos usuarios se agregan a estos equipos
+   - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los usuarios nuevos se añaden a estos equipos
    - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
-   - **Habilitar grupos push**: en **Más campos**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Okta
+   - **Habilitar grupos push**: en **Más campos**; actívalo si quieres gestionar la membresía de los equipos con grupos de Okta
 6. Guarda la configuración
-7. Copia la **URL base de SCIM** y el **Token de portador** del diálogo que se abre - los necesitarás para Okta
+7. Copia la **SCIM Base URL** y el **Bearer Token** del cuadro de diálogo que se abre; los necesitarás para Okta
 
-#### Paso 2: Crear o configurar una aplicación de Okta
+#### Crear o abrir la aplicación de Okta
 
-**Si tienes una aplicación SSO existente:**
+En la Okta Admin Console, ve a **Applications** > **Applications**:
 
-1. Inicia sesión en tu consola de administración de Okta
-2. Navega a **Aplicaciones** > **Aplicaciones**
-3. Busca y selecciona tu aplicación de OneUptime existente
+- Si ya usas Okta para el SSO de OneUptime, abre esa aplicación.
+- Si no, haz clic en **Create App Integration**, selecciona **SAML 2.0**, ponle el nombre "OneUptime" y completa la configuración SAML (consulta [SSO](/docs/identity/sso)).
 
-**Si creas una nueva aplicación:**
+#### Activar el aprovisionamiento SCIM en Okta
 
-1. Inicia sesión en tu consola de administración de Okta
-2. Navega a **Aplicaciones** > **Aplicaciones**
-3. Haz clic en **Crear integración de aplicación**
-4. Selecciona **SAML 2.0** y haz clic en **Siguiente**
-5. Ingresa "OneUptime" como nombre de la aplicación
-6. Completa la configuración SAML (consulta la documentación de SSO)
-7. Haz clic en **Finalizar**
+1. En tu aplicación de OneUptime, ve a la pestaña **General**
+2. En la sección **App Settings**, haz clic en **Edit**, selecciona **SCIM** en **Provisioning** y haz clic en **Save**
+3. Aparece una nueva pestaña **Provisioning**
 
-#### Paso 3: Habilitar el aprovisionamiento SCIM
+#### Conectar Okta con OneUptime
 
-1. En tu aplicación OneUptime, ve a la pestaña **General**
-2. En la sección **Configuración de la aplicación**, haz clic en **Editar**
-3. En **Aprovisionamiento**, selecciona **SCIM**
-4. Haz clic en **Guardar**
-5. Aparecerá una nueva pestaña de **Aprovisionamiento**
+1. En la pestaña **Provisioning**, haz clic en **Integration** y luego en **Configure API Integration**, y marca **Enable API integration**
+2. Configura lo siguiente:
+   - **SCIM connector base URL**: la **SCIM Base URL** de OneUptime (por ejemplo, `https://oneuptime.com/identity/scim/v2/<scim-id>`)
+   - **Unique identifier field for users**: `userName`
+   - **Supported provisioning actions**: Import New Users and Profile Updates, Push New Users, Push Profile Updates y, si usas aprovisionamiento basado en grupos, Push Groups
+   - **Authentication Mode**: **HTTP Header**
+   - **Authorization**: el **Bearer Token** de OneUptime. OneUptime espera la cabecera `Authorization: Bearer <token>`; si Okta ya muestra la palabra Bearer delante del campo, introduce solo el token
+3. Haz clic en **Test API Credentials** para comprobar la conexión y luego en **Save**
 
-#### Paso 4: Configurar la conexión SCIM
+#### Elegir qué aprovisiona Okta
 
-1. Ve a la pestaña **Aprovisionamiento**
-2. Haz clic en **Integración** en la barra lateral izquierda
-3. Haz clic en **Configurar integración de API**
-4. Marca **Habilitar integración de API**
-5. Configura lo siguiente:
-   - **URL base del conector SCIM**: Ingresa la URL base de SCIM de OneUptime (por ejemplo, `https://oneuptime.com/api/identity/scim/v2/{your-scim-id}`)
-   - **Campo de identificador único para usuarios**: Ingresa `userName`
-   - **Acciones de aprovisionamiento compatibles**: Selecciona las acciones que deseas habilitar:
-     - Importar nuevos usuarios y actualizaciones de perfil
-     - Insertar nuevos usuarios
-     - Insertar actualizaciones de perfil
-     - Insertar grupos (si usas aprovisionamiento basado en grupos)
-   - **Modo de autenticación**: Selecciona **Encabezado HTTP**
-   - **Autorización**: Ingresa `Bearer {your-bearer-token}` (reemplaza con el token real)
-6. Haz clic en **Probar credenciales de API** para verificar la conexión
-7. Haz clic en **Guardar**
+1. En la pestaña **Provisioning**, haz clic en **To App** y luego en **Edit**
+2. Activa **Create Users**, **Update User Attributes** y **Deactivate Users**, y haz clic en **Save**
 
-#### Paso 5: Configurar el aprovisionamiento para la aplicación
+#### Asignar los atributos de usuario en Okta
 
-1. En la pestaña **Aprovisionamiento**, haz clic en **A la aplicación** en la barra lateral izquierda
-2. Haz clic en **Editar**
-3. Habilita las siguientes opciones:
-   - **Crear usuarios**: Habilita para aprovisionar nuevos usuarios
-   - **Actualizar atributos de usuario**: Habilita para sincronizar cambios de atributos
-   - **Desactivar usuarios**: Habilita para desaprovisionar usuarios cuando se desasignan
-4. Haz clic en **Guardar**
+Desplázate hasta **Attribute Mappings** y revisa estas asignaciones. Quita las que no necesites:
 
-#### Paso 6: Configurar asignaciones de atributos
+| Atributo de Okta   | Atributo SCIM de OneUptime      | Dirección        |
+| ------------------ | ------------------------------- | ---------------- |
+| `userName`         | `userName`                      | De Okta a la app |
+| `user.email`       | `emails[primary eq true].value` | De Okta a la app |
+| `user.firstName`   | `name.givenName`                | De Okta a la app |
+| `user.lastName`    | `name.familyName`               | De Okta a la app |
+| `user.displayName` | `displayName`                   | De Okta a la app |
 
-1. Desplázate hacia abajo hasta **Asignaciones de atributos**
-2. Verifica o configura las siguientes asignaciones:
+#### Enviar grupos desde Okta (opcional)
 
-| Atributo de Okta   | Atributo SCIM de OneUptime      | Dirección               |
-| ------------------ | ------------------------------- | ----------------------- |
-| `userName`         | `userName`                      | De Okta a la aplicación |
-| `user.email`       | `emails[primary eq true].value` | De Okta a la aplicación |
-| `user.firstName`   | `name.givenName`                | De Okta a la aplicación |
-| `user.lastName`    | `name.familyName`               | De Okta a la aplicación |
-| `user.displayName` | `displayName`                   | De Okta a la aplicación |
+Si activaste **Habilitar grupos push** en OneUptime:
 
-3. Elimina las asignaciones innecesarias
-4. Haz clic en **Guardar** si realizaste cambios
+1. Ve a la pestaña **Push Groups** y haz clic en **+ Push Groups**
+2. Selecciona **Find groups by name** o **Find groups by rule**
+3. Busca y selecciona los grupos que quieres enviar y haz clic en **Save**
 
-#### Paso 7: Configurar grupos de inserción (opcional)
+#### Asignar personas en Okta
 
-Si habilitaste **Grupos de Push** en OneUptime:
+1. Ve a la pestaña **Assignments**
+2. Haz clic en **Assign** > **Assign to People** o **Assign to Groups**, selecciona a quién aprovisionar, haz clic en **Assign** para cada uno y luego en **Done**
 
-1. Ve a la pestaña **Grupos de inserción**
-2. Haz clic en **+ Insertar grupos**
-3. Selecciona **Buscar grupos por nombre** o **Buscar grupos por regla**
-4. Busca y selecciona los grupos que deseas insertar
-5. Haz clic en **Guardar**
+#### Comprobar el aprovisionamiento en Okta
 
-#### Paso 8: Asignar usuarios
-
-1. Ve a la pestaña **Asignaciones**
-2. Haz clic en **Asignar** > **Asignar a personas** o **Asignar a grupos**
-3. Selecciona los usuarios o grupos que deseas aprovisionar
-4. Haz clic en **Asignar** para cada selección
-5. Haz clic en **Listo**
-
-#### Paso 9: Verificar el aprovisionamiento
-
-1. Ve a **Informes** > **Registro del sistema** en la consola de administración de Okta
-2. Filtra los eventos relacionados con tu aplicación de OneUptime
-3. Verifica que los eventos de aprovisionamiento sean exitosos
-4. Comprueba en OneUptime que los usuarios hayan sido creados
-
-#### Solución de problemas con Okta
-
-- **Error en la prueba de credenciales de API**: Verifica que la URL base de SCIM y el token de portador sean correctos
-- **Usuarios que no se aprovisionan**: Asegúrate de que los usuarios estén asignados a la aplicación y que el aprovisionamiento esté habilitado
-- **Usuarios duplicados**: Asegúrate de que el atributo `userName` sea único y se asigne correctamente al correo electrónico
-- **Errores de inserción de grupos**: Verifica que los grupos existan y tengan la membresía correcta
-- **Error: 401 No autorizado**: Regenera el token de portador en OneUptime y actualízalo en Okta
-
----
+1. Ve a **Reports** > **System Log** en la Okta Admin Console y filtra por tu aplicación de OneUptime
+2. Comprueba que los eventos de aprovisionamiento se completaron y que las personas aparecen en los equipos del proyecto en OneUptime
+:::
 
 ### Otros proveedores de identidad
 
-La implementación SCIM de OneUptime sigue la especificación SCIM v2.0 y debería funcionar con cualquier proveedor de identidad compatible. Pasos generales de configuración:
+La implementación SCIM de OneUptime sigue la especificación SCIM v2.0 y funciona con cualquier proveedor de identidad compatible:
 
-1. **URL base de SCIM**: `https://oneuptime.com/api/identity/scim/v2/{scim-id}` (para proyectos) o `https://oneuptime.com/api/identity/status-page-scim/v2/{scim-id}` (para páginas de estado)
-2. **Autenticación**: Token de portador HTTP
-3. **Atributo de usuario requerido**: `userName` (debe ser una dirección de correo electrónico válida)
-4. **Operaciones compatibles**: GET, POST, PUT, PATCH, DELETE para usuarios y grupos
+| Ajuste | Valor |
+| --- | --- |
+| SCIM Base URL | La **SCIM Base URL** de OneUptime: `https://oneuptime.com/identity/scim/v2/<scim-id>` para un proyecto, o `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` para una página de estado |
+| Autenticación | Token HTTP Bearer |
+| Identificador único de usuario | `userName`, que debe ser una dirección de correo válida |
+| Operaciones | GET, POST, PUT, PATCH y DELETE para Users, en el SCIM de proyecto y de página de estado. Groups solo se admite en el SCIM de proyecto. |
 
-#### Puntos de conexión SCIM compatibles
+## Referencia de la API de SCIM
 
-| Punto de conexión        | Métodos                 | Descripción                                            |
-| ------------------------ | ----------------------- | ------------------------------------------------------ |
-| `/ServiceProviderConfig` | GET                     | Capacidades del servidor SCIM                          |
-| `/Schemas`               | GET                     | Esquemas de recursos disponibles                       |
-| `/ResourceTypes`         | GET                     | Tipos de recursos disponibles                          |
-| `/Users`                 | GET, POST               | Listar y crear usuarios                                |
-| `/Users/{id}`            | GET, PUT, PATCH, DELETE | Gestionar usuarios individuales                        |
-| `/Groups`                | GET, POST               | Listar y crear grupos/equipos (solo SCIM de proyectos) |
-| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Gestionar grupos individuales (solo SCIM de proyectos) |
+Las rutas son relativas a la **SCIM Base URL** de la conexión.
 
-#### Esquema de usuario SCIM
+| Endpoint                 | Métodos                 | Descripción                                               |
+| ------------------------ | ----------------------- | --------------------------------------------------------- |
+| `/ServiceProviderConfig` | GET                     | Capacidades del servidor SCIM                             |
+| `/Schemas`               | GET                     | Esquemas de recursos disponibles                          |
+| `/ResourceTypes`         | GET                     | Tipos de recursos disponibles                             |
+| `/Users`                 | GET, POST               | Listar y crear usuarios                                   |
+| `/Users/{id}`            | GET, PUT, PATCH, DELETE | Gestionar un usuario                                      |
+| `/Groups`                | GET, POST               | Listar y crear grupos/equipos (solo SCIM de proyecto)     |
+| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Gestionar un grupo (solo SCIM de proyecto)                |
+| `/Bulk`                  | POST                    | Varias operaciones en una sola solicitud                  |
 
+Lo que informa `/ServiceProviderConfig`:
+
+| Capacidad | Compatible |
+| --- | --- |
+| PATCH | Sí |
+| Bulk | Sí, hasta 1.000 operaciones y 1 MB por solicitud |
+| Filtro | Sí, hasta 200 resultados |
+| Ordenación | Sí |
+| Cambio de contraseña | No |
+| ETag | No |
+| Autenticación | Token HTTP Bearer |
+
+Un grupo que crea tu proveedor de identidad se convierte en un equipo con el mismo nombre en el proyecto; si ya existe un equipo con ese nombre, se usa en lugar de crear uno nuevo.
+
+:::details Esquema de usuario de SCIM
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -379,9 +344,9 @@ La implementación SCIM de OneUptime sigue la especificación SCIM v2.0 y deber�
   "active": true
 }
 ```
+:::
 
-#### Esquema de grupo SCIM
-
+:::details Esquema de grupo de SCIM
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
@@ -394,43 +359,100 @@ La implementación SCIM de OneUptime sigue la especificación SCIM v2.0 y deber�
   ]
 }
 ```
+:::
+
+## Planes y licencias
+
+En OneUptime Cloud, SCIM necesita el plan **Scale**. Una instalación autoalojada necesita la Enterprise Edition y una licencia, como indica la nota al principio de esta página.
+
+### Por debajo del plan Scale
+
+En OneUptime Cloud, el aprovisionamiento SCIM solo funciona por completo mientras el proyecto está en **Scale** o superior. Por debajo — cuando termina una prueba de Scale o se baja de plan — las conexiones SCIM del proyecto, y las de sus páginas de estado, solo quitan personas, así que quien se va sigue perdiendo su acceso:
+
+- **Sigue funcionando:** desactivar un usuario (`active` en `false`, en una conexión configurada para quitar a las personas que desactiva), eliminar un usuario, quitar miembros de un grupo (el `Remove` de Entra ID sobre `members` con los miembros como valor, el `remove` de Okta sobre `members[value eq "..."]`, o sustituir los miembros por algunos de los que ya tiene el grupo), eliminar un grupo y una solicitud `Bulk` formada solo por `DELETE`. Las consultas también se responden — listar y filtrar usuarios y grupos, que es lo que hacen los proveedores de identidad antes de quitar a alguien —, pero por debajo del plan una consulta nunca crea a nadie.
+- **Se rechaza:** crear un usuario o un grupo, reactivar un usuario (`active` en `true` para alguien a quien la conexión volvería a añadir a uno de sus equipos), añadir a alguien a un grupo en el que no está, y cambiar solo el correo o el nombre de un usuario o el nombre de un grupo. Una solicitud que añade a alguien se rechaza entera, aunque también quite personas, porque un `PATCH` de SCIM es todo o nada. El rechazo es un `402` con un error en formato SCIM, que tu proveedor de identidad muestra: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` Cada rechazo aparece también en los registros SCIM de la conexión.
+- **Una baja que también cambia un perfil** — una desactivación que envía un correo o un nombre nuevo, o una actualización de grupo que quita miembros y cambia el nombre del grupo — se aplica, y deja el correo, el nombre o el nombre del grupo como estaban. Los proveedores de identidad vuelven a enviar lo que ven distinto, así que un cambio rechazado una vez vuelve con sus solicitudes posteriores, y una baja nunca espera al plan. Una desactivación en una conexión que no quita a las personas que desactiva (desaprovisionamiento automático desactivado, o grupos enviados en su lugar) no quita a nadie, así que un correo o un nombre nuevo enviado con ella se rechaza como un cambio por sí solo.
+- **Una solicitud que no cambia nada se responde como siempre** — el `PUT` de Okta de un usuario tal como está, con `active` en `true`, para alguien que ya está en todos los equipos de la conexión; añadir a alguien a un grupo en el que ya está; un correo enviado de nuevo con otras mayúsculas; atributos que OneUptime no guarda, como un cargo o un departamento. El usuario privado de una página de estado está en la página o no está, así que `active` en `true` nunca lo cambia.
+
+No se elimina nada. Cambia al plan **Scale** y las conexiones vuelven a funcionar por completo tal como están, con el mismo token bearer y sin nada que volver a configurar en tu proveedor de identidad; un cambio de plan surte efecto en menos de un minuto. Los proveedores de identidad siguen llamando según su propio calendario: Okta muestra los rechazos entre sus errores de aprovisionamiento, y Entra ID los muestra en sus registros de aprovisionamiento y puede poner en cuarentena un trabajo que falla una y otra vez, lo que ralentiza sus sincronizaciones — también las bajas — a una al día aproximadamente. Reinicia allí el aprovisionamiento después de cambiar de plan, para que se aprovisionen las personas añadidas mientras tanto.
+
+Por debajo de **Scale**, **Ajustes del proyecto** > **Seguridad** > **SCIM**, y la página **SCIM** de una página de estado, muestran las conexiones debajo de la oferta del plan (**Conexiones SCIM aún configuradas**) e indican que solo quitan personas. Elimina una conexión para quitarla. Añadir una conexión, cambiar una o sustituir su token bearer requiere **Scale**. La lista no muestra los tokens bearer, y solo los propietarios del proyecto pueden leer un token, en cualquier plan.
+
+## Solución de problemas
+
+Empieza por la pestaña **Registros** de **Ajustes del proyecto** > **Seguridad** > **SCIM** (o de la página **SCIM** de la página de estado). Muestra las solicitudes SCIM que envió tu proveedor de identidad, con su estado, y **Ver detalles** muestra la solicitud y lo que respondió OneUptime.
+
+:::details Entra ID: falla Test Connection
+Comprueba que **Tenant URL** sea la **SCIM Base URL** exactamente como la muestra OneUptime, y que **Secret Token** sea el **Bearer Token** actual. Después de **Restablecer token Bearer**, el token anterior deja de funcionar.
+:::
+
+:::details Okta: falla la prueba de las credenciales de la API, o las solicitudes reciben 401 Unauthorized
+Comprueba la **SCIM connector base URL** y el token. OneUptime lee la cabecera `Authorization: Bearer <token>`, así que asegúrate de que la palabra Bearer se envía exactamente una vez. Si el token se perdió o se filtró, selecciona **Restablecer token Bearer** en OneUptime y actualiza Okta.
+:::
+
+:::details Los usuarios no se aprovisionan
+Comprueba que los usuarios estén asignados a la aplicación en tu proveedor de identidad, que el aprovisionamiento esté activado allí y que las asignaciones de atributos sean correctas. En Entra ID, los **Provisioning logs** muestran cada error; en Okta, el **System Log**.
+:::
+
+:::details Usuarios duplicados en Okta
+Asegúrate de que `userName` sea único y corresponda a la dirección de correo del usuario.
+:::
+
+:::details Fallos al enviar grupos
+Comprueba que los grupos existan en tu proveedor de identidad y tengan los miembros correctos, y que **Habilitar grupos push** esté activado en OneUptime.
+:::
+
+:::details Los cambios de Entra ID tardan en llegar
+Entra ID aprovisiona según su propio calendario: la primera sincronización puede tardar hasta 40 minutos, y las siguientes se ejecutan aproximadamente cada 40 minutos. Un trabajo que Entra ID ha puesto en cuarentena se sincroniza con menos frecuencia; corrige los errores de sus **Provisioning logs** y reinícialo.
+:::
 
 ## Preguntas frecuentes
 
-### ¿Qué sucede cuando se desaprovisiona a un usuario?
+:::details ¿Qué pasa cuando se desaprovisiona a un usuario?
+El desaprovisionamiento puede pedirse con una solicitud DELETE o poniendo `active` en `false` en una actualización PUT/PATCH:
 
-Cuando se desaprovisiona a un usuario (ya sea mediante una solicitud DELETE o estableciendo `active: false`), se le elimina de los equipos configurados en los ajustes SCIM. La cuenta de usuario en sí permanece en OneUptime, pero pierde acceso al proyecto.
+- **SCIM de proyecto**: con **Desaprovisionar usuarios automáticamente** activado, el usuario se quita de los equipos predeterminados configurados en los ajustes de SCIM, mientras su cuenta de OneUptime se conserva. El acceso concedido por otros equipos no se ve afectado. Cuando los grupos push están activados, la membresía de los equipos se gestiona mediante el aprovisionamiento de grupos.
+- **SCIM de página de estado**: con **Desaprovisionar usuarios automáticamente** activado, el usuario privado de la página de estado y todas sus sesiones en esa página de estado se eliminan de forma permanente. Esto no elimina una cuenta de usuario de proyecto de OneUptime aparte.
+:::
 
-### ¿Puedo usar SCIM sin SSO?
+:::details ¿Puedo usar SCIM sin SSO?
+Sí, SCIM y SSO son funciones independientes. Puedes usar SCIM para aprovisionar usuarios y dejar que inicien sesión con sus contraseñas de OneUptime o con cualquier otro método de autenticación.
+:::
 
-Sí, SCIM y SSO son características independientes. Puedes usar SCIM para el aprovisionamiento de usuarios mientras permites que los usuarios inicien sesión con sus contraseñas de OneUptime o cualquier otro método de autenticación.
-
-### ¿Cómo gestiono los usuarios que ya existen en OneUptime?
-
+:::details ¿Cómo gestiono los usuarios que ya existen en OneUptime?
 Cuando SCIM intenta crear un usuario que ya existe (coincidiendo por correo electrónico), OneUptime no crea un usuario duplicado. Lo que ocurre después depende de dónde se ejecute OneUptime:
 
-- **Autoalojado**: El usuario existente se agrega de inmediato a los equipos predeterminados configurados (o al equipo del grupo, con Grupos de Push).
+- **Autoalojado**: el usuario existente se agrega de inmediato a los equipos predeterminados configurados (o al equipo del grupo, con grupos push).
 - **OneUptime Cloud**: Una cuenta de OneUptime pertenece a la persona, no a un proyecto concreto, así que SCIM no puede convertir a alguien en miembro de tu proyecto por su propia cuenta. En su lugar, el usuario existente es **invitado** a los equipos y recibe el correo de invitación habitual. Se une cuando acepta las invitaciones desde **Invitaciones del proyecto** en OneUptime, o cuando confirma el inicio de sesión único (SSO) de tu proyecto desde el correo que OneUptime envía en su primer inicio de sesión con SSO. Hasta entonces figura como pendiente. Lo mismo ocurre cuando un grupo agrega a un usuario existente que aún no es miembro de tu proyecto.
 
 Los usuarios que crea el propio SCIM y los usuarios que son miembros de tu proyecto se agregan de inmediato en ambos casos. Confirmar el SSO de tu proyecto convierte a alguien en miembro, así que también se agrega de inmediato; quien haya dejado tu proyecto desde entonces vuelve a ser invitado.
+:::
 
-### ¿Puede SCIM cambiar la dirección de correo electrónico o el nombre de un usuario?
-
+:::details ¿Puede SCIM cambiar la dirección de correo o el nombre de un usuario?
 La dirección de correo electrónico de una cuenta de OneUptime es con la que esa persona inicia sesión en todos los proyectos a los que pertenece, y adonde llegan sus enlaces para restablecer la contraseña. Por eso:
 
 - **OneUptime Cloud**: SCIM nunca cambia una dirección de correo electrónico. Una solicitud que la cambiaría se rechaza con un error SCIM `400` de tipo `mutability` y no se aplica nada de esa solicitud; tu proveedor de identidad muestra el motivo. Pide al usuario que cambie su dirección desde su propio perfil de OneUptime. Una solicitud que repite la dirección que la cuenta ya tiene no es un cambio y se completa correctamente.
 - **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Cualquier otro cambio se rechaza de la misma manera.
 
-Los nombres siguen la misma regla en ambos casos: SCIM actualiza el nombre solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, el nombre se deja como está y el resto de la solicitud se completa igualmente.
+Los nombres siguen la misma regla en todos los casos: SCIM actualiza el nombre solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, el nombre se deja como está y el resto de la solicitud se completa igualmente.
+:::
 
-### ¿Cuál es la diferencia entre equipos predeterminados y grupos de inserción?
+:::details ¿Qué diferencia hay entre los equipos predeterminados y los grupos push?
+- **Equipos predeterminados**: todos los usuarios aprovisionados mediante SCIM se añaden a los mismos equipos predefinidos
+- **Grupos push**: la membresía de los equipos la gestiona tu proveedor de identidad, de modo que distintos usuarios pueden estar en distintos equipos según su pertenencia a grupos del IdP
+:::
 
-- **Equipos predeterminados**: Todos los usuarios aprovisionados mediante SCIM se agregan a los mismos equipos predefinidos
-- **Grupos de Push**: La membresía del equipo es gestionada por tu proveedor de identidad, lo que permite que diferentes usuarios estén en diferentes equipos según la membresía en grupos del IdP
+:::details ¿Con qué frecuencia se sincroniza el aprovisionamiento?
+Depende de tu proveedor de identidad:
 
-### ¿Con qué frecuencia ocurre la sincronización del aprovisionamiento?
+- **Microsoft Entra ID**: la sincronización inicial puede tardar hasta 40 minutos; las siguientes se ejecutan cada 40 minutos
+- **Okta**: casi en tiempo real para la mayoría de las operaciones, con sincronizaciones completas periódicas
+:::
 
-Esto depende de tu proveedor de identidad:
+## Próximos pasos
 
-- **Microsoft Entra ID**: La sincronización inicial puede tardar hasta 40 minutos; las sincronizaciones posteriores ocurren cada 40 minutos
-- **Okta**: Casi en tiempo real para la mayoría de las operaciones, con sincronizaciones completas periódicas
+:::cards
+- [SSO](/docs/identity/sso): Deja que las personas que aprovisiona SCIM inicien sesión con tu proveedor de identidad.
+- [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos predeterminados a los usuarios nuevos.
+- [SSO global](/docs/identity/global-sso): Un solo proveedor de identidad para todos los proyectos de una instancia autoalojada.
+:::

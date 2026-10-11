@@ -1,4 +1,4 @@
-# Send Logs with Fluentd
+# Fluentd
 
 [Fluentd](https://www.fluentd.org/) collects logs from files, containers, syslog, applications and [many other sources](https://www.fluentd.org/datasources). Its built-in [HTTP output](https://docs.fluentd.org/output/http) sends them to OneUptime's Fluentd endpoint, where they become searchable under **Products → Logs**.
 
@@ -23,7 +23,7 @@ Fluentd posts batches of records as JSON, with your ingestion key in the `x-oneu
 ## Before you begin
 
 - **Install Fluentd** — see the [installation guide](https://docs.fluentd.org/installation).
-- **A OneUptime project.** On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing). If you need help, reach out to support@oneuptime.com.
+- **A OneUptime project.** On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing) — and a project on the Free plan needs a payment method before it can send telemetry.
 - **A telemetry ingestion key.** If you do not have one:
 
 :::steps
@@ -71,11 +71,12 @@ Add a `<match>` section that sends records to OneUptime. Replace `YOUR_SERVICE_T
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
 
-`json_array true` sends each buffer flush as one JSON array, and `flush_interval 10s` sends a batch every 10 seconds.
+`json_array true` sends each buffer chunk as one JSON array, and `flush_interval 10s` sends the buffer every 10 seconds. `chunk_limit_size 900k` keeps each request under 1 MB, the most OneUptime accepts on this endpoint.
 
 ### Restart Fluentd
 
@@ -119,6 +120,7 @@ This configuration receives records over Fluentd's forward protocol on port `242
   </format>
   <buffer>
     flush_interval 10s
+    chunk_limit_size 900k
   </buffer>
 </match>
 ```
@@ -127,15 +129,18 @@ To send different sources as different services, use one `<match>` section per t
 
 ## How records are read
 
-OneUptime reads these fields from each record. Every other field becomes a log attribute you can search and filter on.
+OneUptime reads these fields from each record:
 
 | Log field | Read from the record's first field of | Notes |
 | --- | --- | --- |
-| Body | `message`, `log`, `msg`, `body`, `text` | The log line. |
-| Severity | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Names such as `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` and `fatal`, in any case. Any other value is stored as Unspecified. |
+| Body | `message`, `log`, `msg`, `body`, `text` | The log line. A record with none of them is stored whole, as JSON. |
+| Severity | `level`, `severity`, `loglevel`, `log_level`, `priority`, `severityText`, `severity_text` | Names such as `trace`, `debug`, `info`, `notice`, `warn`, `error`, `critical` and `fatal`, in any case. Any other value is stored as `Unspecified`. |
 | Trace ID | `trace_id`, `traceId`, `traceid` | Links the log to its trace. |
 | Span ID | `span_id`, `spanId`, `spanid` | Links the log to its span. |
 | Service | the `x-oneuptime-service-name` header | `Fluentd` when the header is not set. |
+| Time | — | The time OneUptime receives the record. |
+
+Every other field becomes an attribute named `fluentd.` and the field's name, which you can search and filter on: a `container_name` field is `@fluentd.container_name` in the Logs explorer. A nested object is flattened with dots, such as `fluentd.kubernetes.pod_name`, and a list is stored as JSON.
 
 Fluentd logs go through your [log pipelines](/docs/telemetry/log-pipelines), drop filters and scrub rules like any other log.
 
@@ -149,12 +154,20 @@ Replace `https://oneuptime.com` in `endpoint` with the URL of your OneUptime ins
 The ingestion key is missing, unknown or expired. Check the `x-oneuptime-token` value in `headers`.
 :::
 
+:::details Fluentd logs `402` or `422`
+`402`: on OneUptime Cloud, the project is on the Free plan and has no payment method. Add one under **Project Settings → Billing and Invoices → Billing**. `422`: the key is disabled, or it is a Browser key. Turn **Enabled** back on in the key's settings, or create a **Server** key.
+:::
+
+:::details Fluentd logs `413`
+The request is over 1 MB, the most OneUptime accepts on this endpoint. Set `chunk_limit_size 900k` in the `<buffer>` section, as in the configuration above.
+:::
+
 :::details Logs arrive under the `Fluentd` service
 The `x-oneuptime-service-name` header is missing. Add it to `headers` in each `<match>` section.
 :::
 
-:::details The log body is empty, or the whole record shows as attributes
-OneUptime takes the body from the first of `message`, `log`, `msg`, `body` or `text` that the record has. Rename the field that holds your log line to one of these, for example with Fluentd's `record_transformer` filter.
+:::details The log body shows the whole record as JSON
+OneUptime takes the body from the first of `message`, `log`, `msg`, `body` or `text` that the record has, and stores the whole record when it has none of them. Rename the field that holds your log line to one of these, for example with Fluentd's `record_transformer` filter.
 :::
 
 If you have any questions or need help with the configuration, please reach out to us at support@oneuptime.com.

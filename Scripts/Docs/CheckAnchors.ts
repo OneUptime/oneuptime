@@ -18,8 +18,8 @@
  * specifier "Common/Server/Types/Markdown". The bare form only resolves after
  * `npm install` inside Scripts/ (Common is a file: dep there), and the CI
  * js-lint job installs at the repo root alone — so it broke in CI while
- * working on every dev machine. The slugify module imports nothing, so this
- * runs anywhere plain ts-node does.
+ * working on every dev machine. The slugify module imports only HtmlMarkup,
+ * which imports nothing, so this runs anywhere plain ts-node does.
  *
  * To run:
  *   npm run docs:check-anchors

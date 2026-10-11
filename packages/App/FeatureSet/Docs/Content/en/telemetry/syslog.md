@@ -1,4 +1,4 @@
-# Send Syslog Data to OneUptime
+# Syslog
 
 OneUptime accepts syslog over HTTPS. Post RFC 5424 or RFC 3164 messages to `/syslog/v1/logs` with your ingestion key, and each becomes a searchable log, with its priority, facility, severity, host, application and structured data as attributes. Use it to forward from rsyslog, syslog-ng or any relay that can make HTTP requests.
 
@@ -32,6 +32,7 @@ OneUptime answers as soon as it has read the messages from the request, and pars
 
 ## Before you begin
 
+- **A OneUptime project** – on OneUptime Cloud, telemetry is billed per GB ingested, and a project on the Free plan needs a payment method before it can send telemetry.
 - **Telemetry ingestion key** – create a **Server** key under **Products → Project Settings → Telemetry & APM → Ingestion Keys**, and copy its **Secret Key**. You send it in the `x-oneuptime-token` header.
 - **Syslog forwarder** – any tool capable of sending HTTP POST requests (for example `curl`, `rsyslog` via `omhttp`, or `syslog-ng` with its HTTP destination).
 - **Service name (optional)** – set the `x-oneuptime-service-name` header to group incoming logs under a specific telemetry service. When omitted, OneUptime falls back to the syslog `APP-NAME`, hostname, or `Syslog`.
@@ -51,7 +52,7 @@ POST https://oneuptime.com/syslog/v1/logs
 
 Replace `oneuptime.com` with your host if you are self-hosting OneUptime.
 
-## Request Body
+## Request body
 
 Send a JSON payload with a `messages` array. Both RFC 5424 and RFC 3164 (BSD) formats are supported, and you can mix them in one request:
 
@@ -73,7 +74,7 @@ Send a JSON payload with a `messages` array. Both RFC 5424 and RFC 3164 (BSD) fo
 | A JSON object with one `message` | `Content-Type: application/json`. A value with several lines is read as several messages. |
 | Newline-separated messages | Compressed with gzip, and sent with `Content-Encoding: gzip`. |
 
-A plain-text body that is not gzip-compressed is not read, and the request is rejected with `400`. Keep each request under 1 MB: OneUptime's ingress does not raise nginx's default request-body limit for this endpoint.
+A plain-text body that is not gzip-compressed is not read, and the request is rejected with `400`. A gzip-compressed body is always read as newline-separated messages, so do not compress a JSON body. Keep each request under 1 MB: OneUptime's ingress does not raise nginx's default request-body limit for this endpoint.
 
 ## Send a test message
 
@@ -90,7 +91,7 @@ curl \
   }'
 ```
 
-A `200` means the message was accepted. Open **Products → Logs**: the log appears in the `production-web` service with the body `502 on /api/login`, severity **Error** and the attributes in [Parsed attributes](#parsed-attributes).
+A `200` means the message was accepted. Open **Products → Logs**: the log appears in the `production-web` service with the body `502 on /api/login`, severity `Error` and the attributes in [Parsed attributes](#parsed-attributes).
 
 ## Forward from rsyslog
 
@@ -179,7 +180,7 @@ Keep `compress="on"`: OneUptime reads newline-separated messages only from a gzi
 - **syslog-ng** – use its HTTP destination with the same URL, headers and JSON body.
 - **Fluent Bit** – receive syslog with Fluent Bit's `syslog` input and forward it like any other log. See [Fluent Bit](/docs/telemetry/fluentbit).
 
-## Parsed Attributes
+## Parsed attributes
 
 OneUptime automatically adds the following attributes to each log entry:
 
@@ -205,12 +206,12 @@ The message itself stays in the log body. Firewalls such as Sophos XGS and Forti
 
 | Syslog severity | Code | OneUptime severity |
 | --- | --- | --- |
-| Emergency, Alert | `0`, `1` | Fatal |
-| Critical, Error | `2`, `3` | Error |
-| Warning | `4` | Warning |
-| Notice, Informational | `5`, `6` | Information |
-| Debug | `7` | Debug |
-| No priority in the message | — | Unspecified |
+| Emergency, Alert | `0`, `1` | `Fatal` |
+| Critical, Error | `2`, `3` | `Error` |
+| Warning | `4` | `Warning` |
+| Notice, Informational | `5`, `6` | `Information` |
+| Debug | `7` | `Debug` |
+| No priority in the message | — | `Unspecified` |
 
 A message without a timestamp is stored with the time OneUptime received it.
 
@@ -226,7 +227,11 @@ Each log is filed under a telemetry service, which OneUptime creates the first t
 ## Troubleshooting
 
 :::details HTTP 401
-Verify the `x-oneuptime-token` header carries a valid **Server** ingestion key that belongs to the project receiving the logs.
+The key is missing, unknown or expired. Check that the `x-oneuptime-token` header carries the **Secret Key** of an ingestion key in the project that should receive the logs.
+:::
+
+:::details HTTP 402 or 422
+`402`: on OneUptime Cloud, the project is on the Free plan and has no payment method. Add one under **Project Settings → Billing and Invoices → Billing**. `422`: the key is disabled, or it is a Browser key. Turn **Enabled** back on in the key's settings, or create a **Server** key.
 :::
 
 :::details HTTP 400, or no logs appear

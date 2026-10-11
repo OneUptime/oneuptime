@@ -1,25 +1,38 @@
 # Referência de permissões
 
-Todas as permissões que o OneUptime pode conceder, agrupadas exatamente como o seletor de permissões do painel as agrupa.
+Todas as funções e permissões que o OneUptime pode conceder, agrupadas como no seletor de permissões do painel. Use esta página para encontrar o nome ou a chave exata a dar a uma equipe, a uma chave de API ou a um recurso do Terraform.
 
-Esta página é gerada a partir do código-fonte do OneUptime no momento da requisição, a partir da mesma lista usada pelo painel, pela API e pelo provedor Terraform. Ela não pode divergir do produto e reflete a versão que você está executando.
+As tabelas são geradas a partir do código-fonte do OneUptime quando a página é servida: é a mesma lista que o painel, a API e o provedor Terraform usam. Por isso, elas sempre correspondem à versão que você executa. Para entender como as permissões se encaixam (equipes, escopos, proprietários e bloqueios), comece por [Usuários, equipes e permissões](/docs/permissions/index).
 
-Se você procura como as peças se encaixam — equipes, escopos, proprietários, bloqueios — comece por [Usuários, equipes e permissões](/docs/permissions/index).
+## Como ler as tabelas
 
-A coluna **Chave da permissão** traz o valor a usar com a [API](/docs/api-reference/api-reference), a [CLI](/docs/cli/index) e o [provedor Terraform](/docs/terraform/index). Os títulos são os que você vê no painel.
+Cada função e cada permissão tem uma linha com estas colunas:
+
+- **Função** ou **Permissão**: o nome que o painel mostra.
+- **Chave da permissão**: o valor a usar com a [API](/docs/api-reference/api-reference), a [CLI](/docs/cli/index) e o [provedor Terraform](/docs/terraform/index).
+- **Escopo** (somente funções): `Todos, Próprios ou Rótulos` significa que você escolhe até onde a função vai ao concedê-la. `Apenas em todo o projeto` significa que a função sempre vale para o projeto inteiro.
+- **Restringir por rótulos** (somente permissões): `Sim` significa que uma concessão dessa permissão pode ser limitada aos recursos que têm determinados rótulos.
+- **Descrição**: o que a função ou a permissão permite.
+
+> [!TIP]
+> Prefira primeiro uma função. As funções continuam corretas à medida que o OneUptime ganha recursos, enquanto uma lista de permissões avulsas precisa ser mantida atualizada à mão.
 
 ## Funções
 
-{{PERMISSION_ROLE_COUNT}} funções, cada uma agrupando uma área do produto no nível Admin, Member ou Viewer. São elas que o seletor **Função** oferece quando você adiciona uma permissão a uma equipe.
-
-A coluna **Escopo** informa se a função pode ser restringida ao ser concedida. `Todos, Próprios ou Rótulos` significa que você pode escolher; `Apenas em todo o projeto` significa que a função sempre vale para o projeto inteiro.
+{{PERMISSION_ROLE_COUNT}} funções. Quatro delas valem para o projeto inteiro: Project Owner, Project Admin, Project Member e Viewer. Cada uma das outras cobre uma área do produto, como incidentes ou monitores, no nível Admin, Member ou Viewer. São elas que **Adicionar função** oferece na página **Permissões** de uma equipe e na página de uma chave de API.
 
 {{PERMISSION_ROLE_TABLES}}
 
-## Permissões granulares
+## Permissões individuais
 
-{{PERMISSION_TOTAL_COUNT}} capacidades individuais distribuídas em {{PERMISSION_GROUP_COUNT}} grupos. São as que o seletor **Granular** oferece e as que você atribui a chaves de API.
-
-A coluna **Restringir por rótulos** informa se uma concessão desta permissão pode ser limitada a recursos que carregam determinados rótulos.
+{{PERMISSION_TOTAL_COUNT}} capacidades individuais distribuídas em {{PERMISSION_GROUP_COUNT}} grupos. São elas que **Adicionar permissão** oferece, para uma equipe ou uma chave de API, quando uma função concede mais do que você precisa.
 
 {{PERMISSION_GRANULAR_TABLES}}
+
+## Próximos passos
+
+:::cards
+- [Usuários, equipes e permissões](/docs/permissions/index): Como equipes, escopos, proprietários e bloqueios decidem o que cada pessoa pode fazer.
+- [Referência da API](/docs/api-reference/api-reference): Usar as chaves de permissão com chaves de API.
+- [Provedor Terraform](/docs/terraform/index): Gerenciar equipes e suas permissões como código.
+:::

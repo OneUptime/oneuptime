@@ -537,7 +537,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/serilog",
       },
       {
-        title: "FluentBit",
+        title: "Fluent Bit",
         url: "/docs/telemetry/fluentbit",
       },
       {

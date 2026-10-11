@@ -31,6 +31,7 @@ import URL from "../../../Types/API/URL";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import ObjectID from "../../../Types/ObjectID";
 import {
   WorkspaceMessageBlock,
@@ -53,6 +54,7 @@ import {
 import type { TurnContext } from "botbuilder";
 import { Token, Tokens, marked } from "marked";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
+import { htmlAsText } from "../../Helpers/HtmlText";
 
 /*
  * An incident's title is plain text, typed by whoever declared the incident
@@ -134,7 +136,7 @@ function expectTitleInert(markdowns: Array<string>): void {
       .filter((match: RegExpMatchArray): boolean => {
         return (
           hrefsOf(match[0])[0]!.includes("evil.example") &&
-          match[2]!.replace(/<[^>]+>/g, "") !== hrefsOf(match[0])[0]
+          removeHtmlMarkup(match[2]!) !== hrefsOf(match[0])[0]
         );
       })
       .map((match: RegExpMatchArray): string => {
@@ -151,13 +153,7 @@ function expectTitleInert(markdowns: Array<string>): void {
 
 // The text as a reader sees it once the Markdown is rendered.
 function readText(markdown: string): string {
-  return (marked.parse(markdown, { async: false }) as string)
-    .replace(/<[^>]+>/g, "")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
+  return htmlAsText(marked.parse(markdown, { async: false }) as string);
 }
 
 let incidentFeed: ReturnType<typeof jest.spyOn>;

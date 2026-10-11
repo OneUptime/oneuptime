@@ -1,4 +1,4 @@
-# Send Telemetry with Fluent Bit
+# Fluent Bit
 
 [Fluent Bit](https://docs.fluentbit.io/manual) is a lightweight agent that collects logs from files, systemd, containers, syslog, HTTP and many other sources. Its [OpenTelemetry output](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry) sends what it collects to OneUptime's OpenTelemetry (OTLP) endpoint, where the logs become searchable under **Products → Logs**.
 
@@ -25,7 +25,7 @@ Fluent Bit wraps each record in an OpenTelemetry envelope, so it can carry resou
 ## Before you begin
 
 - **Install Fluent Bit** — see the [installation guide](https://docs.fluentbit.io/manual/installation/getting-started-with-fluent-bit). The configuration on this page uses Fluent Bit's YAML format and the `opentelemetry_envelope` processor, so use a current release.
-- **A OneUptime project.** On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing). If you need help, reach out to support@oneuptime.com.
+- **A OneUptime project.** On OneUptime Cloud, telemetry is billed per GB ingested — see [pricing](https://oneuptime.com/pricing) — and a project on the Free plan needs a payment method before it can send telemetry.
 - **A telemetry ingestion key.** If you do not have one:
 
 :::steps
@@ -164,6 +164,10 @@ pipeline:
 
 :::details Fluent Bit logs `401` from the OpenTelemetry output
 The ingestion key is missing, unknown or expired. Check the `header` line: it is `x-oneuptime-token`, a space, then the key's **Secret Key**.
+:::
+
+:::details Fluent Bit logs `402` or `422`
+`402`: on OneUptime Cloud, the project is on the Free plan and has no payment method. Add one under **Project Settings → Billing and Invoices → Billing**. `422`: the key is disabled, or it is a Browser key. Turn **Enabled** back on in the key's settings, or create a **Server** key.
 :::
 
 :::details Logs arrive under an unexpected service
