@@ -388,7 +388,8 @@ const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
  * language's decimal mark or digit group.
  */
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
-const DIGIT_GROUP: RegExp = /(\d)[\s  .,'٬](\d{3})(?!\d)/g;
+// \s takes the no-break spaces French and others group digits with.
+const DIGIT_GROUP: RegExp = /(\d)[\s.,'\u066c](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 // A line that starts a list item, a table row, a heading, a component, an image or a quote.
 const NOT_PARAGRAPH_TEXT: RegExp = /^\s*(?:[-*>|#:@]|\d+\.|!\[)/;
@@ -477,7 +478,10 @@ export function drawnLabel(language: string, english: string): string {
 }
 
 // A value of a locale file by its dotted key, or null.
-function nestedValue(locale: Record<string, unknown>, key: string): string | null {
+function nestedValue(
+  locale: Record<string, unknown>,
+  key: string,
+): string | null {
   let value: unknown = locale;
 
   for (const part of key.split(".")) {

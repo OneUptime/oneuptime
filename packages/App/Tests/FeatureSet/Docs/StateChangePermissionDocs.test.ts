@@ -303,9 +303,7 @@ describe("Docs: changing a state takes the state timeline's create permission", 
         language: language,
         // Named once on the page, to say it is not needed.
         editAlertMentions: page.split(EDIT_ALERT).length - 1,
-        saysNoEditAlert: paragraph.includes(
-          NO_EDIT_ALERT[language] as string,
-        ),
+        saysNoEditAlert: paragraph.includes(NO_EDIT_ALERT[language] as string),
         permissionFirst:
           paragraph.indexOf(ACKNOWLEDGE_PERMISSION) <
           paragraph.indexOf(EDIT_ALERT),
