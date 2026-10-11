@@ -280,9 +280,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "self-hosted/push-notifications": {
     sameShape: EVERY_TRANSLATION,
   },
-  "self-hosted/sendgrid-inbound-email": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
   },
