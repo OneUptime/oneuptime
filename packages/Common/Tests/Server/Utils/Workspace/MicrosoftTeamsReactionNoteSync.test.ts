@@ -446,7 +446,12 @@ describe("MicrosoftTeamsReactionNoteSync.getMessageText", () => {
     );
   });
 
-  test("plain text bodies are used as they are", () => {
+  test("plain text bodies are used as they read, a '<' in them never a tag", () => {
+    /*
+     * A plain-text body is not HTML, so nothing is taken out of it. Its "<"
+     * reads as typed in the note, with an invisible word joiner after it,
+     * so the note's Markdown cannot read "<b>" as a tag.
+     */
     expect(
       MicrosoftTeamsReactionNoteSync.getMessageText(
         graphMessage({
@@ -455,7 +460,16 @@ describe("MicrosoftTeamsReactionNoteSync.getMessageText", () => {
           content: "  a <b>literal</b> text  ",
         }),
       ),
-    ).toBe("a <b>literal</b> text");
+    ).toBe("a <⁠b>literal<⁠/b> text");
+    expect(
+      MicrosoftTeamsReactionNoteSync.getMessageText(
+        graphMessage({
+          id: "1",
+          contentType: "text",
+          content: "  plain words only  ",
+        }),
+      ),
+    ).toBe("plain words only");
   });
 
   test("a card message (like OneUptime's own posts) is read from the card", () => {
