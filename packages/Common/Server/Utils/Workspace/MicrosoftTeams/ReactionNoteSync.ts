@@ -79,9 +79,95 @@ export enum MicrosoftTeamsReactionOutcome {
 /*
  * A card or file attached to a Teams message, with what it holds: the card's
  * text is read from the message's attachments instead (getAdaptiveCardText).
+ * An element runs from its start tag's first ">" to the first end tag after
+ * it (withoutAttachmentElements).
  */
-const TEAMS_ATTACHMENT_ELEMENT: RegExp =
-  /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi;
+const TEAMS_ATTACHMENT_START: RegExp = /<attachment\b/gi;
+const TEAMS_ATTACHMENT_END: RegExp = /<\/attachment>/gi;
+const TEAMS_ATTACHMENT_END_LENGTH: number = "</attachment>".length;
+
+export type WithoutAttachmentElementsFunction = (html: string) => string;
+
+/*
+ * The HTML with every attachment element taken out, as one pass of
+ * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi took them out - read in one
+ * pass. That pattern looked for an end tag again from every start tag, to
+ * the end of the text when there was none: time that grew with the square
+ * of the message.
+ *
+ * An element is a start tag, everything up to its first ">", and everything
+ * up to the first end tag after that. The end tags are found once. When a
+ * start tag has no ">" or no end tag after it, no later one has either, so
+ * the rest of the HTML stays as it is.
+ */
+export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
+  html: string,
+): string => {
+  const ends: Array<number> = [];
+
+  for (const end of html.matchAll(TEAMS_ATTACHMENT_END)) {
+    ends.push(end.index);
+  }
+
+  let text: string = "";
+  let at: number = 0;
+  let nextEnd: number = 0;
+
+  for (const start of html.matchAll(TEAMS_ATTACHMENT_START)) {
+    // A start tag inside an element already taken out is part of it.
+    if (start.index < at) {
+      continue;
+    }
+
+    const startTagEnd: number = html.indexOf(">", start.index);
+
+    if (startTagEnd === -1) {
+      break;
+    }
+
+    while (nextEnd < ends.length && ends[nextEnd]! <= startTagEnd) {
+      nextEnd++;
+    }
+
+    if (nextEnd === ends.length) {
+      break;
+    }
+
+    text += html.slice(at, start.index);
+    at = ends[nextEnd]! + TEAMS_ATTACHMENT_END_LENGTH;
+  }
+
+  return text + html.slice(at);
+};
+
+export type WithoutSpaceBeforeLineEndsFunction = (text: string) => string;
+
+/*
+ * The text with the spaces and tabs before each line break taken out, as
+ * .replace(/[ \t]+\n/g, "\n") took them out - read in one pass. That
+ * pattern started again from every space of a run that no line break ends,
+ * so a long run of spaces took time that grew with the square of its
+ * length: half a second for a message of 28 KB, Teams' largest.
+ */
+export const withoutSpaceBeforeLineEnds: WithoutSpaceBeforeLineEndsFunction = (
+  text: string,
+): string => {
+  const lines: Array<string> = text.split("\n");
+
+  // The last line ends the text, not a line break, so it keeps its spaces.
+  for (let index: number = 0; index < lines.length - 1; index++) {
+    const line: string = lines[index]!;
+    let end: number = line.length;
+
+    while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) {
+      end--;
+    }
+
+    lines[index] = line.slice(0, end);
+  }
+
+  return lines.join("\n");
+};
 
 // The name of the tag a piece of markup is, "/" first for an end tag.
 const TAG_NAME: RegExp = /^<(\/?[A-Za-z][A-Za-z0-9-]*)/;
@@ -943,20 +1029,22 @@ export default class MicrosoftTeamsReactionNoteSync {
    * text. Entities are read only after that, so text that was
    * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
    * keeps; getMessageText then places it as text for the note.
+   *
+   * Every step reads the message once: the attachments and the spaces
+   * before line ends are found with loops (withoutAttachmentElements,
+   * withoutSpaceBeforeLineEnds), not with patterns that start again from
+   * every place a match could start.
    */
   public static htmlToText(html: string): string {
     if (!html) {
       return "";
     }
 
-    return this.decodeHtmlEntities(
-      replaceHtmlMarkup(
-        html.replace(TEAMS_ATTACHMENT_ELEMENT, ""),
-        teamsMarkupAsText,
-      ),
+    return withoutSpaceBeforeLineEnds(
+      this.decodeHtmlEntities(
+        replaceHtmlMarkup(withoutAttachmentElements(html), teamsMarkupAsText),
+      ).replace(/\u00a0/g, " "),
     )
-      .replace(/\u00a0/g, " ")
-      .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
