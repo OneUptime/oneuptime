@@ -20,7 +20,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
-import ingressRouter from "../../API/IncomingRequestIngress";
+import ingressRouter, { getForwardUrl } from "../../API/IncomingRequestIngress";
 
 /*
  * The probe's ingress is a PROXY sitting between a customer's device and
@@ -217,6 +217,37 @@ describe("the routes the ingress serves", () => {
     expect(String(readForward(spy)["url"])).toContain(
       "/incoming-request/super-secret-key",
     );
+  });
+
+  /*
+   * The forward goes to the App's incoming-request route under its
+   * "/incoming-request-ingest" prefix, which nginx routes to the App on every
+   * installation. The bare "/incoming-request/<key>" has no nginx location:
+   * with billing on (OneUptime Cloud) the catch-all sent it to the marketing
+   * site, which answered 404, and every forwarded heartbeat was lost.
+   */
+  test.each(ROUTES)(
+    "%s over %s forwards under the incoming-request-ingest prefix",
+    async (path: string, method: string) => {
+      const spy: ApiFetchSpy = mockForwardSucceeds();
+
+      await callIngress({ path: path, method: method });
+      await flush();
+
+      expect(String(readForward(spy)["url"])).toBe(
+        "https://oneuptime.example.com/incoming-request-ingest/incoming-request/super-secret-key",
+      );
+    },
+  );
+
+  test("the forward URL is ONEUPTIME_URL, the ingest prefix and the key, and never the bare route", () => {
+    const url: string = getForwardUrl("another-key").toString();
+
+    expect(url).toBe(
+      "https://oneuptime.example.com/incoming-request-ingest/incoming-request/another-key",
+    );
+    expect(url).not.toMatch(/oneuptime\.example\.com\/incoming-request\//);
+    expect(url).not.toContain("/heartbeat/");
   });
 });
 

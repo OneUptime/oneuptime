@@ -57,6 +57,25 @@ function buildForwardHeaders(
   return headers;
 }
 
+/*
+ * Where a forwarded request goes: the App's incoming-request route under its
+ * "/incoming-request-ingest" prefix. The bare "/incoming-request/<key>" is
+ * served by the App too, but nginx has no location for it: on an
+ * installation with billing on, such as OneUptime Cloud, its catch-all
+ * sends that path to the marketing site, which answers 404, so every
+ * forward failed. "/incoming-request-ingest" is routed to the App by nginx
+ * on every installation, and the App mounts the router under it as well, so
+ * the same path also works for a probe whose ONEUPTIME_URL names the App
+ * directly (the Helm chart's own probes). The public "/heartbeat" path would
+ * not: nginx rewrites it, and the App itself does not serve it.
+ */
+export function getForwardUrl(secretKey: string): URL {
+  return URL.fromString(ONEUPTIME_BASE_URL.toString())
+    .addRoute("/incoming-request-ingest")
+    .addRoute("/incoming-request")
+    .addRoute(`/${secretKey}`);
+}
+
 function getRequestBody(req: ExpressRequest): JSONObject | JSONArray {
   const body: unknown = req.body;
   if (body === undefined || body === null) {
@@ -133,9 +152,7 @@ const forwardToOneUptime: RequestHandler = (
       return;
     }
 
-    const forwardUrl: URL = URL.fromString(ONEUPTIME_BASE_URL.toString())
-      .addRoute("/incoming-request")
-      .addRoute(`/${secretKey}`);
+    const forwardUrl: URL = getForwardUrl(secretKey);
 
     const headers: Headers = buildForwardHeaders(
       req.headers as Dictionary<string | string[] | undefined>,

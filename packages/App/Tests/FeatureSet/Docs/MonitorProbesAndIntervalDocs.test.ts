@@ -48,7 +48,9 @@ describe("the custom probe guide", () => {
 
   it("says how to make a deployed probe check a monitor, after it is verified", () => {
     expect(guide).toContain("### Check a monitor from the probe");
-    expect(guide.indexOf("### Verify")).toBeLessThan(
+    // The install steps check the probe connects first.
+    expect(guide.indexOf("### Check that it connects")).toBeGreaterThan(-1);
+    expect(guide.indexOf("### Check that it connects")).toBeLessThan(
       guide.indexOf("### Check a monitor from the probe"),
     );
     expect(section).toContain(
