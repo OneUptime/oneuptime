@@ -1,4 +1,4 @@
-# Public Status Page API
+# Public API
 
 Every status page answers a small set of read-only JSON endpoints: its overview, uptime, incidents, episodes, scheduled maintenance events and announcements. They are the endpoints the status page itself loads, so they return exactly what a visitor sees, and a public page needs no API key. Use them to show your status in your own app, a chat bot or a wall display.
 
@@ -15,9 +15,11 @@ Each request names the status page by its ID or by one of its custom domains. On
 
 ```mermaid title="How a status page API request is answered"
 flowchart TB
-    R["Request with a status page ID or domain"] --> F{"Page found and not archived?"}
+    R["Request with a status page ID or domain"] --> F{"Well-formed ID, or verified domain?"}
     F -->|"No"| E404["404: Status Page not found"]
-    F -->|"Yes"| IP{"IP allowlist lets the caller in?"}
+    F -->|"Yes"| A{"Page archived?"}
+    A -->|"Yes"| E404
+    A -->|"No"| IP{"IP allowlist lets the caller in?"}
     IP -->|"No"| E403["403: IP address blocked"]
     IP -->|"Yes"| P{"Page is public?"}
     P -->|"Yes"| OK["200 with JSON"]
@@ -27,6 +29,8 @@ flowchart TB
 ```
 
 A private page answers only a browser that has signed in to it, or unlocked it with its password: the API reads the same session the page does. For a script, use a public page. See [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page).
+
+An ID that is well formed but belongs to no status page goes down the same path as a private page, and is answered `401`. If a public page answers `401`, check the ID.
 
 ## Before you begin
 
@@ -60,7 +64,7 @@ The endpoints follow the page's own settings, in the **What your status page sho
 
 - A list that is switched off refuses its endpoint, for example `Incidents are not enabled on this status page.`
 - Each list reaches back as far as its **Show the last … days** setting (14 by default). The incidents list also includes every incident that is not resolved yet, and the scheduled maintenance list every event that is still to come or in progress.
-- An incident, episode, event or announcement the page would not list is not found by its ID either.
+- By its ID, an incident, episode, event or announcement is returned however old it is, so a link to an older one keeps working. One the page does not show at all, such as an incident on a monitor that is not on the page, comes back as an empty list, and an episode as `404`.
 
 **Which incidents a page returns.** The incidents endpoint returns the incidents on the page's monitors, less the ones limited to other status pages, and less every incident not limited to this page if the page only shows incidents scoped to it (see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience)). Which pages an incident is limited to is never part of the response.
 
@@ -140,7 +144,7 @@ The overall status is the worst current status of the monitors and monitor group
 
 | Field | Default | Notes |
 | ----- | ------- | ----- |
-| `startDate` | 14 days before `endDate` | An ISO 8601 date and time. |
+| `startDate` | 14 days ago | An ISO 8601 date and time. |
 | `endDate` | Now | Must not be before `startDate`. The range can cover at most 90 days. |
 
 :::tabs
@@ -331,14 +335,15 @@ An error answers with a status code and a JSON body that says why:
 | Status | When |
 | ------ | ---- |
 | `400` | The request asks for something the page does not show, such as a list that is switched off, or the uptime range is longer than 90 days or ends before it starts. |
-| `401` | The page is private, and the request has no signed-in session or password for it. |
+| `401` | The page is private, and the request has no signed-in session or password for it. A well-formed ID that no status page has is answered `401` too. |
 | `403` | The page's IP allowlist does not include the caller's address. |
-| `404` | No status page has that ID or verified domain, or the page is archived. |
+| `404` | The ID is not well formed, no verified custom domain matches, or the page is archived. An episode the page does not show answers `404` too. |
 
 ## Other ways to read a status page
 
 - **RSS.** Every status page serves `/rss`, a feed of its incidents, announcements and scheduled maintenance events. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
-- **llms.txt.** A page on its own domain also serves `/llms.txt`, which points AI agents at the RSS feed and the overview JSON.
+- **llms.txt.** Next to `/rss`, every status page serves `/llms.txt`, which points AI agents at the RSS feed and the overview JSON.
+- **MCP.** AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **AI → MCP** in the page's side menu. See [MCP Server](/docs/ai/mcp-server).
 - **The REST API.** To create or change status pages, resources, subscribers and announcements, use the [OneUptime API](/docs/api-reference/api-reference) with an API key.
 
 ## Next steps
