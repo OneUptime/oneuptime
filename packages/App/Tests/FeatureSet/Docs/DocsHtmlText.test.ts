@@ -9,7 +9,7 @@ import { describe, expect, it } from "@jest/globals";
  * what it reads as text and what it drops, including on the inputs that
  * defeat a single pass, and that it never returns a "<".
  *
- * That it reads every real docs page as a browser does is held in
+ * That it reads the real docs pages as a browser does is held in
  * Common/Tests/App/Docs/DocsHtmlTextReadsLikeABrowser (jsdom lives there).
  */
 
@@ -54,7 +54,9 @@ describe("stripHtmlTags", () => {
 
     it("leaves entities as they are, so an escaped tag stays text", () => {
       expect(
-        stripHtmlTags("<p>use &lt;script&gt; tags &amp; &quot;quotes&quot;</p>"),
+        stripHtmlTags(
+          "<p>use &lt;script&gt; tags &amp; &quot;quotes&quot;</p>",
+        ),
       ).toBe("use &lt;script&gt; tags &amp; &quot;quotes&quot;");
     });
 
@@ -65,9 +67,9 @@ describe("stripHtmlTags", () => {
     });
 
     it("keeps the quotes and markers of the text outside tags", () => {
-      expect(
-        stripHtmlTags(`<p>It's "quoted", **bold** and _italic_</p>`),
-      ).toBe(`It's "quoted", **bold** and _italic_`);
+      expect(stripHtmlTags(`<p>It's "quoted", **bold** and _italic_</p>`)).toBe(
+        `It's "quoted", **bold** and _italic_`,
+      );
     });
   });
 
@@ -82,9 +84,7 @@ describe("stripHtmlTags", () => {
 
     it("drops adjacent tags, void tags and self-closing tags", () => {
       expect(stripHtmlTags("<b>a</b><i>b</i><u>c</u>")).toBe("abc");
-      expect(stripHtmlTags("one<br>two<br/>three<hr />")).toBe(
-        "onetwothree",
-      );
+      expect(stripHtmlTags("one<br>two<br/>three<hr />")).toBe("onetwothree");
       expect(stripHtmlTags("<></>")).toBe("");
     });
 
@@ -107,7 +107,7 @@ describe("stripHtmlTags", () => {
     it("drops a tag whose quoted attribute value holds a '>'", () => {
       expect(stripHtmlTags('<a title="a > b">link</a>')).toBe("link");
       expect(stripHtmlTags("<img alt='1 > 0'>after")).toBe("after");
-      expect(stripHtmlTags('<a title = "x>y" class=\'p>q\'>z</a>')).toBe("z");
+      expect(stripHtmlTags("<a title = \"x>y\" class='p>q'>z</a>")).toBe("z");
       // A quote of the other kind inside a value does not end it.
       expect(stripHtmlTags(`<a title="it's > 1">x</a>`)).toBe("x");
       expect(stripHtmlTags(`<a title='say "a > b"'>x</a>`)).toBe("x");
@@ -122,9 +122,9 @@ describe("stripHtmlTags", () => {
     });
 
     it("drops a tag that runs over several lines", () => {
-      expect(stripHtmlTags('<a\n  href="/docs/a_b"\n  class="x">link</a>')).toBe(
-        "link",
-      );
+      expect(
+        stripHtmlTags('<a\n  href="/docs/a_b"\n  class="x">link</a>'),
+      ).toBe("link");
       expect(stripHtmlTags('<p title="one\ntwo">text</p>')).toBe("text");
     });
   });
@@ -204,11 +204,14 @@ describe("stripHtmlTags", () => {
       expect(stripHtmlTags(html)).not.toContain("<");
     });
 
-    it.each(INPUTS)("returns text a second pass leaves alone, for %j", (html: string) => {
-      const once: string = stripHtmlTags(html);
+    it.each(INPUTS)(
+      "returns text a second pass leaves alone, for %j",
+      (html: string) => {
+        const once: string = stripHtmlTags(html);
 
-      expect(stripHtmlTags(once)).toBe(once);
-    });
+        expect(stripHtmlTags(once)).toBe(once);
+      },
+    );
 
     it("reads a long run of '<' with no '>' after it in one pass", () => {
       const started: number = Date.now();

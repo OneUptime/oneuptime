@@ -103,16 +103,13 @@ describe("strayMarkers", () => {
         "a card",
         ":::cards\n- [Website](/docs/monitor/website-monitor): **タイムアウト（秒）**を設定します。\n:::",
       ],
-    ])(
-      "reads the text of %s",
-      async (_component: string, markdown: string) => {
-        const lines: Array<string> = await strayMarkers(page(markdown), "ja");
+    ])("reads the text of %s", async (_component: string, markdown: string) => {
+      const lines: Array<string> = await strayMarkers(page(markdown), "ja");
 
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain("**タイムアウト（秒）**を設定");
-        expect(lines[0]).not.toContain("<");
-      },
-    );
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain("**タイムアウト（秒）**を設定");
+      expect(lines[0]).not.toContain("<");
+    });
   });
 
   describe("reports nothing that is not a marker left over", () => {
@@ -164,7 +161,11 @@ describe("strayMarkers", () => {
       ).toEqual([]);
       // An underscore beside the name is still a marker.
       const beside: Array<string> = await strayMarkers(
-        page(":::details pve_network_receive_bytes _只会_增长", "正文。", ":::"),
+        page(
+          ":::details pve_network_receive_bytes _只会_增长",
+          "正文。",
+          ":::",
+        ),
         "zh-CN",
       );
 

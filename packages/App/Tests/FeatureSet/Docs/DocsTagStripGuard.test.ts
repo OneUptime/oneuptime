@@ -486,7 +486,9 @@ describe("findTagStrips, on files written here", () => {
     expect(importsSharedStrayMarkers(elsewhere)).toBe(false);
     // Naming it in a string is not calling it.
     expect(
-      callsStrayMarkers(parse("Text.test.ts", 'const s: string = "strayMarkers(";')),
+      callsStrayMarkers(
+        parse("Text.test.ts", 'const s: string = "strayMarkers(";'),
+      ),
     ).toBe(false);
   });
 });

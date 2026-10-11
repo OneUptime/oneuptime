@@ -2,7 +2,7 @@
  * Rendered docs HTML as the text a reader sees, for the docs tests: the one
  * place they take tags out. It imports nothing, so a suite in any package
  * can read a page with it (Common/Tests/App/Docs/DocsHtmlTextReadsLikeABrowser
- * holds it to a browser's reading of every docs page).
+ * holds it to a browser's reading of the docs pages, with jsdom).
  *
  * The translation suites used to copy `line.replace(/<[^>]*>/g, "")`, a
  * single pass that code scanning reports as incomplete multi-character
