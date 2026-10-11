@@ -204,14 +204,19 @@ export type HtmlMarkupReplacer = (markup: string) => string;
  * never left next to what could start a tag once markup after it is taken
  * out. What the walk returns then holds no "<" that starts markup.
  *
- * rawTextElements reads script and style elements - HTML's raw text
- * elements, what they hold never shown - as markup whole: from the start
- * tag to the ">" of the first end tag of the same name after it ("</script>",
- * "</script >", "</style foo>"), and `replace` is given the whole element.
- * Their tags are found by the walk, so a "<script" inside a comment or a
- * quoted value is not one, and nothing a style holds starts a script. A
- * start tag that no end tag follows is an ordinary tag, and what follows it
- * stays text.
+ * rawTextElements reads script and style elements - what they hold is never
+ * shown - as markup whole: from the start tag to the ">" of the first end
+ * tag of the same name after it ("</script>", "</script >", "</style foo>"),
+ * and `replace` is given the whole element. Their tags are found by the
+ * walk, as a browser names them (the name ends at ASCII whitespace, a "/"
+ * or the ">"), so a "<script" in a comment, in a quoted value, inside a
+ * style element, or inside an element whose content a browser reads as
+ * text (a title, a textarea, xmp, iframe, noembed, noframes) starts
+ * nothing. A start tag that no end tag follows is an ordinary tag, and what
+ * follows it stays text. Two things a browser does are not read: the
+ * escaped-comment states a script's content can enter ("<!--<script>"),
+ * and a quoted value in an end tag; either can only leave text behind,
+ * never markup.
  */
 export interface HtmlMarkupReading {
   lessThanAsText?: boolean | undefined;
@@ -237,118 +242,85 @@ const startsMarkup: StartsMarkupFunction = (code: number): boolean => {
   );
 };
 
-type KeepTextLessThansFunction = (html: string, firstOpen: number) => string;
+type EndsTagNameFunction = (code: number) => boolean;
 
 /*
- * The text read with lessThanAsText when no markup in it can end - no ">"
- * comes after its first "<": each run of "<" before what starts markup goes,
- * and every other "<" stays. One loop, and nothing allocated but the text.
+ * Whether a tag's name ends at this character, as a browser's tokenizer
+ * reads one: ASCII whitespace (tab, line feed, form feed, carriage return,
+ * space), a "/" or the ">".
  */
-const keepTextLessThans: KeepTextLessThansFunction = (
-  html: string,
-  firstOpen: number,
-): string => {
-  let text: string = html.slice(0, firstOpen);
-  let index: number = firstOpen;
-
-  for (;;) {
-    const open: number = html.indexOf("<", index);
-
-    if (open === -1) {
-      return text + html.slice(index);
-    }
-
-    text += html.slice(index, open);
-
-    let runEnd: number = open + 1;
-
-    while (html.charCodeAt(runEnd) === LESS_THAN) {
-      runEnd++;
-    }
-
-    if (!startsMarkup(html.charCodeAt(runEnd))) {
-      text += html.slice(open, runEnd);
-    }
-
-    index = runEnd;
-  }
+const endsTagName: EndsTagNameFunction = (code: number): boolean => {
+  return (
+    code === 0x09 ||
+    code === 0x0a ||
+    code === 0x0c ||
+    code === 0x0d ||
+    code === 0x20 ||
+    code === SLASH ||
+    code === GREATER_THAN
+  );
 };
 
-// A raw text element, by name, and where its end tag starts.
-interface RawTextElement {
+/*
+ * The elements rawTextElements reads by name: script and style, which go
+ * whole, and the elements whose content a browser reads as text, in which
+ * no script or style starts. Each with where its end tag starts, the name
+ * ending as endsTagName says.
+ */
+interface NamedElement {
   name: string;
+  whole: boolean;
   endTag: RegExp;
 }
 
-const RAW_TEXT_ELEMENTS: ReadonlyArray<RawTextElement> = [
-  { name: "script", endTag: /<\/script(?=[\s/>])/gi },
-  { name: "style", endTag: /<\/style(?=[\s/>])/gi },
+const NAMED_ELEMENTS: ReadonlyArray<NamedElement> = [
+  { name: "script", whole: true, endTag: /<\/script(?=[\t\n\f\r />])/gi },
+  { name: "style", whole: true, endTag: /<\/style(?=[\t\n\f\r />])/gi },
+  { name: "title", whole: false, endTag: /<\/title(?=[\t\n\f\r />])/gi },
+  {
+    name: "textarea",
+    whole: false,
+    endTag: /<\/textarea(?=[\t\n\f\r />])/gi,
+  },
+  { name: "xmp", whole: false, endTag: /<\/xmp(?=[\t\n\f\r />])/gi },
+  { name: "iframe", whole: false, endTag: /<\/iframe(?=[\t\n\f\r />])/gi },
+  { name: "noembed", whole: false, endTag: /<\/noembed(?=[\t\n\f\r />])/gi },
+  {
+    name: "noframes",
+    whole: false,
+    endTag: /<\/noframes(?=[\t\n\f\r />])/gi,
+  },
 ];
 
-type RawTextElementOfFunction = (html: string, open: number) => number;
+type NamedElementOfFunction = (html: string, open: number) => number;
 
 /*
- * Which raw text element the start tag at `open` starts - its index in
- * RAW_TEXT_ELEMENTS - or -1: "<script" or "<style", in any letter case,
- * where the name then ends, at whitespace, a "/" or the ">".
+ * Which of NAMED_ELEMENTS the start tag at `open` starts - its index - or
+ * -1: its name, in any letter case, then the end of a name. Compared a
+ * character at a time, so an ordinary tag costs nothing to rule out.
  */
-const rawTextElementOf: RawTextElementOfFunction = (
+const namedElementOf: NamedElementOfFunction = (
   html: string,
   open: number,
 ): number => {
-  return RAW_TEXT_ELEMENTS.findIndex((element: RawTextElement): boolean => {
-    const nameEnd: number = open + 1 + element.name.length;
-    const after: number = html.charCodeAt(nameEnd);
+  for (let element: number = 0; element < NAMED_ELEMENTS.length; element++) {
+    const name: string = NAMED_ELEMENTS[element]!.name;
+    let at: number = 0;
 
-    return (
-      html.slice(open + 1, nameEnd).toLowerCase() === element.name &&
-      (after === GREATER_THAN || after === SLASH || isWhitespace(after))
-    );
-  });
-};
+    // A letter matches its lower case or its upper case, and nothing else.
+    while (
+      at < name.length &&
+      (html.charCodeAt(open + 1 + at) | 0x20) === name.charCodeAt(at)
+    ) {
+      at++;
+    }
 
-/*
- * The first end tag of one raw text element at or after where it was last
- * looked for: where its name starts, and just past its ">" (-1 when there is
- * none). Kept so the text after a start tag that no end tag follows is not
- * searched again for every later start tag.
- */
-interface RawTextElementEnd {
-  from: number;
-  nameAt: number;
-  end: number;
-}
-
-type FindRawTextElementEndFunction = (
-  html: string,
-  endTag: RegExp,
-  from: number,
-  last: RawTextElementEnd | undefined,
-) => RawTextElementEnd;
-
-const findRawTextElementEnd: FindRawTextElementEndFunction = (
-  html: string,
-  endTag: RegExp,
-  from: number,
-  last: RawTextElementEnd | undefined,
-): RawTextElementEnd => {
-  // The walk only moves forward, so the last answer holds until it is passed.
-  if (last && from >= last.from && (last.end === -1 || from <= last.nameAt)) {
-    return last;
+    if (at === name.length && endsTagName(html.charCodeAt(open + 1 + at))) {
+      return element;
+    }
   }
 
-  endTag.lastIndex = from;
-
-  const found: RegExpExecArray | null = endTag.exec(html);
-  const close: number = found
-    ? html.indexOf(">", found.index + found[0].length)
-    : -1;
-
-  return {
-    from: from,
-    nameAt: found ? found.index : -1,
-    end: close === -1 ? -1 : close + 1,
-  };
+  return -1;
 };
 
 export type ReplaceHtmlMarkupFunction = (
@@ -383,11 +355,12 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
     return html;
   }
 
+  // No markup that starts after the last ">" can end.
+  const lastGreaterThan: number = html.lastIndexOf(">");
+
   // With no ">" after the first "<", no markup ends: every "<" goes alone.
-  if (html.lastIndexOf(">") < firstOpen) {
-    return lessThanAsText
-      ? keepTextLessThans(html, firstOpen)
-      : html.split("<").join("");
+  if (!lessThanAsText && lastGreaterThan < firstOpen) {
+    return html.split("<").join("");
   }
 
   /*
@@ -407,8 +380,14 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
    * whose "<" are dropped one by one is measured once.
    */
   let lessThanRunEnd: number = -1;
-  // The end tag last found for each raw text element.
-  const rawTextElementEnds: Array<RawTextElementEnd | undefined> = [];
+  /*
+   * For each of NAMED_ELEMENTS, whether a start tag was found that no end
+   * tag of it follows: then none follows a later one either, and the text
+   * after it is not searched again.
+   */
+  const noEndTag: Array<boolean> = [];
+  // Inside an element whose content is text up to here: no element starts.
+  let textOnlyUntil: number = -1;
   let text: string = html.slice(0, firstOpen);
   let index: number = firstOpen;
 
@@ -446,7 +425,9 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
 
     let end: number;
 
-    if (html.startsWith(COMMENT_OPEN, open)) {
+    if (open > lastGreaterThan) {
+      end = -1;
+    } else if (html.startsWith(COMMENT_OPEN, open)) {
       // Looked for from the second "-", so "<!-->" and "<!--->" end at once.
       const searchFrom: number = open + 2;
 
@@ -471,20 +452,35 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
       }
 
       const element: number =
-        rawTextElements && end !== -1 ? rawTextElementOf(html, open) : -1;
+        rawTextElements && end !== -1 && open >= textOnlyUntil
+          ? namedElementOf(html, open)
+          : -1;
 
       if (element !== -1) {
-        const elementEnd: RawTextElementEnd = findRawTextElementEnd(
-          html,
-          RAW_TEXT_ELEMENTS[element]!.endTag,
-          end,
-          rawTextElementEnds[element],
-        );
+        const named: NamedElement = NAMED_ELEMENTS[element]!;
+        let endTagAt: number = -1;
 
-        rawTextElementEnds[element] = elementEnd;
+        if (!noEndTag[element]) {
+          named.endTag.lastIndex = end;
+          endTagAt = named.endTag.exec(html)?.index ?? -1;
+        }
 
-        if (elementEnd.end !== -1) {
-          end = elementEnd.end;
+        if (named.whole) {
+          // The element runs to the ">" of its end tag.
+          const elementEnd: number =
+            endTagAt === -1
+              ? -1
+              : html.indexOf(">", endTagAt + 2 + named.name.length);
+
+          if (elementEnd === -1) {
+            noEndTag[element] = true;
+          } else {
+            end = elementEnd + 1;
+          }
+        } else {
+          // Its content is text to its end tag, or to the end of the text.
+          noEndTag[element] = endTagAt === -1;
+          textOnlyUntil = endTagAt === -1 ? html.length : endTagAt;
         }
       }
     }

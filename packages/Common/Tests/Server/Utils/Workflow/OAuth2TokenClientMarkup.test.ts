@@ -4,7 +4,7 @@ import OAuth2TokenClient, {
   OAuth2TokenRequestException,
 } from "../../../../Server/Utils/Workflow/OAuth2TokenClient";
 import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
-import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { OAuth2GrantType } from "../../../../Types/Workflow/WorkflowVariableOAuth";
 import {
   SINGLE_PASS_LEFTOVERS,
@@ -62,6 +62,8 @@ const WHITESPACE_RUN: RegExp = /\s+/g;
 
 // A "<" that starts markup, as a browser reads one: what no message may hold.
 const MARKUP_START: RegExp = /<[A-Za-z/!?]/;
+// A mention Slack acts on.
+const SLACK_MENTION: RegExp = /<[!@#][A-Za-z0-9]/;
 
 // The message an answer that carries no token is refused with.
 function refusalOf(
@@ -611,17 +613,20 @@ describe("secrets the token endpoint echoes", () => {
     );
   });
 
-  test("a chat mention in the answer is broken, so no chat tool acts on it", () => {
-    expect(quoteOfPage("hi <@U0123ABC> and <#C0123> and <!here> there")).toBe(
-      "hi <" +
-        WORD_JOINER +
-        "@U0123ABC> and <" +
-        WORD_JOINER +
-        "#C0123> and there",
+  test("a chat mention in the answer is quoted as the text it is, for mdText to break wherever it is placed", () => {
+    const quote: string = quoteOfPage(
+      "hi <@U0123ABC> and <#C0123> and <!here> there",
     );
+
+    // "<!here>" starts markup ("<!"), which is taken out.
+    expect(quote).toBe("hi <@U0123ABC> and <#C0123> and there");
+    // Placed into feed or chat Markdown, the mention is broken.
+    expect(
+      mdText`Could not refresh the token: ${quote}`.toString(),
+    ).not.toMatch(SLACK_MENTION);
   });
 
-  test("a word joiner in the answer is kept as it is: it is text", () => {
-    expect(quoteOfDescription(`a<${WORD_JOINER}b`)).toBe(`a<${WORD_JOINER}b`);
+  test("a '<' before a character other than an ASCII letter is text, wherever it is from", () => {
+    expect(quoteOfDescription("a<\u2060b <é <語")).toBe("a<\u2060b <é <語");
   });
 });

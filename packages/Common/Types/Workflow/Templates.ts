@@ -4456,7 +4456,7 @@ const LINE_BREAK = /^<\s*br\s*\/?>$/i;
 const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
 // Longer than a line break or the end of a block is ever written. A longer tag is neither.
 const LONGEST_BREAK_TAG = 256;
-const TAG_START = /<[a-z!\/?]/i;
+const TAG_START = /<[a-z!\/]/i;
 const WHITESPACE = /\s/;
 // What a tag or comment becomes in the text: a new line for a line break or the end of a block.
 const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
@@ -4575,7 +4575,8 @@ const replaceMarkup = (html, replace) => {
     }
   }
 };
-// Whether the text holds a tag: a "<" and a letter, "!", "/" or "?", and a ">" somewhere after it.
+// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
+// "<?" alone - a PHP or XML snippet written through the API - does not make a note HTML.
 const hasTag = (text) => {
   const start = text.search(TAG_START);
   return start !== -1 && text.indexOf('>', start + 2) !== -1;

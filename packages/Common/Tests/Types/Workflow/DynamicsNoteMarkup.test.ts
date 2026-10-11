@@ -436,6 +436,7 @@ describe("the note script's own walk", () => {
     "a<<br>b",
     "ls -la  \n\n\n\nfoo & bar",
     '<?xml version="1.0"?> AT&amp;T',
+    "run <?php phpinfo(); ?> to check",
   ];
   // The leftovers again, each inside a paragraph of a note's HTML.
   const leftoversInParagraphs: Array<string> = SINGLE_PASS_LEFTOVERS.map(
@@ -564,10 +565,13 @@ describe("the note script's own walk", () => {
     }
   });
 
-  test("reads a note whose only markup is a processing instruction as HTML", () => {
+  test("reads a note whose only '<' starts a PHP or XML snippet as plain text, as before", () => {
     expect(readings.text[cases.indexOf('<?xml version="1.0"?> AT&amp;T')]).toBe(
-      " AT&T",
+      '<?xml version="1.0"?> AT&T',
     );
+    expect(
+      readings.text[cases.indexOf("run <?php phpinfo(); ?> to check")],
+    ).toBe("run <?php phpinfo(); ?> to check");
   });
 
   test("reads a note with no tag as plain text: only its entities are read", () => {

@@ -155,6 +155,60 @@ describe("replaceHtmlMarkup with rawTextElements", () => {
 
   it.each([
     [
+      "a no-break space after the start tag's name",
+      "<script\u00a0x>shown</script>after",
+      "shownafter",
+    ],
+    [
+      "a no-break space after the end tag's name",
+      "<script>a</script\u00a0>b",
+      "ab",
+    ],
+    [
+      "an ideographic space after the name",
+      "<style\u3000x>shown</style>after",
+      "shownafter",
+    ],
+  ])(
+    "ends a name only where a browser does, at ASCII whitespace, '/' or '>': %s",
+    (_case: string, html: string, text: string) => {
+      expect(readWhole(html)).toBe(text);
+    },
+  );
+
+  it.each([
+    [
+      "a title",
+      "<title><script></title>invalid_client: bad secret<script>x</script>",
+      "invalid_client: bad secret",
+    ],
+    [
+      "a textarea",
+      "<textarea><script>x</textarea>visible<script>y</script>",
+      "xvisible",
+    ],
+    ["xmp", "<xmp><style>a</xmp>visible<style>b</style>", "avisible"],
+    ["an iframe", "<iframe><script>a</iframe>visible", "avisible"],
+    ["noembed", "<NOEMBED><script>a</NOEMBED >visible", "avisible"],
+    ["noframes", "<noframes><style>a</noframes>visible", "avisible"],
+    ["a title that never closes", "<title><script>a</script>b", "ab"],
+  ])(
+    "starts no element inside %s, whose content a browser reads as text",
+    (_case: string, html: string, text: string) => {
+      expect(readWhole(html)).toBe(text);
+    },
+  );
+
+  it("reads a title's text, and elements after it, as before", () => {
+    expect(
+      readWhole(
+        "<html><head><title>502 Bad Gateway</title><script>x()</script></head><body><h1>502 Bad Gateway</h1></body></html>",
+      ),
+    ).toBe("502 Bad Gateway502 Bad Gateway");
+  });
+
+  it.each([
+    [
       "a start tag and no end tag",
       "<p>Error</p><script>var a = 1;",
       "Errorvar a = 1;",
@@ -280,6 +334,12 @@ describe("replaceHtmlMarkup with rawTextElements", () => {
         "elements of both kinds, nested in text",
         "a<style>b</style>c<script>d</script>".repeat(40000),
       ],
+      ["titles that never close", "<title><script>".repeat(100000)],
+      [
+        "text-only elements, one after another",
+        "<textarea>a<style>b</textarea>".repeat(50000),
+      ],
+      ["'<' with no '>' after them", "a <b".repeat(100000)],
     ])("reads %s in linear time", (_case: string, html: string) => {
       const started: number = Date.now();
       const text: string = replaceHtmlMarkup(html, NOTHING, WHOLE_AS_A_BROWSER);

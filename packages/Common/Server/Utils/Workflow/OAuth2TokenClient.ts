@@ -16,7 +16,6 @@ import {
   RESERVED_OAUTH2_TOKEN_REQUEST_PARAMETERS,
 } from "../../../Types/Workflow/WorkflowVariableOAuth";
 import API from "../../../Utils/API";
-import { neutralizeChatControlSequences } from "../../../Utils/Markdown/MarkdownEscape";
 import DataSourceEgressGuard, {
   EgressGuardOptions,
 } from "../DataSource/EgressGuard";
@@ -248,11 +247,12 @@ type ExcerptFunction = (
  * it) as it came, and the rest of an attribute value or a comment after a
  * ">" inside it; and a pattern for script and style elements, run first,
  * that took a "<script" in a comment or a quoted value for one. So no "<"
- * that starts markup reaches the message, and a chat mention that Slack
- * would act on ("<@U123>", "<#C123>") is broken with an invisible word
- * joiner, as everywhere outside text is placed - whatever shows it.
- * Entities are left as they are: they are text, and nothing here reads
- * them into markup.
+ * that starts markup reaches the message, whatever shows it. Entities are
+ * left as they are: they are text, and nothing here reads them into
+ * markup. The message is plain text, shown as text; a chat mention in it
+ * ("<@U123>") is text too, and Markdown that ever places it into a feed or
+ * a chat does so with mdText, which breaks one in every value it places
+ * (AGENTS.md, "Feed and chat Markdown").
  *
  * An answer may be up to a megabyte (OAUTH2_TOKEN_RESPONSE_MAX_BYTES), and
  * every step reads it in time that grows with its length alone: the single
@@ -272,11 +272,9 @@ const toExcerpt: ExcerptFunction = (
     RESPONSE_EXCERPT_MAX_LENGTH,
   );
 
-  return neutralizeChatControlSequences(
-    plain.length <= RESPONSE_EXCERPT_MAX_LENGTH
-      ? plain
-      : `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`,
-  );
+  return plain.length <= RESPONSE_EXCERPT_MAX_LENGTH
+    ? plain
+    : `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`;
 };
 
 type GetOAuthErrorHintFunction = (
