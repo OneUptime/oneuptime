@@ -393,7 +393,7 @@ describe("what it passes", () => {
       "`;",
     ];
 
-    for (const lineBreak of ["\n", "\r\n"]) {
+    for (const lineBreak of ["\n", "\r\n", "\r"]) {
       expect(findingsIn("Child.test.ts", lines.join(lineBreak))).toEqual([
         [3, ANSI_FINDING],
       ]);

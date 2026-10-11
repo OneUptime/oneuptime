@@ -111,6 +111,8 @@ const ADD_BEFORE: RegExp = /\+=?\s*\(?\s*$/;
 // The name before an "^" or "^=", and what follows it: "x ^= x << 13", "x = x ^ (x << 13)".
 const NAME_BEFORE: RegExp = /([\w$.]+)\s*(?:=\s*\(?\s*([\w$.]+)\s*)?$/;
 const SHIFTED_AFTER: RegExp = /^=?\s*\(?\s*([\w$.]+)\s*<</;
+// A line break as the TypeScript scanner counts one.
+const LINE_BREAK: RegExp = /\r\n|[\r\n\u2028\u2029]/g;
 
 // Files worth parsing: those that hold a number of the lists, or a left shift.
 const CANDIDATE: RegExp = new RegExp(
@@ -581,8 +583,8 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
       ts.isTemplateTail(node)
     ) {
       /*
-       * A template's raw text keeps its line breaks (as "\n", whatever the
-       * file uses), so a finding is reported on its own line; a quoted
+       * A template's raw text keeps its line breaks as written ("\r\n",
+       * "\n" ...), so a finding is reported on its own line; a quoted
        * string's text (escapes read) is reported where the string starts.
        */
       const rawText: string | undefined = ts.isStringLiteral(node)
@@ -595,7 +597,9 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
         report(
           node,
           finding,
-          isTemplate ? raw.slice(0, offset).split("\n").length - 1 : 0,
+          isTemplate
+            ? (raw.slice(0, offset).match(LINE_BREAK) || []).length
+            : 0,
         );
       }
     }
