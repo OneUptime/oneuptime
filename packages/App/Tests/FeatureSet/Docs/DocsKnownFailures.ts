@@ -243,17 +243,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
   },
-  "probe/custom-probe": {
-    title: EVERY_LANGUAGE,
-    uniqueHeadings: except(EVERY_LANGUAGE, "de"),
-    codeLanguage: EN,
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "probe/incoming-request-ingress": {
-    codeLanguage: EN,
-    sameShape: ["de", "hi"],
-  },
   "rum/applications": {
     pageLinks: ["fa"],
     translated: EVERY_TRANSLATION_BUT_FA,

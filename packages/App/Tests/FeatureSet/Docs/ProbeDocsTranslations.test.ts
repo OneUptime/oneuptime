@@ -30,6 +30,7 @@ import {
   inlineCode,
   listItemCount,
   navTitle,
+  prose,
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
@@ -192,6 +193,26 @@ function drawnPath(language: string, segments: Array<string>): string {
       return drawnPathSegment(language, segments, index);
     })
     .join(PATH_SEPARATOR);
+}
+
+/*
+ * A menu path as a page in this language writes it. Persian is read right
+ * to left, where "→" points back at where the reader came from, so it bolds
+ * each segment and joins them with ">", which a right-to-left line mirrors
+ * (as the SLO pages do). Every other language bolds the path as one span.
+ */
+const RTL_PATH_SEPARATOR: string = " > ";
+
+function writtenPath(language: string, segments: Array<string>): string {
+  if (language === "fa") {
+    return segments
+      .map((_segment: string, index: number): string => {
+        return `**${drawnPathSegment(language, segments, index)}**`;
+      })
+      .join(RTL_PATH_SEPARATOR);
+  }
+
+  return `**${drawnPath(language, segments)}**`;
 }
 
 describe("the lists this test keeps", () => {
@@ -460,13 +481,28 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = boldPaths(english)
         .map((segments: Array<string>): string => {
-          return drawnPath(language, segments);
+          return writtenPath(language, segments);
         })
-        .filter((drawn: string): boolean => {
-          return !translated.includes(`**${drawn}**`);
+        .filter((written: string): boolean => {
+          return !translated.includes(written);
         });
 
       expect(missing).toEqual([]);
+    });
+
+    it("writes menu paths the way its script reads them", () => {
+      const arrows: (markdown: string) => number = (
+        markdown: string,
+      ): number => {
+        return prose(markdown).split("→").length - 1;
+      };
+      const translated: string = readPage(language, entry.page);
+
+      if (language === "fa") {
+        expect(arrows(translated)).toBe(0);
+      } else {
+        expect(arrows(translated)).toBe(arrows(english));
+      }
     });
 
     it("keeps the names as written", () => {
