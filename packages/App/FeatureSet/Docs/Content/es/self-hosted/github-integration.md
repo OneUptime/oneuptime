@@ -1,258 +1,292 @@
 # Integración con GitHub
 
-Para integrar GitHub con tu instancia auto-alojada de OneUptime, necesitas crear una aplicación de GitHub y configurar las variables de entorno requeridas. Esto permite que OneUptime se conecte a tus repositorios de GitHub para la gestión del repositorio de código.
+Conecta tu OneUptime autoalojado a GitHub con una GitHub App propia. Una vez instalada la app desde OneUptime, los repositorios de la instalación se importan a tu proyecto y se mantienen sincronizados, las tareas de corrección con IA abren pull requests, y tu equipo puede pasarle trabajo a la app desde GitHub mencionándola.
 
-## Prerrequisitos
+Esta página es para quien administra el servidor de OneUptime: creas la app una vez, y después cada proyecto la conecta desde **Repositorios de código**.
 
-- Cuenta de GitHub con acceso de administrador de la organización (para repositorios de la organización) o acceso a cuenta personal
-- Acceso a la configuración de tu servidor de OneUptime
+:::cards
+- [Crear la GitHub App](#crear-la-github-app): Registra la app con las URL, los permisos y los eventos correctos.
+- [Configurar OneUptime](#configurar-oneuptime): Dale al servidor los seis valores de la app.
+- [Conectar repositorios](#conectar-repositorios): Instala la app desde OneUptime.
+- [Solución de problemas](#solución-de-problemas): Qué significan los mensajes de Repositorios de código.
+:::
 
-## Instrucciones de configuración
+## Cómo funciona
 
-### Paso 1: Crear una aplicación de GitHub
+La instalación empieza en OneUptime, no en GitHub: el enlace con el que OneUptime te envía a GitHub es lo que vincula la instalación a tu proyecto.
 
-1. Ve a GitHub y navega a la configuración de tu organización o cuenta personal:
+```mermaid title="Conectar una instalación de la GitHub App a un proyecto"
+sequenceDiagram
+    participant B as Tu navegador
+    participant O as OneUptime
+    participant G as GitHub
+    B->>O: Conectar con la GitHub App
+    O-->>B: Redirección a la página de instalación de la app
+    B->>G: Instalar y autorizar la app
+    G-->>B: Redirección a /api/github/auth/callback
+    B->>O: installation_id y un código de un solo uso
+    O->>G: Canjear el código, comprobar la instalación
+    O->>G: Importar los repositorios de la instalación
+    G->>O: Webhooks a /api/github/webhook
+```
 
-   - **Para organizaciones:** Ve a `https://github.com/organizations/YOUR_ORG/settings/apps`
-   - **Para cuentas personales:** Ve a `https://github.com/settings/apps`
+- La redirección del navegador lleva la instalación y un código OAuth de un solo uso. OneUptime canjea el código para confirmar que la cuenta de GitHub que instaló la app administra esa instalación, y luego importa sus repositorios.
+- Los webhooks mantienen sincronizada la lista de repositorios y le pasan trabajo a la app: menciones, asignaciones, etiquetas de activación y solicitudes de revisión. GitHub firma cada uno con el webhook secret, y OneUptime rechaza los que no puede verificar.
 
-2. Haz clic en **"Nueva aplicación de GitHub"**
+## Antes de empezar
 
-3. Completa el formulario de registro:
-   - **Nombre de la aplicación de GitHub:** OneUptime (o cualquier nombre único): **Guarda este nombre, lo necesitarás para la variable de entorno `GITHUB_APP_NAME`**
-   - **URL de la página de inicio:** `https://your-oneuptime-domain.com`
-   - **URL de devolución de llamada:** `https://your-oneuptime-domain.com/api/github/auth/callback`
-   - **URL de configuración:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **Importante: Esta URL es donde GitHub redirige a los usuarios después de instalar la aplicación. Debe establecerse para que funcione la redirección.**
-   - **Redirigir al actualizar:** Marca esta opción para redirigir a los usuarios después de que actualicen la instalación de la aplicación
-   - **Request user authorization (OAuth) during installation:** **Marque esta opción obligatoria.** OneUptime usa OAuth para verificar la propiedad de la instalación y rechaza la conexión si no está activada.
-   - **URL del webhook:** `https://your-oneuptime-domain.com/api/github/webhook`
-   - **Secreto del webhook:** Genera una cadena aleatoria segura (guárdala para más adelante)
+- Una cuenta de GitHub que pueda crear GitHub Apps para la organización o el usuario donde se instalará la app. Para instalarla en una organización, necesitas ser propietario de ella o que un propietario apruebe la solicitud.
+- Un nombre de host HTTPS público para OneUptime al que GitHub pueda llegar para los webhooks. Consulta [Acceso de red](#acceso-de-red-para-despliegues-autoalojados).
+- Acceso a la configuración del servidor: `config.env` en Docker Compose, o tus values de Helm en Kubernetes.
 
-### Paso 2: Configurar los permisos de la aplicación
+## Crear la GitHub App
 
-En la sección "Permisos y eventos", configura los siguientes permisos:
+:::steps
+### Abre los ajustes de GitHub Apps
 
-**Permisos del repositorio:**
+- **Para una organización:** `https://github.com/organizations/YOUR_ORG/settings/apps`
+- **Para una cuenta personal:** `https://github.com/settings/apps`
 
-| Permiso                   | Nivel de acceso     | Propósito                                                                    |
-| ------------------------- | ------------------- | ---------------------------------------------------------------------------- |
-| Contenidos                | Lectura y escritura | Leer archivos del repositorio, enviar ramas (requerido para el Agente de IA) |
-| Solicitudes de extracción | Lectura y escritura | Crear y gestionar solicitudes de extracción, y publicar revisiones           |
-| Incidencias               | Lectura y escritura | Leer incidencias y publicar los comentarios de la app — **incluidos los de los pull requests**, cuya conversación GitHub sirve a través de la API de incidencias |
-| Estados de confirmación   | Lectura             | Verificar el estado de compilación/CI                                        |
-| Acciones                  | Lectura             | Leer ejecuciones y registros de flujos de trabajo de GitHub Actions          |
-| Metadatos                 | Lectura             | Metadatos básicos del repositorio (requerido)                                |
+Selecciona **New GitHub App**.
 
-**Incidencias: Lectura y escritura es lo que hace que la app sea interactiva.** Sin ese permiso, las menciones se reciben y luego fallan en silencio cuando la app intenta responder: GitHub sirve los comentarios de la conversación de un pull request desde la API de incidencias, así que ese único permiso condiciona cada respuesta que escribe la app. Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app).
+### Rellena el formulario de registro
 
-**Permisos de organización (si se usa con organizaciones):**
+| Campo | Valor |
+| --- | --- |
+| **GitHub App name** | Cualquier nombre único, por ejemplo `OneUptime`. Anótalo exactamente: es `GITHUB_APP_NAME`. |
+| **Homepage URL** | `https://your-oneuptime-domain.com` |
+| **Callback URL** | `https://your-oneuptime-domain.com/api/github/auth/callback` |
+| **Request user authorization (OAuth) during installation** | Activado. **Es obligatorio**: consulta la nota de abajo. |
+| **Setup URL** | `https://your-oneuptime-domain.com/api/github/auth/callback`, si GitHub te deja introducir una (consulta abajo). |
+| **Redirect on update** | Opcional. Después de que alguien cambia una instalación en GitHub, OneUptime lo lleva a **Repositorios de código**. |
+| **Webhook URL** | `https://your-oneuptime-domain.com/api/github/webhook`, con el webhook **Active**. |
+| **Webhook secret** | Una cadena aleatoria larga. Anótala: es `GITHUB_APP_WEBHOOK_SECRET`. **Obligatorio**: OneUptime rechaza los webhooks sin firmar, así que dejar `GITHUB_APP_WEBHOOK_SECRET` sin definir detiene la sincronización de repositorios en lugar de aceptar cargas sin verificar. |
 
-| Permiso  | Nivel de acceso | Propósito                              |
-| -------- | --------------- | -------------------------------------- |
-| Miembros | Lectura         | Listar los miembros de la organización |
+Según la documentación de GitHub, con **Request user authorization (OAuth) during installation** activado [no puedes introducir una Setup URL](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-setup-url): los usuarios van a la Callback URL después de instalar la app. Ambas apuntan a la misma dirección de OneUptime, así que la redirección llega al lugar correcto en cualquier caso.
 
-**Permisos de cuenta:**
+> [!IMPORTANT]
+> **Por qué "Request user authorization (OAuth) during installation" es obligatorio.** Tras una instalación, GitHub redirige con un `installation_id` en la URL. Ese número por sí solo no prueba nada sobre quién es el dueño de la instalación: cualquiera puede escribir otro. Con esta opción activada, GitHub devuelve además un `code` OAuth de un solo uso ligado a la cuenta de GitHub que hizo la instalación, que OneUptime canjea para confirmar que esa cuenta administra de verdad la instalación antes de conectarla a tu proyecto.
+>
+> Sin ella, OneUptime se niega a conectar la instalación y el panel muestra un error que te pide activar este ajuste. Es intencionado: aceptar el ID de instalación sin verificar permitiría que un proyecto de OneUptime reclamara los repositorios de otra organización.
 
-| Permiso                           | Nivel de acceso | Propósito                                                  |
-| --------------------------------- | --------------- | ---------------------------------------------------------- |
-| Direcciones de correo electrónico | Lectura         | Leer el correo electrónico del usuario para notificaciones |
+### Define los permisos
 
-### Paso 3: Suscribirse a eventos de webhook
+En **Permissions & events**, define estos **Repository permissions**:
 
-OneUptime usa dos conjuntos de eventos, y cada uno hace un trabajo distinto.
+| Permiso | Acceso | Para qué lo usa OneUptime |
+| --- | --- | --- |
+| Contents | Read and write | Leer archivos del repositorio y subir las ramas de las pull requests de corrección con IA |
+| Pull requests | Read and write | Abrir y actualizar pull requests, y publicar revisiones |
+| Issues | Read and write | Publicar los comentarios de la app, **también en pull requests**, cuya conversación GitHub enruta por la API de issues |
+| Checks | Read-only | Opcional. Leer el resultado de CI de las pull requests de corrección. Sin él, su estado de CI queda sin verificar |
+| Metadata | Read-only | Metadatos básicos del repositorio (GitHub lo exige) |
 
-**Sincronización de repositorios** — `installation` e `installation_repositories`. Las GitHub Apps los reciben automáticamente; mantienen el conjunto de repositorios conectados al día con aquello en lo que está instalada la app.
+**Issues: Read and write es lo que hace interactiva a la app.** Sin él, las menciones se reciben y luego fallan en silencio cuando la app intenta responder: GitHub sirve los comentarios de las conversaciones de pull requests desde la API de issues, así que este único permiso controla cada respuesta que escribe la app. Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app).
 
-**La app interactiva** — a estos hay que suscribirse de forma explícita, y cada uno habilita una manera concreta de pasarle trabajo a la app:
+OneUptime no necesita permisos de organización ni de cuenta.
 
-| Evento                          | Qué habilita                                                                 |
-| ------------------------------- | ---------------------------------------------------------------------------- |
-| **Issue comment**               | comandos con `@mención` en issues **y** en pull requests                     |
-| **Issues**                      | asignar un issue a la app, y la etiqueta de activación del repositorio       |
-| **Pull request**                | solicitar una revisión a la app                                              |
-| **Pull request review**         | una mención escrita en el cuerpo de una revisión enviada                     |
-| **Pull request review comment** | una mención en un comentario en línea del diff                               |
+### Suscríbete a los eventos de webhook
 
-Si no hay ninguno suscrito, la GitHub App sigue conectando repositorios y sigue abriendo pull requests de corrección desde OneUptime: simplemente no responde nunca a nada de lo que se escriba en GitHub. Esa es la causa más habitual de "el bot me ignora". Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app) para saber cuáles son los comandos y quién puede darlos.
+OneUptime usa dos grupos de eventos, y cumplen funciones distintas.
 
-Otros eventos (**Push**, **Workflow run**) se confirman y se ignoran; suscribirse a ellos no activa notificaciones ni automatización CI/CD.
+**Sincronización de repositorios**: `installation` e `installation_repositories`. Las GitHub Apps los reciben automáticamente; mantienen el conjunto de repositorios conectados al día con dónde está instalada la app.
 
-### Paso 4: Establecer el acceso de instalación
+**La app interactiva**: a estos hay que suscribirse explícitamente, y cada uno habilita una forma concreta de pasarle trabajo a la app:
 
-En "¿Dónde se puede instalar esta aplicación de GitHub?", elige:
+| Evento | Qué habilita |
+| --- | --- |
+| **Issue comment** | comandos `@mention` en issues **y** en pull requests |
+| **Issues** | asignar una issue a la app, y la etiqueta de activación del repositorio |
+| **Pull request** | pedir una revisión a la app |
+| **Pull request review** | una mención escrita en el cuerpo de una revisión enviada |
+| **Pull request review comment** | una mención en un comentario en línea del diff |
 
-- **Solo en esta cuenta**: Para uso privado/interno
-- **Cualquier cuenta**: Si deseas que otros instalen tu aplicación
+Si no hay suscripción a ninguno de estos, la GitHub App sigue conectando repositorios y abriendo pull requests de corrección desde OneUptime, pero nunca responde a nada de lo que se escribe en GitHub. Es la causa más común de "el bot me ignora". Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app) para ver cuáles son los comandos y quién puede darlos.
 
-### Paso 5: Crear la aplicación de GitHub
+Los demás eventos (**Push**, **Workflow run**) se confirman y se ignoran; suscribirse a ellos no habilita notificaciones ni automatización de CI/CD.
 
-1. Haz clic en **"Crear aplicación de GitHub"**
-2. Serás redirigido a la página de configuración de tu aplicación
-3. Anota los siguientes valores:
-   - **ID de la aplicación**: Encontrado en la parte superior de la página de configuración de la aplicación
-   - **ID de cliente**: Encontrado en la sección "Acerca de"
+### Elige dónde se puede instalar la app
 
-### Paso 6: Generar el secreto de cliente
+En **Where can this GitHub App be installed?**, elige:
 
-1. En la configuración de tu aplicación de GitHub, desplázate hasta "Secretos de cliente"
-2. Haz clic en **"Generar un nuevo secreto de cliente"**
-3. Copia el secreto inmediatamente: no podrás verlo de nuevo
+- **Only on this account** - Para uso privado/interno
+- **Any account** - Si quieres que otros instalen tu app
 
-### Paso 7: Generar la clave privada
+### Crea la app y anota sus identificadores
 
-1. Desplázate hacia abajo hasta la sección "Claves privadas"
-2. Haz clic en **"Generar una clave privada"**
-3. Se descargará automáticamente un archivo `.pem`
-4. Guarda este archivo de forma segura: se usa para autenticarse como la aplicación de GitHub
+Selecciona **Create GitHub App**. GitHub abre la página de ajustes de la app. Anota el **App ID**, en la parte superior de la página, y el **Client ID**, en la sección **About**.
 
-### Paso 8: Configurar las variables de entorno de OneUptime
+### Genera un client secret
 
-#### Docker Compose
+En **Client secrets**, selecciona **Generate a new client secret**. Cópialo enseguida: GitHub solo lo muestra una vez.
 
-Si usas Docker Compose, agrega estas variables de entorno a tu archivo `config.env`:
+### Genera una clave privada
+
+En **Private keys**, selecciona **Generate a private key**. GitHub descarga un archivo `.pem`. Guárdalo en un lugar seguro: permite a OneUptime autenticarse como la app.
+:::
+
+## Configurar OneUptime
+
+:::tabs
+@tab Docker Compose
+`config.env` tiene un valor por línea, así que pon la clave privada codificada en base64, en una sola línea. OneUptime la decodifica:
 
 ```bash
-# Configuración de la aplicación de GitHub
+base64 < private-key.pem | tr -d '\n'
+```
+
+```bash title="config.env"
 GITHUB_APP_ID=YOUR_APP_ID
-GITHUB_APP_NAME=YOUR_APP_NAME  # El nombre exacto de tu aplicación de GitHub (por ejemplo, "OneUptime")
+GITHUB_APP_NAME=YOUR_APP_NAME
 GITHUB_APP_CLIENT_ID=YOUR_CLIENT_ID
 GITHUB_APP_CLIENT_SECRET=YOUR_CLIENT_SECRET
-GITHUB_APP_PRIVATE_KEY="<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
+GITHUB_APP_PRIVATE_KEY=YOUR_BASE64_ENCODED_PRIVATE_KEY
 GITHUB_APP_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
 ```
 
-**Nota:** Para la clave privada, codifícala en base64 y pégala sin saltos de línea si tu entorno no admite cadenas de varias líneas.
-
-#### Kubernetes con Helm
-
-Si usas Kubernetes con Helm, agrega esto a tu archivo `values.yaml`:
-
-```yaml
+Aplica el cambio con `npm run start`, que vuelve a crear los contenedores. `docker compose restart` no vuelve a leer `config.env`.
+@tab Kubernetes
+```yaml title="values.yaml"
 gitHubApp:
   id: "YOUR_APP_ID"
-  name: "YOUR_APP_NAME" # El nombre exacto de tu aplicación de GitHub
+  name: "YOUR_APP_NAME" # The exact name of your GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
   webhookSecret: "YOUR_WEBHOOK_SECRET"
 ```
 
-**Importante:** Reinicia tu servidor de OneUptime después de agregar estas variables de entorno para que surtan efecto.
+`privateKey` también acepta el PEM tal cual, como bloque de varias líneas (`privateKey: |`). Aplica el cambio con `helm upgrade`.
+:::
 
-### Paso 9: Conectar repositorios en OneUptime
+Cuando OneUptime vuelva a estar en marcha, **Repositorios de código** muestra **Conectar con la GitHub App** en lugar de **La GitHub App no está configurada en este servidor**.
 
-Inicia la conexión desde OneUptime, no desde la página de la aplicación en GitHub: el enlace con el que OneUptime te lleva a GitHub es lo que vincula la instalación con tu proyecto.
+### Referencia de variables de entorno
 
+| Docker Compose (`config.env`) | Helm (`values.yaml`) | Valor |
+| --- | --- | --- |
+| `GITHUB_APP_ID` | `gitHubApp.id` | El **App ID**. Se usa para autenticarse como la app. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | El nombre exacto de la app. El enlace de instalación y el identificador `@mention` de la app (en minúsculas, con guiones en lugar de espacios) se construyen a partir de él. Sin él, **Repositorios de código** no puede conectar. |
+| `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | El **Client ID**. Necesario para verificar quién instaló la app. |
+| `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | El client secret que generaste. Necesario junto con el client ID. |
+| `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | La clave privada: el PEM, o el PEM codificado en base64. |
+| `GITHUB_APP_WEBHOOK_SECRET` | `gitHubApp.webhookSecret` | El webhook secret. Cada webhook se verifica con él, y no se acepta ninguno sin él. |
+
+Las seis son obligatorias.
+
+## Conectar repositorios
+
+Inicia la conexión desde OneUptime, no desde la página de la app en GitHub: el enlace con el que OneUptime te envía a GitHub es lo que vincula la instalación a tu proyecto.
+
+:::steps
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Productos** > **Tareas** > **Repositorios de código**
+2. Ve a **Productos** > **Tareas** > **Repositorios de código**
 3. Haz clic en **Conectar con la GitHub App**. OneUptime te lleva a GitHub
-4. Selecciona la organización o cuenta donde instalar la aplicación y elige a qué repositorios puede acceder:
-   - **All repositories**: Acceso a todos los repositorios actuales y futuros
-   - **Only select repositories**: Elige repositorios específicos
-5. Haz clic en **Install** (o **Save**, si la aplicación ya está instalada allí)
-6. GitHub te devuelve a **Repositorios de código** y se importan todos los repositorios de la instalación. Los repositorios que después se añadan a la instalación o se quiten de ella se mantienen sincronizados automáticamente.
+4. Selecciona la organización o la cuenta donde instalar la app, y elige a qué repositorios puede acceder: **All repositories** (todos los repositorios actuales y futuros) u **Only select repositories**
+5. Haz clic en **Install** (o en **Save**, si la app ya está instalada allí)
+6. GitHub te devuelve a **Repositorios de código**, y se importan todos los repositorios de la instalación. Los repositorios que se añaden o se quitan después de la instalación se sincronizan automáticamente.
+:::
 
-**Quién puede conectar.** Conectar importa al proyecto los repositorios de la instalación, así que requiere permiso para añadir repositorios de código: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o un equipo con **Create Code Repository**. Un equipo que bloquea el permiso lo retira. En OneUptime Cloud, los repositorios de código requieren el plan Growth o superior. Para cualquier otra persona, la tarjeta aparece bloqueada e indica qué hace falta.
+**Quién puede conectar.** Conectar importa los repositorios de la instalación al proyecto, así que requiere permiso para añadir repositorios de código: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, o un equipo con **Create Code Repository**. Un equipo que bloquea el permiso lo retira. En OneUptime Cloud, los repositorios de código requieren el plan Growth o superior. Para cualquier otra persona, la tarjeta aparece bloqueada y dice qué hace falta.
 
-**Termina en 15 minutos, en el mismo navegador.** El enlace funciona una sola vez, durante 15 minutos, en el navegador que lo inició. Cuando GitHub te devuelve, OneUptime vuelve a comprobar el permiso antes de importar nada.
+**Termina en menos de 15 minutos, en el mismo navegador.** El enlace funciona una vez, durante 15 minutos, en el navegador que lo inició. Cuando GitHub te devuelve, OneUptime vuelve a comprobar el permiso antes de importar nada.
 
-## Referencia de variables de entorno
+## Acceso de red para despliegues autoalojados
 
-| Variable                    | Descripción                                                                     | Requerida             |
-| --------------------------- | ------------------------------------------------------------------------------- | --------------------- |
-| `GITHUB_APP_ID`             | El ID de la aplicación de la configuración de tu aplicación de GitHub           | Sí                    |
-| `GITHUB_APP_NAME`           | El nombre exacto de tu aplicación de GitHub (usado para las URL de instalación) | Sí                    |
-| `GITHUB_APP_CLIENT_ID`      | El ID de cliente de la configuración de tu aplicación de GitHub                 | Sí                    |
-| `GITHUB_APP_CLIENT_SECRET`  | El secreto de cliente que generaste                                             | Sí                    |
-| `GITHUB_APP_PRIVATE_KEY`    | El contenido del archivo de clave privada (.pem)                                | Sí                    |
-| `GITHUB_APP_WEBHOOK_SECRET` | El secreto del webhook para verificar las cargas útiles del webhook             | Sí, para webhooks |
-
-## Acceso de red para despliegues autohospedados
-
-### Dirección del tráfico y endpoints
+### Sentido del tráfico y endpoints
 
 | Tráfico | Acceso necesario |
 | --- | --- |
-| OneUptime → GitHub | DNS y HTTPS saliente por TCP 443 a `api.github.com` para tokens de aplicación y API de repositorios, y a `github.com` para intercambio OAuth y operaciones Git HTTPS |
-| GitHub → OneUptime | HTTPS público por TCP 443 a `POST /api/github/webhook` para sincronizar instalación y acceso a repositorios |
-| Navegador del usuario → OneUptime | Panel y `GET /api/github/auth/callback` para redirecciones de instalación/autorización; pueden permanecer accesibles por VPN |
+| De OneUptime a GitHub | DNS y HTTPS saliente por TCP 443 a `api.github.com` para los tokens de la GitHub App y las llamadas a la API de repositorios, y a `github.com` para el canje del token de OAuth y las operaciones de Git por HTTPS |
+| De GitHub a OneUptime | HTTPS público por TCP 443 a `POST /api/github/webhook` para sincronizar instalaciones y accesos a repositorios, y para la app interactiva |
+| Del navegador del usuario a OneUptime | Acceso al panel y `GET /api/github/auth/callback` para las redirecciones de instalación y autorización; pueden seguir siendo accesibles a través de la VPN del usuario |
 
-Las URL callback/setup son una [redirección del navegador](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url); los servidores GitHub llaman al webhook. La VPN del usuario no da acceso al webhook a GitHub. Los dominios cubren solicitudes principales; herramientas, descargas, LFS o paquetes pueden necesitar otros destinos. Esta configuración corresponde a GitHub.com: cambiar el cortafuegos no configura compatibilidad con un hostname de GitHub Enterprise Server.
+El callback es una [redirección del navegador](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url), mientras que el webhook es una solicitud de los servidores de GitHub. La conexión VPN de un usuario no le da a GitHub acceso al webhook. Los dominios de arriba cubren las solicitudes básicas de la integración; otras herramientas de repositorios, descargas, LFS o paquetes pueden requerir otros destinos. Estos ajustes describen GitHub.com; cambiar el firewall no configura la compatibilidad con un nombre de host de GitHub Enterprise Server.
 
-### Despliegues privados y seguridad de callbacks
+### Despliegues privados y seguridad de los callbacks
 
-Use DNS público y una pasarela con certificado HTTPS de confianza pública, cadena completa y ruta privada al ingress de OneUptime. Permita TCP 443 entrante y publique únicamente los callbacks POST del proveedor indicados arriba. Un `ClusterIP` privado, DNS interno o VPN de empleado no proporciona acceso al proveedor. DNS dividido permite mantener el panel y las rutas OAuth del navegador privados bajo el mismo hostname.
+Expón `/api/github/webhook` mediante una pasarela pública con DNS público, un certificado HTTPS de confianza pública con su cadena completa y una ruta privada al ingress de OneUptime. Permite TCP 443 entrante hacia la pasarela y limita el reenvío público a esta ruta POST. Mantén el panel y el callback del navegador en el ingress privado si los usuarios acceden por VPN; con DNS dividido, el mismo nombre de host puede servirse dentro y fuera.
 
-Configure `HOST=oneuptime.example.com` y `HTTP_PROTOCOL=https` en `config.env`, o `host: oneuptime.example.com` y `httpProtocol: https` en Helm. Aplique los cambios y espere al reinicio. Estos valores generan URL; no aprovisionan DNS, TLS ni reglas de cortafuegos. Si cambia el hostname, actualice las URL webhook, callback, setup y homepage de la GitHub App.
+Define `HOST=oneuptime.example.com` y `HTTP_PROTOCOL=https` en `config.env`, o `host: oneuptime.example.com` y `httpProtocol: https` en Helm. Aplica la configuración y espera a que OneUptime se reinicie. Estos valores generan URL; no aprovisionan DNS, TLS ni acceso de red. Si cambia el nombre de host, actualiza las URL de webhook, callback, configuración y página de inicio de la GitHub App.
 
-Conserve método, ruta original, parámetros, cuerpo, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` y `X-GitHub-Delivery`. Preserve host público y HTTPS mediante cabeceras de proxy confiables. Exima el webhook de SSO del navegador, CAPTCHA y páginas de autenticación del proxy. Mantenga la verificación SSL de GitHub y el mismo `GITHUB_APP_WEBHOOK_SECRET` en ambos sistemas: OneUptime rechaza solicitudes sin firma y no valida webhooks sin el secreto. Consulte la [validación de GitHub](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+Conserva el método, la ruta original, la cadena de consulta, el cuerpo, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` y `X-GitHub-Delivery`. Conserva el host público y el esquema HTTPS mediante cabeceras de proxy de confianza. Excluye el webhook del SSO del navegador, de los CAPTCHA y de las páginas de inicio de sesión del proxy. Mantén activada la verificación SSL de GitHub y configura el mismo `GITHUB_APP_WEBHOOK_SECRET` en ambos sistemas: OneUptime rechaza las solicitudes sin firmar y no puede validar los webhooks sin este secret. Consulta las [indicaciones de GitHub para validar webhooks](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
 
-Si restringe también IP de origen, use y actualice periódicamente los rangos `hooks` de GitHub Meta API. No utilice rangos de runners de GitHub Actions ni omita la firma. GitHub advierte que [las direcciones cambian y la lista no es exhaustiva](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+Si además restringes las IP de origen de los webhooks, usa los rangos `hooks` actuales de la Meta API de GitHub y actualízalos con regularidad; no los sustituyas por los rangos de los runners de GitHub Actions ni omitas la verificación de la firma. GitHub advierte que [sus direcciones cambian y la lista publicada no es exhaustiva](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
 
-### Verificar el acceso y conocer las limitaciones
+### Verificar el acceso y entender las limitaciones
 
-Complete la instalación desde OneUptime y consulte **Advanced > Recent Deliveries** de la GitHub App. Envíe o reenvíe una entrega de prueba y verifique su encaminamiento y aceptación. Añada o quite un repositorio de prueba de la instalación y compruebe la lista conectada. GitHub documenta el [diagnóstico de entregas](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) y exige [confirmación 2xx en diez segundos](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). Un GET del navegador no prueba un POST firmado.
+:::steps
+1. Conecta una instalación desde **Repositorios de código**.
+2. En los ajustes de la GitHub App, abre **Advanced** y mira **Recent Deliveries**. Vuelve a entregar una entrega y confirma que la pasarela la reenvía y que OneUptime la acepta.
+3. Añade o quita un repositorio de prueba de la instalación, y comprueba que la lista de repositorios de OneUptime lo refleja.
+:::
 
-Sin acceso entrante pueden funcionar autorización del navegador y operaciones API/Git salientes, pero no se sincronizan por webhook la eliminación de instalaciones ni los cambios de acceso a repositorios. OneUptime procesa actualmente `installation` e `installation_repositories`; aceptar otros eventos no implica automatización adicional. La [configuración de acceso a redes privadas](/docs/self-hosted/private-network-access) controla solicitudes salientes a destinos privados y no hace accesible el webhook.
+GitHub documenta el [diagnóstico de entregas](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) y exige [una confirmación 2xx en menos de diez segundos](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). Un GET del navegador al webhook no prueba un POST firmado.
+
+> [!WARNING]
+> Sin acceso entrante, la autorización en el navegador y las operaciones salientes de API y Git pueden funcionar, pero los webhooks no pueden llegar a OneUptime: las instalaciones eliminadas y los cambios de acceso a repositorios no se sincronizan, y la app nunca responde a menciones, asignaciones ni solicitudes de revisión.
+
+El [ajuste de acceso a red privada](/docs/self-hosted/private-network-access) controla las solicitudes salientes a destinos privados y no hace que GitHub pueda llegar al webhook.
 
 ## Solución de problemas
 
-### Problemas comunes
+### La conexión no terminó
 
-**No se redirige de nuevo a OneUptime después de instalar la aplicación de GitHub:**
+Cuando GitHub te devuelve y la instalación no se conectó, **Repositorios de código** muestra **GitHub no se conectó**, con una frase en tu idioma que dice por qué. El resto de la página carga como siempre, así que puedes volver a conectar ahí mismo. Nunca muestra lo que respondió GitHub: eso está en el log del servidor de OneUptime, con el motivo.
 
-- Asegúrate de que la **URL de configuración** esté configurada en la configuración de tu aplicación de GitHub como: `https://your-oneuptime-domain.com/api/github/auth/callback`
-- Ve a la configuración de tu aplicación de GitHub > sección "Post instalación" y verifica que la URL de configuración esté establecida correctamente
-- La opción "Redirigir al actualizar" también debe estar marcada
-- Nota: La URL de configuración es diferente de la URL de devolución de llamada; ambas deben apuntar al mismo punto de conexión `/api/github/auth/callback`
+| La página dice | Qué hacer |
+| --- | --- |
+| **"Este enlace de conexión no es válido, ha caducado o ya se ha usado. Vuelve a empezar."** | El enlace funciona una vez, durante 15 minutos, en el navegador que lo inició. Empieza de nuevo desde **Repositorios de código** y termina en GitHub en menos de 15 minutos, en el mismo navegador. Instalar la app desde su página en GitHub no la conecta a ningún proyecto. |
+| **"No tienes permiso para añadir repositorios de código a este proyecto."** | Conectar requiere permiso para añadir repositorios de código (consulta [Conectar repositorios](#conectar-repositorios)). Pide a un administrador del proyecto que te lo conceda. Se vuelve a comprobar cuando GitHub te devuelve, así que un permiso retirado mientras tanto también termina aquí la conexión. |
+| **"Para conectar GitHub necesitas el plan ...."** | En OneUptime Cloud, los repositorios de código requieren el plan que nombra la frase. Cambia el proyecto a ese plan y vuelve a conectar. |
+| **"GitHub no confirmó quién instaló la aplicación, así que no se pudo comprobar la instalación."** | Activa **Request user authorization (OAuth) during installation** en los ajustes de la GitHub App (consulta [Crear la GitHub App](#crear-la-github-app)) y vuelve a conectar. |
+| **"OneUptime no pudo confirmar que tu cuenta de GitHub pueda administrar esta instalación."** | La cuenta de GitHub que terminó la instalación no la administra. Instala la app con una cuenta propietaria de la organización o del usuario donde se instala, o pídeselo a un propietario. |
+| **"GitHub no devolvió ninguna instalación."** | Cuando un miembro de la organización solicita la app en lugar de instalarla, un propietario de la organización tiene que aprobar primero la solicitud. Vuelve a conectar cuando lo haya hecho. |
+| **"La GitHub App no está configurada en este servidor de OneUptime."** | Define tanto `GITHUB_APP_CLIENT_ID` como `GITHUB_APP_CLIENT_SECRET` (consulta [Configurar OneUptime](#configurar-oneuptime)) y reinicia OneUptime. |
+| **"OneUptime no pudo terminar la conexión. Inténtalo de nuevo."** | GitHub respondió con un error, o falló una solicitud o una escritura al terminar. El log del servidor de OneUptime dice cuál. Vuelve a intentarlo; si sigue pasando, revisa el log y los ajustes de la GitHub App. |
 
-**Error "La aplicación de GitHub no está configurada":**
+### Otros problemas
 
-- Asegúrate de que la variable de entorno `GITHUB_APP_CLIENT_ID` esté establecida
-- Reinicia tu servidor de OneUptime después de establecer las variables de entorno
+:::details Repositorios de código dice "La GitHub App no está configurada en este servidor"
+`GITHUB_APP_NAME` no está definido. Defínelo con el nombre exacto de la app, junto con los otros cinco valores, y reinicia OneUptime.
+:::
 
-**Error "Firma de webhook no válida":**
+:::details No vuelvo a OneUptime después de instalar la app
+Comprueba que la **Callback URL** de la app sea `https://your-oneuptime-domain.com/api/github/auth/callback`, y también la **Setup URL** si hay una definida. Ambas deben apuntar al mismo endpoint `/api/github/auth/callback`, en el nombre de host de `HOST`.
+:::
 
-- Verifica que tu `GITHUB_APP_WEBHOOK_SECRET` coincida con el secreto configurado en GitHub
-- Asegúrate de que la URL del webhook sea correcta y accesible desde internet
+:::details Las Recent Deliveries de GitHub muestran "Invalid webhook signature"
+El webhook secret de la GitHub App y `GITHUB_APP_WEBHOOK_SECRET` no coinciden, `GITHUB_APP_WEBHOOK_SECRET` no está definido, o un proxy cambió el cuerpo de la solicitud. Define el mismo secret en ambos, reinicia OneUptime y asegúrate de que la pasarela reenvía el cuerpo sin cambios.
+:::
 
-**Error "Error al obtener el token de acceso de instalación":**
+:::details No llegan los eventos de webhook
+Comprueba que se puede llegar a la URL del webhook públicamente por HTTPS, y luego mira **Advanced > Recent Deliveries** en los ajustes de la GitHub App para ver cada intento y su respuesta. Los webhooks se rechazan mientras `GITHUB_APP_WEBHOOK_SECRET` no esté definido.
+:::
 
-- Verifica que tu `GITHUB_APP_PRIVATE_KEY` tenga el formato correcto
-- Comprueba que la clave privada incluya los marcadores BEGIN/END
-- Asegúrate de que el ID de la aplicación sea correcto
+:::details Los repositorios o las tareas de corrección fallan con un error de autenticación
+OneUptime se autentica como la app con `GITHUB_APP_ID` y `GITHUB_APP_PRIVATE_KEY`. Comprueba que el App ID es correcto y que la clave es el PEM completo, incluidas sus líneas `BEGIN` y `END`, o ese PEM codificado en base64. Si la app se desinstaló de GitHub, vuelve a conectarla desde **Repositorios de código**.
+:::
 
-**No se pueden ver los repositorios después de la instalación:**
+:::details Faltan repositorios después de la instalación
+Comprueba a qué repositorios puede acceder la instalación, en sus ajustes en GitHub. Los repositorios que añadas allí se importan automáticamente, siempre que los webhooks lleguen a OneUptime.
+:::
 
-- Verifica que la aplicación de GitHub tenga acceso a los repositorios que deseas conectar
-- Comprueba los permisos de instalación en GitHub (Configuración > Aplicaciones > Aplicaciones de GitHub instaladas)
-
-**Los eventos del webhook no se reciben:**
-
-- Asegúrate de que la URL de tu webhook sea accesible públicamente
-- Comprueba los registros de entrega del webhook de la aplicación de GitHub en la configuración de tu aplicación
-- Verifica que el secreto del webhook esté correctamente configurado
-
-### Comprobación de las entregas del webhook
-
-1. Ve a la configuración de tu aplicación de GitHub
-2. Haz clic en "Avanzado" en la barra lateral
-3. Ve "Entregas recientes" para ver los intentos y respuestas del webhook
+:::details La app ignora las menciones en GitHub
+Dale a la app **Issues: Read and write** y suscríbela a los eventos interactivos de [Suscríbete a los eventos de webhook](#suscríbete-a-los-eventos-de-webhook). Además, las menciones solo coinciden con el identificador construido a partir de `GITHUB_APP_NAME`, así que defínelo con el nombre real de la app.
+:::
 
 ## Buenas prácticas de seguridad
 
-1. **Rota los secretos regularmente**: Genera nuevos secretos de cliente y claves privadas periódicamente
-2. **Usa secretos de webhook**: Siempre configura un secreto de webhook para verificar la autenticidad de la carga útil
-3. **Limita el acceso al repositorio**: Solo concede acceso a los repositorios que necesitan estar conectados
-4. **Monitorea las entregas del webhook**: Revisa regularmente para detectar entregas fallidas o actividad sospechosa
-5. **Mantén las claves privadas seguras**: Nunca confirmes las claves privadas en el control de versiones
+- **Rota los secrets con regularidad.** Genera periódicamente nuevos client secrets y claves privadas.
+- **Mantén definido el webhook secret.** OneUptime rechaza los webhooks que no puede verificar.
+- **Limita el acceso a repositorios.** Concede a la instalación solo los repositorios que haya que conectar.
+- **Vigila las entregas de webhooks.** Revisa con regularidad si hay entregas fallidas o actividad sospechosa.
+- **Mantén las claves privadas fuera del control de versiones.**
 
-## Soporte
+## Próximos pasos
 
-Si encuentras problemas con la integración de GitHub, por favor:
-
-1. Consulta la sección de solución de problemas anterior
-2. Revisa los registros de OneUptime para ver mensajes de error detallados
-3. Contáctanos en [hello@oneuptime.com](mailto:hello@oneuptime.com)
-
-¡Agradecemos los comentarios para mejorar esta integración!
+:::cards
+- [Trabajar con OneUptime desde GitHub](/docs/ai/github-app): Los comandos que se le pueden dar a la app, y quién puede darlos.
+- [Tareas de corrección](/docs/ai/ai-agent): Cómo abre el agente de IA pull requests de corrección.
+- [Acceso a red privada](/docs/self-hosted/private-network-access): Deja que los flujos de trabajo y los webhooks lleguen a herramientas internas.
+:::

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### 新增您的 Twilio 帳戶
 
-前往 **專案設定** > **通知** > **通知設定** 。在 **Twilio 設定** 卡片中點選 **Create Twilio Config** ，然後填寫表單：
+前往 **專案設定** > **通知** > **通知設定** 。在 **Twilio 設定** 卡片中點選 **建立Twilio 設定** ，然後填寫表單：
 
 - **名稱** 和 **描述** ：帳戶的用途，例如「客服專線」。
 - **Twilio 帳戶 SID** ：來自 Twilio Console。以 `AC` 開頭。
