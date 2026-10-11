@@ -5,23 +5,23 @@ Planlegg CPU, minne og disk for en selvdriftet OneUptime på Kubernetes med [Hel
 > [!IMPORTANT]
 > Chartets standardverdier er ikke en produksjonsdimensjonering. Tjenestene det kjører som standard, setter **ingen CPU- eller minne-requests eller -grenser**, og PostgreSQL og ClickHouse får små volumer på **25 Gi**, slik at chartet kan installeres på alle clustere. For alt utover en prøve setter du selv ressurser og lagring, med tallene på denne siden.
 
-Bruker du heller Docker Compose-installasjonen på én server? Den er enklere å dimensjonere: Se [kravene](/docs/installation/docker-compose#requirements) (16 GB minne, 8 kjerner og 400 GB disk anbefales).
+Bruker du heller Docker Compose-installasjonen på én server? Den er enklere å dimensjonere: Se [kravene](/docs/installation/docker-compose#krav) (16 GB minne, 8 kjerner og 400 GB disk anbefales).
 
 :::cards
-- [Hva som får hvert datalager til å vokse](#what-drives-each-datastore): Tre lagre som vokser med tre ulike ting.
-- [Startnivåer](#starting-tiers): Små, mellomstore og store utgangspunkt.
-- [Høy tilgjengelighet](#high-availability): Replikaer og failover for hvert datalager.
-- [Oppbevaring](#retention-and-how-it-affects-storage): Innstillingen som ganger disken din.
+- [Hva som får hvert datalager til å vokse](#hva-som-får-hvert-datalager-til-å-vokse): Tre lagre som vokser med tre ulike ting.
+- [Startnivåer](#startnivåer): Små, mellomstore og store utgangspunkt.
+- [Høy tilgjengelighet](#høy-tilgjengelighet): Replikaer og failover for hvert datalager.
+- [Oppbevaring](#oppbevaring-og-hvordan-den-påvirker-lagringen): Innstillingen som ganger disken din.
 :::
 
 ## Dimensjoner installasjonen din
 
 :::steps
 1. Finn ut hvor mye telemetri du sender: antall GB logger, metrikker og traces per dag. Mål det på en liten installasjon hvis du kan.
-2. Bestem hvor mange dager du vil beholde det. Oppbevaringen ganger ClickHouse-disken (se [Oppbevaring](#retention-and-how-it-affects-storage)).
-3. Regn ut ClickHouse-disken med [lagringsformelen](#storage-formula), og deretter PostgreSQL og Valkey ut fra deres egne avsnitt.
-4. Velg [startnivået](#starting-tiers) som ligger nærmest tallene dine, og sett CPU, minne og lagring for det i Helm-values.
-5. Slå på [høy tilgjengelighet](#high-availability) for datalagrene som trenger det, og følg deretter den faktiske bruken og juster.
+2. Bestem hvor mange dager du vil beholde det. Oppbevaringen ganger ClickHouse-disken (se [Oppbevaring](#oppbevaring-og-hvordan-den-påvirker-lagringen)).
+3. Regn ut ClickHouse-disken med [lagringsformelen](#lagringsformel), og deretter PostgreSQL og Valkey ut fra deres egne avsnitt.
+4. Velg [startnivået](#startnivåer) som ligger nærmest tallene dine, og sett CPU, minne og lagring for det i Helm-values.
+5. Slå på [høy tilgjengelighet](#høy-tilgjengelighet) for datalagrene som trenger det, og følg deretter den faktiske bruken og juster.
 :::
 
 ## Hva som får hvert datalager til å vokse

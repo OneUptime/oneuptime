@@ -5,23 +5,23 @@ Pianifica CPU, memoria e disco per un OneUptime self-hosted su Kubernetes con il
 > [!IMPORTANT]
 > I valori predefiniti del chart non sono un dimensionamento di produzione. I servizi che esegue per impostazione predefinita non impostano **nessuna richiesta né limite di CPU o memoria**, e PostgreSQL e ClickHouse ricevono piccoli volumi da **25 Gi**, perché il chart si installi su qualsiasi cluster. Per qualsiasi uso oltre una prova, imposta tu risorse e storage, con i numeri di questa pagina.
 
-Usi invece l'installazione Docker Compose su un singolo server? Il suo dimensionamento è più semplice: consulta i [requisiti](/docs/installation/docker-compose#requirements) (consigliati 16 GB di memoria, 8 core e 400 GB di disco).
+Usi invece l'installazione Docker Compose su un singolo server? Il suo dimensionamento è più semplice: consulta i [requisiti](/docs/installation/docker-compose#requisiti) (consigliati 16 GB di memoria, 8 core e 400 GB di disco).
 
 :::cards
-- [Cosa fa crescere ogni archivio](#what-drives-each-datastore): Tre archivi che crescono con tre cose diverse.
-- [Livelli di partenza](#starting-tiers): Punti di partenza piccolo, medio e grande.
-- [Alta disponibilità](#high-availability): Repliche e failover per ogni archivio.
-- [Conservazione](#retention-and-how-it-affects-storage): L'impostazione che moltiplica il tuo disco.
+- [Cosa fa crescere ogni archivio](#cosa-fa-crescere-ogni-archivio): Tre archivi che crescono con tre cose diverse.
+- [Livelli di partenza](#livelli-di-partenza): Punti di partenza piccolo, medio e grande.
+- [Alta disponibilità](#alta-disponibilità): Repliche e failover per ogni archivio.
+- [Conservazione](#la-conservazione-e-il-suo-effetto-sullo-storage): L'impostazione che moltiplica il tuo disco.
 :::
 
 ## Dimensiona la tua installazione
 
 :::steps
 1. Scopri quanta telemetria invii: i GB di log, metriche e tracce al giorno. Misurala su una piccola installazione, se puoi.
-2. Decidi per quanti giorni conservarla. La conservazione moltiplica il disco di ClickHouse (vedi [Conservazione](#retention-and-how-it-affects-storage)).
-3. Calcola il disco di ClickHouse con la [formula di storage](#storage-formula), poi quello di PostgreSQL e di Valkey dalle loro sezioni.
-4. Scegli il [livello di partenza](#starting-tiers) più vicino ai tuoi numeri e imposta CPU, memoria e storage nei tuoi valori Helm.
-5. Attiva l'[alta disponibilità](#high-availability) per gli archivi che ne hanno bisogno, poi osserva l'uso reale e correggi.
+2. Decidi per quanti giorni conservarla. La conservazione moltiplica il disco di ClickHouse (vedi [Conservazione](#la-conservazione-e-il-suo-effetto-sullo-storage)).
+3. Calcola il disco di ClickHouse con la [formula di storage](#formula-di-storage), poi quello di PostgreSQL e di Valkey dalle loro sezioni.
+4. Scegli il [livello di partenza](#livelli-di-partenza) più vicino ai tuoi numeri e imposta CPU, memoria e storage nei tuoi valori Helm.
+5. Attiva l'[alta disponibilità](#alta-disponibilità) per gli archivi che ne hanno bisogno, poi osserva l'uso reale e correggi.
 :::
 
 ## Cosa fa crescere ogni archivio

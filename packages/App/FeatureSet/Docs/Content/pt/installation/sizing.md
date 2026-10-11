@@ -5,23 +5,23 @@ Planeje CPU, memória e disco para um OneUptime auto-hospedado no Kubernetes com
 > [!IMPORTANT]
 > Os padrões do chart não são um dimensionamento de produção. Os serviços que ele executa por padrão não definem **nenhuma solicitação nem limite de CPU ou memória**, e o PostgreSQL e o ClickHouse recebem volumes pequenos de **25 Gi**, para que o chart se instale em qualquer cluster. Para qualquer coisa além de um teste, defina você mesmo os recursos e o armazenamento, com os números desta página.
 
-Usa em vez disso a instalação com Docker Compose em um único servidor? O dimensionamento dela é mais simples: veja os [requisitos](/docs/installation/docker-compose#requirements) (recomendados 16 GB de memória, 8 núcleos e 400 GB de disco).
+Usa em vez disso a instalação com Docker Compose em um único servidor? O dimensionamento dela é mais simples: veja os [requisitos](/docs/installation/docker-compose#requisitos) (recomendados 16 GB de memória, 8 núcleos e 400 GB de disco).
 
 :::cards
-- [O que faz cada armazenamento crescer](#what-drives-each-datastore): Três armazenamentos que crescem com três coisas diferentes.
-- [Camadas iniciais](#starting-tiers): Pontos de partida pequeno, médio e grande.
-- [Alta disponibilidade](#high-availability): Réplicas e failover para cada armazenamento.
-- [Retenção](#retention-and-how-it-affects-storage): A configuração que multiplica o seu disco.
+- [O que faz cada armazenamento crescer](#o-que-faz-cada-armazenamento-crescer): Três armazenamentos que crescem com três coisas diferentes.
+- [Camadas iniciais](#camadas-iniciais): Pontos de partida pequeno, médio e grande.
+- [Alta disponibilidade](#alta-disponibilidade): Réplicas e failover para cada armazenamento.
+- [Retenção](#a-retenção-e-como-ela-afeta-o-armazenamento): A configuração que multiplica o seu disco.
 :::
 
 ## Dimensione a sua instalação
 
 :::steps
 1. Descubra quanta telemetria você envia: os GB de logs, métricas e traces por dia. Meça-a numa instalação pequena, se puder.
-2. Decida por quantos dias mantê-la. A retenção multiplica o disco do ClickHouse (veja [Retenção](#retention-and-how-it-affects-storage)).
-3. Calcule o disco do ClickHouse com a [fórmula de armazenamento](#storage-formula) e depois o do PostgreSQL e o do Valkey nas seções deles.
-4. Escolha a [camada inicial](#starting-tiers) mais próxima dos seus números e defina CPU, memória e armazenamento dela nos seus values do Helm.
-5. Ative a [alta disponibilidade](#high-availability) nos armazenamentos que precisarem dela e depois acompanhe o uso real e ajuste.
+2. Decida por quantos dias mantê-la. A retenção multiplica o disco do ClickHouse (veja [Retenção](#a-retenção-e-como-ela-afeta-o-armazenamento)).
+3. Calcule o disco do ClickHouse com a [fórmula de armazenamento](#fórmula-de-armazenamento) e depois o do PostgreSQL e o do Valkey nas seções deles.
+4. Escolha a [camada inicial](#camadas-iniciais) mais próxima dos seus números e defina CPU, memória e armazenamento dela nos seus values do Helm.
+5. Ative a [alta disponibilidade](#alta-disponibilidade) nos armazenamentos que precisarem dela e depois acompanhe o uso real e ajuste.
 :::
 
 ## O que faz cada armazenamento crescer

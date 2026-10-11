@@ -5,23 +5,23 @@ Planifiez le CPU, la mémoire et le disque d'un OneUptime auto-hébergé sur Kub
 > [!IMPORTANT]
 > Les valeurs par défaut du chart ne sont pas un dimensionnement de production. Les services qu'il exécute par défaut ne définissent **aucune requête ni limite de CPU ou de mémoire**, et PostgreSQL et ClickHouse reçoivent de petits volumes de **25 Gi**, pour que le chart s'installe sur n'importe quel cluster. Au-delà d'un essai, définissez vous-même les ressources et le stockage, avec les chiffres de cette page.
 
-Vous utilisez plutôt l'installation Docker Compose sur un seul serveur ? Son dimensionnement est plus simple : voir les [exigences](/docs/installation/docker-compose#requirements) (16 Go de mémoire, 8 cœurs et 400 Go de disque recommandés).
+Vous utilisez plutôt l'installation Docker Compose sur un seul serveur ? Son dimensionnement est plus simple : voir les [exigences](/docs/installation/docker-compose#prérequis) (16 Go de mémoire, 8 cœurs et 400 Go de disque recommandés).
 
 :::cards
-- [Ce qui fait grossir chaque base](#what-drives-each-datastore): Trois bases qui grossissent avec trois choses différentes.
-- [Paliers de départ](#starting-tiers): Des points de départ petit, moyen et grand.
-- [Haute disponibilité](#high-availability): Réplicas et basculement pour chaque base.
-- [Rétention](#retention-and-how-it-affects-storage): Le paramètre qui multiplie votre disque.
+- [Ce qui fait grossir chaque base](#ce-qui-fait-grossir-chaque-base): Trois bases qui grossissent avec trois choses différentes.
+- [Paliers de départ](#paliers-de-départ): Des points de départ petit, moyen et grand.
+- [Haute disponibilité](#haute-disponibilité): Réplicas et basculement pour chaque base.
+- [Rétention](#la-rétention-et-son-effet-sur-le-stockage): Le paramètre qui multiplie votre disque.
 :::
 
 ## Dimensionner votre installation
 
 :::steps
 1. Déterminez la quantité de télémétrie que vous envoyez : les Go de journaux, de métriques et de traces par jour. Mesurez-la sur une petite installation si vous le pouvez.
-2. Décidez combien de jours la conserver. La rétention multiplie le disque de ClickHouse (voir [Rétention](#retention-and-how-it-affects-storage)).
-3. Calculez le disque de ClickHouse avec la [formule de stockage](#storage-formula), puis ceux de PostgreSQL et de Valkey d'après leurs propres sections.
-4. Choisissez le [palier de départ](#starting-tiers) le plus proche de vos chiffres et définissez son CPU, sa mémoire et son stockage dans vos valeurs Helm.
-5. Activez la [haute disponibilité](#high-availability) pour les bases qui en ont besoin, puis surveillez l'utilisation réelle et ajustez.
+2. Décidez combien de jours la conserver. La rétention multiplie le disque de ClickHouse (voir [Rétention](#la-rétention-et-son-effet-sur-le-stockage)).
+3. Calculez le disque de ClickHouse avec la [formule de stockage](#formule-de-stockage), puis ceux de PostgreSQL et de Valkey d'après leurs propres sections.
+4. Choisissez le [palier de départ](#paliers-de-départ) le plus proche de vos chiffres et définissez son CPU, sa mémoire et son stockage dans vos valeurs Helm.
+5. Activez la [haute disponibilité](#haute-disponibilité) pour les bases qui en ont besoin, puis surveillez l'utilisation réelle et ajustez.
 :::
 
 ## Ce qui fait grossir chaque base

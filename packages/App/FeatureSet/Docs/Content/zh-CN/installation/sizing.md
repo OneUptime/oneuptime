@@ -5,23 +5,23 @@
 > [!IMPORTANT]
 > Chart 的默认值不是生产规模。它默认运行的服务 **没有设置任何 CPU 或内存的请求与限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小卷，这样 Chart 才能安装到任何集群上。只要不是试用，就请按照本页的数字自行设置资源和存储。
 
-如果您改用单台服务器上的 Docker Compose 安装，确定规模会更简单：请参阅[要求](/docs/installation/docker-compose#requirements)（推荐 16 GB 内存、8 核和 400 GB 磁盘）。
+如果您改用单台服务器上的 Docker Compose 安装，确定规模会更简单：请参阅[要求](/docs/installation/docker-compose#要求)（推荐 16 GB 内存、8 核和 400 GB 磁盘）。
 
 :::cards
-- [每个数据存储的增长因素](#what-drives-each-datastore): 三个存储随三种不同的东西增长。
-- [起步档位](#starting-tiers): 小、中、大三种起点。
-- [高可用](#high-availability): 每个数据存储的副本与故障转移。
-- [保留期](#retention-and-how-it-affects-storage): 让磁盘成倍增长的设置。
+- [每个数据存储的增长因素](#每个数据存储的增长因素): 三个存储随三种不同的东西增长。
+- [起步档位](#起步档位): 小、中、大三种起点。
+- [高可用](#高可用): 每个数据存储的副本与故障转移。
+- [保留期](#保留期及其对存储的影响): 让磁盘成倍增长的设置。
 :::
 
 ## 确定安装规模
 
 :::steps
 1. 弄清您发送多少遥测数据：每天多少 GB 的日志、指标和追踪。如果可以，在一个小型安装上测量。
-2. 决定保留多少天。保留期会让 ClickHouse 的磁盘成倍增长（参见[保留期](#retention-and-how-it-affects-storage)）。
-3. 用[存储公式](#storage-formula)算出 ClickHouse 的磁盘，再根据各自的章节算出 PostgreSQL 和 Valkey 的磁盘。
-4. 选择最接近您数据的[起步档位](#starting-tiers)，在 Helm values 中设置它的 CPU、内存和存储。
-5. 为需要的数据存储开启[高可用](#high-availability)，然后观察实际用量并调整。
+2. 决定保留多少天。保留期会让 ClickHouse 的磁盘成倍增长（参见[保留期](#保留期及其对存储的影响)）。
+3. 用[存储公式](#存储公式)算出 ClickHouse 的磁盘，再根据各自的章节算出 PostgreSQL 和 Valkey 的磁盘。
+4. 选择最接近您数据的[起步档位](#起步档位)，在 Helm values 中设置它的 CPU、内存和存储。
+5. 为需要的数据存储开启[高可用](#高可用)，然后观察实际用量并调整。
 :::
 
 ## 每个数据存储的增长因素

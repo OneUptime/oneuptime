@@ -5,23 +5,23 @@ Planen Sie CPU, Arbeitsspeicher und Festplatte für ein selbst gehostetes OneUpt
 > [!IMPORTANT]
 > Die Standardwerte des Charts sind keine Produktionsdimensionierung. Die Dienste, die es standardmäßig ausführt, setzen **keine CPU- oder Speicher-Requests oder -Limits**, und PostgreSQL und ClickHouse erhalten kleine Volumes von **25 Gi**, damit sich das Chart auf jedem Cluster installieren lässt. Für alles, was über einen Test hinausgeht, legen Sie Ressourcen und Speicher selbst fest, mit den Zahlen auf dieser Seite.
 
-Sie nutzen stattdessen die Docker-Compose-Installation auf einem einzelnen Server? Deren Dimensionierung ist einfacher: Siehe die [Anforderungen](/docs/installation/docker-compose#requirements) (empfohlen sind 16 GB Arbeitsspeicher, 8 Kerne und 400 GB Festplatte).
+Sie nutzen stattdessen die Docker-Compose-Installation auf einem einzelnen Server? Deren Dimensionierung ist einfacher: Siehe die [Anforderungen](/docs/installation/docker-compose#anforderungen) (empfohlen sind 16 GB Arbeitsspeicher, 8 Kerne und 400 GB Festplatte).
 
 :::cards
-- [Was jeden Datenspeicher wachsen lässt](#what-drives-each-datastore): Drei Speicher, die mit drei verschiedenen Dingen wachsen.
-- [Startstufen](#starting-tiers): Kleine, mittlere und große Ausgangspunkte.
-- [Hochverfügbarkeit](#high-availability): Replikate und Failover für jeden Datenspeicher.
-- [Aufbewahrung](#retention-and-how-it-affects-storage): Die Einstellung, die Ihren Speicherbedarf vervielfacht.
+- [Was jeden Datenspeicher wachsen lässt](#was-jeden-datenspeicher-wachsen-lässt): Drei Speicher, die mit drei verschiedenen Dingen wachsen.
+- [Startstufen](#startstufen): Kleine, mittlere und große Ausgangspunkte.
+- [Hochverfügbarkeit](#hochverfügbarkeit): Replikate und Failover für jeden Datenspeicher.
+- [Aufbewahrung](#aufbewahrung-und-ihr-einfluss-auf-den-speicher): Die Einstellung, die Ihren Speicherbedarf vervielfacht.
 :::
 
 ## Ihre Installation dimensionieren
 
 :::steps
 1. Ermitteln Sie, wie viel Telemetrie Sie senden: die GB an Logs, Metriken und Traces pro Tag. Messen Sie sie nach Möglichkeit an einer kleinen Installation.
-2. Legen Sie fest, wie viele Tage Sie sie aufbewahren. Die Aufbewahrung vervielfacht den Festplattenbedarf von ClickHouse (siehe [Aufbewahrung](#retention-and-how-it-affects-storage)).
-3. Berechnen Sie den Festplattenbedarf von ClickHouse mit der [Speicherformel](#storage-formula), dann den von PostgreSQL und Valkey aus deren eigenen Abschnitten.
-4. Wählen Sie die [Startstufe](#starting-tiers), die Ihren Zahlen am nächsten kommt, und legen Sie deren CPU, Arbeitsspeicher und Speicher in Ihren Helm-Values fest.
-5. Schalten Sie [Hochverfügbarkeit](#high-availability) für die Datenspeicher ein, die sie brauchen, beobachten Sie dann die tatsächliche Nutzung und passen Sie an.
+2. Legen Sie fest, wie viele Tage Sie sie aufbewahren. Die Aufbewahrung vervielfacht den Festplattenbedarf von ClickHouse (siehe [Aufbewahrung](#aufbewahrung-und-ihr-einfluss-auf-den-speicher)).
+3. Berechnen Sie den Festplattenbedarf von ClickHouse mit der [Speicherformel](#speicherformel), dann den von PostgreSQL und Valkey aus deren eigenen Abschnitten.
+4. Wählen Sie die [Startstufe](#startstufen), die Ihren Zahlen am nächsten kommt, und legen Sie deren CPU, Arbeitsspeicher und Speicher in Ihren Helm-Values fest.
+5. Schalten Sie [Hochverfügbarkeit](#hochverfügbarkeit) für die Datenspeicher ein, die sie brauchen, beobachten Sie dann die tatsächliche Nutzung und passen Sie an.
 :::
 
 ## Was jeden Datenspeicher wachsen lässt

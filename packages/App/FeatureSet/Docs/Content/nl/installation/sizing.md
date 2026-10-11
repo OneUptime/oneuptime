@@ -5,23 +5,23 @@ Plan de CPU, het geheugen en de schijf voor een zelf gehoste OneUptime op Kubern
 > [!IMPORTANT]
 > De standaardwaarden van de chart zijn geen productiedimensionering. De diensten die hij standaard draait, stellen **geen CPU- of geheugenrequests of -limieten** in, en PostgreSQL en ClickHouse krijgen kleine volumes van **25 Gi**, zodat de chart op elk cluster te installeren is. Stel voor alles wat verder gaat dan een proef zelf resources en opslag in, met de cijfers op deze pagina.
 
-Gebruikt u in plaats daarvan de Docker Compose-installatie op één server? Die is eenvoudiger te dimensioneren: zie de [vereisten](/docs/installation/docker-compose#requirements) (aanbevolen: 16 GB geheugen, 8 cores en 400 GB schijf).
+Gebruikt u in plaats daarvan de Docker Compose-installatie op één server? Die is eenvoudiger te dimensioneren: zie de [vereisten](/docs/installation/docker-compose#vereisten) (aanbevolen: 16 GB geheugen, 8 cores en 400 GB schijf).
 
 :::cards
-- [Wat elke gegevensopslag laat groeien](#what-drives-each-datastore): Drie opslagen die met drie verschillende dingen groeien.
-- [Startniveaus](#starting-tiers): Kleine, middelgrote en grote vertrekpunten.
-- [Hoge beschikbaarheid](#high-availability): Replica's en failover voor elke gegevensopslag.
-- [Bewaartermijn](#retention-and-how-it-affects-storage): De instelling die uw schijf vermenigvuldigt.
+- [Wat elke gegevensopslag laat groeien](#wat-elke-gegevensopslag-laat-groeien): Drie opslagen die met drie verschillende dingen groeien.
+- [Startniveaus](#startniveaus): Kleine, middelgrote en grote vertrekpunten.
+- [Hoge beschikbaarheid](#hoge-beschikbaarheid): Replica's en failover voor elke gegevensopslag.
+- [Bewaartermijn](#de-bewaartermijn-en-het-effect-op-opslag): De instelling die uw schijf vermenigvuldigt.
 :::
 
 ## Uw installatie dimensioneren
 
 :::steps
 1. Zoek uit hoeveel telemetrie u verstuurt: de GB aan logs, metrics en traces per dag. Meet het op een kleine installatie als dat kan.
-2. Bepaal hoeveel dagen u het bewaart. De bewaartermijn vermenigvuldigt de schijf van ClickHouse (zie [Bewaartermijn](#retention-and-how-it-affects-storage)).
-3. Bereken de schijf van ClickHouse met de [opslagformule](#storage-formula), en die van PostgreSQL en Valkey uit hun eigen secties.
-4. Kies het [startniveau](#starting-tiers) dat het dichtst bij uw cijfers ligt, en stel de CPU, het geheugen en de opslag daarvan in uw Helm-values in.
-5. Zet [hoge beschikbaarheid](#high-availability) aan voor de gegevensopslagen die het nodig hebben, volg daarna het echte gebruik en stel bij.
+2. Bepaal hoeveel dagen u het bewaart. De bewaartermijn vermenigvuldigt de schijf van ClickHouse (zie [Bewaartermijn](#de-bewaartermijn-en-het-effect-op-opslag)).
+3. Bereken de schijf van ClickHouse met de [opslagformule](#opslagformule), en die van PostgreSQL en Valkey uit hun eigen secties.
+4. Kies het [startniveau](#startniveaus) dat het dichtst bij uw cijfers ligt, en stel de CPU, het geheugen en de opslag daarvan in uw Helm-values in.
+5. Zet [hoge beschikbaarheid](#hoge-beschikbaarheid) aan voor de gegevensopslagen die het nodig hebben, volg daarna het echte gebruik en stel bij.
 :::
 
 ## Wat elke gegevensopslag laat groeien

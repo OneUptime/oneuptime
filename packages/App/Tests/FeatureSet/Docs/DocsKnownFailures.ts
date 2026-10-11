@@ -148,9 +148,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
   },
-  "installation/docker-compose": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "installation/upgrading": {
     sameShape: EVERY_TRANSLATION,
   },

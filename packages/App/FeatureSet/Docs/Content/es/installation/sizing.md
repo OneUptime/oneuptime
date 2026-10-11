@@ -5,23 +5,23 @@ Planifica la CPU, la memoria y el disco de un OneUptime autoalojado en Kubernete
 > [!IMPORTANT]
 > Los valores predeterminados del chart no son un dimensionamiento de producción. Los servicios que ejecuta de forma predeterminada no fijan **ninguna solicitud ni límite de CPU o memoria**, y PostgreSQL y ClickHouse reciben volúmenes pequeños de **25 Gi**, para que el chart se instale en cualquier clúster. Para algo más que una prueba, define tú mismo los recursos y el almacenamiento con las cifras de esta página.
 
-¿Usas en cambio la instalación con Docker Compose en un solo servidor? Su dimensionamiento es más sencillo: consulta los [requisitos](/docs/installation/docker-compose#requirements) (se recomiendan 16 GB de memoria, 8 núcleos y 400 GB de disco).
+¿Usas en cambio la instalación con Docker Compose en un solo servidor? Su dimensionamiento es más sencillo: consulta los [requisitos](/docs/installation/docker-compose#requisitos) (se recomiendan 16 GB de memoria, 8 núcleos y 400 GB de disco).
 
 :::cards
-- [Qué hace crecer cada almacén de datos](#what-drives-each-datastore): Tres almacenes que crecen con tres cosas distintas.
-- [Niveles iniciales](#starting-tiers): Puntos de partida pequeño, mediano y grande.
-- [Alta disponibilidad](#high-availability): Réplicas y conmutación por error para cada almacén.
-- [Retención](#retention-and-how-it-affects-storage): El ajuste que multiplica tu disco.
+- [Qué hace crecer cada almacén de datos](#qué-hace-crecer-cada-almacén-de-datos): Tres almacenes que crecen con tres cosas distintas.
+- [Niveles iniciales](#niveles-iniciales): Puntos de partida pequeño, mediano y grande.
+- [Alta disponibilidad](#alta-disponibilidad): Réplicas y conmutación por error para cada almacén.
+- [Retención](#la-retención-y-cómo-afecta-al-almacenamiento): El ajuste que multiplica tu disco.
 :::
 
 ## Dimensiona tu instalación
 
 :::steps
 1. Averigua cuánta telemetría envías: los GB de registros, métricas y trazas al día. Mídela en una instalación pequeña si puedes.
-2. Decide cuántos días conservarla. La retención multiplica el disco de ClickHouse (consulta [Retención](#retention-and-how-it-affects-storage)).
-3. Calcula el disco de ClickHouse con la [fórmula de almacenamiento](#storage-formula), y luego el de PostgreSQL y el de Valkey a partir de sus propias secciones.
-4. Elige el [nivel inicial](#starting-tiers) más cercano a tus cifras y fija su CPU, memoria y almacenamiento en tus valores de Helm.
-5. Activa la [alta disponibilidad](#high-availability) en los almacenes que la necesiten, y luego observa el uso real y ajusta.
+2. Decide cuántos días conservarla. La retención multiplica el disco de ClickHouse (consulta [Retención](#la-retención-y-cómo-afecta-al-almacenamiento)).
+3. Calcula el disco de ClickHouse con la [fórmula de almacenamiento](#fórmula-de-almacenamiento), y luego el de PostgreSQL y el de Valkey a partir de sus propias secciones.
+4. Elige el [nivel inicial](#niveles-iniciales) más cercano a tus cifras y fija su CPU, memoria y almacenamiento en tus valores de Helm.
+5. Activa la [alta disponibilidad](#alta-disponibilidad) en los almacenes que la necesiten, y luego observa el uso real y ajusta.
 :::
 
 ## Qué hace crecer cada almacén de datos
