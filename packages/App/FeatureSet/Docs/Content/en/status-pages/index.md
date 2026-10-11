@@ -121,7 +121,7 @@ The public page is its own app, with a small set of routes:
 - `/rss` — the feed.
 - `/login`, `/sso` and `/master-password` — only relevant on a private page.
 
-The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Logout** item.
+The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.
 
 A single incident, episode, announcement or scheduled event opens only when the page would list it, whatever its history window: a private incident or episode, one hidden from status pages, a scheduled event hidden from status pages, or an announcement scheduled for later is not found by its link either.
 
