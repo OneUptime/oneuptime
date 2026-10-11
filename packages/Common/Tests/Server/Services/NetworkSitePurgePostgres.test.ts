@@ -125,8 +125,40 @@ const purgeUntilDone: (
   return removed;
 };
 
-describe("The purge the Postgres suite runs", () => {
-  test("is the retention job's own call and loop", () => {
+describe("The retention job the Postgres suite stands in for", () => {
+  /*
+   * The job walks the services in the order Services/Index.ts lists them. A
+   * site type a deleted site still names waits for that site's purge, so
+   * with sites first, a type whose last site goes is purged the same day
+   * rather than the next.
+   */
+  test("purges network sites before network site types", () => {
+    const index: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, "packages/Common/Server/Services/Index.ts"),
+      "utf8",
+    );
+    const start: number = index.indexOf(
+      "const services: Array<BaseService> = [",
+    );
+    const end: number = index.indexOf("\n];", start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    const entries: Array<string> = index
+      .slice(start, end)
+      .split("\n")
+      .map((line: string): string => {
+        return line.trim().replace(/,$/, "");
+      });
+    const sites: number = entries.indexOf("NetworkSiteService");
+    const siteTypes: number = entries.indexOf("NetworkSiteTypeService");
+
+    expect(sites).toBeGreaterThan(-1);
+    expect(siteTypes).toBeGreaterThan(sites);
+  });
+
+  test("calls the job's own purge and loop", () => {
     const job: string = fs.readFileSync(
       path.join(REPOSITORY_ROOT, RETENTION_JOB_PATH),
       "utf8",
@@ -658,6 +690,82 @@ describePostgres(
       expect(siteTypes.has(deletedParent)).toBe(false);
       expect(siteTypes.has(parentOfLive)).toBe(true);
       expect(siteTypes.has(parentOfRecent)).toBe(true);
+    });
+
+    test("refuses in words, not at the foreign key, a delete of a site whose only child was deleted before", async () => {
+      const projectId: string = await addProject();
+      const parent: string = await addSite({ projectId });
+      const deletedChild: string = await addSite({
+        projectId,
+        parentId: parent,
+        deletedDaysAgo: 2,
+      });
+      const refusal: string =
+        "A network site with child sites cannot be deleted. Move or delete its child sites first.";
+
+      // A person's delete, and a hard delete named by id and project.
+      await expect(
+        NetworkSiteService.deleteOneBy({
+          query: { _id: parent },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(refusal);
+      await expect(
+        NetworkSiteService.hardDeleteBy({
+          query: { _id: parent, projectId: new ObjectID(projectId) },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(refusal);
+
+      const sites: Set<string> = await idsIn("NetworkSite");
+      expect(sites.has(parent)).toBe(true);
+      expect(sites.has(deletedChild)).toBe(true);
+      expect(locksHeld.size).toBe(0);
+    });
+
+    test("refuses in words, not at the foreign key, a delete of a site type only deleted rows still name", async () => {
+      const projectId: string = await addProject();
+      const usedByDeletedSite: string = await addSiteType({ projectId });
+      await addSite({
+        projectId,
+        siteTypeId: usedByDeletedSite,
+        deletedDaysAgo: 2,
+      });
+      const parentOfDeletedType: string = await addSiteType({ projectId });
+      await addSiteType({
+        projectId,
+        parentId: parentOfDeletedType,
+        deletedDaysAgo: 2,
+      });
+
+      await expect(
+        NetworkSiteTypeService.deleteOneBy({
+          query: { _id: usedByDeletedSite },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        "A Network Site Type cannot be deleted while Network Sites use it.",
+      );
+      await expect(
+        NetworkSiteTypeService.hardDeleteBy({
+          query: {
+            _id: parentOfDeletedType,
+            projectId: new ObjectID(projectId),
+          },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        "A Network Site Type cannot be deleted while child types use it as their parent.",
+      );
+
+      const siteTypes: Set<string> = await idsIn("NetworkSiteType");
+      expect(siteTypes.has(usedByDeletedSite)).toBe(true);
+      expect(siteTypes.has(parentOfDeletedType)).toBe(true);
+      expect(locksHeld.size).toBe(0);
     });
 
     test("purges a deleted site type once the deleted sites that use it are purged, in either order", async () => {

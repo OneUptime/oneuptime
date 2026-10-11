@@ -3431,21 +3431,50 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
     expect(findBySpy.mock.calls[0]![0].query.projectId).toBeUndefined();
   });
 
+  /*
+   * The two reads the delete hook makes through DatabaseService._findBy, by
+   * what each asks: the child rows that name a site (read with the rows
+   * deleted before), or the sites the caller may delete.
+   */
+  function stubHookReads(data: {
+    deletable: Array<NetworkSite>;
+    children: Array<NetworkSite>;
+  }): jest.SpyInstance {
+    return stubRowsCallerMayDelete(
+      NetworkSiteService,
+      (read: { query: Record<string, unknown> }) => {
+        return read.query["parentSiteId"] ? data.children : data.deletable;
+      },
+    );
+  }
+
+  // The hook's read of child rows, and whether it counted the deleted ones.
+  function childRead(readsSpy: jest.SpyInstance): Array<any> {
+    const call: Array<any> | undefined = readsSpy.mock.calls.find(
+      (candidate: Array<any>): boolean => {
+        return Boolean(candidate[0].query?.parentSiteId);
+      },
+    );
+
+    expect(call).toBeDefined();
+    return call!;
+  }
+
   it("rejects deleting a site while a direct child would survive", async () => {
-    // The caller may delete the district.
-    stubRowsCallerMayDelete(NetworkSiteService, () => {
-      return [deletedDistrict()];
-    });
-    const findBySpy: jest.SpyInstance = jest
-      .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValueOnce([deletedDistrict()])
-      .mockResolvedValueOnce([
+    // The caller may delete the district; the store under it stays.
+    const readsSpy: jest.SpyInstance = stubHookReads({
+      deletable: [deletedDistrict()],
+      children: [
         fakeSite({
           id: STORE_ID,
           _id: STORE_ID.toString(),
           parentSiteId: DISTRICT_ID,
         }),
-      ]);
+      ],
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict()]);
 
     await expect(
       (NetworkSiteService as any).onBeforeDelete({
@@ -3458,7 +3487,9 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
       "A network site with child sites cannot be deleted. Move or delete its child sites first.",
     );
 
-    const childQuery: any = findBySpy.mock.calls[1]![0].query;
+    const [childFindBy, withDeleted] = childRead(readsSpy) as [any, boolean];
+    expect(withDeleted).toBe(true);
+    const childQuery: any = childFindBy.query;
     expect(childQuery.projectId).toBeInstanceOf(FindOperator);
     expect(
       Object.values(
@@ -3470,6 +3501,35 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
     ).toContain(PROJECT_ID.toString());
   });
 
+  it("rejects deleting a site whose only child was deleted before: its row still names the site", async () => {
+    stubHookReads({
+      deletable: [deletedDistrict()],
+      children: [
+        fakeSite({
+          id: STORE_ID,
+          _id: STORE_ID.toString(),
+          parentSiteId: DISTRICT_ID,
+          deletedAt: new Date(),
+        }),
+      ],
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict()]);
+
+    // Refused here, in words, rather than by the foreign key at the DELETE.
+    await expect(
+      (NetworkSiteService as any).onBeforeDelete({
+        query: { _id: DISTRICT_ID.toString() },
+        limit: 1,
+        skip: 0,
+        props: { tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<NetworkSite>),
+    ).rejects.toThrow(
+      "A network site with child sites cannot be deleted. Move or delete its child sites first.",
+    );
+  });
+
   it("allows a bulk delete when every direct child is in the delete set", async () => {
     const store: NetworkSite = fakeSite({
       id: STORE_ID,
@@ -3477,14 +3537,14 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
       parentSiteId: DISTRICT_ID,
       materializedPath: STORE_PATH,
     });
-    // The caller may delete both sites.
-    stubRowsCallerMayDelete(NetworkSiteService, () => {
-      return [deletedDistrict(), store];
+    // The caller may delete both sites; the store is the district's only child.
+    stubHookReads({
+      deletable: [deletedDistrict(), store],
+      children: [store],
     });
     jest
       .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValueOnce([deletedDistrict(), store])
-      .mockResolvedValueOnce([store]);
+      .mockResolvedValueOnce([deletedDistrict(), store]);
 
     const result: OnDelete<NetworkSite> = await (
       NetworkSiteService as any
@@ -3508,14 +3568,10 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
       parentSiteId: DISTRICT_ID,
       materializedPath: STORE_PATH,
     });
-    // The caller may delete both sites.
-    stubRowsCallerMayDelete(NetworkSiteService, () => {
-      return [deletedDistrict(), store];
-    });
-    jest
-      .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValueOnce([deletedDistrict(), store])
-      .mockResolvedValueOnce([
+    // The caller may delete both sites; the unit under the store stays.
+    stubHookReads({
+      deletable: [deletedDistrict(), store],
+      children: [
         store,
         fakeSite({
           id: UNIT_ID,
@@ -3523,7 +3579,11 @@ describe("NetworkSiteService delete hooks (orphan repair)", () => {
           parentSiteId: STORE_ID,
           materializedPath: UNIT_PATH,
         }),
-      ]);
+      ],
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([deletedDistrict(), store]);
 
     await expect(
       (NetworkSiteService as any).onBeforeDelete({
@@ -4199,16 +4259,22 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
   });
 });
 
-describe("NetworkSiteService.findSitesNamingSiteTypes", () => {
+describe("NetworkSiteService.findSiteTypeIdsNamedBySites", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("reads the sites that name the types, deleted sites included, in the window asked for", async () => {
-    const site: NetworkSite = fakeSite({
-      networkSiteTypeId: CHILD_SITE_TYPE_ID,
-    });
-    const readSpy: jest.SpyInstance = jest
+  // The type ids each read of site rows asks about, as strings.
+  function askedTypeIds(call: Array<any>): Array<string> {
+    return Object.values(
+      call[0].query.networkSiteTypeId.objectLiteralParameters,
+    )[0] as Array<string>;
+  }
+
+  function stubSiteReads(
+    answer: (askedTypeIds: Array<string>) => Array<NetworkSite>,
+  ): jest.SpyInstance {
+    return jest
       .spyOn(
         NetworkSiteService as unknown as {
           _findBy: (
@@ -4218,31 +4284,128 @@ describe("NetworkSiteService.findSitesNamingSiteTypes", () => {
         },
         "_findBy",
       )
-      .mockResolvedValue([site]);
+      .mockImplementation(async (findBy: any) => {
+        return answer(askedTypeIds([findBy]));
+      });
+  }
+
+  it("answers the types a site row names, the deleted sites included, and only their ids", async () => {
+    const readSpy: jest.SpyInstance = stubSiteReads(() => {
+      return [
+        fakeSite({ networkSiteTypeId: CHILD_SITE_TYPE_ID }),
+        fakeSite({
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+          deletedAt: new Date(),
+        }),
+      ];
+    });
     const findBySpy: jest.SpyInstance = jest.spyOn(
       NetworkSiteService,
       "findBy",
     );
 
-    await expect(
-      NetworkSiteService.findSitesNamingSiteTypes({
-        networkSiteTypeIds: [CHILD_SITE_TYPE_ID, ROOT_SITE_TYPE_ID],
-        limit: 1000,
-        skip: 2000,
-      }),
-    ).resolves.toEqual([site]);
+    const named: Set<string> =
+      await NetworkSiteService.findSiteTypeIdsNamedBySites([
+        CHILD_SITE_TYPE_ID,
+        ROOT_SITE_TYPE_ID,
+      ]);
 
+    expect([...named]).toEqual([CHILD_SITE_TYPE_ID.toString()]);
     expect(findBySpy).not.toHaveBeenCalled();
     expect(readSpy).toHaveBeenCalledTimes(1);
 
     const [read, withDeleted] = readSpy.mock.calls[0]! as [any, boolean];
     expect(withDeleted).toBe(true);
-    expect(
-      Object.values(read.query.networkSiteTypeId.objectLiteralParameters)[0],
-    ).toEqual([CHILD_SITE_TYPE_ID.toString(), ROOT_SITE_TYPE_ID.toString()]);
+    expect(askedTypeIds(readSpy.mock.calls[0]!)).toEqual([
+      CHILD_SITE_TYPE_ID.toString(),
+      ROOT_SITE_TYPE_ID.toString(),
+    ]);
     expect(read.select).toEqual({ networkSiteTypeId: true });
-    expect(read.limit).toBe(1000);
-    expect(read.skip).toBe(2000);
+    expect(read.skip).toBe(0);
     expect(read.props).toEqual({ isRoot: true });
+  });
+
+  it("asks again only about the types no site has named yet, so a widely used type costs one read", async () => {
+    // A thousand sites of the child type fill the first page; the root type is named after them.
+    const fullPage: Array<NetworkSite> = Array.from(
+      { length: 1000 },
+      (): NetworkSite => {
+        return fakeSite({ networkSiteTypeId: CHILD_SITE_TYPE_ID });
+      },
+    );
+    const readSpy: jest.SpyInstance = stubSiteReads(
+      (asked: Array<string>): Array<NetworkSite> => {
+        if (asked.includes(CHILD_SITE_TYPE_ID.toString())) {
+          return fullPage;
+        }
+
+        return [fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })];
+      },
+    );
+
+    const named: Set<string> =
+      await NetworkSiteService.findSiteTypeIdsNamedBySites([
+        CHILD_SITE_TYPE_ID,
+        ROOT_SITE_TYPE_ID,
+        GRANDCHILD_SITE_TYPE_ID,
+      ]);
+
+    expect([...named].sort()).toEqual(
+      [CHILD_SITE_TYPE_ID.toString(), ROOT_SITE_TYPE_ID.toString()].sort(),
+    );
+    expect(
+      readSpy.mock.calls.map((call: Array<any>): Array<string> => {
+        return askedTypeIds(call);
+      }),
+    ).toEqual([
+      [
+        CHILD_SITE_TYPE_ID.toString(),
+        ROOT_SITE_TYPE_ID.toString(),
+        GRANDCHILD_SITE_TYPE_ID.toString(),
+      ],
+      [ROOT_SITE_TYPE_ID.toString(), GRANDCHILD_SITE_TYPE_ID.toString()],
+    ]);
+  });
+
+  it("answers no type, in one read, when no site row names any", async () => {
+    const readSpy: jest.SpyInstance = stubSiteReads(() => {
+      return [];
+    });
+
+    await expect(
+      NetworkSiteService.findSiteTypeIdsNamedBySites([ROOT_SITE_TYPE_ID]),
+    ).resolves.toEqual(new Set<string>());
+    expect(readSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads nothing for no types", async () => {
+    const readSpy: jest.SpyInstance = stubSiteReads(() => {
+      return [];
+    });
+
+    await expect(
+      NetworkSiteService.findSiteTypeIdsNamedBySites([]),
+    ).resolves.toEqual(new Set<string>());
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  it("never calls a type unused without proof: a full page naming nothing new answers the rest as named", async () => {
+    // A page that cannot happen - full, yet naming no type it was asked about - must not loop or under-answer.
+    const readSpy: jest.SpyInstance = stubSiteReads(() => {
+      return Array.from({ length: 1000 }, (): NetworkSite => {
+        return fakeSite({ networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID });
+      });
+    });
+
+    const named: Set<string> =
+      await NetworkSiteService.findSiteTypeIdsNamedBySites([
+        ROOT_SITE_TYPE_ID,
+        CHILD_SITE_TYPE_ID,
+      ]);
+
+    expect([...named].sort()).toEqual(
+      [ROOT_SITE_TYPE_ID.toString(), CHILD_SITE_TYPE_ID.toString()].sort(),
+    );
+    expect(readSpy).toHaveBeenCalledTimes(1);
   });
 });

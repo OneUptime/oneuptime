@@ -389,28 +389,14 @@ export class Service extends ProjectReferencesService<Model> {
           childSkip += childTypes.length;
         }
 
-        let siteSkip: number = 0;
+        // Named by any site row still in the table, the deleted ones included.
+        const typeIdsNamedBySites: Set<string> =
+          await NetworkSiteService.findSiteTypeIdsNamedBySites(
+            candidateIdBatch,
+          );
 
-        while (candidateIdBatch.length > 0) {
-          // Every site row still in the table, the deleted ones included.
-          const sites: Array<NetworkSite> =
-            await NetworkSiteService.findSitesNamingSiteTypes({
-              networkSiteTypeIds: candidateIdBatch,
-              limit: REFERENCE_VALIDATION_BATCH_SIZE,
-              skip: siteSkip,
-            });
-
-          for (const site of sites) {
-            if (site.networkSiteTypeId) {
-              referencedTypeIds.add(normalizeId(site.networkSiteTypeId));
-            }
-          }
-
-          if (sites.length < REFERENCE_VALIDATION_BATCH_SIZE) {
-            break;
-          }
-
-          siteSkip += sites.length;
+        for (const typeId of typeIdsNamedBySites) {
+          referencedTypeIds.add(typeId);
         }
       }
 
@@ -1284,8 +1270,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
       let childSkip: number = 0;
 
+      /*
+       * Child types and sites deleted before count too: their rows still
+       * name this type, and the foreign keys (NO ACTION) would refuse the
+       * DELETE anyway. Refusing here says why, as the retention purge's own
+       * in-use check (hardDeleteClosedLeafBatch) counts the same rows.
+       */
       while (true) {
-        const childTypes: Array<Model> = await this.findBy({
+        const childTypes: Array<Model> = await this.findByWithDeleted({
           query: {
             parentNetworkSiteTypeId: QueryHelper.any(parentIdBatch),
             ...(projectIdStrings.length > 0
@@ -1316,15 +1308,10 @@ export class Service extends ProjectReferencesService<Model> {
         childSkip += childTypes.length;
       }
 
-      const site: NetworkSite | null = await NetworkSiteService.findOneBy({
-        query: {
-          networkSiteTypeId: QueryHelper.any(parentIdBatch),
-        },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+      const typeIdsNamedBySites: Set<string> =
+        await NetworkSiteService.findSiteTypeIdsNamedBySites(parentIdBatch);
 
-      if (site) {
+      if (typeIdsNamedBySites.size > 0) {
         throw new BadDataException(
           "A Network Site Type cannot be deleted while Network Sites use it.",
         );

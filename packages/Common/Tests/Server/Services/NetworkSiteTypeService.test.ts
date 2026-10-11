@@ -52,7 +52,7 @@ jest.mock("../../../Server/Services/NetworkSiteService", () => {
     default: {
       findBy: jest.fn(),
       findOneBy: jest.fn(),
-      findSitesNamingSiteTypes: jest.fn(),
+      findSiteTypeIdsNamedBySites: jest.fn(),
     },
   };
 });
@@ -928,29 +928,69 @@ describe("NetworkSiteTypeService deletion guards", () => {
 
   it("rejects deleting a type used by a Network Site", async () => {
     mockDeleteTarget();
-    jest
-      .spyOn(NetworkSiteService, "findOneBy")
-      .mockResolvedValue(makeSite({ index: 1, typeIndex: 2 }));
+    // A site row names the type (findSiteTypeIdsNamedBySites counts deleted sites too).
+    const sitesSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>([typeId(2).toString()]));
 
     await expect(
       (NetworkSiteTypeService as any).onBeforeDelete(deleteBy()),
     ).rejects.toThrow("while Network Sites use it");
+    expect(sitesSpy).toHaveBeenCalledWith([typeId(2).toString()]);
+  });
+
+  it("rejects deleting a type whose only child type was deleted before: its row still names the type", async () => {
+    const deletedChild: NetworkSiteType = makeType({
+      index: 3,
+      parentIndex: 2,
+    });
+    deletedChild.deletedAt = new Date();
+    jest
+      .spyOn(NetworkSiteTypeService, "findBy")
+      .mockImplementation(async (findBy: any) => {
+        return findBy.query?._id ? [makeType({ index: 2 })] : [deletedChild];
+      });
+    jest
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>());
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeDelete(deleteBy()),
+    ).rejects.toThrow("while child types use it as their parent");
+
+    // The child types were read with the rows deleted before.
+    const childTypeRead: Array<any> | undefined = (
+      jest.spyOn(
+        NetworkSiteTypeService as unknown as { _findBy: () => unknown },
+        "_findBy",
+      ).mock.calls as Array<Array<any>>
+    ).find((call: Array<any>): boolean => {
+      return Boolean(call[0].query?.parentNetworkSiteTypeId);
+    });
+    expect(childTypeRead?.[1]).toBe(true);
   });
 
   it("allows deleting an unused leaf type", async () => {
-    const findBySpy: jest.SpyInstance = mockDeleteTarget();
-    jest.spyOn(NetworkSiteService, "findOneBy").mockResolvedValue(null);
+    mockDeleteTarget();
+    jest
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>());
 
     await expect(
       (NetworkSiteTypeService as any).onBeforeDelete(deleteBy()),
     ).resolves.toBeDefined();
 
-    const childQueryCall: Array<any> = findBySpy.mock.calls.find(
-      (call: Array<any>) => {
-        return Boolean(call[0].query?.parentNetworkSiteTypeId);
-      },
-    )!;
+    // The child types are read in the deleted types' projects, deleted rows included.
+    const childQueryCall: Array<any> = (
+      jest.spyOn(
+        NetworkSiteTypeService as unknown as { _findBy: () => unknown },
+        "_findBy",
+      ).mock.calls as Array<Array<any>>
+    ).find((call: Array<any>): boolean => {
+      return Boolean(call[0].query?.parentNetworkSiteTypeId);
+    })!;
     expect(childQueryCall[0].query.projectId).toBeDefined();
+    expect(childQueryCall[1]).toBe(true);
   });
 
   it("allows a parent and its child type to be deleted together", async () => {
@@ -963,7 +1003,9 @@ describe("NetworkSiteTypeService deletion guards", () => {
           ? [child]
           : [parent, child];
       });
-    jest.spyOn(NetworkSiteService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>());
     const input: DeleteBy<NetworkSiteType> = deleteBy();
     input.query = { projectId: PROJECT_ID };
     input.limit = new PositiveNumber(2);
@@ -979,7 +1021,9 @@ describe("NetworkSiteTypeService deletion guards", () => {
       .mockImplementation(async (findBy: any) => {
         return findBy.query?._id ? [makeType({ index: 2 })] : [];
       });
-    jest.spyOn(NetworkSiteService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>());
     const input: DeleteBy<NetworkSiteType> = deleteBy();
     input.limit = new PositiveNumber(7);
     input.skip = new PositiveNumber(3);
@@ -1311,9 +1355,10 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
       candidates: [parent, leaf, usedLeaf],
       childTypes: [leaf],
     });
+    // A site row, deleted or not, still names the used leaf.
     const sitesSpy: jest.SpyInstance = jest
-      .spyOn(NetworkSiteService, "findSitesNamingSiteTypes")
-      .mockResolvedValue([makeSite({ index: 1, typeIndex: 4 })]);
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>([typeId(4).toString()]));
     const runExclusiveSpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteHierarchyLock, "runExclusive")
       .mockImplementation(runThroughLock as never);
@@ -1349,11 +1394,7 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
       expect(call[1]).toBe(true);
     }
 
-    expect(sitesSpy).toHaveBeenCalledWith({
-      networkSiteTypeIds: [parent.id, leaf.id, usedLeaf.id],
-      limit: 1000,
-      skip: 0,
-    });
+    expect(sitesSpy).toHaveBeenCalledWith([parent.id, leaf.id, usedLeaf.id]);
 
     expect(runExclusiveSpy).toHaveBeenCalledWith(
       expect.objectContaining({ projectIds: [PROJECT_ID] }),
@@ -1375,17 +1416,15 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
       parentIndex: 3,
     });
     deletedChildType.deletedAt = new Date();
-    const deletedSite: NetworkSite = makeSite({ index: 1, typeIndex: 2 });
-    deletedSite.deletedAt = new Date();
 
-    // Neither the child type nor the site is a candidate (deleted too recently to purge).
+    // Neither the child type nor the site naming the other type is a candidate (deleted too recently to purge).
     stubPurgeReads({
       candidates: [namedBySite, namedByChildType],
       childTypes: [deletedChildType],
     });
     jest
-      .spyOn(NetworkSiteService, "findSitesNamingSiteTypes")
-      .mockResolvedValue([deletedSite]);
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>([namedBySite.id!.toString()]));
     const runExclusiveSpy: jest.SpyInstance = jest.spyOn(
       NetworkSiteHierarchyLock,
       "runExclusive",
@@ -1409,28 +1448,17 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
     expect(superHardDeleteSpy).not.toHaveBeenCalled();
   });
 
-  it("pages through every site row that names a candidate before calling a type unused", async () => {
-    const pagedType: NetworkSiteType = makeType({ index: 2 });
+  it("asks the site service once for the whole candidate batch, and purges only the types no site row names", async () => {
+    const namedType: NetworkSiteType = makeType({ index: 2 });
     const unusedType: NetworkSiteType = makeType({ index: 3 });
 
     stubPurgeReads({
-      candidates: [pagedType, unusedType],
+      candidates: [namedType, unusedType],
       childTypes: [],
     });
-    // A full first page names only another type; the type is named on the second page.
-    const fullPage: Array<NetworkSite> = Array.from(
-      { length: 1000 },
-      (_unused: unknown, index: number): NetworkSite => {
-        return makeSite({ index: index + 100, typeIndex: 9 });
-      },
-    );
     const sitesSpy: jest.SpyInstance = jest
-      .spyOn(NetworkSiteService, "findSitesNamingSiteTypes")
-      .mockImplementation(async (data: { skip: number }) => {
-        return data.skip === 0
-          ? fullPage
-          : [makeSite({ index: 1, typeIndex: 2 })];
-      });
+      .spyOn(NetworkSiteService, "findSiteTypeIdsNamedBySites")
+      .mockResolvedValue(new Set<string>([namedType.id!.toString()]));
     jest
       .spyOn(NetworkSiteHierarchyLock, "runExclusive")
       .mockImplementation(runThroughLock as never);
@@ -1447,11 +1475,8 @@ describe("NetworkSiteTypeService hierarchy mutation lock", () => {
       } as DeleteBy<NetworkSiteType>),
     ).resolves.toBe(1);
 
-    expect(
-      sitesSpy.mock.calls.map((call: Array<any>): number => {
-        return call[0].skip;
-      }),
-    ).toEqual([0, 1000]);
+    expect(sitesSpy).toHaveBeenCalledTimes(1);
+    expect(sitesSpy).toHaveBeenCalledWith([namedType.id, unusedType.id]);
     expect(
       Object.values(
         superHardDeleteSpy.mock.calls[0]![0].query._id.objectLiteralParameters,
