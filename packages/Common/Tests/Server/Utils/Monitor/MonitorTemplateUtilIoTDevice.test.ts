@@ -117,9 +117,11 @@ describe("MonitorTemplateUtil - IoT Device monitors get the metric variables", (
   });
 
   test.each(
-    getAllIoTAlertTemplates().map((template: IoTAlertTemplate) => {
-      return [template.id, template];
-    }),
+    getAllIoTAlertTemplates().map(
+      (template: IoTAlertTemplate): [string, IoTAlertTemplate] => {
+        return [template.id, template];
+      },
+    ),
   )(
     "every IoT alert template's metric reaches {{metricName}} (%s)",
     (_id: string, template: IoTAlertTemplate) => {

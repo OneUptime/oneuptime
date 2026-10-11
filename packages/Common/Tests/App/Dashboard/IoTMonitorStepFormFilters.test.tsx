@@ -15,6 +15,7 @@ import MonitorStepIoTMonitor, {
   IoTResourceScope,
   MonitorStepIoTMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepIoTMonitor";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The IoT Device monitor form's resource filters, and what it says about
@@ -36,7 +37,7 @@ const FORM_SOURCE_PATH: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm.tsx",
 );
 
-const getListMock: jest.Mock = jest.fn();
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -72,6 +73,15 @@ function config(
     fleetIdentifier: "warehouse-sensors",
     resourceFilters,
   };
+}
+
+// The value the form handed onChange last.
+function lastChange(onChange: MockFunction): MonitorStepIoTMonitor {
+  const calls: Array<Array<unknown>> = onChange.mock.calls;
+
+  expect(calls.length).toBeGreaterThan(0);
+
+  return calls[calls.length - 1]![0] as MonitorStepIoTMonitor;
 }
 
 function openAdvanced(
@@ -123,8 +133,7 @@ describe("IoT Device monitor form - resource filters", () => {
   });
 
   test("setting a Device ID keeps the Device Type and Resource Scope already set", () => {
-    const onChange: jest.Mock<(value: MonitorStepIoTMonitor) => void> =
-      jest.fn<(value: MonitorStepIoTMonitor) => void>();
+    const onChange: MockFunction = getJestMockFunction();
 
     openAdvanced(
       { deviceType: "sensor", scope: IoTResourceScope.Device },
@@ -135,8 +144,7 @@ describe("IoT Device monitor form - resource filters", () => {
       target: { value: "sensor-001" },
     });
 
-    expect(onChange).toHaveBeenCalled();
-    expect(onChange.mock.calls.at(-1)![0].resourceFilters).toEqual({
+    expect(lastChange(onChange).resourceFilters).toEqual({
       deviceType: "sensor",
       scope: IoTResourceScope.Device,
       deviceId: "sensor-001",
@@ -144,8 +152,7 @@ describe("IoT Device monitor form - resource filters", () => {
   });
 
   test("clearing the Device ID leaves the other filters set", () => {
-    const onChange: jest.Mock<(value: MonitorStepIoTMonitor) => void> =
-      jest.fn<(value: MonitorStepIoTMonitor) => void>();
+    const onChange: MockFunction = getJestMockFunction();
 
     openAdvanced({ deviceId: "sensor-001", deviceType: "sensor" }, onChange);
 
@@ -153,7 +160,7 @@ describe("IoT Device monitor form - resource filters", () => {
       target: { value: "" },
     });
 
-    expect(onChange.mock.calls.at(-1)![0].resourceFilters).toEqual({
+    expect(lastChange(onChange).resourceFilters).toEqual({
       deviceId: undefined,
       deviceType: "sensor",
     });
