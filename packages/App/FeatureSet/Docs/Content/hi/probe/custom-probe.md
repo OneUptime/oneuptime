@@ -1,62 +1,156 @@
-## Custom Probes सेट अप करना
+# कस्टम प्रोब
 
-आप अपने private network में resources या firewall के पीछे resources monitor करने के लिए अपने network के अंदर custom probes सेट अप कर सकते हैं।
+कस्टम प्रोब एक छोटा एजेंट है जिसे आप अपने नेटवर्क के अंदर चलाते हैं। यह उन मॉनिटर की जाँच करता है जिनमें आप इसे जोड़ते हैं, जैसे आंतरिक वेबसाइटें, API और आपके फ़ायरवॉल के पीछे के सर्वर, और नतीजे OneUptime को भेजता है। यह केवल HTTPS पर बाहर की ओर कनेक्शन खोलता है, इसलिए आपके नेटवर्क में किसी चीज़ को इंटरनेट से आने वाले कनेक्शन स्वीकार नहीं करने पड़ते।
 
-शुरू करने के लिए आपको अपने मॉनिटर > सेटिंग्स > प्रोब में एक custom probe बनाना होगा। एक बार जब आप OneUptime Dashboard पर custom probe बना लें। आपके पास `PROBE_ID` और `PROBE_KEY` होने चाहिए।
+:::cards
+- [यह कैसे काम करता है](#यह-कैसे-काम-करता-है): प्रोब क्या करता है, और OneUptime को कैसे पता चलता है कि वह चल रहा है।
+- [प्रोब इंस्टॉल करें](#प्रोब-इंस्टॉल-करें): इसे OneUptime में बनाएँ, Docker, Docker Compose या Kubernetes से चलाएँ, और मॉनिटर में जोड़ें।
+- [एनवायरनमेंट वेरिएबल](#एनवायरनमेंट-वेरिएबल): प्रोब जो भी सेटिंग पढ़ता है, उसके डिफ़ॉल्ट मान के साथ।
+- [डिस्कनेक्ट हुए प्रोब की जाँच](#डिस्कनेक्ट-हुए-प्रोब-की-जाँच): पता करें कि प्रोब के OneUptime को भेजे अनुरोध कहाँ रुकते हैं।
+:::
 
-### Probe Deploy करें
+## यह कैसे काम करता है
 
-#### Docker
-
-probe चलाने के लिए, सुनिश्चित करें कि docker installed है। आप custom probe निम्नानुसार चला सकते हैं:
-
+```mermaid title="कस्टम प्रोब क्या करता है"
+sequenceDiagram
+    participant P as कस्टम प्रोब
+    participant S as आपकी सेवाएँ
+    participant O as OneUptime
+    P->>O: मैं चल रहा हूँ (हर मिनट)
+    P->>O: मेरे कौन-से मॉनिटर जाँच के लिए तैयार हैं?
+    O-->>P: जाँचने वाले मॉनिटर
+    P->>S: हर एक की जाँच
+    P->>O: नतीजे भेजें
+    O->>O: स्थिति अपडेट करें, इंसिडेंट या अलर्ट खोलें
 ```
-docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -d oneuptime/probe:release
+
+- **प्रोब बाहर की ओर कनेक्ट करता है।** हर अनुरोध प्रोब से `ONEUPTIME_URL` तक HTTPS पर जाता है। आपके नेटवर्क के बाहर से किसी चीज़ को प्रोब तक पहुँचने की ज़रूरत नहीं है।
+- **यह केवल अपने मॉनिटर की जाँच करता है।** प्रोब OneUptime से उन मॉनिटर के बारे में पूछता है जिनमें वह जोड़ा गया है, हर एक की जाँच तब करता है जब उसका समय होता है, और नतीजा वापस भेजता है। मॉनिटर की स्थिति बदलती है या नहीं, यह OneUptime नतीजों के आधार पर तय करता है।
+- **OneUptime देखता रहता है कि यह चल रहा है।** प्रोब का हर अनुरोध उसके चलने का संकेत माना जाता है, और प्रोब हर मिनट कम से कम एक अनुरोध भेजता है। लगभग तीन मिनट तक कोई अनुरोध न आने पर प्रोब **डिस्कनेक्टेड** दिखाता है, और उसके मालिकों को सूचना जाती है। जिस प्रोब का कोई मालिक नहीं होता, वह प्रोजेक्ट के मालिकों को सूचित करता है।
+
+## शुरू करने से पहले
+
+- **OneUptime Cloud पर Growth प्लान।** प्रोब बनाने के लिए इसकी ज़रूरत होती है। सेल्फ़-होस्टेड इंस्टॉलेशन पर कोई प्लान सीमा नहीं होती।
+- **प्रोब बनाने की अनुमति।** यह प्रोजेक्ट के मालिकों और एडमिन के पास होती है, और उन सदस्यों के पास भी जिनकी भूमिका प्रोब बनाने देती है।
+- **उस नेटवर्क में एक मशीन जिसकी आप निगरानी करना चाहते हैं।** इसमें Docker, Docker Compose या Kubernetes, प्रोब जिन सेवाओं की जाँच करेगा उन तक रूट, और `ONEUPTIME_URL` तक बाहर जाने वाला HTTPS होना चाहिए।
+
+## प्रोब इंस्टॉल करें
+
+:::steps
+### प्रोब बनाएँ
+
+**मॉनिटर → सेटिंग्स → प्रोब** खोलें और **प्रोब बनाएँ** पर क्लिक करें। इसे **नाम** और **विवरण** दें: दोनों ज़रूरी हैं। **और फ़ील्ड** में **प्रोब लोगो** , **नए मॉनिटर पर स्वचालित रूप से मॉनिटरिंग सक्षम करें** , जो आपके बनाए हर नए मॉनिटर के लिए इस प्रोब को चुनता है, और **लेबल** हैं।
+
+### इसकी ID और कुंजी कॉपी करें
+
+कनेक्ट करने के लिए प्रोब को अपनी ID और कुंजी चाहिए। इन्हें कॉपी करने के लिए **कस्टम प्रोब** टेबल में प्रोब का मेन्यू खोलें और **आईडी और कुंजी दिखाएँ** चुनें। जो भी टेबल देख सकता है वह प्रोब की ID कॉपी कर सकता है; इसकी कुंजी केवल प्रोजेक्ट के मालिकों और एडमिन को दिखती है, जिन्हें **आईडी और कुंजी दिखाएँ** दिखता है जबकि बाकी लोगों को **ID दिखाएँ** दिखता है।
+
+प्रोजेक्ट के मालिक और एडमिन प्रोब पर क्लिक भी कर सकते हैं: उसके पेज पर **Set up your Custom Probe** कार्ड Docker कमांड दिखाता है जिसमें ID और कुंजी पहले से भरी होती हैं।
+
+### प्रोब चलाएँ
+
+इसे चुनी हुई मशीन पर प्रोब की ID और कुंजी के साथ चलाएँ। अगर आप OneUptime खुद होस्ट करते हैं, तो `ONEUPTIME_URL` को `https://oneuptime.com` की जगह अपने इंस्टॉलेशन के URL पर सेट करें।
+
+:::tabs
+@tab Docker
+```bash
+docker run --name oneuptime-probe --network host \
+  -e PROBE_KEY=<probe-key> \
+  -e PROBE_ID=<probe-id> \
+  -e ONEUPTIME_URL=https://oneuptime.com \
+  -d oneuptime/probe:release
+```
+@tab Docker Compose
+```yaml title="docker-compose.yml"
+services:
+  oneuptime-probe:
+    image: oneuptime/probe:release
+    container_name: oneuptime-probe
+    environment:
+      - PROBE_KEY=<probe-key>
+      - PROBE_ID=<probe-id>
+      - ONEUPTIME_URL=https://oneuptime.com
+    network_mode: host
+    restart: always
 ```
 
-यदि आप OneUptime self-host कर रहे हैं, तो `ONEUPTIME_URL` को अपने custom self-hosted instance में बदल सकते हैं।
-
-##### Proxy Configuration
-
-यदि आपके probe को OneUptime तक पहुंचने या external resources monitor करने के लिए proxy server से गुजरना पड़ता है, तो आप इन environment variables का उपयोग करके proxy settings configure कर सकते हैं:
-
+फिर इसे `docker compose up -d` से शुरू करें।
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oneuptime-probe
+spec:
+  selector:
+    matchLabels:
+      app: oneuptime-probe
+  template:
+    metadata:
+      labels:
+        app: oneuptime-probe
+    spec:
+      containers:
+        - name: oneuptime-probe
+          image: oneuptime/probe:release
+          env:
+            - name: PROBE_KEY
+              value: "<probe-key>"
+            - name: PROBE_ID
+              value: "<probe-id>"
+            - name: ONEUPTIME_URL
+              value: "https://oneuptime.com"
 ```
-# HTTP proxy के लिए
+
+फिर इसे `kubectl apply -f oneuptime-probe.yaml` से लागू करें।
+:::
+
+होस्ट नेटवर्किंग (`--network host`, `network_mode: host`) से प्रोब होस्ट का अपना नेटवर्क इस्तेमाल करता है, IPv6 समेत। होस्ट नेटवर्किंग के बिना चलाने से पहले [IPv6 गंतव्यों की निगरानी](#ipv6-गंतव्यों-की-निगरानी) पढ़ें।
+
+### जाँचें कि यह कनेक्ट होता है
+
+एक-दो मिनट में **कस्टम प्रोब** टेबल में प्रोब की **स्थिति** **कनेक्टेड** दिखाती है। अगर यह अब भी **डिस्कनेक्टेड** है, तो प्रोब के लॉग में कारण लिखा होता है: [डिस्कनेक्ट हुए प्रोब की जाँच](#डिस्कनेक्ट-हुए-प्रोब-की-जाँच) देखें।
+
+### प्रोब से किसी मॉनिटर की जाँच करवाएँ
+
+प्रोब केवल उन मॉनिटर की जाँच करता है जिनमें वह जोड़ा गया है। नया मॉनिटर अपने प्रोब **मॉनिटर बनाएं** के **प्रोब और अंतराल** चरण में चुनता है। पहले से मौजूद मॉनिटर के लिए उसे खोलें और **कॉन्फ़िगरेशन → प्रोब और अंतराल** पर जाएँ। इस पेज पर तीन कार्ड हैं:
+
+- **निगरानी अंतराल** : मॉनिटर का हर प्रोब कितनी बार इसकी जाँच करता है। अंतराल चुनें और वह तुरंत सेव हो जाता है। Synthetic, Custom Code और SSL प्रमाणपत्र मॉनिटर के लिए 5 मिनट या उससे लंबे अंतराल दिए जाते हैं; जो मॉनिटर पहले से छोटे अंतराल पर है, या API से तय किए गए शेड्यूल पर है, वह उसे बनाए रखता है और सूची में दिखाता है।
+- **प्रोब** : **प्रोब जोड़ें** पर क्लिक करें और अपना कस्टम प्रोब चुनें। किसी प्रोब से इस मॉनिटर की जाँच बंद करवाने के लिए, पंक्ति के मेन्यू में **संपादित करें** से उसे बंद करें, या पंक्ति हटा दें।
+- **प्रोब सहमति** : मॉनिटर की स्थिति बदलने से पहले उसके कितने प्रोब को एक ही नतीजा दिखना चाहिए, जो वाक्य "जब ... प्रोब सहमत हों, तब इस मॉनिटर की स्थिति बदलें" में भरा जाता है। सभी के लिए बॉक्स खाली छोड़ें। केवल चालू और कनेक्टेड प्रोब हिस्सा लेते हैं, इसलिए उससे बड़ी संख्या का मतलब भी सभी है। बॉक्स छोड़ने या **Enter** दबाने पर संख्या सेव होती है।
+
+जिन मॉनिटर की जाँच प्रोब नहीं करते (मैनुअल, आने वाले अनुरोध, आने वाला ईमेल, सर्वर, नेटवर्क डिवाइस और टेलीमेट्री मॉनिटर), उनका प्रोब और अंतराल पेज नहीं होता।
+:::
+
+> [!TIP]
+> जिस प्रोब को निजी पतों की जाँच करनी है, जैसे `http://10.0.0.5/health`, उसे `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` चाहिए। जब तक आप अनुमति नहीं देते, प्रोब निजी पतों को अस्वीकार करते हैं: [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access) देखें।
+
+## प्रॉक्सी से कनेक्ट करना
+
+अगर प्रोब को OneUptime या जिन साइटों की वह जाँच करता है उन तक पहुँचने के लिए प्रॉक्सी से गुज़रना पड़ता है, तो उसे प्रॉक्सी का पता दें:
+
+| वेरिएबल | यह क्या करता है |
+| --- | --- |
+| `HTTPS_PROXY_URL` | HTTPS पतों के लिए प्रॉक्सी, जिनमें OneUptime खुद और ज़्यादातर साइटें शामिल हैं। |
+| `HTTP_PROXY_URL` | सादे HTTP पतों के लिए प्रॉक्सी। |
+| `NO_PROXY` | वे होस्ट जिन तक प्रोब सीधे पहुँचता है, कॉमा से अलग किए हुए। |
+
+प्रॉक्सी का पता `http://proxy.example.com:8080` लिखें, या `http://username:password@proxy.example.com:8080` जब वह यूज़रनेम और पासवर्ड माँगे। ज़्यादातर प्रॉक्सी दोनों तरह के पते संभालते हैं, इसलिए दोनों वेरिएबल को एक ही URL पर सेट करें।
+
+:::tabs
+@tab Docker
+```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
   -e PROBE_ID=<probe-id> \
   -e ONEUPTIME_URL=https://oneuptime.com \
   -e HTTP_PROXY_URL=http://proxy.example.com:8080 \
-  -e NO_PROXY=localhost,.internal.example.com \
-  -d oneuptime/probe:release
-
-# HTTPS proxy के लिए
-docker run --name oneuptime-probe --network host \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
   -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \
   -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
-
-# proxy authentication के साथ
-docker run --name oneuptime-probe --network host \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \
-  -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \
-  -e NO_PROXY=localhost,.internal.example.com \
-  -d oneuptime/probe:release
 ```
-
-#### Docker Compose
-
-आप docker-compose का उपयोग करके भी probe चला सकते हैं। निम्नलिखित content के साथ एक `docker-compose.yml` फ़ाइल बनाएं:
-
-```yaml
-version: "3"
-
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -65,50 +159,14 @@ services:
       - PROBE_KEY=<probe-key>
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
-    network_mode: host
-    restart: always
-```
-
-##### Proxy Configuration के साथ
-
-यदि आपको proxy server उपयोग करने की आवश्यकता है, तो आप proxy environment variables जोड़ सकते हैं:
-
-```yaml
-version: "3"
-
-services:
-  oneuptime-probe:
-    image: oneuptime/probe:release
-    container_name: oneuptime-probe
-    environment:
-      - PROBE_KEY=<probe-key>
-      - PROBE_ID=<probe-id>
-      - ONEUPTIME_URL=https://oneuptime.com
-      # Proxy configuration (वैकल्पिक)
       - HTTP_PROXY_URL=http://proxy.example.com:8080
       - HTTPS_PROXY_URL=http://proxy.example.com:8080
       - NO_PROXY=localhost,.internal.example.com
-      # Authentication के साथ proxy के लिए:
-      # - HTTP_PROXY_URL=http://username:password@proxy.example.com:8080
-      # - HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080
-      # - NO_PROXY=localhost,.internal.example.com
     network_mode: host
     restart: always
 ```
-
-फिर निम्नलिखित command चलाएं:
-
-```
-docker compose up -d
-```
-
-यदि आप OneUptime self-host कर रहे हैं, तो `ONEUPTIME_URL` को अपने custom self-hosted instance में बदल सकते हैं।
-
-#### Kubernetes
-
-आप Kubernetes का उपयोग करके भी probe चला सकते हैं। निम्नलिखित content के साथ एक `oneuptime-probe.yaml` फ़ाइल बनाएं:
-
-```yaml
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -132,37 +190,6 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
-```
-
-##### Proxy Configuration के साथ
-
-यदि आपको proxy server उपयोग करने की आवश्यकता है, तो आप proxy environment variables जोड़ सकते हैं:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: oneuptime-probe
-spec:
-  selector:
-    matchLabels:
-      app: oneuptime-probe
-  template:
-    metadata:
-      labels:
-        app: oneuptime-probe
-    spec:
-      containers:
-        - name: oneuptime-probe
-          image: oneuptime/probe:release
-          env:
-            - name: PROBE_KEY
-              value: "<probe-key>"
-            - name: PROBE_ID
-              value: "<probe-id>"
-            - name: ONEUPTIME_URL
-              value: "https://oneuptime.com"
-            # Proxy configuration (वैकल्पिक)
             - name: HTTP_PROXY_URL
               value: "http://proxy.example.com:8080"
             - name: HTTPS_PROXY_URL
@@ -170,91 +197,209 @@ spec:
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
 ```
+:::
 
-फिर निम्नलिखित command चलाएं:
+प्रॉक्सी से क्या गुज़रता है:
+
+- **प्रोब के OneUptime को भेजे अपने अनुरोध।**
+- **मॉनिटर की HTTP जाँचें** : Website, API, External Status Page, Custom Code, SSL प्रमाणपत्र, Synthetic और डोमेन मॉनिटर। SSL प्रमाणपत्र और Synthetic मॉनिटर `HTTPS_PROXY_URL` इस्तेमाल करते हैं, या केवल वही सेट होने पर `HTTP_PROXY_URL`।
+- **बाकी जाँचें नहीं।** Ping, Port, DNS, SNMP और दूसरी जाँचें जो HTTP नहीं हैं, सीधे कनेक्ट करती हैं।
+
+`NO_PROXY` की प्रविष्टि एक होस्ट नाम (`api.internal`), उसके नीचे के हर नाम के लिए आगे बिंदु या `*.` वाला डोमेन (`.internal.example.com`), इनमें से किसी के साथ `:port`, या सब कुछ के लिए `*` होती है। IP रेंज नहीं पढ़ी जातीं: हर पता अलग से लिखें। छोटे अक्षरों वाले नाम `http_proxy`, `https_proxy` और `no_proxy`, और `HTTP_PROXY` तथा `HTTPS_PROXY` भी काम करते हैं।
+
+## IPv6 गंतव्यों की निगरानी
+
+प्रोब किसी IPv6 गंतव्य की निगरानी तभी कर सकता है जब उसके अपने नेटवर्क में IPv6 हो:
+
+- **`--network host` के साथ Docker, या `network_mode: host` के साथ Compose** (ऊपर के सेटअप): प्रोब होस्ट का नेटवर्क साझा करता है, इसलिए उसके पास IPv6 ठीक तभी होता है जब होस्ट के पास हो।
+- **Docker ब्रिज नेटवर्क** (होस्ट नेटवर्किंग के बिना जो मिलता है): IPv6 नहीं, जब तक उस नेटवर्क के लिए IPv6 चालू न हो (नीचे देखें)।
+- **Kubernetes** : Pod के पास IPv6 केवल dual-stack या केवल-IPv6 क्लस्टर पर होता है।
+
+जाँचने के लिए, प्रोब के अंदर से किसी सार्वजनिक IPv6 पते को ping करें:
+
+:::tabs
+@tab Docker
+```bash
+docker exec oneuptime-probe ping -6 -c 1 2001:4860:4860::8888
+```
+@tab Kubernetes
+```bash
+kubectl exec deploy/oneuptime-probe -- ping -6 -c 1 2001:4860:4860::8888
+```
+:::
+
+`1 received` का मतलब है कि प्रोब IPv6 गंतव्यों तक पहुँच सकता है। अगर प्रोब के पास इस्तेमाल लायक IPv6 नहीं है, तो `ping` तुरंत विफल होता है और त्रुटि कारण बताती है:
+
+| त्रुटि | इसका मतलब |
+| --- | --- |
+| `Network is unreachable` | प्रोब के नेटवर्क में IPv6 रूट नहीं है: IPv6 के बिना Docker ब्रिज नेटवर्क, केवल-IPv4 Kubernetes क्लस्टर, या बिना IPv6 कनेक्टिविटी वाला होस्ट। |
+| `Cannot assign requested address` | प्रोब के नेटवर्क नेमस्पेस में IPv6 बंद है। `net.ipv6.conf.all.disable_ipv6` और `net.ipv6.conf.lo.disable_ipv6` जाँचें: प्रोब के अंदर `cat /proc/sys/net/ipv6/conf/all/disable_ipv6` बंद होने पर `1` प्रिंट करता है। होस्ट नेटवर्किंग के साथ ये होस्ट की सेटिंग हैं। |
+| `Address family not supported by protocol` | कर्नेल `ipv6.disable=1` के साथ बूट हुआ था, इसलिए मशीन पर IPv6 बिल्कुल नहीं है। इसे कर्नेल कमांड लाइन से हटाकर रीबूट करें, या प्रोब किसी दूसरी मशीन पर चलाएँ। |
+
+हर मामले में गंतव्य को कुछ नहीं भेजा गया, इसलिए प्रोब नहीं बता सकता कि वह चालू है या नहीं। जाँच फिर भी विफल होती है, पर Ping मॉनिटर की विफलता का कारण यह कहने की जगह कि गंतव्य ने जवाब नहीं दिया, प्रोब का नाम लेता है:
+
+```text
+This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so 2001:db8::1 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:db8::1 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.
+```
+
+विफलता के साथ दर्ज नेटवर्क पथ में `Traceroute could not run: this probe cannot send IPv6 traffic (...)` लिखा होता है। प्रोब का नेटवर्क ठीक करें, या मॉनिटर को ऐसे प्रोब पर ले जाएँ जिसके पास IPv6 हो।
+
+### होस्ट नेटवर्किंग के बिना IPv6
+
+अगर आप होस्ट नेटवर्किंग इस्तेमाल नहीं कर सकते, तो प्रोब को IPv6 चालू वाले Docker नेटवर्क से जोड़ें। होस्ट को खुद फिर भी IPv6 चाहिए।
 
 ```bash
-kubectl apply -f oneuptime-probe.yaml
+docker network create --ipv6 oneuptime-probe-ipv6
+docker run --name oneuptime-probe --network oneuptime-probe-ipv6 -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -d oneuptime/probe:release
 ```
 
-यदि आप OneUptime self-host कर रहे हैं, तो `ONEUPTIME_URL` को अपने custom self-hosted instance में बदल सकते हैं।
+Docker Engine 27 और बाद के संस्करण नेटवर्क के लिए एक IPv6 सबनेट चुनते हैं और प्रोब के बाहर जाने वाले IPv6 को होस्ट के पते के पीछे मास्करेड करते हैं। पुराने संस्करणों को एक स्पष्ट IPv6 सबनेट चाहिए (उदाहरण के लिए `docker network create --ipv6 --subnet fd00:0:0:1::/64 oneuptime-probe-ipv6`) और `/etc/docker/daemon.json` में `"experimental": true` के साथ `"ip6tables": true`। Docker Compose में `network_mode: host` हटाएँ और प्रोब के नेटवर्क पर `enable_ipv6: true` सेट करें।
 
-### Environment Variables
+## डिस्कवरी स्कैन में NetBIOS नाम खोज
 
-Probe निम्नलिखित environment variables का समर्थन करता है:
+**Windows नाम खोजें (NetBIOS)** चालू वाला [नेटवर्क डिस्कवरी स्कैन](/docs/monitor/network-device-monitor) प्रोब से हर उस होस्ट को NetBIOS नाम क्वेरी (NBSTAT) भेजता है जिसका कोई SNMP सिस्टम नाम नहीं है। इसे इस्तेमाल करने वाले स्कैन के लिए यह ट्रैफ़िक अनुमति दें:
 
-#### आवश्यक Variables
+- **किन होस्ट से पूछा जाता है:** खोजे गए वे होस्ट जिनके पास न SNMP सिस्टम नाम है न रिवर्स-DNS (PTR) नाम, और केवल निजी पतों (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) या कैरियर-ग्रेड NAT पतों (`100.64.0.0/10`) पर। सार्वजनिक पतों से कभी नहीं पूछा जाता, और जिस होस्ट की प्रोब से हुई रिवर्स-DNS खोज ने नाम लौटाया, उसे कभी क्वेरी नहीं भेजी जाती। जिस होस्ट की खोज विफल हुई, टाइम आउट हुई, या खोज का समय-बजट खत्म होने पर छोड़ दी गई, उससे फिर भी पूछा जा सकता है, भले ही उसका PTR रिकॉर्ड हो।
+- **बाहर जाने वाला:** प्रोब के एक अस्थायी (रैंडम, ऊँचे नंबर वाले) सोर्स पोर्ट से उन होस्ट के UDP पोर्ट 137 तक UDP। ऊपर की प्रॉक्सी सेटिंग इस पर लागू नहीं होतीं।
+- **आने वाला:** जवाब, हर होस्ट के UDP पोर्ट 137 से उसी अस्थायी पोर्ट पर वापस। स्टेटफ़ुल फ़ायरवॉल इन्हें अपने आप अनुमति देता है। इनके बिना होस्ट अपने IP पते से ही पहचाने जाते रहते हैं।
 
-- `PROBE_KEY` - आपके OneUptime dashboard से probe key
-- `PROBE_ID` - आपके OneUptime dashboard से probe ID
-- `ONEUPTIME_URL` - आपके OneUptime instance का URL (default: https://oneuptime.com)
+इस खोज को किसी अतिरिक्त कंटेनर capability की ज़रूरत नहीं होती और यह Kubernetes Pod नेटवर्किंग से भी काम करती है। यह हर स्कैन में ज़्यादा से ज़्यादा 2,000 होस्ट से पूछती है (`PROBE_DISCOVERY_NETBIOS_MAX_HOSTS` इसे 4,000 तक बढ़ाता है), जवाब न देने वाले हर होस्ट को एक और क्वेरी भेजती है, क्वेरी लगभग 100 प्रति सेकंड की रफ़्तार से भेजती है, और उस काम के हिसाब से तय समय-सीमा पर रुक जाती है - 2,000 होस्ट की पूरी खोज में लगभग 54 सेकंड, और कभी दो मिनट से ज़्यादा नहीं। स्कैन कुछ भी कहे, ग्लोबल प्रोब कभी NetBIOS क्वेरी नहीं भेजते, इसलिए जिन स्कैन को NetBIOS नाम चाहिए उन्हें कस्टम प्रोब से चलाएँ। नए स्कैन के लिए यह विकल्प चालू रहता है। बहुत सारे होस्ट को NBSTAT क्वेरी घुसपैठ पहचान नियमों को सक्रिय कर सकती हैं, इसलिए जहाँ यह मायने रखता है उन नेटवर्क के स्कैन पर इसे बंद करें, या पहले अपनी सुरक्षा टीम को बताएँ।
 
-#### वैकल्पिक Variables
+## एनवायरनमेंट वेरिएबल
 
-- `HTTP_PROXY_URL` - HTTP requests के लिए HTTP proxy server URL
-- `HTTPS_PROXY_URL` - HTTPS requests के लिए HTTP proxy server URL
-- `NO_PROXY` - वे hosts या domains जिन्हें proxy bypass करना चाहिए (comma-separated)
-- `PROBE_NAME` - probe के लिए Custom नाम
-- `PROBE_DESCRIPTION` - probe के लिए Description
-- `PROBE_MONITORING_WORKERS` - monitoring workers की संख्या (default: 1)
-- `PROBE_MONITOR_FETCH_LIMIT` - एक साथ fetch करने के लिए monitors की संख्या (default: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - failed monitor check में पहले attempt के बाद की retries, जब कोई step अपना retry count सेट न करे (default: 3, यानी कुल 4 attempts तक)
-- `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में synthetic monitor scripts का Timeout (default: 60000)
-- `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में custom code monitor scripts का Timeout (default: 60000)
-- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - probe द्वारा OneUptime को भेजी जाने वाली प्रत्येक request की deadline (default: 45000)
-- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - इससे धीमी OneUptime की requests के लिए warning log करें (default: 10000)
-- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - एक monitor की जाँच की समय-सीमा, इसके बाद वह check छोड़ दिया जाता है और अगले cycle में दोबारा किया जाता है (default: 900000)
+प्रोब शुरू होते समय अपने एनवायरनमेंट से सेटिंग पढ़ता है: कोई सेटिंग बदलें, फिर प्रोब रीस्टार्ट करें। जो संख्या प्रोब पढ़ नहीं सकता, या जो किसी वेरिएबल की अनुमत सीमा से बाहर है, उसे अनदेखा करके डिफ़ॉल्ट इस्तेमाल होता है; पैकेट कैप्चर की सीमाएँ इसके बजाय अपनी सीमा के भीतर ले आई जाती हैं।
 
-#### Proxy Configuration
+### ज़रूरी
 
-Probe HTTP और HTTPS proxy servers दोनों का समर्थन करता है। Configure होने पर, probe specified proxy servers के माध्यम से सभी monitoring traffic route करेगा। आप internal hosts या networks के लिए proxy bypass करने के लिए comma-separated `NO_PROXY` list भी provide कर सकते हैं।
-
-**Proxy URL Format:**
-
-```
-http://[username:password@]proxy.server.com:port
-```
-
-**उदाहरण:**
-
-- Basic proxy: `http://proxy.example.com:8080`
-- Authentication के साथ: `http://username:password@proxy.example.com:8080`
-
-**समर्थित Features:**
-
-- HTTP और HTTPS proxy support
-- Proxy authentication (username/password)
-- HTTP और HTTPS proxies के बीच automatic fallback
-- `NO_PROXY` का उपयोग करके selective proxy bypass
-- सभी monitor types के साथ काम करता है (Website, API, SSL, Synthetic, आदि)
-
-**नोट:** standard environment variables (`HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY`) और lowercase variants (`http_proxy`, `https_proxy`, `no_proxy`) compatibility के लिए दोनों supported हैं।
-
-### सत्यापन
-
-यदि probe successfully चल रहा है। यह आपके OneUptime dashboard पर `Connected` दिखाई देना चाहिए। यदि यह connected नहीं दिखता। आपको container के logs जांचने होंगे। यदि आप अभी भी trouble में हैं। कृपया [GitHub](https://github.com/oneuptime/oneuptime) पर एक issue बनाएं या [support से संपर्क करें](https://oneuptime.com/support)
-
-### Disconnected Probe का निदान
-
-जब OneUptime को भेजी जाने वाली probe की requests सफल होना बंद कर देती हैं, तब probe को `Disconnected` चिह्नित किया जाता है। probe का log बताता है कि हर failed request कहां अटकी, इसलिए आपको शायद ही कभी अनुमान लगाना पड़ता है।
-
-**1. startup पर print किए गए environment block को पढ़ें।** हर probe boot के समय एक JSON block print करता है जिसमें वह OneUptime URL जिसका वह उपयोग कर रहा है, उसकी request deadline, उसकी proxy settings, उसे विरासत में मिले DNS resolvers, Node/OS version, और क्या TLS verification disabled है — यह सब होता है। जब भी आप कोई समस्या report करें, यह block शामिल करें।
-
-**2. failure report ढूंढें।** OneUptime को भेजी गई हर failed request एक ऐसा block log करती है जिसमें `stalledAt` और `whatThisMeans` होते हैं। `stalledAt` वह phase है जिससे request कभी आगे नहीं बढ़ पाई:
-
-| `stalledAt` | इसका क्या अर्थ है |
+| वेरिएबल | यह क्या है |
 | --- | --- |
-| `SocketAssignment` | machine से कुछ भी बाहर नहीं गया। या तो socket pool saturated था, या configure किए गए proxy ने अपना CONNECT tunnel कभी पूरा नहीं किया। |
-| `TcpConnect` | machine ने SYN भेजा और बदले में कुछ नहीं मिला — कोई firewall या security appliance packets drop कर रहा है, या host unreachable है। |
-| `TlsHandshake` | TCP connect हो गया, लेकिन TLS कभी पूरा नहीं हुआ। आमतौर पर इसका कारण TLS-inspecting middlebox होता है। |
-| `RequestSend` | connection बन गया, लेकिन request कभी पूरी तरह लिखी नहीं गई — दूसरे छोर ने पढ़ना बंद कर दिया। |
-| `WaitingForServerResponse` | request पहुंच गई और server ने बदले में कुछ नहीं भेजा। **probe का network ठीक है** — OneUptime server, उसके load balancer और उसके reverse proxy की जांच करें। |
-| `ResponseBody` | server ने जवाब देना शुरू किया और बीच में ही रुक गया। |
+| `PROBE_KEY` | प्रोब की कुंजी, **आईडी और कुंजी दिखाएँ** से। इसके बिना प्रोब शुरू होते ही रुक जाता है। |
+| `PROBE_ID` | प्रोब की ID, **आईडी और कुंजी दिखाएँ** से। इसके बिना प्रोब शुरू होते ही रुक जाता है। |
+| `ONEUPTIME_URL` | OneUptime कहाँ है: `https://oneuptime.com`, या आपके अपने इंस्टॉलेशन का URL। इसके बिना प्रोब शुरू होते ही रुक जाता है। |
 
-यही block `deadlineOverrunInMs` भी report करता है। यदि 45000ms की deadline में wall clock के हिसाब से 45000ms से काफी अधिक समय लगा, तो probe process स्वयं block था — network की जांच करने से पहले इसी block में `probeProcess.eventLoopMaxDriftInMs` देखें।
+### मॉनिटर की जाँच
 
-**3. connectivity self-test पढ़ें।** लगातार तीन failures के बाद probe उसी server को एक-एक layer करके test करता है — पहले DNS, फिर TCP, फिर TLS, फिर एक वास्तविक HTTP round trip — और हर stage को उसकी timing के साथ log करता है। जो पहला stage fail होता है, वही आपका उत्तर है। जब proxy configure किया गया हो, तो probe proxy तक के hop को test करता है, क्योंकि वास्तव में वही एकमात्र hop है जो वह करता है।
+| वेरिएबल | डिफ़ॉल्ट | यह क्या करता है |
+| --- | --- | --- |
+| `PROBE_MONITORING_WORKERS` | `1` | प्रोब एक साथ मॉनिटर के कितने बैच जाँचता है। |
+| `PROBE_MONITOR_FETCH_LIMIT` | `10` | एक बैच में कितने मॉनिटर होते हैं। |
+| `PROBE_MONITOR_RETRY_LIMIT` | `3` | विफल मॉनिटर जाँच के पहले प्रयास के बाद के पुनः प्रयास, जब कोई चरण अपनी संख्या तय नहीं करता, यानी ज़्यादा से ज़्यादा 4 प्रयास। `0` पुनः प्रयास बंद करता है। |
+| `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | एक मॉनिटर की जाँच की समय-सीमा, जिसके बाद जाँच छोड़ दी जाती है और अगले चक्र में दोबारा की जाती है। Synthetic स्क्रिप्ट का टाइमआउट बढ़ाने पर डिफ़ॉल्ट भी बढ़ता है, ताकि कोई स्क्रिप्ट बीच में न कटे। |
+| `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Synthetic मॉनिटर स्क्रिप्ट का टाइमआउट, मिलीसेकंड में। |
+| `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code मॉनिटर स्क्रिप्ट का टाइमआउट, मिलीसेकंड में। |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true` पर सेट करें ताकि इस प्रोब के Website, API, External Status Page और Custom Code मॉनिटर निजी पतों तक पहुँच सकें। [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access) देखें। |
 
-**4. slow requests पर नजर रखें, इससे पहले कि वे failures बन जाएं।** जो requests सफल तो होती हैं लेकिन `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` से अधिक समय लेती हैं, उन्हें उनके elapsed time के साथ log किया जाता है। जो probe 20-second की requests log करने लगे, वह 45-second की deadline पार करने की राह पर है।
+Synthetic मॉनिटर जिन सीमाओं में चलता है (एक साथ कितने, उनकी मेमोरी और उनकी डिस्क), वे [सिंथेटिक मॉनिटर](/docs/monitor/synthetic-monitor) पेज पर हैं।
 
-OneUptime server की तरफ भी, ऐसी probe request जिसका जवाब धीरे दिया गया — या जिसे response भेजे जाने से पहले ही probe ने छोड़ दिया — probe की id के साथ वहां भी log की जाती है। ये दोनों logs मिलकर बताते हैं कि connection के किस तरफ गड़बड़ी है।
+### OneUptime से बातचीत
+
+| वेरिएबल | डिफ़ॉल्ट | यह क्या करता है |
+| --- | --- | --- |
+| `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | कोई नहीं | प्रॉक्सी सेटिंग: [प्रॉक्सी से कनेक्ट करना](#प्रॉक्सी-से-कनेक्ट-करना) देखें। |
+| `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | प्रोब के OneUptime को भेजे हर अनुरोध की समय-सीमा। |
+| `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | OneUptime को भेजे जो अनुरोध इससे धीमे हों, उनके लिए चेतावनी लॉग करें। |
+
+### नेटवर्क डिस्कवरी
+
+| वेरिएबल | डिफ़ॉल्ट | यह क्या करता है |
+| --- | --- | --- |
+| `PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS` | `5400000` (90 मिनट) | एक नेटवर्क डिस्कवरी स्वीप की समय-सीमा, जिसके बाद उसे छोड़ दिया जाता है और स्कैन विफल बताया जाता है। |
+| `PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS` | `30000` | चल रहा डिस्कवरी स्वीप अब तक मिले होस्ट कितनी बार अपलोड करता है, ताकि लंबा स्कैन प्रगति दिखाए और उसके डिवाइस पूरा होने से पहले इम्पोर्ट हो सकें। न्यूनतम `5000`। |
+| `PROBE_DISCOVERY_SCAN_CONCURRENCY` | `0` | डिस्कवरी स्वीप एक साथ कितने पते जाँचता है, इसकी तय संख्या। इसे सेट न करें (या `0` रखें) ताकि यह स्कैन के लक्ष्य से तय हो; जब तक प्रोब का कंटेनर असामान्य रूप से छोटा या बड़ा न हो, आप यही चाहेंगे। |
+| `PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS` | `0` | स्वीप में मिले होस्ट के रिवर्स DNS (PTR) नाम खोजने की समय-सीमा, मिलीसेकंड में। नीचे देखें। |
+| `PROBE_DISCOVERY_NETBIOS_MAX_HOSTS` | `0` | एक स्कैन की NetBIOS खोज कितने होस्ट से पूछ सकती है। नीचे देखें। |
+| `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS` | `4` | इस प्रोब पर एक साथ चलने वाले स्वतंत्र डिस्कवरी स्कैन की अधिकतम संख्या, 1 से 16 तक। नीचे देखें। |
+
+`PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS`: इसे सेट न करें (या `0` रखें) ताकि सीमा होस्ट की संख्या से तय हो: लगभग 860 होस्ट तक 60 सेकंड, और बढ़ते हुए ज़्यादा से ज़्यादा 10 मिनट। आप इसे 1000 से 1200000 तक सेट कर सकते हैं। जिन होस्ट तक खोज समय पर नहीं पहुँचती उन्हें रिवर्स DNS नाम नहीं मिलता (जब तक SNMP या NetBIOS उन्हें नाम न दे, वे IP पते से दिखते हैं), और स्कैन का स्थिति संदेश बताता है कि कितने छूट गए। टाइम आउट या विफल हुई खोज सीमा रहते एक बार दोबारा की जाती है, जिसमें प्रोब के हर नेमसर्वर से बारी-बारी पूछा जाता है। धीमे DNS सर्वर के पीछे बड़े नेटवर्क के लिए इसे बढ़ाएँ।
+
+`PROBE_DISCOVERY_NETBIOS_MAX_HOSTS`: NetBIOS नाम चालू वाले स्कैन में खोज हर उस होस्ट से पूछती है जिसका SNMP सिस्टम नाम नहीं है, पहले उनसे जिनका रिवर्स-DNS नाम नहीं है। इसे सेट न करें (या `0` रखें) ताकि 2,000 की बिल्ट-इन सीमा बनी रहे; आप इसे 1 से 4000 तक सेट कर सकते हैं। सीमा से ऊपर के होस्ट से नहीं पूछा जाता, और स्कैन का स्थिति संदेश बताता है कि कितने। इसे बढ़ाने से खोज भी लंबी होती है (समय-सीमा इसी से तय होती है: 4,000 होस्ट पर लगभग 104 सेकंड) और नेटवर्क पर ज़्यादा NBSTAT डेटाग्राम जाते हैं, जिन पर घुसपैठ पहचान नियम नज़र रखते हैं।
+
+`PROBE_DISCOVERY_MAX_CONCURRENT_SCANS`: क्षमता रहते प्रोब हर मिनट एक और लंबित स्कैन देखता है, ताकि एक लंबा स्कैन बाकी सभी स्कैन को न रोके। सभी स्लॉट भरे होने पर अतिरिक्त स्कैन तब तक लंबित रहते हैं जब तक कोई स्लॉट खाली न हो। हर स्कैन की अपनी होस्ट समवर्तिता होती है, इसलिए संसाधन उपयोग दोनों सेटिंग के साथ बढ़ता है; छोटे कंटेनर के लिए किसी भी सीमा को घटाएँ। स्कैन एक के बाद एक चलाने के लिए इसे 1 पर सेट करें।
+
+समवर्ती डिस्कवरी इस्तेमाल करने के लिए कस्टम प्रोब अपग्रेड करने से पहले OneUptime सर्वर अपग्रेड करें। सर्वर को उन स्कैन को बाहर रख पाना चाहिए जिन्हें प्रोब अभी चला रहा है, ताकि चलते स्कैन को संपादित करने पर उसका नया कॉन्फ़िगरेशन सुरक्षित रूप से कतार में लगे। अपडेट किए गए प्रोब को पुराने सर्वर से जोड़ते समय, सर्वर अपग्रेड होने तक `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS=1` सेट करें।
+
+### पैकेट कैप्चर
+
+| वेरिएबल | डिफ़ॉल्ट | यह क्या करता है |
+| --- | --- | --- |
+| `PROBE_PACKET_CAPTURE_ENABLED` | बंद | `true` पर सेट करें ताकि अनुमति वाले लोग डैशबोर्ड से इस प्रोब पर पैकेट कैप्चर शुरू कर सकें। कैप्चर के लिए होस्ट नेटवर्किंग और `NET_RAW` capability भी चाहिए। [पैकेट कैप्चर](/docs/probe/packet-capture) देखें। |
+| `PROBE_PACKET_CAPTURE_MAX_DURATION_IN_SECONDS` | `1800` | यह प्रोब जो सबसे लंबा पैकेट कैप्चर चलाता है, 5 से 1800 तक। |
+| `PROBE_PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB` | `25` | यह प्रोब जो सबसे बड़ी कैप्चर फ़ाइल बनाता है, 1 से 25 तक। |
+
+### प्रोब किन पर सुनता है
+
+जब तक आप कोई लिसनर चालू न करें, या डिफ़ॉल्ट रूप से चालू लिसनर को रहने न दें, प्रोब केवल बाहर जाने वाले कनेक्शन बनाता है:
+
+| लिसनर | सेटिंग | डिफ़ॉल्ट | और पढ़ें |
+| --- | --- | --- | --- |
+| आने वाले अनुरोध और हार्टबीट | `PROBE_INGRESS_PORT` | बंद | [आने वाले अनुरोध Ingress](/docs/probe/incoming-request-ingress) |
+| SNMP ट्रैप | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | चालू, UDP 162 | [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | बंद, UDP 5140 | [नेटवर्क वेंडर गाइड](/docs/monitor/network-vendor-guides) |
+| NetFlow, IPFIX और sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | चालू, UDP 2055, 4739 और 6343 | [नेटवर्क ट्रैफ़िक](/docs/monitor/network-traffic) |
+| हेल्थ चेक | `PORT` | चालू, TCP 3874 | `/status/live` और `/status/ready` |
+
+कंटेनर के अंदर कोई पोर्ट दूसरी मशीनों से केवल होस्ट नेटवर्किंग के साथ या उसे पब्लिश करने पर ही पहुँच में होता है।
+
+`PROBE_NAME` और `PROBE_DESCRIPTION` केवल वे प्रोब पढ़ते हैं जो `REGISTER_PROBE_KEY` से खुद को रजिस्टर करते हैं, जैसे वे प्रोब जिन्हें सेल्फ़-होस्टेड इंस्टॉलेशन सभी प्रोजेक्ट के लिए चलाता है। कस्टम प्रोब अपना नाम और विवरण डैशबोर्ड से लेता है।
+
+## समस्या निवारण
+
+### डिस्कनेक्ट हुए प्रोब की जाँच
+
+जब प्रोब के OneUptime को भेजे अनुरोध सफल होना बंद हो जाते हैं, तो प्रोब को `Disconnected` चिह्नित किया जाता है। प्रोब का लॉग बताता है कि हर विफल अनुरोध कहाँ अटका, इसलिए आपको शायद ही कभी अंदाज़ा लगाना पड़ता है।
+
+:::steps
+#### शुरू होने पर प्रिंट हुआ एनवायरनमेंट ब्लॉक पढ़ें
+
+हर प्रोब शुरू होते समय एक JSON ब्लॉक प्रिंट करता है, जिसमें वह जो OneUptime URL इस्तेमाल कर रहा है, उसकी अनुरोध समय-सीमा, उसकी प्रॉक्सी सेटिंग, उसे मिले DNS रिज़ॉल्वर, Node और OS संस्करण, और TLS सत्यापन बंद किया गया है या नहीं, यह होता है। कोई समस्या बताते समय यह ब्लॉक हमेशा शामिल करें।
+
+#### विफलता रिपोर्ट ढूँढें
+
+OneUptime को भेजा हर विफल अनुरोध `stalledAt` और `whatThisMeans` वाला एक ब्लॉक लॉग करता है। `stalledAt` वह चरण है जिसे अनुरोध कभी पार नहीं कर सका:
+
+| `stalledAt` | इसका मतलब |
+| --- | --- |
+| `SocketAssignment` | मशीन से कुछ बाहर नहीं गया। सॉकेट पूल भरा हुआ था, या सेट की गई प्रॉक्सी ने अपनी CONNECT टनल कभी पूरी नहीं की। |
+| `TcpConnect` | मशीन ने SYN भेजा और कुछ वापस नहीं आया: कोई फ़ायरवॉल या सुरक्षा उपकरण पैकेट गिरा रहा है, या होस्ट तक पहुँचा नहीं जा सकता। |
+| `TlsHandshake` | TCP जुड़ गया, TLS कभी पूरा नहीं हुआ। आम तौर पर TLS जाँचने वाला कोई बीच का उपकरण। |
+| `RequestSend` | जुड़ गया, पर अनुरोध कभी पूरा नहीं लिखा गया: दूसरी तरफ़ ने पढ़ना बंद कर दिया। |
+| `WaitingForServerResponse` | अनुरोध पहुँच गया और सर्वर ने कुछ वापस नहीं भेजा। **प्रोब का नेटवर्क ठीक है** : OneUptime सर्वर, उसका लोड बैलेंसर और उसकी रिवर्स प्रॉक्सी जाँचें। |
+| `ResponseBody` | सर्वर ने जवाब देना शुरू किया और बीच में अटक गया। |
+
+वही ब्लॉक `deadlineOverrunInMs` भी बताता है। अगर 45000ms की समय-सीमा में असल घड़ी के हिसाब से 45000ms से बहुत ज़्यादा लगा, तो प्रोब की प्रोसेस खुद अटकी हुई थी: नेटवर्क की जाँच से पहले ब्लॉक में `probeProcess.eventLoopMaxDriftInMs` देखें।
+
+#### कनेक्टिविटी सेल्फ़-टेस्ट पढ़ें
+
+लगातार तीन विफलताओं के बाद प्रोब उसी सर्वर को एक-एक परत करके जाँचता है (पहले DNS, फिर TCP, फिर TLS, फिर असली HTTP राउंड ट्रिप) और हर चरण को उसके समय के साथ लॉग करता है। जो चरण सबसे पहले विफल होता है, वही आपका जवाब है। प्रॉक्सी सेट होने पर प्रोब प्रॉक्सी तक का हिस्सा जाँचता है, क्योंकि वह असल में केवल वही हिस्सा तय करता है। यह टेस्ट हर पाँच मिनट में ज़्यादा से ज़्यादा एक बार चलता है।
+
+#### धीमे अनुरोधों पर विफल होने से पहले नज़र रखें
+
+जो अनुरोध सफल होते हैं पर `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` से ज़्यादा समय लेते हैं, वे लगे समय के साथ लॉग होते हैं। जो प्रोब 20 सेकंड वाले अनुरोध लॉग करने लगे, वह 45 सेकंड की समय-सीमा पार करने की ओर है।
+:::
+
+OneUptime सर्वर की तरफ़ भी, जिस प्रोब अनुरोध का जवाब धीरे दिया गया, या जवाब भेजे जाने से पहले प्रोब ने जिसे छोड़ दिया, वह प्रोब की id के साथ लॉग होता है। ये दोनों लॉग मिलकर बताते हैं कि कनेक्शन की किस तरफ़ गड़बड़ी है।
+
+### अन्य समस्याएँ
+
+:::details प्रोब शुरू होते ही रुक जाता है
+उसका लॉग बताता है कि क्या छूटा है: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` या `PROBE_ID or REGISTER_PROBE_KEY should be set`। अगर तीनों सेट हैं पर ID और कुंजी किसी प्रोब से मेल नहीं खाते, तो प्रोब 30 सेकंड के अंतर पर 10 बार कोशिश करता है, फिर `Unable to register probe after 10 attempts` के साथ रुक जाता है। **आईडी और कुंजी दिखाएँ** से ID और कुंजी दोबारा कॉपी करें।
+:::
+
+:::details किसी के कुंजी रीसेट करने तक प्रोब चल रहा था
+प्रोब के पेज पर **प्रोब कुंजी रीसेट करें** नई कुंजी बनाता है, और पुरानी तुरंत काम करना बंद कर देती है। **आईडी और कुंजी दिखाएँ** से नई कुंजी कॉपी करें, उसे `PROBE_KEY` के रूप में सेट करें और प्रोब रीस्टार्ट करें।
+:::
+
+:::details कोई मॉनिटर कहता है कि वह किसी निजी पते तक नहीं पहुँच सकता
+जब तक आप अनुमति नहीं देते, प्रोब निजी पतों को अस्वीकार करते हैं। प्रोब पर `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` सेट करें और उसे रीस्टार्ट करें: [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access) देखें।
+:::
+
+अगर फिर भी समस्या रहे, तो [GitHub](https://github.com/oneuptime/oneuptime) पर issue बनाएँ या [सपोर्ट से संपर्क करें](https://oneuptime.com/support)।
+
+## अगले कदम
+
+:::cards
+- [मॉनिटर बनाना](/docs/monitor/create-monitor): चुनें कि क्या जाँचना है, और कौन-से प्रोब उसे जाँचें।
+- [आने वाले अनुरोध Ingress](/docs/probe/incoming-request-ingress): बिना इंटरनेट पहुँच वाली सेवाओं को प्रोब के ज़रिए हार्टबीट भेजने दें।
+- [पैकेट कैप्चर](/docs/probe/packet-capture): प्रोब जो ट्रैफ़िक देखता है, उसे डैशबोर्ड से कैप्चर करें।
+- [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): प्रोब को निजी पतों की जाँच करने दें।
+:::
