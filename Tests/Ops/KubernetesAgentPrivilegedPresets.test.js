@@ -26,7 +26,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const CHART_DIR = "HelmChart/Public/kubernetes-agent";
 const TEMPLATES_DIR = `${CHART_DIR}/templates`;
 
-const EBPF_GATE = '{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}';
+const EBPF_GATE =
+  '{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}';
 const PROFILING_GATE =
   '{{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}';
 
@@ -138,7 +139,10 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
   });
 
   test("the profiler's resources open with the profiling gate", () => {
-    for (const file of ["daemonset-profiling.yaml", "configmap-profiling.yaml"]) {
+    for (const file of [
+      "daemonset-profiling.yaml",
+      "configmap-profiling.yaml",
+    ]) {
       expect({ file, line: firstLine(`${TEMPLATES_DIR}/${file}`) }).toEqual({
         file,
         line: PROFILING_GATE,
@@ -211,6 +215,8 @@ describe("the README and values.yaml say what the presets do", () => {
     expect(values).toContain(
       "#     GKE Autopilot and EKS Fargate refuse privileged pods, so the\n#     gke-autopilot and eks-fargate presets leave it out whatever this says.",
     );
-    expect(values).not.toContain("(e.g.\n#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.");
+    expect(values).not.toContain(
+      "(e.g.\n#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.",
+    );
   });
 });
