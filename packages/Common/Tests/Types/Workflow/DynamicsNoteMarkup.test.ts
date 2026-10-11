@@ -467,6 +467,16 @@ const NAMED_ELEMENT_NOTES: Array<[string, string, string]> = [
     "Restarted the pods.\n\nWatching for errors.",
   ],
   [
+    "a pre element, which keeps its indentation, in HTML indented around it",
+    "<div>\n  <p>Log:</p>\n  <pre>step 1\n    step 2</pre>\n</div>",
+    "Log:\n\nstep 1\n    step 2",
+  ],
+  [
+    "Windows-1252 numbers and a reference whose number writes '&'",
+    "<p>Don&#146;t &#150; &#38;amp;</p>",
+    "Don\u2019t \u2013 &amp;",
+  ],
+  [
     "a frame and what it holds",
     "<p>See</p><iframe src=x>fallback <b>text</b></iframe><noembed>n</noembed>",
     "See",

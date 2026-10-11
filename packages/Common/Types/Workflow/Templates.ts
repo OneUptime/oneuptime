@@ -4504,8 +4504,21 @@ const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
 const LONGEST_BREAK_TAG = 256;
 const TAG_START = /<[a-z!\/]/i;
 const WHITESPACE = /\s/;
-// What a tag or comment becomes in the text: a new line for a line break or the end of a block.
-const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
+// Where a pre element starts and ends: what it holds shows the indentation of its lines.
+const PRE_START = /^<pre[\s\/>]/i;
+const PRE_END = /^<\/pre\s*>$/i;
+// Marks of where a pre element starts and ends, in the text read out of HTML until withoutIndent
+// takes them out: control characters, which no note or description keeps.
+const PRE_START_MARK = '\u0002';
+const PRE_END_MARK = '\u0003';
+// What a tag or comment becomes in the text: a new line for a line break or the end of a block, and
+// a mark where a pre element starts or ends.
+const markupAsText = (markup) => {
+  if (PRE_START.test(markup.slice(0, 5))) return PRE_START_MARK;
+  if (markup.length > LONGEST_BREAK_TAG) return '';
+  if (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) return '\n';
+  return PRE_END.test(markup) ? PRE_END_MARK : '';
+};
 // Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
 const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
 // The elements whose content a browser never reads as markup, by name. What the first five hold is
@@ -4678,34 +4691,90 @@ const hasTag = (text) => {
   const start = text.search(TAG_START);
   return start !== -1 && text.indexOf('>', start + 2) !== -1;
 };
-// The characters editors and emails most often write by name, other than the five above.
-const NAMED_CHARACTERS = {
-  rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026',
-  bull: '\u2022', middot: '\u00b7', copy: '\u00a9', reg: '\u00ae', trade: '\u2122', euro: '\u20ac', pound: '\u00a3',
-  deg: '\u00b0', times: '\u00d7',
+// What a character reference reads as, as a browser reads it. By name: the five every editor writes,
+// in any letter case as always, and by their exact names the Latin-1 characters (the names of 160 to
+// 255, in order) and the typographic ones an email writes. By number: Windows-1252's characters for
+// 128 to 159, as a browser reads them. A no-break space is a space, as &nbsp; always was; a soft
+// hyphen, a joiner or a direction mark, which nobody sees, is nothing; and a number that is no
+// character is the replacement character. Any other name stays as it was written.
+const BASIC_NAMES = { nbsp: ' ', lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
+const LATIN_1_NAMES = [
+  'nbsp', 'iexcl', 'cent', 'pound', 'curren', 'yen', 'brvbar', 'sect', 'uml', 'copy', 'ordf', 'laquo', 'not', 'shy', 'reg', 'macr',
+  'deg', 'plusmn', 'sup2', 'sup3', 'acute', 'micro', 'para', 'middot', 'cedil', 'sup1', 'ordm', 'raquo', 'frac14', 'frac12', 'frac34',
+  'iquest', 'Agrave', 'Aacute', 'Acirc', 'Atilde', 'Auml', 'Aring', 'AElig', 'Ccedil', 'Egrave', 'Eacute', 'Ecirc', 'Euml', 'Igrave',
+  'Iacute', 'Icirc', 'Iuml', 'ETH', 'Ntilde', 'Ograve', 'Oacute', 'Ocirc', 'Otilde', 'Ouml', 'times', 'Oslash', 'Ugrave', 'Uacute',
+  'Ucirc', 'Uuml', 'Yacute', 'THORN', 'szlig', 'agrave', 'aacute', 'acirc', 'atilde', 'auml', 'aring', 'aelig', 'ccedil', 'egrave',
+  'eacute', 'ecirc', 'euml', 'igrave', 'iacute', 'icirc', 'iuml', 'eth', 'ntilde', 'ograve', 'oacute', 'ocirc', 'otilde', 'ouml',
+  'divide', 'oslash', 'ugrave', 'uacute', 'ucirc', 'uuml', 'yacute', 'thorn', 'yuml',
+];
+const NAMED_CODES = {
+  OElig: 338, oelig: 339, Scaron: 352, scaron: 353, Yuml: 376, fnof: 402, circ: 710, tilde: 732, ensp: 8194, emsp: 8195,
+  thinsp: 8201, zwnj: 8204, zwj: 8205, lrm: 8206, rlm: 8207, ndash: 8211, mdash: 8212, lsquo: 8216, rsquo: 8217, sbquo: 8218,
+  ldquo: 8220, rdquo: 8221, bdquo: 8222, dagger: 8224, Dagger: 8225, bull: 8226, hellip: 8230, permil: 8240, prime: 8242,
+  Prime: 8243, lsaquo: 8249, rsaquo: 8250, oline: 8254, frasl: 8260, euro: 8364, trade: 8482, larr: 8592, uarr: 8593,
+  rarr: 8594, darr: 8595, harr: 8596, minus: 8722, le: 8804, ge: 8805, ne: 8800, asymp: 8776, infin: 8734,
 };
-// A character written as its number: a no-break space as a space, as &nbsp; is, and one that is not
-// a character - 0, half of a pair, past the last - as the replacement character, as a browser
-// shows it.
-const numberedCharacter = (code) => (code === 160 ? ' ' : code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd');
-const readEntities = (text) => text
-  .replace(/&nbsp;/gi, ' ')
-  .replace(/&lt;/gi, '<')
-  .replace(/&gt;/gi, '>')
-  .replace(/&quot;/gi, '"')
-  .replace(/&#39;|&apos;/gi, "'")
-  .replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (reference, hex, decimal) => numberedCharacter(hex ? parseInt(hex, 16) : parseInt(decimal, 10)))
-  .replace(/&([a-z]{3,6});/g, (reference, name) => (Object.prototype.hasOwnProperty.call(NAMED_CHARACTERS, name) ? NAMED_CHARACTERS[name] : reference))
-  // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
-  .replace(/&amp;/gi, '&');
-// The spaces and tabs the HTML's own source starts a line with, which a browser never shows: email
-// HTML is often indented, and four spaces start a code block in Markdown. Taken out before entities
-// are read, so a space written as &nbsp; stays.
-const withoutIndent = (text) => text.split('\n').map((line) => {
-  let start = 0;
-  while (start < line.length && (line.charAt(start) === ' ' || line.charAt(start) === '\t')) start++;
-  return line.slice(start);
-}).join('\n');
+const WINDOWS_1252 = [
+  0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0,
+  0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178,
+];
+const UNSEEN = [173, 8204, 8205, 8206, 8207];
+const characterOf = (number) => {
+  const code = number >= 128 && number <= 159 ? WINDOWS_1252[number - 128] : number;
+  if (code === 160) return ' ';
+  if (UNSEEN.indexOf(code) !== -1) return '';
+  return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd';
+};
+// One reference at the start of a slice: by number in hexadecimal or decimal, or by name.
+const REFERENCE = /^&(?:#[xX]([0-9a-fA-F]{1,32})|#([0-9]{1,32})|([A-Za-z][A-Za-z0-9]{1,31}));/;
+const referenceText = (reference) => {
+  if (reference[1] !== undefined) return characterOf(parseInt(reference[1], 16));
+  if (reference[2] !== undefined) return characterOf(parseInt(reference[2], 10));
+  const name = reference[3];
+  const lower = name.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(BASIC_NAMES, lower)) return BASIC_NAMES[lower];
+  const latin1 = LATIN_1_NAMES.indexOf(name);
+  if (latin1 !== -1) return characterOf(160 + latin1);
+  return Object.prototype.hasOwnProperty.call(NAMED_CODES, name) ? characterOf(NAMED_CODES[name]) : null;
+};
+// Every reference is read once, in one walk from each "&" to the next: what one reads as is never
+// read again, so "&#38;lt;" and "&amp;lt;" are the text "&lt;". Each is read off a short slice, as a
+// long text is read with no pattern that runs over all of it.
+const readEntities = (text) => {
+  let read = '';
+  let copiedUpTo = 0;
+  for (let at = text.indexOf('&'); at !== -1; at = text.indexOf('&', at + 1)) {
+    const reference = REFERENCE.exec(text.slice(at, at + 72));
+    const character = reference ? referenceText(reference) : null;
+    if (character === null) continue;
+    read += text.slice(copiedUpTo, at) + character;
+    copiedUpTo = at + reference[0].length;
+    at = copiedUpTo - 1;
+  }
+  return read + text.slice(copiedUpTo);
+};
+// The spaces and tabs the HTML's own source starts a line with, which a browser never shows - but in
+// a pre element, which shows them. Email HTML is often indented, and four spaces start a code block in
+// Markdown. Taken out before entities are read, so a space written as &nbsp; stays; the marks of
+// where a pre element starts and ends go with them.
+const withoutIndent = (text) => {
+  let preDepth = 0;
+  return text.split('\n').map((line) => {
+    let start = 0;
+    if (preDepth === 0) {
+      while (start < line.length && (line.charAt(start) === ' ' || line.charAt(start) === '\t')) start++;
+    }
+    const rest = line.slice(start);
+    if (rest.indexOf(PRE_START_MARK) === -1 && rest.indexOf(PRE_END_MARK) === -1) return rest;
+    let kept = '';
+    for (const character of rest) {
+      if (character === PRE_START_MARK) preDepth++;
+      else if (character === PRE_END_MARK) preDepth = Math.max(0, preDepth - 1);
+      else kept += character;
+    }
+    return kept;
+  }).join('\n');
+};
 // The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
 // and indexOf rather than patterns with quantifiers, which a long text is not read with.
 const tidyLines = (text) => {
@@ -4802,14 +4871,25 @@ const lines = ['${kind.Created} from Dynamics 365 case [' + asWritten(caseNumber
 if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
 const customer = formatted(row, '_customerid_value');
 if (customer) lines.push('Customer: ' + asWritten(customer));
-// A description written in the rich-text editor, or that an email became, is HTML from its first
-// character: a tag an editor or an email starts with - <div>, <p>, <html>, <table> and the like - a
-// comment, a document type or an XML declaration. It is read as the text it shows (htmlToText). Any
-// other description is plain text, kept exactly as it was written, a "<" in it too: "From: Jane Doe
-// <jane@contoso.com>", "<none>", "<b>urgent</b>" typed into a plain-text column.
-const RICH_TEXT_START = /^<(?:(?:html|head|body|meta|title|style|link|base|div|p|span|font|center|table|ul|ol|dl|h[1-6]|br|hr|pre|blockquote|figure|section|article|header|footer|main|nav|address|form)[\s\/>]|!--|!doctype[\s>]|\?xml\s)/i;
+// A description written in the rich-text editor, or that an email became, is HTML: it starts with a
+// comment, a document type, an XML declaration or a tag, and one that starts with a tag closes an
+// element somewhere ("</p>", "</div>"), as everything an editor or an email writes does. It is read
+// as the text it shows (htmlToText). Any other description is plain text, kept exactly as it was
+// written, a "<" in it too: "From: Jane Doe <jane@contoso.com>", "<none> found", "<header> overlaps
+// the menu".
+const DECLARATION_START = /^<(?:!--|!doctype[\s>]|\?xml\s)/i;
+const TAG_NAME_START = /^<[a-z]/i;
+// Whether the text holds an end tag: "</" and a letter.
+const holdsEndTag = (text) => {
+  for (let at = text.indexOf('</'); at !== -1; at = text.indexOf('</', at + 2)) {
+    const code = text.charCodeAt(at + 2);
+    if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) return true;
+  }
+  return false;
+};
 const writtenDescription = clean(row.description);
-const isRichText = RICH_TEXT_START.test(writtenDescription.trimStart().slice(0, 16)) && hasTag(writtenDescription);
+const descriptionStart = writtenDescription.trimStart().slice(0, 16);
+const isRichText = hasTag(writtenDescription) && (DECLARATION_START.test(descriptionStart) || (TAG_NAME_START.test(descriptionStart) && holdsEndTag(writtenDescription)));
 const description = (isRichText ? clean(htmlToText(writtenDescription)) : writtenDescription).trim();
 if (description) lines.push('', asWritten(description));
 

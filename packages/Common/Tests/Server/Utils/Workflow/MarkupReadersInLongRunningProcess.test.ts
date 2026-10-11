@@ -180,6 +180,9 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
           ["named references", "<p>" + repeatTo("&rsquo;&bogus;") + "</p>"],
           ["indented lines", "<div>" + repeatTo("\n        x") + "</div>"],
+          ["pre elements", repeatTo("<pre>\n    x</pre>")],
+          ["a pre element that never ends", "<pre>" + repeatTo("\n  x")],
+          ["references to a '&'", "<p>" + repeatTo("&#38;amp;") + "</p>"],
         ];
 
         const notes = READING_SHAPES.map(([shape, text]) => {
@@ -203,7 +206,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           caseCode.slice(0, caseCode.indexOf("// ---- Reading the case ----")) +
             "return (value) => {\nconst row = { description: value };\n" +
             caseCode.slice(
-              caseCode.indexOf("const RICH_TEXT_START = "),
+              caseCode.indexOf("// A description written in the rich-text editor"),
               caseCode.indexOf("if (description) lines.push('', asWritten(description));"),
             ) +
             "return asWritten(description);\n};",
@@ -332,8 +335,8 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     });
 
     expect(report.answers).toHaveLength(10);
-    expect(report.notes).toHaveLength(14);
-    expect(report.descriptions).toHaveLength(28);
+    expect(report.notes).toHaveLength(17);
+    expect(report.descriptions).toHaveLength(34);
 
     for (const { shape, read } of [
       ...report.answers,

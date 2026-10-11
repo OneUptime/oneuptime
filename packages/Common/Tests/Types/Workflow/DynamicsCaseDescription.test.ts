@@ -65,6 +65,7 @@ import {
   scriptOf,
 } from "./JiraTemplateFixtures";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import { JSDOM } from "jsdom";
 import { Token, marked } from "marked";
 
 // The sandbox boots a fresh isolate per run, which is far slower than plain JS.
@@ -543,6 +544,36 @@ const RICH_DESCRIPTIONS: Array<[string, string, string]> = [
     "<p>a&#0;b&#xD800;c&#1114112;d&#1;e&unknown;f&amp;rsquo;</p>",
     "a\ufffdb\ufffdc\ufffdde&unknown;f&rsquo;",
   ],
+  [
+    "Windows-1252 numbers, as Word writes them",
+    "<p>Don&#146;t restart &#150; see &#147;runbook&#148; &#128;5 &#129;</p>",
+    "Don\u2019t restart \u2013 see \u201crunbook\u201d \u20ac5 \ufffd",
+  ],
+  [
+    "accented letters and quotes by name",
+    "<p>Probl&egrave;me r&eacute;solu, Gr&uuml;&szlig;e &laquo;urgent&raquo; &frac12; &Eacute;t&eacute; &Uuml;</p>",
+    "Probl\u00e8me r\u00e9solu, Gr\u00fc\u00dfe \u00aburgent\u00bb \u00bd \u00c9t\u00e9 \u00dc",
+  ],
+  [
+    "a reference whose number writes '&' is read once",
+    "<p>&#38;rsquo; and &#38;amp;lt; and &#x26;nbsp;</p>",
+    "&rsquo; and &amp;lt; and &nbsp;",
+  ],
+  [
+    "a soft hyphen, a joiner and direction marks, which nobody sees",
+    "<p>co&shy;operate&zwj;x&lrm;y&rlm;z&#173;w</p>",
+    "cooperatexyzw",
+  ],
+  [
+    "a flow's HTML that starts with bold",
+    "<b>CRITICAL</b><br>Disk full on db-1",
+    "CRITICAL\nDisk full on db-1",
+  ],
+  [
+    "a stack trace in a pre element, which keeps its indentation",
+    '<div><p>Error:</p><pre>Traceback (most recent call last):\n  File "app.py", line 3\n    raise ValueError()</pre>\n    <p>Seen twice.</p></div>',
+    'Error:\nTraceback (most recent call last):\n  File "app.py", line 3\n    raise ValueError()\nSeen twice.',
+  ],
 ];
 
 /*
@@ -675,9 +706,14 @@ const PLAIN_DESCRIPTIONS: Array<[string, string, string]> = [
     `<${J}a lot of errors> since the deploy`,
   ],
   [
-    "bold typed into a plain-text column",
-    "<b>Urgent</b>: checkout is down",
-    `<${J}b>Urgent<${J}/b>: checkout is down`,
+    "an element's name in brackets, with nothing closed",
+    "<header> overlaps the menu on mobile",
+    `<${J}header> overlaps the menu on mobile`,
+  ],
+  [
+    "a title in brackets, with nothing closed",
+    "<title> is missing on the login page",
+    `<${J}title> is missing on the login page`,
   ],
   [
     "an image typed first",
@@ -712,11 +748,19 @@ const PLAIN_DESCRIPTIONS: Array<[string, string, string]> = [
 ];
 
 /*
- * How a description starts decides how it is read: with a tag an editor or
- * an email starts with, a comment, a document type or an XML declaration,
- * it is HTML. Each of these is followed by "<p>Text</p>".
+ * How a description starts decides how it is read: with a comment, a
+ * document type, an XML declaration, or a tag when it closes an element
+ * somewhere, it is HTML. Each of these is followed by "<p>Text</p>".
  */
 const RICH_STARTS: Array<string> = [
+  "<b>",
+  "<strong>",
+  '<a href="https://status.example.com">',
+  '<img src="logo.png">',
+  "<li>",
+  "<tbody>",
+  "<o:p>",
+  "<xml>",
   "<div>",
   '<div class="ck-content" data-wrapper="true">',
   "<p>",
@@ -759,8 +803,16 @@ const RICH_STARTS: Array<string> = [
   "  \n<div>",
 ];
 
-// Starts of plain text, which a "<" begins: each is followed by " <p>Text</p>".
+/*
+ * Starts of plain text, which a "<" begins: each is followed by words, with
+ * no element closed after it. A tag an editor writes is plain text too then.
+ */
 const PLAIN_STARTS: Array<string> = [
+  "<header>",
+  "<title>",
+  "<table>",
+  "<div>",
+  "<p>",
   "<Jane Doe>",
   "<none>",
   "<a lot>",
@@ -984,7 +1036,7 @@ describe.each(KINDS)(
     test.each(PLAIN_STARTS)(
       "a description that starts with %s is plain text, written as before",
       async (start: string) => {
-        const description: string = `${start} <p>Text</p>`;
+        const description: string = `${start} cannot log in since 9am`;
         const record: JSONObject = await recordFor(kind, description);
 
         expect(descriptionPartOf(kind, record)).toBe(
@@ -1013,11 +1065,10 @@ describe("any text that does not start with a tag", () => {
     "Note: ",
     "<@",
     "<!channel",
+    "<#C",
     "<3",
     "< ",
-    "<jane@",
-    "<https:",
-    "<o:p",
+    "<?php",
     "x",
   ];
   const generated: Array<string> = generatedTexts(1500, 8807, [
@@ -1045,7 +1096,9 @@ describe("any text that does not start with a tag", () => {
       args: { descriptions: descriptions },
       editCode: (code: string): string => {
         // The step's own lines that read the description, run on each one.
-        const start: number = code.indexOf("const RICH_TEXT_START = ");
+        const start: number = code.indexOf(
+          "// A description written in the rich-text editor",
+        );
         const end: number = code.indexOf(
           "if (description) lines.push('', asWritten(description));",
         );
@@ -1147,6 +1200,236 @@ describe("no description a case becomes holds markup a renderer acts on", () => 
     expect(
       SlackUtil.convertMarkdownToSlackRichText("<!channel> please look"),
     ).toMatch(SLACK_MENTION);
+  });
+});
+
+/* --------------------------- References, as a browser --------------------------- */
+
+/*
+ * The names the reading knows, besides the five every editor writes: the
+ * Latin-1 ones, 160 to 255, and the typographic ones an email writes.
+ */
+const KNOWN_NAMES: Array<string> = [
+  ..."nbsp iexcl cent pound curren yen brvbar sect uml copy ordf laquo not shy reg macr deg plusmn sup2 sup3 acute micro para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest".split(
+    " ",
+  ),
+  ..."Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml times Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig".split(
+    " ",
+  ),
+  ..."agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml divide oslash ugrave uacute ucirc uuml yacute thorn yuml".split(
+    " ",
+  ),
+  ..."OElig oelig Scaron scaron Yuml fnof circ tilde ensp emsp thinsp zwnj zwj lrm rlm ndash mdash lsquo rsquo sbquo ldquo rdquo bdquo dagger Dagger bull hellip permil prime Prime lsaquo rsaquo oline frasl euro trade larr uarr rarr darr harr minus le ge ne asymp infin".split(
+    " ",
+  ),
+  "lt",
+  "gt",
+  "quot",
+  "apos",
+  "amp",
+];
+
+// What a browser shows of text holding references (JSDOM parses it as HTML).
+function asABrowserShows(text: string): string {
+  return JSDOM.fragment(`<p>${text}</p>`).textContent || "";
+}
+
+/*
+ * Where the reading reads a reference other than as a browser shows it, on
+ * purpose: a no-break space is a space, as &nbsp; always was; a soft hyphen,
+ * a joiner or a direction mark, which nobody sees, is nothing; and a number
+ * Windows-1252 has no character for is the replacement character, not a
+ * control character.
+ */
+function asTheReadingShows(browserText: string): string {
+  return Array.from(browserText)
+    .map((character: string): string => {
+      const code: number = character.codePointAt(0)!;
+
+      if (code === 0xa0) {
+        return " ";
+      }
+
+      if (code === 0xad || (code >= 0x200c && code <= 0x200f)) {
+        return "";
+      }
+
+      return code >= 0x80 && code <= 0x9f ? "\ufffd" : character;
+    })
+    .join("");
+}
+
+describe("references, as a browser reads them", () => {
+  const NUMBERS: Array<number> = [
+    ...Array.from({ length: 0x300 }, (_value: unknown, index: number) => {
+      return index;
+    }).filter((code: number): boolean => {
+      // A browser drops a NUL, and reads CR and the like as white space in a text.
+      return code >= 32 && code !== 127;
+    }),
+    0xd7ff,
+    0xd800,
+    0xdbff,
+    0xdc00,
+    0xdfff,
+    0xe000,
+    0xfeff,
+    0xfffd,
+    0xfffe,
+    0xffff,
+    0x10000,
+    0x1f600,
+    0x10ffff,
+    0x110000,
+    0x7fffffff,
+    0x2013,
+    0x2014,
+    0x2018,
+    0x2019,
+    0x201c,
+    0x201d,
+    0x20ac,
+    0x2122,
+    0x200b,
+    0x200c,
+    0x200d,
+    0x200e,
+    0x200f,
+  ];
+  const references: Array<string> = [
+    ...KNOWN_NAMES.map((name: string): string => {
+      return `&${name};`;
+    }),
+    ...NUMBERS.map((code: number): string => {
+      return `&#${code};`;
+    }),
+    ...NUMBERS.map((code: number): string => {
+      return `&#x${code.toString(16)};`;
+    }),
+    ...NUMBERS.map((code: number): string => {
+      return `&#X${code.toString(16).toUpperCase()};`;
+    }),
+    "&#0000000000000065;",
+    "&#x00000041;",
+  ];
+  let read: Array<string> = [];
+
+  beforeAll(async () => {
+    read = (await runDynamicsScript({
+      templateId: INCIDENT.templateId,
+      componentId: INCIDENT.step,
+      args: { texts: references },
+      editCode: (code: string): string => {
+        return (
+          code.slice(0, code.indexOf(CASE_STEP_SECTION)) +
+          "return (Array.isArray(args.texts) ? args.texts : []).map((text) => readEntities(text));"
+        );
+      },
+    })) as unknown as Array<string>;
+  });
+
+  test("reads every name it knows, and every number, as a browser shows it", () => {
+    expect(read).toHaveLength(references.length);
+    expect(
+      references
+        .filter((reference: string, index: number): boolean => {
+          return read[index] !== asTheReadingShows(asABrowserShows(reference));
+        })
+        .map((reference: string, index: number): string => {
+          return `${reference} -> ${JSON.stringify(read[references.indexOf(reference)])} (index ${index})`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("reads the five every editor writes in any letter case, as it always has", async () => {
+    const texts: Array<string> = [
+      "&NBSP;",
+      "&Lt;",
+      "&GT;",
+      "&Quot;",
+      "&APOS;",
+      "&AMP;",
+    ];
+    const upper: Array<string> = (await runDynamicsScript({
+      templateId: INCIDENT.templateId,
+      componentId: INCIDENT.step,
+      args: { texts: texts },
+      editCode: (code: string): string => {
+        return (
+          code.slice(0, code.indexOf(CASE_STEP_SECTION)) +
+          "return args.texts.map((text) => readEntities(text));"
+        );
+      },
+    })) as unknown as Array<string>;
+
+    expect(upper).toEqual([" ", "<", ">", '"', "'", "&"]);
+  });
+
+  test("leaves a name it does not know, and a reference with no ';', as written", async () => {
+    const texts: Array<string> = [
+      "&bogus;",
+      "&foobar;",
+      "&Rsquo;",
+      "&copy",
+      "&#169",
+      "&#x;",
+      "&#;",
+      "AT&T",
+      "a & b",
+      "&",
+    ];
+    const kept: Array<string> = (await runDynamicsScript({
+      templateId: INCIDENT.templateId,
+      componentId: INCIDENT.step,
+      args: { texts: texts },
+      editCode: (code: string): string => {
+        return (
+          code.slice(0, code.indexOf(CASE_STEP_SECTION)) +
+          "return args.texts.map((text) => readEntities(text));"
+        );
+      },
+    })) as unknown as Array<string>;
+
+    expect(kept).toEqual(texts);
+  });
+
+  test("reads each reference once: what one reads as is never read again", async () => {
+    const texts: Array<string> = [
+      "&#38;lt;",
+      "&amp;lt;",
+      "&#x26;amp;",
+      "&amp;#60;",
+      "&#38;#60;",
+      "&&lt;",
+      "&lt;&amp;gt;",
+    ];
+    const once: Array<string> = (await runDynamicsScript({
+      templateId: INCIDENT.templateId,
+      componentId: INCIDENT.step,
+      args: { texts: texts },
+      editCode: (code: string): string => {
+        return (
+          code.slice(0, code.indexOf(CASE_STEP_SECTION)) +
+          "return args.texts.map((text) => readEntities(text));"
+        );
+      },
+    })) as unknown as Array<string>;
+
+    expect(once).toEqual([
+      "&lt;",
+      "&lt;",
+      "&amp;",
+      "&#60;",
+      "&#60;",
+      "&<",
+      "<&gt;",
+    ]);
+    // As a browser shows them.
+    expect(once).toEqual(
+      texts.map((text: string): string => {
+        return asABrowserShows(text);
+      }),
+    );
   });
 });
 
