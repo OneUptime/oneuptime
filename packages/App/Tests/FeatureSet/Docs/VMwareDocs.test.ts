@@ -1,4 +1,6 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { diagramSkeleton } from "./DocsTranslationChecks";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -66,13 +68,36 @@ const MONITOR_PAGE: string = "monitor/vmware-monitor";
 const OWNED_PAGES: ReadonlyArray<string> = [TELEMETRY_PAGE, MONITOR_PAGE];
 
 /*
- * Every language directory that ships the VMware pages. `fa` is the only
- * translated corpus (every other language falls back to English per page at
- * request time), so a new translation only has to be added here.
+ * The languages the agent page is translated into. `fa` is the only
+ * translated corpus for it (every other language falls back to English per
+ * page at request time), so a new translation only has to be added here.
  */
 const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
 
+/* Every language besides English: the monitor page ships in each of them. */
+const MONITOR_PAGE_LANGUAGES: ReadonlyArray<string> =
+  SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+    return language !== "en";
+  });
+
+interface LanguagePage {
+  language: string;
+  page: string;
+}
+
+/* Every translated page: the agent page in `fa`, the monitor page in every language. */
+const TRANSLATED_PAGES: ReadonlyArray<LanguagePage> = [
+  ...TRANSLATED_LANGUAGES.map((language: string): LanguagePage => {
+    return { language, page: TELEMETRY_PAGE };
+  }),
+  ...MONITOR_PAGE_LANGUAGES.map((language: string): LanguagePage => {
+    return { language, page: MONITOR_PAGE };
+  }),
+];
+
 const FENCE_LINE: RegExp = /^\s*```/;
+/* The opening fence of a mermaid diagram. */
+const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
 /* A table row whose first cell is a backticked vcenter.* metric name. */
 const METRIC_ROW: RegExp = /^\|\s*`(vcenter\.[a-z_.]+)`\s*\|/;
 /* Bare environment variable names in the compose file's environment block. */
@@ -142,18 +167,31 @@ function backtickedIdentifiers(markdown: string): Array<string> {
   );
 }
 
-/* Fenced code blocks of a page, each as its full text between the fences. */
-function codeBlocks(markdown: string): Array<string> {
+/*
+ * Fenced code blocks of a page, each as its full text between the fences.
+ * With diagrams by skeleton, a mermaid block is its skeleton instead: a
+ * translation draws its diagram in its own language, so only the diagram's
+ * node ids, shapes, arrows and line order must be the English ones.
+ */
+function codeBlocks(
+  markdown: string,
+  options: { diagramsBySkeleton: boolean } = { diagramsBySkeleton: false },
+): Array<string> {
   const blocks: Array<string> = [];
   let current: Array<string> | null = null;
+  let diagram: boolean = false;
 
   for (const line of markdown.split("\n")) {
     if (FENCE_LINE.test(line)) {
       if (current) {
-        blocks.push(current.join("\n"));
+        const code: string = current.join("\n");
+        blocks.push(
+          diagram && options.diagramsBySkeleton ? diagramSkeleton(code) : code,
+        );
         current = null;
       } else {
         current = [];
+        diagram = MERMAID_FENCE.test(line);
       }
       continue;
     }
@@ -950,86 +988,81 @@ describe("VMware docs", (): void => {
   });
 
   describe("translations", (): void => {
-    it("ship both pages in every translated language", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            exists: fs.existsSync(pageFile(language, page)),
-          }).toEqual({ language, page, exists: true });
-        }
+    it("ship the agent page in fa, and the monitor page in every language", (): void => {
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          exists: fs.existsSync(pageFile(language, page)),
+        }).toEqual({ language, page, exists: true });
       }
     });
 
     it("keep every backticked identifier, in order", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            identifiers: backtickedIdentifiers(readPage(page, language)),
-          }).toEqual({
-            language,
-            page,
-            identifiers: backtickedIdentifiers(readPage(page)),
-          });
-        }
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          identifiers: backtickedIdentifiers(readPage(page, language)),
+        }).toEqual({
+          language,
+          page,
+          identifiers: backtickedIdentifiers(readPage(page)),
+        });
       }
     });
 
-    it("keep every code block byte-identical", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          expect({
-            language,
-            page,
-            blocks: codeBlocks(readPage(page, language)),
-          }).toEqual({ language, page, blocks: codeBlocks(readPage(page)) });
-        }
+    it("keep every code block byte-identical, and every diagram's skeleton", (): void => {
+      for (const { language, page } of TRANSLATED_PAGES) {
+        expect({
+          language,
+          page,
+          blocks: codeBlocks(readPage(page, language), {
+            diagramsBySkeleton: true,
+          }),
+        }).toEqual({
+          language,
+          page,
+          blocks: codeBlocks(readPage(page), { diagramsBySkeleton: true }),
+        });
       }
     });
 
     it("keep the same heading structure, table row counts and line count", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
-        for (const page of OWNED_PAGES) {
-          const english: Array<string> = readPage(page).split("\n");
-          const translated: Array<string> = readPage(page, language).split(
-            "\n",
-          );
+      for (const { language, page } of TRANSLATED_PAGES) {
+        const english: Array<string> = readPage(page).split("\n");
+        const translated: Array<string> = readPage(page, language).split("\n");
 
-          expect({ language, page, lines: translated.length }).toEqual({
-            language,
-            page,
-            lines: english.length,
+        expect({ language, page, lines: translated.length }).toEqual({
+          language,
+          page,
+          lines: english.length,
+        });
+
+        const shape: (lines: Array<string>) => Array<string> = (
+          lines: Array<string>,
+        ): Array<string> => {
+          return lines.map((line: string): string => {
+            const heading: RegExpMatchArray | null = line.match(/^(#{1,6})\s/);
+            if (heading) {
+              return heading[1] as string;
+            }
+            if (line.startsWith("|")) {
+              return "|";
+            }
+            if (FENCE_LINE.test(line)) {
+              return "```";
+            }
+            return "";
           });
+        };
 
-          const shape: (lines: Array<string>) => Array<string> = (
-            lines: Array<string>,
-          ): Array<string> => {
-            return lines.map((line: string): string => {
-              const heading: RegExpMatchArray | null =
-                line.match(/^(#{1,6})\s/);
-              if (heading) {
-                return heading[1] as string;
-              }
-              if (line.startsWith("|")) {
-                return "|";
-              }
-              if (FENCE_LINE.test(line)) {
-                return "```";
-              }
-              return "";
-            });
-          };
-
-          expect(shape(translated)).toEqual(shape(english));
-        }
+        expect(shape(translated)).toEqual(shape(english));
       }
     });
 
     it("keep every alert template name untranslated so the picker and the docs agree", (): void => {
-      for (const language of TRANSLATED_LANGUAGES) {
+      for (const language of MONITOR_PAGE_LANGUAGES) {
         const markdown: string = readPage(MONITOR_PAGE, language);
 
         for (const template of getAllVMwareAlertTemplates()) {

@@ -151,7 +151,7 @@ Manifestet opsætter disse funktioner. Hver af dem når din server via den viste
 
 ### Billeder i beskeder
 
-Beskrivelser af hændelser og alarmer kan indeholde skærmbilleder, for eksempel fra en syntetisk monitor (se [Syntetiske monitorer](/docs/monitor/incident-alert-templating#syntetiske-monitorer)). OneUptime viser dem i Slack-beskeder ved at uploade hvert enkelt til dit arbejdsområde som en privat fil, hvilket kræver bot-scopet `files:write`. Det genererede manifest indeholder det.
+Beskrivelser af hændelser og alarmer kan indeholde skærmbilleder, for eksempel fra en syntetisk monitor (se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede)). OneUptime viser dem i Slack-beskeder ved at uploade hvert enkelt til dit arbejdsområde som en privat fil, hvilket kræver bot-scopet `files:write`. Det genererede manifest indeholder det.
 
 Hvis du har oprettet din Slack-app ud fra et ældre manifest, så tilføj `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller opdatér appen ud fra det aktuelle manifest). Vælg derefter **Connect with Slack** igen under **Projektindstillinger > Arbejdsområde > Slack**, så det nye scope bliver givet. Indtil da vises hvert skærmbillede som sin alternative tekst.
 

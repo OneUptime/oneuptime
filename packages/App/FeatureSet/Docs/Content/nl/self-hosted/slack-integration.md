@@ -151,7 +151,7 @@ Het manifest stelt deze functies in. Elke functie bereikt uw server via de getoo
 
 ### Afbeeldingen in berichten
 
-Beschrijvingen van incidenten en meldingen kunnen screenshots bevatten, bijvoorbeeld die van een synthetische monitor (zie [Synthetische monitors](/docs/monitor/incident-alert-templating#synthetische-monitors)). OneUptime toont ze in Slack-berichten door elk ervan als privébestand naar uw werkruimte te uploaden, en daarvoor is de botscope `files:write` nodig. Het gegenereerde manifest bevat die.
+Beschrijvingen van incidenten en meldingen kunnen screenshots bevatten, bijvoorbeeld die van een synthetische monitor (zie [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#een-schermafbeelding-tonen)). OneUptime toont ze in Slack-berichten door elk ervan als privébestand naar uw werkruimte te uploaden, en daarvoor is de botscope `files:write` nodig. Het gegenereerde manifest bevat die.
 
 Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `files:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scope wordt toegekend. Tot dan wordt elk screenshot getoond als de alternatieve tekst ervan.
 

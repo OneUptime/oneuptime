@@ -55,6 +55,7 @@ interface ProcessReport {
   notes: Array<{ shape: string; read: Attempt }>;
   teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
   sites: Array<{ shape: string; site?: string; error?: string }>;
+  settings: Array<{ shape: string; link?: string; error?: string }>;
 }
 
 function runWithUnoptimizedRegularExpressions(): ProcessReport {
@@ -211,7 +212,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         const jiraHelpers = new Function(
           "args",
           jiraCode.slice(0, jiraCode.indexOf("// ---- What this step does ----")) +
-            "return { siteOf: siteOf };",
+            "return { siteOf: siteOf, issueLink: issueLink };",
         )({});
 
         const SITE_SHAPES = [
@@ -234,8 +235,32 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           site: jiraHelpers.siteOf("https://acme.atlassian.net/rest/api/2/issue/10040"),
         });
 
+        /*
+         * The site the workflow's Jira Site URL names, read by the same helper block: the
+         * wizard only takes a site's address, but the variable can be edited to any text,
+         * as long as anyone likes.
+         */
+        const ISSUE_URL = "https://acme.atlassian.net/rest/api/2/issue/10040";
+        const SETTING_SHAPES = [
+          ["a host that never ends", "https://" + repeatTo("a")],
+          ["an IPv6 address that never closes", "http://[" + repeatTo("1")],
+          ["a context path that never ends", "https://example.com/" + repeatTo("a")],
+          ["a port that never ends", "https://acme.atlassian.net:" + repeatTo("1")],
+          ["dotted labels", "https://" + repeatTo("a.")],
+          ["a site between a megabyte of spaces", repeatTo(" ") + "https://example.com/jira" + repeatTo(" ")],
+          ["a site under a context path, as the wizard takes it", "https://example.com/jira"],
+        ];
+
+        const settings = SETTING_SHAPES.map(([shape, setting]) => {
+          try {
+            return { shape, link: jiraHelpers.issueLink(ISSUE_URL, "OPS-17", setting) };
+          } catch (error) {
+            return { shape, error: String((error && error.message) || error).split("\n")[0] };
+          }
+        });
+
         process.stdout.write(
-          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites }),
+          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites, settings }),
         );
         process.exit(0);
       `,
@@ -292,6 +317,25 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
       {
         shape: "a site, as Jira Cloud sends it",
         site: "https://acme.atlassian.net",
+      },
+    ]);
+  });
+
+  test("a Jira script reads the site a megabyte-long Jira Site URL names without running out of stack", () => {
+    // None of the long ones is a site's address, so the issue is named without a link.
+    expect(report.settings).toEqual([
+      { shape: "a host that never ends", link: "OPS-17" },
+      { shape: "an IPv6 address that never closes", link: "OPS-17" },
+      { shape: "a context path that never ends", link: "OPS-17" },
+      { shape: "a port that never ends", link: "OPS-17" },
+      { shape: "dotted labels", link: "OPS-17" },
+      {
+        shape: "a site between a megabyte of spaces",
+        link: "[OPS-17](https://example.com/jira/browse/OPS-17)",
+      },
+      {
+        shape: "a site under a context path, as the wizard takes it",
+        link: "[OPS-17](https://example.com/jira/browse/OPS-17)",
       },
     ]);
   });

@@ -80,6 +80,7 @@ import {
   jiraCommentEvent,
   jiraIssueCreatedEvent,
   jiraIssueUpdatedEvent,
+  jiraLinkingEventArgs,
   jiraUser,
   quoted,
   runJiraScript,
@@ -213,15 +214,26 @@ const KINDS: Array<[string, RecordKind]> = [
 
 /* ------------------------------ The scripts ------------------------------ */
 
+/*
+ * The Jira scripts that link to the issue get the workflow's Jira Site URL
+ * beside the event. JIRA_SITE unless a test says otherwise, as the create
+ * wizard stores it; null leaves the setting out (a workflow whose arguments
+ * no longer name it).
+ */
+
 // create-*-from-issue: a Jira issue_created webhook, as the request body.
 async function recordFromIssue(
   kind: RecordKind,
   event: JSONObject,
+  site: string | null = JIRA_SITE,
 ): Promise<JSONObject> {
   return await runJiraScript({
     templateId: kind.jira.createRecord,
     componentId: kind.jira.prepare,
-    args: { severities: quoted(kind.severities), payload: quoted(event) },
+    args: {
+      severities: quoted(kind.severities),
+      ...jiraLinkingEventArgs(event, site),
+    },
   });
 }
 
@@ -258,11 +270,12 @@ async function causeFromIssue(
 async function noteFromComment(
   kind: RecordKind,
   event: JSONObject,
+  site: string | null = JIRA_SITE,
 ): Promise<JSONObject> {
   return await runJiraScript({
     templateId: kind.jira.commentToNote,
     componentId: "read-comment-1",
-    args: event,
+    args: jiraLinkingEventArgs(event, site),
   });
 }
 
@@ -270,17 +283,24 @@ async function noteFromComment(
 async function noteFromChanges(
   kind: RecordKind,
   items: Array<JSONObject>,
-  props?: { user?: JSONObject | undefined; self?: string | undefined },
+  props?: {
+    user?: JSONObject | undefined;
+    self?: string | undefined;
+    site?: string | null | undefined;
+  },
 ): Promise<JSONObject> {
   return await runJiraScript({
     templateId: kind.jira.changesToNote,
     componentId: "read-changes-1",
-    args: jiraIssueUpdatedEvent({
-      labels: [kind.link],
-      items: items,
-      user: props?.user,
-      self: props?.self,
-    }),
+    args: jiraLinkingEventArgs(
+      jiraIssueUpdatedEvent({
+        labels: [kind.link],
+        items: items,
+        user: props?.user,
+        self: props?.self,
+      }),
+      props?.site === undefined ? JIRA_SITE : props.site,
+    ),
   });
 }
 
@@ -1916,158 +1936,228 @@ describe("no text written from outside holds anything a renderer acts on", () =>
 
 /*
  * The link a note or a description gives to the issue is the template's
- * own: the issue's key, which matched ISSUE_KEY, at the site read off the
- * issue's REST URL. The URL comes with the event - anyone holding the
- * workflow's URL can send one - so only a scheme, a host and a port are read
- * off it, and an issue whose URL holds anything else is named without a link.
+ * own: the issue's key, which matched ISSUE_KEY, on the site the workflow's
+ * Jira Site URL names. The event cannot move it: its REST URL comes with the
+ * request, not from the workflow, so with the setting the issue is linked on
+ * the configured site whatever that URL says.
+ *
+ * Without the setting (a workflow whose arguments were edited to leave it
+ * out), the site is read off the event's REST URL exactly as it was before:
+ * only a scheme, a host and a port, and an issue whose URL holds anything
+ * else is named without a link. JiraIssueLinkSite.test.ts holds that
+ * fallback to the old code on generated URLs too.
  */
-describe("the link to a Jira issue", () => {
+const EVENT_SITES: Array<[string, string, string]> = [
+  [
+    "Jira Cloud",
+    "https://acme.atlassian.net/rest/api/2/issue/10040",
+    "https://acme.atlassian.net",
+  ],
+  [
+    "Jira Data Center on a port",
+    "https://jira.example.com:8443/rest/api/2/issue/10040",
+    "https://jira.example.com:8443",
+  ],
+  [
+    "Jira under a path, linked at its host as before",
+    "https://example.com/jira/rest/api/2/issue/10040",
+    "https://example.com",
+  ],
+  [
+    "an address and a port",
+    "http://10.0.0.5:8080/rest/api/2/issue/10040",
+    "http://10.0.0.5:8080",
+  ],
+  [
+    "an internal host name",
+    "http://jira_dev.corp:8080/rest/api/2/issue/10040",
+    "http://jira_dev.corp:8080",
+  ],
+  [
+    "an IPv6 address",
+    "http://[2001:db8::1]:8443/rest/api/2/issue/10040",
+    "http://[2001:db8::1]:8443",
+  ],
+  [
+    "a host written in another script",
+    "https://jira.bücher.example/rest/api/2/issue/10040",
+    "https://jira.bücher.example",
+  ],
+  [
+    "a host whose letters carry marks",
+    "https://jira.भारत.example/rest/api/2/issue/10040",
+    "https://jira.भारत.example",
+  ],
+];
+
+const EVENT_URLS_THAT_ARE_NOT_SITES: Array<[string, string]> = [
+  [
+    "markup after the host",
+    "https://a.example)<img src=x onerror=alert(1)>/rest/api/2/issue/10040",
+  ],
+  [
+    "an image after the host",
+    "https://a.example)![x](https://tracker.example/p.png)/rest",
+  ],
+  [
+    "a mention after the host",
+    "https://a.example)<!channel>/rest/api/2/issue/10040",
+  ],
+  ["a user and a password", "https://user:secret@acme.atlassian.net/rest"],
+  ["a query", "https://acme.atlassian.net?next=x/rest/api/2/issue/10040"],
+  ["a space", "https://acme.atlassian.net /rest/api/2/issue/10040"],
+  ["a line break", "https://acme.atlassian.net\n/rest/api/2/issue/10040"],
+  ["another scheme", "javascript:alert(1)//acme.atlassian.net/rest"],
+  ["no host", "https:///rest/api/2/issue/10040"],
+  [
+    "a right-to-left override in the host",
+    `https://acme${String.fromCharCode(0x202e)}ten.naissalta/rest/api/2/issue/10040`,
+  ],
+  [
+    "a no-break space in the host",
+    `https://acme${String.fromCharCode(0xa0)}.atlassian.net/rest/api/2/issue/10040`,
+  ],
+  ["an unclosed IPv6 address", "http://[2001:db8::1/rest/api/2/issue/10040"],
+  [
+    "a numeral a browser reads as digits and a dot",
+    `https://acme${String.fromCharCode(0x2488)}com/rest/api/2/issue/10040`,
+  ],
+  [
+    "a host longer than a site's address can be",
+    `https://${"a".repeat(300)}.example/rest/api/2/issue/10040`,
+  ],
+];
+
+interface LinkedTexts {
+  description: string;
+  commentNote: string;
+  changesNote: string;
+}
+
+// The description and the two notes one kind's scripts write for an issue at this REST URL.
+async function linkedTexts(
+  kind: RecordKind,
+  self: string,
+  site: string | null,
+): Promise<LinkedTexts> {
+  const comment: JSONObject = jiraCommentEvent();
+
+  (comment["issue"] as JSONObject)["self"] = self;
+
+  const record: JSONObject = await recordFromIssue(
+    kind,
+    jiraIssueCreatedEvent({ self: self }),
+    site,
+  );
+  const note: JSONObject = await noteFromComment(kind, comment, site);
+  const changes: JSONObject = await noteFromChanges(kind, ORDINARY_CHANGES, {
+    self: self,
+    site: site,
+  });
+
+  return {
+    description: textOf(record, "description"),
+    commentNote: textOf(note, "note"),
+    changesNote: textOf(changes, "note"),
+  };
+}
+
+// How each of the three texts starts, with the issue named as given.
+function openings(kind: RecordKind, issue: string): LinkedTexts {
+  return {
+    description: `${kind.Created} from Jira issue ${issue}.\n`,
+    commentNote: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Marco Rossi commented on ${issue}.\n\n`,
+    changesNote: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated ${issue}.\n\n`,
+  };
+}
+
+function expectOpenings(texts: LinkedTexts, expected: LinkedTexts): void {
+  expect({
+    description: texts.description.startsWith(expected.description),
+    commentNote: texts.commentNote.startsWith(expected.commentNote),
+    changesNote: texts.changesNote.startsWith(expected.changesNote),
+    texts: texts,
+  }).toEqual({
+    description: true,
+    commentNote: true,
+    changesNote: true,
+    texts: texts,
+  });
+}
+
+describe("the link to a Jira issue, with the workflow's Jira Site URL", () => {
   test.each([
-    [
-      "Jira Cloud",
-      "https://acme.atlassian.net/rest/api/2/issue/10040",
-      "https://acme.atlassian.net",
-    ],
-    [
-      "Jira Data Center on a port",
-      "https://jira.example.com:8443/rest/api/2/issue/10040",
-      "https://jira.example.com:8443",
-    ],
-    [
-      "Jira under a path, linked at its host as before",
-      "https://example.com/jira/rest/api/2/issue/10040",
-      "https://example.com",
-    ],
-    [
-      "an address and a port",
-      "http://10.0.0.5:8080/rest/api/2/issue/10040",
-      "http://10.0.0.5:8080",
-    ],
-    [
-      "an internal host name",
-      "http://jira_dev.corp:8080/rest/api/2/issue/10040",
-      "http://jira_dev.corp:8080",
-    ],
-    [
-      "an IPv6 address",
-      "http://[2001:db8::1]:8443/rest/api/2/issue/10040",
-      "http://[2001:db8::1]:8443",
-    ],
-    [
-      "a host written in another script",
-      "https://jira.bücher.example/rest/api/2/issue/10040",
-      "https://jira.bücher.example",
-    ],
-    [
-      "a host whose letters carry marks",
-      "https://jira.भारत.example/rest/api/2/issue/10040",
-      "https://jira.भारत.example",
-    ],
+    ...EVENT_SITES.map(
+      ([name, self]: [string, string, string]): [string, string] => {
+        return [name, self];
+      },
+    ),
+    ...EVENT_URLS_THAT_ARE_NOT_SITES,
   ])(
-    "%s: links the issue at its site",
+    "an event whose issue URL is %s: the issue is linked on the configured site, and nothing else acts",
+    async (_case: string, self: string) => {
+      for (const [, kind] of KINDS) {
+        const texts: LinkedTexts = await linkedTexts(kind, self, JIRA_SITE);
+
+        expectOpenings(texts, openings(kind, ISSUE_LINK));
+
+        for (const reading of readingsOf(
+          [texts.description, texts.commentNote, texts.changesNote],
+          [ISSUE_URL],
+        )) {
+          expect({ ...reading, text: "" }).toEqual({
+            text: "",
+            ...NOTHING_ACTS,
+          });
+        }
+
+        // The configured site is the only one any of them links to.
+        for (const page of renderAsDashboard([
+          texts.description,
+          texts.commentNote,
+          texts.changesNote,
+        ])) {
+          expect(
+            Array.from(page.matchAll(DASHBOARD_ANCHOR)).map(
+              (anchor: RegExpMatchArray): string => {
+                return anchor[1]!;
+              },
+            ),
+          ).toEqual([ISSUE_URL]);
+        }
+      }
+    },
+  );
+});
+
+describe("the link to a Jira issue, without the workflow's Jira Site URL", () => {
+  test.each(EVENT_SITES)(
+    "%s: links the issue at the site the event's issue URL names, as before",
     async (_case: string, self: string, site: string) => {
       for (const [, kind] of KINDS) {
-        const record: JSONObject = await recordFromIssue(
-          kind,
-          jiraIssueCreatedEvent({ self: self }),
-        );
-        const changes: JSONObject = await noteFromChanges(
-          kind,
-          ORDINARY_CHANGES,
-          { self: self },
-        );
+        const texts: LinkedTexts = await linkedTexts(kind, self, null);
 
-        expect(
-          textOf(record, "description").startsWith(
-            `${kind.Created} from Jira issue [${JIRA_ISSUE_KEY}](${site}/browse/${JIRA_ISSUE_KEY}).\n`,
+        expectOpenings(
+          texts,
+          openings(
+            kind,
+            `[${JIRA_ISSUE_KEY}](${site}/browse/${JIRA_ISSUE_KEY})`,
           ),
-        ).toBe(true);
-        expect(
-          textOf(changes, "note").startsWith(
-            `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated [${JIRA_ISSUE_KEY}](${site}/browse/${JIRA_ISSUE_KEY}).\n`,
-          ),
-        ).toBe(true);
+        );
       }
     },
   );
 
-  test.each([
-    [
-      "markup after the host",
-      "https://a.example)<img src=x onerror=alert(1)>/rest/api/2/issue/10040",
-    ],
-    [
-      "an image after the host",
-      "https://a.example)![x](https://tracker.example/p.png)/rest",
-    ],
-    [
-      "a mention after the host",
-      "https://a.example)<!channel>/rest/api/2/issue/10040",
-    ],
-    ["a user and a password", "https://user:secret@acme.atlassian.net/rest"],
-    ["a query", "https://acme.atlassian.net?next=x/rest/api/2/issue/10040"],
-    ["a space", "https://acme.atlassian.net /rest/api/2/issue/10040"],
-    ["a line break", "https://acme.atlassian.net\n/rest/api/2/issue/10040"],
-    ["another scheme", "javascript:alert(1)//acme.atlassian.net/rest"],
-    ["no host", "https:///rest/api/2/issue/10040"],
-    [
-      "a right-to-left override in the host",
-      `https://acme${String.fromCharCode(0x202e)}ten.naissalta/rest/api/2/issue/10040`,
-    ],
-    [
-      "a no-break space in the host",
-      `https://acme${String.fromCharCode(0xa0)}.atlassian.net/rest/api/2/issue/10040`,
-    ],
-    ["an unclosed IPv6 address", "http://[2001:db8::1/rest/api/2/issue/10040"],
-    [
-      "a numeral a browser reads as digits and a dot",
-      `https://evil${String.fromCharCode(0x2488)}com/rest/api/2/issue/10040`,
-    ],
-    [
-      "a host longer than a site's address can be",
-      `https://${"a".repeat(300)}.example/rest/api/2/issue/10040`,
-    ],
-  ])(
-    "%s: names the issue without a link",
+  test.each(EVENT_URLS_THAT_ARE_NOT_SITES)(
+    "%s: names the issue without a link, as before",
     async (_case: string, self: string) => {
-      const comment: JSONObject = jiraCommentEvent();
-
-      (comment["issue"] as JSONObject)["self"] = self;
-
       for (const [, kind] of KINDS) {
-        const record: JSONObject = await recordFromIssue(
-          kind,
-          jiraIssueCreatedEvent({ self: self }),
-        );
-        const note: JSONObject = await noteFromComment(kind, comment);
-        const changes: JSONObject = await noteFromChanges(
-          kind,
-          ORDINARY_CHANGES,
-          { self: self },
-        );
+        const texts: LinkedTexts = await linkedTexts(kind, self, null);
 
-        expect(
-          textOf(record, "description").startsWith(
-            `${kind.Created} from Jira issue ${JIRA_ISSUE_KEY}.\n`,
-          ),
-        ).toBe(true);
-        expect(
-          textOf(note, "note").startsWith(
-            `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Marco Rossi commented on ${JIRA_ISSUE_KEY}.\n\n`,
-          ),
-        ).toBe(true);
-        expect(
-          textOf(changes, "note").startsWith(
-            `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated ${JIRA_ISSUE_KEY}.\n\n`,
-          ),
-        ).toBe(true);
+        expectOpenings(texts, openings(kind, JIRA_ISSUE_KEY));
 
         for (const reading of readingsOf(
-          [
-            textOf(record, "description"),
-            textOf(note, "note"),
-            textOf(changes, "note"),
-          ],
+          [texts.description, texts.commentNote, texts.changesNote],
           [],
         )) {
           expect({ ...reading, text: "" }).toEqual({

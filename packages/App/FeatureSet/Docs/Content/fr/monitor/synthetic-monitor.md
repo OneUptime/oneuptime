@@ -154,7 +154,7 @@ return {
 };
 ```
 
-Une exécution conserve jusqu'à 20 captures d'écran, chacune jusqu'à 10 Mo et 50 Mo au total. Une capture peut aussi apparaître dans l'incident ou l'alerte qu'ouvre une exécution en échec — sur sa page et dans les e-mails qui en parlent — en la plaçant dans la description d'incident ou d'alerte du moniteur. Voir [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#moniteurs-synthétiques).
+Une exécution conserve jusqu'à 20 captures d'écran, chacune jusqu'à 10 Mo et 50 Mo au total. Une capture peut aussi apparaître dans l'incident ou l'alerte qu'ouvre une exécution en échec — sur sa page et dans les e-mails qui en parlent — en la plaçant dans la description d'incident ou d'alerte du moniteur. Voir [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#afficher-une-capture-décran).
 
 :::details Renvoyer des captures d'écran (ancienne méthode)
 Pour la rétrocompatibilité, vous pouvez aussi renvoyer des captures d'écran dans la valeur de retour du script. Les captures renvoyées ainsi ne sont conservées **que** si le script se termine normalement — elles sont perdues s'il lève une erreur. Préférez le canal parallèle décrit plus haut quand vous voulez des preuves des échecs.
@@ -295,6 +295,6 @@ La sonde s'exécute hors de son image Docker, sans Chromium ni Firefox installé
 
 :::cards
 - [Surveillance par code personnalisé](/docs/monitor/custom-code-monitor): Vérifier des API avec un script, sans navigateur.
-- [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#moniteurs-synthétiques): Mettre la capture de l'exécution en échec dans l'incident.
+- [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#afficher-une-capture-décran): Mettre la capture de l'exécution en échec dans l'incident.
 - [Secrets de surveillance](/docs/monitor/monitor-secrets): Garder les identifiants hors de votre script.
 :::
