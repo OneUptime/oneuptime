@@ -624,9 +624,16 @@ describe("every test in the repository reads markup through the shared walk", ()
         "packages/App/Tests/FeatureSet/Docs/DocsHtmlText.ts",
         "packages/Home/Tests/BooksRendering.test.ts",
         "packages/Home/Tests/PricingRendering.test.ts",
-        "ee/Tests/Server/FrontendRequestsUseRefreshAwareApi.test.ts",
         "packages/E2E/EventOverview/EventOverview.spec.ts",
         "packages/E2E/EventOverview/Fixture/Fixture.js",
+        /*
+         * Core's own CI removes ee/ before its tests (core must pass without
+         * the Enterprise Edition), so ee/'s test files are expected only
+         * where ee/ is checked out.
+         */
+        ...(fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"))
+          ? ["ee/Tests/Server/FrontendRequestsUseRefreshAwareApi.test.ts"]
+          : []),
         ...FIXED_ALERTS.map((fixed: FixedAlert): string => {
           return fixed.file;
         }),
