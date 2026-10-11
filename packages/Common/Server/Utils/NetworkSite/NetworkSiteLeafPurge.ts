@@ -159,6 +159,15 @@ export default class NetworkSiteLeafPurge {
       return await this.hardDeleteInLock(batch, leaves);
     }
 
+    /*
+     * A page past the first found no leaf. The cycles and the log belong to
+     * a call from the first row: a cycle has no pages, and rows only skipped
+     * are no reason to say rows stay. The job always asks from the first.
+     */
+    if (batch.skip > 0) {
+      return 0;
+    }
+
     const cycles: Array<PurgeRow> = await this.readClosedCycles(batch);
 
     if (cycles.length > 0) {

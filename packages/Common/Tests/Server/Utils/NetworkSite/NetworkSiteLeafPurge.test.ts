@@ -239,6 +239,19 @@ describe("findCycles", () => {
     ).toEqual([["a", "b"]]);
   });
 
+  it("leaves out the rows that lead into a cycle when a walk starts from one of them", () => {
+    // "a" sorts first, so the first walk goes a -> x -> y -> x.
+    expect(
+      findCycles(
+        new Map<string, string>([
+          ["y", "x"],
+          ["x", "y"],
+          ["a", "x"],
+        ]),
+      ),
+    ).toEqual([["x", "y"]]);
+  });
+
   it("walks a long chain and a long cycle once each", () => {
     const parentOf: Map<string, string> = new Map<string, string>();
     const size: number = 20_000;
@@ -433,6 +446,27 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
 
     expect(purge.reads[0]!.limit).toBe(7);
     expect(purge.reads[0]!.skip).toBe(3);
+  });
+
+  it("stops after the leaves on a page past the first: the cycles and the log wait for a call from the first row", async () => {
+    const warn: SpyInstance<typeof logger.warn> = jest.spyOn(logger, "warn");
+    const purge: World = world({
+      leaves: [],
+      cycleCandidates: [
+        site({ index: 1, parentIndex: 2 }),
+        site({ index: 2, parentIndex: 1 }),
+      ],
+      stay: [site({ index: 3 })],
+      skip: 3,
+    });
+
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(0);
+
+    expect(purge.reads).toHaveLength(1);
+    expect(kindOf(purge.reads[0]!)).toBe("leaves");
+    expect(purge.deleted).toEqual([]);
+    expect(purge.lockedProjects).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("leaves out a row without a project: no lock can hold it", async () => {
