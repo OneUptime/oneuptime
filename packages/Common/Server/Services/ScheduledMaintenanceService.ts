@@ -3660,9 +3660,9 @@ ${FeedMarkdown.join(
 
   /*
    * Whether the event is complete: in its project's completed state or one
-   * placed after it (ScheduledMaintenanceStateService.isCompleteAmong, the
-   * rule the chats' buttons read off an event they read already). What
-   * stops its owners' reminders.
+   * placed after it (ScheduledMaintenanceStartUtil.isComplete, the rule the
+   * chats' buttons read off an event they read already). What stops its
+   * owners' reminders ("Remind until event is Completed").
    */
   @CaptureSpan()
   public async isScheduledMaintenanceCompleted(data: {
@@ -3689,7 +3689,12 @@ ${FeedMarkdown.join(
       throw new BadDataException("Scheduled maintenance project ID not found");
     }
 
-    return ScheduledMaintenanceStateService.isCompleteAmong({
+    // An event without a state is not complete: nothing says it is.
+    if (!scheduledMaintenance.currentScheduledMaintenanceStateId) {
+      return false;
+    }
+
+    return ScheduledMaintenanceStartUtil.isComplete({
       states:
         await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
           {
@@ -3699,7 +3704,9 @@ ${FeedMarkdown.join(
             },
           },
         ),
-      stateId: scheduledMaintenance.currentScheduledMaintenanceStateId,
+      state: {
+        _id: scheduledMaintenance.currentScheduledMaintenanceStateId,
+      },
     });
   }
 

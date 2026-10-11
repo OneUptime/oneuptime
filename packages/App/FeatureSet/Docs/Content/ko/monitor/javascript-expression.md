@@ -82,7 +82,7 @@ JavaScript 표현식은 Website, API, Incoming Request, Incoming Email, SQL Quer
 
 ### 수신 이메일 모니터
 
-필터는 제공되지만 이메일 필드는 연결되어 있지 않습니다. 표현식으로는 제목, 보낸 사람, 본문, 받는 사람을 읽을 수 없습니다. 대신 이메일 필터 유형을 사용하세요. [수신 이메일 모니터](/docs/monitor/incoming-email-monitor#사용-가능한-기준-필드)를 참고하세요.
+필터는 제공되지만 이메일 필드는 연결되어 있지 않습니다. 표현식으로는 제목, 보낸 사람, 본문, 받는 사람을 읽을 수 없습니다. 대신 이메일 필터 유형을 사용하세요. [수신 이메일 모니터](/docs/monitor/incoming-email-monitor#사용할-수-있는-필터-유형)를 참고하세요.
 
 ## 예시
 

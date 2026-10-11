@@ -206,6 +206,7 @@ import MonitorStatusService from "../../../../Server/Services/MonitorStatusServi
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import AlertEpisodeInternalNote from "../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
@@ -2742,6 +2743,13 @@ describe("controls: commands that always worked still answer once with HTTP 200"
   });
 
   test("'show scheduled maintenance' (the command the customer saw working)", async () => {
+    // The events to come are asked for by the states they wait in.
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getWaitingToStartScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([ObjectID.generate()]);
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockResolvedValue([] as Array<ScheduledMaintenance>);
@@ -2779,6 +2787,12 @@ describe("controls: commands that always worked still answer once with HTTP 200"
         scheduledMaintenanceNumber: index,
       } as unknown as ScheduledMaintenance);
     }
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getWaitingToStartScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([ObjectID.generate()]);
     jest.spyOn(ScheduledMaintenanceService, "findBy").mockResolvedValue(events);
 
     const view: TeamsView = viewOf(

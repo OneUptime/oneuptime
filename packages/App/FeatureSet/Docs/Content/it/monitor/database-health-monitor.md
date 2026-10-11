@@ -191,7 +191,7 @@ Seleziona le **Sonde** che raggiungono il database e un **Intervallo di monitora
 | **Host** | L'host del database raggiungibile dalla sonda (ad esempio `db.internal`). |
 | **Porta** | La porta del database. |
 | **Nome del database** | Il database a cui connettersi. Le metriche a livello di database (dimensione, cache hit ratio, scritture su file temporanei) vengono riportate per questo database; quelle a livello di server (connessioni, uptime, replica) per l'intero server, tranne su Azure SQL Database, dove le connessioni vengono contate solo per il database monitorato. |
-| **Use Windows Integrated Authentication** | Solo Microsoft SQL Server. Autentica con l'identità del processo della sonda invece che con nome utente e password. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor) nella pagina del monitor SQL Query: la configurazione è identica. |
+| **Use Windows Integrated Authentication** | Solo Microsoft SQL Server. Autentica con l'identità del processo della sonda invece che con nome utente e password. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor#autenticazione-integrata-di-windows) nella pagina del monitor SQL Query: la configurazione è identica. |
 | **Nome utente** | L'utente di monitoraggio. Obbligatorio, a meno che tu non usi l'autenticazione integrata di Windows. |
 | **Password** | La password. Fai riferimento a un [segreto del monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` invece di digitarla in chiaro (vedi [Usare un segreto del monitor](#usare-un-segreto-del-monitor-per-la-password)). |
 | **Use SSL/TLS** | Connessione tramite TLS. Quando è attivo puoi disattivare **Verify server certificate** per un certificato autofirmato. |

@@ -564,21 +564,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
      * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
     const stateName: string = scheduledMaintenanceState?.name || "";
-    let stateEmoji: string = "➡️";
 
-    // if resolved state then change emoji to ✅.
-
-    if (scheduledMaintenanceState?.isResolvedState) {
-      stateEmoji = "✅";
-    } else if (isMovingIntoProgress) {
-      /*
-       * In progress: the ongoing state, or a state of the project's own
-       * placed between Ongoing and Ended, such as "Verifying".
-       */
-      stateEmoji = "⏳";
-    } else if (scheduledMaintenanceState?.isScheduledState) {
-      stateEmoji = "🕒";
-    }
+    const stateEmoji: string = await this.getStateEmoji({
+      state: scheduledMaintenanceState,
+      isInProgress: isMovingIntoProgress,
+      getStates: getProjectStates,
+    });
 
     const scheduledMaintenanceNumberResult: {
       number: number | null;
@@ -630,13 +621,19 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
       });
 
-    const hasProgressedBeyondScheduledState: boolean = Boolean(
-      scheduledMaintenanceState && !scheduledMaintenanceState.isScheduledState,
-    );
-
+    /*
+     * Subscribers are told before an event starts only while it has not:
+     * once it moves into a state where it has started - or is over without
+     * having run - the notifications still planned before it are dropped. A
+     * move on to a state of the project's own placed before Ongoing, such as
+     * "Confirmed", starts nothing, so they still go out.
+     */
     if (
-      hasProgressedBeyondScheduledState &&
-      scheduledMaintenanceEvent?.nextSubscriberNotificationBeforeTheEventAt
+      scheduledMaintenanceEvent?.nextSubscriberNotificationBeforeTheEventAt &&
+      (await this.hasStartedInState({
+        state: scheduledMaintenanceState,
+        getStates: getProjectStates,
+      }))
     ) {
       // Derived from the change too, so written the same way.
       await ScheduledMaintenanceService.updateOneById({
@@ -731,19 +728,21 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
     /*
      * Network sites are suppressed by the LIVE state of the event, not by a
-     * flag written onto them, so both edges of the window have to re-roll the
-     * chains above the attached sites: the start takes the planned outage
-     * out of every ancestor's rollup, and the end puts whatever is genuinely
-     * wrong back in - whichever state, built-in or the project's own, either
-     * edge moves into. Without this the change would still land, but only
-     * whenever the five-minute stale sweep next reached those sites.
+     * flag written onto them, so every change of the event's state re-rolls
+     * the chains above the attached sites at once: the start takes the
+     * planned outage out of every ancestor's rollup, and the end puts
+     * whatever is genuinely wrong back in - whichever state, built-in or the
+     * project's own, the event moves into. A move back, when an entry of its
+     * timeline is deleted, does the same (onDeleteSuccess). Without this the
+     * change would still land, but only whenever the five-minute stale sweep
+     * next reached those sites; the sweep stays the safety net.
      *
      * Awaited rather than fired and forgotten: the state transition is
      * already inside a hook, and a rollup that ran after the response would
      * race the very sweep it is trying to pre-empt. The call swallows
      * per-site failures itself.
      */
-    if (isStart || isEnd) {
+    if (isStart || isEnd || !createdItem.endsAt) {
       await this.recomputeNetworkSiteRollups(scheduledMaintenanceEvent);
     }
 
@@ -1057,6 +1056,76 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       states: await data.getStates(),
       state: data.state,
     });
+  }
+
+  /*
+   * Whether the event has started in `state` (ScheduledMaintenanceStartUtil
+   * .hasStarted): a built-in state answers by its flag, a state of the
+   * project's own by its place, read only then (getStates). No state has
+   * not started.
+   */
+  private async hasStartedInState(data: {
+    state: ScheduledMaintenanceState | null | undefined;
+    getStates: () => Promise<Array<ScheduledMaintenanceState>>;
+  }): Promise<boolean> {
+    if (!data.state) {
+      return false;
+    }
+
+    return ScheduledMaintenanceStartUtil.hasStarted({
+      states: ScheduledMaintenanceStartUtil.isStateOfItsOwn(data.state)
+        ? await data.getStates()
+        : [],
+      state: data.state,
+    });
+  }
+
+  /*
+   * The mark a state change's feed entry starts with, by where the state it
+   * moves into sits (ScheduledMaintenanceStartUtil) - the marks a status
+   * page's timeline shows for the same states: ⏳ in progress; ✅ complete -
+   * Completed, or a state of the project's own after it; 🕒 not started yet
+   * - Scheduled, or a state of the project's own before Ongoing, such as
+   * "Confirmed"; ➡️ over but not complete yet - Ended, or "Reviewing"
+   * between Ended and Completed.
+   */
+  private async getStateEmoji(data: {
+    state: ScheduledMaintenanceState | null | undefined;
+    isInProgress: boolean;
+    getStates: () => Promise<Array<ScheduledMaintenanceState>>;
+  }): Promise<string> {
+    if (!data.state) {
+      return "➡️";
+    }
+
+    if (data.isInProgress) {
+      return "⏳";
+    }
+
+    const states: Array<ScheduledMaintenanceState> =
+      ScheduledMaintenanceStartUtil.isStateOfItsOwn(data.state)
+        ? await data.getStates()
+        : [];
+
+    if (
+      ScheduledMaintenanceStartUtil.isComplete({
+        states: states,
+        state: data.state,
+      })
+    ) {
+      return "✅";
+    }
+
+    if (
+      !ScheduledMaintenanceStartUtil.hasStarted({
+        states: states,
+        state: data.state,
+      })
+    ) {
+      return "🕒";
+    }
+
+    return "➡️";
   }
 
   // The state of the project's list with this id, if any.
@@ -1446,11 +1515,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       await ScheduledMaintenanceService.findBy({
         query: {
           monitors: QueryHelper.inRelationArray([monitorId]),
-          currentScheduledMaintenanceState: {
-            isScheduledState: false,
-            isEndedState: false,
-            isResolvedState: false,
-          },
+          currentScheduledMaintenanceState:
+            ScheduledMaintenanceStateService.getMayBeInProgressStateQuery(),
         },
         select: {
           _id: true,
@@ -1991,6 +2057,25 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         scheduledMaintenanceStateTimeline &&
         scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId
       ) {
+        // The event before it moves back: its state, and the sites it covers.
+        const scheduledMaintenanceEvent: ScheduledMaintenance | null =
+          await ScheduledMaintenanceService.findOneBy({
+            query: {
+              _id: scheduledMaintenanceId.toString(),
+            },
+            select: {
+              _id: true,
+              projectId: true,
+              currentScheduledMaintenanceStateId: true,
+              networkSites: {
+                _id: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
         await ScheduledMaintenanceService.updateOneBy({
           query: {
             _id: scheduledMaintenanceId.toString(),
@@ -2003,6 +2088,21 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             isRoot: true,
           },
         });
+
+        /*
+         * Deleting the entry of the state the event is in moves it back to
+         * the state before it: a change of its state like any other, so the
+         * network sites it covers are re-rolled at once, as a move forward
+         * re-rolls them (onCreateSuccess). Moved back from "Verifying" to
+         * Scheduled, it stops silencing them now, not at the next sweep.
+         */
+        if (
+          scheduledMaintenanceEvent &&
+          scheduledMaintenanceEvent.currentScheduledMaintenanceStateId?.toString() !==
+            scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId.toString()
+        ) {
+          await this.recomputeNetworkSiteRollups(scheduledMaintenanceEvent);
+        }
       }
 
       /*

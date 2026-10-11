@@ -526,6 +526,41 @@ API, SSO, or the Slack and Microsoft Teams apps.
   **Ongoing** does: its monitors change to its **Change Monitor Status
   to**, where until now they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **A maintenance event in a state of your own before Ongoing starts at
+  its time, and is listed as coming up.** A scheduled maintenance event
+  moved on from **Scheduled** to a state of your own placed above
+  **Ongoing** - a "Confirmed" step, say - was never started at its
+  **Starts At**: its monitors were not put into maintenance and its
+  owners and subscribers were not told, until someone moved it on by
+  hand. It also dropped off its status pages' upcoming events and their
+  RSS and Atom feeds, off the Microsoft Teams app's scheduled maintenance,
+  and its subscribers' reminders before the event were dropped. It now
+  starts at its time the way an event left in **Scheduled** does, and
+  until then it is listed and reminded about as one to come. An event
+  already past its start in such a state is started within a minute of
+  the upgrade - and ended a minute later when its **Ends At** has passed
+  too - with its owners and subscribers told as for any start and end, so
+  before upgrading, move on or delete any such event that was left
+  behind. A state of your own placed before **Scheduled** - a draft or an
+  approval step - is left to a person, as before. Four smaller changes come with
+  it. Every change of an event's state works out the status of the
+  network sites it covers at once, also when it moves back because the
+  entry of the state it is in was deleted from its **State Timeline**,
+  where until now a move back waited for the five-minute sweep. An event
+  is complete in **Completed** and in every state of your own placed after
+  it - "Archived": its owners' reminders are no longer planned again for
+  it after a reminder rule change, Microsoft Teams treats it as closed
+  when it looks for reactions to turn into notes, and its feed and status
+  page timeline mark it as done. The event's **Measurements** card
+  treats an event in a state of your own placed after **Ended** as over,
+  as its header does, and "the ended state entered" and "the completed
+  state entered" are the moves into a state where the event is over or
+  complete, so an event completed straight from **Ongoing** records its
+  end there. And a state carrying more than one of the four built-in flags
+  now reads the same on the event's header as on the server. Projects
+  with no states of their own see only the network site and measurement
+  changes. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 - **A maintenance event in a state of your own after Ongoing counts as
   in progress everywhere.** A scheduled maintenance event moved on from
   **Ongoing** to a state of your own placed above **Ended** - a
@@ -1028,6 +1063,20 @@ API, SSO, or the Slack and Microsoft Teams apps.
   ahead at once, where it used to wait about ten seconds and then go ahead
   without the lock that keeps two changes from crossing. See
   [Changing a state](/docs/permissions/index#changing-a-state).
+- **Acknowledging alerts as you declare an incident takes what acknowledging
+  them takes anywhere else.** Declaring an incident from alerts with the box
+  to acknowledge them ticked - `acknowledgeAlertsToLink` in the API - used to
+  take **Edit Alert** as well as **Create Alert State Timeline** for each
+  alert it acknowledged, more than acknowledging the same alerts one by one
+  on their own pages. It now takes **Create Alert State Timeline** alone,
+  narrowed by your labels, owners and each alert's privacy as it is on the
+  alert's page, so a custom role with that permission but without
+  **Edit Alert** - or a team with a block on **Edit Alert** - acknowledges
+  the alerts as it declares. A block on **Create Alert State Timeline**
+  still keeps a team from it, and the built-in roles see no change. The
+  dashboard's box asks for the same, and Terraform does not declare
+  incidents from alerts, so nothing changes there. See
+  [Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).
 - **An incoming call policy's phone numbers follow the policy's roles.**
   Looking numbers up - `POST /api/notification/phone-number/search` and
   `/list-owned` - needs permission to read incoming call policies and to

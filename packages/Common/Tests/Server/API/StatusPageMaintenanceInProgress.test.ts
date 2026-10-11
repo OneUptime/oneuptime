@@ -13,6 +13,7 @@ import {
   PROGRESS_PROJECT_ID,
   ProgressStateKey,
   eventMatchesStateQuery,
+  idsOfCondition,
   makeEventInState,
   mockProgressStateReads,
   progressStateId,
@@ -68,6 +69,13 @@ jest.mock("../../../Server/Utils/Response", () => {
  * scheduled there. The events list kept only events that started within its
  * history window, so a long event in progress fell off it - and off the RSS
  * feed built from it - while the overview still showed it.
+ *
+ * An event still to come is listed as such while it waits for its start -
+ * in the scheduled state, or in a state of the project's own placed after
+ * Scheduled and before Ongoing ("Confirmed") - by the same rule
+ * (isWaitingToStart). Both lists asked for the scheduled flag alone, so an
+ * event moved on to "Confirmed" dropped off the page, and off its RSS and
+ * Atom feeds, until it started.
  *
  * The database is a stand-in that keeps the rows each query lets through: an
  * event's state (by id or flag), whether it is shown on status pages, and
@@ -225,7 +233,6 @@ describe("a status page shows every scheduled maintenance event in progress as o
     });
 
     it.each([
-      "confirmed",
       "ended",
       "reviewing",
       "completed",
@@ -258,6 +265,57 @@ describe("a status page shows every scheduled maintenance event in progress as o
           },
         ),
       ).toEqual(["Network cutover", "Next week's patching"]);
+    });
+
+    it("lists an event in a state of the project's own between Scheduled and Ongoing among the events to come, as it lists a scheduled one", async () => {
+      events = [
+        eventStartedDaysAgo("scheduled", -3, "Next week's patching"),
+        eventStartedDaysAgo("confirmed", -2, "Confirmed cutover"),
+        eventStartedDaysAgo("verifying", 1, "Network cutover"),
+      ];
+
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([
+        "Confirmed cutover",
+        "Network cutover",
+        "Next week's patching",
+      ]);
+    });
+
+    it("asks for the events to come by their state's id - the scheduled state and the project's own before Ongoing - not by the scheduled flag", async () => {
+      events = [eventStartedDaysAgo("confirmed", -2)];
+
+      await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      for (const query of eventQueries) {
+        expect(
+          (query["currentScheduledMaintenanceState"] as JSONObject)?.[
+            "isScheduledState"
+          ],
+        ).toBeUndefined();
+      }
+
+      const waitingQuery: Record<string, unknown> | undefined =
+        eventQueries.find((query: Record<string, unknown>): boolean => {
+          return (
+            idsOfCondition(query["currentScheduledMaintenanceStateId"]) || []
+          ).includes(progressStateId("confirmed").toString().toLowerCase());
+        });
+
+      expect(waitingQuery).toBeDefined();
+      expect(
+        idsOfCondition(
+          waitingQuery!["currentScheduledMaintenanceStateId"],
+        )!.sort(),
+      ).toEqual(
+        [
+          progressStateId("scheduled").toString().toLowerCase(),
+          progressStateId("confirmed").toString().toLowerCase(),
+        ].sort(),
+      );
+      expect(waitingQuery!["isVisibleOnStatusPage"]).toBe(true);
     });
 
     it("asks for the events in progress by their state's id, among the events shown on status pages", async () => {
@@ -345,12 +403,32 @@ describe("a status page shows every scheduled maintenance event in progress as o
       ]);
     });
 
+    it.each(["scheduled", "confirmed"] as Array<ProgressStateKey>)(
+      "lists an event waiting in %s, whenever it was due to start, as an event to come",
+      async (key: ProgressStateKey) => {
+        events = [
+          eventStartedDaysAgo(key, 30, "Overdue start"),
+          eventStartedDaysAgo(key, -5, "Next week"),
+        ];
+
+        const payload: JSONObject = await api.getScheduledMaintenanceEvents(
+          STATUS_PAGE_ID,
+          null,
+          request(),
+        );
+
+        expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([
+          "Next week",
+          "Overdue start",
+        ]);
+      },
+    );
+
     it.each([
       "ended",
       "reviewing",
       "completed",
       "archived",
-      "confirmed",
     ] as Array<ProgressStateKey>)(
       "leaves out an event in %s that started before its history window",
       async (key: ProgressStateKey) => {

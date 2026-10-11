@@ -62,11 +62,16 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
   };
 });
 
+/*
+ * The project's states, in their order: the job moves an event into the
+ * first from the top flagged ended (ScheduledMaintenanceStartUtil
+ * .getEndedState).
+ */
 jest.mock("Common/Server/Services/ScheduledMaintenanceStateService", () => {
   return {
     __esModule: true,
     default: {
-      findOneBy: jest.fn(),
+      getAllScheduledMaintenanceStates: jest.fn(),
       getInProgressEventQueriesOfEveryProject: jest.fn(),
     },
   };
@@ -82,6 +87,10 @@ const JOB_NAME: string = "ScheduledMaintenance:ChangeStateToEnded";
 const PROJECT_A: string = "11111111-1111-4111-8111-111111111111";
 const PROJECT_B: string = "22222222-2222-4222-8222-222222222222";
 const ENDED_STATE_A: string = "33333333-3333-4333-8333-333333333331";
+// Project A's "Verifying", a state of its own between Ongoing and Ended.
+const VERIFYING_STATE_A: string = "33333333-3333-4333-8333-333333333334";
+// Project A's "Reviewing", a state of its own after Ended.
+const REVIEWING_STATE_A: string = "33333333-3333-4333-8333-333333333335";
 
 // An event past its end, as the job's read answers it.
 function overdueEvent(data: {
@@ -98,10 +107,52 @@ function overdueEvent(data: {
   return event;
 }
 
-function endedState(id: string): ScheduledMaintenanceState {
+function projectState(data: {
+  id: string;
+  order: number;
+  flag?:
+    | "isScheduledState"
+    | "isOngoingState"
+    | "isEndedState"
+    | "isResolvedState"
+    | undefined;
+}): ScheduledMaintenanceState {
   const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-  state._id = id;
+  state._id = data.id;
+  state.order = data.order;
+  state.isScheduledState = data.flag === "isScheduledState";
+  state.isOngoingState = data.flag === "isOngoingState";
+  state.isEndedState = data.flag === "isEndedState";
+  state.isResolvedState = data.flag === "isResolvedState";
   return state;
+}
+
+/*
+ * Project A's list: Scheduled, Ongoing, "Verifying" (a state of its own
+ * after Ongoing), Ended, "Reviewing" (a state of its own after Ended),
+ * Completed. Project B's list has no ended state.
+ */
+function projectAStates(): Array<ScheduledMaintenanceState> {
+  return [
+    projectState({
+      id: "33333333-3333-4333-8333-333333333330",
+      order: 1,
+      flag: "isScheduledState",
+    }),
+    projectState({
+      id: "33333333-3333-4333-8333-333333333332",
+      order: 2,
+      flag: "isOngoingState",
+    }),
+    projectState({ id: VERIFYING_STATE_A, order: 3 }),
+    projectState({ id: ENDED_STATE_A, order: 4, flag: "isEndedState" }),
+    projectState({ id: REVIEWING_STATE_A, order: 5 }),
+    projectState({
+      id: "33333333-3333-4333-8333-333333333336",
+      order: 6,
+      flag: "isResolvedState",
+    }),
+  ];
 }
 
 async function tick(): Promise<void> {
@@ -117,8 +168,8 @@ const changeState: jest.Mock =
   ScheduledMaintenanceService.changeScheduledMaintenanceState as jest.Mock;
 const changeMonitors: jest.Mock =
   ScheduledMaintenanceService.changeAttachedMonitorStates as jest.Mock;
-const findEndedState: jest.Mock =
-  ScheduledMaintenanceStateService.findOneBy as jest.Mock;
+const readProjectStates: jest.Mock =
+  ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates as jest.Mock;
 const getInProgressQueries: jest.Mock =
   ScheduledMaintenanceStateService.getInProgressEventQueriesOfEveryProject as jest.Mock;
 
@@ -130,9 +181,6 @@ const getInProgressQueries: jest.Mock =
 const ONGOING_QUERY: Record<string, unknown> = {
   currentScheduledMaintenanceState: { isOngoingState: true },
 };
-
-// Project A's "Verifying", a state of its own between Ongoing and Ended.
-const VERIFYING_STATE_A: string = "33333333-3333-4333-8333-333333333334";
 
 function statesOfTheirOwnQuery(ids: Array<string>): Record<string, unknown> {
   return {
@@ -188,12 +236,12 @@ describe("ScheduledMaintenance:ChangeStateToEnded", () => {
     changeState.mockResolvedValue(undefined as never);
     changeMonitors.mockResolvedValue(undefined as never);
     getInProgressQueries.mockResolvedValue([ONGOING_QUERY] as never);
-    findEndedState.mockImplementation((async (args: unknown) => {
+    readProjectStates.mockImplementation((async (args: unknown) => {
       const projectId: string = String(
-        (args as { query: { projectId: unknown } }).query.projectId,
+        (args as { projectId: unknown }).projectId,
       );
 
-      return projectId === PROJECT_A ? endedState(ENDED_STATE_A) : null;
+      return projectId === PROJECT_A ? projectAStates() : [];
     }) as never);
   });
 
@@ -416,7 +464,7 @@ describe("ScheduledMaintenance:ChangeStateToEnded", () => {
 
     await tick();
 
-    expect(findEndedState).toHaveBeenCalledTimes(2);
+    expect(readProjectStates).toHaveBeenCalledTimes(2);
     expect(changeState).toHaveBeenCalledTimes(1);
     expect(
       String(
@@ -438,15 +486,87 @@ describe("ScheduledMaintenance:ChangeStateToEnded", () => {
     await tick();
 
     const lookup: {
-      query: Record<string, unknown>;
+      projectId: unknown;
       props: Record<string, unknown>;
-    } = findEndedState.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
+    } = readProjectStates.mock.calls[0]![0] as {
+      projectId: unknown;
       props: Record<string, unknown>;
     };
 
-    expect(String(lookup.query["projectId"])).toBe(PROJECT_A);
-    expect(lookup.query["isEndedState"]).toBe(true);
+    expect(String(lookup.projectId)).toBe(PROJECT_A);
     expect(lookup.props).toEqual({ isRoot: true });
+  });
+
+  test("moves an event into the ended state itself, not a state of the project's own after it", async () => {
+    findAllBy.mockResolvedValue([
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555557",
+        projectId: PROJECT_A,
+      }),
+    ] as never);
+
+    await tick();
+
+    const stateId: string = String(
+      (changeState.mock.calls[0]![0] as Record<string, unknown>)[
+        "scheduledMaintenanceStateId"
+      ],
+    );
+
+    expect(stateId).toBe(ENDED_STATE_A);
+    expect(stateId).not.toBe(REVIEWING_STATE_A);
+  });
+
+  test("the first state from the top flagged ended is the one: a list read out of order is placed by its order", async () => {
+    const SECOND_ENDED: string = "33333333-3333-4333-8333-333333333337";
+
+    readProjectStates.mockResolvedValue([
+      projectState({ id: SECOND_ENDED, order: 7, flag: "isEndedState" }),
+      ...projectAStates().reverse(),
+    ] as never);
+
+    findAllBy.mockResolvedValue([
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555558",
+        projectId: PROJECT_A,
+      }),
+    ] as never);
+
+    await tick();
+
+    expect(
+      String(
+        (changeState.mock.calls[0]![0] as Record<string, unknown>)[
+          "scheduledMaintenanceStateId"
+        ],
+      ),
+    ).toBe(ENDED_STATE_A);
+  });
+
+  test("reads each project's states once a run, however many of its events are overdue", async () => {
+    findAllBy.mockResolvedValue([
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555561",
+        projectId: PROJECT_A,
+      }),
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555562",
+        projectId: PROJECT_A,
+      }),
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555563",
+        projectId: PROJECT_B,
+      }),
+      overdueEvent({
+        id: "55555555-5555-4555-8555-555555555564",
+        projectId: PROJECT_A,
+      }),
+    ] as never);
+
+    await tick();
+
+    expect(readProjectStates).toHaveBeenCalledTimes(2);
+    // Project B has no ended state: its event is left where it is.
+    expect(changeState).toHaveBeenCalledTimes(3);
   });
 });

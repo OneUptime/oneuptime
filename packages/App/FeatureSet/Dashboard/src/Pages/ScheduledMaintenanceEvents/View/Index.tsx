@@ -25,7 +25,10 @@ import {
   getScheduledMaintenanceAffectedResourcesFormFields,
   getScheduledMaintenanceAffectedResourcesOnBeforeUpdate,
 } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
-import { hasScheduledMaintenanceEventStarted } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceMonitorStatus";
+import {
+  hasScheduledMaintenanceEventEnded,
+  hasScheduledMaintenanceEventStarted,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceMonitorStatus";
 import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -460,6 +463,16 @@ const ScheduledMaintenanceView: FunctionComponent<
     states: loadedEvent?.states || [],
     currentState: scheduledMaintenance?.currentScheduledMaintenanceState,
   });
+  /*
+   * Whether the event is over, by the same rule: Ended, Completed, or a
+   * state of the project's own placed after Ended, such as "Reviewing". The
+   * Measurements card then reads a state it never reached as not reached,
+   * rather than a clock still running.
+   */
+  const isEventOver: boolean = hasScheduledMaintenanceEventEnded({
+    states: loadedEvent?.states || [],
+    currentState: scheduledMaintenance?.currentScheduledMaintenanceState,
+  });
   const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
   const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
   const eventTitle: string | undefined =
@@ -851,12 +864,7 @@ const ScheduledMaintenanceView: FunctionComponent<
           <EventMeasurementsCard
             source={SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS}
             eventId={modelId}
-            isEventOver={Boolean(
-              scheduledMaintenance?.currentScheduledMaintenanceState
-                ?.isEndedState ||
-                scheduledMaintenance?.currentScheduledMaintenanceState
-                  ?.isResolvedState,
-            )}
+            isEventOver={isEventOver}
             refreshKey={getEventMeasurementRefreshKey({
               currentStateId:
                 scheduledMaintenance?.currentScheduledMaintenanceState?._id,

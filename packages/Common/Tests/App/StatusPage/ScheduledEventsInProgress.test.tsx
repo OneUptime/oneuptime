@@ -10,7 +10,10 @@ import {
   test,
 } from "@jest/globals";
 import ScheduledEventList from "../../../../App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/List";
-import { getScheduledEventEventItem } from "../../../../App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/Detail";
+import {
+  getScheduledEventEventItem,
+  getStateChangeIcon,
+} from "../../../../App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/Detail";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -283,17 +286,101 @@ describe("an event's timeline icon follows the same rule", () => {
     return item.eventTimeline[0]?.icon;
   }
 
+  /*
+   * "Confirmed" has not started: it shows the clock Scheduled shows - it
+   * used to show the arrow of a state the event had moved on through.
+   */
   test.each([
     ["Ongoing", "ongoing", IconProp.Settings],
     ["Verifying, in progress too", "verifying", IconProp.Settings],
     ["Scheduled", "scheduled", IconProp.Clock],
-    ["Completed", "completed", IconProp.CheckCircle],
+    ["Confirmed, not started", "confirmed", IconProp.Clock],
+    ["Ended, over", "ended", IconProp.ArrowCircleRight],
     ["Reviewing, over", "reviewing", IconProp.ArrowCircleRight],
-    ["Confirmed, not started", "confirmed", IconProp.ArrowCircleRight],
+    ["Completed", "completed", IconProp.CheckCircle],
   ] as Array<[string, StateKind, IconProp]>)(
     "a move into %s shows its icon",
     (_label: string, kind: StateKind, icon: IconProp) => {
       expect(timelineIcon(kind)).toBe(icon);
+    },
+  );
+});
+
+/*
+ * The icon by where the state sits, on a project's whole list: a state of
+ * its own before Scheduled ("Draft") has not started, one after Completed
+ * ("Archived") is complete.
+ */
+describe("getStateChangeIcon", () => {
+  function state(data: {
+    id: string;
+    order: number;
+    flag?: string;
+  }): ScheduledMaintenanceState {
+    return ScheduledMaintenanceState.fromJSON(
+      {
+        _id: data.id,
+        order: data.order,
+        isScheduledState: data.flag === "isScheduledState",
+        isOngoingState: data.flag === "isOngoingState",
+        isEndedState: data.flag === "isEndedState",
+        isResolvedState: data.flag === "isResolvedState",
+      },
+      ScheduledMaintenanceState,
+    ) as ScheduledMaintenanceState;
+  }
+
+  const draft: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b1",
+    order: 1,
+  });
+  const scheduled: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b2",
+    order: 2,
+    flag: "isScheduledState",
+  });
+  const ongoing: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b3",
+    order: 3,
+    flag: "isOngoingState",
+  });
+  const ended: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b4",
+    order: 4,
+    flag: "isEndedState",
+  });
+  const completed: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b5",
+    order: 5,
+    flag: "isResolvedState",
+  });
+  const archived: ScheduledMaintenanceState = state({
+    id: "5c000000-0000-4000-8000-0000000000b6",
+    order: 6,
+  });
+
+  const states: Array<ScheduledMaintenanceState> = [
+    draft,
+    scheduled,
+    ongoing,
+    ended,
+    completed,
+    archived,
+  ];
+
+  test.each([
+    ["Draft, before Scheduled", draft, IconProp.Clock],
+    ["Scheduled", scheduled, IconProp.Clock],
+    ["Ongoing", ongoing, IconProp.Settings],
+    ["Ended", ended, IconProp.ArrowCircleRight],
+    ["Completed", completed, IconProp.CheckCircle],
+    ["Archived, after Completed", archived, IconProp.CheckCircle],
+  ] as Array<[string, ScheduledMaintenanceState, IconProp]>)(
+    "%s",
+    (_label: string, moveInto: ScheduledMaintenanceState, icon: IconProp) => {
+      expect(getStateChangeIcon({ states: states, state: moveInto })).toBe(
+        icon,
+      );
     },
   );
 });

@@ -1,8 +1,8 @@
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
-import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import {
@@ -19,11 +19,12 @@ import {
  * the first reminder planned when the event is created).
  *
  * It is complete in its project's completed state and in every state placed
- * after it ("Archived") - the rule the chats' Mark as Complete and Mark as
- * Ongoing read off the event they read already
- * (ScheduledMaintenanceStateService.isCompleteAmong, through
- * WorkspaceMemberActions.getStanding). Both read the same rule, so a button
- * and a reminder never disagree about an event.
+ * after it ("Archived") - the one rule (ScheduledMaintenanceStartUtil
+ * .isComplete) the chats' Mark as Complete and Mark as Ongoing read off the
+ * event they read already (WorkspaceMemberActions.getStanding). Both read
+ * the same rule, so a button and a reminder never disagree about an event.
+ * Ended, and "Reviewing" between Ended and Completed, are over but not
+ * complete: the reminders go on until the event is completed.
  */
 
 const EXPECTED: Array<[ProgressStateKey, boolean]> = [
@@ -80,9 +81,9 @@ describe("ScheduledMaintenanceService.isScheduledMaintenanceCompleted: is the ev
           scheduledMaintenanceId: event.id!,
         }),
       ).resolves.toBe(
-        ScheduledMaintenanceStateService.isCompleteAmong({
+        ScheduledMaintenanceStartUtil.isComplete({
           states: states,
-          stateId: event.currentScheduledMaintenanceStateId,
+          state: { _id: event.currentScheduledMaintenanceStateId },
         }),
       );
     },

@@ -156,13 +156,13 @@ export const toValidDate: (value: DateInput) => Date | undefined = (
 };
 
 /*
- * Classifies the current state. Ended wins over everything, then Scheduled,
- * then Ongoing - the same precedence the header's actions have always used.
- * Custom states count by their place, by the one rule
- * (Common/Utils/ScheduledMaintenanceStart): one placed before the ongoing
- * state is still waiting to start, one between Ongoing and Ended (a
- * "Verifying" step, say) is in progress, and one after Ended (a
- * "Reviewing" step) is over.
+ * Classifies the current state by the one rule
+ * (Common/Utils/ScheduledMaintenanceStart.getPhase): the built-in states by
+ * their flags - Ended and Completed are over, Scheduled has not started,
+ * Ongoing is in progress - and the project's own states by their place: one
+ * placed before the ongoing state is still waiting to start, one between
+ * Ongoing and Ended (a "Verifying" step, say) is in progress, and one after
+ * Ended (a "Reviewing" step) is over.
  */
 export const getScheduledMaintenanceStateKind: (data: {
   states: Array<ScheduledMaintenanceStateFlags>;
@@ -186,14 +186,6 @@ export const getScheduledMaintenanceStateKind: (data: {
 
   if (!currentState) {
     return ScheduledMaintenanceStateKind.Unknown;
-  }
-
-  if (currentState.isEndedState || currentState.isResolvedState) {
-    return ScheduledMaintenanceStateKind.Ended;
-  }
-
-  if (currentState.isScheduledState) {
-    return ScheduledMaintenanceStateKind.Scheduled;
   }
 
   const placedStates: Array<ScheduledMaintenanceStateFlags> =

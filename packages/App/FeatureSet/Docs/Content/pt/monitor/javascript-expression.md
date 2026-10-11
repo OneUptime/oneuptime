@@ -82,7 +82,7 @@ As expressões JavaScript são oferecidas para monitores do tipo Site, API, Inco
 
 ### Monitores de e-mails recebidos
 
-O filtro é oferecido, mas nenhum campo de e-mail está ligado a ele: uma expressão não consegue ler o assunto, o remetente, o corpo nem o destinatário. Use os tipos de filtro de e-mail em vez disso — veja [Monitor de e-mails recebidos](/docs/monitor/incoming-email-monitor#campos-de-critérios-disponíveis).
+O filtro é oferecido, mas nenhum campo de e-mail está ligado a ele: uma expressão não consegue ler o assunto, o remetente, o corpo nem o destinatário. Use os tipos de filtro de e-mail em vez disso — veja [Monitor de e-mails recebidos](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponíveis).
 
 ## Exemplos
 

@@ -270,37 +270,13 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/custom-code-monitor": {
-    uniqueHeadings: EVERY_TRANSLATION,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/docker-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/docker-swarm-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "monitor/exceptions-monitor": {
     sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/external-status-page-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/host-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "monitor/incident-alert-templating": {
     pageLinks: ["fa"],
     uniqueHeadings: except(EVERY_LANGUAGE, "sv"),
     codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/incoming-email-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/incoming-request-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/iot-device-monitor": {
@@ -309,9 +285,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/kubernetes-agent": {
     pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/kubernetes-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/logs-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -331,29 +304,11 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/network-vendor-guides": {
     translated: EVERY_TRANSLATION,
   },
-  "monitor/podman-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "monitor/profiles-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/proxmox-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "monitor/server-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/sql-monitor": {
     sameShape: EVERY_TRANSLATION,
   },
   "monitor/storage-array-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/synthetic-monitor": {
-    uniqueHeadings: except(EVERY_TRANSLATION, "de"),
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/traces-monitor": {
     sameShape: EVERY_TRANSLATION,
@@ -630,7 +585,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "terraform/monitor-steps": {
-    pageLinks: ["fa"],
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },

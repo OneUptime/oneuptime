@@ -2542,26 +2542,40 @@ export default class StatusPageAPI extends BaseAPI<
 
     // If there is no scheduledMaintenanceId, then fetch all future scheduled events.
     if (!scheduledMaintenanceId) {
-      addEvents(
-        await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
-            statusPages: [statusPageId] as any,
-            projectId: statusPage.projectId!,
+      /*
+       * Every event still to come: waiting for its start, in the scheduled
+       * state or a state of the project's own placed after Scheduled and
+       * before Ongoing, such as "Confirmed" (Common/Utils/
+       * ScheduledMaintenanceStart.isWaitingToStart). Asked for by the
+       * scheduled flag alone, an event moved on to "Confirmed" dropped off
+       * the page - and its RSS and Atom feeds - until it started.
+       */
+      const waitingStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getWaitingToStartStateIds({
+          states: scheduledEventStates,
+        });
+
+      if (waitingStateIds.length > 0) {
+        addEvents(
+          await ScheduledMaintenanceService.findBy({
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(waitingStateIds),
+              statusPages: [statusPageId] as any,
+              projectId: statusPage.projectId!,
+            }),
+            select: scheduledEventsSelect,
+            sort: {
+              createdAt: SortOrder.Ascending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
           }),
-          select: scheduledEventsSelect,
-          sort: {
-            createdAt: SortOrder.Ascending,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-      );
+        );
+      }
 
       /*
        * And every event in progress, however long ago it started: a long
@@ -5954,13 +5968,26 @@ export default class StatusPageAPI extends BaseAPI<
 
     let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
 
-    if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+    /*
+     * Every event still to come: waiting for its start, in the scheduled
+     * state or a state of the project's own placed after Scheduled and
+     * before Ongoing, such as "Confirmed" (Common/Utils/
+     * ScheduledMaintenanceStart.isWaitingToStart).
+     */
+    const waitingStateIds: Array<ObjectID> =
+      ScheduledMaintenanceStartUtil.getWaitingToStartStateIds({
+        states: scheduledMaintenanceStates,
+      });
+
+    if (
+      statusPage.showScheduledMaintenanceEventsOnStatusPage &&
+      waitingStateIds.length > 0
+    ) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
           query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
+            currentScheduledMaintenanceStateId:
+              QueryHelper.any(waitingStateIds),
             statusPages: statusPageId as any,
             projectId: statusPage.projectId!,
           }),

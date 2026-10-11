@@ -275,7 +275,7 @@ flowchart TB
 :::steps
 1. Open the criteria and expand **Settings**.
 2. Turn on **Group incidents and alerts by a payload field**.
-3. Fill in **Open a separate incident for each…**, and — under **Auto-resolve each incident when… (optional)** — the field and value that signal recovery (below). Then save the monitor.
+3. Fill in **Open a separate incident for each…**. To have each incident resolve itself, also fill in the field and value under **Auto-resolve each incident when…** (below). Then save the monitor.
 :::
 
 | Field                              | Example                                  | What it does                                                           |

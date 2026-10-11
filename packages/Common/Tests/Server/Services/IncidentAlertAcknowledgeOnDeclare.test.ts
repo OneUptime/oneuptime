@@ -1066,7 +1066,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("any other caller must be allowed to change the state of every alert that will be acknowledged", async () => {
+  test("any other caller must be allowed to change the state of every alert that will be acknowledged, into the project's Acknowledged state", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
 
     const result: AlertsToAcknowledgeOnDeclare | null = await validate({
@@ -1077,8 +1077,18 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect(authorization).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       alertIds: ALERT_IDS,
+      alertStateId: new ObjectID(ALERT_ACKNOWLEDGED.id),
       props: props,
     });
+    /*
+     * The change asked about is the one acknowledging each alert on its own
+     * page makes: into the project's Acknowledged state.
+     */
+    const askedState: unknown = (
+      authorization.mock.calls[0]![0] as { alertStateId: unknown }
+    ).alertStateId;
+    expect(askedState).toBeInstanceOf(ObjectID);
+    expect(String(askedState)).toBe(ALERT_ACKNOWLEDGED.id);
     expect((authorization.mock.calls[0]![0] as { props: unknown }).props).toBe(
       props,
     );
@@ -1117,6 +1127,7 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect(authorization).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       alertIds: [new ObjectID(CREATED_ALERT)],
+      alertStateId: new ObjectID(ALERT_ACKNOWLEDGED.id),
       props: props,
     });
     expect(authorizedAlertIds()).toEqual([CREATED_ALERT]);

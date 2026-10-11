@@ -191,7 +191,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主机** | 探测器可以访问的数据库主机（例如 `db.internal`）。 |
 | **端口** | 数据库端口。 |
 | **数据库名称** | 要连接的数据库。数据库范围的指标（大小、缓存命中率、溢出到临时文件）针对这个数据库报告；服务器范围的指标（连接、运行时间、复制）针对整个服务器报告——Azure SQL Database 除外，在那里只统计被监控数据库的连接。 |
-| **Use Windows Integrated Authentication** | 仅限 Microsoft SQL Server。使用探测器进程的身份进行身份验证，而不是用户名和密码。参见 SQL Query 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor)——设置方法完全相同。 |
+| **Use Windows Integrated Authentication** | 仅限 Microsoft SQL Server。使用探测器进程的身份进行身份验证，而不是用户名和密码。参见 SQL Query 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor#windows-集成身份验证)——设置方法完全相同。 |
 | **用户名** | 监控用户。除非使用 Windows 集成身份验证，否则必填。 |
 | **密码** | 密码。请用 `{{monitorSecrets.name}}` 引用[监视器密钥](/docs/monitor/monitor-secrets)，而不是以明文输入（参见[使用监视器密钥](#用监视器密钥保存密码)）。 |
 | **Use SSL/TLS** | 通过 TLS 连接。启用后，对于自签名证书，可以关闭 **Verify server certificate**。 |

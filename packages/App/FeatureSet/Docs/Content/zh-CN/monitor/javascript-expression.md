@@ -82,7 +82,7 @@ JavaScript 表达式适用于 Website、API、Incoming Request、Incoming Email�
 
 ### 入站邮件监视器
 
-该筛选器可用，但没有绑定任何邮件字段：表达式无法读取主题、发件人、正文或收件人。请改用邮件筛选器类型——参见 [入站邮件监控](/docs/monitor/incoming-email-monitor#可用标准字段)。
+该筛选器可用，但没有绑定任何邮件字段：表达式无法读取主题、发件人、正文或收件人。请改用邮件筛选器类型——参见 [入站邮件监控](/docs/monitor/incoming-email-monitor#可用的过滤器类型)。
 
 ## 示例
 

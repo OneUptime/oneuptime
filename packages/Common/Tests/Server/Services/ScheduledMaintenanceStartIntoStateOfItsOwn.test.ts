@@ -713,7 +713,7 @@ describe("what the move tells and re-rolls", () => {
     ["Ongoing", "scheduled", "ongoing", "⏳"],
     ["Verifying, in progress too", "scheduled", "verifying", "⏳"],
     ["Verifying, from Ongoing", "ongoing", "verifying", "⏳"],
-    ["Confirmed, not started", "scheduled", "confirmed", "➡️"],
+    ["Confirmed, not started", "scheduled", "confirmed", "🕒"],
     ["Postmortem, over", "verifying", "postmortem", "➡️"],
     ["Ended", "ongoing", "ended", "➡️"],
     ["Completed", "ended", "completed", "✅"],
@@ -741,26 +741,31 @@ describe("what the move tells and re-rolls", () => {
       1,
     ],
     ["the end into Ended", ["scheduled", "ongoing"], "ongoing", "ended", 1],
+    /*
+     * Every change of the event's state re-rolls them, not just its start
+     * and its end (ScheduledMaintenanceStateChangeByPlace.test.ts has the
+     * moves back): the sites read the event's state as it is now.
+     */
     [
       "the move on from Ongoing to Verifying: still in progress",
       ["scheduled", "ongoing"],
       "ongoing",
       "verifying",
-      0,
+      1,
     ],
     [
       "the move on from Ended to Postmortem: over already",
       ["scheduled", "ongoing", "ended"],
       "ended",
       "postmortem",
-      0,
+      1,
     ],
     [
       "the move into Confirmed: not started",
       ["scheduled"],
       "scheduled",
       "confirmed",
-      0,
+      1,
     ],
   ] as Array<[string, Array<StateKind>, StateKind, StateKind, number]>)(
     "the network sites above the event are re-rolled on %s",

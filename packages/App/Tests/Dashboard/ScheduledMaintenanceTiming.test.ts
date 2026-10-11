@@ -155,7 +155,15 @@ describe("getScheduledMaintenanceStateKind", () => {
     ).toBe(ScheduledMaintenanceStateKind.Unknown);
   });
 
-  test("lets an ended flag win over any other flag", () => {
+  /*
+   * A state carrying more than one built-in flag reads as the server reads
+   * it (ScheduledMaintenanceStartUtil.getPhase): the ongoing flag first - the
+   * server holds the event's monitors and lists it as ongoing there - then
+   * the ended and completed flags. The header used to read such a state its
+   * own way (ended first, then scheduled), so it could offer Mark as Ongoing
+   * for an event the server had in progress.
+   */
+  test("reads a state flagged scheduled, ongoing and ended as the server does: in progress", () => {
     expect(
       getScheduledMaintenanceStateKind({
         states: [
@@ -168,16 +176,25 @@ describe("getScheduledMaintenanceStateKind", () => {
         ],
         currentStateId: "confused",
       }),
-    ).toBe(ScheduledMaintenanceStateKind.Ended);
+    ).toBe(ScheduledMaintenanceStateKind.Ongoing);
   });
 
-  test("lets a scheduled flag win over an ongoing flag", () => {
+  test("reads a state flagged scheduled and ongoing as the server does: in progress", () => {
     expect(
       getScheduledMaintenanceStateKind({
         states: [{ id: "both", isScheduledState: true, isOngoingState: true }],
         currentStateId: "both",
       }),
-    ).toBe(ScheduledMaintenanceStateKind.Scheduled);
+    ).toBe(ScheduledMaintenanceStateKind.Ongoing);
+  });
+
+  test("reads a state flagged scheduled and ended as the server does: over", () => {
+    expect(
+      getScheduledMaintenanceStateKind({
+        states: [{ id: "both", isScheduledState: true, isEndedState: true }],
+        currentStateId: "both",
+      }),
+    ).toBe(ScheduledMaintenanceStateKind.Ended);
   });
 
   /*
