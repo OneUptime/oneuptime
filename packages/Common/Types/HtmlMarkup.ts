@@ -204,19 +204,21 @@ export type HtmlMarkupReplacer = (markup: string) => string;
  * never left next to what could start a tag once markup after it is taken
  * out. What the walk returns then holds no "<" that starts markup.
  *
- * rawTextElements reads script and style elements - what they hold is never
- * shown - as markup whole: from the start tag to the ">" of the first end
- * tag of the same name after it ("</script>", "</script >", "</style foo>"),
- * and `replace` is given the whole element. Their tags are found by the
- * walk, as a browser names them (the name ends at ASCII whitespace, a "/"
- * or the ">"), so a "<script" in a comment, in a quoted value, inside a
- * style element, or inside an element whose content a browser reads as
- * text (a title, a textarea, xmp, iframe, noembed, noframes) starts
- * nothing. A start tag that no end tag follows is an ordinary tag, and what
- * follows it stays text. Two things a browser does are not read: the
- * escaped-comment states a script's content can enter ("<!--<script>"),
- * and a quoted value in an end tag; either can only leave text behind,
- * never markup.
+ * rawTextElements reads by name the elements whose content a browser never
+ * reads as markup. Script, style, iframe, noembed and noframes - what they
+ * hold is never shown - are markup whole: from the start tag to the ">" of
+ * the first end tag of the same name after it ("</script>", "</script >",
+ * "</style foo>"), and `replace` is given the whole element. Title,
+ * textarea and xmp hold text: what is between the start tag and the end
+ * tag is read on its own, with no element in it, so nothing there - a
+ * "<script", a comment - runs past the end tag. Names are read as a
+ * browser reads them (a name ends at ASCII whitespace, a "/" or the ">"),
+ * and found by the walk, so a "<script" in a comment or a quoted value
+ * starts nothing. A start tag that no end tag follows is an ordinary tag,
+ * and what follows it is read as usual. Not read: the escaped-comment
+ * states a script's content can enter ("<!--<script>"), a quoted value in
+ * an end tag, and SVG or MathML, where a title holds markup; each can only
+ * leave text behind, never markup.
  */
 export interface HtmlMarkupReading {
   lessThanAsText?: boolean | undefined;
@@ -242,54 +244,45 @@ const startsMarkup: StartsMarkupFunction = (code: number): boolean => {
   );
 };
 
+/*
+ * Where a tag's name ends, as a browser's tokenizer reads one: at ASCII
+ * whitespace (tab, line feed, form feed, carriage return, space), a "/" or
+ * the ">". The one definition both start and end tags are read with.
+ */
+const TAG_NAME_END: RegExp = /[\t\n\f\r />]/;
+
 type EndsTagNameFunction = (code: number) => boolean;
 
-/*
- * Whether a tag's name ends at this character, as a browser's tokenizer
- * reads one: ASCII whitespace (tab, line feed, form feed, carriage return,
- * space), a "/" or the ">".
- */
 const endsTagName: EndsTagNameFunction = (code: number): boolean => {
-  return (
-    code === 0x09 ||
-    code === 0x0a ||
-    code === 0x0c ||
-    code === 0x0d ||
-    code === 0x20 ||
-    code === SLASH ||
-    code === GREATER_THAN
-  );
+  return TAG_NAME_END.test(String.fromCharCode(code));
+};
+
+type EndTagOfFunction = (name: string) => RegExp;
+
+// Where an end tag of the named element starts: "</", the name, its end.
+const endTagOf: EndTagOfFunction = (name: string): RegExp => {
+  return new RegExp(`</${name}(?=${TAG_NAME_END.source})`, "gi");
 };
 
 /*
- * The elements rawTextElements reads by name: script and style, which go
- * whole, and the elements whose content a browser reads as text, in which
- * no script or style starts. Each with where its end tag starts, the name
- * ending as endsTagName says.
+ * The elements rawTextElements reads by name (see HtmlMarkupReading): what
+ * a hidden one holds is never shown, and a text one holds text.
  */
 interface NamedElement {
   name: string;
-  whole: boolean;
+  hidden: boolean;
   endTag: RegExp;
 }
 
 const NAMED_ELEMENTS: ReadonlyArray<NamedElement> = [
-  { name: "script", whole: true, endTag: /<\/script(?=[\t\n\f\r />])/gi },
-  { name: "style", whole: true, endTag: /<\/style(?=[\t\n\f\r />])/gi },
-  { name: "title", whole: false, endTag: /<\/title(?=[\t\n\f\r />])/gi },
-  {
-    name: "textarea",
-    whole: false,
-    endTag: /<\/textarea(?=[\t\n\f\r />])/gi,
-  },
-  { name: "xmp", whole: false, endTag: /<\/xmp(?=[\t\n\f\r />])/gi },
-  { name: "iframe", whole: false, endTag: /<\/iframe(?=[\t\n\f\r />])/gi },
-  { name: "noembed", whole: false, endTag: /<\/noembed(?=[\t\n\f\r />])/gi },
-  {
-    name: "noframes",
-    whole: false,
-    endTag: /<\/noframes(?=[\t\n\f\r />])/gi,
-  },
+  ...["script", "style", "iframe", "noembed", "noframes"].map(
+    (name: string): NamedElement => {
+      return { name: name, hidden: true, endTag: endTagOf(name) };
+    },
+  ),
+  ...["title", "textarea", "xmp"].map((name: string): NamedElement => {
+    return { name: name, hidden: false, endTag: endTagOf(name) };
+  }),
 ];
 
 type NamedElementOfFunction = (html: string, open: number) => number;
@@ -386,8 +379,6 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
    * after it is not searched again.
    */
   const noEndTag: Array<boolean> = [];
-  // Inside an element whose content is text up to here: no element starts.
-  let textOnlyUntil: number = -1;
   let text: string = html.slice(0, firstOpen);
   let index: number = firstOpen;
 
@@ -452,9 +443,7 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
       }
 
       const element: number =
-        rawTextElements && end !== -1 && open >= textOnlyUntil
-          ? namedElementOf(html, open)
-          : -1;
+        rawTextElements && end !== -1 ? namedElementOf(html, open) : -1;
 
       if (element !== -1) {
         const named: NamedElement = NAMED_ELEMENTS[element]!;
@@ -465,22 +454,29 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
           endTagAt = named.endTag.exec(html)?.index ?? -1;
         }
 
-        if (named.whole) {
-          // The element runs to the ">" of its end tag.
-          const elementEnd: number =
-            endTagAt === -1
-              ? -1
-              : html.indexOf(">", endTagAt + 2 + named.name.length);
+        // A hidden element runs to the ">" of its end tag.
+        const elementEnd: number =
+          named.hidden && endTagAt !== -1
+            ? html.indexOf(">", endTagAt + 2 + named.name.length)
+            : -1;
 
-          if (elementEnd === -1) {
-            noEndTag[element] = true;
-          } else {
-            end = elementEnd + 1;
-          }
+        if (endTagAt === -1 || (named.hidden && elementEnd === -1)) {
+          // No end tag follows this start, nor will one follow a later one.
+          noEndTag[element] = true;
+        } else if (named.hidden) {
+          end = elementEnd + 1;
         } else {
-          // Its content is text to its end tag, or to the end of the text.
-          noEndTag[element] = endTagAt === -1;
-          textOnlyUntil = endTagAt === -1 ? html.length : endTagAt;
+          /*
+           * A text element's content is read on its own, with no element in
+           * it, so nothing in it runs past its end tag, which comes next.
+           */
+          text +=
+            replace(html.slice(open, end)) +
+            replaceHtmlMarkup(html.slice(end, endTagAt), replace, {
+              lessThanAsText: lessThanAsText,
+            });
+          index = endTagAt;
+          continue;
         }
       }
     }

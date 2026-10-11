@@ -188,12 +188,47 @@ describe("replaceHtmlMarkup with rawTextElements", () => {
       "xvisible",
     ],
     ["xmp", "<xmp><style>a</xmp>visible<style>b</style>", "avisible"],
-    ["an iframe", "<iframe><script>a</iframe>visible", "avisible"],
-    ["noembed", "<NOEMBED><script>a</NOEMBED >visible", "avisible"],
-    ["noframes", "<noframes><style>a</noframes>visible", "avisible"],
-    ["a title that never closes", "<title><script>a</script>b", "ab"],
+    [
+      "a title, with a comment that would run on",
+      "<html><head><title>Login <!--</title></head><body><p>invalid_client: the secret expired</p><!-- footer --></body></html>",
+      "Login !--invalid_client: the secret expired",
+    ],
+    [
+      "a title, with a quoted value that would run on",
+      "<title>a <b title='</title><p>invalid_client</p>",
+      "a b title='invalid_client",
+    ],
   ])(
-    "starts no element inside %s, whose content a browser reads as text",
+    "reads what %s holds on its own, as text: no element starts in it, and nothing in it runs past its end tag",
+    (_case: string, html: string, text: string) => {
+      expect(readWhole(html)).toBe(text);
+    },
+  );
+
+  it.each([
+    [
+      "an iframe, a script inside it included",
+      '<iframe><script>var token="abc";</script></iframe><p>invalid_client</p>',
+      "invalid_client",
+    ],
+    ["noembed", "<NOEMBED><script>a</NOEMBED >visible", "visible"],
+    ["noframes", "<noframes><style>a</noframes>visible", "visible"],
+  ])(
+    "takes out %s whole: a browser never shows what it holds",
+    (_case: string, html: string, text: string) => {
+      expect(readWhole(html)).toBe(text);
+    },
+  );
+
+  it.each([
+    ["a title that never closes", "<title><script>a</script>b", "b"],
+    [
+      "a title in SVG, which holds markup and has no end tag",
+      "<svg><title>logo</svg><p>invalid_client</p><script>window.__cfg={k:1}</script>",
+      "logoinvalid_client",
+    ],
+  ])(
+    "reads %s as an ordinary tag, and every element after it as usual",
     (_case: string, html: string, text: string) => {
       expect(readWhole(html)).toBe(text);
     },
