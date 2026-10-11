@@ -38,7 +38,7 @@ import {
  * IncidentEpisodeStateTimelineService, AlertEpisodeStateTimelineService,
  * ScheduledMaintenanceStateTimelineService); an update that writes a
  * record's current state asks it before anything is written
- * (Server/Utils/StateMoveOnUpdate); an episode moves each of its members
+ * (Server/Utils/StateMoveCheck); an episode moves each of its members
  * only where the member's own rule lets it (isMoveAllowed); and every picker
  * that offers a move - the Change state to menu of the dashboard's event
  * header, the Change State forms in Slack and Microsoft Teams - offers only

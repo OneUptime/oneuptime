@@ -13,9 +13,11 @@ import RelationIdUtil from "./Database/RelationIdUtil";
  * THE SERVER'S TWO ASKS OF THE ONE STATE MOVE RULE (Common/Utils/StateMove):
  * a new row of a record's state timeline, and an update that writes a
  * record's current state. Both are refused with the rule's own sentence,
- * before anything is written, whoever sends them - a person in the
- * dashboard, a chat button, the API, Terraform, a workflow or OneUptime
- * itself.
+ * before anything is written. A timeline row is asked whoever creates it -
+ * a person in the dashboard, a chat button, the API, Terraform, a workflow
+ * or OneUptime itself; an update is asked for everyone but OneUptime, whose
+ * own writes of the state follow the record's timeline (see
+ * assertUpdateMovesAllowed).
  */
 
 const toId: (value: unknown) => string = (value: unknown): string => {
@@ -94,7 +96,8 @@ export default class StateMoveCheck {
    * service reads them for a check and the update held to them
    * (findRowsAndHold: DatabaseService.findRowsAndHoldUpdateToThem); the
    * project's states are read once per project (getProjectStates). An update
-   * that writes no state reads nothing.
+   * that writes no state, or that OneUptime makes (props.isRoot), reads
+   * nothing.
    */
   public static async assertUpdateMovesAllowed<TModel extends BaseModel>(data: {
     record: StateMoveRecord;
