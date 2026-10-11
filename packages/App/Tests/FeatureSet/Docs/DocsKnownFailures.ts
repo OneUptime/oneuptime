@@ -149,7 +149,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION,
   },
   "installation/upgrading": {
-    sameShape: except(EVERY_TRANSLATION, "de"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr"),
   },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
