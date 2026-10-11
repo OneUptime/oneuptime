@@ -306,6 +306,20 @@ const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
 };
 
 /*
+ * Lines the pages quote from the Dashboard: a folded section's one-line
+ * summary, the suggestions' heading, a read-only card's note. Every language
+ * quotes them as its Dashboard words them.
+ */
+const DASHBOARD_QUOTES: Record<string, Array<string>> = {
+  [SUBSCRIBERS]: [
+    "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
+    "Status pages that show the affected monitors:",
+    "The event has started, so this can no longer be changed.",
+    "Shows now and stays until you end it. Subscribers are notified when it starts showing.",
+  ],
+};
+
+/*
  * Names every language shows in English: plans and permissions, as the
  * team pages, the API and Terraform name them; the template event types the
  * Notification Templates table lists; the states every project's scheduled
@@ -576,6 +590,27 @@ function drawnMessageLead(language: string, entry: FlatLookupLabel): string {
   return (lead ? (lead[1] as string) : message).replace(FULL_STOP, "");
 }
 
+/*
+ * The sentences of a quoted Dashboard line: the line itself when the
+ * locale has it whole, else each sentence on its own, as a folded section
+ * puts two of them side by side.
+ */
+function quoteKeys(quote: string): Array<string> {
+  if (dashboardLocale("en")[quote] !== undefined) {
+    return [quote];
+  }
+
+  return quote.split(/(?<=\.) /);
+}
+
+function drawnQuote(language: string, quote: string): string {
+  return quoteKeys(quote)
+    .map((key: string): string => {
+      return flatLabel(language, key).trim();
+    })
+    .join(" ");
+}
+
 function listed<T>(lists: Record<string, Array<T>>, page: string): Array<T> {
   return lists[page] || [];
 }
@@ -748,6 +783,23 @@ describe("the lists this test keeps", () => {
 
       for (const key of listed(STATUS_PAGE_APP_MESSAGES, page)) {
         expect(englishPage(page)).toContain(statusPageText("en", key));
+      }
+    }
+  });
+
+  it("quote only Dashboard lines the English pages quote, whose sentences the English locale has", () => {
+    for (const page of PAGE_NAMES) {
+      for (const quote of listed(DASHBOARD_QUOTES, page)) {
+        expect(englishPage(page)).toContain(quote);
+
+        for (const key of quoteKeys(quote)) {
+          expect({
+            key,
+            found: dashboardLocale("en")[key] !== undefined,
+          }).toEqual({ key, found: true });
+        }
+
+        expect(drawnQuote("en", quote)).toBe(quote);
       }
     }
   });
@@ -1005,6 +1057,19 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       ].filter((drawn: string): boolean => {
         return !translated.includes(drawn);
       });
+
+      expect(missing).toEqual([]);
+    });
+
+    it("quotes the Dashboard's lines as this language's Dashboard words them", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = listed(DASHBOARD_QUOTES, entry.page)
+        .map((quote: string): string => {
+          return drawnQuote(language, quote);
+        })
+        .filter((drawn: string): boolean => {
+          return !translated.includes(drawn);
+        });
 
       expect(missing).toEqual([]);
     });

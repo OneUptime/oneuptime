@@ -28,6 +28,9 @@ If your audience is happy to choose for itself, one page may be enough: let subs
 
 An incident reaches a status page through its monitors. A page shows an incident, and notifies its subscribers about it, when one of the page's resources is one of the incident's monitors, directly or through a monitor group on the page. Two settings narrow that:
 
+- **Limit to these status pages** on the incident (`statusPages`). Left empty, the incident reaches every page that lists its monitors, as it always has. With pages picked, it reaches only the picked pages **among** the ones that list its monitors.
+- **Only Show Incidents Scoped to This Page** on the status page (`onlyShowScopedIncidents`, off by default). With it on, the page never shows, and never notifies anyone about, an incident that is not limited to specific status pages.
+
 ```mermaid title="Does this page show the incident?"
 flowchart TB
     L{"Page lists a monitor of the incident?"} -->|"No"| X["Not shown, not notified"]
@@ -39,9 +42,6 @@ flowchart TB
     O -->|"No"| Y
     O -->|"Yes"| X
 ```
-
-- **Limit to these status pages** on the incident (`statusPages`). Left empty, the incident reaches every page that lists its monitors, as it always has. With pages picked, it reaches only the picked pages **among** the ones that list its monitors.
-- **Only Show Incidents Scoped to This Page** on the status page (`onlyShowScopedIncidents`, off by default). With it on, the page never shows, and never notifies anyone about, an incident that is not limited to specific status pages.
 
 For a page that lists one of the incident's monitors:
 
