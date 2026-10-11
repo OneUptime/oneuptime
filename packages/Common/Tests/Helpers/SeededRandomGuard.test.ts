@@ -262,10 +262,13 @@ describe("what the detector calls a generator of a test's own", () => {
         `  seed = (seed * ${ANSI} + 12345) & 0x7fffffff;`,
         "`;",
         `const evaluated: string = "x ^= x ${SHIFT_LEFT} 13";`,
+        `const page: string = 'state = (state + ${MULBERRY}) | 0; s = s ^ (s ${SHIFT_LEFT} 5);';`,
       ),
       [
         [1, ANSI_FINDING],
         [5, "an xorshift step"],
+        [6, "mulberry32's step"],
+        [6, "an xorshift step"],
       ],
     ],
     [
@@ -356,6 +359,35 @@ describe("what it passes", () => {
     ],
   ])("%s", (_case: string, text: string) => {
     expect(findingsIn("Pass.test.ts", text)).toEqual([]);
+  });
+
+  test("passes a script that only looks like one", () => {
+    expect(
+      findingsIn(
+        "Child.test.ts",
+        code(
+          `const script: string = "x = y ^ (x ${SHIFT_LEFT} 1); total = total * 2;";`,
+          `const note: string = "multiplied by ${ANSI}, once";`,
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("reads a file holding a string megabytes long in good time", () => {
+    /*
+     * Every number and every "^" is read with the few characters around it,
+     * once: 2.5 MB take a fraction of a second, where reading all the text
+     * before each number took seven.
+     */
+    const longText: string = `x ^ y ${SHIFT_LEFT} 2, ${PARK_MILLER_2} `.repeat(
+      120000,
+    );
+    const started: number = Date.now();
+
+    expect(
+      findingsIn("Long.test.ts", code(`const big: string = "${longText}";`)),
+    ).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(3000);
   });
 
   test("reads every multiplier and step it knows, however it is written", () => {

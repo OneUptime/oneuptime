@@ -91,12 +91,18 @@ export interface HandRolledGenerator {
 
 const NUMBER_TOKEN: RegExp = /\b(?:0[xX][0-9a-fA-F_]+|[0-9][0-9_]*)n?\b/g;
 const NUMBER_SEPARATOR: RegExp = /_/g;
-// A multiply in text: "* 1103515245", "1103515245 *", "imul(x, 1103515245".
+const BIGINT_SUFFIX: RegExp = /n$/;
+/*
+ * A multiply or an add in text, read from the few characters around a
+ * number: "* 1103515245", "1103515245 *", "imul(x, 1103515245", "+ 0x6d2b79f5".
+ */
+const AROUND: number = 48;
 const MULTIPLY_BEFORE: RegExp = /(?:\*=?|imul\s*\([^()]*,)\s*\(?\s*$/;
 const MULTIPLY_AFTER: RegExp = /^\s*\)?\s*\*/;
 const ADD_BEFORE: RegExp = /\+=?\s*\(?\s*$/;
-const XORSHIFT_IN_TEXT: RegExp =
-  /([\w$.]+)\s*\^=\s*\(?\s*\1\s*<<|([\w$.]+)\s*=\s*\(?\s*\2\s*\^\s*\(?\s*\2\s*<</;
+// The name before an "^" or "^=", and what follows it: "x ^= x << 13", "x = x ^ (x << 13)".
+const NAME_BEFORE: RegExp = /([\w$.]+)\s*(?:=\s*\(?\s*([\w$.]+)\s*)?$/;
+const SHIFTED_AFTER: RegExp = /^=?\s*\(?\s*([\w$.]+)\s*<</;
 
 // Files worth parsing: those that hold a number of the lists, or a left shift.
 const CANDIDATE: RegExp = new RegExp(
@@ -128,7 +134,7 @@ export const valueOf: ValueOfFunction = (
 ): bigint | null => {
   const digits: string = literalText
     .replace(NUMBER_SEPARATOR, "")
-    .replace(/n$/, "");
+    .replace(BIGINT_SUFFIX, "");
 
   try {
     return BigInt(digits);
@@ -306,6 +312,48 @@ const isXorshiftStep: IsXorshiftStepFunction = (
   );
 };
 
+type HasXorshiftStepFunction = (text: string) => boolean;
+
+/*
+ * Whether text holds an xorshift step: at an "^", the name before it (or,
+ * for "x = x ^ ...", the name assigned) is the name shifted left after it.
+ * Each "^" is read with the few characters around it, so a long string is
+ * read once.
+ */
+const hasXorshiftStep: HasXorshiftStepFunction = (text: string): boolean => {
+  for (
+    let caret: number = text.indexOf("^");
+    caret !== -1;
+    caret = text.indexOf("^", caret + 1)
+  ) {
+    const before: RegExpExecArray | null = NAME_BEFORE.exec(
+      text.slice(Math.max(0, caret - AROUND), caret),
+    );
+    const after: RegExpExecArray | null = SHIFTED_AFTER.exec(
+      text.slice(caret + 1, caret + 1 + AROUND),
+    );
+
+    if (!before || !after) {
+      continue;
+    }
+
+    const isCompound: boolean = text.charAt(caret + 1) === "=";
+    // x ^= x << 13: the name before the "^=" is shifted; x = x ^ (x << 13): the name XORed is.
+    const target: string | undefined = isCompound ? before[1] : before[2];
+    const operand: string = before[1]!;
+
+    if (
+      target !== undefined &&
+      after[1] === target &&
+      (isCompound || operand === target)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 type FindingsInTextFunction = (text: string) => Array<string>;
 
 /*
@@ -319,21 +367,27 @@ const findingsInText: FindingsInTextFunction = (
 
   for (const match of text.matchAll(NUMBER_TOKEN)) {
     const value: bigint | null = valueOf(match[0]);
+    const multiplier: string | undefined =
+      value === null ? undefined : LCG_MULTIPLIERS.get(value);
+    const increment: string | undefined =
+      value === null ? undefined : WEYL_INCREMENTS.get(value);
 
-    if (value === null) {
+    if (!multiplier && !increment) {
       continue;
     }
 
-    const before: string = text.slice(0, match.index);
-    const after: string = text.slice(match.index! + match[0].length);
-    const multiplier: string | undefined = LCG_MULTIPLIERS.get(value);
-    const increment: string | undefined = WEYL_INCREMENTS.get(value);
+    const start: number = match.index!;
+    const before: string = text.slice(Math.max(0, start - AROUND), start);
+    const after: string = text.slice(
+      start + match[0].length,
+      start + match[0].length + AROUND,
+    );
 
     if (
       multiplier &&
       (MULTIPLY_BEFORE.test(before) || MULTIPLY_AFTER.test(after))
     ) {
-      findings.push(`a multiply by ${multiplier}'s ${value.toString()}`);
+      findings.push(`a multiply by ${multiplier}'s ${value!.toString()}`);
     }
 
     if (increment && ADD_BEFORE.test(before)) {
@@ -341,7 +395,7 @@ const findingsInText: FindingsInTextFunction = (
     }
   }
 
-  if (XORSHIFT_IN_TEXT.test(text)) {
+  if (hasXorshiftStep(text)) {
     findings.push("an xorshift step");
   }
 
