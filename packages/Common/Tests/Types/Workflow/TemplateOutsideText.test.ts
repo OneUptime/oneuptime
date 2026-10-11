@@ -828,7 +828,7 @@ describe.each([
     });
 
     test("is held to that many different texts", () => {
-      // Only the shortest texts repeat: there are 39 of one piece, for one.
+      // Only the shortest texts repeat: there are only 37 texts of one piece, for one.
       expect(new Set(generated).size).toBeGreaterThan(18000);
       expect(new Set(plain).size).toBeGreaterThan(1800);
     });
