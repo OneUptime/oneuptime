@@ -17,18 +17,18 @@ Add a device with its address and a probe, and the probe pings it on a schedule:
 
 ```mermaid title="How a network device is watched"
 flowchart TB
-    Probe["Probe on the device's network"]
+    Probe["Probe on the<br/>device's network"]
     Device["Network device"]
-    Data["Status, metrics, interfaces, map"]
-    Monitor["Network Device monitor"]
+    Data["Status, metrics,<br/>interfaces, map"]
+    Monitor["Network Device<br/>monitor"]
     Policy["Alert policy"]
     Incident["Incident or alert"]
-    Probe -->|"Ping, every poll"| Device
-    Probe -->|"SNMP walk, with credentials"| Device
-    Device -->|"SNMP traps"| Probe
-    Probe --> Data
+    Probe -->|"Ping,<br/>every poll"| Device
+    Probe -->|"SNMP walk,<br/>with credentials"| Device
+    Device -->|"SNMP<br/>traps"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Provisions"| Monitor
+    Policy --->|"Provisions"| Monitor
     Monitor -->|"Criteria met"| Incident
 ```
 
@@ -207,18 +207,18 @@ A device is walked with the first usable credential set found in this order, and
 
 ```mermaid title="Which credentials a walk uses"
 flowchart TB
-    Own{"Credentials typed<br/>on the device?"}
-    Profile{"A credential profile<br/>on the device?"}
-    Site{"A default profile<br/>on its site?"}
+    Own{"Credentials<br/>typed on<br/>the device?"}
+    Profile{"A credential<br/>profile on<br/>the device?"}
+    Site{"A default<br/>profile on<br/>its site?"}
     WalkOwn["Walk with the<br/>device's own"]
     WalkProfile["Walk with<br/>that profile"]
     WalkSite["Walk with the<br/>site's profile"]
     PingOnly["Ping only"]
-    Own -->|"Yes"| WalkOwn
+    Own --->|"Yes"| WalkOwn
     Own -->|"No"| Profile
-    Profile -->|"Yes"| WalkProfile
+    Profile --->|"Yes"| WalkProfile
     Profile -->|"No"| Site
-    Site -->|"Yes"| WalkSite
+    Site --->|"Yes"| WalkSite
     Site -->|"No"| PingOnly
 ```
 

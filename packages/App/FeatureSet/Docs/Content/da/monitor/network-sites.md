@@ -15,15 +15,15 @@ Du finder dem under **Netværk → Lokationer** og på et kort under **Netværk 
 
 ```mermaid title="Tilstand stiger op gennem lokationstræet"
 flowchart BT
-    Devices1["Enheder i butik 1"]
-    Devices2["Enheder i butik 2"]
-    Devices3["Enheder i butik 3"]
-    Store1["Butik 1<br/>værste status"]
-    Store2["Butik 2<br/>værste status"]
-    Store3["Butik 3<br/>værste status"]
-    MarketA["Marked A<br/>andel enheder nede"]
-    MarketB["Marked B<br/>andel enheder nede"]
-    Region["Region<br/>andel enheder nede"]
+    Devices1["Enheder<br/>i butik 1"]
+    Devices2["Enheder<br/>i butik 2"]
+    Devices3["Enheder<br/>i butik 3"]
+    Store1["Butik 1<br/>værste<br/>status"]
+    Store2["Butik 2<br/>værste<br/>status"]
+    Store3["Butik 3<br/>værste<br/>status"]
+    MarketA["Marked A<br/>andel<br/>enheder<br/>nede"]
+    MarketB["Marked B<br/>andel<br/>enheder<br/>nede"]
+    Region["Region<br/>andel<br/>enheder<br/>nede"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

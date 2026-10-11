@@ -17,18 +17,18 @@
 
 ```mermaid title="नेटवर्क डिवाइस पर नज़र कैसे रखी जाती है"
 flowchart TB
-    Probe["डिवाइस के नेटवर्क पर प्रोब"]
+    Probe["डिवाइस के<br/>नेटवर्क पर प्रोब"]
     Device["नेटवर्क डिवाइस"]
-    Data["स्थिति, मेट्रिक्स, इंटरफ़ेस, मैप"]
-    Monitor["Network Device मॉनिटर"]
+    Data["स्थिति, मेट्रिक्स,<br/>इंटरफ़ेस, मैप"]
+    Monitor["Network<br/>Device मॉनिटर"]
     Policy["अलर्ट नीति"]
     Incident["घटना या अलर्ट"]
-    Probe -->|"हर पोल पर Ping"| Device
-    Probe -->|"क्रेडेंशियल के साथ SNMP वॉक"| Device
-    Device -->|"SNMP ट्रैप"| Probe
-    Probe --> Data
+    Probe -->|"हर पोल<br/>पर Ping"| Device
+    Probe -->|"क्रेडेंशियल के<br/>साथ SNMP वॉक"| Device
+    Device -->|"SNMP<br/>ट्रैप"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"बनाती है"| Monitor
+    Policy --->|"बनाती है"| Monitor
     Monitor -->|"शर्तें पूरी"| Incident
 ```
 
@@ -207,18 +207,18 @@ Ping मॉनिटर बॉक्स टिक करने पर **Ping fro
 
 ```mermaid title="वॉक कौन-से क्रेडेंशियल इस्तेमाल करता है"
 flowchart TB
-    Own{"डिवाइस पर लिखे<br/>क्रेडेंशियल हैं?"}
-    Profile{"डिवाइस पर कोई<br/>क्रेडेंशियल प्रोफ़ाइल है?"}
-    Site{"उसकी साइट पर कोई<br/>डिफ़ॉल्ट प्रोफ़ाइल है?"}
+    Own{"डिवाइस पर लिखे<br/>क्रेडेंशियल<br/>हैं?"}
+    Profile{"डिवाइस पर कोई<br/>क्रेडेंशियल<br/>प्रोफ़ाइल है?"}
+    Site{"उसकी साइट पर<br/>कोई डिफ़ॉल्ट<br/>प्रोफ़ाइल है?"}
     WalkOwn["डिवाइस के अपने<br/>क्रेडेंशियल से वॉक"]
     WalkProfile["उस प्रोफ़ाइल<br/>से वॉक"]
-    WalkSite["साइट की प्रोफ़ाइल<br/>से वॉक"]
+    WalkSite["साइट की<br/>प्रोफ़ाइल से वॉक"]
     PingOnly["केवल Ping"]
-    Own -->|"हाँ"| WalkOwn
+    Own --->|"हाँ"| WalkOwn
     Own -->|"नहीं"| Profile
-    Profile -->|"हाँ"| WalkProfile
+    Profile --->|"हाँ"| WalkProfile
     Profile -->|"नहीं"| Site
-    Site -->|"हाँ"| WalkSite
+    Site --->|"हाँ"| WalkSite
     Site -->|"नहीं"| PingOnly
 ```
 

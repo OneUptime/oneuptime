@@ -20,15 +20,15 @@ flowchart TB
     Probe["Sonde in het netwerk<br/>van het apparaat"]
     Device["Netwerkapparaat"]
     Data["Status, metrieken,<br/>interfaces, kaart"]
-    Monitor["Netwerkapparaat-monitor"]
+    Monitor["Netwerkapparaat-<br/>monitor"]
     Policy["Waarschuwingsbeleid"]
     Incident["Incident of waarschuwing"]
-    Probe -->|"Ping, elke poll"| Device
-    Probe -->|"SNMP-walk, met inloggegevens"| Device
+    Probe -->|"Ping,<br/>elke poll"| Device
+    Probe -->|"SNMP-walk, met<br/>inloggegevens"| Device
     Device -->|"SNMP-traps"| Probe
-    Probe --> Data
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Richt in"| Monitor
+    Policy --->|"Richt in"| Monitor
     Monitor -->|"Criterium vervuld"| Incident
 ```
 
@@ -207,18 +207,18 @@ Een apparaat wordt gewalkt met de eerste bruikbare set inloggegevens die in deze
 
 ```mermaid title="Welke inloggegevens een walk gebruikt"
 flowchart TB
-    Own{"Inloggegevens getypt<br/>op het apparaat?"}
+    Own{"Inloggegevens<br/>getypt op<br/>het apparaat?"}
     Profile{"Een inloggegevensprofiel<br/>op het apparaat?"}
     Site{"Een standaardprofiel<br/>op zijn locatie?"}
     WalkOwn["Walk met die van<br/>het apparaat zelf"]
     WalkProfile["Walk met<br/>dat profiel"]
-    WalkSite["Walk met het<br/>profiel van de locatie"]
+    WalkSite["Walk met het profiel<br/>van de locatie"]
     PingOnly["Alleen ping"]
-    Own -->|"Ja"| WalkOwn
+    Own --->|"Ja"| WalkOwn
     Own -->|"Nee"| Profile
-    Profile -->|"Ja"| WalkProfile
+    Profile --->|"Ja"| WalkProfile
     Profile -->|"Nee"| Site
-    Site -->|"Ja"| WalkSite
+    Site --->|"Ja"| WalkSite
     Site -->|"Nee"| PingOnly
 ```
 

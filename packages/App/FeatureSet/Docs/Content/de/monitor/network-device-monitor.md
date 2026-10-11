@@ -20,15 +20,15 @@ flowchart TB
     Probe["Sonde im Netzwerk<br/>des Geräts"]
     Device["Netzwerkgerät"]
     Data["Status, Metriken,<br/>Schnittstellen, Karte"]
-    Monitor["Netzwerkgerät-Monitor"]
+    Monitor["Netzwerkgerät-<br/>Monitor"]
     Policy["Warnungsrichtlinie"]
     Incident["Vorfall oder Warnung"]
-    Probe -->|"Ping, bei jeder Abfrage"| Device
-    Probe -->|"SNMP-Walk, mit Anmeldedaten"| Device
+    Probe -->|"Ping, bei<br/>jeder Abfrage"| Device
+    Probe -->|"SNMP-Walk, mit<br/>Anmeldedaten"| Device
     Device -->|"SNMP-Traps"| Probe
-    Probe --> Data
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Stellt bereit"| Monitor
+    Policy --->|"Stellt bereit"| Monitor
     Monitor -->|"Kriterium erfüllt"| Incident
 ```
 
@@ -207,18 +207,18 @@ Ein Gerät wird mit dem ersten brauchbaren Satz von Anmeldedaten abgefragt, der 
 
 ```mermaid title="Welche Anmeldedaten ein Walk verwendet"
 flowchart TB
-    Own{"Anmeldedaten auf dem<br/>Gerät eingegeben?"}
+    Own{"Anmeldedaten<br/>auf dem Gerät<br/>eingegeben?"}
     Profile{"Ein Anmeldedatenprofil<br/>auf dem Gerät?"}
     Site{"Ein Standardprofil<br/>an seinem Standort?"}
-    WalkOwn["Mit den eigenen des<br/>Geräts abfragen"]
+    WalkOwn["Mit den eigenen<br/>des Geräts abfragen"]
     WalkProfile["Mit diesem<br/>Profil abfragen"]
     WalkSite["Mit dem Profil des<br/>Standorts abfragen"]
     PingOnly["Nur Ping"]
-    Own -->|"Ja"| WalkOwn
+    Own --->|"Ja"| WalkOwn
     Own -->|"Nein"| Profile
-    Profile -->|"Ja"| WalkProfile
+    Profile --->|"Ja"| WalkProfile
     Profile -->|"Nein"| Site
-    Site -->|"Ja"| WalkSite
+    Site --->|"Ja"| WalkSite
     Site -->|"Nein"| PingOnly
 ```
 

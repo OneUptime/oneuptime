@@ -20,15 +20,15 @@ flowchart TB
     Probe["Зонд в сети<br/>устройства"]
     Device["Сетевое устройство"]
     Data["Статус, метрики,<br/>интерфейсы, карта"]
-    Monitor["Монитор сетевого устройства"]
+    Monitor["Монитор сетевого<br/>устройства"]
     Policy["Политика оповещений"]
     Incident["Инцидент или оповещение"]
-    Probe -->|"Ping, при каждом опросе"| Device
-    Probe -->|"SNMP-обход, с учётными данными"| Device
-    Device -->|"Трапы SNMP"| Probe
-    Probe --> Data
+    Probe -->|"Ping, при<br/>каждом опросе"| Device
+    Probe -->|"SNMP-обход, с<br/>учётными данными"| Device
+    Device -->|"Трапы<br/>SNMP"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Создаёт и поддерживает"| Monitor
+    Policy --->|"Создаёт и поддерживает"| Monitor
     Monitor -->|"Критерий выполнен"| Incident
 ```
 
@@ -207,18 +207,18 @@ flowchart TB
 
 ```mermaid title="Какие учётные данные использует обход"
 flowchart TB
-    Own{"Учётные данные введены<br/>на устройстве?"}
-    Profile{"Профиль учётных данных<br/>на устройстве?"}
-    Site{"Профиль по умолчанию<br/>на его площадке?"}
-    WalkOwn["Обход с собственными<br/>данными устройства"]
-    WalkProfile["Обход с<br/>этим профилем"]
-    WalkSite["Обход с<br/>профилем площадки"]
+    Own{"Учётные<br/>данные<br/>введены на<br/>устройстве?"}
+    Profile{"Профиль<br/>учётных<br/>данных на<br/>устройстве?"}
+    Site{"Профиль по<br/>умолчанию<br/>на его<br/>площадке?"}
+    WalkOwn["Обход<br/>с собственными<br/>данными<br/>устройства"]
+    WalkProfile["Обход<br/>с этим<br/>профилем"]
+    WalkSite["Обход с<br/>профилем<br/>площадки"]
     PingOnly["Только ping"]
-    Own -->|"Да"| WalkOwn
+    Own --->|"Да"| WalkOwn
     Own -->|"Нет"| Profile
-    Profile -->|"Да"| WalkProfile
+    Profile --->|"Да"| WalkProfile
     Profile -->|"Нет"| Site
-    Site -->|"Да"| WalkSite
+    Site --->|"Да"| WalkSite
     Site -->|"Нет"| PingOnly
 ```
 

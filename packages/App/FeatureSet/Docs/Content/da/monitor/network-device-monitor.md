@@ -17,18 +17,18 @@ Tilføj en enhed med dens adresse og en sonde, og sonden pinger den efter en tid
 
 ```mermaid title="Sådan holdes øje med en netværksenhed"
 flowchart TB
-    Probe["Sonde på enhedens<br/>netværk"]
+    Probe["Sonde på<br/>enhedens netværk"]
     Device["Netværksenhed"]
     Data["Status, metrikker,<br/>interfaces, kort"]
-    Monitor["Netværksenheds-monitor"]
+    Monitor["Netværksenheds-<br/>monitor"]
     Policy["Advarselspolitik"]
     Incident["Hændelse eller advarsel"]
-    Probe -->|"Ping, hver polling"| Device
-    Probe -->|"SNMP-walk, med loginoplysninger"| Device
+    Probe -->|"Ping, hver<br/>polling"| Device
+    Probe -->|"SNMP-walk, med<br/>loginoplysninger"| Device
     Device -->|"SNMP-traps"| Probe
-    Probe --> Data
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Opretter og vedligeholder"| Monitor
+    Policy --->|"Opretter og vedligeholder"| Monitor
     Monitor -->|"Kriterie opfyldt"| Incident
 ```
 
@@ -207,18 +207,18 @@ En enhed walkes med det første brugbare sæt loginoplysninger, der findes i den
 
 ```mermaid title="Hvilke loginoplysninger et walk bruger"
 flowchart TB
-    Own{"Loginoplysninger skrevet<br/>på enheden?"}
+    Own{"Loginoplysninger<br/>skrevet<br/>på enheden?"}
     Profile{"En loginprofil<br/>på enheden?"}
     Site{"En standardprofil<br/>på dens lokation?"}
-    WalkOwn["Walk med enhedens<br/>egne"]
+    WalkOwn["Walk med<br/>enhedens egne"]
     WalkProfile["Walk med<br/>den profil"]
     WalkSite["Walk med<br/>lokationens profil"]
     PingOnly["Kun ping"]
-    Own -->|"Ja"| WalkOwn
+    Own --->|"Ja"| WalkOwn
     Own -->|"Nej"| Profile
-    Profile -->|"Ja"| WalkProfile
+    Profile --->|"Ja"| WalkProfile
     Profile -->|"Nej"| Site
-    Site -->|"Ja"| WalkSite
+    Site --->|"Ja"| WalkSite
     Site -->|"Nej"| PingOnly
 ```
 

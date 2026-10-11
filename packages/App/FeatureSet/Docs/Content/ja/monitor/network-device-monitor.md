@@ -17,18 +17,18 @@
 
 ```mermaid title="ネットワークデバイスの監視の流れ"
 flowchart TB
-    Probe["デバイスのネットワーク上の<br/>プローブ"]
+    Probe["デバイスの<br/>ネットワーク上のプローブ"]
     Device["ネットワークデバイス"]
     Data["ステータス、メトリクス、<br/>インターフェース、マップ"]
-    Monitor["ネットワークデバイス モニター"]
+    Monitor["ネットワークデバイスモニター"]
     Policy["アラートポリシー"]
     Incident["インシデントまたはアラート"]
-    Probe -->|"ping、ポーリングごと"| Device
-    Probe -->|"SNMP ウォーク、認証情報あり"| Device
-    Device -->|"SNMP トラップ"| Probe
-    Probe --> Data
+    Probe -->|"ping、<br/>ポーリングごと"| Device
+    Probe -->|"SNMP ウォーク、<br/>認証情報あり"| Device
+    Device -->|"SNMP<br/>トラップ"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"作成と維持"| Monitor
+    Policy --->|"作成と維持"| Monitor
     Monitor -->|"条件に一致"| Incident
 ```
 
@@ -207,18 +207,18 @@ ping とウォークの両方が失敗するデバイスは単に **ダウン** 
 
 ```mermaid title="ウォークが使う認証情報"
 flowchart TB
-    Own{"デバイスに<br/>認証情報を入力済み?"}
-    Profile{"デバイスに認証情報<br/>プロファイルがある?"}
-    Site{"サイトにデフォルトの<br/>プロファイルがある?"}
-    WalkOwn["デバイス自身の<br/>認証情報でウォーク"]
-    WalkProfile["その<br/>プロファイルでウォーク"]
-    WalkSite["サイトの<br/>プロファイルでウォーク"]
+    Own{"デバイスに<br/>認証情報を<br/>入力済み?"}
+    Profile{"デバイスに<br/>認証情報<br/>プロファイルが<br/>ある?"}
+    Site{"サイトに<br/>デフォルトの<br/>プロファイルが<br/>ある?"}
+    WalkOwn["デバイス自身の<br/>認証情報で<br/>ウォーク"]
+    WalkProfile["その<br/>プロファイルで<br/>ウォーク"]
+    WalkSite["サイトの<br/>プロファイルで<br/>ウォーク"]
     PingOnly["ping のみ"]
-    Own -->|"はい"| WalkOwn
+    Own --->|"はい"| WalkOwn
     Own -->|"いいえ"| Profile
-    Profile -->|"はい"| WalkProfile
+    Profile --->|"はい"| WalkProfile
     Profile -->|"いいえ"| Site
-    Site -->|"はい"| WalkSite
+    Site --->|"はい"| WalkSite
     Site -->|"いいえ"| PingOnly
 ```
 

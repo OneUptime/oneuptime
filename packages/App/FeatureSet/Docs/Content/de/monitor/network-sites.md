@@ -15,15 +15,15 @@ Sie finden sie unter **Netzwerk → Standorte** und auf einer Karte unter **Netz
 
 ```mermaid title="Die Integrität wird den Standortbaum hinauf zusammengefasst"
 flowchart BT
-    Devices1["Geräte von Filiale 1"]
-    Devices2["Geräte von Filiale 2"]
-    Devices3["Geräte von Filiale 3"]
-    Store1["Filiale 1<br/>schlechtester Status"]
-    Store2["Filiale 2<br/>schlechtester Status"]
-    Store3["Filiale 3<br/>schlechtester Status"]
-    MarketA["Markt A<br/>Anteil ausgefallener Geräte"]
-    MarketB["Markt B<br/>Anteil ausgefallener Geräte"]
-    Region["Region<br/>Anteil ausgefallener Geräte"]
+    Devices1["Geräte von<br/>Filiale 1"]
+    Devices2["Geräte von<br/>Filiale 2"]
+    Devices3["Geräte von<br/>Filiale 3"]
+    Store1["Filiale 1<br/>schlechtester<br/>Status"]
+    Store2["Filiale 2<br/>schlechtester<br/>Status"]
+    Store3["Filiale 3<br/>schlechtester<br/>Status"]
+    MarketA["Markt A<br/>Anteil<br/>ausgefallener<br/>Geräte"]
+    MarketB["Markt B<br/>Anteil<br/>ausgefallener<br/>Geräte"]
+    Region["Region<br/>Anteil<br/>ausgefallener<br/>Geräte"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

@@ -17,18 +17,18 @@
 
 ```mermaid title="یک دستگاه شبکه چگونه زیر نظر است"
 flowchart TB
-    Probe["پراب روی شبکهٔ<br/>دستگاه"]
+    Probe["پراب روی<br/>شبکهٔ دستگاه"]
     Device["دستگاه شبکه"]
     Data["وضعیت، متریک‌ها،<br/>رابط‌ها، نقشه"]
-    Monitor["مانیتور دستگاه شبکه"]
+    Monitor["مانیتور<br/>دستگاه شبکه"]
     Policy["سیاست هشدار"]
     Incident["حادثه یا هشدار"]
-    Probe -->|"پینگ، در هر سرکشی"| Device
-    Probe -->|"پیمایش SNMP، با اعتبارنامه"| Device
-    Device -->|"تله‌های SNMP"| Probe
-    Probe --> Data
+    Probe -->|"پینگ، در<br/>هر سرکشی"| Device
+    Probe -->|"پیمایش SNMP،<br/>با اعتبارنامه"| Device
+    Device -->|"تله‌های<br/>SNMP"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"می‌سازد و نگه می‌دارد"| Monitor
+    Policy --->|"می‌سازد و نگه می‌دارد"| Monitor
     Monitor -->|"معیار برقرار شد"| Incident
 ```
 
@@ -207,18 +207,18 @@ flowchart TB
 
 ```mermaid title="یک پیمایش از کدام اعتبارنامه استفاده می‌کند"
 flowchart TB
-    Own{"اعتبارنامه روی<br/>دستگاه نوشته شده؟"}
-    Profile{"نمایهٔ اعتبارنامه<br/>روی دستگاه؟"}
-    Site{"نمایهٔ پیش‌فرض<br/>روی سایتش؟"}
+    Own{"اعتبارنامه<br/>روی دستگاه<br/>نوشته شده؟"}
+    Profile{"نمایهٔ<br/>اعتبارنامه<br/>روی دستگاه؟"}
+    Site{"نمایهٔ<br/>پیش‌فرض<br/>روی سایتش؟"}
     WalkOwn["پیمایش با اعتبارنامهٔ<br/>خودِ دستگاه"]
     WalkProfile["پیمایش با<br/>همان نمایه"]
     WalkSite["پیمایش با<br/>نمایهٔ سایت"]
     PingOnly["فقط پینگ"]
-    Own -->|"بله"| WalkOwn
+    Own --->|"بله"| WalkOwn
     Own -->|"خیر"| Profile
-    Profile -->|"بله"| WalkProfile
+    Profile --->|"بله"| WalkProfile
     Profile -->|"خیر"| Site
-    Site -->|"بله"| WalkSite
+    Site --->|"بله"| WalkSite
     Site -->|"خیر"| PingOnly
 ```
 

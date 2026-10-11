@@ -15,15 +15,15 @@ Retrouvez-les sous **Réseau → Sites**, et sur une carte sous **Réseau → Ca
 
 ```mermaid title="La santé remonte l'arborescence des sites"
 flowchart BT
-    Devices1["Équipements du magasin 1"]
-    Devices2["Équipements du magasin 2"]
-    Devices3["Équipements du magasin 3"]
-    Store1["Magasin 1<br/>pire statut"]
-    Store2["Magasin 2<br/>pire statut"]
-    Store3["Magasin 3<br/>pire statut"]
-    MarketA["Marché A<br/>part d'équipements hors service"]
-    MarketB["Marché B<br/>part d'équipements hors service"]
-    Region["Région<br/>part d'équipements hors service"]
+    Devices1["Équipements<br/>du magasin 1"]
+    Devices2["Équipements<br/>du magasin 2"]
+    Devices3["Équipements<br/>du magasin 3"]
+    Store1["Magasin 1<br/>pire<br/>statut"]
+    Store2["Magasin 2<br/>pire<br/>statut"]
+    Store3["Magasin 3<br/>pire<br/>statut"]
+    MarketA["Marché A<br/>part des<br/>équipements<br/>hors service"]
+    MarketB["Marché B<br/>part des<br/>équipements<br/>hors service"]
+    Region["Région<br/>part des<br/>équipements<br/>hors service"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

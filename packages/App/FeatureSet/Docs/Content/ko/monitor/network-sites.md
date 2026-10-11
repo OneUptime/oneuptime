@@ -15,15 +15,15 @@
 
 ```mermaid title="상태가 사이트 트리를 따라 집계되는 방식"
 flowchart BT
-    Devices1["매장 1 디바이스"]
-    Devices2["매장 2 디바이스"]
-    Devices3["매장 3 디바이스"]
-    Store1["매장 1<br/>가장 나쁜 상태"]
-    Store2["매장 2<br/>가장 나쁜 상태"]
-    Store3["매장 3<br/>가장 나쁜 상태"]
-    MarketA["Market A<br/>다운된 디바이스 비율"]
-    MarketB["Market B<br/>다운된 디바이스 비율"]
-    Region["Region<br/>다운된 디바이스 비율"]
+    Devices1["매장 1<br/>디바이스"]
+    Devices2["매장 2<br/>디바이스"]
+    Devices3["매장 3<br/>디바이스"]
+    Store1["매장 1<br/>가장<br/>나쁜 상태"]
+    Store2["매장 2<br/>가장<br/>나쁜 상태"]
+    Store3["매장 3<br/>가장<br/>나쁜 상태"]
+    MarketA["Market A<br/>다운된<br/>디바이스<br/>비율"]
+    MarketB["Market B<br/>다운된<br/>디바이스<br/>비율"]
+    Region["Region<br/>다운된<br/>디바이스<br/>비율"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

@@ -15,15 +15,15 @@ Je vindt ze onder **Netwerk → Locaties**, en op een kaart onder **Netwerk → 
 
 ```mermaid title="Gezondheid stijgt op in de locatieboom"
 flowchart BT
-    Devices1["Apparaten van winkel 1"]
-    Devices2["Apparaten van winkel 2"]
-    Devices3["Apparaten van winkel 3"]
-    Store1["Winkel 1<br/>slechtste status"]
-    Store2["Winkel 2<br/>slechtste status"]
-    Store3["Winkel 3<br/>slechtste status"]
-    MarketA["Markt A<br/>aandeel apparaten uitgevallen"]
-    MarketB["Markt B<br/>aandeel apparaten uitgevallen"]
-    Region["Regio<br/>aandeel apparaten uitgevallen"]
+    Devices1["Apparaten<br/>van winkel 1"]
+    Devices2["Apparaten<br/>van winkel 2"]
+    Devices3["Apparaten<br/>van winkel 3"]
+    Store1["Winkel 1<br/>slechtste<br/>status"]
+    Store2["Winkel 2<br/>slechtste<br/>status"]
+    Store3["Winkel 3<br/>slechtste<br/>status"]
+    MarketA["Markt A<br/>aandeel<br/>apparaten<br/>uitgevallen"]
+    MarketB["Markt B<br/>aandeel<br/>apparaten<br/>uitgevallen"]
+    Region["Regio<br/>aandeel<br/>apparaten<br/>uitgevallen"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

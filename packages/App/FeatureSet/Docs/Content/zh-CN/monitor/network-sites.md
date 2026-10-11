@@ -15,15 +15,15 @@
 
 ```mermaid title="健康状况沿站点树向上汇总"
 flowchart BT
-    Devices1["门店 1 的设备"]
-    Devices2["门店 2 的设备"]
-    Devices3["门店 3 的设备"]
-    Store1["门店 1<br/>最差状态"]
-    Store2["门店 2<br/>最差状态"]
-    Store3["门店 3<br/>最差状态"]
-    MarketA["Market A<br/>宕机设备比例"]
-    MarketB["Market B<br/>宕机设备比例"]
-    Region["Region<br/>宕机设备比例"]
+    Devices1["门店 1的<br/>设备"]
+    Devices2["门店 2的<br/>设备"]
+    Devices3["门店 3的<br/>设备"]
+    Store1["门店 1<br/>最差<br/>状态"]
+    Store2["门店 2<br/>最差<br/>状态"]
+    Store3["门店 3<br/>最差<br/>状态"]
+    MarketA["Market A<br/>宕机<br/>设备<br/>比例"]
+    MarketB["Market B<br/>宕机<br/>设备<br/>比例"]
+    Region["Region<br/>宕机<br/>设备<br/>比例"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

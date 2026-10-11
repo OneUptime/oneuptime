@@ -15,15 +15,15 @@ Du hittar dem under **Nätverk → Platser**, och på en karta under **Nätverk 
 
 ```mermaid title="Hälsan stiger uppåt i platsträdet"
 flowchart BT
-    Devices1["Enheter i butik 1"]
-    Devices2["Enheter i butik 2"]
-    Devices3["Enheter i butik 3"]
-    Store1["Butik 1<br/>sämsta status"]
-    Store2["Butik 2<br/>sämsta status"]
-    Store3["Butik 3<br/>sämsta status"]
-    MarketA["Marknad A<br/>andel enheter nere"]
-    MarketB["Marknad B<br/>andel enheter nere"]
-    Region["Region<br/>andel enheter nere"]
+    Devices1["Enheter<br/>i butik 1"]
+    Devices2["Enheter<br/>i butik 2"]
+    Devices3["Enheter<br/>i butik 3"]
+    Store1["Butik 1<br/>sämsta<br/>status"]
+    Store2["Butik 2<br/>sämsta<br/>status"]
+    Store3["Butik 3<br/>sämsta<br/>status"]
+    MarketA["Marknad A<br/>andel<br/>enheter<br/>nere"]
+    MarketB["Marknad B<br/>andel<br/>enheter<br/>nere"]
+    Region["Region<br/>andel<br/>enheter<br/>nere"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

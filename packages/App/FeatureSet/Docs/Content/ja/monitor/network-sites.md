@@ -15,15 +15,15 @@
 
 ```mermaid title="ヘルスはサイトのツリーを上へ集約される"
 flowchart BT
-    Devices1["店舗 1 のデバイス"]
-    Devices2["店舗 2 のデバイス"]
-    Devices3["店舗 3 のデバイス"]
-    Store1["店舗 1<br/>最悪のステータス"]
-    Store2["店舗 2<br/>最悪のステータス"]
-    Store3["店舗 3<br/>最悪のステータス"]
-    MarketA["マーケット A<br/>ダウンしたデバイスの割合"]
-    MarketB["マーケット B<br/>ダウンしたデバイスの割合"]
-    Region["リージョン<br/>ダウンしたデバイスの割合"]
+    Devices1["店舗 1 の<br/>デバイス"]
+    Devices2["店舗 2 の<br/>デバイス"]
+    Devices3["店舗 3 の<br/>デバイス"]
+    Store1["店舗 1<br/>最悪の<br/>ステータス"]
+    Store2["店舗 2<br/>最悪の<br/>ステータス"]
+    Store3["店舗 3<br/>最悪の<br/>ステータス"]
+    MarketA["マーケット A<br/>ダウンした<br/>デバイスの<br/>割合"]
+    MarketB["マーケット B<br/>ダウンした<br/>デバイスの<br/>割合"]
+    Region["リージョン<br/>ダウンした<br/>デバイスの<br/>割合"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

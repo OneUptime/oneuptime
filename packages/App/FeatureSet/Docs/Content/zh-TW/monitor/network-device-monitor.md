@@ -17,18 +17,18 @@
 
 ```mermaid title="如何監看網路裝置"
 flowchart TB
-    Probe["裝置所在網路中的探測器"]
+    Probe["裝置所在網路<br/>中的探測器"]
     Device["網路裝置"]
-    Data["狀態、指標、介面、地圖"]
-    Monitor["Network Device 監測器"]
+    Data["狀態、指標、<br/>介面、地圖"]
+    Monitor["Network Device<br/>監測器"]
     Policy["警示策略"]
     Incident["事件或警示"]
-    Probe -->|"每次輪詢都 Ping"| Device
-    Probe -->|"有憑證時 SNMP 遍歷"| Device
+    Probe -->|"每次輪詢<br/>都 Ping"| Device
+    Probe -->|"有憑證時<br/>SNMP 遍歷"| Device
     Device -->|"SNMP Trap"| Probe
-    Probe --> Data
+    Device --> Data
     Data --> Monitor
-    Policy -->|"自動建立"| Monitor
+    Policy --->|"自動建立"| Monitor
     Monitor -->|"符合條件"| Incident
 ```
 
@@ -207,18 +207,18 @@ Ping 和遍歷都失敗的裝置就是 **Down**，所以這個標記只會出現
 
 ```mermaid title="遍歷使用哪些憑證"
 flowchart TB
-    Own{"裝置上輸入了<br/>憑證嗎？"}
-    Profile{"裝置上有<br/>憑證設定檔嗎？"}
-    Site{"站點上有<br/>預設設定檔嗎？"}
+    Own{"裝置上<br/>輸入了<br/>憑證嗎？"}
+    Profile{"裝置上有<br/>憑證<br/>設定檔嗎？"}
+    Site{"站點上有<br/>預設<br/>設定檔嗎？"}
     WalkOwn["用裝置自己的<br/>憑證遍歷"]
-    WalkProfile["用該設定檔<br/>遍歷"]
+    WalkProfile["用該<br/>設定檔遍歷"]
     WalkSite["用站點的<br/>設定檔遍歷"]
     PingOnly["僅 Ping"]
-    Own -->|"是"| WalkOwn
+    Own --->|"是"| WalkOwn
     Own -->|"否"| Profile
-    Profile -->|"是"| WalkProfile
+    Profile --->|"是"| WalkProfile
     Profile -->|"否"| Site
-    Site -->|"是"| WalkSite
+    Site --->|"是"| WalkSite
     Site -->|"否"| PingOnly
 ```
 

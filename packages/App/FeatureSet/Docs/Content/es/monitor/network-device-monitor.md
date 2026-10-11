@@ -20,15 +20,15 @@ flowchart TB
     Probe["Sonda en la red<br/>del dispositivo"]
     Device["Dispositivo de red"]
     Data["Estado, métricas,<br/>interfaces, mapa"]
-    Monitor["Monitor de dispositivo de red"]
+    Monitor["Monitor de<br/>dispositivo de red"]
     Policy["Política de alertas"]
     Incident["Incidente o alerta"]
-    Probe -->|"Ping, en cada sondeo"| Device
-    Probe -->|"Recorrido SNMP, con credenciales"| Device
-    Device -->|"Traps SNMP"| Probe
-    Probe --> Data
+    Probe -->|"Ping, en<br/>cada sondeo"| Device
+    Probe -->|"Recorrido SNMP,<br/>con credenciales"| Device
+    Device -->|"Traps<br/>SNMP"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Aprovisiona"| Monitor
+    Policy --->|"Aprovisiona"| Monitor
     Monitor -->|"Criterio cumplido"| Incident
 ```
 
@@ -207,18 +207,18 @@ Un dispositivo se recorre con el primer conjunto de credenciales utilizable que 
 
 ```mermaid title="Qué credenciales usa un recorrido"
 flowchart TB
-    Own{"¿Credenciales escritas<br/>en el dispositivo?"}
-    Profile{"¿Un perfil de credenciales<br/>en el dispositivo?"}
-    Site{"¿Un perfil predeterminado<br/>en su sitio?"}
+    Own{"¿Credenciales<br/>escritas en el<br/>dispositivo?"}
+    Profile{"¿Un perfil de<br/>credenciales en<br/>el dispositivo?"}
+    Site{"¿Un perfil<br/>predeterminado<br/>en su sitio?"}
     WalkOwn["Recorrer con las<br/>del dispositivo"]
     WalkProfile["Recorrer con<br/>ese perfil"]
     WalkSite["Recorrer con el<br/>perfil del sitio"]
     PingOnly["Solo ping"]
-    Own -->|"Sí"| WalkOwn
+    Own --->|"Sí"| WalkOwn
     Own -->|"No"| Profile
-    Profile -->|"Sí"| WalkProfile
+    Profile --->|"Sí"| WalkProfile
     Profile -->|"No"| Site
-    Site -->|"Sí"| WalkSite
+    Site --->|"Sí"| WalkSite
     Site -->|"No"| PingOnly
 ```
 

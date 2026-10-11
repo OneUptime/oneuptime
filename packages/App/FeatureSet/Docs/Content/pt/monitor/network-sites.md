@@ -15,15 +15,15 @@ Encontre-os em **Rede → Sites**, e em um mapa em **Rede → Map**. Esta págin
 
 ```mermaid title="A saúde sobe pela árvore de sites"
 flowchart BT
-    Devices1["Dispositivos da loja 1"]
-    Devices2["Dispositivos da loja 2"]
-    Devices3["Dispositivos da loja 3"]
-    Store1["Loja 1<br/>pior status"]
-    Store2["Loja 2<br/>pior status"]
-    Store3["Loja 3<br/>pior status"]
-    MarketA["Mercado A<br/>proporção de dispositivos fora do ar"]
-    MarketB["Mercado B<br/>proporção de dispositivos fora do ar"]
-    Region["Região<br/>proporção de dispositivos fora do ar"]
+    Devices1["Dispositivos<br/>da loja 1"]
+    Devices2["Dispositivos<br/>da loja 2"]
+    Devices3["Dispositivos<br/>da loja 3"]
+    Store1["Loja 1<br/>pior<br/>status"]
+    Store2["Loja 2<br/>pior<br/>status"]
+    Store3["Loja 3<br/>pior<br/>status"]
+    MarketA["Mercado A<br/>proporção de<br/>dispositivos<br/>fora do ar"]
+    MarketB["Mercado B<br/>proporção de<br/>dispositivos<br/>fora do ar"]
+    Region["Região<br/>proporção de<br/>dispositivos<br/>fora do ar"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

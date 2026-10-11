@@ -23,12 +23,12 @@ flowchart TB
     Monitor["Nätverksenhetsmonitor"]
     Policy["Varningspolicy"]
     Incident["Incident eller varning"]
-    Probe -->|"Ping, varje avsökning"| Device
-    Probe -->|"SNMP-walk, med uppgifter"| Device
+    Probe -->|"Ping, varje<br/>avsökning"| Device
+    Probe -->|"SNMP-walk,<br/>med uppgifter"| Device
     Device -->|"SNMP-traps"| Probe
-    Probe --> Data
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Skapar och underhåller"| Monitor
+    Policy --->|"Skapar och underhåller"| Monitor
     Monitor -->|"Kriterium uppfyllt"| Incident
 ```
 
@@ -207,18 +207,18 @@ En enhet walkas med den första användbara uppsättning autentiseringsuppgifter
 
 ```mermaid title="Vilka autentiseringsuppgifter en walk använder"
 flowchart TB
-    Own{"Uppgifter skrivna<br/>på enheten?"}
+    Own{"Uppgifter<br/>skrivna på<br/>enheten?"}
     Profile{"En autentiseringsprofil<br/>på enheten?"}
     Site{"En standardprofil<br/>på dess plats?"}
-    WalkOwn["Walk med enhetens<br/>egna"]
+    WalkOwn["Walk med<br/>enhetens egna"]
     WalkProfile["Walk med<br/>den profilen"]
     WalkSite["Walk med<br/>platsens profil"]
     PingOnly["Bara ping"]
-    Own -->|"Ja"| WalkOwn
+    Own --->|"Ja"| WalkOwn
     Own -->|"Nej"| Profile
-    Profile -->|"Ja"| WalkProfile
+    Profile --->|"Ja"| WalkProfile
     Profile -->|"Nej"| Site
-    Site -->|"Ja"| WalkSite
+    Site --->|"Ja"| WalkSite
     Site -->|"Nej"| PingOnly
 ```
 

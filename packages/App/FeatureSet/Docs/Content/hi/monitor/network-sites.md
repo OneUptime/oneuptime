@@ -15,15 +15,15 @@
 
 ```mermaid title="स्थिति साइट ट्री में ऊपर जुड़ती है"
 flowchart BT
-    Devices1["स्टोर 1 के डिवाइस"]
-    Devices2["स्टोर 2 के डिवाइस"]
-    Devices3["स्टोर 3 के डिवाइस"]
-    Store1["स्टोर 1<br/>सबसे ख़राब स्थिति"]
-    Store2["स्टोर 2<br/>सबसे ख़राब स्थिति"]
-    Store3["स्टोर 3<br/>सबसे ख़राब स्थिति"]
-    MarketA["Market A<br/>बंद डिवाइसों का हिस्सा"]
-    MarketB["Market B<br/>बंद डिवाइसों का हिस्सा"]
-    Region["Region<br/>बंद डिवाइसों का हिस्सा"]
+    Devices1["स्टोर 1<br/>के डिवाइस"]
+    Devices2["स्टोर 2<br/>के डिवाइस"]
+    Devices3["स्टोर 3<br/>के डिवाइस"]
+    Store1["स्टोर 1<br/>सबसे ख़राब<br/>स्थिति"]
+    Store2["स्टोर 2<br/>सबसे ख़राब<br/>स्थिति"]
+    Store3["स्टोर 3<br/>सबसे ख़राब<br/>स्थिति"]
+    MarketA["Market A<br/>बंद डिवाइसों<br/>का हिस्सा"]
+    MarketB["Market B<br/>बंद डिवाइसों<br/>का हिस्सा"]
+    Region["Region<br/>बंद डिवाइसों<br/>का हिस्सा"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

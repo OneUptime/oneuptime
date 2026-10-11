@@ -20,15 +20,15 @@ flowchart TB
     Probe["Sonde sur le réseau<br/>de l'équipement"]
     Device["Équipement réseau"]
     Data["Statut, métriques,<br/>interfaces, carte"]
-    Monitor["Moniteur Équipement réseau"]
+    Monitor["Moniteur<br/>Équipement réseau"]
     Policy["Politique d'alerte"]
     Incident["Incident ou alerte"]
-    Probe -->|"Ping, à chaque interrogation"| Device
-    Probe -->|"Parcours SNMP, avec identifiants"| Device
-    Device -->|"Traps SNMP"| Probe
-    Probe --> Data
+    Probe -->|"Ping, à chaque<br/>interrogation"| Device
+    Probe -->|"Parcours SNMP,<br/>avec identifiants"| Device
+    Device -->|"Traps<br/>SNMP"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"Provisionne"| Monitor
+    Policy --->|"Provisionne"| Monitor
     Monitor -->|"Critère rempli"| Incident
 ```
 
@@ -207,18 +207,18 @@ Un équipement est interrogé avec le premier jeu d'identifiants utilisable trou
 
 ```mermaid title="Quels identifiants un parcours utilise"
 flowchart TB
-    Own{"Identifiants saisis<br/>sur l'équipement ?"}
-    Profile{"Un profil d'identifiants<br/>sur l'équipement ?"}
-    Site{"Un profil par défaut<br/>sur son site ?"}
-    WalkOwn["Interroger avec ceux<br/>de l'équipement"]
-    WalkProfile["Interroger avec<br/>ce profil"]
-    WalkSite["Interroger avec le<br/>profil du site"]
+    Own{"Identifiants<br/>saisis sur<br/>l'équipement ?"}
+    Profile{"Un profil<br/>d'identifiants<br/>sur l'équipement ?"}
+    Site{"Un profil<br/>par défaut<br/>sur son<br/>site ?"}
+    WalkOwn["Interroger<br/>avec ceux de<br/>l'équipement"]
+    WalkProfile["Interroger<br/>avec<br/>ce profil"]
+    WalkSite["Interroger<br/>avec le<br/>profil du site"]
     PingOnly["Ping seulement"]
-    Own -->|"Oui"| WalkOwn
+    Own --->|"Oui"| WalkOwn
     Own -->|"Non"| Profile
-    Profile -->|"Oui"| WalkProfile
+    Profile --->|"Oui"| WalkProfile
     Profile -->|"Non"| Site
-    Site -->|"Oui"| WalkSite
+    Site --->|"Oui"| WalkSite
     Site -->|"Non"| PingOnly
 ```
 

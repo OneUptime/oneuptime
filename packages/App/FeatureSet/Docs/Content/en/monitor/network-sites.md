@@ -15,15 +15,15 @@ Find them under **Network → Sites**, and on a map under **Network → Map**. T
 
 ```mermaid title="Health rolls up the site tree"
 flowchart BT
-    Devices1["Store 1 devices"]
-    Devices2["Store 2 devices"]
-    Devices3["Store 3 devices"]
+    Devices1["Store 1<br/>devices"]
+    Devices2["Store 2<br/>devices"]
+    Devices3["Store 3<br/>devices"]
     Store1["Store 1<br/>worst status"]
     Store2["Store 2<br/>worst status"]
     Store3["Store 3<br/>worst status"]
-    MarketA["Market A<br/>share of devices down"]
-    MarketB["Market B<br/>share of devices down"]
-    Region["Region<br/>share of devices down"]
+    MarketA["Market A<br/>share of<br/>devices down"]
+    MarketB["Market B<br/>share of<br/>devices down"]
+    Region["Region<br/>share of<br/>devices down"]
     Devices1 --> Store1
     Devices2 --> Store2
     Devices3 --> Store3

@@ -17,18 +17,18 @@
 
 ```mermaid title="네트워크 디바이스를 감시하는 방법"
 flowchart TB
-    Probe["디바이스 네트워크의 프로브"]
+    Probe["디바이스<br/>네트워크의 프로브"]
     Device["네트워크 디바이스"]
-    Data["상태, 메트릭, 인터페이스, 맵"]
-    Monitor["Network Device 모니터"]
+    Data["상태, 메트릭,<br/>인터페이스, 맵"]
+    Monitor["Network<br/>Device 모니터"]
     Policy["알림 정책"]
     Incident["인시던트 또는 알림"]
     Probe -->|"폴링마다 핑"| Device
-    Probe -->|"자격 증명으로 SNMP 워크"| Device
-    Device -->|"SNMP 트랩"| Probe
-    Probe --> Data
+    Probe -->|"자격 증명으로<br/>SNMP 워크"| Device
+    Device -->|"SNMP<br/>트랩"| Probe
+    Device --> Data
     Data --> Monitor
-    Policy -->|"프로비저닝"| Monitor
+    Policy --->|"프로비저닝"| Monitor
     Monitor -->|"기준 충족"| Incident
 ```
 
@@ -207,18 +207,18 @@ Ping 모니터 상자를 체크하면 모니터 자체의 프로브인 **Ping fr
 
 ```mermaid title="워크가 쓰는 자격 증명"
 flowchart TB
-    Own{"디바이스에 입력한<br/>자격 증명이 있는가?"}
-    Profile{"디바이스에 자격 증명<br/>프로필이 있는가?"}
-    Site{"사이트에 기본<br/>프로필이 있는가?"}
+    Own{"디바이스에<br/>입력한 자격 증명이<br/>있는가?"}
+    Profile{"디바이스에<br/>자격 증명 프로필이<br/>있는가?"}
+    Site{"사이트에<br/>기본 프로필이<br/>있는가?"}
     WalkOwn["디바이스 자체의<br/>자격 증명으로 워크"]
     WalkProfile["그 프로필로<br/>워크"]
-    WalkSite["사이트의 프로필로<br/>워크"]
+    WalkSite["사이트의<br/>프로필로 워크"]
     PingOnly["핑만"]
-    Own -->|"예"| WalkOwn
+    Own --->|"예"| WalkOwn
     Own -->|"아니요"| Profile
-    Profile -->|"예"| WalkProfile
+    Profile --->|"예"| WalkProfile
     Profile -->|"아니요"| Site
-    Site -->|"예"| WalkSite
+    Site --->|"예"| WalkSite
     Site -->|"아니요"| PingOnly
 ```
 

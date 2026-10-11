@@ -1,6 +1,7 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   DocsContainerUse,
+  DocsFence,
   DocsHeading,
   ScannedPage,
   hasPage,
@@ -234,7 +235,7 @@ const BOLD_CELL: RegExp = /^\*\*([^*]+)\*\*$/;
  * its language's decimal mark or digit group: 76,5, ۷۶٫۵, 32 768, 32.768.
  */
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
-const DIGIT_GROUP: RegExp = /(\d)[\s  .,'٬](\d{3})(?!\d)/g;
+const DIGIT_GROUP: RegExp = /(\d)[\s\u00a0\u202f.,'\u066c](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 
 // A line that starts a list item, a table row, a heading, a component, an image or a quote.
@@ -271,7 +272,10 @@ function segmentsOf(path: string): Array<string> {
   });
 }
 
-function listed(lists: Record<string, Array<string>>, page: string): Array<string> {
+function listed(
+  lists: Record<string, Array<string>>,
+  page: string,
+): Array<string> {
   return lists[page] || [];
 }
 
@@ -478,6 +482,67 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   { from: VENDORS, to: DEVICE, anchor: "supported-wi-fi-vendors" },
   { from: DEVICE, to: SITES, anchor: "monitoring-defaults" },
 ];
+
+interface ColumnWideDiagram {
+  page: string;
+  // Its place among the page's diagrams.
+  diagram: number;
+  title: string;
+  widestLine: number;
+}
+
+/*
+ * Three diagrams fill the 590px docs column, and fit it in every language
+ * only with their labels broken into short lines. Each is held to the widest
+ * label line measured to fit, in a browser, in every language, counting a
+ * Chinese, Japanese or Korean character twice: a label put back on one line
+ * runs its diagram off the column.
+ */
+const COLUMN_WIDE_DIAGRAMS: ReadonlyArray<ColumnWideDiagram> = [
+  {
+    page: DEVICE,
+    diagram: 0,
+    title: "How a network device is watched",
+    widestLine: 28,
+  },
+  {
+    page: DEVICE,
+    diagram: 1,
+    title: "Which credentials a walk uses",
+    widestLine: 24,
+  },
+  {
+    page: SITES,
+    diagram: 0,
+    title: "Health rolls up the site tree",
+    widestLine: 14,
+  },
+];
+
+const DIAGRAM_LABEL: RegExp = /"([^"]*)"/g;
+const LABEL_BREAK: string = "<br/>";
+const WIDE_CHARACTER: RegExp = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/;
+
+function diagramsOf(markdown: string): Array<DocsFence> {
+  return scanMarkdown(markdown).fences.filter((fence: DocsFence): boolean => {
+    return fence.lang === "mermaid";
+  });
+}
+
+// Every line of every node and link label, as the diagram breaks them.
+function labelLines(diagram: string): Array<string> {
+  return Array.from(diagram.matchAll(DIAGRAM_LABEL)).flatMap(
+    (match: RegExpMatchArray): Array<string> => {
+      return (match[1] as string).split(LABEL_BREAK);
+    },
+  );
+}
+
+function lineWidth(line: string): number {
+  return Array.from(line).reduce((width: number, character: string): number => {
+    return width + (WIDE_CHARACTER.test(character) ? 2 : 1);
+  }, 0);
+}
 
 describe("the lists this test keeps", () => {
   it("name only pages of this group", () => {
@@ -888,7 +953,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           return isVerdict(language, verdict, quoted[row] as string);
         },
       ),
-    ).toEqual(Object.keys(VERDICT_HEADLINES).map((): boolean => true));
+    ).toEqual(
+      Object.keys(VERDICT_HEADLINES).map((): boolean => {
+        return true;
+      }),
+    );
   });
 
   describe("links into these pages from other pages", () => {
@@ -914,10 +983,45 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   });
 });
 
+describe("the diagrams that fill the docs column", () => {
+  it.each(COLUMN_WIDE_DIAGRAMS)(
+    "are the ones the list names: $page diagram $diagram is '$title'",
+    (entry: ColumnWideDiagram) => {
+      const diagram: DocsFence = diagramsOf(englishPage(entry.page))[
+        entry.diagram
+      ] as DocsFence;
+
+      expect(diagram.info).toContain(`title="${entry.title}"`);
+    },
+  );
+
+  describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s",
+    (language: string) => {
+      it.each(COLUMN_WIDE_DIAGRAMS)(
+        "breaks the labels of '$title' into lines no wider than $widestLine",
+        (entry: ColumnWideDiagram) => {
+          const diagram: DocsFence = diagramsOf(readPage(language, entry.page))[
+            entry.diagram
+          ] as DocsFence;
+          const tooWide: Array<string> = labelLines(diagram.code).filter(
+            (line: string): boolean => {
+              return lineWidth(line) > entry.widestLine;
+            },
+          );
+
+          expect(tooWide).toEqual([]);
+        },
+      );
+    },
+  );
+});
+
 /*
  * The comparisons are the shared ones (DocsTranslationChecks); these pages
  * add line-for-line shape, menu paths in two scripts, labels drawn from a
- * longer string, the Overview's verdicts, and links into them.
+ * longer string, the Overview's verdicts, links into them, and the width of
+ * a diagram's label lines.
  */
 describe("the helpers, on these pages' shapes", () => {
   it("tell a menu path from a label, and draw it in one bold span, or one per segment in Persian", () => {
@@ -971,9 +1075,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(isVerdict("en", "3 devices are down", "1 device is down")).toBe(
       true,
     );
-    expect(isVerdict("en", "3 devices are down", "3 sites need attention")).toBe(
-      false,
-    );
+    expect(
+      isVerdict("en", "3 devices are down", "3 sites need attention"),
+    ).toBe(false);
     expect(
       isVerdict("en", "All 40 devices are up", "All 12 devices are up"),
     ).toBe(true);
@@ -1028,7 +1132,38 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("read the tab labels of a page", () => {
     expect(
-      tabLabels([":::tabs", "@tab SNMPv3", "x", "@tab SNMP v2c", ":::"].join("\n")),
+      tabLabels(
+        [":::tabs", "@tab SNMPv3", "x", "@tab SNMP v2c", ":::"].join("\n"),
+      ),
     ).toEqual(["SNMPv3", "SNMP v2c"]);
+  });
+
+  it("read a diagram's label lines, and count a Chinese, Japanese or Korean character twice", () => {
+    const diagram: string = [
+      "flowchart TB",
+      '    Data["Status, metrics,<br/>interfaces, map"]',
+      '    Probe -->|"Ping,<br/>every poll"| Device',
+      '    Site{"站点上有<br/>默认配置文件吗？"}',
+      "    Data --> Monitor",
+    ].join("\n");
+
+    expect(labelLines(diagram)).toEqual([
+      "Status, metrics,",
+      "interfaces, map",
+      "Ping,",
+      "every poll",
+      "站点上有",
+      "默认配置文件吗？",
+    ]);
+    expect(lineWidth("Status, metrics,")).toBe(16);
+    expect(lineWidth("站点上有")).toBe(8);
+    expect(lineWidth("默认配置文件吗？")).toBe(16);
+    expect(lineWidth("ネットワーク")).toBe(12);
+    expect(lineWidth("디바이스")).toBe(8);
+    expect(lineWidth("Устройства")).toBe(10);
+    // The label the device diagram had on one line, which ran it off the column.
+    expect(lineWidth("Status, metrics, interfaces, map")).toBeGreaterThan(
+      (COLUMN_WIDE_DIAGRAMS[0] as ColumnWideDiagram).widestLine,
+    );
   });
 });
