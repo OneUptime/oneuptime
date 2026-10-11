@@ -224,10 +224,13 @@ export interface WorkflowTemplateVariable {
    */
   isOAuth2SettingOnly?: boolean | undefined;
   /**
-   * The name of a setting the template asks for before this one. Until
-   * someone types into this field, the wizard fills it in with whatever is
-   * typed there, so a value that is usually the same is typed once. Inert in
-   * a template that does not ask for that setting.
+   * The name of a setting the template asks for before this one, and that
+   * is not filled in from another itself. While this field is empty or has
+   * not been typed into, the wizard fills it in with what is typed there,
+   * without the slashes it may end with (a setting filled in this way is an
+   * address the workflow appends paths to), so a value that is usually the
+   * same is typed once. Emptying the field lets it follow again. Inert in a
+   * template that does not ask for that setting.
    */
   prefilledFrom?: string | undefined;
 }
@@ -723,20 +726,27 @@ const JIRA_BASE_URL: WorkflowTemplateVariable = {
  * A site's address as the scripts read one: a host - letters, marks and
  * decimal digits in any script, ".", "-", "_" and "~", or an IPv6 address in
  * brackets - and a port of up to five digits. SITE, in the scripts' helper
- * block, reads an event's REST URL with these, and the Jira Site URL takes
- * the same hosts and ports, so the two readings never part on one.
+ * block, reads an event's REST URL with exactly these, as #4676 wrote it, and
+ * the Jira Site URL is built on the same two, so a change to either changes
+ * both. The setting asks one thing more of a host: a letter or a digit.
  */
 const SITE_HOST_SOURCE: string = String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])`;
 
 const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
 
 /*
- * What a Jira Site URL can be: http or https, in any case, then a host and
- * a port as above, with a letter or a digit in the host ("." or "-" alone is
- * no site), then, for Jira Data Center under a context path, that one path
- * segment, and perhaps the slash an address bar ends a site with. At most 300
- * characters, as SITE takes. Nothing else fits, so a link built on it goes to
- * that site, and no page, query, user name or markup can ride along.
+ * What a Jira Site URL can be: http or https, its letters in either case,
+ * then a host and a port as above, with a letter or a digit in the host
+ * ("." or "-" alone is no site), then, for Jira Data Center under a context
+ * path, that one path segment, and perhaps the slash an address bar ends a
+ * site with. At most 300 characters, as SITE takes. Nothing else fits, so a
+ * link built on it goes to that site, and no page, query, user name or
+ * markup can ride along.
+ *
+ * The scheme's two cases are spelled out rather than taken with the "i"
+ * flag: beside "u", that flag folds case the Unicode way, and the long s
+ * ("ſ") and the Kelvin sign would pass for "s" and "k", in the scheme and in
+ * the path's ASCII letters alike.
  *
  * One path segment, not more: Data Center runs under one, such as
  * https://example.com/jira, while the address of a page - what gets pasted
@@ -749,7 +759,7 @@ const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
  * the wizard took is one the scripts link to.
  */
 const JIRA_SITE_URL_PATTERN_SOURCE: string = [
-  String.raw`^(?![\s\S]{301})https?:\/\/`,
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
   String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
   SITE_HOST_SOURCE,
   SITE_PORT_SOURCE,
@@ -758,7 +768,7 @@ const JIRA_SITE_URL_PATTERN_SOURCE: string = [
 
 export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
   JIRA_SITE_URL_PATTERN_SOURCE,
-  "iu",
+  "u",
 );
 
 /*
@@ -1147,7 +1157,7 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
 // by its key (which matched ISSUE_KEY), on the site the setting names. A setting that is not a
 // site's address - a value edited in later, an emptied variable or one that is gone - links
 // nothing.
-const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/iu;
+const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/u;
 // A script handed no setting at all - a workflow whose arguments no longer name it - reads the site
 // off the issue's own REST URL: the scheme, the host and a port, and nothing else. The URL comes with
 // the event, so an issue's link can only ever go to a site, and nothing else written into the

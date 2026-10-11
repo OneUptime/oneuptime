@@ -350,6 +350,14 @@ const NOT_SITES: Array<[string, string]> = [
   ["a host of a dash, with a port", "https://-:8443"],
   ["a host of an underscore and a tilde", "https://_~"],
   ["a host of a dot, before a context path", "https://./jira"],
+  [
+    "a long s in the scheme, which folds to an s",
+    `http${String.fromCharCode(0x17f)}://acme.atlassian.net`,
+  ],
+  [
+    "a Kelvin sign in the path, which folds to a k",
+    `https://example.com/${String.fromCharCode(0x212a)}ira`,
+  ],
   ["an address longer than a site's can be", `https://${"a".repeat(293)}`],
   ["a reference to a variable that is gone", "{{local.variables.jiraSiteUrl}}"],
 ];
@@ -507,7 +515,7 @@ describe("the Jira Site URL a workflow is created with", () => {
    */
   test("whatever it takes is a scheme, a host, a port and one path segment at most, with nothing a link could carry", () => {
     const typed: Array<string> = [
-      ...generatedTexts(20000, 4676, SITE_ALPHABET, 8).map(
+      ...generatedTexts(24000, 4676, SITE_ALPHABET, 8).map(
         (text: string): string => {
           return `https://${text}`;
         },
@@ -529,7 +537,7 @@ describe("the Jira Site URL a workflow is created with", () => {
     let unparsed: number = 0;
 
     // Enough of them are sites, of every shape, for this to say something.
-    expect(taken.length).toBeGreaterThan(1400);
+    expect(taken.length).toBeGreaterThan(1500);
     expect(
       taken.filter((text: string): boolean => {
         return text.includes("/jira");
@@ -714,15 +722,19 @@ describe("the templates that link a Jira issue", () => {
       });
     }
 
-    // Read in any case: a scheme in capitals is a scheme.
-    expect(JIRA_SITE_URL_PATTERN.flags).toBe("iu");
+    /*
+     * A scheme in capitals is spelled out in the pattern, not taken with the
+     * "i" flag, which beside "u" would fold "ſ" to "s" and the Kelvin sign
+     * to "k".
+     */
+    expect(JIRA_SITE_URL_PATTERN.flags).toBe("u");
   });
 
   /*
    * SITE, which reads a site off an event's REST URL when a script is handed
    * no setting, is built from the same host and port as the setting's
-   * pattern, so the two readings take the same hosts and ports, and a change
-   * to one is a change to both.
+   * pattern, so a change to one is a change to both. It is #4676's, word for
+   * word; the setting asks one thing more of a host, a letter or a digit.
    */
   test("the scripts read an event's site with the setting's own host and port", () => {
     const code: string = scriptOf(

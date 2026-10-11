@@ -63,10 +63,12 @@ import {
   getWorkflowTemplate,
 } from "Common/Types/Workflow/Templates";
 import {
+  TemplateVariableEdit,
   WorkflowTemplateVariableErrors,
   WorkflowTemplateVariableValues,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
+  editTemplateVariable,
   validateTemplateVariableValues,
 } from "../../Utils/Workflow/WorkflowTemplateCreateUtil";
 import {
@@ -114,7 +116,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
    * The settings someone has typed into. A setting prefilled from another
    * (WorkflowTemplateVariable.prefilledFrom) takes what is typed there until
    * it is in this list: the Jira API URL is the Jira Site URL on most sites,
-   * so it is typed once, and changed only where it differs.
+   * so it is typed once, and changed only where it differs. Emptying a
+   * setting takes it off the list (editTemplateVariable).
    */
   const [typedVariableNames, setTypedVariableNames] = useState<Array<string>>(
     [],
@@ -455,50 +458,19 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                   error={variableErrors[variable.name]}
                   dataTestId={inputId}
                   onChange={(value: string) => {
-                    // The settings filled in from this one, until each is typed into.
-                    const prefilled: Array<string> = variables
-                      .filter((candidate: WorkflowTemplateVariable) => {
-                        return (
-                          candidate.prefilledFrom === variable.name &&
-                          !typedVariableNames.includes(candidate.name)
-                        );
-                      })
-                      .map((candidate: WorkflowTemplateVariable) => {
-                        return candidate.name;
-                      });
-                    const changed: Array<string> = [
-                      variable.name,
-                      ...prefilled,
-                    ];
+                    const edit: TemplateVariableEdit = editTemplateVariable({
+                      template: selectedTemplate as WorkflowTemplate,
+                      values: variableValues,
+                      typedVariableNames: typedVariableNames,
+                      variableName: variable.name,
+                      value: value,
+                    });
 
-                    setVariableValues(
-                      (
-                        current: WorkflowTemplateVariableValues,
-                      ): WorkflowTemplateVariableValues => {
-                        const next: WorkflowTemplateVariableValues = {
-                          ...current,
-                        };
-
-                        for (const name of changed) {
-                          next[name] = value;
-                        }
-
-                        return next;
-                      },
-                    );
-
-                    if (!typedVariableNames.includes(variable.name)) {
-                      setTypedVariableNames(
-                        (current: Array<string>): Array<string> => {
-                          return current.includes(variable.name)
-                            ? current
-                            : [...current, variable.name];
-                        },
-                      );
-                    }
+                    setVariableValues(edit.values);
+                    setTypedVariableNames(edit.typedVariableNames);
 
                     if (
-                      changed.some((name: string) => {
+                      edit.changedVariableNames.some((name: string) => {
                         return Boolean(variableErrors[name]);
                       })
                     ) {
@@ -510,7 +482,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                             ...current,
                           };
 
-                          for (const name of changed) {
+                          for (const name of edit.changedVariableNames) {
                             delete next[name];
                           }
 

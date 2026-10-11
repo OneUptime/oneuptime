@@ -26,9 +26,11 @@ import {
   getWorkflowTemplatesByCategory,
 } from "Common/Types/Workflow/Templates";
 import {
+  TemplateVariableEdit,
   applyTemplateVariableValuesToGraph,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
+  editTemplateVariable,
   referenceForVariable,
   templateVariableNamesAreValid,
   templateVariablesToFill,
@@ -164,6 +166,151 @@ describe("templateVariableNamesAreValid", () => {
         ],
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * What typing into a setting does to the Configure step's values. The Jira
+ * API URL is filled in from the Jira Site URL (prefilledFrom) until someone
+ * types into it, trimmed and without the slashes a site may end with: the
+ * requests append /rest/api/3/... to it.
+ */
+describe("editTemplateVariable", () => {
+  const LINKING_TEMPLATE_ID: string = "jira-comment-to-incident-private-note";
+
+  type TypeFunction = (
+    edit: TemplateVariableEdit,
+    variableName: string,
+    value: string,
+  ) => TemplateVariableEdit;
+
+  const typeInto: TypeFunction = (
+    edit: TemplateVariableEdit,
+    variableName: string,
+    value: string,
+  ): TemplateVariableEdit => {
+    return editTemplateVariable({
+      template: getWorkflowTemplate(LINKING_TEMPLATE_ID) as WorkflowTemplate,
+      values: edit.values,
+      typedVariableNames: edit.typedVariableNames,
+      variableName: variableName,
+      value: value,
+    });
+  };
+
+  const START: TemplateVariableEdit = {
+    values: {},
+    typedVariableNames: [],
+    changedVariableNames: [],
+  };
+
+  test("typing the Jira Site URL fills in the Jira API URL, and nothing else", () => {
+    const edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      "https://acme.atlassian.net",
+    );
+
+    expect(edit).toEqual({
+      values: {
+        jiraSiteUrl: "https://acme.atlassian.net",
+        jiraBaseUrl: "https://acme.atlassian.net",
+      },
+      typedVariableNames: ["jiraSiteUrl"],
+      changedVariableNames: ["jiraSiteUrl", "jiraBaseUrl"],
+    });
+  });
+
+  test("the Jira API URL is filled in trimmed and without the slashes the site ends with", () => {
+    for (const [typed, filled] of [
+      ["https://acme.atlassian.net/", "https://acme.atlassian.net"],
+      ["  https://example.com/jira//  ", "https://example.com/jira"],
+      ["https://", "https:"],
+      ["", ""],
+    ]) {
+      const edit: TemplateVariableEdit = typeInto(
+        START,
+        "jiraSiteUrl",
+        typed as string,
+      );
+
+      expect({ typed, site: edit.values["jiraSiteUrl"] }).toEqual({
+        typed,
+        site: typed,
+      });
+      expect({ typed, api: edit.values["jiraBaseUrl"] }).toEqual({
+        typed,
+        api: filled,
+      });
+    }
+  });
+
+  test("once typed into, the Jira API URL keeps what was typed there", () => {
+    let edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      "https://acme.atlassian.net",
+    );
+
+    edit = typeInto(
+      edit,
+      "jiraBaseUrl",
+      "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    );
+    edit = typeInto(edit, "jiraSiteUrl", "https://jira.acme.example");
+
+    expect(edit.values).toEqual({
+      jiraSiteUrl: "https://jira.acme.example",
+      jiraBaseUrl: "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    });
+    expect(edit.changedVariableNames).toEqual(["jiraSiteUrl"]);
+    expect(edit.typedVariableNames.sort()).toEqual(
+      ["jiraBaseUrl", "jiraSiteUrl"].sort(),
+    );
+  });
+
+  test("emptying the Jira API URL lets it follow the Jira Site URL again", () => {
+    let edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraBaseUrl",
+      "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    );
+
+    edit = typeInto(edit, "jiraBaseUrl", "");
+
+    expect(edit.typedVariableNames).toEqual([]);
+
+    edit = typeInto(edit, "jiraSiteUrl", "https://acme.atlassian.net");
+
+    expect(edit.values["jiraBaseUrl"]).toBe("https://acme.atlassian.net");
+  });
+
+  test("a template that asks for no Jira Site URL fills its Jira API URL in from nothing", () => {
+    const edit: TemplateVariableEdit = editTemplateVariable({
+      template: getWorkflowTemplate(
+        "jira-create-issue-for-incident",
+      ) as WorkflowTemplate,
+      values: {},
+      typedVariableNames: [],
+      variableName: "jiraProjectKey",
+      value: "OPS",
+    });
+
+    expect(edit.values).toEqual({ jiraProjectKey: "OPS" });
+    expect(edit.changedVariableNames).toEqual(["jiraProjectKey"]);
+  });
+
+  // A loop, not a pattern: a megabyte of slashes is read at once.
+  test("a site that is a megabyte of slashes is filled in at once", () => {
+    const started: number = Date.now();
+    const edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      `https://${"/".repeat(1024 * 1024)}`,
+    );
+
+    expect(edit.values["jiraBaseUrl"]).toBe("https:");
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });
 

@@ -2185,6 +2185,33 @@ describe("CreateWorkflowModal Jira templates", () => {
         );
       });
 
+      /*
+       * The requests append /rest/api/3/... to the Jira API URL, so it is
+       * filled in without the slash an address bar ends a site with, and an
+       * emptied one follows the site again.
+       */
+      test("the Jira API URL is filled in without the site's closing slash, and follows the site again once emptied", () => {
+        renderModal();
+        goToConfigure(kind.commentToNoteTemplateId);
+
+        fillVariable("jiraSiteUrl", "https://acme.atlassian.net/");
+
+        expect(getVariableInput("jiraSiteUrl")).toHaveValue(
+          "https://acme.atlassian.net/",
+        );
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://acme.atlassian.net",
+        );
+
+        fillVariable("jiraBaseUrl", "https://api.atlassian.com/ex/jira/7a3c");
+        fillVariable("jiraBaseUrl", "");
+        fillVariable("jiraSiteUrl", "https://jira.acme.example/");
+
+        expect(getVariableInput("jiraBaseUrl")).toHaveValue(
+          "https://jira.acme.example",
+        );
+      });
+
       test("a Jira API URL filled in from the site loses its message, and is saved as its own setting", async () => {
         const created: Workflow = createdWorkflow();
 

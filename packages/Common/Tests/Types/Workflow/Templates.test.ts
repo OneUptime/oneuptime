@@ -849,11 +849,15 @@ describe("workflow template variables", () => {
             variable: variable.name,
             fromAnEarlierSetting: from === -1 || from < index,
             notItself: variable.prefilledFrom !== variable.name,
+            // Filling in goes one step: from a setting someone types into, never through another.
+            fromATypedSetting:
+              from === -1 || !template.variables[from]?.prefilledFrom,
           }).toEqual({
             template: template.id,
             variable: variable.name,
             fromAnEarlierSetting: true,
             notItself: true,
+            fromATypedSetting: true,
           });
         },
       );
