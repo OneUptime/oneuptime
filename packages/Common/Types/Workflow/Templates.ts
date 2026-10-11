@@ -4446,47 +4446,78 @@ const MAX_NOTE_LENGTH = 30000;
 // shows: every tag and comment comes out whole - a line break, and the end of a block, as a new
 // line; anything else as nothing - and only then are entities read, once, so text that was
 // "&lt;b&gt;" stays text and is never a tag. A tag ends at the first ">" outside a quoted value, a
-// comment at its "-->", and a "<" that opens nothing that ends goes on its own: the reading
-// OneUptime's own code uses (removeHtmlMarkup), so no tag is left in the text and none can form
-// from the pieces either side of one that came out.
+// comment at its "-->", and a "<" is read as a browser reads it: it starts markup only before a
+// letter, "/", "!" or "?", and is text anywhere else ("latency < 200ms"); markup that never ends
+// loses only its "<". It is the reading OneUptime's own code uses (replaceHtmlMarkup, reading "<"
+// as text where a browser does), so no tag is left in the text and none can form from what is left.
+// A note with no tag at all is plain text - written through the API, or by the older editor - and
+// only its entities are read.
 const LINE_BREAK = /^<\s*br\s*\/?>$/i;
 const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
+// Longer than a line break or the end of a block is ever written. A longer tag is neither.
+const LONGEST_BREAK_TAG = 256;
 const TAG_START = /<[a-z!\/]/i;
 const WHITESPACE = /\s/;
 // What a tag or comment becomes in the text: a new line for a line break or the end of a block.
-const markupAsText = (markup) => (LINE_BREAK.test(markup) || BLOCK_END.test(markup) ? '\n' : '');
-// Where the tag whose "<" comes just before each position ends: just past its first ">" outside a
-// quoted value, or -1 when it never ends. Worked out once, from the end of the text, so a note full
-// of "<" that never close takes no longer to read than any other.
-const tagEndsOf = (html) => {
-  const ends = new Array(html.length + 1);
+const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
+// Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
+const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
+// Where the tag whose name starts at body ends: just past its first ">" outside a quoted value, or
+// -1 when it never ends. A quote opens a value only after an "=" and any whitespace.
+const scanTagEnd = (html, body) => {
+  let quote = '';
+  let valueNext = false;
+  for (let at = body; at < html.length; at++) {
+    const character = html.charAt(at);
+    if (quote) {
+      if (character === quote) quote = '';
+    } else if (character === '>') {
+      return at + 1;
+    } else if (valueNext && (character === '"' || character === "'")) {
+      quote = character;
+      valueNext = false;
+    } else if (character === '=') {
+      valueNext = true;
+    } else if (!WHITESPACE.test(character)) {
+      valueNext = false;
+    }
+  }
+  return -1;
+};
+// scanTagEnd for every position from "from" on, worked out once from the end of the text. Once one
+// tag is found never to end, every later tag's end is looked up here, so a note full of "<" that
+// never close takes no longer to read than any other.
+const tagEndsFrom = (html, from) => {
+  const size = html.length - from;
+  const ends = new Int32Array(size + 1);
   // The same, read from just after an "=", where a quote opens a value.
-  const valueEnds = new Array(html.length + 1);
+  const valueEnds = new Int32Array(size + 1);
   let nextDoubleQuote = -1;
   let nextSingleQuote = -1;
-  ends[html.length] = -1;
-  valueEnds[html.length] = -1;
-  for (let at = html.length - 1; at >= 0; at--) {
+  ends[size] = -1;
+  valueEnds[size] = -1;
+  for (let entry = size - 1; entry >= 0; entry--) {
+    const at = from + entry;
     const character = html.charAt(at);
     if (character === '>') {
-      ends[at] = at + 1;
-      valueEnds[at] = at + 1;
+      ends[entry] = at + 1;
+      valueEnds[entry] = at + 1;
     } else if (character === '=') {
-      ends[at] = valueEnds[at + 1];
-      valueEnds[at] = valueEnds[at + 1];
+      ends[entry] = valueEnds[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
     } else if (character === '"' || character === "'") {
       const close = character === '"' ? nextDoubleQuote : nextSingleQuote;
-      ends[at] = ends[at + 1];
+      ends[entry] = ends[entry + 1];
       // A quoted value runs to the next quote of its kind; the tag goes on after it.
-      valueEnds[at] = close === -1 ? -1 : ends[close + 1];
+      valueEnds[entry] = close === -1 ? -1 : ends[close - from + 1];
       if (character === '"') nextDoubleQuote = at;
       else nextSingleQuote = at;
     } else if (WHITESPACE.test(character)) {
-      ends[at] = ends[at + 1];
-      valueEnds[at] = valueEnds[at + 1];
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
     } else {
-      ends[at] = ends[at + 1];
-      valueEnds[at] = ends[at + 1];
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = ends[entry + 1];
     }
   }
   return ends;
@@ -4494,14 +4525,27 @@ const tagEndsOf = (html) => {
 // The text of the HTML with every tag and comment replaced by what replace(markup) returns.
 const replaceMarkup = (html, replace) => {
   let ends = null;
+  let endsFrom = 0;
   // Where the first "-->" at or after the last comment looked for one is: -2 before the first.
   let commentClose = -2;
+  // Where the run of "<" the last "<" read is part of ends, so a run is measured once.
+  let runEnd = -1;
   let text = '';
   let at = 0;
   for (;;) {
     const open = html.indexOf('<', at);
     if (open === -1) return text + html.slice(at);
     text += html.slice(at, open);
+    // A run of "<" goes with what follows its last one: it is text unless that starts markup.
+    if (open >= runEnd) {
+      runEnd = open + 1;
+      while (html.charAt(runEnd) === '<') runEnd++;
+    }
+    if (!startsMarkup(html.charCodeAt(runEnd))) {
+      text += html.slice(open, runEnd);
+      at = runEnd;
+      continue;
+    }
     let end = -1;
     if (html.startsWith('<!--', open)) {
       // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
@@ -4509,9 +4553,14 @@ const replaceMarkup = (html, replace) => {
         commentClose = html.indexOf('-->', open + 2);
       }
       end = commentClose === -1 ? -1 : commentClose + 3;
+    } else if (ends) {
+      end = ends[open + 1 - endsFrom];
     } else {
-      if (!ends) ends = tagEndsOf(html);
-      end = ends[open + 1];
+      end = scanTagEnd(html, open + 1);
+      if (end === -1) {
+        ends = tagEndsFrom(html, open + 1);
+        endsFrom = open + 1;
+      }
     }
     if (end === -1) {
       at = open + 1;
@@ -4521,15 +4570,22 @@ const replaceMarkup = (html, replace) => {
     }
   }
 };
-// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
-// plain-text note - written through the API, or by the older editor - has none, and is left as it is.
+// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it.
 const hasTag = (text) => {
   const start = text.search(TAG_START);
   return start !== -1 && text.indexOf('>', start + 2) !== -1;
 };
-// The spaces and tabs a line ends in, before a line break, go. Each line is read back from its end,
-// so a run of spaces takes no longer to read than any other text.
-const withoutSpacesAtLineEnds = (text) => {
+const readEntities = (text) => text
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;|&apos;/gi, "'")
+  // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
+  .replace(/&amp;/gi, '&');
+// The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
+// and indexOf rather than patterns with quantifiers, which a long note is not read with.
+const tidyLines = (text) => {
   const lines = text.split('\n');
   for (let index = 0; index < lines.length - 1; index++) {
     const line = lines[index];
@@ -4537,21 +4593,23 @@ const withoutSpacesAtLineEnds = (text) => {
     while (end > 0 && (line.charAt(end - 1) === ' ' || line.charAt(end - 1) === '\t')) end--;
     lines[index] = line.slice(0, end);
   }
-  return lines.join('\n');
+  const tidy = lines.join('\n');
+  let result = '';
+  let at = 0;
+  for (;;) {
+    const run = tidy.indexOf('\n\n\n', at);
+    if (run === -1) return result + tidy.slice(at);
+    let end = run + 3;
+    while (tidy.charAt(end) === '\n') end++;
+    result += tidy.slice(at, run) + '\n\n';
+    at = end;
+  }
 };
 const htmlToText = (value) => {
   const text = asText(value);
-  if (!hasTag(text) && text.indexOf('&') === -1) return text;
-  return withoutSpacesAtLineEnds(
-    replaceMarkup(text, markupAsText)
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&lt;/gi, '<')
-      .replace(/&gt;/gi, '>')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;|&apos;/gi, "'")
-      // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
-      .replace(/&amp;/gi, '&'),
-  ).replace(/\n{3,}/g, '\n\n');
+  const isHtml = hasTag(text);
+  if (!isHtml && text.indexOf('&') === -1) return text;
+  return tidyLines(readEntities(isHtml ? replaceMarkup(text, markupAsText) : text));
 };
 
 // ---- Placing it in a note ----
@@ -4564,15 +4622,23 @@ const htmlToText = (value) => {
 // on from or that ends the text, and before each "mermaid" in what follows the first run of three
 // backticks or tildes on a line (a diagram).
 const JOINER = '\u2060';
-const FENCE_RUN = /\x60{3,}|~{3,}/;
 const NUMERIC_REFERENCE = /^&#(?:[xX]([0-9a-fA-F]{1,32})|([0-9]{1,32}));/;
+// Where the first run of three or more backticks or tildes on a line ends, or -1 when it has none.
+const fenceRunEndOf = (line) => {
+  const backticks = line.indexOf('\x60\x60\x60');
+  const tildes = line.indexOf('~~~');
+  const start = backticks === -1 ? tildes : tildes === -1 ? backticks : Math.min(backticks, tildes);
+  if (start === -1) return -1;
+  let end = start;
+  while (line.charAt(end) === line.charAt(start)) end++;
+  return end;
+};
 // Where each "mermaid" after a line's first fence run starts, read as the dashboard reads a fence's
 // language: numeric character references decoded, in any letter case. One right after a joiner is
 // already broken.
 const mermaidWordsOf = (line) => {
-  const run = FENCE_RUN.exec(line);
-  if (!run) return [];
-  let at = run.index + run[0].length;
+  let at = fenceRunEndOf(line);
+  if (at === -1) return [];
   while (line.charAt(at) === ' ' || line.charAt(at) === '\t') at++;
   const characters = [];
   const starts = [];

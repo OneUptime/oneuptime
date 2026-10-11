@@ -19,8 +19,11 @@
  * text with. These tests run the template's real script in that sandbox and
  * hold the copies to the originals, on the same cases:
  *
- *   - its walk reads markup exactly as replaceHtmlMarkup and
- *     removeHtmlMarkup (Common/Types/HtmlMarkup) do;
+ *   - its walk reads markup exactly as replaceHtmlMarkup (Common/Types/
+ *     HtmlMarkup) does when it reads "<" as a browser does
+ *     (lessThanAsText): a note an integration wrote can hold a "<" that is
+ *     text, "latency < 200ms";
+ *   - a note with no tag is plain text: only its entities are read;
  *   - entities are read once, after the walk;
  *   - what came from Dynamics 365 is placed exactly as
  *     FeedMarkdown.reportedValue places outside text: it reads as written,
@@ -96,6 +99,9 @@ const KINDS: Array<[string, NoteKind]> = [
 ];
 
 const STEP: string = "read-note-1";
+
+// A line break with more space in it than any is written with.
+const LONG_LINE_BREAK: string = `a<br${" ".repeat(300)}>b`;
 const CASE_URL: string = `${DYNAMICS_URL}/main.aspx?pagetype=entityrecord&etn=incident&id=${CASE_ID}`;
 const HEADER: string = `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: Sam Okafor added a note to case [${CASE_NUMBER}](${CASE_URL}).`;
 
@@ -105,6 +111,13 @@ const STEP_SECTION: string = "// ---- Reading the note ----";
 
 // A "<" that starts something: what no placed text may hold.
 const TAG_START: RegExp = /<(?![\s\u2060])/;
+// A "<" that starts markup, as a browser reads one: what no text read out of HTML may hold.
+const MARKUP_START: RegExp = /<[A-Za-z/!?]/;
+const LESS_THAN_RUN: RegExp = /<+/g;
+const STARTS_MARKUP: RegExp = /[A-Za-z/!?]/;
+const AS_A_BROWSER_READS_IT: { lessThanAsText: boolean } = {
+  lessThanAsText: true,
+};
 const WORD_JOINER_RUN: RegExp = /\u2060/g;
 const SLACK_MENTION: RegExp = /<[!@#][A-Za-z0-9]/;
 const DASHBOARD_IMAGE: RegExp = /<img/;
@@ -408,6 +421,15 @@ describe("the note script's own walk", () => {
       return note[1];
     }),
     "Plain <3 text, a < b",
+    "<p>latency < 200ms, p99<=300</p>",
+    "<p>1 < 2 <b>bold</b></p>",
+    "<div>arrows <- and <-> stay</div>",
+    "R&D: latency < 200ms",
+    "Q&A - error rate < 1%, p99<threshold",
+    "Tom &amp; Jerry <3",
+    "a < b > c & d",
+    LONG_LINE_BREAK,
+    "a<br   >b",
   ];
   // The leftovers again, each inside a paragraph of a note's HTML.
   const leftoversInParagraphs: Array<string> = SINGLE_PASS_LEFTOVERS.map(
@@ -426,16 +448,20 @@ describe("the note script's own walk", () => {
     readings = await readWithTheScript(cases);
   });
 
-  test("reads every tag and comment exactly where replaceHtmlMarkup does", () => {
+  test("reads every tag and comment exactly where replaceHtmlMarkup does, reading '<' as a browser does", () => {
     expect(readings.walked).toHaveLength(cases.length);
 
     const differences: Array<string> = cases.filter(
       (html: string, index: number): boolean => {
         return (
           readings.walked[index] !==
-          replaceHtmlMarkup(html, (markup: string): string => {
-            return `[${markup}]`;
-          })
+          replaceHtmlMarkup(
+            html,
+            (markup: string): string => {
+              return `[${markup}]`;
+            },
+            AS_A_BROWSER_READS_IT,
+          )
         );
       },
     );
@@ -443,22 +469,53 @@ describe("the note script's own walk", () => {
     expect(differences.slice(0, 5)).toEqual([]);
   });
 
-  test("takes markup out exactly as removeHtmlMarkup does, leaving no '<'", () => {
+  test("takes markup out exactly as replaceHtmlMarkup does, leaving no '<' that starts markup", () => {
     const differences: Array<string> = cases.filter(
       (html: string, index: number): boolean => {
-        return readings.removed[index] !== removeHtmlMarkup(html);
+        return (
+          readings.removed[index] !==
+          replaceHtmlMarkup(
+            html,
+            (): string => {
+              return "";
+            },
+            AS_A_BROWSER_READS_IT,
+          )
+        );
       },
     );
 
     expect(differences.slice(0, 5)).toEqual([]);
     expect(
       readings.removed.filter((text: string): boolean => {
-        return text.includes("<");
+        return MARKUP_START.test(text);
       }),
     ).toEqual([]);
   });
 
-  test("reads nested, overlapping and unclosed markup in a note's HTML into text with no '<'", () => {
+  test("reads markup exactly as removeHtmlMarkup does wherever no '<' is text", () => {
+    /*
+     * HTML an editor writes has no "<" that is text: it writes "&lt;". On
+     * such text - every run of "<" before what starts markup - both
+     * readings agree.
+     */
+    const htmlOnly: Array<string> = cases.filter((html: string): boolean => {
+      return Array.from(html.matchAll(LESS_THAN_RUN)).every(
+        (run: RegExpMatchArray): boolean => {
+          return STARTS_MARKUP.test(html.charAt(run.index! + run[0].length));
+        },
+      );
+    });
+
+    expect(htmlOnly.length).toBeGreaterThan(1000);
+    expect(
+      htmlOnly.filter((html: string): boolean => {
+        return readings.removed[cases.indexOf(html)] !== removeHtmlMarkup(html);
+      }),
+    ).toEqual([]);
+  });
+
+  test("reads nested, overlapping and unclosed markup in a note's HTML into text with no '<' that starts markup", () => {
     /*
      * None of these holds an entity, so a "<" in the text could only be
      * one of the HTML's.
@@ -471,9 +528,38 @@ describe("the note script's own walk", () => {
     expect(inParagraphs).toHaveLength(SINGLE_PASS_LEFTOVERS.length);
     expect(
       inParagraphs.filter((text: string): boolean => {
-        return text.includes("<");
+        return MARKUP_START.test(text);
       }),
     ).toEqual([]);
+  });
+
+  test("keeps a '<' in a note's HTML that a browser shows as text", () => {
+    for (const [html, text] of [
+      ["<p>latency < 200ms, p99<=300</p>", "latency < 200ms, p99<=300\n"],
+      ["<p>1 < 2 <b>bold</b></p>", "1 < 2 bold\n"],
+      ["<div>arrows <- and <-> stay</div>", "arrows <- and <-> stay\n"],
+    ]) {
+      expect(readings.text[cases.indexOf(html!)]).toBe(text);
+    }
+  });
+
+  test("reads a note with no tag as plain text: only its entities are read", () => {
+    for (const [plain, text] of [
+      ["R&D: latency < 200ms", "R&D: latency < 200ms"],
+      [
+        "Q&A - error rate < 1%, p99<threshold",
+        "Q&A - error rate < 1%, p99<threshold",
+      ],
+      ["Tom &amp; Jerry <3", "Tom & Jerry <3"],
+      ["a < b > c & d", "a < b > c & d"],
+    ]) {
+      expect(readings.text[cases.indexOf(plain!)]).toBe(text);
+    }
+  });
+
+  test("a line break or the end of a block written longer than any real one is neither", () => {
+    expect(readings.text[cases.indexOf(LONG_LINE_BREAK)]).toBe("ab");
+    expect(readings.text[cases.indexOf("a<br   >b")]).toBe("a\nb");
   });
 
   test("leaves a note with no tag and no entity as it is: it is plain text, not HTML", () => {
@@ -684,6 +770,23 @@ describe.each(KINDS)(
       },
     );
 
+    test("a plain-text title or note holding '&' keeps its '<', exactly as before", async () => {
+      const result: JSONObject = await noteFor(kind, {
+        subject: "R&D: latency < 200ms",
+        notetext: "Q&A - error rate < 1% after the fix",
+      });
+
+      expect(result["note"]).toBe(
+        [
+          HEADER,
+          "",
+          "R&D: latency < 200ms",
+          "",
+          "Q&A - error rate < 1% after the fix",
+        ].join("\n"),
+      );
+    });
+
     test("the author's name, the case number, the title and an attachment's name are placed as text too", async () => {
       const result: JSONObject = await noteFor(kind, {
         author: "![me](https://tracker.example/a.png) <!here>",
@@ -878,6 +981,11 @@ describe("time", () => {
     ["tabs and spaces", `<p>${repeatTo("\t ")}x</p>`],
     ["comment openings", `<p>${repeatTo("<!--")}x</p>`],
     ["fences and references", `<p>${repeatTo("```&#109;")}</p>`],
+    ["line breaks in a row", `<p>a${repeatTo("\n")}b</p>`],
+    ["a line of backticks", `<p>${repeatTo("`")}</p>`],
+    ["one long line break", `<p>a<br${repeatTo(" ")}>b</p>`],
+    ["text '<' runs", `<p>${repeatTo("<< ")}</p>`],
+    ["a plain-text note of spaces and entities", `${repeatTo("  &amp; ")}x`],
   ])(
     "reads a note of %s in linear time",
     async (_case: string, notetext: string) => {
@@ -887,7 +995,11 @@ describe("time", () => {
       });
 
       expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
-      expect(String(result["note"])).not.toMatch(TAG_START);
+      /*
+       * The note is cut at MAX_NOTE_LENGTH and ends in "…": a "<" the cut
+       * leaves last is followed by that, which starts nothing.
+       */
+      expect(String(result["note"])).not.toMatch(MARKUP_START);
     },
   );
 });

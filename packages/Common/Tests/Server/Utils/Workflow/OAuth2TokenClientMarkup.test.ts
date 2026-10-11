@@ -4,6 +4,7 @@ import OAuth2TokenClient, {
   OAuth2TokenRequestException,
 } from "../../../../Server/Utils/Workflow/OAuth2TokenClient";
 import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { OAuth2GrantType } from "../../../../Types/Workflow/WorkflowVariableOAuth";
 import {
   SINGLE_PASS_LEFTOVERS,
@@ -26,12 +27,17 @@ import { describe, expect, test } from "@jest/globals";
  * it came, ended a tag at a ">" inside a quoted attribute value and kept the
  * rest of the value, and ended a comment at its first ">". It now reads tags
  * and comments with replaceHtmlMarkup (Common/Types/HtmlMarkup), the walk
- * the rest of the product reads HTML with - each still becomes a space - so:
+ * the rest of the product reads HTML with - each still becomes a space -
+ * and reads a "<" as a browser does, since an answer can be plain text
+ * ("expires_in must be < 3600"). So:
  *
  *   - the error pages and error bodies token endpoints really answer with
  *     are quoted exactly as before;
  *   - the markup a single pass left behind comes out whole;
- *   - no message holds a "<" of the answer, whatever the answer;
+ *   - a "<" that starts nothing is kept, where it is;
+ *   - no message holds a "<" that starts markup, whatever the answer;
+ *   - a secret the server echoes is taken out before anything else changes
+ *     the answer, so markup or whitespace in or around it cannot hide it;
  *   - an answer of a megabyte, the most a token request reads, is read in
  *     time that grows with its length alone.
  */
@@ -54,12 +60,19 @@ const REDIRECT_SUFFIX: string =
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+// A "<" that starts markup, as a browser reads one: what no message may hold.
+const MARKUP_START: RegExp = /<[A-Za-z/!?]/;
+
 // The message an answer that carries no token is refused with.
-function refusalOf(response: OAuth2TokenHttpResponse): string {
+function refusalOf(
+  response: OAuth2TokenHttpResponse,
+  secrets?: Array<string> | undefined,
+): string {
   try {
     OAuth2TokenClient.parseTokenResponse(response, {
       grantType: OAuth2GrantType.ClientCredentials,
       now: NOW,
+      secrets: secrets,
     });
   } catch (err) {
     if (err instanceof OAuth2TokenRequestException) {
@@ -208,7 +221,12 @@ const REAL_DESCRIPTIONS: Array<[string, string, string]> = [
     "Token has been expired or revoked.",
     "Token has been expired or revoked.",
   ],
-  ["a comparison with a space after it", "a < b > c", "a c"],
+  [
+    "a limit stated with '<'",
+    "expires_in must be < 3600",
+    "expires_in must be < 3600",
+  ],
+  ["comparisons with no space", "x <= 5 and y<3", "x <= 5 and y<3"],
 ];
 
 /*
@@ -286,8 +304,15 @@ describe("an OAuth error message quotes what the token endpoint answered", () =>
     ).toBe("&lt;img src=x onerror=alert(1)&gt; &amp;lt;b&amp;gt;");
   });
 
-  test("a '<' that opens nothing that ends is dropped on its own, as the walk drops one everywhere", () => {
-    expect(quoteOfDescription("x <= 5 and y < 3")).toBe("x = 5 and y 3");
+  test("a '<' is read as a browser reads it: text unless it starts markup", () => {
+    // A browser shows these "<" as text, so they stay.
+    expect(quoteOfDescription("a < b > c, 1<2, <= 9, end <")).toBe(
+      "a < b > c, 1<2, <= 9, end <",
+    );
+    // Before a letter, "/", "!" or "?" a "<" starts markup, which never ends here.
+    expect(quoteOfDescription("p99<threshold and a </b")).toBe(
+      "p99threshold and a /b",
+    );
   });
 });
 
@@ -344,33 +369,56 @@ describe("script and style elements", () => {
       "<p>a</p><script>x</script",
       "a x/script",
     ],
+    [
+      "elements whose names only start like script and style",
+      "<scripture>The verse</scripture> <styles>matter</styles> invalid_client <script>x()</script>",
+      "The verse matter invalid_client",
+    ],
+    /*
+     * A start that no end tag follows: nothing after it can close either,
+     * so everything after it is left to the walk.
+     */
+    [
+      "a script start no end tag follows",
+      "<p>Denied</p><script>var a = 1; <p>still script to a browser</p>",
+      "Denied var a = 1; still script to a browser",
+    ],
+    /*
+     * A stray start before a real element is closed by the real end tag,
+     * as a browser reads it: everything between is script.
+     */
+    [
+      "a stray script start before a real script element",
+      "<h1>Denied</h1><script src=x <p>hidden</p><script>var cfg = {};</script><p>Try again</p>",
+      "Denied Try again",
+    ],
   ])("%s", (_case: string, body: string, quote: string) => {
     expect(quoteOfPage(body)).toBe(quote);
-    expect(quoteOfPage(body)).not.toContain("<");
+    expect(quoteOfPage(body)).not.toMatch(MARKUP_START);
   });
 });
 
 describe("whatever the answer", () => {
   const generated: Array<string> = generatedTexts(20000, 3141);
 
-  test("no message holds a '<' of it", () => {
+  test("no message holds a '<' that starts markup", () => {
     expect(
       generated.some((text: string): boolean => {
-        return text.includes("<");
+        return MARKUP_START.test(text);
       }),
     ).toBe(true);
 
-    const withAngleBracket: Array<string> = generated.filter(
+    const withMarkup: Array<string> = generated.filter(
       (text: string): boolean => {
         return (
-          quoteOfPage(text).includes("<") ||
-          quoteOfDescription(`x${text}`).includes("<") ||
-          quoteOfRedirect(`x${text}`).includes("<")
+          MARKUP_START.test(quoteOfPage(text)) ||
+          MARKUP_START.test(quoteOfDescription(`x${text}`)) ||
+          MARKUP_START.test(quoteOfRedirect(`x${text}`))
         );
       },
     );
 
-    expect(withAngleBracket).toEqual([]);
+    expect(withMarkup).toEqual([]);
   });
 
   test("markup is read exactly as replaceHtmlMarkup reads it, each tag and comment a space", () => {
@@ -387,9 +435,13 @@ describe("whatever the answer", () => {
       }
 
       const quote: string = quoteOfPage(text);
-      const walked: string = replaceHtmlMarkup(text, (): string => {
-        return " ";
-      })
+      const walked: string = replaceHtmlMarkup(
+        text,
+        (): string => {
+          return " ";
+        },
+        { lessThanAsText: true },
+      )
         .replace(WHITESPACE_RUN, " ")
         .trim();
 
@@ -434,6 +486,120 @@ describe("time", () => {
     });
 
     expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
-    expect(message).not.toContain("<");
+    expect(message).not.toMatch(MARKUP_START);
+  });
+});
+
+describe("secrets the token endpoint echoes", () => {
+  /*
+   * A server that echoes the request echoes the client secret or the
+   * refresh token. They are taken out of the answer before markup and
+   * whitespace are: once a tag or a run of spaces in or around one had been
+   * taken out, what was left of it would no longer be found.
+   */
+  const SECRET_WITH_LESS_THAN: string = "Ab<9xYz-client-secret";
+  const SECRET_WITH_SPACES: string = "pass  phrase\twith gaps";
+  const SECRET_WITH_MARKUP: string = "s3cr<b>et</b>-value";
+  const REFRESH_TOKEN: string = "1//0g-refresh-token-<value";
+
+  const SECRETS: Array<string> = [
+    SECRET_WITH_LESS_THAN,
+    SECRET_WITH_SPACES,
+    SECRET_WITH_MARKUP,
+    REFRESH_TOKEN,
+  ];
+
+  // What is left of a secret once markup or whitespace in it is changed.
+  const WHAT_IS_LEFT: Array<string> = [
+    "Ab9xYz-client-secret",
+    "9xYz-client-secret",
+    "pass phrase with gaps",
+    "s3cret-value",
+    "s3cr et -value",
+    "1//0g-refresh-token-value",
+  ];
+
+  const expectNothingOfTheSecrets: (message: string) => void = (
+    message: string,
+  ): void => {
+    for (const secret of [...SECRETS, ...WHAT_IS_LEFT]) {
+      expect(message).not.toContain(secret);
+      expect(message).not.toContain(encodeURIComponent(secret));
+    }
+
+    expect(message).toContain("[REDACTED]");
+  };
+
+  test.each([
+    [
+      "in a plain-text body",
+      `invalid client_secret=${SECRET_WITH_LESS_THAN} for this tenant`,
+    ],
+    [
+      "in a page, inside and around its markup",
+      `<html><body><p>Rejected <code>${SECRET_WITH_MARKUP}</code> and <b>${SECRET_WITH_SPACES}</b></p><!-- ${REFRESH_TOKEN} --></body></html>`,
+    ],
+    [
+      "url-encoded in an echoed form body",
+      `grant_type=refresh_token&refresh_token=${encodeURIComponent(REFRESH_TOKEN)}&client_secret=${encodeURIComponent(SECRET_WITH_LESS_THAN)}`,
+    ],
+  ])("are taken out of an answer %s", (_case: string, body: string) => {
+    expectNothingOfTheSecrets(
+      refusalOf(
+        {
+          statusCode: 400,
+          bodyText: body,
+          headers: { "content-type": "text/html" },
+        },
+        SECRETS,
+      ),
+    );
+  });
+
+  test("are taken out of an OAuth error's description and of a redirect's address", () => {
+    expectNothingOfTheSecrets(
+      refusalOf(
+        {
+          statusCode: 401,
+          bodyText: JSON.stringify({
+            error: "invalid_client",
+            error_description: `Client secret ${SECRET_WITH_LESS_THAN} is not valid; got ${SECRET_WITH_SPACES}`,
+          }),
+          headers: { "content-type": "application/json" },
+        },
+        SECRETS,
+      ),
+    );
+    expectNothingOfTheSecrets(
+      refusalOf(
+        {
+          statusCode: 302,
+          bodyText: "",
+          headers: {
+            location: `https://login.example.com/error?echo=${SECRET_WITH_MARKUP}`,
+          },
+        },
+        SECRETS,
+      ),
+    );
+  });
+
+  test("leave the rest of the answer readable", () => {
+    expect(
+      refusalOf(
+        {
+          statusCode: 400,
+          bodyText: `<p>Rejected <code>${SECRET_WITH_MARKUP}</code> for tenant acme</p>`,
+          headers: { "content-type": "text/html" },
+        },
+        SECRETS,
+      ),
+    ).toBe(
+      "The token endpoint answered HTTP 400: Rejected [REDACTED] for tenant acme. Check the Token URL.",
+    );
+  });
+
+  test("a word joiner in the answer is kept as it is: it is text", () => {
+    expect(quoteOfDescription(`a<${WORD_JOINER}b`)).toBe(`a<${WORD_JOINER}b`);
   });
 });

@@ -13,7 +13,9 @@
  * ">" inside a quoted attribute value (title="a > b") and keeps the rest of
  * the value as text, and ends a comment at its first ">". Those places -
  * and MicrosoftTeamsUtil.stripHtmlTags, which reads Teams messages for AI
- * Ops - read text through this one walk now:
+ * Ops, and OAuth2TokenClient's quote of a token endpoint's answer - read
+ * text through this one walk now (the Dynamics 365 note template's script,
+ * which runs where nothing can be imported, carries a copy of it):
  *
  *   - Every "<" opens markup. HTML a renderer or a chat client writes has a
  *     "<" that is text as "&lt;", and entities are left as they are.
@@ -27,6 +29,13 @@
  * given: no tag is left, and none can form from the pieces either side of
  * one that was taken out. Taking markup out of that text again changes
  * nothing.
+ *
+ * Text that may be plain rather than HTML - an OAuth error's description,
+ * a note an integration wrote - can hold a "<" that is text: "expires_in
+ * must be < 3600". replaceHtmlMarkup's lessThanAsText (HtmlMarkupReading)
+ * reads a "<" as a browser does: markup only before a letter, "/", "!" or
+ * "?", text anywhere else, and kept. What it returns then holds no "<" that
+ * starts markup.
  *
  * It reads a text in time that grows with its length alone. A tag's end is
  * looked for from its "<", which reads each tag once; but looking ahead from
@@ -179,9 +188,45 @@ const findTagEnds: FindTagEndsFunction = (
  */
 export type HtmlMarkupReplacer = (markup: string) => string;
 
+/*
+ * How a "<" is read. By default every "<" opens markup, which suits HTML a
+ * renderer or a chat client writes: a "<" that is text is "&lt;" there.
+ *
+ * lessThanAsText reads a "<" as a browser reads one, for text that may be
+ * plain rather than HTML - an OAuth error's description, a note written
+ * through an API: it starts markup only before an ASCII letter, "/", "!" or
+ * "?". Anywhere else - "x < y", "<= 5", "<3", a "<" at the end - it is
+ * text, and stays. A run of "<" goes with the character after its last one:
+ * in "<<b>" the run starts a tag, read from its first "<", so a "<" that
+ * stays is never left next to what could start a tag once markup after it
+ * is taken out. What the walk returns then holds no "<" that starts markup.
+ */
+export interface HtmlMarkupReading {
+  lessThanAsText?: boolean | undefined;
+}
+
+const LESS_THAN: number = 0x3c;
+
+type StartsMarkupFunction = (code: number) => boolean;
+
+/*
+ * Whether a "<" before this character starts a tag, an end tag, a comment,
+ * a declaration or a processing instruction, as a browser reads it.
+ */
+const startsMarkup: StartsMarkupFunction = (code: number): boolean => {
+  return (
+    (code >= 0x41 && code <= 0x5a) ||
+    (code >= 0x61 && code <= 0x7a) ||
+    code === 0x2f ||
+    code === 0x21 ||
+    code === 0x3f
+  );
+};
+
 export type ReplaceHtmlMarkupFunction = (
   html: string,
   replace: HtmlMarkupReplacer,
+  reading?: HtmlMarkupReading | undefined,
 ) => string;
 
 /**
@@ -192,12 +237,15 @@ export type ReplaceHtmlMarkupFunction = (
  * The text between them is kept exactly as it is, entities included.
  *
  * What `replace` returns is put in place as it is: when it holds no "<",
- * neither does the result.
+ * neither does the result - or, read with lessThanAsText (see
+ * HtmlMarkupReading), no "<" that starts markup.
  */
 export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
   html: string,
   replace: HtmlMarkupReplacer,
+  reading?: HtmlMarkupReading | undefined,
 ): string => {
+  const lessThanAsText: boolean = Boolean(reading?.lessThanAsText);
   const firstOpen: number = html.indexOf("<");
 
   if (firstOpen === -1) {
@@ -205,7 +253,7 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
   }
 
   // With no ">" after the first "<", no markup ends: every "<" goes alone.
-  if (html.lastIndexOf(">") < firstOpen) {
+  if (!lessThanAsText && html.lastIndexOf(">") < firstOpen) {
     return html.split("<").join("");
   }
 
@@ -221,6 +269,11 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
    * "<!--" in it. -2: not looked for yet.
    */
   let commentClose: number = -2;
+  /*
+   * Where the run of "<" that the last "<" read is part of ends, so a run
+   * whose "<" are dropped one by one is measured once.
+   */
+  let lessThanRunEnd: number = -1;
   let text: string = html.slice(0, firstOpen);
   let index: number = firstOpen;
 
@@ -232,6 +285,23 @@ export const replaceHtmlMarkup: ReplaceHtmlMarkupFunction = (
     }
 
     text += html.slice(index, open);
+
+    if (lessThanAsText) {
+      if (open >= lessThanRunEnd) {
+        lessThanRunEnd = open + 1;
+
+        while (html.charCodeAt(lessThanRunEnd) === LESS_THAN) {
+          lessThanRunEnd++;
+        }
+      }
+
+      // Past the end, charCodeAt is NaN: a "<" at the end is text.
+      if (!startsMarkup(html.charCodeAt(lessThanRunEnd))) {
+        text += html.slice(open, lessThanRunEnd);
+        index = lessThanRunEnd;
+        continue;
+      }
+    }
 
     let end: number;
 
