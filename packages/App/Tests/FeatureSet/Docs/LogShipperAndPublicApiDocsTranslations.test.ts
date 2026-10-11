@@ -334,13 +334,9 @@ function headingLevels(markdown: string): Array<number> {
 /*
  * The anchor of the heading of a page in a language that sits where the
  * English page's heading with this anchor sits, or null when the English
- * page has no such heading.
- *
- * A page whose translation keeps the English page's headings is read by
- * position. One whose translation predates its English page's rewrite
- * (status-pages/index, until docs task 18b translates it again) is read by
- * its H2s: the sections these pages link to are H2s that its old
- * translation has in the same order.
+ * page has no such heading, or the translation's headings are not the
+ * English page's: every page these pages link to keeps its English page's
+ * headings in every language, so each is read by position.
  */
 function anchorInLanguage(
   language: string,
@@ -367,27 +363,11 @@ function anchorInLanguage(
     JSON.stringify(headingLevels(translatedMarkdown)) ===
     JSON.stringify(headingLevels(englishMarkdown));
 
-  if (inShape) {
-    return translated[index]?.slug || null;
-  }
-
-  const target: DocsHeading = english[index] as DocsHeading;
-
-  if (target.level !== 2) {
+  if (!inShape) {
     return null;
   }
 
-  const ordinal: number = english
-    .filter((heading: DocsHeading): boolean => {
-      return heading.level === 2;
-    })
-    .indexOf(target);
-
-  return (
-    translated.filter((heading: DocsHeading): boolean => {
-      return heading.level === 2;
-    })[ordinal]?.slug || null
-  );
+  return translated[index]?.slug || null;
 }
 
 /*
@@ -953,8 +933,7 @@ describe("the helpers, on these pages' shapes", () => {
     expect(detailsCount(markdown)).toBe(1);
   });
 
-  it("read a heading of a page whose translation predates its English page by its H2s", () => {
-    // German status-pages/index is still in its old shape.
+  it("read the status page overview's headings by position, as its translations keep the English shape", () => {
     expect(
       anchorInLanguage(
         "de",
@@ -969,6 +948,9 @@ describe("the helpers, on these pages' shapes", () => {
         "the-embeddable-badge-and-the-rss-feed",
       ),
     ).toBe("das-einbettbare-badge-und-der-rss-feed");
+    expect(
+      anchorInLanguage("de", "status-pages/index", "not-a-heading-of-the-page"),
+    ).toBeNull();
   });
 
   it("read a heading of a page whose translation keeps its English shape by position", () => {
