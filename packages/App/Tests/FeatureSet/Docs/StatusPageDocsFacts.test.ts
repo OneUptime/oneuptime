@@ -22,6 +22,7 @@ import StatusPageOverviewCache from "Common/Server/Utils/StatusPage/StatusPageOv
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnBillingAccessControl";
+import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
 import { MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/StatusPage/MasterPassword";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
@@ -314,10 +315,18 @@ function subscriberColumn(column: string): {
   title: string;
   defaultValue: unknown;
 } {
-  const metadata: { title: string; defaultValue?: unknown } =
+  const metadata: TableColumnMetadata =
     new StatusPageSubscriber().getTableColumnMetadata(column);
 
-  return { title: metadata.title, defaultValue: metadata.defaultValue };
+  expect({ column: column, titled: Boolean(metadata.title) }).toEqual({
+    column: column,
+    titled: true,
+  });
+
+  return {
+    title: metadata.title as string,
+    defaultValue: metadata.defaultValue,
+  };
 }
 
 // The plan a status page column needs on OneUptime Cloud, or null when it needs none.
