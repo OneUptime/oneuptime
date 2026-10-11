@@ -11,6 +11,7 @@ import {
   fitTelegramMessage,
 } from "../../Utils/TelegramMessageFit";
 import { fitWhatsAppTemplateVariables } from "../../Utils/WhatsAppTemplateFit";
+import { telegramTextLength } from "../Helpers/HtmlText";
 import {
   WhatsAppTemplateId,
   WhatsAppTemplateMessages,
@@ -23,11 +24,6 @@ import {
  * formatting is read; Meta a WhatsApp template whose text, its variables
  * filled in, is more than 1,024. Either way the notification is lost.
  */
-
-// As Telegram counts a message in HTML: no tags, a reference one character.
-function telegramLength(html: string): number {
-  return html.replace(/<[^>]*>/g, "").replace(/&(#\d+|[a-z]+);/g, "_").length;
-}
 
 describe("fitTelegramMessage", () => {
   test("a message that fits is sent as it is, in its parse mode", () => {
@@ -73,7 +69,7 @@ describe("fitTelegramMessage", () => {
 
     const fitted: string = fitTelegramHtml(html);
 
-    expect(telegramLength(fitted)).toBeLessThanOrEqual(
+    expect(telegramTextLength(fitted)).toBeLessThanOrEqual(
       MAX_TELEGRAM_MESSAGE_LENGTH,
     );
     expect(fitted.startsWith("<b>Incident #42</b>\n<pre><code>")).toBe(true);
@@ -89,7 +85,7 @@ describe("fitTelegramMessage", () => {
   test("an emoji is two characters to Telegram, and never cut in two", () => {
     const fitted: string = fitTelegramHtml(`<i>${"😀".repeat(3000)}</i>`);
 
-    expect(telegramLength(fitted)).toBeLessThanOrEqual(
+    expect(telegramTextLength(fitted)).toBeLessThanOrEqual(
       MAX_TELEGRAM_MESSAGE_LENGTH,
     );
     const loneHighSurrogate: RegExp = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/;

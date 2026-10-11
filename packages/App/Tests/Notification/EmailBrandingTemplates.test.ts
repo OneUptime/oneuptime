@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
   registerEmailBrandHelpers,
@@ -78,7 +79,6 @@ const EMAILS_ABOUT_ONEUPTIME_ITSELF: ReadonlyArray<string> = [
   "ProjectSubscriptionOverdue",
 ];
 
-const HTML_TAG: RegExp = /<[^>]+>/g;
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const ONEUPTIME_WORD: RegExp = /.{0,40}\bOneUptime\b.{0,40}/g;
 const DOUBLE_ESCAPED_AMPERSAND: RegExp = /&amp;amp;/;
@@ -196,9 +196,12 @@ const render: (
   return engine.compile(readTemplate(name))(variables);
 };
 
-// The words people read: the email's text, without its markup.
+/*
+ * The words people read: the email's text, without its markup, in every
+ * client - what only Outlook shows included.
+ */
 const textOf: (html: string) => string = (html: string): string => {
-  return html.replace(HTML_TAG, " ").replace(WHITESPACE_RUN, " ");
+  return markupAsSpacesWithOutlookContent(html).replace(WHITESPACE_RUN, " ");
 };
 
 beforeAll(async () => {

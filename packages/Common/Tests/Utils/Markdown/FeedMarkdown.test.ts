@@ -7,6 +7,8 @@ import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
+import { decodeHtmlEntities, htmlAsText } from "../../Helpers/HtmlText";
 import { hrefsOf, renderAsDashboard } from "./DashboardMarkdownRenderer";
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
@@ -25,7 +27,6 @@ import { Lexer, Token, Tokens, marked } from "marked";
  */
 
 const WORD_JOINER_PATTERN: RegExp = new RegExp(WORD_JOINER, "g");
-const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
 const SLACK_MENTION_PATTERN: RegExp = /<[!@#][A-Za-z0-9]/;
 const HTML_ELEMENT_PATTERN: RegExp =
   /<(?:img|a|code|pre|h[1-6]|ul|ol|li|blockquote|table|script|em|strong|del|hr)\b/;
@@ -101,20 +102,9 @@ function tokensOf(markdown: string): Array<Token> {
   return tokens;
 }
 
-function decodeHtml(text: string): string {
-  return text
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&#x27;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
-}
-
 // The words a reader sees in HTML: tags dropped, escapes undone, joiners gone.
 function textOfHtml(html: string): string {
-  return withoutJoiners(decodeHtml(html.replace(HTML_TAG_PATTERN, "")))
-    .replace(/\s+/g, " ")
-    .trim();
+  return withoutJoiners(htmlAsText(html)).replace(/\s+/g, " ").trim();
 }
 
 function textOfEmail(markdown: string): string {
@@ -136,8 +126,8 @@ function asOneLine(value: string): string {
  * address, so both are compared as a reader sees them.
  */
 function showsItsAddress(words: string, href: string): boolean {
-  const shown: string = withoutJoiners(decodeHtml(words)).trim();
-  let address: string = decodeHtml(href);
+  const shown: string = withoutJoiners(decodeHtmlEntities(words)).trim();
+  let address: string = decodeHtmlEntities(href);
 
   try {
     address = decodeURI(address);
@@ -191,10 +181,7 @@ function expectOnlyText(markdowns: Array<string>): void {
     const anchorsShowingTheirAddress: string = html.replace(
       DASHBOARD_ANCHOR_PATTERN,
       (anchor: string, _href: string, words: string): string => {
-        return showsItsAddress(
-          words.replace(HTML_TAG_PATTERN, ""),
-          hrefsOf(anchor)[0]!,
-        )
+        return showsItsAddress(removeHtmlMarkup(words), hrefsOf(anchor)[0]!)
           ? ""
           : anchor;
       },
@@ -295,6 +282,10 @@ describe("md: a value in a sentence", () => {
     expect(mdText`${"R&D and AT&T"}`.toString()).toBe("R&D and AT&T");
     expect(textOfEmail(mdText`Team ${"&#60;x&#x3E; &amp;"}`.toString())).toBe(
       "Team &#60;x&#x3E; &amp;",
+    );
+    // Numeric references alone: read as a browser decodes them, not as written.
+    expect(textOfEmail(mdText`${"&#60;b&#62; &#x3C;i&#x3E;"}`.toString())).toBe(
+      "&#60;b&#62; &#x3C;i&#x3E;",
     );
   });
 
@@ -627,7 +618,7 @@ describe("md: a value in a code span", () => {
 
       expect(codes).toHaveLength(1);
       expect(
-        withoutJoiners(decodeHtml((codes[0] as Tokens.Codespan).text)),
+        withoutJoiners(decodeHtmlEntities((codes[0] as Tokens.Codespan).text)),
       ).toBe(asOneLine(value));
       expect(
         SLACK_MENTION_PATTERN.test(
@@ -959,7 +950,9 @@ describe("FeedMarkdown helpers", () => {
           return token.type === "codespan";
         })
         .map((token: Token): string => {
-          return withoutJoiners(decodeHtml((token as Tokens.Codespan).text));
+          return withoutJoiners(
+            decodeHtmlEntities((token as Tokens.Codespan).text),
+          );
         }),
     ).toEqual(["a", "<!channel>"]);
   });

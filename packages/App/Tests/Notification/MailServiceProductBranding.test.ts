@@ -10,6 +10,7 @@ import {
 import fs from "fs";
 import Path from "path";
 import Handlebars from "handlebars";
+import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
 import nodemailer, { Transporter } from "nodemailer";
 import Hostname from "Common/Types/API/Hostname";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
@@ -141,10 +142,9 @@ const ACME: ProductBranding = {
   websiteUrl: "https://acme.example",
 };
 
-const HTML_TAG: RegExp = /<[^>]+>/g;
-
+// The words of an email in every client, what only Outlook shows included.
 const textOf: (html: string) => string = (html: string): string => {
-  return html.replace(HTML_TAG, " ");
+  return markupAsSpacesWithOutlookContent(html);
 };
 
 const brandAs: (branding: ProductBranding | null) => void = (
