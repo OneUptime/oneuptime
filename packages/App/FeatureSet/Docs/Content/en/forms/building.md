@@ -1,17 +1,50 @@
 # Building a Form
 
-A form's **Build** page is where you decide what it asks, and how its page looks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Select a question to edit it where it is, drag it to move it, and click **Save Changes** when the form reads the way you want. Above the questions, folded, is the form's [Branding](#branding): its logo and favicon. Named sets of answers people can start the form from — each of which can also make a question required, optional or hidden for its own case — are on its **Templates** page: see [Templates](#templates).
+A form's **Build** page is where you decide what it asks, and how its page looks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Above the questions, folded, is the form's [Branding](#branding): its logo and favicon. Named sets of answers people can start the form from — each of which can also make a question required, optional or hidden for its own case — are on its **Templates** page: see [Templates](#templates).
+
+:::cards
+- [The builder](#the-builder): Add, edit, move and save questions.
+- [What you can add](#what-you-can-add): Your own questions, the record's fields, custom fields and the submitter.
+- [Hidden questions](#hidden-questions): Answered by a template, never by the person submitting.
+- [Templates](#templates): One form, and one link, for every case your team reports often.
+:::
+
+## Where each answer goes
+
+```mermaid title="Where each kind of answer goes"
+flowchart TB
+    answer["An answer, submitted"] --> kind{"What the question is"}
+    kind -->|"A field of the record"| field["That field of the new<br/>incident or event"]
+    kind -->|"A custom field"| custom["That custom field's value"]
+    kind -->|"A question of the form's own"| note["A line on the<br/>private note"]
+    kind -->|"Your Name, Your Email"| who["Who submitted,<br/>on the private note"]
+```
+
+Every answer is also kept with the submission, on the form's **Submissions** page. A field the form does not ask, or that is left empty, is filled in from the form's [On Submit settings](/docs/forms/on-submit).
 
 ## The builder
 
+:::steps
+### Add a question
+
+Pick what to add in **Add a Question**. The new question is inserted after the selected one, or at the end, and selected.
+
+### Edit it where it is
+
+Select a card to edit it: its question, help text, answer type and options, whether it is required or hidden, and the buttons to duplicate or delete it. **Done** closes it.
+
+### Put it in its place
+
+Drag a card by its handle to move it, or use **Move Up** and **Move Down** on the selected card — on a phone, or from the keyboard.
+
+### Save the form
+
+**Save Changes** saves every change at once. Until you save, the builder says **Unsaved changes** and offers **Discard Changes**, and the browser asks before you leave the page.
+:::
+
 - **The form's header** shows its name and description as the public page will. **Edit Name and Description** changes them.
 - **The questions** are cards. Each shows the question as people will see it, with a badge that says what it is linked to — **Incident · Severity**, **Custom Field · Region**, **Submitter · Email**, or its answer type for a question of the form's own. A red asterisk marks a required question, and a **Hidden** badge a [hidden](#hidden-questions) one.
-- **Select a card** to edit it: its question, help text, answer type and options, whether it is required or hidden, and the buttons to duplicate or delete it. **Done** closes it.
-- **Drag a card by its handle** to move it, or use **Move Up** and **Move Down** on the selected card — on a phone, or from the keyboard.
-- **Add a Question** inserts the new question after the selected one, or at the end, and selects it.
-- **Save Changes** saves every change at once. Until you save, the builder says **Unsaved changes** and offers **Discard Changes**, and the browser asks before you leave the page. A form can have up to 50 questions.
-
-People who may read a form but not edit it see the builder read-only.
+- **Limits.** A form can have up to 50 questions. People who may read a form but not edit it see the builder read-only.
 
 ## Branding
 
@@ -21,11 +54,11 @@ Folded, the section lists **Logo** and **Favicon** — drawn as set once the for
 
 **Edit Branding** changes them in one dialog:
 
-| Field             | What it is                                                                                                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Logo**          | Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less. Remove it to go back to the OneUptime logo. |
+| Field | What it is |
+| --- | --- |
+| **Logo** | Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less. Remove it to go back to the OneUptime logo. |
 | **Logo Alt Text** | What the logo says, read out by screen readers: usually your organization's name. Asked once there is a logo. Leave it empty and screen readers skip the logo — the form's name follows it anyway. Removing the logo clears it too. |
-| **Favicon**       | The icon in the browser tab while the form is open, in place of the OneUptime favicon. A PNG, JPEG, GIF, WebP, SVG or ICO image of 128 KB or less; a square PNG, SVG or ICO works best. Remove it to go back to the OneUptime favicon. |
+| **Favicon** | The icon in the browser tab while the form is open, in place of the OneUptime favicon. A PNG, JPEG, GIF, WebP, SVG or ICO image of 128 KB or less; a square PNG, SVG or ICO works best. Remove it to go back to the OneUptime favicon. |
 
 The logo keeps the height of the OneUptime logo it replaces, and a wide one is fitted to the page's width. Every image is checked when it is saved — from the dashboard, the API, Terraform or a workflow: it must have been uploaded in the form's own project, be one of the types above, and be no larger than its limit. A logo that is not one of those images is refused with "The logo must be a PNG, JPEG, GIF, WebP or SVG image.", one that is too large with "The logo must be 512 KB or smaller.", and one whose upload is gone — or that was uploaded in another project — with "The logo's file could not be found. Upload the logo again." A favicon is refused the same way, with "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image.", "The favicon must be 128 KB or smaller." and "The favicon's file could not be found. Upload the favicon again."
 
@@ -33,21 +66,21 @@ The logo keeps the height of the OneUptime logo it replaces, and a wide one is f
 
 ## What you can add
 
-The palette has four groups.
+**Add a Question** lists four groups: **Questions** of the form's own, **Incident Fields** or **Scheduled Maintenance Fields** of what the form creates, **Custom Fields**, and **Submitter**.
 
 ### Questions of the form's own
 
-| Answer type       | What the submitter gives                     |
-| ----------------- | -------------------------------------------- |
-| **Short Answer**  | One line of text.                            |
-| **Paragraph**     | Several lines of text.                       |
-| **Rich Text**     | Text with formatting and links.              |
-| **Number**        | A number.                                    |
-| **Dropdown**      | One choice from a list.                      |
-| **Multi-Select**  | Any number of choices from a list.           |
-| **Checkbox**      | A box to tick, such as a confirmation.       |
-| **Date**          | A day.                                       |
-| **Date and Time** | A day and a time.                            |
+| Answer type | What the submitter gives |
+| --- | --- |
+| **Short Answer** | One line of text. |
+| **Paragraph** | Several lines of text. |
+| **Rich Text** | Text with formatting and links. |
+| **Number** | A number. |
+| **Dropdown** | One choice from a list. |
+| **Multi-Select** | Any number of choices from a list. |
+| **Checkbox** | A box to tick, such as a confirmation. |
+| **Date** | A day. |
+| **Date and Time** | A day and a time. |
 
 A dropdown or multi-select lists the **Options** you give it, each with an optional color (the button beside an option opens a set of named colors, with **Custom color** for an exact code), between one and 100 of them. Switching a question between **Dropdown** and **Multi-Select** keeps its options; a question that becomes one starts with two you can rename, and one that stops being one drops them. **Duplicate** copies a question of the form's own, right below it.
 
@@ -57,26 +90,26 @@ The answers to these questions are kept with the submission and listed on the pr
 
 The fields of an incident, or of a scheduled maintenance event, that a submitter can answer. The answer becomes the field's value.
 
-| Incident field        | Answered with                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------- |
-| **Title**             | One line, up to 500 characters.                                                              |
-| **Description**       | Rich text, up to 20,000 characters.                                                          |
-| **Severity**          | One of your incident severities.                                                             |
-| **Monitors**          | Any of the monitors you offer — the incident's affected monitors.                            |
-| **Labels**            | Any of the labels you offer.                                                                 |
-| **Impact Started At** | A date and time: when the problem started, as the submitter remembers it.                    |
+| Incident field | Answered with |
+| --- | --- |
+| **Title** | One line, up to 500 characters. |
+| **Description** | Rich text, up to 20,000 characters. |
+| **Severity** | One of your incident severities. |
+| **Monitors** | Any of the monitors you offer — the incident's affected monitors. |
+| **Labels** | Any of the labels you offer. |
+| **Impact Started At** | A date and time: when the problem started, as the submitter remembers it. |
 
-| Scheduled maintenance field | Answered with                                                    |
-| --------------------------- | ---------------------------------------------------------------- |
-| **Title**                   | One line, up to 100 characters.                                  |
-| **Description**             | Rich text, up to 20,000 characters.                              |
-| **Starts At**               | A date and time. Always asked and always required.              |
-| **Ends At**                 | A date and time after **Starts At**. Always asked and required. |
-| **Monitors**                | Any of the monitors you offer.                                   |
-| **Status Pages**            | Any of the status pages you offer.                               |
-| **Labels**                  | Any of the labels you offer.                                     |
+| Scheduled maintenance field | Answered with |
+| --- | --- |
+| **Title** | One line, up to 100 characters. |
+| **Description** | Rich text, up to 20,000 characters. |
+| **Starts At** | A date and time. Always asked and always required. |
+| **Ends At** | A date and time after **Starts At**. Always asked and required. |
+| **Monitors** | Any of the monitors you offer. |
+| **Status Pages** | Any of the status pages you offer. |
+| **Labels** | Any of the labels you offer. |
 
-Each field can be asked once; the palette marks the ones already on the form **Added**. A field the form does not ask — or that is left empty — is filled in from the form's [On Submit settings](/docs/forms/on-submit).
+Each field can be asked once; the list marks the ones already on the form **Added**. A field the form does not ask — or that is left empty — is filled in from the form's [On Submit settings](/docs/forms/on-submit).
 
 **Choices Offered.** A public page must not list your whole project to strangers, so a field answered by choosing records offers only the ones you pick. **Monitors**, **Labels** and **Status Pages** list exactly the choices you offer, and are not asked until you offer at least one. **Severity** offers every incident severity unless you narrow it, since severities are not secret. Answers outside the offered choices are refused.
 
@@ -120,14 +153,26 @@ A hidden question keeps its place, its label and its settings, so you can show i
 
 A form's **Templates** page holds named sets of answers people can start the form from — one for each case your team reports often, such as **Application Outage**, **Planned Maintenance** or **Service Restored** — so one form, and one link, serves them all.
 
-- **Add Template** opens the template's editor, in two parts. **Questions** lists every question of the form with how this template asks it — see [How a template asks each question](#how-a-template-asks-each-question). **Answers** lists them again, hidden ones included and none of them required: fill in what the template should answer, and leave the rest to the person submitting. An answer to a question the template does not ask says so under it — it is used as it is.
-- **Default** makes it the template the form opens with. Only one template can be the default, and a form whose only template is its default is simply a pre-filled form.
-- Each template lists what it fills in and the questions it asks its own way, such as **Scheduled Maintenance Date · Hidden**, and has **Edit**, **Duplicate** — a copy right after it, named like **Application Outage 2** — **Move Up** and **Move Down**, for the order the form lists them in, and **Delete**.
-- **Copy Link** copies the template's own link, which opens the form with it filled in. See [Sharing & Security](/docs/forms/sharing-and-security#a-link-for-each-template).
+:::steps
+### Add a template
+
+Click **Add Template**. The editor has two parts. **Questions** lists every question of the form with how this template asks it — see [How a template asks each question](#how-a-template-asks-each-question). **Answers** lists them again, hidden ones included and none of them required: fill in what the template should answer, and leave the rest to the person submitting. An answer to a question the template does not ask says so under it — it is used as it is.
+
+### Choose the default
+
+**Default** makes it the template the form opens with. Only one template can be the default, and a form whose only template is its default is simply a pre-filled form.
+
+### Share its link
+
+**Copy Link** copies the template's own link, which opens the form with it filled in. See [Sharing & Security](/docs/forms/sharing-and-security#a-link-for-each-template).
+:::
+
+Each template lists what it fills in and the questions it asks its own way, such as **Scheduled Maintenance Date · Hidden**, and has **Edit**, **Duplicate** — a copy right after it, named like **Application Outage 2** — **Move Up** and **Move Down**, for the order the form lists them in, and **Delete**.
 
 On the public page, a form with templates lists them over its questions, under **Start from a template**. Choosing one fills the form in and asks the questions as that template asks them; the submitter can still change any answer before submitting, and choosing another starts the form over from that one. The page opens with the template its link names, otherwise with the default, otherwise with none. **Preview** lists the templates and opens on the default too.
 
-Everyone who opens the link sees every template's name and its answers to the questions it asks — that is how the page fills itself in. A template's answers to questions it does not ask never leave the server, so keep anything internal in a hidden question.
+> [!IMPORTANT]
+> Everyone who opens the link sees every template's name and its answers to the questions it asks — that is how the page fills itself in. A template's answers to questions it does not ask never leave the server, so keep anything internal in a hidden question.
 
 Every answer of every template is checked against its question when the templates are saved — an option the question offers, a record the form offers, text that fits — and so is every question a template asks its own way, and saving is refused with a message that names the template and the problem, whether it comes from the dashboard, the API or Terraform. A template's name is up to 100 characters and unique within the form, and a form has up to 50 templates. When you later change the questions, a template's answer to a question you removed, or that no longer fits it, is simply not used, and the next save of that template drops it. Saving the other templates is never refused for it: what a template already held is not checked again.
 
@@ -135,20 +180,20 @@ Every answer of every template is checked against its question when the template
 
 Different cases need different questions: an outage needs the affected application and not a maintenance window, planned maintenance needs the window. Rather than build a form for each case, let each template ask the form's questions its own way. In a template's **Questions**, each question has one of these:
 
-| Setting          | When someone starts from the template                                                                                                                                                                 |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setting | When someone starts from the template |
+| --- | --- |
 | **Form default** | The question is asked as the form asks it — required, optional or hidden, as its card in the builder says. The picker says which, such as **Form default (Hidden)**, and follows the card when you change it. |
-| **Required**     | The question is asked, and the form cannot be submitted without an answer.                                                                                                                            |
-| **Optional**     | The question is asked, and may be left empty.                                                                                                                                                         |
-| **Hidden**       | The question is not asked. The template's own answer to it, if it has one, is the answer, as for a question the form hides.                                                                           |
+| **Required** | The question is asked, and the form cannot be submitted without an answer. |
+| **Optional** | The question is asked, and may be left empty. |
+| **Hidden** | The question is not asked. The template's own answer to it, if it has one, is the answer, as for a question the form hides. |
 
 One incident form can so serve both cases:
 
-| Question                   | Application Outage | Planned Maintenance |
-| -------------------------- | ------------------ | ------------------- |
-| Application Name           | Required           | Required            |
-| Affected Facilities        | Required           | Optional            |
-| Scheduled Maintenance Date | Hidden             | Required            |
+| Question | Application Outage | Planned Maintenance |
+| --- | --- | --- |
+| Application Name | Required | Required |
+| Affected Facilities | Required | Optional |
+| Scheduled Maintenance Date | Hidden | Required |
 
 Every question starts on **Form default**, and so does every question you add to the form later, in every template. A maintenance event's **Starts At** and **Ends At** are always asked and always required: no template can change them. A template can hide every other question and answer them itself: its link is then a form of one button, **Submit** — handy for a case such as **Service Restored**.
 
@@ -158,10 +203,12 @@ The page follows the template the submitter chooses: picking another one draws t
 
 A card with something wrong says what, in amber:
 
-- **This custom field was deleted, so the question is not asked.** The public page leaves the question out. Delete it.
-- **Choose at least one to offer, or the question is not asked.** Pick the monitors, labels or status pages it offers.
-- **Add at least one option.** A dropdown or multi-select has nothing to choose from.
-- **Write the question.** The question has no text.
+| The card says | What is wrong |
+| --- | --- |
+| **This custom field was deleted, so the question is not asked. Delete the question.** | The public page leaves the question out. |
+| **Choose at least one to offer, or the question is not asked.** | A field answered by choosing records offers none: pick the monitors, labels or status pages it offers. |
+| **Add at least one option.** | A dropdown or multi-select has nothing to choose from. |
+| **Write the question.** | The question has no text. |
 
 The form cannot be saved while a question has one of the last three: **Save Changes** says which question and what is wrong, and the preview leaves such a question out. Saving checks the questions as a whole too, and is refused with a message that names the problem when, for example, two questions ask for the same field, or a maintenance form does not ask when the maintenance starts and ends — whether the questions come from the builder, the API, Terraform or a workflow.
 
@@ -177,19 +224,21 @@ After submitting, the page says "Thank you — your response was submitted." and
 
 ## Size limits
 
-| Answer                         | Limit                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------- |
-| An incident's **Title**        | 500 characters, not counting spaces at either end.                         |
-| A maintenance event's **Title** | 100 characters.                                                          |
-| **Description**                | 20,000 characters.                                                         |
-| Any other text answer          | 10,000 characters.                                                         |
-| A multi-select answer          | 100 choices.                                                               |
-| **Your Name**, **Your Email**  | 100 characters each.                                                       |
+| Answer | Limit |
+| --- | --- |
+| An incident's **Title** | 500 characters, not counting spaces at either end. |
+| A maintenance event's **Title** | 100 characters. |
+| **Description** | 20,000 characters. |
+| Any other text answer | 10,000 characters. |
+| A multi-select answer | 100 choices. |
+| **Your Name**, **Your Email** | 100 characters each. |
 
 A submission that breaks a limit, leaves out a required answer or gives an answer that does not fit its question is refused with a message that says which, and nothing is created. Answers to questions the form does not ask are ignored.
 
-## Where to read next
+## Next steps
 
-- [What a Submission Creates](/docs/forms/on-submit) — how the answers and the On Submit settings become an incident or a maintenance event.
-- [Sharing & Security](/docs/forms/sharing-and-security) — sharing the link, a link for each template, and what protects them.
-- [Incident Settings & Automation](/docs/incidents/settings) — incident custom fields and templates.
+:::cards
+- [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident or a maintenance event.
+- [Sharing & Security](/docs/forms/sharing-and-security): Sharing the link, a link for each template, and what protects them.
+- [Incident Settings & Automation](/docs/incidents/settings): Incident custom fields and templates.
+:::

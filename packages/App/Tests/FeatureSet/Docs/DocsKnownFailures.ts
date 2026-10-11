@@ -440,11 +440,9 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "workspace-connections/microsoft-teams": {
-    headingLevels: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "workspace-connections/slack": {
-    headingLevels: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "workspace-connections/video-calls": {
