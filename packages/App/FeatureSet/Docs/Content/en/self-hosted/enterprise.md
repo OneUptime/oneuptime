@@ -52,9 +52,9 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 
 Single sign-on includes "Require SSO for login" for projects, private status pages and the whole instance, in both editions.
 
-Every edition has the project's default telemetry retention (**Settings > Telemetry > Telemetry Data Retention**). Retention overrides are what the Enterprise Edition adds on top of it.
+Every edition has the project's default telemetry retention, on **Project Settings > Telemetry & APM > Data Retention**. Retention overrides are what the Enterprise Edition adds on top of it.
 
-On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Settings > SSO** shows the **Require SSO for Login** switch under its upgrade card while the project still requires SSO, so it can be turned off.
+On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Project Settings > Security > SSO** shows the **Require SSO for Login** switch under its upgrade card while the project still requires SSO, so it can be turned off.
 
 "Not applicable" rows are instance-administration features. On OneUptime Cloud, OneUptime operates the instance for you.
 
@@ -203,7 +203,7 @@ Your configuration stays in the database. Switching back to the Enterprise image
 - **SCIM stops.** Its provisioning endpoints no longer exist, so IdP-driven SCIM calls fail. That includes SCIM deprovisioning.
 - **SCIM team locks are lifted**, so teams that were managed by SCIM push groups can be edited by hand. At startup the server logs which projects had their SCIM team locks lifted.
 - **Audit logging stops.** Audit logs recorded so far are kept, but the audit log pages show an upgrade prompt.
-- **Retention overrides stop applying.** New telemetry is kept for the project's default retention, and the retention cards on Settings > Telemetry and on every service and resource Settings page show an upgrade prompt. The overrides stay in the database and apply again when you switch back.
+- **Retention overrides stop applying.** New telemetry is kept for the project's default retention, and the retention cards on **Project Settings > Telemetry & APM > Data Retention** and on every service and resource Settings page show an upgrade prompt. The overrides stay in the database and apply again when you switch back.
 - **Enterprise settings pages show an upgrade prompt.** Through the API you can still read and delete enterprise configuration and reset a SCIM bearer token, but not create or change anything else. Audit logging cannot be turned on.
 - **The enterprise Health dashboards, the Query Console, and the PostgreSQL and Valkey health alerts stop.** ClickHouse capacity monitoring and pruning, migration status and the support bundle keep working.
 

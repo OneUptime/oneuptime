@@ -114,7 +114,7 @@ A second guard covers outbound connections whose target a project member chooses
 - OIDC discovery for single sign-on
 - status page and dashboard custom domain verification
 - Runbook HTTP steps
-- the Grafana OnCall API URL an import reads from (**Project Settings** > **Import from another tool**)
+- the Grafana OnCall API URL an import reads from (**Project Settings** > **Basic** > **Import from another tool**)
 
 This guard works the other way round from the webhook settings. On a self-hosted install it **allows** the private tier by default, because the database, mail server or model server these connect to usually lives on your own network. The forbidden tier — loopback, link-local and the cloud metadata endpoint — is refused either way, and there is no allowlist for it.
 
@@ -161,11 +161,9 @@ probes:
   one:
     allowPrivateNetworkMonitors: true
 ```
-@tab Custom probe
-Set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in that probe's own environment and restart it.
 :::
 
-The value must be exactly `true`; anything else, such as `TRUE` or `1`, leaves the switch off and the probe says so in a startup warning, whatever `LOG_LEVEL` is set to.
+On a custom probe, set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in that probe's own environment and restart it. The value must be exactly `true`; anything else, such as `TRUE` or `1`, leaves the switch off and the probe says so in a startup warning, whatever `LOG_LEVEL` is set to.
 
 The bundled probes are **global probes**: they register themselves with the instance's `REGISTER_PROBE_KEY`, and every project on the instance can select them. Turning the switch on for a bundled probe therefore lets monitors from **every project on the instance** reach private addresses through it. That is usually what a single-team install wants. Where projects should not share that reach — separate teams, or customers you host — leave it off on the bundled probes and deploy a private (custom) probe inside each network instead, turned on only there.
 
