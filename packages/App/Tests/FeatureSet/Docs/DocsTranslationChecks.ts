@@ -88,7 +88,9 @@ export function inlineCode(markdown: string): Array<string> {
 // What a diagram says, as opposed to how it is built: labels and message text.
 const DIAGRAM_QUOTED_LABEL: RegExp = /"[^"\n]*"/g;
 const DIAGRAM_EDGE_LABEL: RegExp = /\|[^|\n]*\|/g;
-const DIAGRAM_PARTICIPANT_ALIAS: RegExp = /^(\s*participant\s+\S+)\s+as\s+.*$/;
+// A participant's or an actor's display name: "actor U as Person".
+const DIAGRAM_PARTICIPANT_ALIAS: RegExp =
+  /^(\s*(?:participant|actor)\s+\S+)\s+as\s+.*$/;
 const DIAGRAM_MESSAGE_TEXT: RegExp = /:.*$/;
 /*
  * A sequence diagram's block and its label: "loop Every 10 seconds",

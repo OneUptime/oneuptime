@@ -20,6 +20,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  diagramSkeleton,
   inlineCode,
   listItemCount,
   navTitle,
@@ -1380,6 +1381,29 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       Array.from(statedNumbers("Bis zu 1.000 Operationen, ۴۰ دقیقه, 1,000 and 1 000.")),
     ).toEqual(["1000", "40"]);
+  });
+
+  it("let a translation name a sequence diagram's actor, but not change who it is", () => {
+    const english: string = [
+      "sequenceDiagram",
+      "    actor U as Person",
+      "    participant I as Identity provider",
+      "    U->>I: Credentials and MFA",
+    ].join("\n");
+    const translated: string = [
+      "sequenceDiagram",
+      "    actor U as Personne",
+      "    participant I as Fournisseur d'identité",
+      "    U->>I: Identifiants et MFA",
+    ].join("\n");
+
+    expect(diagramSkeleton(translated)).toBe(diagramSkeleton(english));
+    expect(diagramSkeleton(translated.replace("actor U", "actor V"))).not.toBe(
+      diagramSkeleton(english),
+    );
+    expect(
+      diagramSkeleton(translated.replace("actor U", "participant U")),
+    ).not.toBe(diagramSkeleton(english));
   });
 
   it("count the steps of nested :::steps blocks, and only theirs", () => {
