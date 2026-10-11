@@ -102,6 +102,7 @@ const WORKSPACE_AND_FORMS_TO_TRANSLATE: Array<string> = except(
   "da",
   "no",
   "sv",
+  "ru",
 );
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
