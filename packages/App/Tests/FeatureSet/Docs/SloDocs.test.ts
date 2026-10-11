@@ -1,4 +1,8 @@
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { scanMarkdown } from "./DocsContentSupport";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { comparableFence, navTitle } from "./DocsTranslationChecks";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import {
@@ -17,8 +21,8 @@ import path from "path";
  * Markdown is not compiled, so nothing else notices when the worker starts
  * posting a new oneuptime.slo.* series the metrics page never lists, a burn
  * rate template variable is added without the docs table following, the SLO
- * side menu gains a page the overview never explains, or the Persian pages
- * fall behind the English ones. Each test reads the source of truth - the
+ * side menu gains a page the overview never explains, or a translation
+ * falls behind the English pages. Each test reads the source of truth - the
  * metric catalog, the template catalog, the side menu, the upgrade migration,
  * the nav - and checks the shipped pages still tell the same story.
  */
@@ -63,15 +67,17 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
 ];
 
 /*
- * Every language directory that ships the SLO pages. `fa` is the only
- * translated corpus (every other language falls back to English per page at
- * request time), so a new translation only has to be added here.
+ * Every docs language ships the SLO pages (docs overhaul task 18a), so every
+ * language but English is checked as a translation. SloDocsTranslations holds
+ * them to the English pages in detail; these checks are the SLO-specific
+ * ones.
  */
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> =
+  SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+    return language !== "en";
+  });
 
 const FENCE_LINE: RegExp = /^\s*```/;
-// Arabic-script letters, which every Persian sentence contains.
-const PERSIAN_LETTER: RegExp = /[؀-ۿ]/;
 
 type PageFileFunction = (language: string, relative: string) => string;
 
@@ -250,7 +256,16 @@ describe("SLO docs", () => {
 
           const translated: string = readPage(expected.page, language);
 
-          expect(PERSIAN_LETTER.test(titleOf(translated))).toBe(true);
+          // Titled as the docs' own nav link in that language.
+          expect({
+            language: language,
+            page: expected.page,
+            title: titleOf(translated),
+          }).toEqual({
+            language: language,
+            page: expected.page,
+            title: navTitle(language, expected.title),
+          });
           expect(translated).not.toEqual(readPage(expected.page));
         }
       }
@@ -341,8 +356,9 @@ describe("SLO docs", () => {
             });
           }
 
-          expect(splitMarkdown(translated).codeBlocks).toEqual(
-            splitMarkdown(english).codeBlocks,
+          // Code exactly; a diagram by how it is built, since its labels are translated.
+          expect(scanMarkdown(translated).fences.map(comparableFence)).toEqual(
+            scanMarkdown(english).fences.map(comparableFence),
           );
         }
       }
@@ -380,11 +396,14 @@ describe("SLO docs", () => {
         const markdown: string = readPage(INTRODUCTION_PAGE, language);
 
         for (const title of sideMenuTitles) {
+          // Named as that language's Dashboard draws the menu item.
+          const drawn: string = drawnDashboardLabel(language, title);
+
           expect({
             language: language,
-            page: title,
-            documented: Boolean(tableRowStartingWith(markdown, `**${title}**`)),
-          }).toEqual({ language: language, page: title, documented: true });
+            page: drawn,
+            documented: Boolean(tableRowStartingWith(markdown, `**${drawn}**`)),
+          }).toEqual({ language: language, page: drawn, documented: true });
         }
       }
     });

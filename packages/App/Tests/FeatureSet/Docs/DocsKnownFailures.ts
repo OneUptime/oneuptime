@@ -148,9 +148,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
   },
-  "installation/upgrading": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },
@@ -304,30 +301,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "self-hosted/sendgrid-inbound-email": {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
-  },
-  "slo/burn-rate-alerts": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/error-budget": {
-    uniqueHeadings: ["en", "fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/feed-and-audit-logs": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/introduction": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/label-and-owner-rules": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/metrics": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "slo/monitor-rules": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,

@@ -1,4 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  otherChangesItemAtEnglishPlace,
+  otherChangesItems,
+} from "./UpgradingDocsNotes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -17,8 +21,7 @@ import path from "path";
  * Users, Teams & Permissions says so in every docs language - a paragraph
  * closing the Owners section, and one after the paragraph on fields under
  * How OneUptime decides - the API reference says what a client sees, and the
- * upgrade notes say what changes, at length in English and in one line in
- * every other guide.
+ * upgrade notes say what changes, in every guide.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -329,37 +332,40 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       return language !== "en";
     }),
   )(
-    "the %s upgrade guide has the line, right before the one record a write names",
+    "the %s upgrade guide has the note, after the one record a write names and before the reads by ID",
     (language: string) => {
-      const lines: Array<string> = read(
-        language,
-        "installation/upgrading.md",
-      ).split("\n");
-      const found: Array<number> = lines
-        .map((line: string, index: number): number => {
-          return line.startsWith(`- **${UPGRADE_HEADING[language]!}**`)
-            ? index
-            : -1;
-        })
-        .filter((index: number): boolean => {
-          return index >= 0;
-        });
-
-      expect([language, found.length]).toEqual([language, 1]);
-
-      const line: string = lines[found[0]!]!;
-      const next: string = lines[found[0]! + 1] || "";
-
       /*
-       * The next line is the one record a write names, then a create under
-       * a readable record.
+       * Each translation lists the English notes in the English order: the
+       * note is the one in the English note's place, under its own lead.
        */
+      const items: Array<string> = otherChangesItems(language);
+      const owners: string = otherChangesItemAtEnglishPlace(
+        language,
+        UPGRADE_HEADING["en"]!,
+      );
+      const named: string = otherChangesItemAtEnglishPlace(
+        language,
+        "The one record a write names, and a change of a record's labels, keep to",
+      );
+      const readById: string = otherChangesItemAtEnglishPlace(
+        language,
+        "Every grant and scope narrows what it reaches, and a read by ID of a",
+      );
+
       expect([
         language,
-        next.startsWith("- **") &&
-          next.includes("`400`") &&
-          next.includes("`422`") &&
-          (lines[found[0]! + 2] || "").includes("`CreateIncidentInternalNote`"),
+        owners.startsWith(`- **${UPGRADE_HEADING[language]!}**`),
+      ]).toEqual([language, true]);
+
+      // The one record a write names comes first, and names its statuses.
+      expect([
+        language,
+        named.includes("`400`") && named.includes("`422`"),
+      ]).toEqual([language, true]);
+      expect([
+        language,
+        items.indexOf(named) < items.indexOf(owners) &&
+          items.indexOf(owners) < items.indexOf(readById),
       ]).toEqual([language, true]);
 
       for (const token of [
@@ -367,6 +373,8 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
         "`SettingsAdmin`",
         "`SettingsMember`",
         "`SettingsViewer`",
+        "`StatusPageAdmin`",
+        "`ReadRunbookCredential`",
         "`resellerId`",
         "`resellerPlanId`",
         "`resellerLicenseId`",
@@ -375,14 +383,14 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
         "API",
         "OneUptime",
       ]) {
-        expect([language, token, line.includes(token)]).toEqual([
+        expect([language, token, owners.includes(token)]).toEqual([
           language,
           token,
           true,
         ]);
       }
 
-      expect([language, line.includes(UPGRADE_HEADING["en"]!)]).toEqual([
+      expect([language, owners.includes(UPGRADE_HEADING["en"]!)]).toEqual([
         language,
         false,
       ]);

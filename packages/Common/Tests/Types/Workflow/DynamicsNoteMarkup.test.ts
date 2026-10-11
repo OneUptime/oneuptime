@@ -25,9 +25,10 @@
  *     text, "latency < 200ms";
  *   - a note with no tag is plain text: only its entities are read;
  *   - entities are read once, after the walk;
- *   - what came from Dynamics 365 is placed exactly as
- *     FeedMarkdown.reportedValue places outside text: it reads as written,
- *     and nothing in it acts;
+ *   - what came from Dynamics 365 is placed with asWritten, which every
+ *     Jira and Dynamics 365 script carries in its helper block and
+ *     TemplateOutsideText.test.ts holds to FeedMarkdown.reportedValue: it
+ *     reads as written, and nothing in it acts;
  *   - ordinary notes - paragraphs, line breaks, lists, tables, headings,
  *     links, quotes, entities, other scripts - are saved exactly as before;
  *   - a long note is read in time that grows with its length alone.
@@ -37,7 +38,6 @@ import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import { removeHtmlMarkup, replaceHtmlMarkup } from "../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../Types/JSON";
 import { ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER } from "../../../Types/Workflow/Templates";
-import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import {
   hrefsOf,
@@ -178,7 +178,6 @@ const HARNESS: string = [
   "  walked: cases.map((html) => replaceMarkup(html, (markup) => '[' + markup + ']')),",
   "  removed: cases.map((html) => replaceMarkup(html, () => '')),",
   "  text: cases.map((html) => htmlToText(html)),",
-  "  placed: cases.map((value) => asNoteText(value)),",
   "};",
 ].join("\n");
 
@@ -186,7 +185,6 @@ interface ScriptReadings {
   walked: Array<string>;
   removed: Array<string>;
   text: Array<string>;
-  placed: Array<string>;
 }
 
 async function readWithTheScript(
@@ -610,138 +608,8 @@ describe("the note script's own walk", () => {
   });
 });
 
-describe("the note script's placing of text", () => {
-  /*
-   * Text made of what Markdown, HTML and chat tools act on - fences, the
-   * word "mermaid" and references that spell it, brackets, mentions - so
-   * every rule of FeedMarkdown.reportedValue is reached.
-   */
-  const MARKDOWN_ALPHABET: Array<string> = [
-    "<",
-    ">",
-    "!",
-    "[",
-    "]",
-    "(",
-    ")",
-    ":",
-    "```",
-    "~~~",
-    "`",
-    "~",
-    "mermaid",
-    "MerMaid",
-    "&#109;",
-    "&#x6D;",
-    "ermaid",
-    "&",
-    "#",
-    ";",
-    "x",
-    "1",
-    " ",
-    "\t",
-    "\n",
-    "@",
-    "!channel",
-    "-",
-    "/",
-    WORD_JOINER,
-    "é",
-    "😀",
-  ];
-
-  const fenceShapes: Array<string> = [];
-
-  for (const before of ["", " ", "> ", "- ", "text "]) {
-    for (const fence of ["```", "~~~", "````", "``", "~~"]) {
-      for (const gap of ["", " ", "\t", "  "]) {
-        for (const language of [
-          "mermaid",
-          "MERMAID",
-          "&#109;ermaid",
-          "&#x6D;ermaid",
-          "&#X6d;ERMAID",
-          "mer&#109;aid",
-          "&#0109;ermaid",
-          "&#109ermaid",
-          `${WORD_JOINER}mermaid`,
-          "mermaid-js",
-          "text mermaid",
-          "&#1;mermaid",
-          "&#xD800;mermaid",
-          "&#99999999999;mermaid",
-        ]) {
-          fenceShapes.push(`${before}${fence}${gap}${language}\ngraph TD`);
-        }
-      }
-    }
-  }
-
-  const reported: Array<string> = [
-    '<html><body><a href="https://evil.example">Reset your password</a></body></html>',
-    "[Verify your account](https://evil.example/login)",
-    "![](https://tracker.example/p.png)",
-    "<!channel> checkout is down <@U0123ABC>",
-    "x` [link](https://evil.example) `y",
-    "line one\n```\n[Open](https://evil.example)\n```",
-    '```mermaid\nflowchart TD\n  A@{ img: "https://tracker.example/m.png" }',
-    "[a]: https://tracker.example/p.png",
-    "<https://evil.example>",
-    "<![CDATA[x]]> <!DOCTYPE html> <!-- c --> <# ps #>",
-    "x < y and y > z",
-    "Reset]",
-    "",
-  ];
-
-  const cases: Array<string> = [
-    ...reported,
-    ...fenceShapes,
-    ...generatedTexts(20000, 1618, MARKDOWN_ALPHABET),
-  ];
-  let readings: ScriptReadings;
-
-  beforeAll(async () => {
-    readings = await readWithTheScript(cases);
-  });
-
-  test("places text exactly as FeedMarkdown.reportedValue does", () => {
-    expect(readings.placed).toHaveLength(cases.length);
-
-    const differences: Array<[string, string, string]> = [];
-
-    cases.forEach((text: string, index: number): void => {
-      const expected: string = FeedMarkdown.reportedValue(text);
-
-      if (readings.placed[index] !== expected) {
-        differences.push([text, readings.placed[index]!, expected]);
-      }
-    });
-
-    expect(differences.slice(0, 5)).toEqual([]);
-  });
-
-  test("keeps every character, adding only invisible joiners", () => {
-    const changed: Array<string> = cases.filter(
-      (text: string, index: number): boolean => {
-        return withoutJoiners(readings.placed[index]!) !== withoutJoiners(text);
-      },
-    );
-
-    expect(changed).toEqual([]);
-  });
-
-  test("leaves no '<' that starts anything", () => {
-    expect(
-      readings.placed.filter((text: string): boolean => {
-        return TAG_START.test(text);
-      }),
-    ).toEqual([]);
-  });
-});
-
 describe("the script", () => {
-  test("is the same in the incident and the alert templates, from its walk to its placing", () => {
+  test("is the same in the incident and the alert templates, from its walk to its step", () => {
     const sectionOf: (templateId: string) => string = (
       templateId: string,
     ): string => {
@@ -766,11 +634,11 @@ describe("the script", () => {
     expect(step).toContain("clean(htmlToText(note.notetext))");
 
     for (const part of [
-      "asNoteText(author)",
-      "asNoteText(caseNumber)",
-      "asNoteText(subject)",
-      "asNoteText(text)",
-      "asNoteText(attachment)",
+      "asWritten(author)",
+      "asWritten(caseNumber)",
+      "asWritten(subject)",
+      "asWritten(text)",
+      "asWritten(attachment)",
     ]) {
       expect(step).toContain(part);
     }

@@ -867,11 +867,114 @@ const jiraSearchBody: JiraSearchBodyFunction = (props: {
   return jsonText(body);
 };
 
+/*
+ * TEXT WRITTEN OUTSIDE ONEUPTIME, PLACED IN ITS MARKDOWN.
+ *
+ * The templates that bring Jira and Dynamics 365 into OneUptime write what
+ * people wrote there - an issue's summary and description, a comment, a
+ * case's title and description, a note, the names of statuses, priorities,
+ * customers and people - into Markdown: a record's title and description,
+ * a private note, the cause of a state change. The dashboard renders that
+ * Markdown, and it is posted as feed items to the project's Slack and
+ * Microsoft Teams channels. So every such part goes in through asWritten,
+ * which places it exactly as FeedMarkdown.reportedValue places text from
+ * outside everywhere else: it reads exactly as written, and no image,
+ * link, HTML, diagram or chat mention in it acts. Links the template writes
+ * itself - to the issue, to the case - are its own, built from what was
+ * checked (an issue key, a site's address, a case id).
+ *
+ * A script runs in the workflow sandbox, which can import nothing, so each
+ * carries this copy of reportedValue. It is part of the helper block every
+ * Jira and Dynamics 365 script starts with, like the other helpers, so any
+ * script can be edited on its own. TemplateOutsideText.test.ts holds the
+ * copy to reportedValue, and every script that writes OneUptime text to
+ * placing each part of it that came from outside.
+ */
+const OUTSIDE_TEXT_HELPERS: string = String.raw`// ---- Placing text written outside OneUptime ----
+// Titles, descriptions, notes and the causes of state changes are Markdown in OneUptime: the
+// dashboard renders them, and they are posted as feed items to the project's Slack and Microsoft
+// Teams channels. What people wrote in the other system, and the names they chose there, are
+// text: asWritten places them the way OneUptime places text from outside everywhere else
+// (FeedMarkdown.reportedValue), so they read exactly as written and nothing in them acts - no
+// image is fetched, no link hides where it goes, no HTML is read, no diagram is drawn and nobody
+// is mentioned. An invisible word joiner (U+2060) goes after each "<" with no whitespace after
+// it (a tag, a comment, an address, a chat mention), after each "!" before "[" (an image), after
+// each "]" that a link goes on from or that ends the text, and before each "mermaid" in what
+// follows the first run of three backticks or tildes on a line (a diagram). Words, line breaks,
+// lists, code and characters such as "&", "*" or "a < b" stay exactly as they were.
+const JOINER = '\u2060';
+const NUMERIC_REFERENCE = /^&#(?:[xX]([0-9a-fA-F]{1,32})|([0-9]{1,32}));/;
+// Where the first run of three or more backticks or tildes on a line ends, or -1 when it has none.
+const fenceRunEndOf = (line) => {
+  const backticks = line.indexOf('\x60\x60\x60');
+  const tildes = line.indexOf('~~~');
+  const start = backticks === -1 ? tildes : tildes === -1 ? backticks : Math.min(backticks, tildes);
+  if (start === -1) return -1;
+  let end = start;
+  while (line.charAt(end) === line.charAt(start)) end++;
+  return end;
+};
+// Where each "mermaid" after a line's first fence run starts, read as the dashboard reads a fence's
+// language: numeric character references decoded, in any letter case. One right after a joiner is
+// already broken.
+const mermaidWordsOf = (line) => {
+  let at = fenceRunEndOf(line);
+  if (at === -1) return [];
+  while (line.charAt(at) === ' ' || line.charAt(at) === '\t') at++;
+  const characters = [];
+  const starts = [];
+  while (at < line.length) {
+    const reference = line.charAt(at) === '&' ? NUMERIC_REFERENCE.exec(line.slice(at, at + 36)) : null;
+    if (reference) {
+      const code = reference[1] ? parseInt(reference[1], 16) : parseInt(reference[2], 10);
+      const isCharacter = code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
+      characters.push(isCharacter ? String.fromCodePoint(code) : '\ufffd');
+      starts.push(at);
+      at += reference[0].length;
+    } else {
+      characters.push(line.charAt(at));
+      starts.push(at);
+      at++;
+    }
+  }
+  const words = [];
+  let index = 0;
+  while (index + 7 <= characters.length) {
+    let length = 0;
+    while (length < 7 && characters[index + length].toLowerCase() === 'mermaid'.charAt(length)) length++;
+    if (length < 7) {
+      index++;
+    } else {
+      if (index === 0 || characters[index - 1] !== JOINER) words.push(starts[index]);
+      index += 7;
+    }
+  }
+  return words;
+};
+const asWritten = (value) => {
+  const text = asText(value)
+    .replace(/!(?=\[)/g, '!' + JOINER)
+    .replace(/\](?=[([:])/g, ']' + JOINER)
+    .split('\n')
+    .map((line) => {
+      let placed = '';
+      let cursor = 0;
+      for (const word of mermaidWordsOf(line)) {
+        placed += line.slice(cursor, word) + JOINER;
+        cursor = word;
+      }
+      return placed + line.slice(cursor);
+    })
+    .join('\n');
+  return text.replace(/<(?![\s\u2060])/g, '<' + JOINER).replace(/\]$/, ']' + JOINER);
+};
+`;
+
 type JiraScriptFunction = (kind: TemplateRecordKind, body: string) => string;
 
 /*
  * Every Jira script starts with the same helper block, so each one can be read
- * and edited on its own. Two rules hold for all of them:
+ * and edited on its own. Three rules hold for all of them:
  *
  *   - No double braces anywhere in the source. The script is an argument like
  *     any other, so a {{...}} in it would be substituted before it runs. Where
@@ -880,6 +983,10 @@ type JiraScriptFunction = (kind: TemplateRecordKind, body: string) => string;
  *     returned. A later step quotes these return values into its own
  *     arguments, and text that still held a {{...}} would be substituted there
  *     — a Jira comment could name a secret variable and have it filled in.
+ *   - Text that came from the other system and goes into OneUptime — a
+ *     record's title or description, a note, the cause of a state change — is
+ *     placed with asWritten() (OUTSIDE_TEXT_HELPERS): it reads exactly as
+ *     written, and no image, link, HTML, diagram or chat mention in it acts.
  *
  * isLinked recognises both kinds of link label, so an issue that is already
  * linked when its event arrives — one OneUptime filed for an incident, say —
@@ -948,10 +1055,21 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
   const text = asText(label).toLowerCase();
   return text === LINK_LABEL || LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0);
 });
-// https://your-company.atlassian.net, read off an issue's own REST URL.
+// https://your-company.atlassian.net, read off an issue's own REST URL: the scheme, the host and a
+// port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
+// site, and nothing else written into the address can act. A host is letters, marks and decimal
+// digits in any script, ".", "-", "_" and "~", or an IPv6 address in brackets. Only what comes
+// before the URL's path is read, and only when it is no longer than a site's address can be, so a
+// long URL is never matched against a pattern.
+const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
+const LONGEST_SITE = 300;
 const siteOf = (self) => {
-  const match = asText(self).match(/^https?:\/\/[^/]+/);
-  return match ? match[0] : '';
+  const text = asText(self);
+  const hostStart = text.indexOf('://');
+  if (hostStart === -1) return '';
+  const pathStart = text.indexOf('/', hostStart + 3);
+  const site = pathStart === -1 ? text : text.slice(0, pathStart);
+  return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
 const issueLink = (self, issueKey) => {
   const site = siteOf(self);
@@ -979,7 +1097,7 @@ const linkedIssue = (search, ${kind.noun}Id) => {
 };
 `;
 
-  return `${helpers}\n// ---- What this step does ----\n${body.trim()}\n`;
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
 };
 
 type JiraKindScriptFunction = (kind: TemplateRecordKind) => string;
@@ -1308,19 +1426,21 @@ const rankValue = PRIORITY_RANK[priority.toLowerCase()];
 const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
 const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
-const reporter = displayName(fields.reporter) || displayName(payload.user);
+// What Jira users wrote - the summary, the priority's and the reporter's names, the description -
+// is placed as written (asWritten). The link to the issue is the template's own.
+const reporter = oneLine(displayName(fields.reporter) || displayName(payload.user));
 const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey) + '.'];
-if (priority) lines.push('Priority: ' + priority);
-if (reporter) lines.push('Reported by: ' + reporter);
+if (priority) lines.push('Priority: ' + asWritten(priority));
+if (reporter) lines.push('Reported by: ' + asWritten(reporter));
 const description = clean(plainText(fields.description)).trim();
-if (description) lines.push('', description);
+if (description) lines.push('', asWritten(description));
 
 return {
   proceed: true,
   issueKey: issueKey,
   severityName: oneLine(severity.name),
   ${kind.severityIdColumn}: asText(severity._id),
-  title: limit(defuse(oneLine(fields.summary) || 'Jira issue ' + issueKey), 500),
+  title: limit(defuse(asWritten(oneLine(fields.summary)) || 'Jira issue ' + issueKey), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
 `,
@@ -1445,12 +1565,16 @@ if (Number(target.order) <= Number(current.order)) {
   return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Jira issue ' + asText(event.issueKey) + ' moving to ' + jiraStatus + ' changes nothing.');
 }
 
+// The status's name and the name of whoever moved the issue are Jira's text, placed as written
+// (asWritten). The issue key matched ISSUE_KEY when the event was read; it is placed here too, so
+// this step stays safe if that check is ever changed.
+const changedBy = oneLine(event.changedBy);
 return {
   proceed: true,
   ${r}Id: asText(${r}._id),
   stateId: asText(target._id),
   stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asText(event.issueKey) + ' moved to ' + jiraStatus + (event.changedBy ? ' by ' + oneLine(event.changedBy) : '') + '.'), 1000),
+  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asWritten(asText(event.issueKey)) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -1489,11 +1613,13 @@ if (body.indexOf(FROM_ONEUPTIME) !== -1) {
   return skip('This comment was posted by OneUptime, so it was not copied back.');
 }
 
-const author = oneLine(displayName(comment.author)) || 'Someone';
+// The author's name and the comment are Jira users' text, placed as written (asWritten). The link
+// to the issue is the template's own.
+const author = asWritten(oneLine(displayName(comment.author))) || 'Someone';
 return {
   proceed: true,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey) + '.\n\n' + body), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey) + '.\n\n' + asWritten(body)), 30000),
 };
 `,
   );
@@ -1576,12 +1702,14 @@ const changes = items.filter((item) => {
 });
 if (!changes.length) return skip('Nothing that changed on Jira issue ' + issueKey + ' is worth a note.');
 
+// The fields' names, their values and the name of whoever changed them are Jira's text, placed as
+// written (asWritten). The link to the issue is the template's own.
 const show = (value) => {
   const text = oneLine(value);
-  return text ? limit(text, 300) : '(empty)';
+  return text ? asWritten(limit(text, 300)) : '(empty)';
 };
-const lines = changes.map((item) => '- ' + (oneLine(item.field) || oneLine(item.fieldId)) + ': ' + show(item.fromString) + ' → ' + show(item.toString));
-const who = oneLine(displayName(payload.user)) || 'Someone';
+const lines = changes.map((item) => '- ' + asWritten(oneLine(item.field) || oneLine(item.fieldId)) + ': ' + show(item.fromString) + ' → ' + show(item.toString));
+const who = asWritten(oneLine(displayName(payload.user))) || 'Someone';
 
 return {
   proceed: true,
@@ -3802,9 +3930,13 @@ type DynamicsScriptFunction = (
  * Every Dynamics 365 script starts with the same helper block, so each one
  * can be read and edited on its own. The rules the Jira scripts keep hold
  * here too: no double braces anywhere in the source, because a script is an
- * argument and would be substituted before it runs; and text that came from
+ * argument and would be substituted before it runs; text that came from
  * Dynamics 365 goes through defuse() before it is returned, so a later step
- * quoting it can never read a {{...}} reference out of it.
+ * quoting it can never read a {{...}} reference out of it; and text that came
+ * from Dynamics 365 and goes into OneUptime - a record's title or
+ * description, a note, the cause of a state change - is placed with
+ * asWritten() (OUTSIDE_TEXT_HELPERS), so it reads exactly as written and
+ * nothing in it acts.
  *
  * isLinked takes any value in the link column as a link — not only the
  * prefixes OneUptime writes — so a case someone linked by hand, or one linked
@@ -3907,7 +4039,7 @@ const eventOf = (payload, table, idColumn) => {
 };
 `;
 
-  return `${helpers}\n// ---- What this step does ----\n${body.trim()}\n`;
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
 };
 
 type DynamicsKindScriptFunction = (kind: TemplateRecordKind) => string;
@@ -4263,12 +4395,15 @@ const rankValue = PRIORITY_RANK[priority];
 const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
 const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
-const lines = ['${kind.Created} from Dynamics 365 case [' + caseNumber + '](' + caseUrlOf(args.dynamicsUrl, caseId) + ').'];
-if (priorityName) lines.push('Priority: ' + priorityName);
+// What Dynamics 365 users wrote - the case number, the title, the priority's and the customer's
+// names, the description - is placed as written (asWritten). The link to the case is the template's
+// own.
+const lines = ['${kind.Created} from Dynamics 365 case [' + asWritten(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, caseId) + ').'];
+if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
 const customer = formatted(row, '_customerid_value');
-if (customer) lines.push('Customer: ' + customer);
+if (customer) lines.push('Customer: ' + asWritten(customer));
 const description = clean(row.description).trim();
-if (description) lines.push('', description);
+if (description) lines.push('', asWritten(description));
 
 return {
   proceed: true,
@@ -4276,7 +4411,7 @@ return {
   caseNumber: defuse(caseNumber),
   severityName: oneLine(severity.name),
   ${kind.severityIdColumn}: asText(severity._id),
-  title: limit(defuse(oneLine(row.title) || 'Dynamics 365 case ' + caseNumber), 500),
+  title: limit(defuse(asWritten(oneLine(row.title)) || 'Dynamics 365 case ' + asWritten(caseNumber)), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
 `,
@@ -4375,12 +4510,15 @@ if (Number(target.order) <= Number(current.order)) {
   return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Dynamics 365 case ' + caseNumber + ' being ' + caseStatus + ' changes nothing.');
 }
 
+// The case number, its status and the name of whoever changed it came from Dynamics 365, so they
+// are placed as written (asWritten).
+const changedBy = oneLine(link.changedBy);
 return {
   proceed: true,
   ${r}Id: asText(${r}._id),
   stateId: asText(target._id),
   stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_DYNAMICS + ': case ' + caseNumber + ' is ' + caseStatus + (oneLine(link.changedBy) ? ', changed by ' + oneLine(link.changedBy) : '') + '.'), 1000),
+  rootCause: limit(defuse(FROM_DYNAMICS + ': case ' + asWritten(caseNumber) + ' is ' + asWritten(caseStatus) + (changedBy ? ', changed by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -4423,11 +4561,12 @@ return { proceed: true, noteId: event.id };
  * Teams channels. So the script reads the HTML the way OneUptime's own code
  * reads HTML (removeHtmlMarkup / replaceHtmlMarkup in Common/Types/
  * HtmlMarkup), reads entities only after that, and places what Dynamics 365
- * users wrote the way OneUptime places any text from outside
+ * users wrote with asWritten, the way OneUptime places any text from outside
  * (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in
  * it acts. A script runs in the workflow sandbox, which can import nothing,
- * so it carries its own copy of both; DynamicsNoteMarkup.test.ts holds the
- * copies to the originals.
+ * so it carries its own copy of the walk, which DynamicsNoteMarkup.test.ts
+ * holds to the original; asWritten is in the helper block every script
+ * starts with (OUTSIDE_TEXT_HELPERS).
  */
 const dynamicsReadCaseNoteScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -4618,82 +4757,6 @@ const htmlToText = (value) => {
   return tidyLines(readEntities(replaceMarkup(text, markupAsText)));
 };
 
-// ---- Placing it in a note ----
-// A private note is Markdown. The dashboard renders it, and it is posted as a feed item to the
-// project's Slack and Microsoft Teams channels. What Dynamics 365 users wrote is text - Dynamics 365
-// showed it as text - so it is placed the way OneUptime places text from outside everywhere else
-// (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in it acts there. An
-// invisible word joiner (U+2060) goes after each "<" with no whitespace after it (a tag, a comment,
-// an address, a chat mention), after each "!" before "[" (an image), after each "]" that a link goes
-// on from or that ends the text, and before each "mermaid" in what follows the first run of three
-// backticks or tildes on a line (a diagram).
-const JOINER = '\u2060';
-const NUMERIC_REFERENCE = /^&#(?:[xX]([0-9a-fA-F]{1,32})|([0-9]{1,32}));/;
-// Where the first run of three or more backticks or tildes on a line ends, or -1 when it has none.
-const fenceRunEndOf = (line) => {
-  const backticks = line.indexOf('\x60\x60\x60');
-  const tildes = line.indexOf('~~~');
-  const start = backticks === -1 ? tildes : tildes === -1 ? backticks : Math.min(backticks, tildes);
-  if (start === -1) return -1;
-  let end = start;
-  while (line.charAt(end) === line.charAt(start)) end++;
-  return end;
-};
-// Where each "mermaid" after a line's first fence run starts, read as the dashboard reads a fence's
-// language: numeric character references decoded, in any letter case. One right after a joiner is
-// already broken.
-const mermaidWordsOf = (line) => {
-  let at = fenceRunEndOf(line);
-  if (at === -1) return [];
-  while (line.charAt(at) === ' ' || line.charAt(at) === '\t') at++;
-  const characters = [];
-  const starts = [];
-  while (at < line.length) {
-    const reference = line.charAt(at) === '&' ? NUMERIC_REFERENCE.exec(line.slice(at, at + 36)) : null;
-    if (reference) {
-      const code = reference[1] ? parseInt(reference[1], 16) : parseInt(reference[2], 10);
-      const isCharacter = code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
-      characters.push(isCharacter ? String.fromCodePoint(code) : '\ufffd');
-      starts.push(at);
-      at += reference[0].length;
-    } else {
-      characters.push(line.charAt(at));
-      starts.push(at);
-      at++;
-    }
-  }
-  const words = [];
-  let index = 0;
-  while (index + 7 <= characters.length) {
-    let length = 0;
-    while (length < 7 && characters[index + length].toLowerCase() === 'mermaid'.charAt(length)) length++;
-    if (length < 7) {
-      index++;
-    } else {
-      if (index === 0 || characters[index - 1] !== JOINER) words.push(starts[index]);
-      index += 7;
-    }
-  }
-  return words;
-};
-const asNoteText = (value) => {
-  const text = asText(value)
-    .replace(/!(?=\[)/g, '!' + JOINER)
-    .replace(/\](?=[([:])/g, ']' + JOINER)
-    .split('\n')
-    .map((line) => {
-      let placed = '';
-      let cursor = 0;
-      for (const word of mermaidWordsOf(line)) {
-        placed += line.slice(cursor, word) + JOINER;
-        cursor = word;
-      }
-      return placed + line.slice(cursor);
-    })
-    .join('\n');
-  return text.replace(/<(?![\s\u2060])/g, '<' + JOINER).replace(/\]$/, ']' + JOINER);
-};
-
 // ---- Reading the note ----
 const note = readJson(args.note) || {};
 if (!guidOf(note.annotationid)) return skip('Dynamics 365 did not return the note.');
@@ -4727,12 +4790,12 @@ if (!subject && !text) {
 }
 
 // Everything that came from Dynamics 365 - the author's name, the case number, the title, the text
-// and the attachment's name - is placed as text (asNoteText); the link to the case is the template's.
+// and the attachment's name - is placed as written (asWritten); the link to the case is the template's.
 const author = formatted(note, '_createdby_value') || 'Someone';
-const lines = [FROM_DYNAMICS + ': ' + asNoteText(author) + ' added a note to case [' + asNoteText(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, guidOf(caseRow.incidentid)) + ').'];
-if (subject) lines.push('', asNoteText(subject));
-if (text) lines.push('', asNoteText(text));
-if (attachment) lines.push('', 'Attachment, left in Dynamics 365: ' + asNoteText(attachment));
+const lines = [FROM_DYNAMICS + ': ' + asWritten(author) + ' added a note to case [' + asWritten(caseNumber) + '](' + caseUrlOf(args.dynamicsUrl, guidOf(caseRow.incidentid)) + ').'];
+if (subject) lines.push('', asWritten(subject));
+if (text) lines.push('', asWritten(text));
+if (attachment) lines.push('', 'Attachment, left in Dynamics 365: ' + asWritten(attachment));
 
 return {
   proceed: true,

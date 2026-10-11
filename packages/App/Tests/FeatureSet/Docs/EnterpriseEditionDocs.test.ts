@@ -12,7 +12,9 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import slugify, {
+  slugifyMarkdownHeading,
+} from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -184,6 +186,81 @@ function readContent(lang: string, relativePath: string): string {
 
 function readPage(): string {
   return readContent("en", PAGE_RELATIVE_PATH);
+}
+
+/*
+ * The upgrade guide's edition section in a language: the second section of
+ * the page, under the heading in the place of the English "Community and
+ * Enterprise Edition images", up to the next section.
+ */
+function editionHeading(lang: string): string {
+  const heading: string | undefined = readContent(
+    lang,
+    "installation/upgrading",
+  )
+    .split("\n")
+    .filter((line: string) => {
+      return line.startsWith("## ");
+    })[1];
+
+  if (!heading) {
+    throw new Error(`The ${lang} upgrade guide has no second section`);
+  }
+
+  return heading;
+}
+
+function editionSection(lang: string): string {
+  return sectionBetween(
+    readContent(lang, "installation/upgrading"),
+    editionHeading(lang),
+    "\n## ",
+  );
+}
+
+// The anchor the edition section's heading has in a language.
+function editionAnchor(lang: string): string {
+  return slugifyMarkdownHeading(editionHeading(lang).slice("## ".length));
+}
+
+// The edition section's opening paragraph, on one line.
+function editionOpening(lang: string): string {
+  return normalized(editionSection(lang).trim().split("\n\n")[0] || "");
+}
+
+// The edition section's licensing subsection is its second.
+const LICENSING_SUBSECTION: number = 1;
+
+// A subsection of the edition section, by its place.
+function editionSubsection(lang: string, index: number): string {
+  const lines: Array<string> = editionSection(lang).split("\n");
+  const starts: Array<number> = lines
+    .map((line: string, at: number): number => {
+      return line.startsWith("### ") ? at : -1;
+    })
+    .filter((at: number): boolean => {
+      return at >= 0;
+    });
+
+  return lines.slice(starts[index], starts[index + 1]).join("\n");
+}
+
+// The top-level list items of some Markdown, each with its wrapped lines.
+function listItemsOf(markdown: string): Array<string> {
+  const items: Array<string> = [];
+
+  for (const line of markdown.split("\n")) {
+    if (line.startsWith("- ")) {
+      items.push(line);
+      continue;
+    }
+
+    if (items.length > 0 && line.startsWith("  ")) {
+      items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`;
+    }
+  }
+
+  return items;
 }
 
 function headingSlugs(markdown: string): Set<string> {
@@ -1141,8 +1218,20 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
           return line.startsWith("## ");
         });
 
-      // General guidance, then this section, then the version sections.
-      expect(sectionHeadings[1]).toBe(EDITION_SECTION_HEADING);
+      /*
+       * General guidance, then this section, then the version sections. A
+       * translation words the heading its own way: there it is the section
+       * in the English one's place, the one the page's own links to the
+       * edition section land on.
+       */
+      if (lang === "en") {
+        expect(sectionHeadings[1]).toBe(EDITION_SECTION_HEADING);
+      } else {
+        expect(sectionHeadings[1]).not.toBe(EDITION_SECTION_HEADING);
+        expect(page).toContain(`(#${editionAnchor(lang)})`);
+      }
+
+      expect(sectionHeadings[1]).not.toMatch(VERSION_SECTION_HEADING_PATTERN);
       expect(sectionHeadings[2]).toMatch(VERSION_SECTION_HEADING_PATTERN);
 
       /*
@@ -1156,15 +1245,13 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       expect(Number(newestHop![2])).toBe(Number(newestHop![1]) + 1);
       expect(
         sectionHeadings.filter((heading: string) => {
-          return heading === EDITION_SECTION_HEADING;
+          return heading === sectionHeadings[1];
         }),
       ).toHaveLength(1);
 
-      if (lang !== "en") {
-        expect(page).toContain(
-          "TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the Community/Enterprise image split).",
-        );
-      }
+      // Translated in full: no section left in English behind a marker.
+      expect(page).not.toContain("TODO(i18n)");
+      expect(page).not.toContain("<!--");
     },
   );
 
@@ -1174,11 +1261,15 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       const page: string = readContent(lang, "installation/upgrading");
 
       expect(page).not.toContain(OLD_V11_CLAIM);
-      // The corrected v11 paragraph points at the new section.
-      expect(page).toContain("(#community-and-enterprise-edition-images)");
-      expect(
-        headingSlugs(page).has("community-and-enterprise-edition-images"),
-      ).toBe(true);
+      // The corrected v11 paragraph points at the edition section.
+      expect(page).toContain(`(#${editionAnchor(lang)})`);
+      expect(headingSlugs(page).has(editionAnchor(lang))).toBe(true);
+
+      if (lang === "en") {
+        expect(editionAnchor(lang)).toBe(
+          "community-and-enterprise-edition-images",
+        );
+      }
     },
   );
 
@@ -1220,36 +1311,64 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "%s says what stops when an unlicensed install's trial ends",
     (lang: string) => {
-      const section: string = normalized(
-        sectionBetween(
-          readContent(lang, "installation/upgrading"),
-          EDITION_SECTION_HEADING,
-          "\n## ",
-        ),
-      );
+      const section: string = normalized(editionSection(lang));
 
-      for (const expected of [
-        "**If you use SCIM or audit logging, activate a license before the trial ends.**",
-        "After the trial, SCIM provisioning stops and audit logging stops recording.",
-        "Single sign-on is not affected.",
-        "Everything resumes, without a restart, as soon as you activate a license.",
-        `If the license expires, everything keeps working for a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
-        `gets a ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial from the first start of this release`,
-        "The SCIM endpoints keep their exact paths on the Enterprise Edition",
-        "On the Enterprise Edition they refuse requests while the license is lapsed",
-        "keep their exact paths and are served by both editions in every license state",
-      ]) {
-        expect({
-          lang: lang,
-          expected: expected,
-          present: section.includes(expected),
-        }).toEqual({
-          lang: lang,
-          expected: expected,
-          present: true,
-        });
+      if (lang === "en") {
+        for (const expected of [
+          "**If you use SCIM or audit logging, activate a license before the trial ends.**",
+          "After the trial, SCIM provisioning stops and audit logging stops recording.",
+          "Single sign-on is not affected.",
+          "Everything resumes, without a restart, as soon as you activate a license.",
+          `If the license expires, everything keeps working for a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
+          `gets a ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial from the first start of this release`,
+          "The SCIM endpoints keep their exact paths on the Enterprise Edition",
+          "On the Enterprise Edition they refuse requests while the license is lapsed",
+          "keep their exact paths and are served by both editions in every license state",
+        ]) {
+          expect({
+            lang: lang,
+            expected: expected,
+            present: section.includes(expected),
+          }).toEqual({
+            lang: lang,
+            expected: expected,
+            present: true,
+          });
+        }
       }
 
+      /*
+       * Every language says it with what a translation keeps as it is: the
+       * licensing list states the grace period for an install with a license
+       * key and the trial for one without, with the lengths the license
+       * classifier uses, and links the full state table; the SCIM endpoints
+       * answer `404` on the Community Edition.
+       */
+      const licensing: Array<string> = listItemsOf(
+        editionSubsection(lang, LICENSING_SUBSECTION),
+      );
+
+      expect({ lang: lang, items: licensing.length }).toEqual({
+        lang: lang,
+        items: 3,
+      });
+      expect({
+        lang: lang,
+        withKey: statedDayCounts(licensing[0]!),
+        withoutLicense: statedDayCounts(licensing[1]!),
+      }).toEqual({
+        lang: lang,
+        withKey: expect.arrayContaining([
+          ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+        ]),
+        withoutLicense: expect.arrayContaining([
+          ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        ]),
+      });
+      expect(licensing[1]).toContain(
+        "(/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)",
+      );
+      expect(section).toContain("`404`");
       expect(section).not.toContain(
         "keep running with the configuration you have",
       );
@@ -1266,25 +1385,45 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
     "%s puts single sign-on in the Community Edition and ties it to no license",
     (lang: string) => {
       const section: string = normalized(
-        sectionBetween(
-          readContent(lang, "installation/upgrading"),
-          EDITION_SECTION_HEADING,
-          "\n## ",
-        ).replace(/^> ?/gm, ""),
+        editionSection(lang).replace(/^> ?/gm, ""),
       );
 
-      for (const expected of [
-        'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO for login".',
-        "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
-        "instead of silently stopping SCIM provisioning and audit logging.",
-        "Single sign-on is not affected: the Community image serves it too.",
-      ]) {
-        expect({
-          lang: lang,
-          expected: expected,
-          present: section.includes(expected),
-        }).toEqual({ lang: lang, expected: expected, present: true });
+      if (lang === "en") {
+        for (const expected of [
+          'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO for login".',
+          "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
+          "instead of silently stopping SCIM provisioning and audit logging.",
+          "Single sign-on is not affected: the Community image serves it too.",
+        ]) {
+          expect({
+            lang: lang,
+            expected: expected,
+            present: section.includes(expected),
+          }).toEqual({ lang: lang, expected: expected, present: true });
+        }
       }
+
+      /*
+       * Every language opens the section with what each image holds: the
+       * Community Edition with "Require SSO for login", the setting's name
+       * every translation keeps, and the Enterprise Edition with the `ee/`
+       * directory the Community image does not contain.
+       */
+      const opening: string = editionOpening(lang);
+
+      expect({
+        lang: lang,
+        namesRequireSso: opening.includes("Require SSO for login"),
+        namesBothEditions:
+          opening.includes("**Community Edition**") &&
+          opening.includes("**Enterprise Edition**"),
+        eeDirectory: opening.split("`ee/`").length - 1,
+      }).toEqual({
+        lang: lang,
+        namesRequireSso: true,
+        namesBothEditions: true,
+        eeDirectory: 2,
+      });
 
       expect({
         lang: lang,
@@ -1491,7 +1630,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         lang: lang,
         dated: false,
       });
-      expect(section).toContain("(#community-and-enterprise-edition-images)");
+      expect(section).toContain(`(#${editionAnchor(lang)})`);
       expect(section).not.toContain(
         "The Community image no longer contains any SSO,",
       );
@@ -1737,8 +1876,8 @@ describe("The status pages overview says who gets status page SSO, OIDC and SCIM
 /*
  * The SLO audit-logs page tells a self-hosted reader that audit logs need the
  * Enterprise Edition. It must also say that recording stops once the license
- * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Only
- * English and Persian have this page.
+ * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Every
+ * docs language has this page, so every one says it.
  */
 describe("The SLO audit logs page says recording stops with the license", () => {
   const SLO_AUDIT_LOGS_PAGE: string = "slo/feed-and-audit-logs";
@@ -1758,7 +1897,7 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     return paragraph || "";
   };
 
-  it.each(["en", "fa"])(
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
     "%s: the Enterprise note links to what happens when a license lapses",
     (lang: string) => {
       const paragraph: string = turningOnSection(lang);
@@ -1779,18 +1918,18 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     );
   });
 
-  it("no other language has the page, so no translation is missing the note", () => {
-    const languagesWithPage: Array<string> =
+  it("every language has the page, so the note above reads every translation", () => {
+    const languagesWithoutPage: Array<string> =
       SUPPORTED_DOCS_LANGUAGE_CODES.filter((lang: string) => {
         try {
           readContent(lang, SLO_AUDIT_LOGS_PAGE);
-          return true;
-        } catch {
           return false;
+        } catch {
+          return true;
         }
       });
 
-    expect(languagesWithPage.sort()).toEqual(["en", "fa"]);
+    expect(languagesWithoutPage).toEqual([]);
   });
 });
 
@@ -1878,9 +2017,15 @@ describe("The upgrade notes say what the Community image leaves out", () => {
       const page: string = readContent(lang, "installation/upgrading");
 
       expect(page).not.toContain("no enterprise code at all");
-      expect(page).toContain(
-        "the Community image does not contain the `ee/` directory.",
-      );
+
+      if (lang === "en") {
+        expect(page).toContain(
+          "the Community image does not contain the `ee/` directory.",
+        );
+      }
+
+      // Every language names the directory itself, where the modules are.
+      expect(editionOpening(lang).split("`ee/`").length - 1).toBe(2);
     },
   );
 });
