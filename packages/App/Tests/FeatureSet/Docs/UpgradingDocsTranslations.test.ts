@@ -407,6 +407,7 @@ const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "Helm:",
   "Docker Compose:",
   "OneUptime Cloud:",
+  "Self-hosted:",
 ];
 
 /*
