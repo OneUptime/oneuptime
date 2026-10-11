@@ -365,6 +365,8 @@ const KEPT_IN_ENGLISH: Array<string> = [
   "Updated Note",
   "Mark as Complete",
   "Create One Incident",
+  // The archive card titles itself "Archive " + its item, with no locale key.
+  "Archive status page",
   "×",
 ];
 
@@ -398,7 +400,6 @@ const PROSE: Record<string, Array<string>> = {
     "The resource groups",
     "A list that is off",
     "Plans.",
-    "Archive status page",
     "Where the colors are.",
     "Images.",
     "What it stores.",
@@ -580,7 +581,7 @@ function drawnTemplate(language: string, entry: TemplateLabel): string {
 function drawnFlat(language: string, entry: FlatLookupLabel): string {
   return flatLabel(language, entry.key)
     .trim()
-    .replace(/[:：]$/, "");
+    .replace(/\s*[:：]$/, "");
 }
 
 function drawnMessageLead(language: string, entry: FlatLookupLabel): string {

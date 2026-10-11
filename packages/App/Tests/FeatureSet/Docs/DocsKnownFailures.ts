@@ -292,13 +292,13 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "status-pages/index": {
-    sameShape: except(EVERY_TRANSLATION, "de"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr"),
   },
   "status-pages/one-status-page-per-audience": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr"),
   },
   "status-pages/subscribers": {
-    sameShape: except(EVERY_TRANSLATION, "de"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr"),
   },
   "telemetry/ai-agent-circuit-breaker": {
     translated: EVERY_TRANSLATION_BUT_FA,
