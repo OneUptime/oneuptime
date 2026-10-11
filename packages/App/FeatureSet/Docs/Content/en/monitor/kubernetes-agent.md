@@ -14,17 +14,16 @@ The OneUptime Kubernetes agent is a Helm chart that collects your cluster's metr
 The chart runs a few workloads in its own namespace. Each one sends what it collects to your OneUptime URL over OTLP, with the ingestion key you give it.
 
 ```mermaid title="From your cluster to OneUptime"
-flowchart TB
+flowchart LR
     subgraph cluster["Your cluster"]
-        direction LR
-        nodes["On every Linux node:<br/>node collector,<br/>eBPF instrumentation"]
-        collector["Cluster collector:<br/>metrics, events, specs"]
+        direction TB
+        nodes["Every Linux node:<br/>node collector, eBPF"]
+        collector["Cluster collector"]
         ai["Kubernetes AI agent"]
     end
-    nodes -->|"logs, node metrics, traces"| oneuptime["OneUptime"]
-    collector -->|"cluster metrics, events"| oneuptime
-    ai <-->|"read-only kubectl,<br/>for OneUptime AI"| oneuptime
-    oneuptime --> use["Kubernetes pages,<br/>monitors and alerts"]
+    nodes -->|"logs, metrics,<br/>traces"| oneuptime["OneUptime"]
+    collector -->|"metrics, events"| oneuptime
+    ai <-->|"read-only<br/>kubectl"| oneuptime
 ```
 
 | Workload | Kind | What it does | On by default |
