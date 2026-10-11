@@ -1,22 +1,29 @@
-# IP-Adressen-Whitelist für OneUptime.com
+# IP-Adressen
 
-Wenn Sie OneUptime.com verwenden und unsere IP-Adressen aus Sicherheitsgründen auf eine Whitelist setzen möchten, können Sie dies anhand der nachfolgenden Anweisungen tun.
+Die Probes von OneUptime Cloud prüfen Ihre Websites, APIs und Server von einer festen Gruppe von IP-Adressen aus. Steht eine Firewall oder eine Allowlist vor dem, was Sie überwachen, erlauben Sie diese Adressen, damit die Prüfungen durchkommen.
 
-Bitte setzen Sie die folgenden IP-Adressen in Ihrer Firewall auf die Whitelist, damit oneuptime.com Ihre Ressourcen erreichen kann.
+```mermaid title="Wo die Allowlist greift"
+flowchart LR
+    P["OneUptime-Probes"] -->|"prüfen von den aufgeführten IPs"| F["Ihre Firewall"]
+    F -->|"erlaubt"| S["Ihre Website, API oder Ihr Server"]
+```
+
+## Zu erlaubende IP-Adressen
+
+Erlauben Sie in Ihrer Firewall den Datenverkehr von diesen Adressen:
 
 {{IP_WHITELIST}}
 
-Diese IP-Adressen können sich ändern. Wir werden Sie im Voraus informieren, falls dies eintritt.
+> [!NOTE]
+> Diese Adressen können sich ändern. OneUptime informiert Sie vorab, wenn das passiert. Um auf dem neuesten Stand zu bleiben, ohne auf Ankündigungen zu achten, [rufen Sie die Liste ab](#die-liste-programmatisch-abrufen), wenn Sie Ihre Firewall aktualisieren.
 
-## IP-Adressen programmgesteuert abrufen
+## Die Liste programmatisch abrufen
 
-Sie können die Liste der ausgehenden IP-Adressen der Probes auch programmgesteuert über den folgenden API-Endpunkt abrufen:
+Dieselbe Liste wird als JSON ausgeliefert, ganz ohne API-Schlüssel, damit ein Skript Ihre Firewall-Regeln aktuell halten kann:
 
+```bash
+curl -s https://oneuptime.com/ip-whitelist
 ```
-GET https://oneuptime.com/ip-whitelist
-```
-
-Dies gibt eine JSON-Antwort zurück:
 
 ```json
 {
@@ -24,4 +31,39 @@ Dies gibt eine JSON-Antwort zurück:
 }
 ```
 
-Sie können diesen Endpunkt verwenden, um Ihre Firewall-Whitelist automatisch aktuell zu halten.
+`ipWhitelist` ist ein Array mit einer Adresse pro Eintrag. So geben Sie eine Adresse pro Zeile aus, etwa für ein Firewall-Skript:
+
+```bash
+curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
+```
+
+## Selbst gehostetes OneUptime
+
+Auf Ihrer eigenen Instanz zeigen diese Seite und der Endpunkt `/ip-whitelist` die Adressen aus der Einstellung `IP_WHITELIST` der Instanz, einer kommagetrennten Liste. Tragen Sie die Adressen ein, von denen Ihre eigenen Probes ihre Prüfungen senden.
+
+:::tabs
+@tab Kubernetes
+Setzen Sie den Wert `ipWhitelist` des Helm-Charts:
+
+```yaml title="values.yaml"
+ipWhitelist: "203.0.113.1,203.0.113.2"
+```
+@tab Docker Compose
+`config.env` gibt die Einstellung nicht an die App weiter. Fügen Sie sie der Umgebung des Dienstes `app` in einer `docker-compose.override.yml` neben `docker-compose.yml` hinzu und starten Sie OneUptime dann neu:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      IP_WHITELIST: "203.0.113.1,203.0.113.2"
+```
+:::
+
+Ist nichts gesetzt, zeigt diese Seite **No IP addresses configured.** und der Endpunkt liefert ein leeres Array `ipWhitelist`.
+
+## Nächste Schritte
+
+:::cards
+- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Eine Probe in Ihrem eigenen Netzwerk betreiben, statt die Firewall zu öffnen.
+- [Einen Monitor erstellen](/docs/monitor/create-monitor): Eine Website, eine API oder einen Server prüfen.
+:::
