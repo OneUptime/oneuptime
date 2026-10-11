@@ -4,6 +4,7 @@ import Permission from "Common/Types/Permission";
 import IncidentPostmortemPublication, {
   PostmortemNotificationAction,
 } from "Common/Types/StatusPage/IncidentPostmortemPublication";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -403,18 +404,21 @@ describe("the subscriber docs on the postmortem", () => {
       ),
     );
 
+    // The labels as the Persian Dashboard draws them (StatusPageDocsTranslations).
     for (const label of [
-      "**Publish on Status Page**",
-      "**Notify Subscribers**",
-      "**Edit Postmortem Note**",
-      "**Postmortem Note updated**",
-      "**Retry**",
-      "**Visible on Status Page**",
-      "**Private Incident**",
-      `**${IncidentPostmortemPublication.hiddenIncidentLabel}**`,
+      "Publish on Status Page",
+      "Notify Subscribers",
+      "Edit Postmortem Note",
+      "Retry",
+      "Visible on Status Page",
+      "Private Incident",
+      IncidentPostmortemPublication.hiddenIncidentLabel,
     ]) {
-      expect(persian).toContain(label);
+      expect(persian).toContain(`**${drawnActionLabel("fa", label)}**`);
     }
+
+    // The feed entry, which the server writes in English.
+    expect(persian).toContain("**Postmortem Note updated**");
   });
 });
 
