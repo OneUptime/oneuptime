@@ -33,8 +33,10 @@ import { describe, expect, test } from "@jest/globals";
  *     what master's convertToPlainText made of it;
  *   - the reading keeps master's limits: no tag holds U+E000 to U+E002, and
  *     nothing runs past 65536 characters;
+ *   - angle brackets nested in a name read as markup all the way down, as
+ *     one level always has, and a code span keeps them as written;
  *   - Markdown made of tags, words and lines, with no blank line, comes out
- *     holding no markup at all (master's left some in about one in six of
+ *     holding no markup at all (master's one pass left some in thousands of
  *     these texts);
  *   - a megabyte of nested markup is read in linear time.
  */
@@ -188,6 +190,47 @@ describe("Markdown.convertToPlainText takes typed markup out completely", () => 
       ["a tag held apart by a blank line", "<scr<b>\n\nipt>", "<scr\nipt>"],
       ["a tag that never crosses a blank line", "a <b\n\nc> d", "a <b\nc> d"],
       ["what code holds", "`<scr<b>ipt>` stays", "<scr<b>ipt> stays"],
+    ])("%s", (_case: string, markdown: string, text: string) => {
+      expect(plainText(markdown)).toBe(text);
+    });
+  });
+
+  /*
+   * The rule reads "<" and a letter, up to the next ">", as a tag, so one
+   * level of angle brackets in prose - a generic type - has always read as
+   * markup: "Map<String, Integer>" reads "Map". Nested ones now read the
+   * same all the way down, where one pass left a part of them behind
+   * ("Map<String, List>"), and so does a word inside a tag's name. A code
+   * span keeps them exactly as written: what the Kubernetes and Ceph
+   * templates do with their <placeholders>.
+   */
+  describe("angle brackets nested in a name read as markup all the way down", () => {
+    test.each([
+      [
+        "one level, as always",
+        "ClassCastException: Map<String, Integer> cannot be cast",
+        "ClassCastException: Map cannot be cast",
+      ],
+      [
+        "two levels, where one pass left a part behind",
+        "ClassCastException: Map<String, List<Integer>> cannot be cast",
+        "ClassCastException: Map cannot be cast",
+      ],
+      [
+        "a word inside a tag's name",
+        "<b<i>Update</i>>Rolled back",
+        "Rolled back",
+      ],
+      [
+        "nested angle brackets in a code span",
+        "ClassCastException: `Map<String, List<Integer>>` cannot be cast",
+        "ClassCastException: Map<String, List<Integer>> cannot be cast",
+      ],
+      [
+        "a word inside a tag's name, escaped",
+        "\\<b\\<i>Update\\</i>>Rolled back",
+        "<b<i>Update</i>>Rolled back",
+      ],
     ])("%s", (_case: string, markdown: string, text: string) => {
       expect(plainText(markdown)).toBe(text);
     });

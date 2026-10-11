@@ -551,6 +551,12 @@ export const removeHtmlMarkup: RemoveHtmlMarkupFunction = (
  *     it reads on as if it had never been there. A "<" that starts nothing
  *     is text for good, and so is every "<" before it, as each of them
  *     would need it gone first.
+ *
+ * What it remembers grows only with what is still waiting: nine bytes for
+ * each "<" waiting for a ">" - a run of them with nothing between counts
+ * once - and eight for each stretch of text kept between markup taken out
+ * of a tag still waiting. A text has to nest that deep, or leave that much
+ * open, for it to matter.
  */
 export interface MarkupInTextReading {
   /*
@@ -567,14 +573,16 @@ export interface MarkupInTextReading {
   maxLength?: number | undefined;
 }
 
-// What a remembered "<" can still start, read from what was kept after it.
+// What the innermost "<" can still start, read from what was kept after it.
 enum MarkupStart {
   // Nothing has been kept after it yet.
   Unread,
   // "</": an end tag, if a letter comes next.
   Slash,
-  // "<" and a letter, or "</" and a letter.
+  // "<" and a letter.
   Tag,
+  // "</" and a letter.
+  EndTag,
   // "<!" or "<?": a comment, a declaration or a processing instruction.
   Comment,
   // Nothing: the "<" is text.
@@ -584,24 +592,34 @@ enum MarkupStart {
 const EXCLAMATION_MARK: number = 0x21;
 const QUESTION_MARK: number = 0x3f;
 
+// Marks a piece of kept text that is "<" kept one after another.
+const LESS_THANS: number = -1;
+
 type IsAsciiLetterFunction = (code: number) => boolean;
 
 const isAsciiLetter: IsAsciiLetterFunction = (code: number): boolean => {
   return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a);
 };
 
-type WithRoomForFunction = (values: Int32Array, size: number) => Int32Array;
+type WithRoomForFunction = <Values extends Int32Array | Uint8Array>(
+  values: Values,
+  size: number,
+) => Values;
 
 // `values`, or a copy of them with room for `size`: twice the room it had.
-const withRoomFor: WithRoomForFunction = (
-  values: Int32Array,
+const withRoomFor: WithRoomForFunction = <
+  Values extends Int32Array | Uint8Array,
+>(
+  values: Values,
   size: number,
-): Int32Array => {
+): Values => {
   if (size <= values.length) {
     return values;
   }
 
-  const grown: Int32Array = new Int32Array(Math.max(size, values.length * 2));
+  const ArrayOfValues: new (length: number) => Values =
+    values.constructor as new (length: number) => Values;
+  const grown: Values = new ArrayOfValues(Math.max(size, values.length * 2));
 
   grown.set(values);
 
@@ -639,25 +657,39 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
   // The text kept for good.
   let kept: string = "";
   /*
-   * The text kept after that, from the outermost "<" that may still start
-   * markup: pieces of `text`, piece n from pieceStarts[n] to pieceEnds[n].
-   * Typed arrays, so a text that nests a million tags costs a few
-   * megabytes, not a million objects.
+   * The text kept after that, from the outermost "<" still waiting for a
+   * ">", `held` characters in all: pieces of `text`, piece n from
+   * pieceStarts[n] to pieceEnds[n] - or, where pieceStarts[n] is
+   * LESS_THANS, pieceEnds[n] "<" kept one after another from places apart
+   * in `text`, as "<<b>" after "<<b>" leaves them, in one piece.
    */
   let pieceStarts: Int32Array = new Int32Array(16);
   let pieceEnds: Int32Array = new Int32Array(16);
   let pieces: number = 0;
+  let held: number = 0;
   /*
-   * Every "<" in those pieces, the innermost last: where it is, the piece
-   * that holds it, what it can still start, and how many characters after
-   * its first it holds. Only the innermost one's is ever read on.
+   * Every "<" in that text still waiting for a ">", the innermost last, in
+   * runs: a run is "<" kept one right after another, each but the last with
+   * nothing kept after it but the next. Run r starts at runs[2r] in the
+   * kept text and holds runs[2r + 1] "<"; starts[r] is what its last one
+   * can still start. So a run of a million "<" is one entry.
    */
-  let openAts: Int32Array = new Int32Array(16);
-  let openPieces: Int32Array = new Int32Array(16);
-  let openStarts: Int32Array = new Int32Array(16);
-  let openLengths: Int32Array = new Int32Array(16);
-  let opens: number = 0;
+  let runs: Int32Array = new Int32Array(32);
+  let starts: Uint8Array = new Uint8Array(16);
+  let runCount: number = 0;
   let removed: boolean = false;
+
+  // A new piece, after the last.
+  const addPiece: (from: number, to: number) => void = (
+    from: number,
+    to: number,
+  ): void => {
+    pieceStarts = withRoomFor(pieceStarts, pieces + 1);
+    pieceEnds = withRoomFor(pieceEnds, pieces + 1);
+    pieceStarts[pieces] = from;
+    pieceEnds[pieces] = to;
+    pieces++;
+  };
 
   // Keeps the text from `from` to `to`, after what was kept before it.
   const keep: (from: number, to: number) => void = (
@@ -668,43 +700,93 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
       return;
     }
 
-    if (pieces > 0 && pieceEnds[pieces - 1] === from) {
+    held += to - from;
+
+    if (
+      pieces > 0 &&
+      pieceStarts[pieces - 1] !== LESS_THANS &&
+      pieceEnds[pieces - 1] === from
+    ) {
       pieceEnds[pieces - 1] = to;
       return;
     }
 
-    pieceStarts = withRoomFor(pieceStarts, pieces + 1);
-    pieceEnds = withRoomFor(pieceEnds, pieces + 1);
-    pieceStarts[pieces] = from;
-    pieceEnds[pieces] = to;
-    pieces++;
+    addPiece(from, to);
+  };
+
+  /*
+   * Keeps the "<" at `at`: in the piece of the text just before it, or in
+   * a piece of "<" kept one after another.
+   */
+  const keepLessThan: (at: number) => void = (at: number): void => {
+    if (pieces > 0 && pieceStarts[pieces - 1] === LESS_THANS) {
+      held++;
+      pieceEnds[pieces - 1] = pieceEnds[pieces - 1]! + 1;
+      return;
+    }
+
+    if (pieces > 0 && pieceEnds[pieces - 1] === at) {
+      keep(at, at + 1);
+      return;
+    }
+
+    held++;
+    addPiece(LESS_THANS, 1);
+  };
+
+  /*
+   * Keeps only the first `length` characters of what was kept after the
+   * text kept for good. Each piece it drops was kept once, so this takes
+   * no more time in all than keeping did.
+   */
+  const keepOnly: (length: number) => void = (length: number): void => {
+    while (pieces > 0) {
+      const pieceLength: number =
+        pieceStarts[pieces - 1] === LESS_THANS
+          ? pieceEnds[pieces - 1]!
+          : pieceEnds[pieces - 1]! - pieceStarts[pieces - 1]!;
+
+      if (held - pieceLength < length) {
+        pieceEnds[pieces - 1] = pieceEnds[pieces - 1]! - (held - length);
+        break;
+      }
+
+      held -= pieceLength;
+      pieces--;
+    }
+
+    held = length;
   };
 
   // Keeps the "<" at `at`, and remembers it as the innermost.
-  const remember: (at: number) => void = (at: number): void => {
-    keep(at, at + 1);
+  const open: (at: number) => void = (at: number): void => {
+    const innermost: number = runCount - 1;
 
-    openAts = withRoomFor(openAts, opens + 1);
-    openPieces = withRoomFor(openPieces, opens + 1);
-    openStarts = withRoomFor(openStarts, opens + 1);
-    openLengths = withRoomFor(openLengths, opens + 1);
-    openAts[opens] = at;
-    openPieces[opens] = pieces - 1;
-    openStarts[opens] = MarkupStart.Unread;
-    openLengths[opens] = 0;
-    opens++;
+    if (innermost >= 0 && starts[innermost] === MarkupStart.Unread) {
+      // Kept right after a "<" that has read nothing: one more in its run.
+      runs[2 * innermost + 1] = runs[2 * innermost + 1]! + 1;
+    } else {
+      runs = withRoomFor(runs, 2 * runCount + 2);
+      starts = withRoomFor(starts, runCount + 1);
+      runs[2 * runCount] = held;
+      runs[2 * runCount + 1] = 1;
+      starts[runCount] = MarkupStart.Unread;
+      runCount++;
+    }
+
+    keepLessThan(at);
   };
 
   /*
    * Reads on what the innermost "<" can start, through the text from
-   * `from` to `to` kept after it, which holds no "<" or ">".
+   * `from` to `to`, which holds no "<" or ">" and was just kept after it.
    */
   const readOn: (from: number, to: number) => void = (
     from: number,
     to: number,
   ): void => {
-    const innermost: number = opens - 1;
-    let start: number = openStarts[innermost]!;
+    const innermost: number = runCount - 1;
+    let start: number = starts[innermost]!;
     let at: number = from;
 
     if (start === MarkupStart.Unread && at < to) {
@@ -725,17 +807,29 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
 
     if (start === MarkupStart.Slash && at < to) {
       start = isAsciiLetter(text.charCodeAt(at))
-        ? MarkupStart.Tag
+        ? MarkupStart.EndTag
         : MarkupStart.Nothing;
       at++;
     }
 
-    if (start === MarkupStart.Tag || start === MarkupStart.Comment) {
-      const length: number = openLengths[innermost]! + (to - at);
+    if (
+      start === MarkupStart.Tag ||
+      start === MarkupStart.EndTag ||
+      start === MarkupStart.Comment
+    ) {
+      // Where the innermost "<" is in the kept text: the last of its run.
+      const openAt: number =
+        runs[2 * innermost]! + runs[2 * innermost + 1]! - 1;
+      /*
+       * What it holds after its first character - its name's first letter,
+       * or its "!" or "?". Markup taken out of it holds nothing now.
+       */
+      const length: number =
+        held - openAt - (start === MarkupStart.EndTag ? 3 : 2);
 
       if (length > maxLength) {
         start = MarkupStart.Nothing;
-      } else if (start === MarkupStart.Tag && tagCannotHold) {
+      } else if (start !== MarkupStart.Comment && tagCannotHold) {
         for (; at < to; at++) {
           if (tagCannotHold(text.charCodeAt(at))) {
             start = MarkupStart.Nothing;
@@ -743,21 +837,41 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
           }
         }
       }
-
-      openLengths[innermost] = length;
     }
 
-    openStarts[innermost] = start;
+    starts[innermost] = start;
+  };
+
+  // Takes out the innermost "<", which a ">" ends, and all kept after it.
+  const takeOutInnermost: () => void = (): void => {
+    const innermost: number = runCount - 1;
+    const count: number = runs[2 * innermost + 1]!;
+
+    keepOnly(runs[2 * innermost]! + count - 1);
+    removed = true;
+
+    if (count === 1) {
+      runCount--;
+      return;
+    }
+
+    // The "<" before it in its run has nothing kept after it now.
+    runs[2 * innermost + 1] = count - 1;
+    starts[innermost] = MarkupStart.Unread;
   };
 
   // Every "<" remembered is text: what was kept from it on is kept for good.
   const settle: () => void = (): void => {
     for (let piece: number = 0; piece < pieces; piece++) {
-      kept += text.slice(pieceStarts[piece]!, pieceEnds[piece]!);
+      kept +=
+        pieceStarts[piece] === LESS_THANS
+          ? "<".repeat(pieceEnds[piece]!)
+          : text.slice(pieceStarts[piece]!, pieceEnds[piece]!);
     }
 
     pieces = 0;
-    opens = 0;
+    held = 0;
+    runCount = 0;
   };
 
   let index: number = 0;
@@ -771,14 +885,14 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
       nextOpen = text.indexOf("<", index);
     }
 
-    if (opens === 0) {
+    if (runCount === 0) {
       // With no "<" that a ">" follows, the rest is text.
       if (nextOpen === -1 || nextOpen > lastClose) {
         break;
       }
 
       kept += text.slice(index, nextOpen);
-      remember(nextOpen);
+      open(nextOpen);
       index = nextOpen + 1;
       continue;
     }
@@ -794,7 +908,7 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
     keep(index, next);
     readOn(index, next);
 
-    const start: number = openStarts[opens - 1]!;
+    const start: number = starts[runCount - 1]!;
 
     if (start === MarkupStart.Nothing) {
       // That "<" is text, and so is every "<" before it.
@@ -804,22 +918,18 @@ export const removeMarkupFromText: RemoveMarkupFromTextFunction = (
     }
 
     if (next === nextOpen) {
-      remember(next);
+      open(next);
       index = next + 1;
       continue;
     }
 
-    if (start === MarkupStart.Tag || start === MarkupStart.Comment) {
-      // Markup: out it goes, with all that was kept after its "<".
-      opens--;
-      pieces = openPieces[opens]! + 1;
-      pieceEnds[pieces - 1] = openAts[opens]!;
-      removed = true;
-
-      // A piece that began with that "<" holds nothing now.
-      if (pieceStarts[pieces - 1] === pieceEnds[pieces - 1]) {
-        pieces--;
-      }
+    if (
+      start === MarkupStart.Tag ||
+      start === MarkupStart.EndTag ||
+      start === MarkupStart.Comment
+    ) {
+      // Markup: out it goes.
+      takeOutInnermost();
     } else {
       // "<>" or "</>" is text, and so is every "<" before it.
       keep(next, next + 1);

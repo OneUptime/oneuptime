@@ -569,4 +569,28 @@ describe("removeMarkupFromText", () => {
       },
     );
   });
+
+  /*
+   * A "<" waiting for its ">" is remembered, but a run of them with nothing
+   * between counts once: sixteen million of them, remembered one by one,
+   * took 350 MB.
+   */
+  describe("memory", () => {
+    const MEGABYTE: number = 1024 * 1024;
+
+    it.each([
+      ["a run of '<' then a '>'", "<".repeat(8 * MEGABYTE) + ">"],
+      ["a '<' before every tag", "<<b>".repeat(2 * MEGABYTE)],
+    ])(
+      "remembers %s in a few bytes, not bytes for each '<'",
+      (_case: string, text: string) => {
+        const before: number = process.memoryUsage().arrayBuffers;
+        const once: string = read(text);
+        const grew: number = process.memoryUsage().arrayBuffers - before;
+
+        expect(holdsMarkup(once, NO_LIMIT)).toBe(false);
+        expect(grew).toBeLessThan(4 * MEGABYTE);
+      },
+    );
+  });
 });
