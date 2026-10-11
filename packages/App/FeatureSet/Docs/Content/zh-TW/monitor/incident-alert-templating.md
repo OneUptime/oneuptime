@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | Trap 的來源位址。僅在 SNMP trap 觸發檢查時。 | `string` |
 | `trapVarbinds` | Trap 的 varbind，每個形如 `{oid, value}`。僅在 SNMP trap 觸發檢查時。 | `Array<Object>` |
 
-網路設備在每次輪詢時都會被 ping，只有在有認證資訊時才會透過 SNMP 走訪，因此 **在上面的變數中，僅支援 ping 的設備只會填入 `isOnline`**：其他所有變數都來自 SNMP 走訪，沒有走訪時會原樣保留。在可能用於沒有認證資訊之設備的範本中，請以 `{{isOnline}}` 和設備的名稱開頭。每種輪詢收集哪些內容，請參閱 [網路設備監測器](/docs/monitor/network-device-monitor#what-a-poll-actually-does)。
+網路設備在每次輪詢時都會被 ping，只有在有認證資訊時才會透過 SNMP 走訪，因此 **在上面的變數中，僅支援 ping 的設備只會填入 `isOnline`**：其他所有變數都來自 SNMP 走訪，沒有走訪時會原樣保留。在可能用於沒有認證資訊之設備的範本中，請以 `{{isOnline}}` 和設備的名稱開頭。每種輪詢收集哪些內容，請參閱 [網路設備監測器](/docs/monitor/network-device-monitor#一次輪詢實際做了什麼)。
 
 ### 資料庫健康狀態監測器
 
