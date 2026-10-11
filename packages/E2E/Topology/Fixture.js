@@ -22,6 +22,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { loadDataset } from "./Datasets";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   answerTopologyRequest,
   isTopologyApiUrl,
@@ -317,7 +318,7 @@ function buildLargeNetwork() {
   const nodes = [];
   const edges = [];
   const roles = ["router", "switch", "switch", "firewall", "server"];
-  let seed = 4616;
+  const random = seededRandom(4616);
   for (let index = 0; index < LARGE_NETWORK_SIZE; index++) {
     nodes.push({
       id: `00000000-0000-4000-8000-${String(index + 1001).padStart(12, "0")}`,
@@ -331,8 +332,7 @@ function buildLargeNetwork() {
       interfacesDown: index % 11 === 0 ? 1 : 0,
     });
     if (index > 0) {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      const parent = Math.floor((seed / 2147483648) * index);
+      const parent = random(index);
       edges.push({
         fromNodeId: nodes[parent].id,
         toNodeId: nodes[index].id,

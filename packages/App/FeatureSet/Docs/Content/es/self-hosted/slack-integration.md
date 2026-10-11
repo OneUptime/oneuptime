@@ -151,7 +151,7 @@ El manifiesto configura estas funciones. Cada una llega a tu servidor por la rut
 
 ### Imágenes en los mensajes
 
-Las descripciones de incidentes y alertas pueden llevar capturas de pantalla, por ejemplo la de un monitor sintético (consulta [Monitores sintéticos](/docs/monitor/incident-alert-templating#monitores-sintéticos)). OneUptime las muestra en los mensajes de Slack subiendo cada una a tu espacio de trabajo como archivo privado, lo que requiere el scope de bot `files:write`. El manifiesto generado lo incluye.
+Las descripciones de incidentes y alertas pueden llevar capturas de pantalla, por ejemplo la de un monitor sintético (consulta [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#mostrar-una-captura-de-pantalla)). OneUptime las muestra en los mensajes de Slack subiendo cada una a tu espacio de trabajo como archivo privado, lo que requiere el scope de bot `files:write`. El manifiesto generado lo incluye.
 
 Si creaste tu app de Slack a partir de un manifiesto anterior, añade `files:write` en **OAuth & Permissions > Bot Token Scopes** (o actualiza la app a partir del manifiesto actual). Después, selecciona de nuevo **Conectar con Slack** en **Ajustes del proyecto > Espacio de trabajo > Slack**, para que se conceda el nuevo scope. Hasta entonces, cada captura se muestra como su texto alternativo.
 

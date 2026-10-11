@@ -1,4 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  otherChangesItemAtEnglishPlace,
+  otherChangesItems,
+} from "./UpgradingDocsNotes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -15,8 +19,7 @@ import path from "path";
  * how a request is decided, beside how such a record is read, and in the
  * paragraph under Granular permissions that tells a custom role which read
  * permission to give with a note's permissions - the API reference says what
- * a create answers, and the upgrade notes say what changes, at length in
- * English and in one line in every other guide.
+ * a create answers, and the upgrade notes say what changes, in every guide.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -195,36 +198,39 @@ describe("Docs: a record read through another one is created only under one you 
       return language !== "en";
     }),
   )(
-    "the %s upgrade guide has the line, among the other changes before the endpoint changes",
+    "the %s upgrade guide has the note, in the English note's place among the other changes",
     (language: string) => {
-      const lines: Array<string> = read(
+      /*
+       * Each translation lists the English notes in the English order, so
+       * the note is the one in the English note's place, and it names what
+       * a custom role or an API key needs as the English does.
+       */
+      const note: string = otherChangesItemAtEnglishPlace(
         language,
-        "installation/upgrading.md",
-      ).split("\n");
-      const anchor: number = lines.findIndex((line: string): boolean => {
-        return (
-          line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
-        );
-      });
-      const created: Array<number> = lines
-        .map((line: string, index: number): number => {
-          return line.startsWith("- **") &&
-            line.includes(CREATE_NOTE) &&
-            line.includes(READ_INCIDENT)
-            ? index
-            : -1;
-        })
-        .filter((index: number): boolean => {
-          return index >= 0;
-        });
+        "A record read through another one is created only under a record its",
+      );
 
-      expect([language, created.length]).toEqual([language, 1]);
-      expect([language, created[0]! < anchor]).toEqual([language, true]);
+      expect([language, note.startsWith("- **")]).toEqual([language, true]);
 
-      // In the same list: only list items between the line and the anchor.
-      for (const line of lines.slice(created[0]!, anchor)) {
-        expect([language, line.startsWith("- **")]).toEqual([language, true]);
+      for (const code of [CREATE_NOTE, READ_INCIDENT, "`400`"]) {
+        expect([language, code, note.includes(code)]).toEqual([
+          language,
+          code,
+          true,
+        ]);
       }
+
+      // Before the reads by ID, as in English.
+      expect([
+        language,
+        otherChangesItems(language).indexOf(note) <
+          otherChangesItems(language).indexOf(
+            otherChangesItemAtEnglishPlace(
+              language,
+              "Every grant and scope narrows what it reaches, and a read by ID of a",
+            ),
+          ),
+      ]).toEqual([language, true]);
     },
   );
 });

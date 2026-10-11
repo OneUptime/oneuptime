@@ -154,7 +154,7 @@ return {
 };
 ```
 
-En kørsel gemmer op til 20 skærmbilleder, hvert på op til 10 MB og 50 MB i alt. Et skærmbillede kan også vises i den hændelse eller advarsel, en mislykket kørsel åbner — på dens side og i e-mailene om den — ved at placere det i monitorens hændelses- eller advarselsbeskrivelse. Se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#syntetiske-monitorer).
+En kørsel gemmer op til 20 skærmbilleder, hvert på op til 10 MB og 50 MB i alt. Et skærmbillede kan også vises i den hændelse eller advarsel, en mislykket kørsel åbner — på dens side og i e-mailene om den — ved at placere det i monitorens hændelses- eller advarselsbeskrivelse. Se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede).
 
 :::details Returnering af skærmbilleder (legacy)
 Af hensyn til bagudkompatibilitet kan du også returnere skærmbilleder fra scriptet som en del af returværdien. Skærmbilleder, der returneres på denne måde, gemmes **kun**, når scriptet afsluttes normalt — de går tabt, hvis scriptet kaster en fejl. Foretræk sidekanalmønstret ovenfor, når du vil have bevis på fejl.
@@ -295,6 +295,6 @@ Sonden kører uden for sit Docker-image uden Chromium eller Firefox installeret.
 
 :::cards
 - [Brugerdefineret kode-monitor](/docs/monitor/custom-code-monitor): Tjek API'er med et script uden en browser.
-- [Vis et skærmbillede](/docs/monitor/incident-alert-templating#syntetiske-monitorer): Sæt den mislykkede kørsels skærmbillede ind i hændelsen.
+- [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede): Sæt den mislykkede kørsels skærmbillede ind i hændelsen.
 - [Monitorhemmeligheder](/docs/monitor/monitor-secrets): Hold legitimationsoplysninger ude af dit script.
 :::

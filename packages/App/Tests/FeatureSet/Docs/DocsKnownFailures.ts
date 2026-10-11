@@ -148,9 +148,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "forms/sharing-and-security": {
     translated: EVERY_TRANSLATION,
   },
-  "installation/upgrading": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },
@@ -231,19 +228,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/incident-alert-templating": {
-    pageLinks: ["fa"],
-    uniqueHeadings: except(EVERY_LANGUAGE, "sv"),
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/iot-device-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/kubernetes-agent": {
-    pageLinks: ["fa"],
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
   "monitor/network-device-monitor": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -255,12 +239,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "monitor/network-vendor-guides": {
     translated: EVERY_TRANSLATION,
-  },
-  "monitor/storage-array-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/vmware-monitor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,

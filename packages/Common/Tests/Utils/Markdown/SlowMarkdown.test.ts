@@ -1,3 +1,4 @@
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 import {
   SLOW_MARKDOWN_MAX_INLINE_WORK,
@@ -503,35 +504,25 @@ describe("holdBackSlowMarkdown - what is held back comes back as it was written"
     "😀",
   ];
 
-  // A seeded generator, so a failure can be run again.
-  function random(seed: number): () => number {
-    let state: number = seed;
-
-    return (): number => {
-      state = (state * 1103515245 + 12345) % 2147483648;
-      return state / 2147483648;
-    };
-  }
-
   test("for 300 texts and limits that hold much back", () => {
-    const next: () => number = random(4566);
+    const next: SeededRandom = seededRandom(4566);
     let heldSomething: number = 0;
 
     for (let index: number = 0; index < 300; index++) {
       let text: string = "";
-      const size: number = 2100 + Math.floor(next() * 6000);
+      const size: number = 2100 + next(6000);
 
       while (text.length < size) {
-        text += PIECES[Math.floor(next() * PIECES.length)];
+        text += PIECES[next(PIECES.length)];
       }
 
       const recorded: Recorded = holdBack(text, {
-        maxInlineWork: 200 + Math.floor(next() * 20000),
-        maxRunLines: 2 + Math.floor(next() * 40),
-        maxLines: 5 + Math.floor(next() * 80),
-        maxUnitLength: 50 + Math.floor(next() * 500),
-        maxNestingDepth: 1 + Math.floor(next() * 4),
-        maxCellsPerLine: 1 + Math.floor(next() * 6),
+        maxInlineWork: 200 + next(20000),
+        maxRunLines: 2 + next(40),
+        maxLines: 5 + next(80),
+        maxUnitLength: 50 + next(500),
+        maxNestingDepth: 1 + next(4),
+        maxCellsPerLine: 1 + next(6),
         holdBackCodeBlockContent: next() < 0.5,
         countUrlLiterals: next() < 0.5,
         countWordUnderscores: next() < 0.5,

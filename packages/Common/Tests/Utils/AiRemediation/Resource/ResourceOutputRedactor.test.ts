@@ -76,6 +76,11 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
     "data:\n  password: aHVudGVyMg==\n  user: YWRtaW4=",
     "kind: Secret\ndata:\n  x: eQ==",
     "line with\r\nwindows endings DB_TOKEN=abc",
+    // Material in a quoted key, and keys that only look like material.
+    '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}',
+    "  'postgres://app:hunter2@db:5432/app': enabled",
+    '"--set db.password=hunter2": "failed"',
+    '{"AppSettings2FeatureFlagsEnabledForTenant1": "true", "Path=": "x"}',
   ];
 
   test.each(
@@ -86,6 +91,31 @@ describe("the generic rules are KubectlOutputRedactor's", () => {
     expect(GenericOutputRedactor.redact(text)).toEqual(
       KubectlOutputRedactor.redact(text),
     );
+  });
+});
+
+describe("a quoted key is read for a URL password, and stays a name", () => {
+  test("a URL password in a JSON key is masked, on the agent as on the server", () => {
+    const output: string =
+      '{\n  "https://ci:hunter2@registry.example.com": {\n    "auth": ""\n  }\n}';
+
+    for (const text of [
+      redact(output),
+      GenericOutputRedactor.redact(output).text,
+    ]) {
+      expect(text).toContain(
+        `"https://ci:${RESOURCE_REDACTED_MARKER}@registry.example.com": {`,
+      );
+      expect(text).not.toContain("hunter2");
+    }
+  });
+
+  test("a key that only looks like material stays a name", () => {
+    const output: string =
+      '{\n  "AppSettings2FeatureFlagsEnabledForTenant1": "true",\n  "Path=": "/usr/bin",\n  "pods:list": "allow"\n}';
+
+    expect(GenericOutputRedactor.redact(output).text).toBe(output);
+    expect(GenericOutputRedactor.redact(output).redactionCount).toBe(0);
   });
 });
 

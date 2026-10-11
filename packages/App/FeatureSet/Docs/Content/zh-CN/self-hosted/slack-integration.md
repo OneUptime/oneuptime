@@ -151,7 +151,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 ### 消息中的图片
 
-事件和告警的描述可以包含截图，例如合成监控器的截图（请参阅 [合成监控器](/docs/monitor/incident-alert-templating#合成监控器)）。OneUptime 会把每张截图作为私有文件上传到你的工作区，从而在 Slack 消息中显示它们，这需要机器人权限范围 `files:write`。生成的清单包含它。
+事件和告警的描述可以包含截图，例如合成监控器的截图（请参阅 [显示截图](/docs/monitor/incident-alert-templating#显示截图)）。OneUptime 会把每张截图作为私有文件上传到你的工作区，从而在 Slack 消息中显示它们，这需要机器人权限范围 `files:write`。生成的清单包含它。
 
 如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
 

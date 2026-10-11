@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { compareCodePoints } from "../../../Types/Topology/TopologyTypeRules";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * compareCodePoints is how the Dashboard breaks the ties the server breaks
@@ -32,15 +33,6 @@ function referenceCompare(a: string, b: string): number {
 
 function codeUnitCompare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
-}
-
-/* A small deterministic generator, so a failure names its inputs. */
-function makeRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
 }
 
 /* Characters from the ranges where the two orders meet or part ways. */
@@ -134,7 +126,8 @@ describe("compareCodePoints", () => {
   });
 
   test("agrees with a code-point reference on thousands of mixed strings", () => {
-    const random: () => number = makeRandom(3973);
+    // Seeded, so a failure names its inputs.
+    const random: () => number = seededRandom(3973);
     let disagreementsWithCodeUnits: number = 0;
     for (let round: number = 0; round < 20000; round++) {
       const a: string = randomString(random, ALPHABET);

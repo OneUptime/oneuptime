@@ -7,6 +7,7 @@ import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -216,26 +217,12 @@ const verifyAt: VerifyFunction = (
   return VerificationEmailResendToken.verify(token, now);
 };
 
-type RandomFunction = () => number;
-
-type CreateRandomFunction = (seed: number) => RandomFunction;
-
 /*
- * Park-Miller: small, deterministic and seedable, so the fuzz below throws the
- * same few hundred strings at verify() on every run and a failure reproduces.
+ * Draws of the suites' seeded generator (Common/Tests/Helpers/SeededRandom),
+ * so the fuzz below throws the same few hundred strings at verify() on every
+ * run and a failure reproduces.
  */
-const createRandom: CreateRandomFunction = (seed: number): RandomFunction => {
-  let state: number = seed % 2147483647;
-
-  if (state <= 0) {
-    state = state + 2147483646;
-  }
-
-  return (): number => {
-    state = (state * 48271) % 2147483647;
-    return (state - 1) / 2147483646;
-  };
-};
+type RandomFunction = () => number;
 
 type RandomStringFunction = (
   random: RandomFunction,
@@ -903,7 +890,7 @@ describe("verify never throws", () => {
     count: number,
     factory: CandidateFactory,
   ): void => {
-    const random: RandomFunction = createRandom(seed);
+    const random: RandomFunction = seededRandom(seed);
 
     for (let i: number = 0; i < count; i++) {
       expectRefusedWithoutThrowing(factory(random));

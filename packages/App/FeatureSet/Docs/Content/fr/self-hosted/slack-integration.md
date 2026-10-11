@@ -151,7 +151,7 @@ Le manifeste configure ces fonctionnalités. Chacune joint votre serveur sur la 
 
 ### Images dans les messages
 
-Les descriptions d'incidents et d'alertes peuvent contenir des captures d'écran, par exemple celle d'un moniteur synthétique (voir [Moniteurs synthétiques](/docs/monitor/incident-alert-templating#moniteurs-synthétiques)). OneUptime les affiche dans les messages Slack en téléversant chacune dans votre espace de travail comme fichier privé, ce qui exige le scope de bot `files:write`. Le manifeste généré l'inclut.
+Les descriptions d'incidents et d'alertes peuvent contenir des captures d'écran, par exemple celle d'un moniteur synthétique (voir [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#afficher-une-capture-décran)). OneUptime les affiche dans les messages Slack en téléversant chacune dans votre espace de travail comme fichier privé, ce qui exige le scope de bot `files:write`. Le manifeste généré l'inclut.
 
 Si vous avez créé votre application Slack à partir d'un manifeste plus ancien, ajoutez `files:write` sous **OAuth & Permissions > Bot Token Scopes** (ou mettez à jour l'application à partir du manifeste actuel). Sélectionnez ensuite de nouveau **Se connecter avec Slack** dans **Paramètres du projet > Espace de travail > Slack**, pour que le nouveau scope soit accordé. D'ici là, chaque capture d'écran s'affiche sous forme de son texte alternatif.
 

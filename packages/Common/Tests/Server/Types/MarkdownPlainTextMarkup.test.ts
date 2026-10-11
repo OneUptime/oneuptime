@@ -1,6 +1,7 @@
 import Markdown, {
   PLAIN_TEXT_MARKUP_READING,
 } from "../../../Server/Types/Markdown";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -541,17 +542,8 @@ describe("Markdown.convertToPlainText takes typed markup out completely", () => 
     ];
     const BLANK_LINE: RegExp = /\n[^\S\n]*\n/;
 
-    function makeRandom(seed: number): (limit: number) => number {
-      let state: number = seed >>> 0;
-
-      return (limit: number): number => {
-        state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-        return Math.floor((state / 4294967296) * limit);
-      };
-    }
-
     test("on 20,000 generated texts", () => {
-      const random: (limit: number) => number = makeRandom(31337);
+      const random: SeededRandom = seededRandom(31337);
       const leftMarkup: Array<[string, string]> = [];
       let read: number = 0;
 

@@ -125,6 +125,11 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "Common/Tests/Helpers/SeededRandom";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 
 const MONITORS: number = 3;
@@ -168,19 +173,6 @@ function secretKeyOf(job: ModelJob): string {
 
 function sequenceOf(body: unknown): number {
   return (body as JSONObject)["sequence"] as number;
-}
-
-// mulberry32: small, fast, and the same sequence for the same seed.
-function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 class DeduplicatingQueueModel {
@@ -308,7 +300,7 @@ const secretKeys: Array<string> = Array.from(
  * The state of the schedule being run. The mocks are wired once and read
  * it, so a schedule only has to replace it.
  */
-let random: () => number = Math.random;
+let random: SeededRandom = seededRandom(0);
 let points: Array<() => void> = [];
 let model: DeduplicatingQueueModel = new DeduplicatingQueueModel();
 let slots: Map<string, { payloadId: string; payload: string }> = new Map();
@@ -509,17 +501,14 @@ async function runSchedule(
     leftInStore: 0,
   };
 
-  // Which monitor each request goes to, shuffled (Fisher-Yates)...
-  const order: Array<string> = [];
+  // Which monitor each request goes to, shuffled...
+  const requests: Array<string> = [];
 
   for (let i: number = 0; i < MONITORS * REQUESTS_PER_MONITOR; i++) {
-    order.push(secretKeys[i % MONITORS]!);
+    requests.push(secretKeys[i % MONITORS]!);
   }
 
-  for (let i: number = order.length - 1; i > 0; i--) {
-    const j: number = Math.floor(random() * (i + 1));
-    [order[i], order[j]] = [order[j]!, order[i]!];
-  }
+  const order: Array<string> = shuffled(requests, random);
 
   // ...and numbered per monitor in the order they are sent.
   const toSend: Array<{ secretKey: string; sequence: number }> = [];

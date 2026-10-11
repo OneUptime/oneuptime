@@ -154,7 +154,7 @@ return {
 };
 ```
 
-Een uitvoering bewaart tot 20 schermafbeeldingen, elk tot 10 MB en samen 50 MB. Een schermafbeelding kan ook verschijnen in het incident of de waarschuwing die een mislukte uitvoering opent (op de pagina ervan en in de e-mails erover) door haar in de incident- of waarschuwingsbeschrijving van de monitor te plaatsen. Zie [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#synthetische-monitors).
+Een uitvoering bewaart tot 20 schermafbeeldingen, elk tot 10 MB en samen 50 MB. Een schermafbeelding kan ook verschijnen in het incident of de waarschuwing die een mislukte uitvoering opent (op de pagina ervan en in de e-mails erover) door haar in de incident- of waarschuwingsbeschrijving van de monitor te plaatsen. Zie [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#een-schermafbeelding-tonen).
 
 :::details Schermafbeeldingen teruggeven (verouderd)
 Voor achterwaartse compatibiliteit kunt u schermafbeeldingen ook als deel van de retourwaarde uit het script teruggeven. Zo teruggegeven schermafbeeldingen worden **alleen** vastgelegd als het script normaal eindigt: ze gaan verloren als het script een fout gooit. Geef de voorkeur aan het zijkanaalpatroon hierboven als u bewijs van mislukkingen wilt.
@@ -295,6 +295,6 @@ De sonde draait buiten haar Docker-image, zonder Chromium of Firefox geïnstalle
 
 :::cards
 - [Aangepaste-code-monitor](/docs/monitor/custom-code-monitor): API's controleren met een script, zonder browser.
-- [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#synthetische-monitors): De schermafbeelding van de mislukte uitvoering in het incident zetten.
+- [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#een-schermafbeelding-tonen): De schermafbeelding van de mislukte uitvoering in het incident zetten.
 - [Monitor-geheimen](/docs/monitor/monitor-secrets): Inloggegevens buiten uw script houden.
 :::

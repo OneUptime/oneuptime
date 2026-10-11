@@ -3,6 +3,8 @@ import removeHtmlMarkup, {
   removeHtmlMarkup as namedRemoveHtmlMarkup,
   replaceHtmlMarkup,
 } from "../../Types/HtmlMarkup";
+import { generatedTexts } from "../Helpers/GeneratedTexts";
+import { MARKUP_ALPHABET } from "./HtmlMarkupCases";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import { JSDOM } from "jsdom";
@@ -31,66 +33,6 @@ import path from "path";
 
 const browserText: (html: string) => string = (html: string): string => {
   return JSDOM.fragment(html).textContent || "";
-};
-
-// A small seeded generator, so the generated cases are the same every run.
-const seededRandom: (seed: number) => (limit: number) => number = (
-  seed: number,
-): ((limit: number) => number) => {
-  let state: number = seed;
-
-  return (limit: number): number => {
-    state = (state * 1103515245 + 12345) & 0x7fffffff;
-    return state % limit;
-  };
-};
-
-// Text made of the characters markup is made of, and some that are not.
-const generatedTexts: (count: number, seed: number) => Array<string> = (
-  count: number,
-  seed: number,
-): Array<string> => {
-  const alphabet: Array<string> = [
-    "<",
-    ">",
-    "!",
-    "-",
-    "=",
-    '"',
-    "'",
-    "/",
-    "?",
-    " ",
-    "\n",
-    "s",
-    "c",
-    "r",
-    "i",
-    "p",
-    "t",
-    "a",
-    "b",
-    "é",
-    "語",
-    "😀",
-    "&",
-    ";",
-  ];
-  const random: (limit: number) => number = seededRandom(seed);
-  const texts: Array<string> = [];
-
-  for (let index: number = 0; index < count; index++) {
-    let text: string = "";
-    const length: number = random(28);
-
-    for (let position: number = 0; position < length; position++) {
-      text += alphabet[random(alphabet.length)];
-    }
-
-    texts.push(text);
-  }
-
-  return texts;
 };
 
 describe("removeHtmlMarkup", () => {
@@ -245,7 +187,11 @@ describe("removeHtmlMarkup", () => {
   });
 
   describe("what it returns", () => {
-    const generated: Array<string> = generatedTexts(20000, 4242);
+    const generated: Array<string> = generatedTexts(
+      20000,
+      4242,
+      MARKUP_ALPHABET,
+    );
 
     it("never holds a '<', for any text", () => {
       const withAngleBracket: Array<string> = generated.filter(
@@ -275,16 +221,26 @@ describe("removeHtmlMarkup", () => {
 
     it("keeps every character it does not take out, in order", () => {
       // What is left is the input with whole pieces taken out.
-      for (const text of generated.slice(0, 2000)) {
-        const result: string = removeHtmlMarkup(text);
-        let at: number = 0;
+      const reordered: Array<string> = generated.filter(
+        (text: string): boolean => {
+          const result: string = removeHtmlMarkup(text);
+          let at: number = 0;
 
-        for (const character of result) {
-          at = text.indexOf(character, at);
-          expect(at).toBeGreaterThanOrEqual(0);
-          at += character.length;
-        }
-      }
+          for (const character of result) {
+            at = text.indexOf(character, at);
+
+            if (at < 0) {
+              return true;
+            }
+
+            at += character.length;
+          }
+
+          return false;
+        },
+      );
+
+      expect(reordered).toEqual([]);
     });
 
     it("reads markup as the docs tests' stripHtmlTags reads it", () => {
@@ -401,23 +357,29 @@ describe("removeHtmlMarkup", () => {
     });
 
     it("holds no '<' when what it puts in place holds none", () => {
-      for (const html of generatedTexts(5000, 77)) {
-        expect(
-          replaceHtmlMarkup(html, (): string => {
-            return "-";
-          }),
-        ).not.toContain("<");
-      }
+      expect(
+        generatedTexts(5000, 77, MARKUP_ALPHABET).filter(
+          (html: string): boolean => {
+            return replaceHtmlMarkup(html, (): string => {
+              return "-";
+            }).includes("<");
+          },
+        ),
+      ).toEqual([]);
     });
 
     it("reads markup as removeHtmlMarkup does", () => {
-      for (const html of generatedTexts(5000, 78)) {
-        expect(
-          replaceHtmlMarkup(html, (): string => {
-            return "";
-          }),
-        ).toBe(removeHtmlMarkup(html));
-      }
+      expect(
+        generatedTexts(5000, 78, MARKUP_ALPHABET).filter(
+          (html: string): boolean => {
+            return (
+              replaceHtmlMarkup(html, (): string => {
+                return "";
+              }) !== removeHtmlMarkup(html)
+            );
+          },
+        ),
+      ).toEqual([]);
     });
   });
 

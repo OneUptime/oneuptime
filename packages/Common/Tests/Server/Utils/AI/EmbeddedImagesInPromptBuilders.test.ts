@@ -63,6 +63,7 @@ import PromptText, {
 } from "../../../../Utils/AI/PromptText";
 import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -81,11 +82,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 // A 128 KB JPEG screenshot, as a probe reports one (base64, noisy like a photo).
 function jpegScreenshot(kilobytes: number): string {
   const bytes: Buffer = Buffer.alloc(kilobytes * 1024);
-  let seed: number = 5;
+  const random: SeededRandom = seededRandom(5);
 
   for (let index: number = 0; index < bytes.length; index++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    bytes[index] = (seed >> 8) & 0xff;
+    bytes[index] = random(256);
   }
 
   bytes[0] = 0xff;

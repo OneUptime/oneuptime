@@ -70,6 +70,16 @@ jobs:
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts --forceExit
+      # App's docs facts that hold a page to code in ee/ as well as in core:
+      # the identity pages to the SCIM server and its pages, the SLO pages to
+      # the audit log settings, the upgrading notes to the enterprise Health
+      # dashboards, the licence period claims to ee/README.md, and the span
+      # metrics page to what ee/ holds. Each checks its ee/ half only where
+      # ee/ is checked out, and the App Test job deletes ee/ first, so this is
+      # where that half runs. They only read files.
+      - name: Run App's docs facts that read ee/ with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts --forceExit
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, and the

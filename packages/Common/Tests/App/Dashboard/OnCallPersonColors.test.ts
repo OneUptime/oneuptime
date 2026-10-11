@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import * as BrandColors from "../../../Types/BrandColors";
 import Color, { RGB } from "../../../Types/Color";
 import HashCode from "../../../Types/HashCode";
@@ -82,15 +83,13 @@ const HEX_COLOR: RegExp = /^#[0-9a-f]{6}$/;
 
 /*
  * User ids shaped the way the database writes them (lowercase uuid v4), from
- * a fixed seed, so every run checks the same people. The top bits of a
- * linear congruential generator are its good ones.
+ * a fixed seed, so every run checks the same people.
  */
 function makeUserIds(count: number, seed: number = 20261006): Array<string> {
-  let state: number = seed >>> 0;
+  const random: SeededRandom = seededRandom(seed);
 
   const nextHexDigit: () => string = (): string => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return (state >>> 28).toString(16);
+    return random(16).toString(16);
   };
 
   const hexDigits: (length: number) => string = (length: number): string => {
