@@ -31,6 +31,7 @@
 
 import { describe, expect, jest, test } from "@jest/globals";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import {
   DYNAMICS_SYNCED_FROM_ONEUPTIME_MARKER,
   ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER,
@@ -2015,7 +2016,7 @@ describe.each(KINDS)("%s: read-note-1", (_name: string, kind: RecordKind) => {
     });
   });
 
-  test("HTML entities and breaks become text, and nothing is decoded twice", async () => {
+  test("HTML entities and breaks become text, nothing is decoded twice, and a typed tag stays text", async () => {
     const result: JSONObject = await run(
       args(
         noteRow({
@@ -2027,12 +2028,16 @@ describe.each(KINDS)("%s: read-note-1", (_name: string, kind: RecordKind) => {
       ),
     );
 
+    /*
+     * The "<b>" was typed as text in Dynamics 365. It reads as typed, with
+     * an invisible word joiner after its "<", so no renderer reads a tag.
+     */
     expect(textOf(result, "note").split("\n\n")[1]).toBe(
-      "a <b> c d \"e\" 'f' &lt;g&gt;\nnext\nline\nblock",
+      `a <${WORD_JOINER}b> c d "e" 'f' &lt;g&gt;\nnext\nline\nblock`,
     );
   });
 
-  test("a plain-text note is left as it is", async () => {
+  test("a plain-text note keeps every character, and its '<' starts nothing", async () => {
     const result: JSONObject = await run(
       args(
         noteRow({
@@ -2043,9 +2048,10 @@ describe.each(KINDS)("%s: read-note-1", (_name: string, kind: RecordKind) => {
       ),
     );
 
-    expect(textOf(result, "note").endsWith("\n\nPlain <3 text, a < b")).toBe(
-      true,
-    );
+    // "<3" gets the joiner; "a < b", with a space after the "<", needs none.
+    expect(
+      textOf(result, "note").endsWith(`\n\nPlain <${WORD_JOINER}3 text, a < b`),
+    ).toBe(true);
   });
 
   test("a note OneUptime wrote is not copied back, whether the marker is in its title or its text", async () => {

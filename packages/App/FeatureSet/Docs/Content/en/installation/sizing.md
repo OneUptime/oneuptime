@@ -14,6 +14,16 @@ Running the single-server Docker Compose install instead? Its sizing is simpler:
 - [Retention](#retention-and-how-it-affects-storage): The setting that multiplies your disk.
 :::
 
+## Size your installation
+
+:::steps
+1. Find out how much telemetry you send: the GB of logs, metrics and traces a day. Measure it on a small installation if you can.
+2. Decide how many days to keep it. Retention multiplies ClickHouse's disk (see [Retention](#retention-and-how-it-affects-storage)).
+3. Work out ClickHouse's disk with the [storage formula](#storage-formula), then PostgreSQL's and Valkey's from their own sections.
+4. Pick the [starting tier](#starting-tiers) closest to your numbers, and set its CPU, memory and storage in your Helm values.
+5. Turn on [high availability](#high-availability) for the datastores that need it, then watch real usage and adjust.
+:::
+
 ## What drives each datastore
 
 OneUptime needs three datastores in production. Each grows with something different, so size them independently.
@@ -31,7 +41,7 @@ flowchart TB
 | **PostgreSQL** | Configuration and state — monitors, incidents, alerts, users, teams, projects, workflows, status pages, dashboards | **Entity count and history**, not telemetry volume. Grows slowly.                          |
 | **Valkey**     | Cache, work queues, and sessions                                                                                   | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth.       |
 
-OneUptime never needs object storage (S3, MinIO) to run, and it does not move older telemetry to object storage. You need object storage only if you choose object-store backups: the Barman Cloud plugin for CloudNativePG, or [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) for ClickHouse. The chart's own CloudNativePG backup (`postgresOperator.cnpg.backup`) takes volume snapshots and needs no object store.
+OneUptime never needs object storage (S3, MinIO) to run, and it does not move older telemetry to object storage. You need object storage only if you choose object-store backups: the Barman Cloud plugin for CloudNativePG, or [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) for ClickHouse. The chart's own CloudNativePG backup (`postgresOperator.cnpg.backup`) takes volume snapshots and needs no object store. CloudNativePG never deletes old snapshots: prune them yourself, or they keep growing.
 
 ## ClickHouse — the dominant driver
 
@@ -80,7 +90,7 @@ The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 
 
 ## Application compute
 
-Beyond the datastores, size the stateless workloads. Each runs **one replica** with no resource requests or limits until you set them.
+Beyond the datastores, size the stateless workloads. Each runs with **no resource requests or limits** until you set them, and with one replica, except the telemetry writer, which runs two.
 
 | Workload | Values key | Grows with |
 | --- | --- | --- |
@@ -88,8 +98,9 @@ Beyond the datastores, size the stateless workloads. Each runs **one replica** w
 | Workers, when split from the app | `worker` | Telemetry and background job processing |
 | Probes | `probes` | The number of active monitors |
 | Ingress gateway | `nginx` | Request volume |
+| Telemetry writer, when turned on | `telemetryWriter` | Not with load: it batches every telemetry insert into ClickHouse, so it is sized to what ClickHouse can take |
 
-The chart bundles **KEDA** (`keda.enabled`), so the app, workers, probes and the Runner can scale on their queue backlog: turn it on for variable load. Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
+The chart bundles **KEDA**, so the app, workers, probes and the Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
 
 ## Starting tiers
 
@@ -123,7 +134,7 @@ The chart's built-in datastores run as **single instances** by default. For prod
 
 ## Retention and how it affects storage
 
-Telemetry retention is a **ClickHouse TTL counted in days**. Every edition has the project's default, under **Project Settings → Telemetry & APM → Data Retention** (**Default Retention (Days)**); when nothing is set, it is 15 days. The [Enterprise Edition](/docs/self-hosted/enterprise) adds overrides: by signal (logs, traces, metrics, profiles), by log severity and trace status, and per service or resource.
+Telemetry retention is a **ClickHouse TTL counted in days**. Every edition has the project's default, under **Project Settings > Telemetry & APM > Data Retention** (**Default Retention (Days)**); when nothing is set, it is 15 days. The [Enterprise Edition](/docs/self-hosted/enterprise) adds overrides: by signal (logs, traces, metrics, profiles), by log severity and trace status, and per service or resource.
 
 Logs and metrics are deleted a day at a time, at the first midnight (ClickHouse server time) after their retention ends, which saves ClickHouse rewriting each day of them every few hours while it expires. Just before midnight, up to one day more than the retention window is still on disk: size logs and metrics for **retention days + 1**.
 

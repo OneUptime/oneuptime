@@ -1,3 +1,9 @@
+import { JSONObject } from "../../Types/JSON";
+import ComponentID from "../../Types/Workflow/ComponentID";
+import {
+  getTemplateGraphSpec,
+  getWorkflowTemplates,
+} from "../../Types/Workflow/Templates";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -10,6 +16,10 @@ import ts from "typescript";
  * which code scanning reports as incomplete multi-character sanitization
  * (js/incomplete-multi-character-sanitization): an unclosed tag stays as it
  * came, and a ">" inside a quoted value or a comment ends the tag early.
+ * Markdown read as plain text (Markdown.convertToPlainText) keeps its own
+ * narrower reading, which leaves a "<" typed as text alone, but reads it
+ * through the same module (removeMarkupFromText), until no markup is left:
+ * one pass of its pattern left the markup that taking a tag out joined.
  * This guard reads each of them and fails on:
  *
  *   1. a replace or replaceAll whose pattern takes out a whole HTML tag or
@@ -22,6 +32,12 @@ import ts from "typescript";
  * A pattern for one element of a message - a line break, a list item, the
  * end of a paragraph, a Teams mention or attachment - turns markup into
  * text of its own and passes: it is not a tag strip.
+ *
+ * Workflow template scripts are strings in Templates.ts, which the file
+ * check above cannot see into, and they run in a sandbox that imports
+ * nothing. So every script step of every template is read the same way,
+ * and the one that reads HTML (the Dynamics 365 note template's) must read
+ * it through its own copy of the walk.
  */
 
 const PACKAGES_DIRECTORY: string = path.resolve(__dirname, "../../..");
@@ -67,7 +83,80 @@ const MARKUP_READERS: Array<MarkupReader> = [
     // Through the one slugify, which reads markup with removeHtmlMarkup.
     readsThrough: "slugifyMarkdownHeading",
   },
+  {
+    file: "packages/Common/Server/Utils/Workflow/OAuth2TokenClient.ts",
+    what: "a token endpoint's answer quoted in an OAuth error",
+    // Each tag and comment becomes a space, so words stay apart.
+    readsThrough: "replaceHtmlMarkup",
+  },
+  {
+    file: "packages/Common/Server/Types/Markdown.ts",
+    what: "Markdown read as plain text, for custom SMS and email subjects",
+    /*
+     * The narrow reading that keeps a "<" typed as text, taken out until no
+     * markup is left (convertToPlainText).
+     */
+    readsThrough: "removeMarkupFromText",
+  },
 ];
+
+/*
+ * A workflow template's script runs in the workflow sandbox, which imports
+ * nothing, so it cannot read markup through removeHtmlMarkup. The one that
+ * reads HTML - the Dynamics 365 note template's - carries its own copy of
+ * the walk, which DynamicsNoteMarkup.test.ts holds to the original.
+ */
+interface ScriptMarkupReader {
+  templateId: string;
+  componentId: string;
+  what: string;
+  // The script's own copy of the walk, called on what it reads.
+  readsThrough: string;
+}
+
+const SCRIPT_MARKUP_READERS: Array<ScriptMarkupReader> = [
+  {
+    templateId: "dynamics-case-note-to-incident-private-note",
+    componentId: "read-note-1",
+    what: "a Dynamics 365 note saved as an incident's private note",
+    readsThrough: "replaceMarkup(text, markupAsText)",
+  },
+  {
+    templateId: "dynamics-case-note-to-alert-private-note",
+    componentId: "read-note-1",
+    what: "a Dynamics 365 note saved as an alert's private note",
+    readsThrough: "replaceMarkup(text, markupAsText)",
+  },
+];
+
+interface TemplateScript {
+  name: string;
+  code: string;
+}
+
+// The code of every script step of every workflow template.
+function templateScripts(): Array<TemplateScript> {
+  const scripts: Array<TemplateScript> = [];
+
+  for (const template of getWorkflowTemplates()) {
+    const spec: { nodes: Array<JSONObject> } | null = getTemplateGraphSpec(
+      template.id,
+    ) as unknown as { nodes: Array<JSONObject> } | null;
+
+    for (const node of spec?.nodes || []) {
+      if (node["metadataId"] !== ComponentID.JavaScriptCode) {
+        continue;
+      }
+
+      scripts.push({
+        name: `${template.id}/${String(node["componentId"])}`,
+        code: String((node["args"] as JSONObject | undefined)?.["code"] || ""),
+      });
+    }
+  }
+
+  return scripts;
+}
 
 // Markup a pattern that strips tags or comments takes out whole.
 const MARKUP_PROBES: Array<string> = [
@@ -295,6 +384,51 @@ describe("product code reads text out of markup through removeHtmlMarkup", () =>
       expect(
         importedNames(reader.file, fs.readFileSync(file, "utf8")),
       ).toContain(reader.readsThrough);
+    },
+  );
+});
+
+describe("workflow template scripts read text out of markup through a complete walk", () => {
+  const scripts: Array<TemplateScript> = templateScripts();
+
+  it("finds the template scripts", () => {
+    expect(scripts.length).toBeGreaterThan(10);
+
+    for (const reader of SCRIPT_MARKUP_READERS) {
+      expect(
+        scripts.map((script: TemplateScript): string => {
+          return script.name;
+        }),
+      ).toContain(`${reader.templateId}/${reader.componentId}`);
+    }
+  });
+
+  it("no template script takes out a tag with a pattern of its own", () => {
+    const findings: Array<string> = scripts.flatMap(
+      (script: TemplateScript): Array<string> => {
+        return findTagStrips(`${script.name}.js`, script.code).map(
+          (finding: Finding): string => {
+            return `${script.name}:${finding.line} ${finding.code} - read the HTML with a walk like removeHtmlMarkup's (see the Dynamics 365 note script)`;
+          },
+        );
+      },
+    );
+
+    expect(findings).toEqual([]);
+  });
+
+  it.each(SCRIPT_MARKUP_READERS)(
+    "$templateId $componentId ($what) reads markup through $readsThrough",
+    (reader: ScriptMarkupReader) => {
+      const script: TemplateScript | undefined = scripts.find(
+        (candidate: TemplateScript): boolean => {
+          return (
+            candidate.name === `${reader.templateId}/${reader.componentId}`
+          );
+        },
+      );
+
+      expect(script?.code).toContain(reader.readsThrough);
     },
   );
 });

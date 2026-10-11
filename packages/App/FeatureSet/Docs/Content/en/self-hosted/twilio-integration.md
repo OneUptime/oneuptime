@@ -1,4 +1,4 @@
-# Twilio SMS and Voice Integration
+# Twilio Integration
 
 Self-hosted OneUptime sends SMS and voice alerts through your own Twilio account, and you pay Twilio directly. You save the Twilio credentials in OneUptime's dashboard, not in environment variables: notification delivery reads the saved configuration, and the Helm chart has no Twilio credential values.
 
@@ -10,7 +10,6 @@ Self-hosted OneUptime sends SMS and voice alerts through your own Twilio account
 - [Save the credentials](#2-save-the-credentials-in-oneuptime): For one project, or for the whole installation.
 - [Configure network access](#3-configure-network-access): What Twilio must reach on your server, and when.
 - [Verify phone numbers](#5-verify-team-members-phone-numbers): How team members' numbers are verified.
-- [Incoming Call Policy](/docs/on-call/incoming-call-policy): Let callers reach your on-call engineers through a Twilio number.
 :::
 
 ## 1. Prepare your Twilio account
@@ -138,3 +137,12 @@ Adding a phone number for SMS or calls sends its verification code straight away
 When no code can be sent, the dialog says why instead of claiming one was sent: for example, that no Twilio account is set up, until a project default configuration or the installation-wide configuration above exists. A number whose first code cannot be sent is not added, and the form shows the reason, such as Twilio refusing a destination country.
 
 A number verified for SMS is also verified for calls, with no second code. Verifying by call does not verify SMS, because a number that takes calls, such as a landline, cannot always receive texts. If Twilio accepts a code that never arrives, the project's SMS log shows its delivery status.
+
+## Next steps
+
+:::cards
+- [Incoming Call Policy](/docs/on-call/incoming-call-policy): Let callers reach your on-call engineers through a Twilio number.
+- [Escalation Rules](/docs/on-call/escalation-rules): Decide who is paged at each level, by SMS, call or any other method.
+- [SMTP](/docs/emails/smtp): Send email through your own mail server too.
+- [Private Network Access](/docs/self-hosted/private-network-access): Let workflows and webhooks reach internal tools.
+:::

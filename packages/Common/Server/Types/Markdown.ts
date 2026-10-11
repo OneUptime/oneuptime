@@ -9,6 +9,10 @@ import {
 } from "./MarkdownDocsExtensions";
 import SafeHtml from "../../Types/SafeHtml";
 import {
+  MarkupInTextReading,
+  removeMarkupFromText,
+} from "../../Types/HtmlMarkup";
+import {
   InlineImageDataUri,
   isBase64Character,
   parseInlineImageDataUri,
@@ -58,6 +62,22 @@ const LITERAL_UNDERSCORE: string = "\uE003";
 const WORD_EDGE: string = "\uE004";
 const FIRST_SENTINEL_CODE: number = 0xe000;
 const LAST_SENTINEL_CODE: number = 0xe004;
+// The last of PLACEHOLDER_OPEN, PLACEHOLDER_CLOSE and PARAGRAPH_BREAK.
+const LAST_TAG_BREAK_CODE: number = 0xe002;
+
+/*
+ * How convertToPlainText reads the HTML in Markdown
+ * (removeMarkupFromText): no tag reaches across held-back text or a blank
+ * line - their placeholders and marks, U+E000 to U+E002 - and no tag or
+ * comment holds more than 65536 characters, the most any step that reads
+ * across lines takes.
+ */
+export const PLAIN_TEXT_MARKUP_READING: MarkupInTextReading = {
+  tagCannotHold: (code: number): boolean => {
+    return code >= FIRST_SENTINEL_CODE && code <= LAST_TAG_BREAK_CODE;
+  },
+  maxLength: 65536,
+};
 
 /*
  * Private Use Area sentinels convertToHTML puts in place of what it holds
@@ -380,11 +400,13 @@ export default class Markdown {
      * A backslash-escaped character is held back too, so it also keeps the
      * text around it from being read as a tag ("List<Foo\_Bar>" stays).
      * A comment may span both: it is hidden when rendered, code and all.
+     * They come out completely: where taking one out joins the text either
+     * side into another - "<scr<script>ipt>", "<<b>b>", "<b<i>x</i>>" -
+     * that one goes too, until none is left (removeMarkupFromText, in one
+     * walk). Text that one pass of the rule left no tag in reads exactly
+     * as it did.
      */
-    text = text.replace(
-      /<(?:\/?[A-Za-z][^<>\uE000-\uE002]{0,65536}|[!?][^<>]{0,65536})>/g,
-      "",
-    );
+    text = removeMarkupFromText(text, PLAIN_TEXT_MARKUP_READING);
 
     /*
      * Convert markdown images ![alt](url) to just alt text. Before links, or

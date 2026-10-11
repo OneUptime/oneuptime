@@ -260,6 +260,13 @@ npm run compile           # tsc for the server, then the Dashboard and Admin Das
   (or `--selectProjects ui`). Never use the repository root's jest 30.
 - Core CI jobs run with `ee/` deleted, so core tests must never depend on it.
   Tests for code in `ee/` live in `ee/Tests`.
+- For the same reason a core guard that scans the repository's files never
+  sees `ee/` in CI. To hold `ee/` to one, share its detector from
+  `packages/Common/Tests/Helpers/` and run it over `ee/` from an ee suite, as
+  `Tests/Server/TestTagStripGuard.test.ts` (`TagStripScan.ts`) and
+  `Tests/Server/FrontendRequestsUseRefreshAwareApi.test.ts`
+  (`RefreshAwareApiScan.ts`) do, or run the core guard with `ee/` present from
+  a step of `.github/workflows/test.ee.yaml`.
 - Tests that touch edition-dependent code must pin both the billing flag and the
   edition state. CI's `config.env` sets `BILLING_ENABLED=true`, and without the
   pin every test exercises the OneUptime Cloud path. The helpers are in

@@ -36,7 +36,7 @@ When the repository's `ee/` folder is there, the App loads the Enterprise Editio
 | **Node.js 26 or later, and npm** | The version the repository's `package.json` asks for, and the one CI uses. |
 | **Git** | To clone the repository. |
 | **sudo access** | `npm run dev` asks for your password before it installs anything. |
-| **Port 80 free** | The stack serves OneUptime on `http://localhost`. |
+| **Ports 80 and 443 free** | The stack serves OneUptime on `http://localhost` (port 80), and HTTPS on port 443. |
 
 ## Start the development stack
 
@@ -154,8 +154,8 @@ Install that tool yourself, for example gomplate or ts-node, and run `npm run de
 The images still hold the old dependencies. Rebuild them with `npm run build`, then start the stack again with `npm run dev`. If that is not enough, rebuild from scratch with `npm run force-build-dev`.
 :::
 
-:::details Port 80 is already in use
-Another program on your computer, often a local web server, holds port 80. Stop it, then run `npm run dev` again.
+:::details Port 80 or 443 is already in use
+Another program on your computer, often a local web server, holds the port. Stop it, then run `npm run dev` again.
 :::
 
 ## Next steps

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Tilføj din Twilio-konto
 
-Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger**. Klik i kortet **Twilio-konfiguration** på **Create Twilio Config**, og udfyld formularen:
+Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger**. Klik i kortet **Twilio-konfiguration** på **Opret Twilio-konfiguration**, og udfyld formularen:
 
 - **Navn** og **Beskrivelse**: hvad kontoen bruges til, fx "Supportlinje".
 - **Twilio Account SID**: fra Twilio Console. Den starter med `AC`.
