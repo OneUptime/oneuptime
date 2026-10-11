@@ -451,13 +451,13 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 
 ### Metrikk- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph- og Storage Array-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
 | `metricName` | Navnet på metrikken monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
-Grupperte har de også verdien til hvert attributt i **Group by**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). En IoT Device-monitor har ingen `metricName`, men en gruppert, slik malene dens er, har `{{device.id}}`.
+Grupperte har de også verdien til hvert attributt i **Group by**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 
 ### Andre monitortyper
 

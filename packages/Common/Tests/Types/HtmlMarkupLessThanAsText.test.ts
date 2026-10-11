@@ -2,10 +2,11 @@ import removeHtmlMarkup, {
   HtmlMarkupReplacer,
   replaceHtmlMarkup,
 } from "../../Types/HtmlMarkup";
+import { generatedTexts } from "../Helpers/GeneratedTexts";
 import {
+  MARKUP_ALPHABET,
   SINGLE_PASS_LEFTOVERS,
   WELL_FORMED_MARKUP,
-  generatedTexts,
 } from "./HtmlMarkupCases";
 import { describe, expect, it } from "@jest/globals";
 
@@ -152,7 +153,7 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
     const generated: Array<string> = [
       ...SINGLE_PASS_LEFTOVERS,
       ...WELL_FORMED_MARKUP,
-      ...generatedTexts(20000, 5821),
+      ...generatedTexts(20000, 5821, MARKUP_ALPHABET),
     ];
 
     it("holds no '<' that starts markup", () => {
@@ -219,24 +220,30 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
       );
 
       expect(withoutTextLessThan.length).toBeGreaterThan(1000);
-
-      for (const text of withoutTextLessThan) {
-        expect(readAsBrowser(text)).toBe(removeHtmlMarkup(text));
-      }
+      expect(
+        withoutTextLessThan.filter((text: string): boolean => {
+          return readAsBrowser(text) !== removeHtmlMarkup(text);
+        }),
+      ).toEqual([]);
     });
   });
 
   describe("without the option", () => {
     it("reads every '<' as markup, as before", () => {
-      for (const text of generatedTexts(5000, 7713)) {
-        expect(replaceHtmlMarkup(text, NOTHING)).toBe(removeHtmlMarkup(text));
-        expect(replaceHtmlMarkup(text, NOTHING, {})).toBe(
-          removeHtmlMarkup(text),
-        );
-        expect(
-          replaceHtmlMarkup(text, NOTHING, { lessThanAsText: false }),
-        ).toBe(removeHtmlMarkup(text));
-      }
+      expect(
+        generatedTexts(5000, 7713, MARKUP_ALPHABET).filter(
+          (text: string): boolean => {
+            const removed: string = removeHtmlMarkup(text);
+
+            return (
+              replaceHtmlMarkup(text, NOTHING) !== removed ||
+              replaceHtmlMarkup(text, NOTHING, {}) !== removed ||
+              replaceHtmlMarkup(text, NOTHING, { lessThanAsText: false }) !==
+                removed
+            );
+          },
+        ),
+      ).toEqual([]);
 
       expect(removeHtmlMarkup("expires_in must be < 3600")).toBe(
         "expires_in must be  3600",

@@ -63,6 +63,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             contents: [
               'export { default as PromptText } from "./Utils/AI/PromptText";',
               'export { default as ToolResultSerializer } from "./Server/Utils/AI/Toolbox/Serializer";',
+              'export { seededRandom } from "./Tests/Helpers/SeededRandom";',
             ].join("\n"),
             resolveDir: process.cwd(),
             loader: "ts",
@@ -83,15 +84,14 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           bundle.exports,
           require,
         );
-        const { PromptText, ToolResultSerializer } = bundle.exports;
+        const { PromptText, ToolResultSerializer, seededRandom } = bundle.exports;
 
         // A JPEG's first bytes, then a photo's noise, as base64.
         const screenshot = (megabytes) => {
           const bytes = Buffer.alloc(megabytes * 1024 * 1024);
-          let seed = 9;
+          const random = seededRandom(9);
           for (let index = 0; index < bytes.length; index++) {
-            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-            bytes[index] = (seed >> 8) & 0xff;
+            bytes[index] = random(256);
           }
           bytes[0] = 0xff;
           bytes[1] = 0xd8;

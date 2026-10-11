@@ -451,13 +451,13 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 
 ### Moniteurs de métriques et d'infrastructure
 
-Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph et Storage Array ont une variable qui leur est propre :
+Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array et IoT Device ont une variable qui leur est propre :
 
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |
 | `metricName` | Le nom de la métrique que lit la première requête du moniteur, comme `container.cpu.time`. | `string` |
 
-Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Un moniteur IoT Device n'a pas de `metricName`, mais un moniteur groupé, comme le sont ses modèles, a `{{device.id}}`.
+Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Les modèles du moniteur IoT Device regroupent par appareil : un moniteur créé à partir de l'un d'eux a donc aussi `{{device.id}}`.
 
 ### Autres types de moniteurs
 

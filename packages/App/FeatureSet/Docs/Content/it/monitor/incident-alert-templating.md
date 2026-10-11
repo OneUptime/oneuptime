@@ -451,13 +451,13 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 
 ### Monitor di metriche e infrastruttura
 
-I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph e Storage Array hanno una variabile propria:
+I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
 
 | Variabile | Cosa contiene | Tipo |
 | --- | --- | --- |
 | `metricName` | Il nome della metrica che legge la prima query del monitor, come `container.cpu.time`. | `string` |
 
-Se raggruppati, hanno anche il valore di ogni attributo di **Group by**, e `seriesLabels`: vedi [Valori di un monitor raggruppato](#valori-di-un-monitor-raggruppato). Un monitor IoT Device non ha `metricName`, ma uno raggruppato, come lo sono i suoi modelli, ha `{{device.id}}`.
+Se raggruppati, hanno anche il valore di ogni attributo di **Group by**, e `seriesLabels`: vedi [Valori di un monitor raggruppato](#valori-di-un-monitor-raggruppato). I modelli del monitor IoT Device raggruppano per dispositivo, quindi un monitor creato da uno di essi ha anche `{{device.id}}`.
 
 ### Altri tipi di monitor
 

@@ -223,6 +223,16 @@ export interface WorkflowTemplateVariable {
    * OAuth 2.0 variable, and never as a static variable's plain content.
    */
   isOAuth2SettingOnly?: boolean | undefined;
+  /**
+   * The name of a setting the template asks for before this one, and that
+   * is not filled in from another itself. While this field is empty or has
+   * not been typed into, the wizard fills it in with what is typed there,
+   * without the slashes it may end with (a setting filled in this way is an
+   * address the workflow appends paths to), so a value that is usually the
+   * same is typed once. Emptying the field lets it follow again. Inert in a
+   * template that does not ask for that setting.
+   */
+  prefilledFrom?: string | undefined;
 }
 
 /*
@@ -692,14 +702,96 @@ const ALERT_KIND: TemplateRecordKind = {
   otherPlural: "incidents",
 };
 
+/*
+ * Where the templates send their Jira requests. With a classic API token
+ * that is the Jira Cloud site itself, but a scoped token is only taken at
+ * Atlassian's API gateway, https://api.atlassian.com/ex/jira/<cloud id>,
+ * which no browser opens. So it is the API's address, not the site's, and
+ * the templates that link to an issue ask for the site on its own
+ * (JIRA_SITE_URL).
+ */
 const JIRA_BASE_URL: WorkflowTemplateVariable = {
   name: "jiraBaseUrl",
-  title: "Jira Site URL",
+  title: "Jira API URL",
   description:
-    "Your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
+    "Where the workflow sends its Jira requests: your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
   placeholder: "https://your-company.atlassian.net",
   required: true,
   isSecret: false,
+  // With a classic token, and on Data Center, the requests go to the site itself.
+  prefilledFrom: "jiraSiteUrl",
+};
+
+/*
+ * A site's address as the scripts read one: a host - letters, marks and
+ * decimal digits in any script, ".", "-", "_" and "~", or an IPv6 address in
+ * brackets - and a port of up to five digits. SITE, in the scripts' helper
+ * block, reads an event's REST URL with exactly these, as #4676 wrote it, and
+ * the Jira Site URL is built on the same two, so a change to either changes
+ * both. The setting asks one thing more of a host: a letter or a digit.
+ */
+const SITE_HOST_SOURCE: string = String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])`;
+
+const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
+
+/*
+ * What a Jira Site URL can be: http or https, its letters in either case,
+ * then a host and a port as above, with a letter or a digit in the host
+ * ("." or "-" alone is no site), then, for Jira Data Center under a context
+ * path, that one path segment, and perhaps the slash an address bar ends a
+ * site with. At most 300 characters, as SITE takes. Nothing else fits, so a
+ * link built on it goes to that site, and no page, query, user name or
+ * markup can ride along.
+ *
+ * The scheme's two cases are spelled out rather than taken with the "i"
+ * flag: beside "u", that flag folds case the Unicode way, and the long s
+ * ("ſ") and the Kelvin sign would pass for "s" and "k", in the scheme and in
+ * the path's ASCII letters alike.
+ *
+ * One path segment, not more: Data Center runs under one, such as
+ * https://example.com/jira, while the address of a page - what gets pasted
+ * from a browser's address bar, https://acme.atlassian.net/jira/your-work or
+ * .../browse/OPS-17 - has two or more. Links built on a page's address would
+ * go nowhere, so it is refused.
+ *
+ * The create wizard checks a typed value with JIRA_SITE_URL_PATTERN, and the
+ * scripts read the setting with the same source (SITE_SETTING), so a value
+ * the wizard took is one the scripts link to.
+ */
+const JIRA_SITE_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9._~-]+)?\/?$`,
+].join("");
+
+export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
+  JIRA_SITE_URL_PATTERN_SOURCE,
+  "u",
+);
+
+/*
+ * The Jira site an issue's link goes to: the address people open Jira at.
+ * The templates that bring Jira into OneUptime link the issue in the
+ * description or note they write, and the event's own REST URL, which they
+ * used to take the site from, comes with the request rather than from the
+ * workflow. The workflow names its site here instead, and the scripts link
+ * to that site whatever the event says (issueLink in their helper block).
+ */
+const JIRA_SITE_URL: WorkflowTemplateVariable = {
+  name: "jiraSiteUrl",
+  title: "Jira Site URL",
+  description:
+    "The address you open Jira at, such as https://your-company.atlassian.net, or the base URL of Jira Data Center. Links to Jira issues in OneUptime go to this site.",
+  placeholder: "https://your-company.atlassian.net",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: JIRA_SITE_URL_PATTERN,
+    message:
+      "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.",
+  },
 };
 
 /*
@@ -881,7 +973,8 @@ const jiraSearchBody: JiraSearchBodyFunction = (props: {
  * outside everywhere else: it reads exactly as written, and no image,
  * link, HTML, diagram or chat mention in it acts. Links the template writes
  * itself - to the issue, to the case - are its own, built from what was
- * checked (an issue key, a site's address, a case id).
+ * checked (an issue key, a case id) on the address the workflow's own
+ * settings name (its Jira Site URL, its Dynamics 365 URL).
  *
  * A script runs in the workflow sandbox, which can import nothing, so each
  * carries this copy of reportedValue. It is part of the helper block every
@@ -1055,13 +1148,23 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
   const text = asText(label).toLowerCase();
   return text === LINK_LABEL || LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0);
 });
-// https://your-company.atlassian.net, read off an issue's own REST URL: the scheme, the host and a
-// port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
-// site, and nothing else written into the address can act. A host is letters, marks and decimal
-// digits in any script, ".", "-", "_" and "~", or an IPv6 address in brackets. Only what comes
-// before the URL's path is read, and only when it is no longer than a site's address can be, so a
-// long URL is never matched against a pattern.
-const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
+// The site a link to an issue goes to is the one the workflow names in its Jira Site URL setting:
+// the address people open Jira at, such as https://your-company.atlassian.net, or the base URL of
+// Jira Data Center, with its port and the one-segment path it may run under. The create wizard
+// only takes a site's address there, checked with this same pattern, so a link built on it goes to
+// that site and nothing else can ride along. The setting decides whatever the event says: an event
+// from that site links exactly as before, and one that names another site still links the issue,
+// by its key (which matched ISSUE_KEY), on the site the setting names. A setting that is not a
+// site's address - a value edited in later, an emptied variable or one that is gone - links
+// nothing.
+const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/u;
+// A script handed no setting at all - a workflow whose arguments no longer name it - reads the site
+// off the issue's own REST URL: the scheme, the host and a port, and nothing else. The URL comes with
+// the event, so an issue's link can only ever go to a site, and nothing else written into the
+// address can act. A host is letters, marks and decimal digits in any script, ".", "-", "_" and
+// "~", or an IPv6 address in brackets. Only what comes before the URL's path is read, and only when
+// it is no longer than a site's address can be, so a long URL is never matched against a pattern.
+const SITE = /^https?:\/\/${SITE_HOST_SOURCE}${SITE_PORT_SOURCE}$/u;
 const LONGEST_SITE = 300;
 const siteOf = (self) => {
   const text = asText(self);
@@ -1071,8 +1174,18 @@ const siteOf = (self) => {
   const site = pathStart === -1 ? text : text.slice(0, pathStart);
   return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
-const issueLink = (self, issueKey) => {
-  const site = siteOf(self);
+// The site a Jira Site URL setting names, without the slash it may end with and with its scheme in
+// lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE characters, and a
+// character is at most two UTF-16 units, so a longer value is refused before any pattern reads it.
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+const issueLink = (self, issueKey, setting) => {
+  const site = setting === undefined || setting === null ? siteOf(self) : siteOfSetting(setting);
   return site ? '[' + issueKey + '](' + site + '/browse/' + issueKey + ')' : issueKey;
 };
 // A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
@@ -1427,9 +1540,10 @@ const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2)
 const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
 // What Jira users wrote - the summary, the priority's and the reporter's names, the description -
-// is placed as written (asWritten). The link to the issue is the template's own.
+// is placed as written (asWritten). The link to the issue is the template's own, on the site the
+// workflow's Jira Site URL names.
 const reporter = oneLine(displayName(fields.reporter) || displayName(payload.user));
-const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey) + '.'];
+const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.'];
 if (priority) lines.push('Priority: ' + asWritten(priority));
 if (reporter) lines.push('Reported by: ' + asWritten(reporter));
 const description = clean(plainText(fields.description)).trim();
@@ -1594,7 +1708,7 @@ const jiraReadCommentScript: JiraKindScriptFunction = (
 // Add 'comment_updated' to also copy edits; each edit then becomes a new note.
 const EVENTS = ['comment_created'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const comment = payload.comment || {};
 const issue = payload.issue || {};
@@ -1614,12 +1728,12 @@ if (body.indexOf(FROM_ONEUPTIME) !== -1) {
 }
 
 // The author's name and the comment are Jira users' text, placed as written (asWritten). The link
-// to the issue is the template's own.
+// to the issue is the template's own, on the site the workflow's Jira Site URL names.
 const author = asWritten(oneLine(displayName(comment.author))) || 'Someone';
 return {
   proceed: true,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey) + '.\n\n' + asWritten(body)), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + asWritten(body)), 30000),
 };
 `,
   );
@@ -1666,7 +1780,7 @@ const jiraReadIssueChangesScript: JiraKindScriptFunction = (
 // Fields whose changes are not worth a note. Status is left to the status template.
 const IGNORED_FIELDS = ['status', 'resolution', 'resolutiondate', 'rank', 'timespent', 'timeestimate', 'aggregatetimespent', 'aggregatetimeestimate', 'worklogid', 'lastviewed'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const issue = payload.issue || {};
 const fields = issue.fields || {};
@@ -1703,7 +1817,8 @@ const changes = items.filter((item) => {
 if (!changes.length) return skip('Nothing that changed on Jira issue ' + issueKey + ' is worth a note.');
 
 // The fields' names, their values and the name of whoever changed them are Jira's text, placed as
-// written (asWritten). The link to the issue is the template's own.
+// written (asWritten). The link to the issue is the template's own, on the site the workflow's
+// Jira Site URL names.
 const show = (value) => {
   const text = oneLine(value);
   return text ? asWritten(limit(text, 300)) : '(empty)';
@@ -1715,7 +1830,7 @@ return {
   proceed: true,
   ${r}Id: ${r}Id,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey) + '.\n\n' + lines.join('\n')), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + lines.join('\n')), 30000),
 };
 `,
   );
@@ -1734,6 +1849,25 @@ const proceedCondition: ProceedConditionFunction = (
     "input-2-type": ConditionValueType.Boolean,
     "input-2": true,
   };
+};
+
+type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
+
+/*
+ * The arguments of a script that reads a Jira event and links its issue:
+ * whatever else the script needs, then the workflow's Jira Site URL, the
+ * site the link goes to, then the request body. The body goes last, as
+ * everywhere text Jira users wrote is quoted into an argument, and it
+ * arrives as JSON text the script reads.
+ */
+const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction = (
+  before?: JSONObject,
+): string => {
+  return jsonText({
+    ...(before || {}),
+    jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
+    payload: "{{local.components.webhook-1.returnValues.request-body}}",
+  });
 };
 
 type JiraTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
@@ -2584,7 +2718,7 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
     icon: IconProp.Bug,
     workflowName: `${kind.Create} ${r} from Jira issue`,
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Jira issue created. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue created event. If you also create ${kind.otherPlural} from Jira, give the two webhooks JQL filters that never match the same issue, or each issue becomes both.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -2625,11 +2759,9 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
              * The Jira payload goes last. Text Jira users wrote is only
              * ever substituted after everything else in an argument.
              */
-            arguments: jsonText({
+            arguments: jiraLinkingEventArguments({
               severities:
                 "{{local.components.find-severities-1.returnValues.models}}",
-              payload:
-                "{{local.components.webhook-1.returnValues.request-body}}",
             }),
           },
         },
@@ -3171,7 +3303,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     workflowName: `Copy Jira comments to ${r}`,
     workflowDescription: `Adds each comment on a linked Jira issue to the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Comment created event.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -3187,8 +3319,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadCommentScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
@@ -3467,7 +3598,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.DocumentText,
     workflowName: `Copy Jira issue changes to ${r}`,
     workflowDescription: `Notes each change to a linked Jira issue on the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue updated event.`,
-    variables: [],
+    variables: [JIRA_SITE_URL],
     graph: {
       nodes: [
         {
@@ -3483,8 +3614,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadIssueChangesScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
@@ -4342,8 +4472,343 @@ return { proceed: true, caseId: event.id, message: defuse(event.message || 'a ch
 };
 
 /*
+ * Text written in Dynamics 365's rich-text editor, read as the text it shows.
+ * Dynamics 365 keeps it as HTML: a note, and a case's description where the
+ * case form has the editor - or that an email became, when a rule turns
+ * incoming email into cases. The case-note scripts read notes with it, and
+ * the create-from-case scripts read descriptions with it, so both carry this
+ * section byte for byte. A script runs in the workflow sandbox, which can
+ * import nothing, so it carries its own copy of the walk OneUptime's code
+ * reads HTML with (replaceHtmlMarkup in Common/Types/HtmlMarkup, reading "<"
+ * as a browser does), which DynamicsNoteMarkup.test.ts holds to the original
+ * and DynamicsCaseDescription.test.ts holds the create-from-case copies to.
+ */
+const DYNAMICS_RICH_TEXT_READING: string = String.raw`// ---- Reading rich text ----
+// Dynamics 365 keeps text written in its rich-text editor as HTML: a note, and a case's description
+// where the case form has the editor. A case made from an email keeps the email's HTML as its
+// description. It is read as the text it shows: every tag and comment comes out whole - a line
+// break, and the end of a block, as a new line; anything else as nothing - and only then are
+// entities read, once, so text that was "&lt;b&gt;" stays text and is never a tag. A tag ends at the
+// first ">" outside a quoted value, a comment at its "-->", and a "<" is read as a browser reads it:
+// it starts markup only before a letter, "/", "!" or "?", and is text anywhere else ("latency <
+// 200ms"); markup that never ends loses only its "<", and a run of "<" before markup starts it at
+// its last "<". A script or a style - the rules an email carries, such as Outlook's
+// "P {margin-top:0;margin-bottom:0;}" - is never shown, and comes out whole with what it holds. It
+// is the reading OneUptime's own code uses (replaceHtmlMarkup, reading "<" as text where a browser
+// does, and script and style elements whole), so no tag is left in the text and none can form from
+// what is left. Text with no tag at all is plain text - a note written through the API, or by the
+// older editor - and only its entities are read.
+const LINE_BREAK = /^<\s*br\s*\/?>$/i;
+const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
+// Longer than a line break or the end of a block is ever written. A longer tag is neither.
+const LONGEST_BREAK_TAG = 256;
+const TAG_START = /<[a-z!\/]/i;
+const WHITESPACE = /\s/;
+// Where a pre element starts and ends: what it holds shows the indentation of its lines.
+const PRE_START = /^<pre[\s\/>]/i;
+const PRE_END = /^<\/pre\s*>$/i;
+// Marks of where a pre element starts and ends, in the text read out of HTML until withoutIndent
+// takes them out: control characters, which clean() drops from every note and description. One a
+// note holds before that only changes which of its lines keep their indentation.
+const PRE_START_MARK = '\u0002';
+const PRE_END_MARK = '\u0003';
+// What a tag or comment becomes in the text: a new line for a line break or the end of a block, and
+// a mark where a pre element starts or ends.
+const markupAsText = (markup) => {
+  if (PRE_START.test(markup.slice(0, 5))) return PRE_START_MARK;
+  if (markup.length > LONGEST_BREAK_TAG) return '';
+  if (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) return '\n';
+  return PRE_END.test(markup) ? PRE_END_MARK : '';
+};
+// Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
+const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
+// The elements whose content a browser never reads as markup, by name. What the first five hold is
+// never shown: each comes out whole, from its start tag to the ">" of the first end tag of the same
+// name after it. Title, textarea and xmp hold text, read on its own up to that end tag, so nothing
+// in it runs past it. A start tag that no such end tag follows is an ordinary tag. A name is read
+// as a browser reads one, in any letter case, and ends at whitespace, "/" or ">".
+const NAMED_ELEMENTS = ['script', 'style', 'iframe', 'noembed', 'noframes', 'title', 'textarea', 'xmp'];
+const HIDDEN_ELEMENTS = 5;
+const ENDS_TAG_NAME = /[\t\n\f\r />]/;
+const END_TAGS = NAMED_ELEMENTS.map((name) => new RegExp('</' + name + '(?=[\\t\\n\\f\\r />])', 'gi'));
+// Which of NAMED_ELEMENTS the start tag at "open" starts, or -1.
+const namedElementOf = (html, open) => {
+  for (let element = 0; element < NAMED_ELEMENTS.length; element++) {
+    const name = NAMED_ELEMENTS[element];
+    let at = 0;
+    // A letter matches its lower case or its upper case, and nothing else.
+    while (at < name.length && (html.charCodeAt(open + 1 + at) | 32) === name.charCodeAt(at)) at++;
+    if (at === name.length && ENDS_TAG_NAME.test(html.charAt(open + 1 + at))) return element;
+  }
+  return -1;
+};
+// Where the tag whose name starts at body ends: just past its first ">" outside a quoted value, or
+// -1 when it never ends. A quote opens a value only after an "=" and any whitespace.
+const scanTagEnd = (html, body) => {
+  let quote = '';
+  let valueNext = false;
+  for (let at = body; at < html.length; at++) {
+    const character = html.charAt(at);
+    if (quote) {
+      if (character === quote) quote = '';
+    } else if (character === '>') {
+      return at + 1;
+    } else if (valueNext && (character === '"' || character === "'")) {
+      quote = character;
+      valueNext = false;
+    } else if (character === '=') {
+      valueNext = true;
+    } else if (!WHITESPACE.test(character)) {
+      valueNext = false;
+    }
+  }
+  return -1;
+};
+// scanTagEnd for every position from "from" on, worked out once from the end of the text. Once one
+// tag is found never to end, every later tag's end is looked up here, so a text full of "<" that
+// never close takes no longer to read than any other.
+const tagEndsFrom = (html, from) => {
+  const size = html.length - from;
+  const ends = new Int32Array(size + 1);
+  // The same, read from just after an "=", where a quote opens a value.
+  const valueEnds = new Int32Array(size + 1);
+  let nextDoubleQuote = -1;
+  let nextSingleQuote = -1;
+  ends[size] = -1;
+  valueEnds[size] = -1;
+  for (let entry = size - 1; entry >= 0; entry--) {
+    const at = from + entry;
+    const character = html.charAt(at);
+    if (character === '>') {
+      ends[entry] = at + 1;
+      valueEnds[entry] = at + 1;
+    } else if (character === '=') {
+      ends[entry] = valueEnds[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else if (character === '"' || character === "'") {
+      const close = character === '"' ? nextDoubleQuote : nextSingleQuote;
+      ends[entry] = ends[entry + 1];
+      // A quoted value runs to the next quote of its kind; the tag goes on after it.
+      valueEnds[entry] = close === -1 ? -1 : ends[close - from + 1];
+      if (character === '"') nextDoubleQuote = at;
+      else nextSingleQuote = at;
+    } else if (WHITESPACE.test(character)) {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = valueEnds[entry + 1];
+    } else {
+      ends[entry] = ends[entry + 1];
+      valueEnds[entry] = ends[entry + 1];
+    }
+  }
+  return ends;
+};
+// The text of the HTML with every tag and comment replaced by what replace(markup) returns: a script
+// or a style element whole. The text a title, a textarea or an xmp holds is read with isElementText,
+// which finds no element in it.
+const replaceMarkup = (html, replace, isElementText) => {
+  let ends = null;
+  let endsFrom = 0;
+  // Where the first "-->" at or after the last comment looked for one is: -2 before the first.
+  let commentClose = -2;
+  // Where the run of "<" the last "<" read is part of ends, so a run is measured once.
+  let runEnd = -1;
+  // For each of NAMED_ELEMENTS, whether a start tag was found that no end tag follows: then none
+  // follows a later one either, and the text after it is not searched again.
+  const noEndTag = [];
+  let text = '';
+  let at = 0;
+  for (;;) {
+    const open = html.indexOf('<', at);
+    if (open === -1) return text + html.slice(at);
+    text += html.slice(at, open);
+    // A run of "<" goes with what follows its last one: it is text unless that starts markup.
+    if (open >= runEnd) {
+      runEnd = open + 1;
+      while (html.charAt(runEnd) === '<') runEnd++;
+    }
+    if (!startsMarkup(html.charCodeAt(runEnd))) {
+      text += html.slice(open, runEnd);
+      at = runEnd;
+      continue;
+    }
+    // The markup starts at the run's last "<"; the ones before it go.
+    if (open < runEnd - 1) {
+      at = runEnd - 1;
+      continue;
+    }
+    let end = -1;
+    if (html.startsWith('<!--', open)) {
+      // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
+      if (commentClose === -2 || (commentClose !== -1 && commentClose < open + 2)) {
+        commentClose = html.indexOf('-->', open + 2);
+      }
+      end = commentClose === -1 ? -1 : commentClose + 3;
+    } else {
+      if (ends) {
+        end = ends[open + 1 - endsFrom];
+      } else {
+        end = scanTagEnd(html, open + 1);
+        if (end === -1) {
+          ends = tagEndsFrom(html, open + 1);
+          endsFrom = open + 1;
+        }
+      }
+      const element = !isElementText && end !== -1 ? namedElementOf(html, open) : -1;
+      if (element !== -1) {
+        let endTagAt = -1;
+        if (!noEndTag[element]) {
+          END_TAGS[element].lastIndex = end;
+          const found = END_TAGS[element].exec(html);
+          endTagAt = found ? found.index : -1;
+        }
+        const hidden = element < HIDDEN_ELEMENTS;
+        // A hidden element runs to the ">" of its end tag.
+        const elementEnd = hidden && endTagAt !== -1 ? html.indexOf('>', endTagAt + 2 + NAMED_ELEMENTS[element].length) : -1;
+        if (endTagAt === -1 || (hidden && elementEnd === -1)) {
+          noEndTag[element] = true;
+        } else if (hidden) {
+          end = elementEnd + 1;
+        } else {
+          // A run of "<" that ends the element's text goes, as a run before any markup does.
+          let textEnd = endTagAt;
+          while (textEnd > end && html.charAt(textEnd - 1) === '<') textEnd--;
+          text += replace(html.slice(open, end)) + replaceMarkup(html.slice(end, textEnd), replace, true);
+          at = endTagAt;
+          continue;
+        }
+      }
+    }
+    if (end === -1) {
+      at = open + 1;
+    } else {
+      text += replace(html.slice(open, end));
+      at = end;
+    }
+  }
+};
+// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
+// "<?" alone - a PHP or XML snippet written through the API - does not make the text HTML.
+const hasTag = (text) => {
+  const start = text.search(TAG_START);
+  return start !== -1 && text.indexOf('>', start + 2) !== -1;
+};
+// What a character reference reads as, as a browser reads it. By name: the five every editor writes,
+// in any letter case as always, and by their exact names the Latin-1 characters (the names of 160 to
+// 255, in order) and the typographic ones an email writes. By number: Windows-1252's characters for
+// 128 to 159, as a browser reads them. A no-break space is a space, as &nbsp; always was, and a
+// number that is no character is the replacement character. Any other name stays as it was written.
+const BASIC_NAMES = { nbsp: ' ', lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
+const LATIN_1_NAMES = [
+  'nbsp', 'iexcl', 'cent', 'pound', 'curren', 'yen', 'brvbar', 'sect', 'uml', 'copy', 'ordf', 'laquo', 'not', 'shy', 'reg', 'macr',
+  'deg', 'plusmn', 'sup2', 'sup3', 'acute', 'micro', 'para', 'middot', 'cedil', 'sup1', 'ordm', 'raquo', 'frac14', 'frac12', 'frac34',
+  'iquest', 'Agrave', 'Aacute', 'Acirc', 'Atilde', 'Auml', 'Aring', 'AElig', 'Ccedil', 'Egrave', 'Eacute', 'Ecirc', 'Euml', 'Igrave',
+  'Iacute', 'Icirc', 'Iuml', 'ETH', 'Ntilde', 'Ograve', 'Oacute', 'Ocirc', 'Otilde', 'Ouml', 'times', 'Oslash', 'Ugrave', 'Uacute',
+  'Ucirc', 'Uuml', 'Yacute', 'THORN', 'szlig', 'agrave', 'aacute', 'acirc', 'atilde', 'auml', 'aring', 'aelig', 'ccedil', 'egrave',
+  'eacute', 'ecirc', 'euml', 'igrave', 'iacute', 'icirc', 'iuml', 'eth', 'ntilde', 'ograve', 'oacute', 'ocirc', 'otilde', 'ouml',
+  'divide', 'oslash', 'ugrave', 'uacute', 'ucirc', 'uuml', 'yacute', 'thorn', 'yuml',
+];
+const NAMED_CODES = {
+  OElig: 338, oelig: 339, Scaron: 352, scaron: 353, Yuml: 376, fnof: 402, circ: 710, tilde: 732, ensp: 8194, emsp: 8195,
+  thinsp: 8201, zwnj: 8204, zwj: 8205, lrm: 8206, rlm: 8207, ndash: 8211, mdash: 8212, lsquo: 8216, rsquo: 8217, sbquo: 8218,
+  ldquo: 8220, rdquo: 8221, bdquo: 8222, dagger: 8224, Dagger: 8225, bull: 8226, hellip: 8230, permil: 8240, prime: 8242,
+  Prime: 8243, lsaquo: 8249, rsaquo: 8250, oline: 8254, frasl: 8260, euro: 8364, trade: 8482, larr: 8592, uarr: 8593,
+  rarr: 8594, darr: 8595, harr: 8596, minus: 8722, le: 8804, ge: 8805, ne: 8800, asymp: 8776, infin: 8734,
+};
+const WINDOWS_1252 = [
+  0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0,
+  0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178,
+];
+const characterOf = (number) => {
+  const code = number >= 128 && number <= 159 ? WINDOWS_1252[number - 128] : number;
+  if (code === 160) return ' ';
+  return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '\ufffd';
+};
+// One reference at the start of a slice: by number in hexadecimal or decimal, or by name.
+const REFERENCE = /^&(?:#[xX]([0-9a-fA-F]{1,32})|#([0-9]{1,32})|([A-Za-z][A-Za-z0-9]{1,31}));/;
+const referenceText = (reference) => {
+  if (reference[1] !== undefined) return characterOf(parseInt(reference[1], 16));
+  if (reference[2] !== undefined) return characterOf(parseInt(reference[2], 10));
+  const name = reference[3];
+  const lower = name.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(BASIC_NAMES, lower)) return BASIC_NAMES[lower];
+  const latin1 = LATIN_1_NAMES.indexOf(name);
+  if (latin1 !== -1) return characterOf(160 + latin1);
+  return Object.prototype.hasOwnProperty.call(NAMED_CODES, name) ? characterOf(NAMED_CODES[name]) : null;
+};
+// Every reference is read once, in one walk from each "&" to the next: what one reads as is never
+// read again, so "&#38;lt;" and "&amp;lt;" are the text "&lt;". Each is read off a short slice, as a
+// long text is read with no pattern that runs over all of it.
+const readEntities = (text) => {
+  let read = '';
+  let copiedUpTo = 0;
+  for (let at = text.indexOf('&'); at !== -1; at = text.indexOf('&', at + 1)) {
+    const reference = REFERENCE.exec(text.slice(at, at + 72));
+    const character = reference ? referenceText(reference) : null;
+    if (character === null) continue;
+    read += text.slice(copiedUpTo, at) + character;
+    copiedUpTo = at + reference[0].length;
+    at = copiedUpTo - 1;
+  }
+  return read + text.slice(copiedUpTo);
+};
+// The spaces and tabs the HTML's own source starts a line with, which a browser never shows - but in
+// a pre element, which shows them. Email HTML is often indented, and four spaces start a code block in
+// Markdown. Taken out before entities are read, so a space written as &nbsp; stays; the marks of
+// where a pre element starts and ends go with them.
+const withoutIndent = (text) => {
+  let preDepth = 0;
+  return text.split('\n').map((line) => {
+    let start = 0;
+    if (preDepth === 0) {
+      while (start < line.length && (line.charAt(start) === ' ' || line.charAt(start) === '\t')) start++;
+    }
+    const rest = line.slice(start);
+    if (rest.indexOf(PRE_START_MARK) === -1 && rest.indexOf(PRE_END_MARK) === -1) return rest;
+    let kept = '';
+    for (const character of rest) {
+      if (character === PRE_START_MARK) preDepth++;
+      else if (character === PRE_END_MARK) preDepth = Math.max(0, preDepth - 1);
+      else kept += character;
+    }
+    return kept;
+  }).join('\n');
+};
+// The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
+// and indexOf rather than patterns with quantifiers, which a long text is not read with.
+const tidyLines = (text) => {
+  const lines = text.split('\n');
+  for (let index = 0; index < lines.length - 1; index++) {
+    const line = lines[index];
+    let end = line.length;
+    while (end > 0 && (line.charAt(end - 1) === ' ' || line.charAt(end - 1) === '\t')) end--;
+    lines[index] = line.slice(0, end);
+  }
+  const tidy = lines.join('\n');
+  let result = '';
+  let at = 0;
+  for (;;) {
+    const run = tidy.indexOf('\n\n\n', at);
+    if (run === -1) return result + tidy.slice(at);
+    let end = run + 3;
+    while (tidy.charAt(end) === '\n') end++;
+    result += tidy.slice(at, run) + '\n\n';
+    at = end;
+  }
+};
+const htmlToText = (value) => {
+  const text = asText(value);
+  // Plain text: nothing in it is markup, and only its entities are read.
+  if (!hasTag(text)) return readEntities(text);
+  return tidyLines(readEntities(withoutIndent(replaceMarkup(text, markupAsText))));
+};
+`;
+
+/*
  * Dynamics 365 -> OneUptime: turns a new case, as Dynamics 365 has it, into
  * the fields of a new record, choosing a severity from the case's priority.
+ * A description written in the rich-text editor, or that an email became, is
+ * HTML: it is read as the text it shows (DYNAMICS_RICH_TEXT_READING), as a
+ * note is. Any other description is plain text, kept exactly as written.
  */
 const dynamicsPrepareRecordScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,
@@ -4362,6 +4827,8 @@ const PRIORITY_RANK = { 1: 0, 2: 1, 3: 2 };
 // Leave it empty to take every case the webhook sends.
 const ONLY_PRIORITIES = [];
 
+${DYNAMICS_RICH_TEXT_READING}
+// ---- Reading the case ----
 const row = readJson(args.case) || {};
 const caseId = guidOf(row.incidentid);
 if (!caseId) return skip('Dynamics 365 did not return the case, so no ${r} was ${kind.created}.');
@@ -4402,7 +4869,26 @@ const lines = ['${kind.Created} from Dynamics 365 case [' + asWritten(caseNumber
 if (priorityName) lines.push('Priority: ' + asWritten(priorityName));
 const customer = formatted(row, '_customerid_value');
 if (customer) lines.push('Customer: ' + asWritten(customer));
-const description = clean(row.description).trim();
+// A description written in the rich-text editor, or that an email became, is HTML: it starts with a
+// comment, a document type, an XML declaration or a tag, and one that starts with a tag closes an
+// element somewhere ("</p>", "</div>"), as everything an editor or an email writes does. It is read
+// as the text it shows (htmlToText). Any other description is plain text, kept exactly as it was
+// written, a "<" in it too: "From: Jane Doe <jane@contoso.com>", "<none> found", "<header> overlaps
+// the menu".
+const DECLARATION_START = /^<(?:!--|!doctype[\s>]|\?xml\s)/i;
+const TAG_NAME_START = /^<[a-z]/i;
+// Whether the text holds an end tag: "</" and a letter.
+const holdsEndTag = (text) => {
+  for (let at = text.indexOf('</'); at !== -1; at = text.indexOf('</', at + 2)) {
+    const code = text.charCodeAt(at + 2);
+    if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) return true;
+  }
+  return false;
+};
+const writtenDescription = clean(row.description);
+const descriptionStart = writtenDescription.trimStart().slice(0, 16);
+const isRichText = hasTag(writtenDescription) && (DECLARATION_START.test(descriptionStart) || (TAG_NAME_START.test(descriptionStart) && holdsEndTag(writtenDescription)));
+const description = (isRichText ? clean(htmlToText(writtenDescription)) : writtenDescription).trim();
 if (description) lines.push('', asWritten(description));
 
 return {
@@ -4564,7 +5050,8 @@ return { proceed: true, noteId: event.id };
  * users wrote with asWritten, the way OneUptime places any text from outside
  * (FeedMarkdown.reportedValue): it reads exactly as written, and nothing in
  * it acts. A script runs in the workflow sandbox, which can import nothing,
- * so it carries its own copy of the walk, which DynamicsNoteMarkup.test.ts
+ * so it carries its own copy of the walk (DYNAMICS_RICH_TEXT_READING, which
+ * the create-from-case scripts carry too), which DynamicsNoteMarkup.test.ts
  * holds to the original; asWritten is in the helper block every script
  * starts with (OUTSIDE_TEXT_HELPERS).
  */
@@ -4580,183 +5067,7 @@ const dynamicsReadCaseNoteScript: DynamicsKindScriptFunction = (
 // The longest note this writes. Longer notes are cut, and end in an ellipsis.
 const MAX_NOTE_LENGTH = 30000;
 
-// ---- Reading a note's HTML ----
-// Dynamics 365 keeps a note written in its rich-text editor as HTML. It is read as the text it
-// shows: every tag and comment comes out whole - a line break, and the end of a block, as a new
-// line; anything else as nothing - and only then are entities read, once, so text that was
-// "&lt;b&gt;" stays text and is never a tag. A tag ends at the first ">" outside a quoted value, a
-// comment at its "-->", and a "<" is read as a browser reads it: it starts markup only before a
-// letter, "/", "!" or "?", and is text anywhere else ("latency < 200ms"); markup that never ends
-// loses only its "<", and a run of "<" before markup starts it at its last "<". It is the reading
-// OneUptime's own code uses (replaceHtmlMarkup, reading "<" as text where a browser does), so no
-// tag is left in the text and none can form from what is left. A note with no tag at all is plain
-// text - written through the API, or by the older editor - and only its entities are read.
-const LINE_BREAK = /^<\s*br\s*\/?>$/i;
-const BLOCK_END = /^<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>$/i;
-// Longer than a line break or the end of a block is ever written. A longer tag is neither.
-const LONGEST_BREAK_TAG = 256;
-const TAG_START = /<[a-z!\/]/i;
-const WHITESPACE = /\s/;
-// What a tag or comment becomes in the text: a new line for a line break or the end of a block.
-const markupAsText = (markup) => (markup.length <= LONGEST_BREAK_TAG && (LINE_BREAK.test(markup) || BLOCK_END.test(markup)) ? '\n' : '');
-// Whether a "<" before this character starts a tag, an end tag, a comment or a declaration.
-const startsMarkup = (code) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 47 || code === 33 || code === 63;
-// Where the tag whose name starts at body ends: just past its first ">" outside a quoted value, or
-// -1 when it never ends. A quote opens a value only after an "=" and any whitespace.
-const scanTagEnd = (html, body) => {
-  let quote = '';
-  let valueNext = false;
-  for (let at = body; at < html.length; at++) {
-    const character = html.charAt(at);
-    if (quote) {
-      if (character === quote) quote = '';
-    } else if (character === '>') {
-      return at + 1;
-    } else if (valueNext && (character === '"' || character === "'")) {
-      quote = character;
-      valueNext = false;
-    } else if (character === '=') {
-      valueNext = true;
-    } else if (!WHITESPACE.test(character)) {
-      valueNext = false;
-    }
-  }
-  return -1;
-};
-// scanTagEnd for every position from "from" on, worked out once from the end of the text. Once one
-// tag is found never to end, every later tag's end is looked up here, so a note full of "<" that
-// never close takes no longer to read than any other.
-const tagEndsFrom = (html, from) => {
-  const size = html.length - from;
-  const ends = new Int32Array(size + 1);
-  // The same, read from just after an "=", where a quote opens a value.
-  const valueEnds = new Int32Array(size + 1);
-  let nextDoubleQuote = -1;
-  let nextSingleQuote = -1;
-  ends[size] = -1;
-  valueEnds[size] = -1;
-  for (let entry = size - 1; entry >= 0; entry--) {
-    const at = from + entry;
-    const character = html.charAt(at);
-    if (character === '>') {
-      ends[entry] = at + 1;
-      valueEnds[entry] = at + 1;
-    } else if (character === '=') {
-      ends[entry] = valueEnds[entry + 1];
-      valueEnds[entry] = valueEnds[entry + 1];
-    } else if (character === '"' || character === "'") {
-      const close = character === '"' ? nextDoubleQuote : nextSingleQuote;
-      ends[entry] = ends[entry + 1];
-      // A quoted value runs to the next quote of its kind; the tag goes on after it.
-      valueEnds[entry] = close === -1 ? -1 : ends[close - from + 1];
-      if (character === '"') nextDoubleQuote = at;
-      else nextSingleQuote = at;
-    } else if (WHITESPACE.test(character)) {
-      ends[entry] = ends[entry + 1];
-      valueEnds[entry] = valueEnds[entry + 1];
-    } else {
-      ends[entry] = ends[entry + 1];
-      valueEnds[entry] = ends[entry + 1];
-    }
-  }
-  return ends;
-};
-// The text of the HTML with every tag and comment replaced by what replace(markup) returns.
-const replaceMarkup = (html, replace) => {
-  let ends = null;
-  let endsFrom = 0;
-  // Where the first "-->" at or after the last comment looked for one is: -2 before the first.
-  let commentClose = -2;
-  // Where the run of "<" the last "<" read is part of ends, so a run is measured once.
-  let runEnd = -1;
-  let text = '';
-  let at = 0;
-  for (;;) {
-    const open = html.indexOf('<', at);
-    if (open === -1) return text + html.slice(at);
-    text += html.slice(at, open);
-    // A run of "<" goes with what follows its last one: it is text unless that starts markup.
-    if (open >= runEnd) {
-      runEnd = open + 1;
-      while (html.charAt(runEnd) === '<') runEnd++;
-    }
-    if (!startsMarkup(html.charCodeAt(runEnd))) {
-      text += html.slice(open, runEnd);
-      at = runEnd;
-      continue;
-    }
-    // The markup starts at the run's last "<"; the ones before it go.
-    if (open < runEnd - 1) {
-      at = runEnd - 1;
-      continue;
-    }
-    let end = -1;
-    if (html.startsWith('<!--', open)) {
-      // Looked for from the second "-", so "<!-->" and "<!--->" end at once, as in a browser.
-      if (commentClose === -2 || (commentClose !== -1 && commentClose < open + 2)) {
-        commentClose = html.indexOf('-->', open + 2);
-      }
-      end = commentClose === -1 ? -1 : commentClose + 3;
-    } else if (ends) {
-      end = ends[open + 1 - endsFrom];
-    } else {
-      end = scanTagEnd(html, open + 1);
-      if (end === -1) {
-        ends = tagEndsFrom(html, open + 1);
-        endsFrom = open + 1;
-      }
-    }
-    if (end === -1) {
-      at = open + 1;
-    } else {
-      text += replace(html.slice(open, end));
-      at = end;
-    }
-  }
-};
-// Whether the text holds a tag: a "<" and a letter, "!" or "/", and a ">" somewhere after it. A
-// "<?" alone - a PHP or XML snippet written through the API - does not make a note HTML.
-const hasTag = (text) => {
-  const start = text.search(TAG_START);
-  return start !== -1 && text.indexOf('>', start + 2) !== -1;
-};
-const readEntities = (text) => text
-  .replace(/&nbsp;/gi, ' ')
-  .replace(/&lt;/gi, '<')
-  .replace(/&gt;/gi, '>')
-  .replace(/&quot;/gi, '"')
-  .replace(/&#39;|&apos;/gi, "'")
-  // Last, so "&amp;lt;" is the text "&lt;" rather than "<".
-  .replace(/&amp;/gi, '&');
-// The spaces and tabs a line ends in go, and three or more line breaks in a row become two. A loop
-// and indexOf rather than patterns with quantifiers, which a long note is not read with.
-const tidyLines = (text) => {
-  const lines = text.split('\n');
-  for (let index = 0; index < lines.length - 1; index++) {
-    const line = lines[index];
-    let end = line.length;
-    while (end > 0 && (line.charAt(end - 1) === ' ' || line.charAt(end - 1) === '\t')) end--;
-    lines[index] = line.slice(0, end);
-  }
-  const tidy = lines.join('\n');
-  let result = '';
-  let at = 0;
-  for (;;) {
-    const run = tidy.indexOf('\n\n\n', at);
-    if (run === -1) return result + tidy.slice(at);
-    let end = run + 3;
-    while (tidy.charAt(end) === '\n') end++;
-    result += tidy.slice(at, run) + '\n\n';
-    at = end;
-  }
-};
-const htmlToText = (value) => {
-  const text = asText(value);
-  // Plain text: nothing in it is markup, and only its entities are read.
-  if (!hasTag(text)) return readEntities(text);
-  return tidyLines(readEntities(replaceMarkup(text, markupAsText)));
-};
-
+${DYNAMICS_RICH_TEXT_READING}
 // ---- Reading the note ----
 const note = readJson(args.note) || {};
 if (!guidOf(note.annotationid)) return skip('Dynamics 365 did not return the note.');
@@ -6562,6 +6873,61 @@ const DYNAMICS_365_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   ...dynamicsTemplatesForKind(INCIDENT_KIND),
   ...dynamicsTemplatesForKind(ALERT_KIND),
 ];
+
+/*
+ * WHAT IS POSTED TO A WEBHOOK, SHOWN IN SLACK.
+ *
+ * The webhook-to-slack template posts whatever its webhook receives into a
+ * Slack channel, inside a code block. Whoever has the webhook's address
+ * chooses what it receives. Slack treats "&", "<" and ">" as control
+ * characters everywhere in a message, a code block included - they start
+ * mentions such as "<!channel>", links such as "<https://...|words>" whose
+ * words hide where they go, and dates - and the script left them as they
+ * came. Three backticks in a row would end the code block and post the
+ * rest as an ordinary message; the script turned them into three quotes,
+ * so a payload with a fence in it did not read as it was sent, and one
+ * that started or ended with a backtick still ran into a fence.
+ *
+ * Now it writes "&", "<" and ">" as Slack's own apps write them (SlackUtil.
+ * escapeSlackText): "&amp;", "&lt;", "&gt;", which Slack shows as the
+ * characters themselves. And it puts the invisible word joiner FeedMarkdown
+ * uses (U+2060) between two backticks side by side and between a backtick
+ * and either fence, so the only backticks side by side in the message are
+ * its fences'. The payload reads exactly as it was sent, and nothing in it
+ * acts. A payload with none of those characters is posted exactly as
+ * before. A script runs in the workflow sandbox, which can import nothing,
+ * so it carries its own copy of the escaping, which
+ * WebhookPayloadInSlack.test.ts holds to escapeSlackText.
+ */
+const WEBHOOK_PAYLOAD_FOR_SLACK_SCRIPT: string = String.raw`// Writes what was POSTed to this workflow's webhook for the code block of the Slack message, which
+// puts what this returns between its two fences of three backticks.
+// The longest payload the message shows, counted as written here. A longer one is cut, and says so.
+const MAX_LENGTH = 2800;
+const BACKTICK = '\x60';
+const JOINER = '\u2060';
+
+const payload = typeof args === 'string' ? args : JSON.stringify(args || {}, null, 2);
+
+// Slack treats "&", "<" and ">" as control characters everywhere in a message, a code block too:
+// they start mentions such as <!channel>, links such as <https://...|words>, and dates. So each is
+// written the way Slack's own apps write it - &amp;, &lt; and &gt; - which Slack shows as the
+// character itself. Three backticks in a row would end the code block and post the rest as an
+// ordinary message: so an invisible word joiner (U+2060) goes between two backticks side by side,
+// and between a backtick and either fence. Everything else is written as it came, so the payload
+// reads as it was sent.
+let written = '';
+// The code block opens with a backtick.
+let last = BACKTICK;
+for (const character of payload) {
+  const escaped = character === '&' ? '&amp;' : character === '<' ? '&lt;' : character === '>' ? '&gt;' : character;
+  const piece = character === BACKTICK && last === BACKTICK ? JOINER + escaped : escaped;
+  if (written.length + piece.length > MAX_LENGTH) return written + '\n… payload truncated';
+  written += piece;
+  last = character;
+}
+// And it closes with one.
+return last === BACKTICK ? written + JOINER : written;
+`;
 
 const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   /* ----------------------------- Basics ----------------------------- */
@@ -8514,15 +8880,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           componentType: ComponentType.Component,
           position: { x: 100, y: 300 },
           args: {
-            code: [
-              "const payload = typeof args === 'string' ? args : JSON.stringify(args || {}, null, 2);",
-              "const safePayload = payload.replace(/```/g, \"'''\");",
-              "const maxLength = 2800;",
-              "",
-              "return safePayload.length > maxLength",
-              "  ? `${safePayload.slice(0, maxLength)}\\n… payload truncated`",
-              "  : safePayload;",
-            ].join("\n"),
+            code: WEBHOOK_PAYLOAD_FOR_SLACK_SCRIPT,
             arguments:
               "{{local.components.webhook-1.returnValues.request-body}}",
           },

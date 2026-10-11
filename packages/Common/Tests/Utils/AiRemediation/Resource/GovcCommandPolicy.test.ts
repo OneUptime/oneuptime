@@ -29,6 +29,7 @@ import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -1566,21 +1567,16 @@ describe("totality", () => {
     ];
     const deniedFlag: RegExp =
       /^--?(?:u|k|cert|key|debug|trace|verbose|dump|xml|h|help|persist-session|vim-namespace|vim-version|tls-[a-z-]+)(?:=|$)/;
-    let seed: number = 20260929;
-    const next: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      // The high bits: an LCG's low bits repeat with a short period.
-      return Math.floor(seed / 65536);
-    };
+    const next: SeededRandom = seededRandom(20260929);
     const counts: Record<string, number> = {};
     const violations: Array<string> = [];
 
     for (let round: number = 0; round < 10000; round++) {
-      const argv: Array<string> = ["govc", commands[next() % commands.length]!];
-      const length: number = next() % 5;
+      const argv: Array<string> = ["govc", commands[next(commands.length)]!];
+      const length: number = next(5);
 
       for (let i: number = 0; i < length; i++) {
-        argv.push(vocabulary[next() % vocabulary.length]!);
+        argv.push(vocabulary[next(vocabulary.length)]!);
       }
 
       const shown: string = JSON.stringify(argv);

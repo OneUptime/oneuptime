@@ -93,7 +93,7 @@ If you want to address fields inside the body — `{{requestBody.status}}` in an
 | --- | --- |
 | `application/json` | The parsed JSON. |
 | `application/x-www-form-urlencoded` | The parsed form. Bracketed keys nest (`alerts[0][status]=firing`), and every value is a string. |
-| Anything else, or none | An empty body (`{}`), so every `requestBody` reference resolves to nothing. |
+| Anything else, or none | An empty body (`{}`), so no `requestBody` reference resolves, and a template leaves it as written. |
 
 Bodies up to 50 MB are accepted; a larger one is refused with a `413`. Do not compress the body with `Content-Encoding: gzip`: it is not stored as JSON, and paths into it will not resolve.
 

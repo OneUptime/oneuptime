@@ -1,4 +1,6 @@
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { isDeepStrictEqual } from "util";
 import {
   MessageCardFact,
   MessageCardLink,
@@ -48,22 +50,13 @@ function oldFact(line: string): MessageCardFact | null {
   return match ? { name: match[1]!, value: match[2]! } : null;
 }
 
-// A seeded generator, so a failure can be run again.
-function random(seed: number): () => number {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
-}
-
-function randomLine(next: () => number, pieces: ReadonlyArray<string>): string {
-  const count: number = Math.floor(next() * 16);
+// A line of up to 15 pieces, drawn from the suites' seeded generator.
+function randomLine(next: SeededRandom, pieces: ReadonlyArray<string>): string {
+  const count: number = next(16);
   let line: string = "";
 
   for (let index: number = 0; index < count; index++) {
-    line += pieces[Math.floor(next() * pieces.length)];
+    line += pieces[next(pieces.length)];
   }
 
   return line;
@@ -103,7 +96,7 @@ describe("findMessageCardLinks", () => {
   });
 
   test("reads what the old expression read, for 20000 lines", () => {
-    const next: () => number = random(4566);
+    const next: SeededRandom = seededRandom(4566);
     const PIECES: ReadonlyArray<string> = [
       "[",
       "]",
@@ -119,15 +112,25 @@ describe("findMessageCardLinks", () => {
       "!",
     ];
     let found: number = 0;
+    // Each line read differently: the line, what it read, what the expression read.
+    const differences: Array<
+      [string, Array<MessageCardLink>, Array<MessageCardLink>]
+    > = [];
 
     for (let index: number = 0; index < 20000; index++) {
       const line: string = randomLine(next, PIECES);
       const expected: Array<MessageCardLink> = oldLinks(line);
+      const read: Array<MessageCardLink> = findMessageCardLinks(line);
 
       found += expected.length;
-      expect([line, findMessageCardLinks(line)]).toEqual([line, expected]);
+
+      if (!isDeepStrictEqual(read, expected)) {
+        differences.push([line, read, expected]);
+      }
     }
 
+    // Gathered and checked once: an expect per line is most of the cost.
+    expect(differences.slice(0, 5)).toEqual([]);
     expect(found).toBeGreaterThan(1000);
   });
 
@@ -157,7 +160,7 @@ describe("findFact", () => {
   });
 
   test("reads what the old expression read, for 20000 lines", () => {
-    const next: () => number = random(4567);
+    const next: SeededRandom = seededRandom(4567);
     const PIECES: ReadonlyArray<string> = [
       "**",
       ":",
@@ -174,18 +177,25 @@ describe("findFact", () => {
       "value",
     ];
     let found: number = 0;
+    const differences: Array<
+      [string, MessageCardFact | null, MessageCardFact | null]
+    > = [];
 
     for (let index: number = 0; index < 20000; index++) {
       const line: string = randomLine(next, PIECES);
       const expected: MessageCardFact | null = oldFact(line);
+      const read: MessageCardFact | null = findFact(line);
 
       if (expected) {
         found++;
       }
 
-      expect([line, findFact(line)]).toEqual([line, expected]);
+      if (!isDeepStrictEqual(read, expected)) {
+        differences.push([line, read, expected]);
+      }
     }
 
+    expect(differences.slice(0, 5)).toEqual([]);
     expect(found).toBeGreaterThan(1000);
   });
 

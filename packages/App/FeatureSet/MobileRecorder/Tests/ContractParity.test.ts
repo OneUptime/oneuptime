@@ -2,6 +2,10 @@ import SessionReplayWireEncoding, {
   SESSION_REPLAY_ENVELOPE_TERMINATOR as COMMON_ENVELOPE_TERMINATOR,
 } from "../../../../Common/Utils/Rum/SessionReplayWireEncoding";
 import {
+  SeededRandom,
+  seededRandom,
+} from "../../../../Common/Tests/Helpers/SeededRandom";
+import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER as COMMON_APP_HEADER,
   SESSION_REPLAY_CONTENT_TYPE as COMMON_CONTENT_TYPE,
   SESSION_REPLAY_IDLE_PAUSE_MS as COMMON_IDLE_PAUSE_MS,
@@ -190,14 +194,13 @@ describe("published SDK wire contract", () => {
     }
 
     const alphabet: string = '%&+/ \\"hHtTpP0123aZ\n日😀';
-    let seed: number = 7;
+    const random: SeededRandom = seededRandom(7);
 
     for (let iteration: number = 0; iteration < 1000; iteration++) {
       let text: string = "";
 
       for (let index: number = 0; index < 20; index++) {
-        seed = (seed * 1103515245 + 12345) % 2147483648;
-        text += alphabet.charAt(seed % alphabet.length);
+        text += alphabet.charAt(random(alphabet.length));
       }
 
       const sample: Record<string, unknown> = { [text]: text };

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   TopologySpatialGrid,
   buildSpatialGrid,
@@ -180,19 +181,8 @@ const accumulateInVisitOrder: AccumulateFunction = (
   return total;
 };
 
-/* Seeded xorshift32 — no Math.random anywhere in this file. */
+/* Seeded draws — no Math.random anywhere in this file. */
 type RandomFunction = () => number;
-type MakeRandomFunction = (seed: number) => RandomFunction;
-
-const makeRandom: MakeRandomFunction = (seed: number): RandomFunction => {
-  let state: number = seed | 0 || 1;
-  return (): number => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 4294967296;
-  };
-};
 
 type MakeCloudFunction = (
   seed: number,
@@ -205,7 +195,7 @@ const makeCloud: MakeCloudFunction = (
   count: number,
   spread: number,
 ): Array<LabeledPoint> => {
-  const next: RandomFunction = makeRandom(seed);
+  const next: RandomFunction = seededRandom(seed);
   const points: Array<LabeledPoint> = [];
   for (let i: number = 0; i < count; i++) {
     points.push({

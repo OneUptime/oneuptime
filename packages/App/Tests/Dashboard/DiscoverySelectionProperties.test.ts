@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   DiscoveredHostCounts,
   DiscoveredHostFilter,
@@ -42,35 +43,23 @@ import {
  *
  * DETERMINISM IS NOT OPTIONAL HERE. Math.random() would surface a counterexample
  * once in CI and never again, which is worse than not testing: it costs the
- * reader's trust and hands them nothing to debug. The generator below is a
- * seeded LCG driven by a fixed seed table, so the corpus is identical on every
- * machine and every run, and a failure prints the seed and the exact scan.
+ * reader's trust and hands them nothing to debug. The draws below come from
+ * the suites' seeded generator (Common/Tests/Helpers/SeededRandom) driven by a
+ * fixed seed table, so the corpus is identical on every machine and every
+ * run, and a failure prints the seed and the exact scan.
  */
 
-/*
- * A 32-bit linear congruential generator (Numerical Recipes constants).
- *
- * Deliberately tiny and self-contained: the point is a reproducible byte
- * stream, not statistical quality, and taking a PRNG dependency for a test
- * corpus would be a worse trade than eight lines of arithmetic.
- */
-class SeededRandom {
-  private state: number;
+// The draws a generated scan is made of.
+class ScanRandom {
+  private readonly draw: SeededRandom;
 
   public constructor(seed: number) {
-    // Unsigned, and never zero — a zero seed still advances, but reads badly.
-    this.state = seed >>> 0 || 1;
-  }
-
-  public nextUint32(): number {
-    this.state = (Math.imul(this.state, 1664525) + 1013904223) >>> 0;
-
-    return this.state;
+    this.draw = seededRandom(seed);
   }
 
   /** An integer in [0, bound). Callers never pass 0. */
   public nextInt(bound: number): number {
-    return this.nextUint32() % bound;
+    return this.draw(bound);
   }
 
   public chance(percent: number): boolean {
@@ -131,7 +120,7 @@ function addressesOf(hosts: Array<DiscoveredNetworkDevice>): Array<string> {
  * a usable way to tell rows apart in the laws below.
  */
 function nextIpAddress(data: {
-  random: SeededRandom;
+  random: ScanRandom;
   index: number;
   addressesSoFar: Array<string>;
 }): string {
@@ -155,7 +144,7 @@ function nextIpAddress(data: {
   return `10.7.${Math.floor(data.index / 256)}.${data.index % 256}`;
 }
 
-function generateHosts(random: SeededRandom): Array<DiscoveredNetworkDevice> {
+function generateHosts(random: ScanRandom): Array<DiscoveredNetworkDevice> {
   // Includes 0, because an empty scan is a state the dialog actually ships in.
   const size: number = random.nextInt(26);
 
@@ -201,7 +190,7 @@ function generateHosts(random: SeededRandom): Array<DiscoveredNetworkDevice> {
  * is not in this scan at all).
  */
 function generateSelection(data: {
-  random: SeededRandom;
+  random: ScanRandom;
   hosts: Array<DiscoveredNetworkDevice>;
 }): Record<string, boolean> {
   const mode: number = data.random.nextInt(10);
@@ -247,7 +236,7 @@ function buildCorpus(): Array<GeneratedScan> {
   const corpus: Array<GeneratedScan> = [];
 
   SEEDS.forEach((seed: number): void => {
-    const random: SeededRandom = new SeededRandom(seed);
+    const random: ScanRandom = new ScanRandom(seed);
 
     for (let index: number = 0; index < SCANS_PER_SEED; index++) {
       const hosts: Array<DiscoveredNetworkDevice> = generateHosts(random);

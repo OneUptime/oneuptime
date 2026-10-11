@@ -10,8 +10,10 @@ import path from "path";
  * endpoint's answer in an OAuth error (OAuth2TokenClient; an answer may be
  * a megabyte), the Dynamics 365 note template's script, which reads a
  * note's HTML (a note's text can be as long) and places it with the
- * asWritten helper every Jira and Dynamics 365 script carries, and the
- * Microsoft Teams reader of a pinned message (ReactionNoteSync.htmlToText).
+ * asWritten helper every Jira and Dynamics 365 script carries - as the
+ * create-from-case script reads a case's description, with the same
+ * section - and the Microsoft Teams reader of a pinned message
+ * (ReactionNoteSync.htmlToText).
  * V8 matches a regular expression with a backtracking stack that can grow
  * with every character a quantifier takes, and a process that has run a
  * while compiles them without optimization - so, as AGENTS.md
@@ -53,8 +55,10 @@ interface ProcessReport {
   oldBase64Pattern: Attempt;
   answers: Array<{ shape: string; read: Attempt }>;
   notes: Array<{ shape: string; read: Attempt }>;
+  descriptions: Array<{ shape: string; read: Attempt }>;
   teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
   sites: Array<{ shape: string; site?: string; error?: string }>;
+  settings: Array<{ shape: string; link?: string; error?: string }>;
 }
 
 function runWithUnoptimizedRegularExpressions(): ProcessReport {
@@ -169,13 +173,50 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             "return { htmlToText: htmlToText, asWritten: asWritten };",
         )({});
 
-        const notes = SHAPES.map(([shape, text]) => {
+        // What else the Dynamics 365 reading reads: references by number and by name, and indentation.
+        const READING_SHAPES = [
+          ...SHAPES,
+          ["numeric references", "<p>" + repeatTo("&#8212;&#x2019;") + "</p>"],
+          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
+          ["named references", "<p>" + repeatTo("&rsquo;&bogus;") + "</p>"],
+          ["indented lines", "<div>" + repeatTo("\n        x") + "</div>"],
+          ["pre elements", repeatTo("<pre>\n    x</pre>")],
+          ["a pre element that never ends", "<pre>" + repeatTo("\n  x")],
+          ["references to a '&'", "<p>" + repeatTo("&#38;amp;") + "</p>"],
+        ];
+
+        const notes = READING_SHAPES.map(([shape, text]) => {
           return {
             shape,
             read: attempt(() => {
               return readers.asWritten(readers.htmlToText(text));
             }),
           };
+        });
+
+        /*
+         * A case's description, read by the create-from-case script: the lines of its step
+         * that read the description, run on each shape as rich text (after a tag, as the
+         * editor writes one) and as plain text (as it is).
+         */
+        const caseSpec = getTemplateGraphSpec("dynamics-declare-incident-from-case");
+        const caseCode = caseSpec.nodes.find((node) => node.componentId === "prepare-incident-1").args.code;
+        const readDescription = new Function(
+          "args",
+          caseCode.slice(0, caseCode.indexOf("// ---- Reading the case ----")) +
+            "return (value) => {\nconst row = { description: value };\n" +
+            caseCode.slice(
+              caseCode.indexOf("// A description written in the rich-text editor"),
+              caseCode.indexOf("if (description) lines.push('', asWritten(description));"),
+            ) +
+            "return asWritten(description);\n};",
+        )({});
+
+        const descriptions = READING_SHAPES.flatMap(([shape, text]) => {
+          return [
+            { shape: shape + ", as rich text", read: attempt(() => readDescription("<div>" + text)) },
+            { shape: shape + ", as plain text", read: attempt(() => readDescription(text)) },
+          ];
         });
 
         // A Teams message body as Graph hands it over: HTML, its attachments as elements.
@@ -211,7 +252,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         const jiraHelpers = new Function(
           "args",
           jiraCode.slice(0, jiraCode.indexOf("// ---- What this step does ----")) +
-            "return { siteOf: siteOf };",
+            "return { siteOf: siteOf, issueLink: issueLink };",
         )({});
 
         const SITE_SHAPES = [
@@ -234,8 +275,32 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           site: jiraHelpers.siteOf("https://acme.atlassian.net/rest/api/2/issue/10040"),
         });
 
+        /*
+         * The site the workflow's Jira Site URL names, read by the same helper block: the
+         * wizard only takes a site's address, but the variable can be edited to any text,
+         * as long as anyone likes.
+         */
+        const ISSUE_URL = "https://acme.atlassian.net/rest/api/2/issue/10040";
+        const SETTING_SHAPES = [
+          ["a host that never ends", "https://" + repeatTo("a")],
+          ["an IPv6 address that never closes", "http://[" + repeatTo("1")],
+          ["a context path that never ends", "https://example.com/" + repeatTo("a")],
+          ["a port that never ends", "https://acme.atlassian.net:" + repeatTo("1")],
+          ["dotted labels", "https://" + repeatTo("a.")],
+          ["a site between a megabyte of spaces", repeatTo(" ") + "https://example.com/jira" + repeatTo(" ")],
+          ["a site under a context path, as the wizard takes it", "https://example.com/jira"],
+        ];
+
+        const settings = SETTING_SHAPES.map(([shape, setting]) => {
+          try {
+            return { shape, link: jiraHelpers.issueLink(ISSUE_URL, "OPS-17", setting) };
+          } catch (error) {
+            return { shape, error: String((error && error.message) || error).split("\n")[0] };
+          }
+        });
+
         process.stdout.write(
-          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites }),
+          JSON.stringify({ oldBase64Pattern, answers, notes, descriptions, teamsMessages, sites, settings }),
         );
         process.exit(0);
       `,
@@ -258,7 +323,7 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     report = runWithUnoptimizedRegularExpressions();
   }, 300000);
 
-  test("the OAuth error quote and the Dynamics 365 note script read every shape without running out of stack", () => {
+  test("the OAuth error quote and the Dynamics 365 note and case description readers read every shape without running out of stack", () => {
     /*
      * The process really is in that state: a quantified pattern over three
      * megabytes runs out of stack there. If V8 ever stops doing that, this
@@ -270,9 +335,14 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     });
 
     expect(report.answers).toHaveLength(10);
-    expect(report.notes).toHaveLength(10);
+    expect(report.notes).toHaveLength(17);
+    expect(report.descriptions).toHaveLength(34);
 
-    for (const { shape, read } of [...report.answers, ...report.notes]) {
+    for (const { shape, read } of [
+      ...report.answers,
+      ...report.notes,
+      ...report.descriptions,
+    ]) {
       // No error, and no "<" that starts markup in what was read.
       expect({ shape, read }).toEqual({
         shape,
@@ -292,6 +362,25 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
       {
         shape: "a site, as Jira Cloud sends it",
         site: "https://acme.atlassian.net",
+      },
+    ]);
+  });
+
+  test("a Jira script reads the site a megabyte-long Jira Site URL names without running out of stack", () => {
+    // None of the long ones is a site's address, so the issue is named without a link.
+    expect(report.settings).toEqual([
+      { shape: "a host that never ends", link: "OPS-17" },
+      { shape: "an IPv6 address that never closes", link: "OPS-17" },
+      { shape: "a context path that never ends", link: "OPS-17" },
+      { shape: "a port that never ends", link: "OPS-17" },
+      { shape: "dotted labels", link: "OPS-17" },
+      {
+        shape: "a site between a megabyte of spaces",
+        link: "[OPS-17](https://example.com/jira/browse/OPS-17)",
+      },
+      {
+        shape: "a site under a context path, as the wizard takes it",
+        link: "[OPS-17](https://example.com/jira/browse/OPS-17)",
       },
     ]);
   });

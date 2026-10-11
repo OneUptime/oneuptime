@@ -451,13 +451,13 @@ Alerts for payments:
 
 ### メトリクスとインフラストラクチャのモニター
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array の各モニターには、固有の変数が 1 つあります。
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array、IoT Device の各モニターには、固有の変数が 1 つあります。
 
 | 変数 | 内容 | 型 |
 | --- | --- | --- |
 | `metricName` | モニターの最初のクエリが読むメトリクスの名前 (`container.cpu.time` など)。 | `string` |
 
-グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT Device モニターには `metricName` はありませんが、テンプレートのようにグループ化されたものには `{{device.id}}` があります。
+グループ化されている場合は、各 **グループ化** 属性の値と `seriesLabels` もあります。[グループ化されたモニターの値](#グループ化されたモニターの値) を参照してください。IoT Device モニターのテンプレートはデバイスごとにグループ化するため、テンプレートから作成したモニターには `{{device.id}}` もあります。
 
 ### その他のモニターの種類
 

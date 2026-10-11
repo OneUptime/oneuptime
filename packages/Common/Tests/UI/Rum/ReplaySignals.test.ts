@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
@@ -1385,12 +1386,8 @@ describe("findLastSignalIndexAtOrBefore", () => {
   });
 
   it("agrees with the linear scan on random sorted lists with duplicates", () => {
-    /* Deterministic LCG so a failure reproduces. */
-    let seed: number = 0x2f6e2b1;
-    const nextRandom: () => number = (): number => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return seed / 0x100000000;
-    };
+    // Seeded, so a failure reproduces.
+    const nextRandom: SeededRandom = seededRandom(0x2f6e2b1);
 
     const offsets: Array<number> = [];
     let offset: number = 0;
@@ -1398,7 +1395,7 @@ describe("findLastSignalIndexAtOrBefore", () => {
     for (let i: number = 0; i < 2000; i++) {
       /* ~30% ties, otherwise a small forward step. */
       if (nextRandom() > 0.3) {
-        offset += Math.floor(nextRandom() * 500);
+        offset += nextRandom(500);
       }
 
       offsets.push(offset);

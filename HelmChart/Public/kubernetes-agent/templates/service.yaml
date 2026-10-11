@@ -1,4 +1,4 @@
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 # Internal OTLP receiver for the eBPF DaemonSet to ship traces into.
 # Goes only to the metrics-collector Deployment (component: metrics-collector)
 # — the eBPF pods are in-cluster, so a ClusterIP Service is sufficient.

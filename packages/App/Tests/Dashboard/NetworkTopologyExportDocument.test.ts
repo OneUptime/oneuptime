@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -376,7 +377,7 @@ interface Estate {
 function estate(count: number, islandSize: number = 25): Estate {
   const nodes: Array<NetworkTopologyNode> = [];
   const edges: Array<NetworkTopologyEdge> = [];
-  let seed: number = 12345;
+  const random: SeededRandom = seededRandom(12345);
   for (let index: number = 0; index < count; index++) {
     nodes.push(
       device(
@@ -386,11 +387,9 @@ function estate(count: number, islandSize: number = 25): Estate {
         index % 5 === 0 ? "down" : "up",
       ),
     );
-    seed = (seed * 1103515245 + 12345) % 2147483648;
     const islandStart: number = index - (index % islandSize);
     if (index > islandStart) {
-      const parent: number =
-        islandStart + Math.floor((seed / 2147483648) * (index - islandStart));
+      const parent: number = islandStart + random(index - islandStart);
       edges.push(link(`d${parent}`, `d${index}`));
     }
   }

@@ -68,7 +68,9 @@ import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResp
 import DatabaseMonitorResponse, {
   DatabaseMetricGroupStatus,
 } from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import {
   CheckOn,
   CriteriaFilter,
@@ -581,7 +583,7 @@ ${contextBlock}
       );
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType)) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
     }
 
@@ -800,16 +802,8 @@ ${contextBlock}
       });
     }
 
-    /*
-     * Same list as MonitorCriteriaInstance.isMetricBackedMonitorType,
-     * which is where it now lives so the two cannot drift apart.
-     */
-    if (
-      !input.monitor.monitorType ||
-      !MonitorCriteriaInstance.isMetricBackedMonitorType(
-        input.monitor.monitorType,
-      )
-    ) {
+    // The metric-backed types, from the one list (MonitorTypeHelper).
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
       return [];
     }
 
@@ -1355,19 +1349,7 @@ ${contextBlock}
       }
     }
 
-    if (
-      input.monitor.monitorType === MonitorType.Metrics ||
-      input.monitor.monitorType === MonitorType.Kubernetes ||
-      input.monitor.monitorType === MonitorType.Docker ||
-      input.monitor.monitorType === MonitorType.Host ||
-      input.monitor.monitorType === MonitorType.Podman ||
-      input.monitor.monitorType === MonitorType.DockerSwarm ||
-      input.monitor.monitorType === MonitorType.Proxmox ||
-      input.monitor.monitorType === MonitorType.VMware ||
-      input.monitor.monitorType === MonitorType.Ceph ||
-      input.monitor.monitorType === MonitorType.StorageArray ||
-      input.monitor.monitorType === MonitorType.IoTDevice
-    ) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
