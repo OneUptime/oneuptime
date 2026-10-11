@@ -125,7 +125,7 @@ Lo stato complessivo è il peggior stato attuale dei monitor e dei gruppi di mon
 
 | Chiave | Cosa contiene |
 | --- | ------------- |
-| `overallStatus` | Lo stato complessivo della pagina, uno stato di monitor come quello sopra, oppure `null` quando la pagina non contiene nulla. |
+| `overallStatus` | Lo stato complessivo della pagina, uno stato di monitor come quello sopra. Una pagina che non contiene nulla riceve lo stato del progetto con la priorità più bassa. |
 | `statusPage` | Le impostazioni pubbliche della pagina: titolo, descrizione, branding e ciò che mostra. |
 | `statusPageResources` | Ogni risorsa: il nome visualizzato, la descrizione, il gruppo, il monitor o gruppo di monitor e le opzioni di visualizzazione. |
 | `resourceGroups` | I gruppi, con `parentStatusPageGroupId` per i gruppi annidati. |

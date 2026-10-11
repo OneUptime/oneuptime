@@ -125,7 +125,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 鍵 | 內容 |
 | --- | ------------- |
-| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監控器狀態；頁面上什麼都沒有時為 `null`。 |
+| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監控器狀態；頁面上什麼都沒有時，是專案中優先順序最低的狀態。 |
 | `statusPage` | 頁面的公開設定：標題、說明、品牌，以及顯示的內容。 |
 | `statusPageResources` | 每個資源：顯示名稱、說明、群組、監控器或監控器群組，以及顯示選項。 |
 | `resourceGroups` | 群組；巢狀群組帶有 `parentStatusPageGroupId`。 |

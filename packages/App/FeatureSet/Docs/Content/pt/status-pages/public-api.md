@@ -125,7 +125,7 @@ O status geral é o pior status atual dos monitores e grupos de monitores da pá
 
 | Chave | O que contém |
 | --- | ------------- |
-| `overallStatus` | O status geral da página, um status de monitor como o de cima, ou `null` quando a página não tem nada. |
+| `overallStatus` | O status geral da página, um status de monitor como o de cima. Uma página sem nada recebe o status do projeto com a menor prioridade. |
 | `statusPage` | As configurações públicas da página: título, descrição, marca e o que ela mostra. |
 | `statusPageResources` | Cada recurso: o nome de exibição, a descrição, o grupo, o monitor ou grupo de monitores e as opções de exibição. |
 | `resourceGroups` | Os grupos, com `parentStatusPageGroupId` para os grupos aninhados. |

@@ -125,7 +125,7 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 
 | Sleutel | Wat erin staat |
 | --- | ------------- |
-| `overallStatus` | De algemene status van de pagina, een monitorstatus zoals hierboven, of `null` als er niets op de pagina staat. |
+| `overallStatus` | De algemene status van de pagina, een monitorstatus zoals hierboven. Een pagina waar niets op staat, krijgt de status van het project met de laagste prioriteit. |
 | `statusPage` | De publieke instellingen van de pagina: titel, beschrijving, branding en wat ze toont. |
 | `statusPageResources` | Elke resource: weergavenaam, beschrijving, groep, monitor of monitorgroep, en weergaveopties. |
 | `resourceGroups` | De groepen, met `parentStatusPageGroupId` voor geneste groepen. |

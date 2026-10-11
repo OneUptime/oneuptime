@@ -125,7 +125,7 @@ El estado global es el peor estado actual de los monitores y grupos de monitores
 
 | Clave | Qué contiene |
 | --- | ------------- |
-| `overallStatus` | El estado global de la página, un estado de monitor como el de arriba, o `null` cuando la página no tiene nada. |
+| `overallStatus` | El estado global de la página, un estado de monitor como el de arriba. Una página sin nada recibe el estado del proyecto con la prioridad más baja. |
 | `statusPage` | Los ajustes públicos de la página: su título, descripción, marca y lo que muestra. |
 | `statusPageResources` | Cada recurso: su nombre visible, descripción, grupo, monitor o grupo de monitores, y opciones de visualización. |
 | `resourceGroups` | Los grupos, con `parentStatusPageGroupId` para los grupos anidados. |

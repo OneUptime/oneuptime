@@ -125,7 +125,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | キー | 内容 |
 | --- | ------------- |
-| `overallStatus` | ページ全体のステータス。上と同じモニターのステータスで、ページに何もない場合は `null`。 |
+| `overallStatus` | ページ全体のステータス。上と同じモニターのステータスで、ページに何もない場合は、プロジェクトで優先度が最も低いステータス。 |
 | `statusPage` | ページの公開設定: タイトル、説明、ブランディング、表示する内容。 |
 | `statusPageResources` | 各リソース: 表示名、説明、グループ、モニターまたはモニターグループ、表示オプション。 |
 | `resourceGroups` | グループ。入れ子のグループには `parentStatusPageGroupId` が付きます。 |

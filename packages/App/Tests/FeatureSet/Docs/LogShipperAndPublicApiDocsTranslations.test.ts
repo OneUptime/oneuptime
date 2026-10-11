@@ -646,9 +646,11 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(PAGES.filter((entry: TranslatedPage): boolean => {
-    return entry.page !== PUBLIC_API;
-  }))(
+  it.each(
+    PAGES.filter((entry: TranslatedPage): boolean => {
+      return entry.page !== PUBLIC_API;
+    }),
+  )(
     "$page has a Troubleshooting section of folded answers before Next steps",
     (entry: TranslatedPage) => {
       const markdown: string = englishPage(entry.page);
@@ -708,9 +710,7 @@ describe("the English pages", () => {
 
       expect(markdown).toContain("**Secret Key**");
       expect(markdown).toContain("`x-oneuptime-token`");
-      expect(markdown).toContain(
-        "**Products → Project Settings",
-      );
+      expect(markdown).toContain("**Products → Project Settings");
       expect(markdown).toContain(
         "a project on the Free plan needs a payment method before it can send telemetry",
       );
@@ -964,10 +964,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
 
       for (const number of PROSE_NUMBERS[entry.page] || []) {
-        expect({ number, times: proseNumberCount(translated, number) }).toEqual({
-          number,
-          times: proseNumberCount(english, number),
-        });
+        expect({ number, times: proseNumberCount(translated, number) }).toEqual(
+          {
+            number,
+            times: proseNumberCount(english, number),
+          },
+        );
       }
     });
   });

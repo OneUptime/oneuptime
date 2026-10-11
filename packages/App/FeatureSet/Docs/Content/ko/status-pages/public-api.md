@@ -125,7 +125,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 키 | 담긴 내용 |
 | --- | ------------- |
-| `overallStatus` | 페이지의 전체 상태. 위와 같은 모니터 상태이며, 페이지에 아무것도 없으면 `null`. |
+| `overallStatus` | 페이지의 전체 상태. 위와 같은 모니터 상태이며, 페이지에 아무것도 없으면 프로젝트에서 우선순위가 가장 낮은 상태. |
 | `statusPage` | 페이지의 공개 설정: 제목, 설명, 브랜딩, 표시하는 내용. |
 | `statusPageResources` | 각 리소스: 표시 이름, 설명, 그룹, 모니터 또는 모니터 그룹, 표시 옵션. |
 | `resourceGroups` | 그룹. 중첩된 그룹에는 `parentStatusPageGroupId`가 있습니다. |

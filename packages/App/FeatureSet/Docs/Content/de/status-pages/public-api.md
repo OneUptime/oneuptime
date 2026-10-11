@@ -125,7 +125,7 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 
 | Schlüssel | Was er enthält |
 | --- | ------------- |
-| `overallStatus` | Den Gesamtstatus der Seite, ein Monitorstatus wie oben, oder `null`, wenn auf der Seite nichts steht. |
+| `overallStatus` | Den Gesamtstatus der Seite, einen Monitorstatus wie oben. Eine Seite, auf der nichts steht, erhält den Status des Projekts mit der niedrigsten Priorität. |
 | `statusPage` | Die öffentlichen Einstellungen der Seite: Titel, Beschreibung, Branding und was sie zeigt. |
 | `statusPageResources` | Jede Ressource: ihren Anzeigenamen, ihre Beschreibung, Gruppe, ihren Monitor oder ihre Monitorgruppe und ihre Anzeigeoptionen. |
 | `resourceGroups` | Die Gruppen, mit `parentStatusPageGroupId` für verschachtelte Gruppen. |

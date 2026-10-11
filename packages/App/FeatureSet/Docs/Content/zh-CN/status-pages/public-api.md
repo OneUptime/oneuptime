@@ -125,7 +125,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 键 | 内容 |
 | --- | ------------- |
-| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时为 `null`。 |
+| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时，是项目中优先级最低的状态。 |
 | `statusPage` | 页面的公开设置：标题、描述、品牌，以及显示的内容。 |
 | `statusPageResources` | 每个资源：显示名称、描述、分组、监控器或监控器分组，以及显示选项。 |
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |

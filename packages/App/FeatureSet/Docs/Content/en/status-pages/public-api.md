@@ -125,7 +125,7 @@ The overall status is the worst current status of the monitors and monitor group
 
 | Key | What it holds |
 | --- | ------------- |
-| `overallStatus` | The page's overall status, a monitor status as above, or `null` when the page has nothing on it. |
+| `overallStatus` | The page's overall status, a monitor status as above. A page with nothing on it gets the project's lowest-priority status. |
 | `statusPage` | The page's public settings: its title, description, branding and what it shows. |
 | `statusPageResources` | Each resource: its display name, description, group, monitor or monitor group, and display options. |
 | `resourceGroups` | The groups, with `parentStatusPageGroupId` for nested groups. |

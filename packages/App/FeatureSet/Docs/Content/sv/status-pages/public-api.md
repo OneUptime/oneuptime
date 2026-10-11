@@ -125,7 +125,7 @@ Den samlade statusen är den sämsta aktuella statusen bland monitorerna och mon
 
 | Nyckel | Vad den innehåller |
 | --- | ------------- |
-| `overallStatus` | Sidans samlade status, en monitorstatus som ovan, eller `null` när det inte finns något på sidan. |
+| `overallStatus` | Sidans samlade status, en monitorstatus som ovan. En sida utan något på får projektets status med lägst prioritet. |
 | `statusPage` | Sidans offentliga inställningar: rubrik, beskrivning, varumärke och vad den visar. |
 | `statusPageResources` | Varje resurs: visningsnamn, beskrivning, grupp, monitor eller monitorgrupp och visningsalternativ. |
 | `resourceGroups` | Grupperna, med `parentStatusPageGroupId` för nästlade grupper. |

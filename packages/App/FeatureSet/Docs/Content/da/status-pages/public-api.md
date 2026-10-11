@@ -125,7 +125,7 @@ Den samlede status er den værste aktuelle status blandt sidens monitorer og mon
 
 | Nøgle | Hvad den indeholder |
 | --- | ------------- |
-| `overallStatus` | Sidens samlede status, en monitorstatus som ovenfor, eller `null`, når der ikke er noget på siden. |
+| `overallStatus` | Sidens samlede status, en monitorstatus som ovenfor. En side uden noget på får projektets status med den laveste prioritet. |
 | `statusPage` | Sidens offentlige indstillinger: titel, beskrivelse, branding og hvad den viser. |
 | `statusPageResources` | Hver ressource: visningsnavn, beskrivelse, gruppe, monitor eller monitorgruppe og visningsindstillinger. |
 | `resourceGroups` | Grupperne, med `parentStatusPageGroupId` for indlejrede grupper. |

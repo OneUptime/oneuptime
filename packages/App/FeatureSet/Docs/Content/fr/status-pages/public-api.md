@@ -125,7 +125,7 @@ Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs
 
 | Clé | Ce qu'elle contient |
 | --- | ------------- |
-| `overallStatus` | Le statut global de la page, un statut de moniteur comme ci-dessus, ou `null` quand la page ne contient rien. |
+| `overallStatus` | Le statut global de la page, un statut de moniteur comme ci-dessus. Une page qui ne contient rien reçoit le statut du projet de la priorité la plus basse. |
 | `statusPage` | Les réglages publics de la page : son titre, sa description, sa personnalisation et ce qu'elle montre. |
 | `statusPageResources` | Chaque ressource : son nom d'affichage, sa description, son groupe, son moniteur ou groupe de moniteurs, et ses options d'affichage. |
 | `resourceGroups` | Les groupes, avec `parentStatusPageGroupId` pour les groupes imbriqués. |
