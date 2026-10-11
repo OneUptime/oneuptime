@@ -1233,7 +1233,12 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
   });
 
   describe("Slack's Change State form", () => {
-    test("offers the states the member may read, in the project's order", async () => {
+    /*
+     * The incident is in Created: the form offers the states it may move
+     * into next by the state move rule (Common/Utils/StateMove) - none at
+     * or above Created - in the project's order.
+     */
+    test("offers the states the member may read that the incident may move into next, in the project's order", async () => {
       await pressSlackButton(
         SLACK_RESPONDER,
         SlackActionType.ViewChangeIncidentState,
@@ -1241,7 +1246,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       );
 
       expect(shownOptions()).toEqual({
-        incidentState: ["Created", "Acknowledged", "Resolved"],
+        incidentState: ["Acknowledged", "Resolved"],
       });
       expect(directMessageTexts()).toEqual([]);
     });
@@ -1380,7 +1385,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       await nothingWritten();
     });
 
-    test("the change-state card offers the states the member may read, and says so when there are none", async () => {
+    test("the change-state card offers the states the member may read that the incident may move into next, and says so when there are none", async () => {
       const responderContext: TurnContext = createTurnContext();
 
       await pressTeamsButton(
@@ -1401,13 +1406,14 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         },
       )!;
 
+      // The incident is in Created, so Created itself is not offered.
       expect(
         (choiceSet["choices"] as Array<JSONObject>).map(
           (choice: JSONObject): unknown => {
             return choice["title"];
           },
         ),
-      ).toEqual(["Created", "Acknowledged", "Resolved"]);
+      ).toEqual(["Acknowledged", "Resolved"]);
 
       const stateBlindContext: TurnContext = createTurnContext();
 
