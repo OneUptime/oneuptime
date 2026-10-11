@@ -139,15 +139,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "forms/building": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/on-submit": {
-    translated: EVERY_TRANSLATION,
-  },
-  "forms/sharing-and-security": {
-    translated: EVERY_TRANSLATION,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },
@@ -227,18 +218,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "zh-TW",
       "fa",
     ),
-  },
-  "monitor/network-device-monitor": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "monitor/network-sites": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/network-vendor-guides": {
-    translated: EVERY_TRANSLATION,
   },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
@@ -418,16 +397,5 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "terraform/troubleshooting": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "workspace-connections/microsoft-teams": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workspace-connections/slack": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "workspace-connections/video-calls": {
-    translated: EVERY_TRANSLATION,
   },
 };

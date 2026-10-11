@@ -28,7 +28,7 @@ flowchart TB
 > [!IMPORTANT]
 > 仅限于特定标签或您所拥有资源的权限是不够的：一次运行可能会更改项目中的每个资源。团队阻止列表的作用与其他地方相同，仅限于某些标签的阻止也会被计入：运行会更改带有这些标签的资源，因此，如果对规则所更改资源的编辑设有带标签的阻止，运行将被拒绝。
 
-在已有设备上运行网络的规则时，要求也一样。站点分配规则或设备标签规则的 **Run Now** 需要编辑该规则的权限和 **Edit Network Device**。自动导入规则的 **Dry Run** 和 **Run Rule** 需要编辑该规则的权限、**Create Network Device**，以及在规则带有监视器模板时的 **Create Monitor**。每项权限都必须覆盖整个项目。请参阅 [使用自动导入规则自动导入](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules)。
+在已有设备上运行网络的规则时，要求也一样。站点分配规则或设备标签规则的 **Run Now** 需要编辑该规则的权限和 **Edit Network Device**。自动导入规则的 **Dry Run** 和 **Run Rule** 需要编辑该规则的权限、**Create Network Device**，以及在规则带有监视器模板时的 **Create Monitor**。每项权限都必须覆盖整个项目。请参阅 [使用自动导入规则自动导入](/docs/monitor/network-device-monitor#使用自动导入规则自动导入)。
 
 ## 运行一条规则
 

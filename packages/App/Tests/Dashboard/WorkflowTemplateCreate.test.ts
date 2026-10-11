@@ -1129,6 +1129,20 @@ const ALL_JIRA_VALUES: Record<string, string> = {
   jiraSiteUrl: JIRA_SITE_URL_VALUE,
 };
 
+/*
+ * What someone at another company would type: every setting differs from
+ * ALL_JIRA_VALUES, so a graph built from each shows whether anything typed
+ * reached it.
+ */
+const OTHER_JIRA_VALUES: Record<string, string> = {
+  jiraBaseUrl: "https://globex.atlassian.net",
+  jiraBasicAuthToken: "c2FtQGdsb2JleC5leGFtcGxlOm5vdC1hLXJlYWwtdG9rZW4=",
+  jiraProjectKey: "SUP",
+  jiraIssueType: "Bug",
+  oneuptimeUrl: "https://status.globex.example",
+  jiraSiteUrl: "https://jira.globex.example",
+};
+
 /* The message under a Jira Site URL that is not a site's address. */
 const JIRA_SITE_URL_MESSAGE: string =
   "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.";
@@ -1189,6 +1203,35 @@ const buildJiraWorkflow: BuildJiraWorkflowFunction = (
     values: filledValuesFor(template, ALL_JIRA_VALUES),
     generateId: generateId,
   });
+};
+
+type JiraGraphFunction = (
+  template: WorkflowTemplate,
+  known: Record<string, string>,
+) => JSONObject;
+
+/*
+ * The graph the wizard builds for a Jira template from the settings in
+ * `known`. Node ids count from one again on every build, so two builds can
+ * differ only where the settings changed the graph.
+ */
+const jiraGraphWith: JiraGraphFunction = (
+  template: WorkflowTemplate,
+  known: Record<string, string>,
+): JSONObject => {
+  let built: number = 0;
+
+  return buildWorkflowFromTemplate({
+    name: template.workflowName,
+    description: template.workflowDescription,
+    projectId: projectId,
+    template: template,
+    values: filledValuesFor(template, known),
+    generateId: (): string => {
+      built++;
+      return `node-${built}`;
+    },
+  }).graph as JSONObject;
 };
 
 interface BuiltNode {
@@ -1543,24 +1586,21 @@ describe("Jira templates", () => {
       }
     });
 
+    /*
+     * What was typed goes into the workflow's variables, and the graph only
+     * refers to them, so the graph is the same whatever was typed. Comparing
+     * the whole graphs built from two different sets of settings also catches
+     * a value that reached the graph in another form, such as only its host,
+     * which a search for the typed text would miss.
+     */
     test("what was typed never reaches the graph", () => {
       for (const template of jiraTemplates()) {
-        const serialized: string = JSON.stringify(
-          buildJiraWorkflow(template).graph,
-        );
-
         expect({
           template: template.id,
-          token: serialized.includes(
-            JIRA_VALUES[JIRA_TOKEN_VARIABLE] as string,
-          ),
-          api: serialized.includes(JIRA_VALUES["jiraBaseUrl"] as string),
-          site: serialized.includes(JIRA_SITE_URL_VALUE),
+          graph: jiraGraphWith(template, OTHER_JIRA_VALUES),
         }).toEqual({
           template: template.id,
-          token: false,
-          api: false,
-          site: false,
+          graph: jiraGraphWith(template, ALL_JIRA_VALUES),
         });
       }
     });

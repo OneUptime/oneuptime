@@ -28,7 +28,7 @@ flowchart TB
 > [!IMPORTANT]
 > 僅限於特定標籤或您所擁有資源的權限是不夠的：一次執行可能會變更專案中的每個資源。團隊封鎖清單的作用與其他地方相同，僅限於某些標籤的封鎖也會計入：執行會變更帶有這些標籤的資源，因此，如果對規則所變更資源的編輯設有帶標籤的封鎖，執行就會被拒絕。
 
-在既有設備上執行網路的規則時，要求也相同。站點指派規則或設備標籤規則的 **Run Now** 需要編輯該規則的權限和 **Edit Network Device**。自動匯入規則的 **Dry Run** 和 **Run Rule** 需要編輯該規則的權限、**Create Network Device**，以及在規則帶有監測器範本時的 **Create Monitor**。每項權限都必須涵蓋整個專案。請參閱 [使用自動匯入規則自動匯入](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules)。
+在既有設備上執行網路的規則時，要求也相同。站點指派規則或設備標籤規則的 **Run Now** 需要編輯該規則的權限和 **Edit Network Device**。自動匯入規則的 **Dry Run** 和 **Run Rule** 需要編輯該規則的權限、**Create Network Device**，以及在規則帶有監測器範本時的 **Create Monitor**。每項權限都必須涵蓋整個專案。請參閱 [使用自動匯入規則自動匯入](/docs/monitor/network-device-monitor#使用自動匯入規則自動匯入)。
 
 ## 執行一條規則
 

@@ -34,7 +34,7 @@ sequenceDiagram
 
 Incoming Webhook이나 Teams 워크플로 URL은 이 봇의 메시징 엔드포인트를 대신하지 못합니다.
 
-화상 통화(인시던트용 Teams 모임)는 이 봇을 사용하지 않습니다. 화상 통화에는 별도의 앱 등록이 필요하며, [화상 통화](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server)에서 설명합니다.
+화상 통화(인시던트용 Teams 모임)는 이 봇을 사용하지 않습니다. 화상 통화에는 별도의 앱 등록이 필요하며, [화상 통화](/docs/workspace-connections/video-calls#자체-호스팅-서버에서-한-번의-클릭으로-연결하기)에서 설명합니다.
 
 ## 시작하기 전에
 

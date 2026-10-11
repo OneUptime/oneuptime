@@ -34,7 +34,7 @@ sequenceDiagram
 
 Incoming Webhook 或 Teams 工作流 URL 都不能替代此机器人的消息传递端点。
 
-视频通话（为事件召开的 Teams 会议）不使用此机器人：它需要单独的应用注册，详见 [视频通话](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server)。
+视频通话（为事件召开的 Teams 会议）不使用此机器人：它需要单独的应用注册，详见 [视频通话](/docs/workspace-connections/video-calls#在自托管服务器上一键连接)。
 
 ## 开始之前
 

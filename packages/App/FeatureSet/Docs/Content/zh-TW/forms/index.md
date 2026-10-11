@@ -57,7 +57,7 @@ flowchart TB
 
 - **包含表單的方案。** 在 OneUptime Cloud 上，表單需要 **Growth** 或更高的方案。請參閱 [方案](#方案)。
 - **建立表單的權限。** **Create Form** 屬於專案擁有者和管理員，以及您授予該權限的角色。請參閱 [權限](#權限)。
-- **事件表單需要嚴重程度。** 每個事件都需要一個嚴重程度：來自某個問題、表單的設定或其事件範本。沒有嚴重程度時，每次提交都會被拒絕。請參閱 [提交會建立什麼](/docs/forms/on-submit#how-a-submission-becomes-an-incident)。
+- **事件表單需要嚴重程度。** 每個事件都需要一個嚴重程度：來自某個問題、表單的設定或其事件範本。沒有嚴重程度時，每次提交都會被拒絕。請參閱 [提交會建立什麼](/docs/forms/on-submit#提交如何成為事件)。
 
 ## 建立您的第一個表單
 
@@ -76,7 +76,7 @@ flowchart TB
 
 ### 如果經常回報相同的情況，新增範本
 
-在 **範本** 中，為大家經常回報的每種情況儲存一個範本：表單會在問題上方列出這些範本，依據所選的範本自動填寫，並按照該範本的設定提問。某種情況需要的問題，可以在該情況的範本中設為必填，在其他範本中隱藏。請參閱 [範本](/docs/forms/building#templates)。
+在 **範本** 中，為大家經常回報的每種情況儲存一個範本：表單會在問題上方列出這些範本，依據所選的範本自動填寫，並按照該範本的設定提問。某種情況需要的問題，可以在該情況的範本中設為必填，在其他範本中隱藏。請參閱 [範本](/docs/forms/building#範本)。
 
 ### 分享連結
 
@@ -229,7 +229,7 @@ flowchart TB
 
 ### API 中的品牌
 
-表單的品牌是其 `logoFileId`、`logoAltText` 和 `faviconFileId`。先在表單所在的專案中使用 `POST /api/file` 上傳圖片：使用該專案的 API 金鑰，或以該專案成員身分登入並在 `tenantid` 標頭中填入專案 ID。傳送其 `name`、`fileType`（例如 `image/png`），以及在 `file` 中以 base64 編碼的位元組，然後設定傳回的 `_id`。上傳到您不是其成員的專案會被拒絕，並顯示 "You can upload files only to a project you are a member of."。每次上傳都是私人的：無論要求中寫了什麼，`isPublic` 都由 OneUptime 設定。每張圖片會在儲存表單時檢查：它必須是在表單所在的專案中上傳的，標誌必須是 512 KB 或更小的 PNG、JPEG、GIF、WebP 或 SVG 圖片，網站圖示必須是上述格式之一或 128 KB 或更小的 ICO。將 ID 設為 `null` 即可恢復為 OneUptime 的。請參閱 [品牌](/docs/forms/building#branding)。
+表單的品牌是其 `logoFileId`、`logoAltText` 和 `faviconFileId`。先在表單所在的專案中使用 `POST /api/file` 上傳圖片：使用該專案的 API 金鑰，或以該專案成員身分登入並在 `tenantid` 標頭中填入專案 ID。傳送其 `name`、`fileType`（例如 `image/png`），以及在 `file` 中以 base64 編碼的位元組，然後設定傳回的 `_id`。上傳到您不是其成員的專案會被拒絕，並顯示 "You can upload files only to a project you are a member of."。每次上傳都是私人的：無論要求中寫了什麼，`isPublic` 都由 OneUptime 設定。每張圖片會在儲存表單時檢查：它必須是在表單所在的專案中上傳的，標誌必須是 512 KB 或更小的 PNG、JPEG、GIF、WebP 或 SVG 圖片，網站圖示必須是上述格式之一或 128 KB 或更小的 ICO。將 ID 設為 `null` 即可恢復為 OneUptime 的。請參閱 [品牌](/docs/forms/building#品牌)。
 
 ### 讀取提交紀錄
 

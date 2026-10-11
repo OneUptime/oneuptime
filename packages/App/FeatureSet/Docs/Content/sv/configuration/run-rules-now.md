@@ -28,7 +28,7 @@ För att köra en regel behöver du behörighet att redigera regeln **och** att 
 > [!IMPORTANT]
 > En behörighet som är begränsad till vissa etiketter, eller till resurser som du äger, räcker inte: en körning kan ändra alla resurser i projektet. Teamens blocklistor gäller som överallt annars, och en blockering som är begränsad till vissa etiketter räknas också: en körning skulle ändra resurserna med de etiketterna, så en blockering med etiketter på redigering av de resurser som en regel ändrar avvisar körningen.
 
-Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Run Now** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Run Rule** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules).
+Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Run Now** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Run Rule** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
 
 ## Köra en regel
 
