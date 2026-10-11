@@ -62,7 +62,7 @@ const STILL_REFUSED: Record<string, string> = {
 
 // The switch, as the guide sets it in config.env and in the Helm values.
 const SWITCH_IN_CONFIG_ENV: string =
-  "```\nDATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true\n```";
+  '```bash title="config.env"\nDATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true\n```';
 const SWITCH_IN_HELM_VALUES: string =
   "outboundConnections:\n  blockPrivateNetwork: true\n";
 
@@ -200,12 +200,22 @@ describe("the guide says, right after the switch, that a Global LLM Provider is 
       });
     }
 
-    // Between the switch's config.env line and its Helm values.
+    /*
+     * Right after the switch: its config.env line and its Helm values, in
+     * the tabs that set it, and then this paragraph.
+     */
     const at: number = markdown.indexOf(paragraph);
+    const tabsEnd: number = markdown.indexOf(
+      "\n:::\n",
+      markdown.indexOf(SWITCH_IN_HELM_VALUES),
+    );
 
     expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeGreaterThan(-1);
-    expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeLessThan(at);
-    expect(markdown.indexOf(SWITCH_IN_HELM_VALUES)).toBeGreaterThan(at);
+    expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeLessThan(
+      markdown.indexOf(SWITCH_IN_HELM_VALUES),
+    );
+    expect(tabsEnd).toBeGreaterThan(-1);
+    expect(markdown.slice(tabsEnd, at).trim()).toBe(":::");
   });
 });
 

@@ -103,7 +103,7 @@ describe("Self-hosted > Push Notifications, in English", () => {
       "When an up-to-date mobile app is set up on a new phone from a backup of the old one, it tells OneUptime the push token it had before; if the old phone's device no longer receives notifications, the new phone takes it over with its rules.",
     );
     expect(page).toContain(
-      "takes over the old\n  phone's registration once that no longer receives notifications",
+      "takes over the old phone's registration once that no longer receives notifications",
     );
     expect(page).not.toContain("the old phone's device moves to the new phone");
     expect(page).not.toContain(

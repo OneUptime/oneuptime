@@ -2,26 +2,33 @@
 
 OneUptime is built from one repository and ships in two editions:
 
-- **Community Edition**: the whole monitoring, incident and observability
-  platform, including SAML and OpenID Connect single sign-on, open source under
-  the Apache License 2.0 and free to self-host at any scale.
-- **Enterprise Edition**: the Community Edition plus the enterprise modules in
-  the repository's [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee)
-  directory. Those modules add SCIM provisioning, governance and
-  instance-administration features. They are licensed under the
-  [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE),
-  and production use needs an Enterprise license for your number of users.
+- **Community Edition**: the whole monitoring, incident and observability platform, including SAML and OpenID Connect single sign-on, open source under the Apache License 2.0 and free to self-host at any scale.
+- **Enterprise Edition**: the Community Edition plus the enterprise modules in the repository's [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) directory. Those modules add SCIM provisioning, governance and instance-administration features. They are licensed under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), and production use needs an Enterprise license for your number of users.
 
-The two editions are separate container images. The Community image contains
-no code from `ee/`. OneUptime Cloud runs the Enterprise Edition, and on the
-cloud your plan decides which of these features you get.
+The two editions are separate container images. The Community image contains no code from `ee/`. OneUptime Cloud runs the Enterprise Edition, and on the cloud your plan decides which of these features you get.
 
-> **Single sign-on is in every edition.** SAML and OIDC sign-in for projects
-> and status pages, global SSO and "Require SSO for login" are part of the
-> Community Edition, and no license state switches them off.
+```mermaid title="One repository, two images"
+flowchart TB
+    Core["Everything outside ee/<br/>Apache License 2.0"]
+    Modules["The ee/ modules<br/>OneUptime Enterprise License"]
+    Community["Community image<br/>APP_TAG=release"]
+    Enterprise["Enterprise image<br/>APP_TAG=enterprise-release"]
+    Core --> Community
+    Core --> Enterprise
+    Modules --> Enterprise
+```
 
-This page covers what each edition includes, how to run the Enterprise
-Edition, how licensing works, and what happens when you switch editions.
+> [!NOTE]
+> **Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" are part of the Community Edition, and no license state switches them off.
+
+This page covers what each edition includes, how to run the Enterprise Edition, how licensing works, and what happens when you switch editions.
+
+:::cards
+- [Compare the editions](#what-each-edition-includes): What the Enterprise Edition adds.
+- [Run the Enterprise image](#running-the-enterprise-edition): One setting, on Kubernetes or Docker Compose.
+- [Activate a license](#licensing): Online with a key, or offline with a signed token.
+- [When a license lapses](#when-a-license-expires-or-is-missing): What stops, what never does, and how it comes back.
+:::
 
 ## What each edition includes
 
@@ -43,187 +50,127 @@ Edition, how licensing works, and what happens when you switch editions.
 | Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
 | Enterprise license, seat and instance management | No | Yes | Not applicable |
 
-Single sign-on includes "Require SSO for login" for projects, private status
-pages and the whole instance, in both editions.
+Single sign-on includes "Require SSO for login" for projects, private status pages and the whole instance, in both editions.
 
-Every edition has the project's default telemetry retention (**Settings >
-Telemetry > Telemetry Data Retention**). Retention overrides are what the
-Enterprise Edition adds on top of it.
+Every edition has the project's default telemetry retention (**Settings > Telemetry > Telemetry Data Retention**). Retention overrides are what the Enterprise Edition adds on top of it.
 
-On OneUptime Cloud, a paid feature can always be switched off, on any plan.
-A retention override a trial (or a move to a lower plan) left set keeps
-applying to new telemetry, so below the Scale plan the retention pages show
-it under the upgrade card with a **Remove Override** button. Removing it
-works on every plan; setting one again needs the Scale plan. Telemetry
-already stored keeps the retention it was stored with. In the same way,
-**Settings > SSO** shows the **Require SSO for Login** switch under its
-upgrade card while the project still requires SSO, so it can be turned off.
+On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Settings > SSO** shows the **Require SSO for Login** switch under its upgrade card while the project still requires SSO, so it can be turned off.
 
-"Not applicable" rows are instance-administration features. On OneUptime
-Cloud, OneUptime operates the instance for you.
+"Not applicable" rows are instance-administration features. On OneUptime Cloud, OneUptime operates the instance for you.
 
 ## Running the Enterprise Edition
 
-Both editions use the same configuration, databases and data. Switching
-editions changes the image you run and nothing else. No migration is needed
-in either direction.
+Both editions use the same configuration, databases and data. Switching editions changes the image you run and nothing else. No migration is needed in either direction.
 
-### Kubernetes with Helm
-
+:::tabs
+@tab Kubernetes
 Set the image type in your `values.yaml`:
 
-```yaml
+```yaml title="values.yaml"
 image:
   type: enterprise-edition
 ```
 
 Then upgrade as usual:
 
-```
+```bash
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
-The chart then pulls the `enterprise-` variant of every image tag, for example
-`oneuptime/app:enterprise-release`, or `enterprise-<version>` when you pin
-`image.tag`. Set `image.type: community-edition` (the default) to run the
-Community Edition.
-
-### Docker Compose
-
+The chart then pulls the `enterprise-` variant of every image tag, for example `oneuptime/app:enterprise-release`, or `enterprise-<version>` when you pin `image.tag`. Set `image.type: community-edition` (the default) to run the Community Edition.
+@tab Docker Compose
 Set `APP_TAG` in your `config.env`:
 
-```
+```bash title="config.env"
 APP_TAG=enterprise-release
 ```
 
 Use `enterprise-<version>` to pin a release. Then pull the images and restart:
 
-```
+```bash
 npm run update
 ```
 
-To go back to the Community Edition, set `APP_TAG=release` **and**
-`IS_ENTERPRISE_EDITION=false`. While `IS_ENTERPRISE_EDITION=true`,
-`npm run update` moves `APP_TAG` back to `enterprise-release`, and the
-Community image refuses to start.
+To go back to the Community Edition, set `APP_TAG=release` **and** `IS_ENTERPRISE_EDITION=false`. While `IS_ENTERPRISE_EDITION=true`, `npm run update` moves `APP_TAG` back to `enterprise-release`, and the Community image refuses to start.
+:::
 
 ### `IS_ENTERPRISE_EDITION` is deprecated
 
-The image you run decides the edition. `IS_ENTERPRISE_EDITION` no longer turns
-enterprise features on, and it will be removed in a future release. You can
-leave it unset.
+The image you run decides the edition. `IS_ENTERPRISE_EDITION` no longer turns enterprise features on, and it will be removed in a future release. You can leave it unset.
 
-Setting `IS_ENTERPRISE_EDITION=true` on the Community image does **not** enable
-enterprise features. The App **refuses to start** instead, so an upgrade that
-lands on the Community image can never silently stop SCIM provisioning
-(deprovisioning included) and audit logging. The error tells you what to set:
-`APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
-`IS_ENTERPRISE_EDITION=false` to run the Community Edition. With Helm this
-cannot happen: the chart derives the variable from `image.type`.
+Setting `IS_ENTERPRISE_EDITION=true` on the Community image does **not** enable enterprise features. The App **refuses to start** instead, so an upgrade that lands on the Community image can never silently stop SCIM provisioning (deprovisioning included) and audit logging. The error tells you what to set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or `IS_ENTERPRISE_EDITION=false` to run the Community Edition. With Helm this cannot happen: the chart derives the variable from `image.type`.
 
-`ONEUPTIME_EDITION=community` makes the Enterprise image run as the Community
-Edition. This is useful for trying a downgrade before you make it. The
-Enterprise image sets `ONEUPTIME_EDITION=enterprise` itself; do not override it
-with anything other than `community`.
+`ONEUPTIME_EDITION=community` makes the Enterprise image run as the Community Edition. This is useful for trying a downgrade before you make it. The Enterprise image sets `ONEUPTIME_EDITION=enterprise` itself; do not override it with anything other than `community`.
 
 ## Licensing
 
-The repository's root
-[`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) file
-sets out which license covers what: everything in the `ee/` directory is under
-the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE),
-third-party components keep the licenses their owners provide them under, and
-everything else is under the Apache License 2.0.
+The repository's root [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) file sets out which license covers what: everything in the `ee/` directory is under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), third-party components keep the licenses their owners provide them under, and everything else is under the Apache License 2.0.
 
-A new Enterprise Edition install runs as a **14-day trial**, counted from the
-first time the install starts the Enterprise Edition. The trial is for
-evaluation: production use of the Enterprise Edition needs a subscription under
-the OneUptime Enterprise License. Activate a license before the trial ends:
-after it, SCIM, audit logging and retention overrides stop and enterprise
-configuration becomes read-only (see
-[When a license expires or is missing](#when-a-license-expires-or-is-missing)).
-To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
+A new Enterprise Edition install runs as a **14-day trial**, counted from the first time the install starts the Enterprise Edition. The trial is for evaluation: production use of the Enterprise Edition needs a subscription under the OneUptime Enterprise License. Activate a license before the trial ends: after it, SCIM, audit logging and retention overrides stop and enterprise configuration becomes read-only (see [When a license expires or is missing](#when-a-license-expires-or-is-missing)). To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-The license is managed from the **edition label**, which master admins see in
-the Admin Dashboard header and in the footer of the Dashboard. It shows the
-license status, the seat usage and, for master admins, the instance ID.
+The license is managed from the **edition label**, which master admins see in the Admin Dashboard header and in the footer of the Dashboard. It shows the license status, the seat usage and, for master admins, the instance ID.
 
 ### Online activation (license key)
 
+:::steps
 1. Sign in as a master admin and open the edition label.
 2. Enter your license key and validate it.
+:::
 
-The install checks the key with OneUptime and stores the license it receives.
-From then on it keeps the license current with a daily sync. Use **Refresh
-license** on the edition label to fetch changes, such as extra seats or a
-renewal, straight away.
+The install checks the key with OneUptime and stores the license it receives. From then on it keeps the license current with a daily sync. Use **Refresh license** on the edition label to fetch changes, such as extra seats or a renewal, straight away.
 
-Online activation needs outbound HTTPS from the OneUptime server to
-`https://oneuptime.com`. If the server reaches the internet only through a
-relay, set `ENTERPRISE_LICENSE_SERVER_URL` to the relay's `https://` address.
-The relay must forward `/api/enterprise-license/` to oneuptime.com.
+Online activation needs outbound HTTPS from the OneUptime server to `https://oneuptime.com`. If the server reaches the internet only through a relay, set `ENTERPRISE_LICENSE_SERVER_URL` to the relay's `https://` address. The relay must forward `/api/enterprise-license/` to oneuptime.com.
 
 ### Offline activation (air-gapped installs)
 
-An install with no route to the internet can use a **signed license token**
-instead of a key:
+An install with no route to the internet can use a **signed license token** instead of a key:
 
-1. Sign in as a master admin, open the edition label and note the
-   **instance ID**.
-2. Ask OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) for an
-   offline license token for that instance ID.
+:::steps
+1. Sign in as a master admin, open the edition label and note the **instance ID**.
+2. Ask OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) for an offline license token for that instance ID.
 3. Paste the token into the edition label's token field and activate it.
+:::
 
-The install verifies the token itself, against the OneUptime signing keys
-built into your release. It never contacts OneUptime. A token issued for one
-instance ID is refused by every other install, and a token issued for no
-instance ID (such as the token an install activated online receives) is
-refused too. To renew or add seats, activate a new token before the current
-one expires.
+The install verifies the token itself, against the OneUptime signing keys built into your release. It never contacts OneUptime. A token issued for one instance ID is refused by every other install, and a token issued for no instance ID (such as the token an install activated online receives) is refused too. To renew or add seats, activate a new token before the current one expires.
 
-> **Offline activation needs a release that trusts OneUptime's license signing
-> key.** If your release does not include that key yet, activation fails with
-> "this build does not trust the key that signed this token". In that case,
-> activate online, or upgrade to a release that includes the key.
+> [!IMPORTANT]
+> **Offline activation needs a release that trusts OneUptime's license signing key.** If your release does not include that key yet, activation fails with "this build does not trust the key that signed this token". In that case, activate online, or upgrade to a release that includes the key.
 
 ### What the daily license sync sends
 
-An install that was activated online sends one report to OneUptime a day. It
-contains:
+An install that was activated online sends one report to OneUptime a day. It contains:
 
 - the license key;
-- the instance ID (a random identifier generated by the install) and the host
-  name the install is configured with (`HOST`);
+- the instance ID (a random identifier generated by the install) and the host name the install is configured with (`HOST`);
 - the OneUptime version the install runs;
 - the number of users on the install;
-- a **SHA-256 hash** of each user's email address, lower-cased. OneUptime uses
-  the hashes to count a person who has accounts on several of your installs as
-  one seat. Raw email addresses of ordinary users are never sent;
-- the email addresses of the install's **master admins**, so OneUptime can
-  contact you about renewals and seat limits.
+- a **SHA-256 hash** of each user's email address, lower-cased. OneUptime uses the hashes to count a person who has accounts on several of your installs as one seat. Raw email addresses of ordinary users are never sent;
+- the email addresses of the install's **master admins**, so OneUptime can contact you about renewals and seat limits.
 
-The response carries the license as OneUptime knows it that day: company name,
-expiry, seat limit, the combined user count across your installs, and the
-installs registered to the license. Other replicas of the install pick up a
-change within about a minute.
+The response carries the license as OneUptime knows it that day: company name, expiry, seat limit, the combined user count across your installs, and the installs registered to the license. Other replicas of the install pick up a change within about a minute.
 
-When you activate or refresh the license, the install sends only the license
-key, the instance ID, the host name and the version.
+When you activate or refresh the license, the install sends only the license key, the instance ID, the host name and the version.
 
-Nothing else is sent. No monitoring data, telemetry, logs or configuration
-leave the install. The Community Edition sends none of this, and neither does
-an install activated offline.
+Nothing else is sent. No monitoring data, telemetry, logs or configuration leave the install. The Community Edition sends none of this, and neither does an install activated offline.
 
 ### When a license expires or is missing
 
-Every enterprise feature keeps working during the 14-day trial, and for 30
-days after a license expires (the grace period). The edition label warns
-before either one ends. After that, **SCIM, audit logging and retention
-overrides stop** until a
-license is activated, the same as on the Community Edition, and enterprise
-configuration becomes read-only. Single sign-on is not an enterprise feature:
-SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in
-every license state.
+Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period). The edition label warns before either one ends. After that, **SCIM, audit logging and retention overrides stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only. Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.
+
+```mermaid title="How a license moves between states"
+stateDiagram-v2
+    state "Trial" as Trial
+    state "Valid license" as Valid
+    state "Grace period" as Grace
+    state "Lapsed" as Lapsed
+    [*] --> Trial: first start
+    Trial --> Valid: license activated
+    Trial --> Lapsed: trial ends
+    Valid --> Grace: license expires
+    Grace --> Valid: license renewed
+    Grace --> Lapsed: grace period ends
+    Lapsed --> Valid: license activated
+```
 
 | State | What happens |
 | --- | --- |
@@ -233,79 +180,55 @@ every license state.
 
 What stops when a license lapses:
 
-- **SCIM provisioning stops.** Your identity provider's SCIM requests are
-  refused, including deprovisioning, and SCIM team locks are lifted, so teams
-  managed by SCIM push groups can be edited by hand.
+- **SCIM provisioning stops.** Your identity provider's SCIM requests are refused, including deprovisioning, and SCIM team locks are lifted, so teams managed by SCIM push groups can be edited by hand.
 - **Audit logging stops recording.** Audit logs recorded so far are kept.
-- **Retention overrides stop applying.** New telemetry is kept for the
-  project's default retention. Telemetry already stored keeps the retention it
-  was written with. You can still clear an override through the API, but not
-  set one.
+- **Retention overrides stop applying.** New telemetry is kept for the project's default retention. Telemetry already stored keeps the retention it was written with. You can still clear an override through the API, but not set one.
 
 What does **not** stop:
 
-- **Single sign-on.** SAML and OIDC sign-in for projects, private status
-  pages, the whole instance (global SSO) and the mobile apps, and "Require SSO
-  for login", are part of every edition. A lapsed license changes none of it,
-  and single sign-on configuration stays editable.
-- **Core monitoring is never affected**: monitors, alerts, incidents, on-call,
-  status pages and telemetry all keep working.
+- **Single sign-on.** SAML and OIDC sign-in for projects, private status pages, the whole instance (global SSO) and the mobile apps, and "Require SSO for login", are part of every edition. A lapsed license changes none of it, and single sign-on configuration stays editable.
+- **Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
-- **Nothing is deleted.** SCIM configuration, audit logs and retention
-  overrides stay as they are.
+- **Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.
 
-**Everything resumes as soon as a license is activated**, without a restart:
-SCIM provisioning, audit logging and retention overrides come back with the
-configuration you have. OneUptime only switches them off when it knows the
-license has lapsed. While it cannot read the license state, for example for a
-moment while the server starts, SCIM, audit logging and retention overrides
-stay on.
+**Everything resumes as soon as a license is activated**, without a restart: SCIM provisioning, audit logging and retention overrides come back with the configuration you have. OneUptime only switches them off when it knows the license has lapsed. While it cannot read the license state, for example for a moment while the server starts, SCIM, audit logging and retention overrides stay on.
 
-> **If your identity provider deprovisions users through SCIM, activate a
-> license before the trial or grace period ends.** After that, SCIM no longer
-> deprovisions the people you remove at your identity provider: their
-> OneUptime accounts stay, and unless "Require SSO for login" applies to them,
-> anyone who can still reach such an account's email inbox can set a password
-> and sign in. If you let the license lapse, remove those users in OneUptime
-> yourself.
+> [!WARNING]
+> **If your identity provider deprovisions users through SCIM, activate a license before the trial or grace period ends.** After that, SCIM no longer deprovisions the people you remove at your identity provider: their OneUptime accounts stay, and unless "Require SSO for login" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. If you let the license lapse, remove those users in OneUptime yourself.
 
 ## Switching from Enterprise to Community
 
-Your configuration stays in the database. Switching back to the Enterprise
-image restores everything as it was, as long as the install has a valid
-license or is still in its trial or grace period. Single sign-on does not
-change: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the
-same on both images. On the Community image:
+Your configuration stays in the database. Switching back to the Enterprise image restores everything as it was, as long as the install has a valid license or is still in its trial or grace period. Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same on both images. On the Community image:
 
-- **SCIM stops.** Its provisioning endpoints no longer exist, so IdP-driven
-  SCIM calls fail. That includes SCIM deprovisioning.
-- **SCIM team locks are lifted**, so teams that were managed by SCIM push groups
-  can be edited by hand. At startup the server logs which projects had their
-  SCIM team locks lifted.
-- **Audit logging stops.** Audit logs recorded so far are kept, but the audit
-  log pages show an upgrade prompt.
-- **Retention overrides stop applying.** New telemetry is kept for the
-  project's default retention, and the retention cards on Settings >
-  Telemetry and on every service and resource Settings page show an upgrade
-  prompt. The overrides stay in the database and apply again when you switch
-  back.
-- **Enterprise settings pages show an upgrade prompt.** Through the API you can
-  still read and delete enterprise configuration and reset a SCIM bearer token,
-  but not create or change anything else. Audit logging cannot be turned on.
-- **The enterprise Health dashboards, the Query Console, and the PostgreSQL and
-  Valkey health alerts stop.** ClickHouse capacity monitoring and pruning,
-  migration status and the support bundle keep working.
+- **SCIM stops.** Its provisioning endpoints no longer exist, so IdP-driven SCIM calls fail. That includes SCIM deprovisioning.
+- **SCIM team locks are lifted**, so teams that were managed by SCIM push groups can be edited by hand. At startup the server logs which projects had their SCIM team locks lifted.
+- **Audit logging stops.** Audit logs recorded so far are kept, but the audit log pages show an upgrade prompt.
+- **Retention overrides stop applying.** New telemetry is kept for the project's default retention, and the retention cards on Settings > Telemetry and on every service and resource Settings page show an upgrade prompt. The overrides stay in the database and apply again when you switch back.
+- **Enterprise settings pages show an upgrade prompt.** Through the API you can still read and delete enterprise configuration and reset a SCIM bearer token, but not create or change anything else. Audit logging cannot be turned on.
+- **The enterprise Health dashboards, the Query Console, and the PostgreSQL and Valkey health alerts stop.** ClickHouse capacity monitoring and pruning, migration status and the support bundle keep working.
 
-> **Before you switch an install whose identity provider deprovisions users
-> through SCIM to the Community image, review who has access.** Without SCIM,
-> the people you remove at your identity provider keep their OneUptime
-> accounts, and unless "Require SSO for login" applies to them, anyone who can
-> still reach such an account's email inbox can set a password and sign in.
-> Remove those users first.
+> [!CAUTION]
+> **Before you switch an install whose identity provider deprovisions users through SCIM to the Community image, review who has access.** Without SCIM, the people you remove at your identity provider keep their OneUptime accounts, and unless "Require SSO for login" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. Remove those users first.
 
-## Related
+## Troubleshooting
 
-- [Upgrading](/docs/installation/upgrading)
-- [SSO](/docs/identity/sso)
-- [Global SSO](/docs/identity/global-sso)
-- [SCIM](/docs/identity/scim)
+:::details The App refuses to start after an upgrade
+`IS_ENTERPRISE_EDITION=true` is set on the Community image. Set `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or `IS_ENTERPRISE_EDITION=false` to run the Community Edition, then run `npm run update` again.
+:::
+
+:::details Offline activation fails with "this build does not trust the key that signed this token"
+Your release was built before it trusted OneUptime's license signing key. Activate online, or upgrade to a release that includes the key.
+:::
+
+:::details Your identity provider's SCIM requests are refused
+On the Enterprise image, the license has lapsed: activate one, and provisioning resumes without a restart. On the Community image, the SCIM endpoints do not exist at all.
+:::
+
+## Next steps
+
+:::cards
+- [Upgrading](/docs/installation/upgrading): Move to a new release, and between the editions' images.
+- [SSO](/docs/identity/sso): Single sign-on, in every edition.
+- [Global SSO](/docs/identity/global-sso): One identity provider for the whole instance.
+- [SCIM](/docs/identity/scim): Provision users and teams from your identity provider.
+:::

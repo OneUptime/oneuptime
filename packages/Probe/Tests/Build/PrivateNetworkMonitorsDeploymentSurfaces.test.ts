@@ -356,9 +356,15 @@ const docsContent: Record<DocsLocale, string> = {
 };
 
 interface CodeFence {
+  // The language that opens the info string: yaml in ```yaml title="values.yaml".
   language: string;
+  // The whole info string, a title included.
+  info: string;
   body: string;
 }
+
+// The spaces between the words of a fence's info string.
+const INFO_STRING_SPACE: RegExp = /\s+/;
 
 const codeFences: (markdown: string) => Array<CodeFence> = (
   markdown: string,
@@ -367,7 +373,13 @@ const codeFences: (markdown: string) => Array<CodeFence> = (
   const pattern: RegExp = /^```([^\n]*)\n([\s\S]*?)^```[ \t]*$/gm;
   let match: RegExpExecArray | null = pattern.exec(markdown);
   while (match) {
-    fences.push({ language: (match[1] ?? "").trim(), body: match[2] ?? "" });
+    const info: string = (match[1] ?? "").trim();
+
+    fences.push({
+      language: info.split(INFO_STRING_SPACE)[0] ?? "",
+      info: info,
+      body: match[2] ?? "",
+    });
     match = pattern.exec(markdown);
   }
   return fences;
