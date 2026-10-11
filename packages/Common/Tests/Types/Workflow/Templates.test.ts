@@ -799,6 +799,71 @@ describe("workflow template variables", () => {
     }
   });
 
+  /*
+   * Two fields of one Configure step under the same title read as one
+   * question asked twice. The Jira templates that link an issue ask for the
+   * site people open Jira at and for the address their API calls go to -
+   * often the same URL, and not always - so the titles tell them apart.
+   */
+  test("no two settings of a template share a title", () => {
+    for (const template of templates) {
+      const titles: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.title.trim().toLowerCase();
+        },
+      );
+
+      expect({
+        template: template.id,
+        repeated: titles.filter((title: string, index: number): boolean => {
+          return titles.indexOf(title) !== index;
+        }),
+      }).toEqual({ template: template.id, repeated: [] });
+    }
+  });
+
+  /*
+   * A setting prefilled from another takes what is typed there until it is
+   * typed into, so the other has to come first: the wizard asks in the
+   * template's order. Where the template does not ask for it, nothing fills
+   * the field in.
+   */
+  test("a setting prefilled from another follows it in its template, or names one the template does not ask for", () => {
+    for (const template of templates) {
+      const names: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.name;
+        },
+      );
+
+      template.variables.forEach(
+        (variable: WorkflowTemplateVariable, index: number): void => {
+          if (!variable.prefilledFrom) {
+            return;
+          }
+
+          const from: number = names.indexOf(variable.prefilledFrom);
+
+          expect({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: from === -1 || from < index,
+            notItself: variable.prefilledFrom !== variable.name,
+            // Filling in goes one step: from a setting someone types into, never through another.
+            fromATypedSetting:
+              from === -1 || !template.variables[from]?.prefilledFrom,
+          }).toEqual({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: true,
+            notItself: true,
+            fromATypedSetting: true,
+          });
+        },
+      );
+    }
+  });
+
   test("names are unique within a template, because they become one row each", () => {
     for (const template of templates) {
       const names: Array<string> = [

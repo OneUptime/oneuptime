@@ -223,6 +223,16 @@ export interface WorkflowTemplateVariable {
    * OAuth 2.0 variable, and never as a static variable's plain content.
    */
   isOAuth2SettingOnly?: boolean | undefined;
+  /**
+   * The name of a setting the template asks for before this one, and that
+   * is not filled in from another itself. While this field is empty or has
+   * not been typed into, the wizard fills it in with what is typed there,
+   * without the slashes it may end with (a setting filled in this way is an
+   * address the workflow appends paths to), so a value that is usually the
+   * same is typed once. Emptying the field lets it follow again. Inert in a
+   * template that does not ask for that setting.
+   */
+  prefilledFrom?: string | undefined;
 }
 
 /*
@@ -692,14 +702,96 @@ const ALERT_KIND: TemplateRecordKind = {
   otherPlural: "incidents",
 };
 
+/*
+ * Where the templates send their Jira requests. With a classic API token
+ * that is the Jira Cloud site itself, but a scoped token is only taken at
+ * Atlassian's API gateway, https://api.atlassian.com/ex/jira/<cloud id>,
+ * which no browser opens. So it is the API's address, not the site's, and
+ * the templates that link to an issue ask for the site on its own
+ * (JIRA_SITE_URL).
+ */
 const JIRA_BASE_URL: WorkflowTemplateVariable = {
   name: "jiraBaseUrl",
-  title: "Jira Site URL",
+  title: "Jira API URL",
   description:
-    "Your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
+    "Where the workflow sends its Jira requests: your Jira Cloud site, starting with https:// and with no trailing slash. With a scoped API token, use https://api.atlassian.com/ex/jira/<cloud id> instead.",
   placeholder: "https://your-company.atlassian.net",
   required: true,
   isSecret: false,
+  // With a classic token, and on Data Center, the requests go to the site itself.
+  prefilledFrom: "jiraSiteUrl",
+};
+
+/*
+ * A site's address as the scripts read one: a host - letters, marks and
+ * decimal digits in any script, ".", "-", "_" and "~", or an IPv6 address in
+ * brackets - and a port of up to five digits. SITE, in the scripts' helper
+ * block, reads an event's REST URL with exactly these, as #4676 wrote it, and
+ * the Jira Site URL is built on the same two, so a change to either changes
+ * both. The setting asks one thing more of a host: a letter or a digit.
+ */
+const SITE_HOST_SOURCE: string = String.raw`(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])`;
+
+const SITE_PORT_SOURCE: string = String.raw`(?::[0-9]{1,5})?`;
+
+/*
+ * What a Jira Site URL can be: http or https, its letters in either case,
+ * then a host and a port as above, with a letter or a digit in the host
+ * ("." or "-" alone is no site), then, for Jira Data Center under a context
+ * path, that one path segment, and perhaps the slash an address bar ends a
+ * site with. At most 300 characters, as SITE takes. Nothing else fits, so a
+ * link built on it goes to that site, and no page, query, user name or
+ * markup can ride along.
+ *
+ * The scheme's two cases are spelled out rather than taken with the "i"
+ * flag: beside "u", that flag folds case the Unicode way, and the long s
+ * ("ſ") and the Kelvin sign would pass for "s" and "k", in the scheme and in
+ * the path's ASCII letters alike.
+ *
+ * One path segment, not more: Data Center runs under one, such as
+ * https://example.com/jira, while the address of a page - what gets pasted
+ * from a browser's address bar, https://acme.atlassian.net/jira/your-work or
+ * .../browse/OPS-17 - has two or more. Links built on a page's address would
+ * go nowhere, so it is refused.
+ *
+ * The create wizard checks a typed value with JIRA_SITE_URL_PATTERN, and the
+ * scripts read the setting with the same source (SITE_SETTING), so a value
+ * the wizard took is one the scripts link to.
+ */
+const JIRA_SITE_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9._~-]+)?\/?$`,
+].join("");
+
+export const JIRA_SITE_URL_PATTERN: RegExp = new RegExp(
+  JIRA_SITE_URL_PATTERN_SOURCE,
+  "u",
+);
+
+/*
+ * The Jira site an issue's link goes to: the address people open Jira at.
+ * The templates that bring Jira into OneUptime link the issue in the
+ * description or note they write, and the event's own REST URL, which they
+ * used to take the site from, comes with the request rather than from the
+ * workflow. The workflow names its site here instead, and the scripts link
+ * to that site whatever the event says (issueLink in their helper block).
+ */
+const JIRA_SITE_URL: WorkflowTemplateVariable = {
+  name: "jiraSiteUrl",
+  title: "Jira Site URL",
+  description:
+    "The address you open Jira at, such as https://your-company.atlassian.net, or the base URL of Jira Data Center. Links to Jira issues in OneUptime go to this site.",
+  placeholder: "https://your-company.atlassian.net",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: JIRA_SITE_URL_PATTERN,
+    message:
+      "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.",
+  },
 };
 
 /*
@@ -881,7 +973,8 @@ const jiraSearchBody: JiraSearchBodyFunction = (props: {
  * outside everywhere else: it reads exactly as written, and no image,
  * link, HTML, diagram or chat mention in it acts. Links the template writes
  * itself - to the issue, to the case - are its own, built from what was
- * checked (an issue key, a site's address, a case id).
+ * checked (an issue key, a case id) on the address the workflow's own
+ * settings name (its Jira Site URL, its Dynamics 365 URL).
  *
  * A script runs in the workflow sandbox, which can import nothing, so each
  * carries this copy of reportedValue. It is part of the helper block every
@@ -1055,13 +1148,23 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
   const text = asText(label).toLowerCase();
   return text === LINK_LABEL || LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0);
 });
-// https://your-company.atlassian.net, read off an issue's own REST URL: the scheme, the host and a
-// port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
-// site, and nothing else written into the address can act. A host is letters, marks and decimal
-// digits in any script, ".", "-", "_" and "~", or an IPv6 address in brackets. Only what comes
-// before the URL's path is read, and only when it is no longer than a site's address can be, so a
-// long URL is never matched against a pattern.
-const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
+// The site a link to an issue goes to is the one the workflow names in its Jira Site URL setting:
+// the address people open Jira at, such as https://your-company.atlassian.net, or the base URL of
+// Jira Data Center, with its port and the one-segment path it may run under. The create wizard
+// only takes a site's address there, checked with this same pattern, so a link built on it goes to
+// that site and nothing else can ride along. The setting decides whatever the event says: an event
+// from that site links exactly as before, and one that names another site still links the issue,
+// by its key (which matched ISSUE_KEY), on the site the setting names. A setting that is not a
+// site's address - a value edited in later, an emptied variable or one that is gone - links
+// nothing.
+const SITE_SETTING = /${JIRA_SITE_URL_PATTERN_SOURCE}/u;
+// A script handed no setting at all - a workflow whose arguments no longer name it - reads the site
+// off the issue's own REST URL: the scheme, the host and a port, and nothing else. The URL comes with
+// the event, so an issue's link can only ever go to a site, and nothing else written into the
+// address can act. A host is letters, marks and decimal digits in any script, ".", "-", "_" and
+// "~", or an IPv6 address in brackets. Only what comes before the URL's path is read, and only when
+// it is no longer than a site's address can be, so a long URL is never matched against a pattern.
+const SITE = /^https?:\/\/${SITE_HOST_SOURCE}${SITE_PORT_SOURCE}$/u;
 const LONGEST_SITE = 300;
 const siteOf = (self) => {
   const text = asText(self);
@@ -1071,8 +1174,18 @@ const siteOf = (self) => {
   const site = pathStart === -1 ? text : text.slice(0, pathStart);
   return site.length <= LONGEST_SITE && SITE.test(site) ? site : '';
 };
-const issueLink = (self, issueKey) => {
-  const site = siteOf(self);
+// The site a Jira Site URL setting names, without the slash it may end with and with its scheme in
+// lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE characters, and a
+// character is at most two UTF-16 units, so a longer value is refused before any pattern reads it.
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+const issueLink = (self, issueKey, setting) => {
+  const site = setting === undefined || setting === null ? siteOf(self) : siteOfSetting(setting);
   return site ? '[' + issueKey + '](' + site + '/browse/' + issueKey + ')' : issueKey;
 };
 // A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
@@ -1427,9 +1540,10 @@ const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2)
 const severity = severities[Math.round((rank / 2) * (severities.length - 1))];
 
 // What Jira users wrote - the summary, the priority's and the reporter's names, the description -
-// is placed as written (asWritten). The link to the issue is the template's own.
+// is placed as written (asWritten). The link to the issue is the template's own, on the site the
+// workflow's Jira Site URL names.
 const reporter = oneLine(displayName(fields.reporter) || displayName(payload.user));
-const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey) + '.'];
+const lines = ['${kind.Created} from Jira issue ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.'];
 if (priority) lines.push('Priority: ' + asWritten(priority));
 if (reporter) lines.push('Reported by: ' + asWritten(reporter));
 const description = clean(plainText(fields.description)).trim();
@@ -1594,7 +1708,7 @@ const jiraReadCommentScript: JiraKindScriptFunction = (
 // Add 'comment_updated' to also copy edits; each edit then becomes a new note.
 const EVENTS = ['comment_created'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const comment = payload.comment || {};
 const issue = payload.issue || {};
@@ -1614,12 +1728,12 @@ if (body.indexOf(FROM_ONEUPTIME) !== -1) {
 }
 
 // The author's name and the comment are Jira users' text, placed as written (asWritten). The link
-// to the issue is the template's own.
+// to the issue is the template's own, on the site the workflow's Jira Site URL names.
 const author = asWritten(oneLine(displayName(comment.author))) || 'Someone';
 return {
   proceed: true,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey) + '.\n\n' + asWritten(body)), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + author + ' commented on ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + asWritten(body)), 30000),
 };
 `,
   );
@@ -1666,7 +1780,7 @@ const jiraReadIssueChangesScript: JiraKindScriptFunction = (
 // Fields whose changes are not worth a note. Status is left to the status template.
 const IGNORED_FIELDS = ['status', 'resolution', 'resolutiondate', 'rank', 'timespent', 'timeestimate', 'aggregatetimespent', 'aggregatetimeestimate', 'worklogid', 'lastviewed'];
 
-const payload = readJson(args) || {};
+const payload = readJson(args.payload) || {};
 const event = asText(payload.webhookEvent);
 const issue = payload.issue || {};
 const fields = issue.fields || {};
@@ -1703,7 +1817,8 @@ const changes = items.filter((item) => {
 if (!changes.length) return skip('Nothing that changed on Jira issue ' + issueKey + ' is worth a note.');
 
 // The fields' names, their values and the name of whoever changed them are Jira's text, placed as
-// written (asWritten). The link to the issue is the template's own.
+// written (asWritten). The link to the issue is the template's own, on the site the workflow's
+// Jira Site URL names.
 const show = (value) => {
   const text = oneLine(value);
   return text ? asWritten(limit(text, 300)) : '(empty)';
@@ -1715,7 +1830,7 @@ return {
   proceed: true,
   ${r}Id: ${r}Id,
   issueKey: issueKey,
-  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey) + '.\n\n' + lines.join('\n')), 30000),
+  note: limit(defuse(FROM_JIRA + ': ' + who + ' updated ' + issueLink(issue.self, issueKey, args.jiraSiteUrl) + '.\n\n' + lines.join('\n')), 30000),
 };
 `,
   );
@@ -1734,6 +1849,25 @@ const proceedCondition: ProceedConditionFunction = (
     "input-2-type": ConditionValueType.Boolean,
     "input-2": true,
   };
+};
+
+type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
+
+/*
+ * The arguments of a script that reads a Jira event and links its issue:
+ * whatever else the script needs, then the workflow's Jira Site URL, the
+ * site the link goes to, then the request body. The body goes last, as
+ * everywhere text Jira users wrote is quoted into an argument, and it
+ * arrives as JSON text the script reads.
+ */
+const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction = (
+  before?: JSONObject,
+): string => {
+  return jsonText({
+    ...(before || {}),
+    jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
+    payload: "{{local.components.webhook-1.returnValues.request-body}}",
+  });
 };
 
 type JiraTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
@@ -2584,7 +2718,7 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
     icon: IconProp.Bug,
     workflowName: `${kind.Create} ${r} from Jira issue`,
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Jira issue created. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue created event. If you also create ${kind.otherPlural} from Jira, give the two webhooks JQL filters that never match the same issue, or each issue becomes both.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -2625,11 +2759,9 @@ const jiraCreateRecordTemplate: JiraTemplateFunction = (
              * The Jira payload goes last. Text Jira users wrote is only
              * ever substituted after everything else in an argument.
              */
-            arguments: jsonText({
+            arguments: jiraLinkingEventArguments({
               severities:
                 "{{local.components.find-severities-1.returnValues.models}}",
-              payload:
-                "{{local.components.webhook-1.returnValues.request-body}}",
             }),
           },
         },
@@ -3171,7 +3303,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     workflowName: `Copy Jira comments to ${r}`,
     workflowDescription: `Adds each comment on a linked Jira issue to the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Comment created event.`,
-    variables: [JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
+    variables: [JIRA_SITE_URL, JIRA_BASE_URL, JIRA_BASIC_AUTH_TOKEN],
     graph: {
       nodes: [
         {
@@ -3187,8 +3319,7 @@ const jiraCommentToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadCommentScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
@@ -3467,7 +3598,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
     icon: IconProp.DocumentText,
     workflowName: `Copy Jira issue changes to ${r}`,
     workflowDescription: `Notes each change to a linked Jira issue on the ${r} as a private note. Enable it, copy the URL from the Webhook trigger, and register it in Jira under Settings > System > WebHooks for the Issue updated event.`,
-    variables: [],
+    variables: [JIRA_SITE_URL],
     graph: {
       nodes: [
         {
@@ -3483,8 +3614,7 @@ const jiraIssueChangesToNoteTemplate: JiraTemplateFunction = (
           position: { x: 100, y: 300 },
           args: {
             code: jiraReadIssueChangesScript(kind),
-            arguments:
-              "{{local.components.webhook-1.returnValues.request-body}}",
+            arguments: jiraLinkingEventArguments(),
           },
         },
         {
