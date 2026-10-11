@@ -84,7 +84,7 @@ Alvorlighedsværdierne er `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `
 
 ## Key=Value Parser
 
-Firewalls og andre netværksenheder logger hver hændelse som én linje af `key=value`-par. Hvilke felter en linje har, og i hvilken rækkefølge, afhænger af hændelsen, så intet enkelt grok-mønster kan beskrive dem. Key=Value Parser har ikke brug for et: den gennemgår linjen og gør hvert par, den finder, til en logattribut, uanset rækkefølgen. Som attributter kan du søge og filtrere på dem, bruge dem i en [log-monitor](/docs/monitor/logs-monitor) og få én alarm pr. tunnel, interface eller bruger med [Gruppér efter](/docs/monitor/logs-monitor).
+Firewalls og andre netværksenheder logger hver hændelse som én linje af `key=value`-par. Hvilke felter en linje har, og i hvilken rækkefølge, afhænger af hændelsen, så intet enkelt grok-mønster kan beskrive dem. Key=Value Parser har ikke brug for et: den gennemgår linjen og gør hvert par, den finder, til en logattribut, uanset rækkefølgen. Som attributter kan du søge og filtrere på dem, bruge dem i en [log-monitor](/docs/monitor/logs-monitor) og få én alarm pr. tunnel, interface eller bruger med [Gruppér efter](/docs/monitor/logs-monitor#advarsler-pr-gruppe-group-by).
 
 ### Konfiguration
 
@@ -164,7 +164,7 @@ Med standardindstillingerne og et præfiks `fortigate` giver det `fortigate.devn
 
 ### Én alarm pr. tunnel
 
-Med felterne fortolket kan en [log-monitor](/docs/monitor/logs-monitor) tælle fejlene og udløse en separat alarm for hver tunnel: filtrér på `sophos.log_component` = `IPSec` med et indhold, der indeholder `terminated`, og gruppér efter `sophos.con_name`. Se [Alarmer pr. gruppe](/docs/monitor/logs-monitor).
+Med felterne fortolket kan en [log-monitor](/docs/monitor/logs-monitor) tælle fejlene og udløse en separat alarm for hver tunnel: filtrér på `sophos.log_component` = `IPSec` med et indhold, der indeholder `terminated`, og gruppér efter `sophos.con_name`. Se [Alarmer pr. gruppe](/docs/monitor/logs-monitor#advarsler-pr-gruppe-group-by).
 
 ## Grok Parser
 

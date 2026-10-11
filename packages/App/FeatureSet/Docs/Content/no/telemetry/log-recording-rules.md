@@ -172,7 +172,7 @@ Opprett en monitor av typen **Målinger** (se [Metrikk-overvåking](/docs/monito
 4. **Kriterier:** Metric value **Greater Than** `150` åpner et varsel.
 5. Bruk eventuelt grupperingsverdiene i tittelen på varselet, f.eks. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Med gruppering satt er hver gateway sin egen serie: blir WAN2 treg, åpnes et varsel bare for WAN2, og det løses av seg selv når WAN2 kommer seg. Se [Varsler per serie](/docs/monitor/metrics-monitor).
+Med gruppering satt er hver gateway sin egen serie: blir WAN2 treg, åpnes et varsel bare for WAN2, og det løses av seg selv når WAN2 kommer seg. Se [Varsler per serie](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).
 :::
 
 ## Greit å vite

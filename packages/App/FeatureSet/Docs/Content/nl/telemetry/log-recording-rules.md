@@ -172,7 +172,7 @@ Maak een monitor van het type **Metrieken** (zie [Metrics-monitor](/docs/monitor
 4. **Criteria:** Metric value **Greater Than** `150` opent een waarschuwing.
 5. Gebruik eventueel de groeperingswaarden in de titel van de waarschuwing, bijvoorbeeld `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Met groepering ingesteld is elke gateway een eigen reeks: wordt WAN2 traag, dan opent er alleen voor WAN2 een waarschuwing, en die lost zichzelf op wanneer WAN2 herstelt. Zie [Waarschuwingen per reeks](/docs/monitor/metrics-monitor).
+Met groepering ingesteld is elke gateway een eigen reeks: wordt WAN2 traag, dan opent er alleen voor WAN2 een waarschuwing, en die lost zichzelf op wanneer WAN2 herstelt. Zie [Waarschuwingen per reeks](/docs/monitor/metrics-monitor#waarschuwingen-per-reeks-group-by).
 :::
 
 ## Goed om te weten

@@ -172,7 +172,7 @@ Create un monitor **Metriche** (vedete [Monitor metriche](/docs/monitor/metrics-
 4. **Criteri:** Metric value **Greater Than** `150` apre un avviso.
 5. Facoltativamente usate i valori di raggruppamento nel titolo dell'avviso, per esempio `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallenta si apre un avviso solo per WAN2, che si risolve da solo quando WAN2 torna normale. Vedete [Avvisi per serie](/docs/monitor/metrics-monitor).
+Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallenta si apre un avviso solo per WAN2, che si risolve da solo quando WAN2 torna normale. Vedete [Avvisi per serie](/docs/monitor/metrics-monitor#avvisi-per-serie-group-by).
 :::
 
 ## Da sapere

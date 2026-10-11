@@ -84,7 +84,7 @@ Os valores de gravidade são `Fatal`, `Error`, `Warning`, `Information`, `Debug`
 
 ## Key=Value Parser
 
-Firewalls e outros equipamentos de rede registram cada evento como uma linha de pares `key=value`. Quais campos uma linha tem, e em que ordem, depende do evento, então nenhum padrão grok único consegue descrevê-los. O Key=Value Parser não precisa de um: ele percorre a linha e transforma cada par que encontra em um atributo do registro, em qualquer ordem. Como atributos, você pode pesquisá-los e filtrá-los, usá-los em um [monitor de logs](/docs/monitor/logs-monitor) e alertar uma vez por túnel, interface ou usuário com [Agrupar Por](/docs/monitor/logs-monitor).
+Firewalls e outros equipamentos de rede registram cada evento como uma linha de pares `key=value`. Quais campos uma linha tem, e em que ordem, depende do evento, então nenhum padrão grok único consegue descrevê-los. O Key=Value Parser não precisa de um: ele percorre a linha e transforma cada par que encontra em um atributo do registro, em qualquer ordem. Como atributos, você pode pesquisá-los e filtrá-los, usá-los em um [monitor de logs](/docs/monitor/logs-monitor) e alertar uma vez por túnel, interface ou usuário com [Agrupar Por](/docs/monitor/logs-monitor#alertas-por-grupo-group-by).
 
 ### Configuração
 
@@ -164,7 +164,7 @@ Com as configurações padrão e um prefixo `fortigate`, isso resulta em `fortig
 
 ### Alertar uma vez por túnel
 
-Com os campos analisados, um [monitor de logs](/docs/monitor/logs-monitor) pode contar as falhas e abrir um alerta separado para cada túnel: filtre por `sophos.log_component` = `IPSec` com o corpo contendo `terminated` e agrupe por `sophos.con_name`. Veja [Alertas por grupo](/docs/monitor/logs-monitor).
+Com os campos analisados, um [monitor de logs](/docs/monitor/logs-monitor) pode contar as falhas e abrir um alerta separado para cada túnel: filtre por `sophos.log_component` = `IPSec` com o corpo contendo `terminated` e agrupe por `sophos.con_name`. Veja [Alertas por grupo](/docs/monitor/logs-monitor#alertas-por-grupo-group-by).
 
 ## Grok Parser
 
