@@ -114,6 +114,9 @@ const TABLE_SEPARATOR: RegExp = /^\|(?:\s*:?-+:?\s*\|)+$/;
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
 
+// A fenced code block, from its opening fence to its closing one.
+const FENCED_BLOCK: RegExp = /^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm;
+
 // "**Project Settings > Basic > Labels**": a menu path in one bold span.
 const PROJECT_SETTINGS_PATH: RegExp = /\*\*Project Settings > ([^*]+)\*\*/g;
 
@@ -139,6 +142,10 @@ const SEMVER: RegExp = /^(\d+)\.(\d+)\.(\d+)$/;
 // 'label: "Owned by this team or its members"' - an option of a dropdown.
 const DROPDOWN_OPTION_LABEL: RegExp = /label: "([^"]+)"/g;
 
+// The ingress location's upstream: the app's own host name and port.
+const INGRESS_TO_APP: RegExp =
+  /set \$backend_app http:\/\/\$\{SERVER_APP_HOSTNAME\}:\$\{APP_PORT\};/;
+
 function readSource(key: string): string {
   const relativePath: string | undefined = SOURCES[key];
 
@@ -161,6 +168,27 @@ function inlineCodes(text: string): Array<string> {
       return match[1] as string;
     },
   );
+}
+
+// A page without its fenced code blocks, whose backticks pair up otherwise.
+function withoutFences(markdown: string): string {
+  return markdown.replace(FENCED_BLOCK, "");
+}
+
+/*
+ * The paths of the https URLs a text writes as code, parsed rather than
+ * matched as text.
+ */
+function httpsPathsIn(text: string): Array<string> {
+  return inlineCodes(text).flatMap((code: string): Array<string> => {
+    try {
+      const url: URL = new URL(code);
+
+      return url.protocol === "https:" ? [url.pathname] : [];
+    } catch {
+      return [];
+    }
+  });
 }
 
 // A cell's text without the backticks around it.
@@ -1015,8 +1043,9 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     const api: string = readSource("incomingEmailApi");
 
     expect(api).toContain('"/incoming-email/sendgrid/:secret",');
-    expect(page).toContain(
-      "`https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET`",
+    // The webhook URLs the page gives, by their paths: the route, with its secret.
+    expect(httpsPathsIn(withoutFences(page))).toContain(
+      "/incoming-email/sendgrid/YOUR_SECRET",
     );
     expect(page).toContain("The route requires the final path segment.");
 
@@ -1048,9 +1077,7 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
       ingress.indexOf("\n    }", start),
     );
 
-    expect(location).toContain(
-      "set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};",
-    );
+    expect(location).toMatch(INGRESS_TO_APP);
     expect(composeServices(readSource("compose"))).toContain("app");
     expect(page).toContain("in the logs of the OneUptime `app` service.");
   });
@@ -1062,8 +1089,17 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     expect(readSource("workflowEmailTrigger")).toContain(
       'export const INCOMING_EMAIL_TRIGGER_LOCAL_PART_PREFIX: string = "workflow-";',
     );
-    expect(page).toContain("`monitor-abc123@inbound.yourdomain.com`");
-    expect(page).toContain("(`workflow-…@inbound.yourdomain.com`)");
+    // The addresses the page shows, by their local part.
+    const localParts: Array<string> = inlineCodes(withoutFences(page))
+      .filter((code: string): boolean => {
+        return code.split("@").length === 2;
+      })
+      .map((code: string): string => {
+        return code.split("@")[0] as string;
+      });
+
+    expect(localParts).toContain("monitor-abc123");
+    expect(localParts).toContain("workflow-…");
   });
 });
 
