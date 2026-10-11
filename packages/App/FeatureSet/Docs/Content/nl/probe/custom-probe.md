@@ -31,7 +31,7 @@ sequenceDiagram
 ## Voordat u begint
 
 - **Het Growth-abonnement, op OneUptime Cloud.** Een sonde aanmaken vereist het. Een zelf gehoste installatie heeft geen abonnementslimieten.
-- **Toestemming om sondes aan te maken.** Projecteigenaren en -beheerders hebben die, en ook leden wier rol het aanmaken van sondes toestaat.
+- **Toestemming om sondes aan te maken.** Projecteigenaren, -beheerders en -leden hebben die, en ook iedereen wiens rol het aanmaken van sondes toestaat.
 - **Een machine in het netwerk dat u wilt bewaken.** Die heeft Docker, Docker Compose of Kubernetes nodig, een route naar de diensten die de sonde controleert, en uitgaand HTTPS naar `ONEUPTIME_URL`.
 
 ## Een sonde installeren
@@ -369,6 +369,7 @@ Elk mislukt verzoek aan OneUptime logt een blok met `stalledAt` en `whatThisMean
 | `RequestSend` | Verbonden, maar het verzoek is nooit volledig geschreven: de andere kant stopte met lezen. |
 | `WaitingForServerResponse` | Het verzoek is afgeleverd en de server stuurde niets terug. **Het netwerk van de sonde is in orde**: controleer de OneUptime-server, zijn load balancer en zijn reverse proxy. |
 | `ResponseBody` | De server begon te antwoorden en bleef halverwege steken. |
+| `Unknown` | De sonde kon niet vaststellen waar het verzoek bleef steken. Lees daarna de connectiviteitszelftest hieronder. |
 
 Hetzelfde blok meldt ook `deadlineOverrunInMs`. Duurde een termijn van 45000ms veel langer dan 45000ms in werkelijke tijd, dan was het proces van de sonde zelf geblokkeerd: controleer `probeProcess.eventLoopMaxDriftInMs` in het blok voordat u het netwerk onderzoekt.
 

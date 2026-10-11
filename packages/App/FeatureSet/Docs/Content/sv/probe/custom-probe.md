@@ -31,7 +31,7 @@ sequenceDiagram
 ## Innan du börjar
 
 - **Growth-planen, på OneUptime Cloud.** Den krävs för att skapa en sond. En självhostad installation har inga plangränser.
-- **Behörighet att skapa sonder.** Projektägare och -administratörer har den, och det har även medlemmar vars roll tillåter att skapa sonder.
+- **Behörighet att skapa sonder.** Projektägare, -administratörer och -medlemmar har den, och det har även alla vars roll tillåter att skapa sonder.
 - **En maskin i nätverket du vill övervaka.** Den behöver Docker, Docker Compose eller Kubernetes, en väg till tjänsterna som sonden ska kontrollera och utgående HTTPS till `ONEUPTIME_URL`.
 
 ## Installera en sond
@@ -369,6 +369,7 @@ Varje misslyckad förfrågan till OneUptime loggar ett block med `stalledAt` och
 | `RequestSend` | Ansluten, men förfrågan skrevs aldrig färdigt: andra sidan slutade läsa. |
 | `WaitingForServerResponse` | Förfrågan levererades och servern skickade ingenting tillbaka. **Sondens nätverk är i ordning**: kontrollera OneUptime-servern, dess lastbalanserare och dess omvända proxy. |
 | `ResponseBody` | Servern började svara och fastnade halvvägs. |
+| `Unknown` | Sonden kunde inte avgöra var förfrågan fastnade. Läs anslutningens självtest nedan härnäst. |
 
 Samma block rapporterar också `deadlineOverrunInMs`. Tog en tidsfrist på 45000ms mycket längre än 45000ms i verklig tid var själva sondprocessen blockerad: kontrollera `probeProcess.eventLoopMaxDriftInMs` i blocket innan du undersöker nätverket.
 

@@ -31,7 +31,7 @@ sequenceDiagram
 ## Antes de começar
 
 - **O plano Growth, no OneUptime Cloud.** Criar uma sonda exige esse plano. Uma instalação auto-hospedada não tem limites de plano.
-- **Permissão para criar sondas.** Os proprietários e administradores do projeto têm, assim como os membros cuja função permite criar sondas.
+- **Permissão para criar sondas.** Os proprietários, administradores e membros do projeto têm, assim como qualquer pessoa cuja função permita criar sondas.
 - **Uma máquina na rede que você quer monitorar.** Ela precisa de Docker, Docker Compose ou Kubernetes, de uma rota até os serviços que a sonda vai verificar e de HTTPS de saída para `ONEUPTIME_URL`.
 
 ## Instalar uma sonda
@@ -369,6 +369,7 @@ Cada requisição ao OneUptime que falha registra um bloco com `stalledAt` e `wh
 | `RequestSend` | Conectou, mas a requisição nunca foi escrita por inteiro: o outro lado parou de ler. |
 | `WaitingForServerResponse` | A requisição foi entregue e o servidor não devolveu nada. **A rede da sonda está bem**: verifique o servidor do OneUptime, seu balanceador de carga e seu proxy reverso. |
 | `ResponseBody` | O servidor começou a responder e travou no meio. |
+| `Unknown` | A sonda não conseguiu saber onde a requisição parou. Leia em seguida o autoteste de conectividade, mais abaixo. |
 
 O mesmo bloco também informa `deadlineOverrunInMs`. Se um prazo de 45000ms levou muito mais que 45000ms de tempo real, o próprio processo da sonda estava bloqueado: verifique `probeProcess.eventLoopMaxDriftInMs` no bloco antes de investigar a rede.
 

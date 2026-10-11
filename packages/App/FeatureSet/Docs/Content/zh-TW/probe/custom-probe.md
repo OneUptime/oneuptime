@@ -31,7 +31,7 @@ sequenceDiagram
 ## 開始之前
 
 - **在 OneUptime Cloud 上需要 Growth 方案。** 建立探測器需要它。自行託管的安裝沒有方案限制。
-- **建立探測器的權限。** 專案擁有者和管理員擁有此權限，角色允許建立探測器的成員也有。
+- **建立探測器的權限。** 專案擁有者、管理員和成員擁有此權限，角色允許建立探測器的任何人也有。
 - **要監控的網路中的一台機器。** 它需要 Docker、Docker Compose 或 Kubernetes，一條通往探測器要檢查之服務的路由，以及到 `ONEUPTIME_URL` 的對外 HTTPS。
 
 ## 安裝探測器
@@ -369,6 +369,7 @@ Syslog 接收器每分鐘最多轉送 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 則�
 | `RequestSend` | 已連線，但請求始終沒有完整寫出：對方停止了讀取。 |
 | `WaitingForServerResponse` | 請求已送達，伺服器卻沒有傳回任何內容。 **探測器的網路沒有問題** ：請檢查 OneUptime 伺服器、它的負載平衡器和反向 Proxy。 |
 | `ResponseBody` | 伺服器開始回應，卻在中途停住了。 |
+| `Unknown` | 探測器無法判斷請求停在了哪裡。接下來請閱讀下方的連線自我測試。 |
 
 同一個區塊也會回報 `deadlineOverrunInMs`。如果 45000ms 的期限在實際時間上用了遠超過 45000ms，表示是探測器處理程序本身被阻塞了：在排查網路之前，請先檢查區塊中的 `probeProcess.eventLoopMaxDriftInMs`。
 

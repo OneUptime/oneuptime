@@ -31,7 +31,7 @@ sequenceDiagram
 ## Before you begin
 
 - **The Growth plan, on OneUptime Cloud.** Creating a probe needs it. A self-hosted installation has no plan limits.
-- **Permission to create probes.** Project owners and admins have it, and so do members whose role lets them create probes.
+- **Permission to create probes.** Project owners, admins and members have it, and so does anyone whose role lets them create probes.
 - **A machine in the network you want to monitor.** It needs Docker, Docker Compose or Kubernetes, a route to the services the probe will check, and outbound HTTPS to `ONEUPTIME_URL`.
 
 ## Install a probe
@@ -369,6 +369,7 @@ Every failed request to OneUptime logs a block containing `stalledAt` and `whatT
 | `RequestSend` | Connected, but the request was never fully written — the far end stopped reading. |
 | `WaitingForServerResponse` | The request was delivered and the server sent nothing back. **The probe's network is fine** — check the OneUptime server, its load balancer and its reverse proxy. |
 | `ResponseBody` | The server started answering and stalled part-way through. |
+| `Unknown` | The probe could not tell where the request stopped. The connectivity self-test below is the next thing to read. |
 
 The same block also reports `deadlineOverrunInMs`. If a 45000ms deadline took much longer than 45000ms of wall clock, the probe process itself was blocked — check `probeProcess.eventLoopMaxDriftInMs` in the block before investigating the network.
 

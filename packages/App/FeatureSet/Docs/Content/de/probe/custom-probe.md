@@ -31,7 +31,7 @@ sequenceDiagram
 ## Bevor Sie beginnen
 
 - **Der Growth-Plan, in OneUptime Cloud.** Das Anlegen einer Sonde setzt ihn voraus. Eine selbst gehostete Installation hat keine Plangrenzen.
-- **Die Berechtigung, Sonden anzulegen.** Projekteigentümer und -administratoren haben sie, ebenso Mitglieder, deren Rolle das Anlegen von Sonden erlaubt.
+- **Die Berechtigung, Sonden anzulegen.** Projekteigentümer, -administratoren und -mitglieder haben sie, ebenso alle, deren Rolle das Anlegen von Sonden erlaubt.
 - **Ein Rechner in dem Netzwerk, das Sie überwachen möchten.** Er braucht Docker, Docker Compose oder Kubernetes, eine Route zu den Diensten, die die Sonde prüfen soll, und ausgehendes HTTPS zu `ONEUPTIME_URL`.
 
 ## Eine Sonde installieren
@@ -369,6 +369,7 @@ Jede fehlgeschlagene Anfrage an OneUptime protokolliert einen Block mit `stalled
 | `RequestSend` | Verbunden, aber die Anfrage wurde nie vollständig geschrieben – die Gegenseite hat aufgehört zu lesen. |
 | `WaitingForServerResponse` | Die Anfrage wurde zugestellt, und der Server hat nichts zurückgeschickt. **Das Netzwerk der Sonde ist in Ordnung** – prüfen Sie den OneUptime-Server, seinen Load Balancer und seinen Reverse Proxy. |
 | `ResponseBody` | Der Server hat zu antworten begonnen und ist mittendrin stehen geblieben. |
+| `Unknown` | Die Sonde konnte nicht feststellen, wo die Anfrage stehen geblieben ist. Als Nächstes lesen Sie den Konnektivitäts-Selbsttest unten. |
 
 Derselbe Block meldet auch `deadlineOverrunInMs`. Hat eine Frist von 45000ms deutlich länger als 45000ms Echtzeit gedauert, war der Prozess der Sonde selbst blockiert – prüfen Sie `probeProcess.eventLoopMaxDriftInMs` im Block, bevor Sie das Netzwerk untersuchen.
 
