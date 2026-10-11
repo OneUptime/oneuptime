@@ -5,6 +5,7 @@ import {
 } from "../../../Utils/NetworkDiscovery/NetbiosNameUtil";
 import { normalizeReverseDnsName } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import Slug from "../../../Utils/Slug";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -312,15 +313,10 @@ describe("normalizeNetbiosName — invariants", () => {
 
   it("property: every output is a single label of 1-15 safe characters with a letter, the input's own characters, and stable", () => {
     /*
-     * A deterministic LCG, not Math.random: a property test that fails on one
+     * A seeded generator, not Math.random: a property test that fails on one
      * run in a thousand is a flaky test, and a flaky guard gets deleted.
      */
-    let seed: number = 0x3677;
-
-    const nextRandom: () => number = (): number => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return seed / 0x100000000;
-    };
+    const nextRandom: SeededRandom = seededRandom(0x3677);
 
     /*
      * Weighted toward the characters the rule has an opinion about, so the

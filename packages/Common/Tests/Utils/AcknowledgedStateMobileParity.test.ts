@@ -7,6 +7,7 @@ import AcknowledgedStateUtil, {
 } from "../../Utils/AcknowledgedState";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import { StateListType } from "../../Utils/StateOrder";
+import { seededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -210,19 +211,6 @@ function ask(rules: MobileRules, states: Array<MobileState>): Answers {
   };
 }
 
-/*
- * A deterministic stream of numbers (a linear congruential generator), so a
- * failing list can be found again from its index.
- */
-function numbers(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-}
-
 const ORDERS: Array<number | string | null | undefined> = [
   null,
   undefined,
@@ -298,7 +286,8 @@ function smallLists(): Array<Array<MobileState>> {
 
 // Lists of three to seven states, places and flags drawn at random.
 function randomLists(count: number): Array<Array<MobileState>> {
-  const next: () => number = numbers(20261007);
+  // A seeded stream, so a failing list can be found again from its index.
+  const next: () => number = seededRandom(20261007);
   const lists: Array<Array<MobileState>> = [];
 
   for (let index: number = 0; index < count; index++) {

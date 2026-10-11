@@ -9,7 +9,7 @@ import {
 } from "Common/Types/Topology/TopologyApi";
 import {
   FLAT_TYPES,
-  SeededRandom,
+  EstateRandom,
   generateEstate,
 } from "Common/Tests/Server/Utils/Topology/TopologyEstateGenerator";
 import {
@@ -636,7 +636,7 @@ describe("Topology reduction parity: reduced payloads draw the maps the whole in
   test("thousands of random estates, inactive resources hidden and shown", () => {
     const coverage: ParityCoverage = emptyCoverage();
     for (let seed: number = 1; seed <= 3000; seed++) {
-      const random: SeededRandom = new SeededRandom(seed);
+      const random: EstateRandom = new EstateRandom(seed);
       const estate: ReferenceEstate = generateEstate(random, {
         projectId: PROJECT_ID,
         otherProjectId: OTHER_PROJECT_ID,
@@ -667,7 +667,7 @@ describe("Topology reduction parity: reduced payloads draw the maps the whole in
   test("estates with a flat type above the inline budget: equal once its items are folded into the collection", () => {
     const coverage: ParityCoverage = emptyCoverage();
     for (let seed: number = 1; seed <= 24; seed++) {
-      const random: SeededRandom = new SeededRandom(100_000 + seed);
+      const random: EstateRandom = new EstateRandom(100_000 + seed);
       /* Every other estate sits exactly on the budget: not a collection. */
       const extra: number = seed % 2 === 0 ? random.int(1, 150) : 0;
       const collectionType: string = FLAT_TYPES[seed % FLAT_TYPES.length]!;

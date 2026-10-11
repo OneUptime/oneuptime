@@ -10,6 +10,7 @@ import PromptText, {
 } from "../../../Utils/AI/PromptText";
 import { getInlineImageTypeOfBase64 } from "../../../Utils/Markdown/InlineImageDataUri";
 import { AIPromptOmissions } from "../../../Types/AI/AIChatTypes";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -36,10 +37,9 @@ function jpegScreenshot(kilobytes: number): string {
   const bytes: Buffer = Buffer.alloc(kilobytes * 1024);
 
   // Deterministic noise, so the base64 looks like a real photo's.
-  let seed: number = 7;
+  const random: SeededRandom = seededRandom(7);
   for (let index: number = 0; index < bytes.length; index++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    bytes[index] = seed & 0xff;
+    bytes[index] = random(256);
   }
 
   bytes[0] = 0xff;
@@ -53,11 +53,10 @@ function jpegScreenshot(kilobytes: number): string {
 // `bytes` bytes of noise as base64: an encoded file that is not an image.
 function noiseBase64(bytes: number): string {
   const buffer: Buffer = Buffer.alloc(bytes);
-  let seed: number = 11;
+  const random: SeededRandom = seededRandom(11);
 
   for (let index: number = 0; index < buffer.length; index++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    buffer[index] = (seed >> 8) & 0xff;
+    buffer[index] = random(256);
   }
 
   // Not the first byte of any image the sniffer knows.
@@ -284,20 +283,24 @@ describe("PromptText.omitEmbeddedData - what stays", () => {
     // Words, punctuation and short base64-looking tokens, but no data: URL.
     const alphabet: string =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/= .,;:!?()[]{}<>\"'`#*_-\n\t|~@$%^&";
-    let seed: number = 42;
+    const random: SeededRandom = seededRandom(42);
+    const changed: Array<string> = [];
 
     for (let sample: number = 0; sample < 200; sample++) {
       let text: string = "";
       const length: number = 1 + ((sample * 37) % 3000);
 
       for (let index: number = 0; index < length; index++) {
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        text += alphabet[seed % alphabet.length];
+        text += alphabet[random(alphabet.length)];
       }
 
       // A run of 1,024 base64 characters in a row is all but impossible here.
-      expect(PromptText.omitEmbeddedData(text).text).toBe(text);
+      if (PromptText.omitEmbeddedData(text).text !== text) {
+        changed.push(text);
+      }
     }
+
+    expect(changed).toEqual([]);
   });
 
   test("base64url is not base64: a run with - and _ in it stays", () => {

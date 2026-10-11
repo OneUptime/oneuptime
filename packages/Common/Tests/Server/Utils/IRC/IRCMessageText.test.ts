@@ -2,6 +2,7 @@ import IRCMessageText, {
   IRC_LINE_MAX_BYTES,
   PreparedIRCText,
 } from "../../../../Server/Utils/IRC/IRCMessageText";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -183,12 +184,7 @@ describe("IRCMessageText.prepare — long lines", () => {
       "\t",
       "\u0002",
     ];
-    let seed: number = 42;
-
-    const random: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed / 2147483648;
-    };
+    const random: SeededRandom = seededRandom(42);
 
     // Gathered and checked once: an expect per line is most of the cost.
     const problems: Array<string> = [];
@@ -196,10 +192,10 @@ describe("IRCMessageText.prepare — long lines", () => {
 
     for (let round: number = 0; round < 200; round++) {
       let text: string = "";
-      const length: number = Math.floor(random() * 3000);
+      const length: number = random(3000);
 
       for (let index: number = 0; index < length; index++) {
-        text += alphabet[Math.floor(random() * alphabet.length)] as string;
+        text += alphabet[random(alphabet.length)] as string;
       }
 
       const prepared: PreparedIRCText = prepare(text);

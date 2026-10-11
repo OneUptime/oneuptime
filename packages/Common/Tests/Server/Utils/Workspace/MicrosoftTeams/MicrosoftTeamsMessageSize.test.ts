@@ -35,6 +35,7 @@
  * does not fit").
  */
 
+import { seededRandom } from "../../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 import vm from "vm";
 import MicrosoftTeamsMessageSize, {
@@ -77,18 +78,6 @@ const DROPPED_AT_A_LINE_BREAK: RegExp = /^\s*\n[^\n]*$/;
  * first half of an emoji the budget ends inside.
  */
 const DROPPED_MID_LINE: RegExp = /^\s*[\uD800-\uDBFF]?$/;
-
-// mulberry32: a small seeded generator, so a sweep is the same on every run.
-function createSeededRandom(seed: number): () => number {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) | 0;
-    let mixed: number = Math.imul(state ^ (state >>> 15), 1 | state);
-    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const TEAMS_MESSAGE_SIZE_TOO_BIG_BODY: JSONObject = {
   error: { code: "MessageSizeTooBig", message: "Message size too large." },
@@ -962,7 +951,8 @@ describe("MicrosoftTeamsMessageSize.fitTextToBudget", () => {
      * by the note; never with half an emoji; cut at a line break whenever the
      * part that fits has one; and fitting it again changes nothing.
      */
-    const random: () => number = createSeededRandom(4111);
+    // Seeded, so a sweep is the same on every run.
+    const random: () => number = seededRandom(4111);
     const pieces: Array<string> = [
       "a",
       "Z",

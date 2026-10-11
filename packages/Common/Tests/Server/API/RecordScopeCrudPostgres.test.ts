@@ -6560,44 +6560,63 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         },
       ];
 
-      // Warm what a first request reads once.
-      for (const request of requests) {
-        await statementsOf(request);
-      }
+      /*
+       * The clock stands still from the warm-up to the last count. The
+       * middleware keeps in-process caches that run out after 60 s (the
+       * caller's teams in a project among them) and reads once more when one
+       * has: the suite runs for about a minute, so one could run out between
+       * the two passes and add a statement that has nothing to do with the
+       * rows read (master's Postgres Schema Drift on 2de1ec577f: [9, 6, 6]
+       * became [9, 7, 6], a third TeamMember read). With Date.now held, the
+       * warm-up refills what has run out and both passes meet the same
+       * caches, so only the rows differ between them.
+       */
+      const clock: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        Date,
+        "now",
+      ).mockReturnValue(Date.now());
 
       const before: Array<number> = [];
-
-      for (const request of requests) {
-        before.push(await statementsOf(request));
-      }
-
-      for (let index: number = 0; index < 20; index++) {
-        for (const [projectId, labelIds] of [
-          [homeProjectId, [productionLabelId]],
-          [homeProjectId, [stagingLabelId]],
-          [homeProjectId, []],
-          [secondProjectId, [secondProductionLabelId]],
-        ] as Array<[ObjectID, Array<ObjectID>]>) {
-          const alertId: ObjectID = ObjectID.generate();
-
-          await insertAlert({
-            id: alertId,
-            projectId: projectId,
-            title: "Bulk alert",
-            labelIds: labelIds,
-          });
-          await insertNote({
-            id: ObjectID.generate(),
-            projectId: projectId,
-            alertId: alertId,
-          });
-        }
-      }
-
       const after: Array<number> = [];
 
-      for (const request of requests) {
-        after.push(await statementsOf(request));
+      try {
+        // Warm what a first request reads once.
+        for (const request of requests) {
+          await statementsOf(request);
+        }
+
+        for (const request of requests) {
+          before.push(await statementsOf(request));
+        }
+
+        for (let index: number = 0; index < 20; index++) {
+          for (const [projectId, labelIds] of [
+            [homeProjectId, [productionLabelId]],
+            [homeProjectId, [stagingLabelId]],
+            [homeProjectId, []],
+            [secondProjectId, [secondProductionLabelId]],
+          ] as Array<[ObjectID, Array<ObjectID>]>) {
+            const alertId: ObjectID = ObjectID.generate();
+
+            await insertAlert({
+              id: alertId,
+              projectId: projectId,
+              title: "Bulk alert",
+              labelIds: labelIds,
+            });
+            await insertNote({
+              id: ObjectID.generate(),
+              projectId: projectId,
+              alertId: alertId,
+            });
+          }
+        }
+
+        for (const request of requests) {
+          after.push(await statementsOf(request));
+        }
+      } finally {
+        clock.mockRestore();
       }
 
       expect(after).toEqual(before);

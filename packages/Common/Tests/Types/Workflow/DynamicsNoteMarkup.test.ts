@@ -45,10 +45,11 @@ import {
   hrefsOf,
   renderAsDashboard,
 } from "../../Utils/Markdown/DashboardMarkdownRenderer";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import {
+  MARKUP_ALPHABET,
   SINGLE_PASS_LEFTOVERS,
   WELL_FORMED_MARKUP,
-  generatedTexts,
 } from "../HtmlMarkupCases";
 import {
   CASE_ID,
@@ -484,7 +485,7 @@ const NAMED_ELEMENT_NOTES: Array<[string, string, string]> = [
 ];
 
 describe("the note script's own walk", () => {
-  const generated: Array<string> = generatedTexts(20000, 2718);
+  const generated: Array<string> = generatedTexts(20000, 2718, MARKUP_ALPHABET);
   const shapes: Array<string> = [
     ...SINGLE_PASS_LEFTOVERS,
     ...WELL_FORMED_MARKUP,

@@ -10,6 +10,7 @@ import {
   DEVICE_NAME_SOURCES_BEST_FIRST,
   DeviceNameSource,
 } from "../../../Types/NetworkDevice/DeviceNameSource";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -522,20 +523,15 @@ describe("hostile and odd values from jsonb never throw and never name a device"
 
   test("property: the choice is always one of the inputs, normalised, from the best usable source", () => {
     /*
-     * A deterministic LCG, so a failure reproduces. Each source is drawn from
+     * A seeded generator, so a failure reproduces. Each source is drawn from
      * good values, odd values and nothing, and the rule's answer is checked
      * against the order: no better usable source may have been skipped, bar
      * the one documented exception (a NetBIOS stump of the DNS name).
      */
-    let seed: number = 0x4518;
-
-    const next: () => number = (): number => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return seed / 0x100000000;
-    };
+    const next: SeededRandom = seededRandom(0x4518);
 
     const pick: <T>(values: Array<T>) => T = <T>(values: Array<T>): T => {
-      return values[Math.floor(next() * values.length)]!;
+      return values[next(values.length)]!;
     };
 
     const SYS: Array<unknown> = [
