@@ -2050,9 +2050,7 @@ describe.each(KINDS)("%s: read-note-1", (_name: string, kind: RecordKind) => {
 
     // "<3" gets the joiner; "a < b", with a space after the "<", needs none.
     expect(
-      textOf(result, "note").endsWith(
-        `\n\nPlain <${WORD_JOINER}3 text, a < b`,
-      ),
+      textOf(result, "note").endsWith(`\n\nPlain <${WORD_JOINER}3 text, a < b`),
     ).toBe(true);
   });
 

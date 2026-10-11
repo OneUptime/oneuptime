@@ -31,10 +31,7 @@
  */
 
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
-import {
-  removeHtmlMarkup,
-  replaceHtmlMarkup,
-} from "../../../Types/HtmlMarkup";
+import { removeHtmlMarkup, replaceHtmlMarkup } from "../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../Types/JSON";
 import { ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER } from "../../../Types/Workflow/Templates";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
@@ -272,7 +269,7 @@ const ORDINARY_NOTES: Array<[string, string, string]> = [
   ],
   [
     "the older editor's divs",
-    '<div data-wrapper="true" style="font-size:9pt;font-family:\'Segoe UI\',\'Helvetica Neue\',sans-serif;"><div>Hi team,</div><div>&nbsp;</div><div>The export is failing again.</div></div>',
+    "<div data-wrapper=\"true\" style=\"font-size:9pt;font-family:'Segoe UI','Helvetica Neue',sans-serif;\"><div>Hi team,</div><div>&nbsp;</div><div>The export is failing again.</div></div>",
     "Hi team,\n\nThe export is failing again.",
   ],
   [
@@ -287,7 +284,9 @@ const ORDINARY_NOTES: Array<[string, string, string]> = [
   ],
   [
     "each way of writing a line break",
-    richText("<p>Steps:</p><p>1. Open the app<br/>2. Sign in<br />3. Checkout</p>"),
+    richText(
+      "<p>Steps:</p><p>1. Open the app<br/>2. Sign in<br />3. Checkout</p>",
+    ),
     "Steps:\n1. Open the app\n2. Sign in\n3. Checkout",
   ],
   [
@@ -369,9 +368,7 @@ const MARKUP_NOTES: Array<[string, string, string]> = [
   ],
   [
     "a mermaid diagram typed as Markdown",
-    richText(
-      "<p>```mermaid</p><p>graph TD; A--&gt;B</p><p>```</p>",
-    ),
+    richText("<p>```mermaid</p><p>graph TD; A--&gt;B</p><p>```</p>"),
     `\`\`\`${WORD_JOINER}mermaid\ngraph TD; A-->B\n\`\`\``,
   ],
   [
@@ -384,11 +381,7 @@ const MARKUP_NOTES: Array<[string, string, string]> = [
     richText('<p>a <img alt="x > y" src="https://t.example/p.png">b</p>'),
     "a b",
   ],
-  [
-    "a comment holding a tag and '>'",
-    "<p>a<!-- <b>x</b> > -->b</p>",
-    "ab",
-  ],
+  ["a comment holding a tag and '>'", "<p>a<!-- <b>x</b> > -->b</p>", "ab"],
   [
     "an unclosed tag",
     "<p>hello <img src=x onerror=alert(1)",
@@ -609,9 +602,7 @@ describe("the note script's placing of text", () => {
   test("keeps every character, adding only invisible joiners", () => {
     const changed: Array<string> = cases.filter(
       (text: string, index: number): boolean => {
-        return (
-          withoutJoiners(readings.placed[index]!) !== withoutJoiners(text)
-        );
+        return withoutJoiners(readings.placed[index]!) !== withoutJoiners(text);
       },
     );
 
@@ -634,7 +625,10 @@ describe("the script", () => {
     ): string => {
       const code: string = scriptOf(templateId, STEP);
 
-      return code.slice(code.indexOf(READING_SECTION), code.indexOf(STEP_SECTION));
+      return code.slice(
+        code.indexOf(READING_SECTION),
+        code.indexOf(STEP_SECTION),
+      );
     };
 
     expect(sectionOf(INCIDENT.templateId).length).toBeGreaterThan(0);

@@ -239,11 +239,7 @@ const LEFTOVER_PAGES: Array<[string, string, string]> = [
   ["an unclosed end tag", "error <b>bold</b", "error bold/b"],
   ["an overlapping comment", "<!<!---->--", "--"],
   ["a tag before a tag", "<<script>script>alert(1)", "script>alert(1)"],
-  [
-    "a comment holding a whole tag",
-    "a<!-- x > <img src=x> -->b",
-    "a b",
-  ],
+  ["a comment holding a whole tag", "a<!-- x > <img src=x> -->b", "a b"],
 ];
 
 describe("an OAuth error message quotes what the token endpoint answered", () => {
@@ -284,7 +280,9 @@ describe("an OAuth error message quotes what the token endpoint answered", () =>
 
   test("entities are quoted as they are, and never read into markup", () => {
     expect(
-      quoteOfPage("<p>&lt;img src=x onerror=alert(1)&gt; &amp;lt;b&amp;gt;</p>"),
+      quoteOfPage(
+        "<p>&lt;img src=x onerror=alert(1)&gt; &amp;lt;b&amp;gt;</p>",
+      ),
     ).toBe("&lt;img src=x onerror=alert(1)&gt; &amp;lt;b&amp;gt;");
   });
 
@@ -321,12 +319,35 @@ describe("script and style elements", () => {
       "<script>a</script>x<script>b",
       "x b",
     ],
-  ])(
-    "%s",
-    (_case: string, body: string, quote: string) => {
-      expect(quoteOfPage(body)).toBe(quote);
-    },
-  );
+    /*
+     * An end tag is read as a browser reads one: the name, then
+     * whitespace, a "/" or the ">", then on to its ">".
+     */
+    [
+      "an end tag with a space before its '>'",
+      "<script>if (a < b) { go(); }</script >after",
+      "after",
+    ],
+    [
+      "an end tag with more after its name",
+      '<style media="all">p { color: red }</style foo>text</p>',
+      "text",
+    ],
+    ["an end tag closed by '/>'", "<script>track();</script/>after", "after"],
+    [
+      "an end tag whose name goes on, which closes nothing",
+      "<script>x</scripts>y",
+      "x y",
+    ],
+    [
+      "an end tag that never reaches its '>'",
+      "<p>a</p><script>x</script",
+      "a x/script",
+    ],
+  ])("%s", (_case: string, body: string, quote: string) => {
+    expect(quoteOfPage(body)).toBe(quote);
+    expect(quoteOfPage(body)).not.toContain("<");
+  });
 });
 
 describe("whatever the answer", () => {
@@ -401,6 +422,7 @@ describe("time", () => {
     ["values that open and close", `${repeatTo('<a b="')}>`],
     ["script elements that never close", repeatTo("<script")],
     ["style elements that never close", repeatTo("<style")],
+    ["end tags that never reach their '>'", `<script>${repeatTo("</script ")}`],
     ["comment openings", `${repeatTo("<!--")}>`],
     ["whitespace and control characters", repeatTo(" \t\u0001\n")],
   ])("reads a megabyte of %s in linear time", (_case: string, body: string) => {

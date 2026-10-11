@@ -53,13 +53,15 @@ const MIN_REDACTABLE_SECRET_LENGTH: number = 4;
 const FORM_ENCODED_TOKEN_BODY: RegExp = /^(access_token|error)=/;
 
 /*
- * Where an error page's script and style elements start and end. What they
- * hold is code and rules, not words anybody reads.
+ * Where an error page's script and style elements start, and where the end
+ * tag that closes each one starts: its name, then whitespace, a "/" or the
+ * ">", as a browser reads one - "</script>", "</script >", "</style foo>".
+ * What the elements hold is code and rules, not words anybody reads.
  */
 const SCRIPT_START: RegExp = /<script/gi;
-const SCRIPT_END: RegExp = /<\/script>/gi;
+const SCRIPT_END: RegExp = /<\/script(?=[\s/>])/gi;
 const STYLE_START: RegExp = /<style/gi;
-const STYLE_END: RegExp = /<\/style>/gi;
+const STYLE_END: RegExp = /<\/style(?=[\s/>])/gi;
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS: RegExp = /[\u0000-\u001f\u007f]+/g;
@@ -180,12 +182,13 @@ type WithoutElementsFunction = (
 
 /*
  * The text with each element that `start` opens and `end` closes - the
- * element and all it holds, to the first end after its start - as a space.
- * The text is read once: an element that never ends, and every one after
- * it, is left for the markup walk, which takes its tags out and keeps what
- * it holds. A single /<script[\s\S]*?<\/script>/ pass looked for an end
- * again from every start that had none, which took time that grew with the
- * square of the text: about a second for 160,000 characters of "<script".
+ * element and all it holds, to the ">" of the first end tag after its start
+ * - as a space. The text is read once: an element that never ends, and
+ * every one after it, is left for the markup walk, which takes its tags out
+ * and keeps what it holds. A single /<script[\s\S]*?<\/script>/ pass missed
+ * an end tag written "</script >", and looked for an end again from every
+ * start that had none, which took time that grew with the square of the
+ * text: about a second for 160,000 characters of "<script".
  */
 const withoutElements: WithoutElementsFunction = (
   html: string,
@@ -205,13 +208,16 @@ const withoutElements: WithoutElementsFunction = (
 
     end.lastIndex = opened.index + opened[0].length;
     const closed: RegExpExecArray | null = end.exec(html);
+    const closedAt: number = closed
+      ? html.indexOf(">", closed.index + closed[0].length)
+      : -1;
 
-    if (!closed) {
+    if (closedAt === -1) {
       break;
     }
 
     text += `${html.slice(index, opened.index)} `;
-    index = closed.index + closed[0].length;
+    index = closedAt + 1;
   }
 
   return text + html.slice(index);
