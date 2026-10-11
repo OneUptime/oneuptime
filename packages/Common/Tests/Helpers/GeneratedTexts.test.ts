@@ -4,7 +4,6 @@
  * different ones as their lengths allow.
  */
 
-import { generatedTexts as olderGeneratedTexts } from "../Types/HtmlMarkupCases";
 import { generatedTexts, seededRandom } from "./GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
 
@@ -21,32 +20,33 @@ describe("generatedTexts", () => {
   });
 
   test("gives as many different texts as their lengths allow", () => {
-    // 20,000 texts of up to 27 pieces of 8: only the shortest ones can repeat.
+    /*
+     * 20,000 texts of up to 27 pieces of 8: only the shortest ones can
+     * repeat. (A generator that draws from bits its multiply lost, as
+     * HtmlMarkupCases.generatedTexts does, gave 48 different texts here.)
+     */
     expect(new Set(generatedTexts(20000, 1618, ALPHABET)).size).toBeGreaterThan(
       17000,
     );
   });
 
-  test("the older generator repeats itself, which is why this one exists", () => {
-    /*
-     * Its multiply passes 2^53 and loses the state's low bits, and it
-     * draws from those bits: 48 different texts of these 20,000.
-     */
-    expect(
-      new Set(olderGeneratedTexts(20000, 1618, ALPHABET)).size,
-    ).toBeLessThan(2000);
-  });
-
   test("draws every number below the limit, about as often as each other", () => {
     const random: (limit: number) => number = seededRandom(42);
     const counts: Array<number> = new Array(10).fill(0);
+    const outOfRange: Array<number> = [];
 
     for (let draw: number = 0; draw < 100000; draw++) {
       const value: number = random(10);
 
-      expect(value >= 0 && value < 10 && Number.isInteger(value)).toBe(true);
+      if (!(Number.isInteger(value) && value >= 0 && value < 10)) {
+        outOfRange.push(value);
+        continue;
+      }
+
       counts[value] = counts[value]! + 1;
     }
+
+    expect(outOfRange).toEqual([]);
 
     for (const count of counts) {
       expect(count).toBeGreaterThan(9000);
