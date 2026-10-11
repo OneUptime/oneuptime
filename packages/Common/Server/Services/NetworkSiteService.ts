@@ -53,6 +53,9 @@ import SiteStatusRollupUtil, {
 import { parseSiteHealthRollupPolicy } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
 import NetworkSiteMaintenanceSuppression from "../Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import NetworkSiteHierarchyLock from "../Utils/NetworkSite/NetworkSiteHierarchyLock";
+import NetworkSiteLeafPurge, {
+  LeafPurgeShape,
+} from "../Utils/NetworkSite/NetworkSiteLeafPurge";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
@@ -127,6 +130,19 @@ const DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE: number = 1000;
  * row from the old path prefix, so every page must start at offset zero.
  */
 const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
+
+/*
+ * What keeps a deleted site from the retention purge: a site row that names
+ * it as its parent, deleted or not. That foreign key (parentSiteId, NO
+ * ACTION) would refuse the DELETE. Devices, endpoints, status history, links,
+ * assignment rules and maintenance links are SET NULL or CASCADE, so they
+ * keep nothing. See NetworkSiteLeafPurge.
+ */
+const SITE_PURGE_SHAPE: LeafPurgeShape = {
+  rowsName: "network sites",
+  parentColumn: "parentSiteId",
+  namedBy: [{ table: "NetworkSite", column: "parentSiteId" }],
+};
 
 /*
  * How deep a site tree may go, derived from the column that has to hold it:
@@ -379,10 +395,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The generic retention cron intentionally queries every tenant at once
-     * by deletedAt. Resolve that open-ended query to a closed set of leaf IDs
-     * before locking and deleting (hardDeleteClosedLeafBatch). Deleting
-     * leaves only means a limit can never split a parent from a surviving
-     * child; the cron's next iteration naturally works upward through the
+     * by deletedAt. Resolve that open-ended query to a closed set of IDs -
+     * leaves, or a whole closed cycle - before locking and deleting
+     * (hardDeleteClosedLeafBatch). So a limit can never split a parent from
+     * a surviving child; the cron's next iteration works upward through the
      * tree.
      */
     if (
@@ -440,147 +456,31 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The retention cron's purge (HardDeleteItemsInDatabase): the sites
-   * deleted more than 30 days ago, in every project.
-   *
-   * Every read here counts the rows deleted before, as a hard delete's own
-   * reads do (findRowsAndHoldDeleteToThem): the sites it purges are deleted
-   * rows by definition, and a plain findBy, which leaves deleted rows out,
-   * found none of them, so the purge never removed a site. The leaf check
-   * counts them too: a child row deleted before still names its parent, and
-   * that foreign key (parentSiteId, NO ACTION) would refuse the whole
-   * DELETE. So a site some site row still names - live, deleted too
-   * recently to purge, or due itself - waits, and a deleted tree goes from
-   * the leaves up, one level a call. Every call that finds a leaf removes
-   * it, so the cron's loop ends once a call finds none.
-   *
-   * The sites read are deleted by their ids inside the hierarchy lock, and
-   * the delete's hook holds the delete to the rows it reads of them
-   * (findRowsAndHoldDeleteToThem).
+   * deleted more than 30 days ago, in every project. NetworkSiteLeafPurge
+   * chooses them - the sites no site row names as its parent, deleted or
+   * not, or else a cycle of deleted sites nothing outside it names - and
+   * this deletes exactly the sites it chose, by their ids, as the purge's
+   * own delete.
    */
   private async hardDeleteClosedLeafBatch(
     deleteBy: DeleteBy<Model>,
   ): Promise<number> {
-    const requestedLimit: number = this.positiveNumberValue(
-      deleteBy.limit,
-      LIMIT_MAX,
-    );
-
-    if (requestedLimit <= 0) {
-      return 0;
-    }
-
-    const scanPageSize: number = Math.min(
-      DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-      requestedLimit,
-    );
-    const leafSites: Array<Model> = [];
-    let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
-
-    while (leafSites.length < requestedLimit) {
-      const candidates: Array<Model> = await this.findByWithDeleted({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        sort: { _id: SortOrder.Ascending },
-        limit: scanPageSize,
-        skip: scanSkip,
-        props: { isRoot: true },
-      });
-
-      if (candidates.length === 0) {
-        break;
-      }
-
-      const candidateIds: Array<ObjectID> = candidates
-        .map((candidate: Model): ObjectID | null => {
-          return candidate.id || null;
-        })
-        .filter((id: ObjectID | null): id is ObjectID => {
-          return Boolean(id);
-        });
-      const parentIdsWithChildren: Set<string> = new Set<string>();
-
-      for (
-        let parentOffset: number = 0;
-        parentOffset < candidateIds.length;
-        parentOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
-      ) {
-        const parentIdBatch: Array<ObjectID> = candidateIds.slice(
-          parentOffset,
-          parentOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-        );
-        let childSkip: number = 0;
-
-        while (parentIdBatch.length > 0) {
-          // Every child row still in the table, the deleted ones included.
-          const children: Array<Model> = await this.findByWithDeleted({
-            query: {
-              parentSiteId: QueryHelper.any(parentIdBatch),
-            },
-            select: { parentSiteId: true },
-            sort: { _id: SortOrder.Ascending },
-            limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
-            skip: childSkip,
-            props: { isRoot: true },
-          });
-
-          for (const child of children) {
-            if (child.parentSiteId) {
-              parentIdsWithChildren.add(normalizeId(child.parentSiteId));
-            }
-          }
-
-          if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
-            break;
-          }
-
-          childSkip += children.length;
-        }
-      }
-
-      for (const candidate of candidates) {
-        if (
-          candidate.id &&
-          candidate.projectId &&
-          !parentIdsWithChildren.has(normalizeId(candidate.id))
-        ) {
-          leafSites.push(candidate);
-
-          if (leafSites.length === requestedLimit) {
-            break;
-          }
-        }
-      }
-
-      scanSkip += candidates.length;
-
-      if (candidates.length < scanPageSize) {
-        break;
-      }
-    }
-
-    if (leafSites.length === 0) {
-      return 0;
-    }
-
-    const leafIds: Array<ObjectID> = leafSites.map((site: Model): ObjectID => {
-      return site.id!;
-    });
-
-    return await NetworkSiteHierarchyLock.runExclusive({
-      projectIds: leafSites.map((site: Model): ObjectID => {
-        return site.projectId!;
-      }),
-      operation: async (): Promise<number> => {
+    return await NetworkSiteLeafPurge.purgeBatch<Model>({
+      shape: SITE_PURGE_SHAPE,
+      due: deleteBy.query,
+      limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+      skip: this.positiveNumberValue(deleteBy.skip, 0),
+      read: async (findBy: FindBy<Model>): Promise<Array<Model>> => {
+        return await this.findByWithDeleted(findBy);
+      },
+      hardDeleteByIds: async (ids: Array<ObjectID>): Promise<number> => {
         return await super.hardDeleteBy({
           ...deleteBy,
           query: {
             ...deleteBy.query,
-            _id: QueryHelper.any(leafIds),
+            _id: QueryHelper.any(ids),
           },
-          limit: leafIds.length,
+          limit: ids.length,
           skip: 0,
         });
       },
@@ -592,7 +492,7 @@ export class Service extends ProjectReferencesService<Model> {
    * deleted before included: a deleted site keeps its networkSiteTypeId
    * until the retention purge removes it, and that foreign key (NO ACTION)
    * holds the type in the table until then. NetworkSiteTypeService asks
-   * before a type is deleted and for the purge's in-use check.
+   * before a type is deleted.
    *
    * Only the type ids are answered, never the sites. Each read asks only
    * about the types no site row has named yet, so a type that many sites
@@ -2091,8 +1991,9 @@ export class Service extends ProjectReferencesService<Model> {
      * the foreign key (parentSiteId, NO ACTION) would refuse the DELETE
      * anyway, with the database's generic "records still reference it"
      * message. Refusing here gives the answer a live child gets, and counts
-     * the same rows as the retention purge's leaf check
-     * (hardDeleteClosedLeafBatch).
+     * the same rows as the retention purge's choice (NetworkSiteLeafPurge).
+     * A child the same delete removes holds nothing, so a closed cycle the
+     * purge removes in one delete goes whole.
      */
     for (
       let parentIdOffset: number = 0;
