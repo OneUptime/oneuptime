@@ -116,12 +116,23 @@ beforeEach(() => {
     "",
     "## Prüfen",
   ]);
+  /*
+   * Links that still name headings by their anchors under the old rule, as
+   * the renderer made them then: from the heading's text, so a link in a
+   * heading gave its words and inline code its `<word>`.
+   */
   write("de/cli/old-anchors.md", [
     "# Alte Anker",
     "",
     "Zurück zu [Größen](#gren-prfen) und [Unbekannt](#gibt-es-nicht).",
     "",
+    "Siehe [Leitfaden](#ber-den-leitfaden) und [kubectl](#kubectl-ressource-prfen).",
+    "",
     "## Größen prüfen",
+    "",
+    "## Über [den Leitfaden](/docs/installation/setup)",
+    "",
+    "## `kubectl <ressource>` prüfen",
   ]);
 });
 
@@ -149,7 +160,7 @@ describe("FixAnchors", () => {
     const counts: Record<string, number> = countsOf(result.stdout);
 
     expect(counts["already correct"]).toBe(3);
-    expect(counts["repointed"]).toBe(2);
+    expect(counts["repointed"]).toBe(4);
     expect(counts["unresolved"]).toBe(1);
     expect(result.stdout).toContain(
       "de/cli/old-anchors.md:3 -> #gibt-es-nicht",
@@ -173,6 +184,13 @@ describe("FixAnchors", () => {
     const oldAnchors: string = read("de/cli/old-anchors.md");
     // The old rule dropped ö and ü: #gren-prfen is the heading Größen prüfen.
     expect(oldAnchors).toContain("[Größen](#größen-prüfen)");
+    /*
+     * A heading with a link, and one with a <word> in inline code, read as
+     * the page reads them: their words, not the link's address, and the
+     * word in the code kept.
+     */
+    expect(oldAnchors).toContain("[Leitfaden](#über-den-leitfaden)");
+    expect(oldAnchors).toContain("[kubectl](#kubectl-ressource-prüfen)");
     // What names no heading at all is left as it is.
     expect(oldAnchors).toContain("[Unbekannt](#gibt-es-nicht)");
 
