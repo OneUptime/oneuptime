@@ -312,9 +312,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION,
   },
-  "self-hosted/microsoft-teams-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "self-hosted/private-network-access": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
