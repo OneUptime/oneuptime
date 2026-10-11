@@ -138,9 +138,12 @@ describe("The purge the Postgres suite runs", () => {
       job.indexOf('"HardDelete:HardDeleteOlderItemsInDatabase"'),
     );
 
+    // Compared without whitespace or trailing commas, so a reformat changes nothing.
+    const code: string = sweep.replace(/\s+/g, "").replace(/,([)}\]])/g, "$1");
+
     expect(sweep.length).toBeGreaterThan(0);
-    expect(sweep.replace(/\s+/g, " ")).toContain(
-      "deletedCount = await service.hardDeleteBy({ query: { deletedAt: QueryHelper.lessThan( OneUptimeDate.getSomeDaysAgo(30), ), }, props: { isRoot: true, }, limit: LIMIT_MAX, skip: 0, }); } while (deletedCount > 0);",
+    expect(code).toContain(
+      "deletedCount=awaitservice.hardDeleteBy({query:{deletedAt:QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30))},props:{isRoot:true},limit:LIMIT_MAX,skip:0});}while(deletedCount>0);",
     );
   });
 });
