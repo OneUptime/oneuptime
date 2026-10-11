@@ -376,12 +376,16 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts",
         ),
       ).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+      // The worker schedules every telemetry monitor type, from the one list.
       expect(
         source(
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
         ),
       ).toContain(
-        `          MonitorType.${facts.monitorType === MonitorType.IoTDevice ? "IoTDevice" : facts.monitorType === MonitorType.StorageArray ? "StorageArray" : "VMware"},\n`,
+        "monitorType: DatabaseQueryHelper.any(\n          MonitorTypeHelper.getTelemetryMonitorTypes(),\n        ),",
+      );
+      expect(MonitorTypeHelper.getTelemetryMonitorTypes()).toContain(
+        facts.monitorType,
       );
       // Created on the create page, a monitor of these types has no interval of its own.
       expect(

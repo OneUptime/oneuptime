@@ -36,6 +36,8 @@ The `preset` option picks compatible defaults for your Kubernetes distribution �
 | `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath) |
 | `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath) |
 
+On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK.
+
 **GKE Autopilot:**
 
 ```bash
@@ -454,8 +456,8 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `logs.enabled` | `true` | Turn pod log collection on or off. Metrics are unaffected — the node collector keeps running for kubelet / cAdvisor / host metrics and just stops reading pod logs. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `logs.windowsPods.enabled` | `false` | Hybrid mode for mixed-OS clusters: run the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes (which the Linux-only DaemonSet cannot reach). Linux pods keep node-local file tailing; no log line ships twice. Only meaningful in `daemonset` log mode. |
-| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |
-| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. |
+| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. See section below. |
+| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. |
 | `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. Each series carries the collecting node's `k8s.node.name`, so it breaks down per node. |
 | `auditLogs.enabled` | `false` | Tail `/var/log/kubernetes/audit.log` from the host. Self-managed clusters only — managed K8s routes audit logs to a cloud sink. |
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
@@ -507,7 +509,7 @@ Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*` — cannot run on GKE Autopilot / EKS Fargate. |
+| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*`, so the `gke-autopilot` and `eks-fargate` presets leave it off. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. |
 | `profiling.samplesPerSecond` | `19` | Sampling frequency. Higher = more detail + more CPU. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling at the given sampling probability — diagnoses lock contention and blocking I/O. Off by default. |
@@ -531,7 +533,7 @@ The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](h
 Requirements:
 
 - **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports. The opt-in `ebpf.contextPropagation` feature has **no** additional kernel floor — do not assume an older kernel makes it inert. See **Cross-service trace linking** below.
-- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). Clusters that block privileged pods — GKE Autopilot and EKS Fargate — can't run it, so disable it on those: `--set ebpf.enabled=false`.
+- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
 
 Turn it off if you don't want it:
 

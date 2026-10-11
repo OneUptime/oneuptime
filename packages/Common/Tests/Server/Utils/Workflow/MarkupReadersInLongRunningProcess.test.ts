@@ -10,8 +10,10 @@ import path from "path";
  * endpoint's answer in an OAuth error (OAuth2TokenClient; an answer may be
  * a megabyte), the Dynamics 365 note template's script, which reads a
  * note's HTML (a note's text can be as long) and places it with the
- * asWritten helper every Jira and Dynamics 365 script carries, and the
- * Microsoft Teams reader of a pinned message (ReactionNoteSync.htmlToText).
+ * asWritten helper every Jira and Dynamics 365 script carries - as the
+ * create-from-case script reads a case's description, with the same
+ * section - and the Microsoft Teams reader of a pinned message
+ * (ReactionNoteSync.htmlToText).
  * V8 matches a regular expression with a backtracking stack that can grow
  * with every character a quantifier takes, and a process that has run a
  * while compiles them without optimization - so, as AGENTS.md
@@ -53,6 +55,7 @@ interface ProcessReport {
   oldBase64Pattern: Attempt;
   answers: Array<{ shape: string; read: Attempt }>;
   notes: Array<{ shape: string; read: Attempt }>;
+  descriptions: Array<{ shape: string; read: Attempt }>;
   teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
   sites: Array<{ shape: string; site?: string; error?: string }>;
   settings: Array<{ shape: string; link?: string; error?: string }>;
@@ -170,13 +173,50 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
             "return { htmlToText: htmlToText, asWritten: asWritten };",
         )({});
 
-        const notes = SHAPES.map(([shape, text]) => {
+        // What else the Dynamics 365 reading reads: references by number and by name, and indentation.
+        const READING_SHAPES = [
+          ...SHAPES,
+          ["numeric references", "<p>" + repeatTo("&#8212;&#x2019;") + "</p>"],
+          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
+          ["named references", "<p>" + repeatTo("&rsquo;&bogus;") + "</p>"],
+          ["indented lines", "<div>" + repeatTo("\n        x") + "</div>"],
+          ["pre elements", repeatTo("<pre>\n    x</pre>")],
+          ["a pre element that never ends", "<pre>" + repeatTo("\n  x")],
+          ["references to a '&'", "<p>" + repeatTo("&#38;amp;") + "</p>"],
+        ];
+
+        const notes = READING_SHAPES.map(([shape, text]) => {
           return {
             shape,
             read: attempt(() => {
               return readers.asWritten(readers.htmlToText(text));
             }),
           };
+        });
+
+        /*
+         * A case's description, read by the create-from-case script: the lines of its step
+         * that read the description, run on each shape as rich text (after a tag, as the
+         * editor writes one) and as plain text (as it is).
+         */
+        const caseSpec = getTemplateGraphSpec("dynamics-declare-incident-from-case");
+        const caseCode = caseSpec.nodes.find((node) => node.componentId === "prepare-incident-1").args.code;
+        const readDescription = new Function(
+          "args",
+          caseCode.slice(0, caseCode.indexOf("// ---- Reading the case ----")) +
+            "return (value) => {\nconst row = { description: value };\n" +
+            caseCode.slice(
+              caseCode.indexOf("// A description written in the rich-text editor"),
+              caseCode.indexOf("if (description) lines.push('', asWritten(description));"),
+            ) +
+            "return asWritten(description);\n};",
+        )({});
+
+        const descriptions = READING_SHAPES.flatMap(([shape, text]) => {
+          return [
+            { shape: shape + ", as rich text", read: attempt(() => readDescription("<div>" + text)) },
+            { shape: shape + ", as plain text", read: attempt(() => readDescription(text)) },
+          ];
         });
 
         // A Teams message body as Graph hands it over: HTML, its attachments as elements.
@@ -260,7 +300,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         });
 
         process.stdout.write(
-          JSON.stringify({ oldBase64Pattern, answers, notes, teamsMessages, sites, settings }),
+          JSON.stringify({ oldBase64Pattern, answers, notes, descriptions, teamsMessages, sites, settings }),
         );
         process.exit(0);
       `,
@@ -283,7 +323,7 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     report = runWithUnoptimizedRegularExpressions();
   }, 300000);
 
-  test("the OAuth error quote and the Dynamics 365 note script read every shape without running out of stack", () => {
+  test("the OAuth error quote and the Dynamics 365 note and case description readers read every shape without running out of stack", () => {
     /*
      * The process really is in that state: a quantified pattern over three
      * megabytes runs out of stack there. If V8 ever stops doing that, this
@@ -295,9 +335,14 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     });
 
     expect(report.answers).toHaveLength(10);
-    expect(report.notes).toHaveLength(10);
+    expect(report.notes).toHaveLength(17);
+    expect(report.descriptions).toHaveLength(34);
 
-    for (const { shape, read } of [...report.answers, ...report.notes]) {
+    for (const { shape, read } of [
+      ...report.answers,
+      ...report.notes,
+      ...report.descriptions,
+    ]) {
       // No error, and no "<" that starts markup in what was read.
       expect({ shape, read }).toEqual({
         shape,

@@ -95,7 +95,7 @@ kubectl get pods -n oneuptime-kubernetes-agent
 
 اگر مطمئن نیستید، `preset` را تعیین‌نشده بگذارید تا `standard` را بگیرید. اگر نصب با خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `gke-autopilot` نصب کنید، یا روی EKS Fargate با `eks-fargate`.
 
-GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF به آن‌ها نیاز دارد، پس آن را آنجا با `--set ebpf.enabled=false` خاموش کنید:
+GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF و پروفایل‌گیری به آن‌ها نیاز دارند، پس پیش‌تنظیم‌هایشان هر دو را کنار می‌گذارند:
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 eBPF به‌طور پیش‌فرض روشن است. در این حالت‌ها آن را با `--set ebpf.enabled=false` خاموش کنید:
 
-- خوشه **GKE Autopilot** یا **EKS Fargate** است. این دو پادهای privileged را رد می‌کنند، و OBI برای بارگذاری برنامه‌هایش باید privileged باشد.
+- خوشه **GKE Autopilot** یا **EKS Fargate** است. پیش‌تنظیم‌های آن‌ها این کار را برایتان می‌کنند: این دو پادهای privileged را رد می‌کنند، و OBI برای بارگذاری برنامه‌هایش باید privileged باشد.
 - گره‌ها هسته‌ای قدیمی‌تر از **Linux 5.8** بدون BTF اجرا می‌کنند. Debian 11، Ubuntu 20.10، Fedora 34، RHEL 9 و نسخه‌های بعدی مشکلی ندارند.
 - برنامه‌هایتان از پیش با یک SDK از OpenTelemetry ترِیس می‌فرستند، و نمی‌خواهید آن‌ها دو بار برسند.
 
@@ -323,7 +321,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 وقتی ابزارگذاری eBPF هم روشن باشد (پیش‌فرض)، هر نمونه ترِیسی را که به آن تعلق دارد با خود دارد، پس یک اسپن نمودار شعله‌ای خودش را دارد. برای این کار، چارت از OBI می‌خواهد زمینه ترِیس در حال اجرا را در دسترس نگه دارد (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)، که برای برنامه‌های ابزارگذاری‌شده در هر جابه‌جایی زمینه ناهمگام کمی هزینه دارد. برای نمودارهای شعله‌ای بدون پیوند به اسپن‌ها، `profiling.obiProcessContext=false` را تعیین کنید.
 
-پروفایل‌گیری به **Linux 5.10** یا بالاتر، و یک پاد privileged با شناسه‌های فرایند گره نیاز دارد: نمی‌تواند روی GKE Autopilot یا EKS Fargate اجرا شود. روی گره‌هایی که خودشان کانتینرند، مانند kind یا k3d، نمی‌تواند فرایندها را از هم تشخیص دهد، و تقریباً هیچ نمونه‌ای به یک اسپن پیوند نمی‌خورد.
+پروفایل‌گیری به **Linux 5.10** یا بالاتر، و یک پاد privileged با شناسه‌های فرایند گره نیاز دارد: نمی‌تواند روی GKE Autopilot یا EKS Fargate اجرا شود، و پیش‌تنظیم‌هایشان آن را خاموش نگه می‌دارند. روی گره‌هایی که خودشان کانتینرند، مانند kind یا k3d، نمی‌تواند فرایندها را از هم تشخیص دهد، و تقریباً هیچ نمونه‌ای به یک اسپن پیوند نمی‌خورد.
 
 | گزینه | پیش‌فرض | چه می‌کند |
 | --- | --- | --- |
@@ -417,14 +415,14 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 :::
 
 :::details نصب با «hostPath volumes are not allowed» شکست می‌خورد
-خوشه `hostPath` را مسدود می‌کند. به پیش‌تنظیمی بروید که لاگ‌ها را از راه API در Kubernetes می‌خواند، و eBPF را خاموش کنید:
+خوشه `hostPath` را مسدود می‌کند. به پیش‌تنظیمی بروید که لاگ‌ها را از راه API در Kubernetes می‌خواند؛ این پیش‌تنظیم eBPF را هم کنار می‌گذارد:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 روی EKS Fargate، از `--set preset=eks-fargate` استفاده کنید.

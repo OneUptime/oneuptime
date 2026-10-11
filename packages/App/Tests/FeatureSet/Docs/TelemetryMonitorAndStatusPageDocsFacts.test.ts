@@ -139,6 +139,10 @@ const TELEMETRY_JOB: string = oneLine(
   ),
 );
 
+// The monitor types the worker's schedule query picks up: the one telemetry list.
+const SCHEDULED_TYPES: string =
+  "monitorType: DatabaseQueryHelper.any( MonitorTypeHelper.getTelemetryMonitorTypes(), ),";
+
 const LOG_FORM: string =
   "Components/Form/Monitor/LogMonitor/LogMonitorStepFrom.tsx";
 const TRACE_FORM: string =
@@ -510,7 +514,10 @@ describe("the telemetry monitors in Create Monitor", () => {
     expect(
       MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.Profiles),
     ).toBe(true);
-    expect(TELEMETRY_JOB).toContain("MonitorType.Profiles,");
+    expect(TELEMETRY_JOB).toContain(SCHEDULED_TYPES);
+    expect(MonitorTypeHelper.getTelemetryMonitorTypes()).toContain(
+      MonitorType.Profiles,
+    );
   });
 });
 
@@ -533,10 +540,14 @@ describe("how often a telemetry monitor is checked", () => {
   );
 
   it("the worker picks up every telemetry monitor and checks it again a minute later", () => {
+    expect(TELEMETRY_JOB).toContain(SCHEDULED_TYPES);
+
     for (const entry of TELEMETRY_PAGES) {
       expect({
         monitorType: entry.typeKey,
-        picked: TELEMETRY_JOB.includes(`MonitorType.${entry.typeKey},`),
+        picked: MonitorTypeHelper.getTelemetryMonitorTypes().includes(
+          entry.monitorType,
+        ),
       }).toEqual({ monitorType: entry.typeKey, picked: true });
     }
 
