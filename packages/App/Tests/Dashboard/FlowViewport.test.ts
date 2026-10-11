@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import {
   FlowExtent,
@@ -86,19 +87,8 @@ function cardAt(x: number, y: number): FlowRect {
   return { x: x, y: y, width: NODE_WIDTH, height: NODE_HEIGHT };
 }
 
-/* Deterministic pseudo-random numbers in [0, 1) (mulberry32). */
+/* Deterministic pseudo-random numbers in [0, 1), from the suites' seeded generator. */
 type NextRandomFunction = () => number;
-
-function makeRandom(seed: number): NextRandomFunction {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let mixed: number = state;
-    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /*
  * A pseudo-random number from `min` to `max` (both on the grid) in steps of
@@ -1328,7 +1318,7 @@ describe("panDeltaToReveal", () => {
   });
 
   test("whatever the box and wherever the canvas, one pan shows the box, goes no further than it must, and leaves nothing for a second pan", () => {
-    const random: NextRandomFunction = makeRandom(24);
+    const random: NextRandomFunction = seededRandom(24);
     const failures: Array<string> = [];
     const seen: Record<string, number> = {
       "fits, inside": 0,
@@ -1759,7 +1749,7 @@ describe("noticeOffsetInCanvas", () => {
   });
 
   test("wherever the page puts the canvas, a notice that fits stays inside it, shows once more of the canvas than the inset does, and is centred on the part on screen as far as the insets let it be", () => {
-    const random: NextRandomFunction = makeRandom(880);
+    const random: NextRandomFunction = seededRandom(880);
     const failures: Array<string> = [];
     const seen: Record<string, number> = {
       "canvas off screen": 0,
@@ -2159,7 +2149,7 @@ function sampleViews(
       }
     }
   }
-  const random: NextRandomFunction = makeRandom(seed);
+  const random: NextRandomFunction = seededRandom(seed);
   for (let index: number = 0; index < count; index++) {
     const pane: FlowPaneSize = {
       width: Math.round(
@@ -2384,7 +2374,7 @@ describe("the pan extent keeps every view on the drawing (#4117)", () => {
 
     test(`${drawing.name}: the fitted view already lies inside the extent, so the first drag does not jump`, () => {
       const extent: FlowExtent = drawingExtent(drawing.rects, PAN_MARGIN);
-      const random: NextRandomFunction = makeRandom(880);
+      const random: NextRandomFunction = seededRandom(880);
       const panes: Array<FlowPaneSize> = [...CANVASES];
       for (let index: number = 0; index < 200; index++) {
         panes.push({

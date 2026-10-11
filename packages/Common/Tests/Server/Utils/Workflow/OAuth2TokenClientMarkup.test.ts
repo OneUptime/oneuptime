@@ -6,10 +6,11 @@ import OAuth2TokenClient, {
 import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { OAuth2GrantType } from "../../../../Types/Workflow/WorkflowVariableOAuth";
+import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import {
+  MARKUP_ALPHABET,
   SINGLE_PASS_LEFTOVERS,
   WELL_FORMED_MARKUP,
-  generatedTexts,
 } from "../../../Types/HtmlMarkupCases";
 import { describe, expect, test } from "@jest/globals";
 
@@ -418,7 +419,7 @@ describe("script and style elements", () => {
 });
 
 describe("whatever the answer", () => {
-  const generated: Array<string> = generatedTexts(20000, 3141);
+  const generated: Array<string> = generatedTexts(20000, 3141, MARKUP_ALPHABET);
 
   test("no message holds a '<' that starts markup", () => {
     expect(

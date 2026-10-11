@@ -7,6 +7,7 @@ import {
   telegramTextLength,
   visibleText,
 } from "./HtmlText";
+import { seededRandom } from "./SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -23,21 +24,6 @@ const WHITESPACE_RUN: RegExp = /\s+/g;
 // Words as a reader takes them in: whitespace runs as one space, ends trimmed.
 const words: (text: string) => string = (text: string): string => {
   return text.replace(WHITESPACE_RUN, " ").trim();
-};
-
-// A small seeded generator, so a failing case can be found again.
-const seededRandom: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let mixed: number = Math.imul(state ^ (state >>> 15), 1 | state);
-    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
 };
 
 // The pieces hostile markup is made of.

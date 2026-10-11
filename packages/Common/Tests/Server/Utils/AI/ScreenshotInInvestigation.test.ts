@@ -42,6 +42,7 @@ import LlmType from "../../../../Types/LLM/LlmType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import stubLLMEgressGuard from "./StubLLMEgressGuard";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -85,11 +86,10 @@ const PROVIDER: LlmProvider = {
 // A realistic screenshot: a JPEG's first bytes, then noise like a photo's.
 function jpegScreenshot(kilobytes: number): string {
   const bytes: Buffer = Buffer.alloc(kilobytes * 1024);
-  let seed: number = 3;
+  const random: SeededRandom = seededRandom(3);
 
   for (let index: number = 0; index < bytes.length; index++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    bytes[index] = (seed >> 8) & 0xff;
+    bytes[index] = random(256);
   }
 
   bytes[0] = 0xff;

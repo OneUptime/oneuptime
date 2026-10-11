@@ -19,6 +19,7 @@ import {
   SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
@@ -1570,21 +1571,11 @@ const LONG_SNMP_ERROR: string = (
 ).substring(0, 120);
 
 /*
- * A deterministic pseudo-random source: the classic 32-bit linear congruential
- * generator (Numerical Recipes constants). Math.random would make the grid
- * below a different test on every run, and a failure it found once could not
- * be reproduced; a seeded LCG explores the same wide space every time. The
- * multiply stays exact in a double: 1664525 * (2^32 - 1) is under 2^53.
+ * The grids below draw from the suites' seeded generator
+ * (Common/Tests/Helpers/SeededRandom). Math.random would make them a
+ * different test on every run, and a failure found once could not be
+ * reproduced; a seeded generator explores the same wide space every time.
  */
-function makeSeededRandom(seed: number): () => number {
-  let state: number = seed % 4294967296;
-
-  return (): number => {
-    state = (1664525 * state + 1013904223) % 4294967296;
-    return state / 4294967296;
-  };
-}
-
 function pickOne<T>(random: () => number, choices: Array<T>): T {
   return choices[Math.floor(random() * choices.length)]!;
 }
@@ -3969,7 +3960,7 @@ describe("buildHostNamingNote — the compact form against the full form", () =>
    * asserted the same joins thousands of times over.
    */
   test("over a seeded sample of pairs, compact is no longer than full, and the two are silent together", () => {
-    const random: () => number = makeSeededRandom(3677);
+    const random: () => number = seededRandom(3677);
     const reverseDnsGrid: Array<GridEntry<ReverseDnsNamingOutcome>> =
       reverseDnsOutcomeGrid();
     const netbiosGrid: Array<GridEntry<NetbiosNamingOutcome>> =
@@ -5264,7 +5255,7 @@ describe("buildScanStatusMessage — the composition ladder", () => {
    * an ellipsis, or a lone ellipsis, or nothing.
    */
   test("over a seeded grid of bodies and outcomes, every message obeys the ladder", () => {
-    const random: () => number = makeSeededRandom(3677);
+    const random: () => number = seededRandom(3677);
     const reverseDnsGrid: Array<GridEntry<ReverseDnsNamingOutcome>> =
       reverseDnsOutcomeGrid();
     const netbiosGrid: Array<GridEntry<NetbiosNamingOutcome>> =

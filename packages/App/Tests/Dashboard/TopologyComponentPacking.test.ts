@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   COMPONENT_GAP,
   PackInput,
@@ -195,25 +196,10 @@ const ISLANDS: Array<PackInput> = [
 
 const PACKED: PackResult = packComponentBoxes(ISLANDS, ROW, GAP);
 
-/* Deterministic xorshift — Math.random would make this fixture flap. */
+/* Seeded draws — Math.random would make this fixture flap. */
 type NextUnitFunction = () => number;
-type MakeSeededUnitFunction = (seed: number) => NextUnitFunction;
 
-const makeSeededUnit: MakeSeededUnitFunction = (
-  seed: number,
-): NextUnitFunction => {
-  let state: number = seed >>> 0 || 0x9e3779b9;
-  return (): number => {
-    state ^= state << 13;
-    state >>>= 0;
-    state ^= state >> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    return state / 4294967296;
-  };
-};
-
-const nextUnit: NextUnitFunction = makeSeededUnit(0x5eed1234);
+const nextUnit: NextUnitFunction = seededRandom(0x5eed1234);
 const RANDOM_ISLANDS: Array<PackInput> = [];
 for (let i: number = 0; i < 24; i++) {
   RANDOM_ISLANDS.push(

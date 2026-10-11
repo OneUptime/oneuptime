@@ -7,6 +7,8 @@ import {
   SINGLE_PASS_LEFTOVERS,
   WELL_FORMED_MARKUP,
 } from "./HtmlMarkupCases";
+import { generatedTexts } from "../Helpers/GeneratedTexts";
+import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -86,41 +88,13 @@ function holdsMarkup(text: string, pattern: RegExp): boolean {
   return new RegExp(pattern.source).test(text);
 }
 
-/*
- * A seeded 32-bit generator, so every run checks the same texts and a
- * failure reproduces. Math.imul keeps the multiply exact; a plain "*" passes
- * 2^53, loses the low bits and soon repeats itself.
- */
-function makeRandom(seed: number): (limit: number) => number {
-  let state: number = seed >>> 0;
-
-  return (limit: number): number => {
-    state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-    return Math.floor((state / 4294967296) * limit);
-  };
-}
-
 // Texts of up to 29 characters drawn from an alphabet.
 function textsOf(
   count: number,
   seed: number,
   alphabet: ReadonlyArray<string>,
 ): Array<string> {
-  const random: (limit: number) => number = makeRandom(seed);
-  const texts: Array<string> = [];
-
-  for (let index: number = 0; index < count; index++) {
-    let text: string = "";
-    const length: number = random(30);
-
-    for (let position: number = 0; position < length; position++) {
-      text += alphabet[random(alphabet.length)];
-    }
-
-    texts.push(text);
-  }
-
-  return texts;
+  return generatedTexts(count, seed, alphabet, 29);
 }
 
 // Markdown's placeholders and blank-line marks, which no tag holds there.
@@ -468,7 +442,7 @@ describe("removeMarkupFromText", () => {
     // Far above what these take, so a slow machine does not fail them.
     const LIMIT_IN_MS: number = 3000;
     const SIZE: number = 1024 * 1024;
-    const random: (limit: number) => number = makeRandom(2718);
+    const random: SeededRandom = seededRandom(2718);
 
     const repeatTo: (unit: string, length: number) => string = (
       unit: string,

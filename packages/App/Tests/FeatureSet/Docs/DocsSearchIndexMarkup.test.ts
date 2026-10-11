@@ -3,6 +3,7 @@ import {
   stripInlineMarkdown,
   summarizeDocsPage,
 } from "../../../FeatureSet/Docs/Utils/SearchIndex";
+import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -88,16 +89,6 @@ function withoutCode(text: string, code: Array<string>): string {
   }
 
   return result;
-}
-
-// A small seeded generator, so the generated lines are the same every run.
-function seededRandom(seed: number): (limit: number) => number {
-  let state: number = seed;
-
-  return (limit: number): number => {
-    state = (state * 1103515245 + 12345) & 0x7fffffff;
-    return state % limit;
-  };
 }
 
 describe("stripInlineMarkdown takes markup out of the text it indexes", () => {
@@ -202,21 +193,15 @@ describe("stripInlineMarkdown takes markup out of the text it indexes", () => {
       "(",
       ")",
     ];
-    const random: (limit: number) => number = seededRandom(9001);
-    const withTag: Array<string> = [];
-
-    for (let index: number = 0; index < 20000; index++) {
-      let line: string = "";
-      const length: number = random(24);
-
-      for (let position: number = 0; position < length; position++) {
-        line += alphabet[random(alphabet.length)];
-      }
-
-      if (TAG_START.test(stripInlineMarkdown(line))) {
-        withTag.push(line);
-      }
-    }
+    // 20,000 lines of up to 23 pieces, the same on every run.
+    const withTag: Array<string> = generatedTexts(
+      20000,
+      9001,
+      alphabet,
+      23,
+    ).filter((line: string): boolean => {
+      return TAG_START.test(stripInlineMarkdown(line));
+    });
 
     expect(withTag.slice(0, 5)).toEqual([]);
   });
