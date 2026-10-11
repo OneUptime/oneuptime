@@ -93,7 +93,8 @@ import {
  * note is attributed to them, a state change was made by them); a record
  * outside the member's read - another project's, or outside their labels -
  * is refused like one that is not there; the change-state form offers only
- * the states the member may read, and says so instead of opening empty.
+ * the states the member may read that the record may move into next, and
+ * says why instead of opening empty.
  *
  * The handlers, WorkspaceMemberActions and the permission checks are real;
  * the database reads, the creates and the Slack API are stubbed.
@@ -890,18 +891,20 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
     test("the form offers only the states the member may read, read as the member", async (): Promise<void> => {
       mockMember([kind.role]);
+      const states: ProjectStates = kind.stubStates();
       stubRecord({
         service: kind.recordService,
         makeRecord: kind.makeRecord,
         stateColumn: kind.recordStateColumn,
-        currentStateId: ObjectID.generate(),
+        currentStateId: states.created,
       });
+      // Of the project's states, the member may read these two.
       const first: { id: ObjectID; name: string } = {
-        id: ObjectID.generate(),
+        id: states.acknowledged,
         name: "Investigating",
       };
       const second: { id: ObjectID; name: string } = {
-        id: ObjectID.generate(),
+        id: states.resolved,
         name: "Mitigated",
       };
       const statesSpy: AnySpy = (
@@ -932,6 +935,78 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         { label: "Mitigated", value: second.id.toString() },
       ]);
       expect(directMessageSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Every state timeline refuses a move back up the project's list, for
+     * an episode as for an incident or an alert (Common/Utils/StateMove):
+     * the form offers only the states the record may move into next.
+     */
+    test("the form offers only the states it may move into next, none back up the list", async (): Promise<void> => {
+      mockMember([kind.role]);
+      const states: ProjectStates = kind.stubStates();
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.acknowledged,
+      });
+      (
+        jest.spyOn(
+          kind.stateService as { findBy: () => Promise<unknown> },
+          "findBy",
+        ) as AnySpy
+      ).mockResolvedValue([
+        { id: states.created, name: "First" },
+        { id: states.acknowledged, name: "Second" },
+        { id: states.resolved, name: "Last" },
+      ]);
+
+      await kind.handle(
+        handlerArgs(kind.changeState.view, ObjectID.generate().toString()),
+      );
+
+      expect(showModalSpy).toHaveBeenCalledTimes(1);
+      const modal: WorkspaceModalBlock =
+        showModalSpy.mock.calls[0]![0].modalBlock;
+      const dropdown: WorkspaceDropdownBlock = modal
+        .blocks[0] as WorkspaceDropdownBlock;
+      expect(dropdown.options).toEqual([
+        { label: "Last", value: states.resolved.toString() },
+      ]);
+      expect(directMessageSpy).not.toHaveBeenCalled();
+    });
+
+    test("in the last state it can reach, the member is told there is no later state, and no form opens", async (): Promise<void> => {
+      mockMember([kind.role]);
+      const states: ProjectStates = kind.stubStates();
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.resolved,
+      });
+      (
+        jest.spyOn(
+          kind.stateService as { findBy: () => Promise<unknown> },
+          "findBy",
+        ) as AnySpy
+      ).mockResolvedValue([
+        { id: states.created, name: "First" },
+        { id: states.acknowledged, name: "Second" },
+        { id: states.resolved, name: "Last" },
+      ]);
+
+      await kind.handle(
+        handlerArgs(kind.changeState.view, ObjectID.generate().toString()),
+      );
+
+      expect(showModalSpy).not.toHaveBeenCalled();
+      expect(directMessageTexts()).toEqual([
+        expect.stringContaining(
+          `There is no later state to move this ${kind.noun} to.`,
+        ),
+      ]);
     });
 
     test("a member who may read no states is told so, and no empty form opens", async (): Promise<void> => {

@@ -27,7 +27,10 @@ import ResolvedStateUtil, {
   ResolvedStateList,
 } from "../../../Utils/ResolvedState";
 import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
-import StateMoveUtil, { StateMoveRecord } from "../../../Utils/StateMove";
+import StateMoveUtil, {
+  StateMoveList,
+  StateMoveRecord,
+} from "../../../Utils/StateMove";
 import { StateListType } from "../../../Utils/StateOrder";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertEpisodeStateTimelineService from "../../Services/AlertEpisodeStateTimelineService";
@@ -732,9 +735,11 @@ export default class WorkspaceMemberActions {
    * project's order, as the dashboard's state panel offers them. So no form
    * offers a move the timeline would refuse. The places come from the
    * project's whole list, read as the moves read it, so a state the member
-   * may not read still holds its place. None when they may read none, or
-   * when none of those they may read comes after the state the record is
-   * in: the chat says which instead of showing an empty form.
+   * may not read still holds its place; a state the list does not hold has
+   * none, and is compared by its id alone, as the rule compares it. None
+   * when they may read none, or when none of those they may read comes
+   * after the state the record is in: the chat says which instead of
+   * showing an empty form.
    */
   @CaptureSpan()
   public static async findStateOptions(data: {
@@ -760,27 +765,26 @@ export default class WorkspaceMemberActions {
       return { options: [], hasNoLaterState: false };
     }
 
-    const statesToMoveTo: Set<string> = new Set<string>(
-      StateMoveUtil.getStatesToMoveTo({
-        list: StateMoveUtil.getList(EVENT_TYPES[event.type].moveRecord),
-        states: await this.getProjectStates({
-          type: event.type,
-          projectId: event.projectId,
-        }),
-        currentStateId: event.currentStateId,
-      })
-        .filter((state: ProjectState): boolean => {
-          return Boolean(state.id);
-        })
-        .map((state: ProjectState): string => {
-          return state.id!.toString();
-        }),
+    const list: StateMoveList = StateMoveUtil.getList(
+      EVENT_TYPES[event.type].moveRecord,
     );
+
+    const projectStates: Array<ProjectState> = await this.getProjectStates({
+      type: event.type,
+      projectId: event.projectId,
+    });
 
     const options: Array<WorkspaceEventStateOption> = [];
 
     for (const state of readableStates) {
-      if (statesToMoveTo.has(state.id!.toString())) {
+      if (
+        StateMoveUtil.isMoveAllowed({
+          list: list,
+          states: projectStates,
+          fromStateId: event.currentStateId,
+          toStateId: state.id,
+        })
+      ) {
         options.push({
           id: state.id!,
           name: state.name!,
