@@ -1,7 +1,20 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import fs from "fs";
+import os from "os";
 import path from "path";
-import ts from "typescript";
+import {
+  REPOSITORY_DIRECTORY,
+  TAG_STRIP_FIX,
+  TEST_FILE,
+  TagStrip,
+  findTagStrips,
+  importedModules,
+  importedNames,
+  isTestCode,
+  listTestFiles,
+  reportTagStrips,
+  stripsMarkup,
+} from "./TagStripScan";
 
 /*
  * EVERY TEST READS MARKUP THROUGH THE SHARED WALK.
@@ -39,458 +52,14 @@ import ts from "typescript";
  * __tests__, every *.test.* and *.spec.* file wherever it is, and all of
  * packages/E2E, a package of nothing but tests and their fixtures - outside
  * node_modules, builds and hidden folders.
+ *
+ * The reading - which files are test code, and what is a tag strip - is
+ * Tests/Helpers/TagStripScan, and ee/Tests/Server/TestTagStripGuard.test.ts
+ * runs it over ee/'s test files too. The Common Test job removes ee/ before
+ * it runs (core passes without the Enterprise Edition), so in CI this walk
+ * never meets an ee/ test; ee's own suite, in the Enterprise Edition Test
+ * job, reads them with the same detector.
  */
-
-const REPOSITORY_DIRECTORY: string = path.resolve(__dirname, "../../../..");
-
-const TEST_FOLDER_NAMES: ReadonlySet<string> = new Set<string>([
-  "Tests",
-  "tests",
-  "__tests__",
-]);
-// Folders of dependencies and builds, never test code of the repository's.
-const SKIPPED_FOLDER_NAMES: ReadonlySet<string> = new Set<string>([
-  "node_modules",
-  "build",
-  "dist",
-]);
-// A package of nothing but tests: its fixtures and helpers are test code too.
-const TEST_PACKAGE: string = "packages/E2E/";
-const CODE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/;
-const TEST_FILE: RegExp = /\.(?:test|spec)\.(?:ts|tsx|js|jsx|mjs|cjs)$/;
-const DECLARATION_FILE: RegExp = /\.d\.ts$/;
-
-type IsTestCodeFunction = (relativePath: string) => boolean;
-
-/*
- * Whether a file, by its path from the repository's root ("/" between
- * folders), is test code the guard reads.
- */
-const isTestCode: IsTestCodeFunction = (relativePath: string): boolean => {
-  const parts: Array<string> = relativePath.split("/");
-  const fileName: string = parts[parts.length - 1]!;
-  const folders: Array<string> = parts.slice(0, -1);
-
-  if (
-    !CODE_FILE.test(fileName) ||
-    DECLARATION_FILE.test(fileName) ||
-    folders.some((folder: string): boolean => {
-      return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
-    })
-  ) {
-    return false;
-  }
-
-  return (
-    TEST_FILE.test(fileName) ||
-    relativePath.startsWith(TEST_PACKAGE) ||
-    folders.some((folder: string): boolean => {
-      return TEST_FOLDER_NAMES.has(folder);
-    })
-  );
-};
-
-type ListTestFilesFunction = (directory: string) => Array<string>;
-
-// Every test file under a directory, by its path from the repository's root.
-const listTestFiles: ListTestFilesFunction = (
-  directory: string,
-): Array<string> => {
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") || SKIPPED_FOLDER_NAMES.has(entry.name)) {
-      continue;
-    }
-
-    const fullPath: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...listTestFiles(fullPath));
-      continue;
-    }
-
-    const relativePath: string = path
-      .relative(REPOSITORY_DIRECTORY, fullPath)
-      .split(path.sep)
-      .join("/");
-
-    if (entry.isFile() && isTestCode(relativePath)) {
-      files.push(relativePath);
-    }
-  }
-
-  return files.sort();
-};
-
-// Markup a tag strip takes out whole: what code scanning asks about.
-const MARKUP_PROBES: Array<string> = [
-  "<script>",
-  '<script src="x.js">',
-  "</script>",
-  "<iframe src=x>",
-  "<style>",
-  "<!-- note -->",
-];
-
-// Words after the markup, which a tag strip leaves where they are.
-const TEXT_AFTER_MARKUP: string = " and the words after it";
-
-type StripsMarkupFunction = (pattern: RegExp) => boolean;
-
-/*
- * Whether a pattern takes markup out of a text: on one of the probes, with
- * words after it, the first thing it matches starts at the "<", is more than
- * the "<" alone, and stops before the words run out; and the same text
- * without its "<" gives it nothing to match at the start. So a pattern of
- * single characters ("[<>]", "<+"), one of any text that the "<" does not
- * decide ("[^a-z0-9]+", a slug), one that runs to the end of the text
- * ("<.*$"), one anchored to an end, and one for an element and all it holds
- * ("<svg[\s\S]*?</svg>") are not tag strips.
- */
-const stripsMarkup: StripsMarkupFunction = (pattern: RegExp): boolean => {
-  return MARKUP_PROBES.some((probe: string): boolean => {
-    const text: string = probe + TEXT_AFTER_MARKUP;
-    const match: RegExpExecArray | null = pattern.exec(text);
-
-    if (
-      match === null ||
-      match.index !== 0 ||
-      match[0].length < 2 ||
-      match[0].length >= text.length
-    ) {
-      return false;
-    }
-
-    const withoutOpening: RegExpExecArray | null = pattern.exec(text.slice(1));
-
-    return withoutOpening === null || withoutOpening.index !== 0;
-  });
-};
-
-type BuildPatternFunction = (source: string, flags: string) => RegExp | null;
-
-// A pattern as it runs, or null when the runtime cannot build it.
-const buildPattern: BuildPatternFunction = (
-  source: string,
-  flags: string,
-): RegExp | null => {
-  try {
-    // Without g or y, exec() always reads from the start.
-    return new RegExp(
-      source,
-      Array.from(flags)
-        .filter((flag: string): boolean => {
-          return flag !== "g" && flag !== "y";
-        })
-        .join(""),
-    );
-  } catch {
-    return null;
-  }
-};
-
-type ParseFunction = (fileName: string, text: string) => ts.SourceFile;
-
-const parse: ParseFunction = (
-  fileName: string,
-  text: string,
-): ts.SourceFile => {
-  let kind: ts.ScriptKind = ts.ScriptKind.TS;
-
-  if (fileName.endsWith(".tsx")) {
-    kind = ts.ScriptKind.TSX;
-  } else if (fileName.endsWith(".jsx")) {
-    kind = ts.ScriptKind.JSX;
-  } else if (!fileName.endsWith(".ts")) {
-    kind = ts.ScriptKind.JS;
-  }
-
-  return ts.createSourceFile(
-    fileName,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-    kind,
-  );
-};
-
-type VisitFunction = (node: ts.Node, onNode: (node: ts.Node) => void) => void;
-
-const visit: VisitFunction = (
-  node: ts.Node,
-  onNode: (node: ts.Node) => void,
-): void => {
-  onNode(node);
-  ts.forEachChild(node, (child: ts.Node) => {
-    visit(child, onNode);
-  });
-};
-
-type NamedPatterns = Map<string, RegExp>;
-
-type PatternOfFunction = (
-  node: ts.Expression,
-  named: NamedPatterns,
-) => RegExp | null;
-
-/*
- * The pattern an expression gives: a /literal/, new RegExp("...", "...") or
- * new RegExp(OTHER.source, "..."), or a name for one - a constant, or a
- * class's static field read as Class.FIELD.
- */
-const patternOf: PatternOfFunction = (
-  node: ts.Expression,
-  named: NamedPatterns,
-): RegExp | null => {
-  if (ts.isParenthesizedExpression(node)) {
-    return patternOf(node.expression, named);
-  }
-
-  if (ts.isRegularExpressionLiteral(node)) {
-    const lastSlash: number = node.text.lastIndexOf("/");
-
-    return buildPattern(
-      node.text.slice(1, lastSlash),
-      node.text.slice(lastSlash + 1),
-    );
-  }
-
-  if (ts.isIdentifier(node)) {
-    return named.get(node.text) || null;
-  }
-
-  if (ts.isPropertyAccessExpression(node)) {
-    return named.get(node.name.text) || null;
-  }
-
-  if (
-    (ts.isNewExpression(node) || ts.isCallExpression(node)) &&
-    ts.isIdentifier(node.expression) &&
-    node.expression.text === "RegExp" &&
-    node.arguments !== undefined &&
-    node.arguments.length > 0
-  ) {
-    const sourceArgument: ts.Expression = node.arguments[0]!;
-    const flagsArgument: ts.Expression | undefined = node.arguments[1];
-    let source: string | null = null;
-
-    if (ts.isStringLiteralLike(sourceArgument)) {
-      source = sourceArgument.text;
-    } else if (
-      ts.isPropertyAccessExpression(sourceArgument) &&
-      sourceArgument.name.text === "source"
-    ) {
-      source = patternOf(sourceArgument.expression, named)?.source ?? null;
-    }
-
-    if (source === null) {
-      return null;
-    }
-
-    return buildPattern(
-      source,
-      flagsArgument && ts.isStringLiteralLike(flagsArgument)
-        ? flagsArgument.text
-        : "",
-    );
-  }
-
-  return null;
-};
-
-type NamedPatternsOfFunction = (source: ts.SourceFile) => NamedPatterns;
-
-/*
- * The patterns a file names - const TAG: RegExp = /<[^>]*>/g, a class's
- * static field, one built from another's .source - read again until no new
- * name turns up, so the order they are written in does not matter.
- */
-const namedPatternsOf: NamedPatternsOfFunction = (
-  source: ts.SourceFile,
-): NamedPatterns => {
-  const named: NamedPatterns = new Map<string, RegExp>();
-
-  // One reading of the file: whether it named a pattern not named before.
-  const readOnce: () => boolean = (): boolean => {
-    let isGrowing: boolean = false;
-
-    visit(source, (node: ts.Node) => {
-      if (
-        (ts.isVariableDeclaration(node) || ts.isPropertyDeclaration(node)) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer &&
-        !named.has(node.name.text)
-      ) {
-        const pattern: RegExp | null = patternOf(node.initializer, named);
-
-        if (pattern) {
-          named.set(node.name.text, pattern);
-          isGrowing = true;
-        }
-      }
-    });
-
-    return isGrowing;
-  };
-
-  let isGrowing: boolean = readOnce();
-
-  while (isGrowing) {
-    isGrowing = readOnce();
-  }
-
-  return named;
-};
-
-const STRIP_CALLS: ReadonlyArray<string> = ["replace", "replaceAll"];
-const WHITESPACE_RUN: RegExp = /\s+/g;
-
-type WritesMarkupBackFunction = (call: ts.CallExpression) => boolean;
-
-/*
- * Whether a replace writes a "<" back where it matched: an escape, such as
- * "</script" made "<\/script" inside a script, which takes no markup out.
- */
-const writesMarkupBack: WritesMarkupBackFunction = (
-  call: ts.CallExpression,
-): boolean => {
-  const replacement: ts.Expression | undefined = call.arguments[1];
-
-  return (
-    replacement !== undefined &&
-    ts.isStringLiteralLike(replacement) &&
-    replacement.text.includes("<")
-  );
-};
-
-interface TagStrip {
-  line: number;
-  code: string;
-}
-
-type FindTagStripsFunction = (
-  fileName: string,
-  text: string,
-) => Array<TagStrip>;
-
-// Every place a file takes markup out with a pattern of its own.
-const findTagStrips: FindTagStripsFunction = (
-  fileName: string,
-  text: string,
-): Array<TagStrip> => {
-  const source: ts.SourceFile = parse(fileName, text);
-  const named: NamedPatterns = namedPatternsOf(source);
-  const strips: Array<TagStrip> = [];
-
-  const found: (node: ts.Node) => void = (node: ts.Node): void => {
-    strips.push({
-      line:
-        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-      code: node.getText(source).replace(WHITESPACE_RUN, " ").slice(0, 100),
-    });
-  };
-
-  const stripsWith: (call: ts.CallExpression) => boolean = (
-    call: ts.CallExpression,
-  ): boolean => {
-    const argument: ts.Expression | undefined = call.arguments[0];
-    const pattern: RegExp | null = argument ? patternOf(argument, named) : null;
-
-    return pattern !== null && stripsMarkup(pattern);
-  };
-
-  visit(source, (node: ts.Node) => {
-    if (
-      !ts.isCallExpression(node) ||
-      !ts.isPropertyAccessExpression(node.expression)
-    ) {
-      return;
-    }
-
-    const method: string = node.expression.name.text;
-
-    if (
-      STRIP_CALLS.includes(method) &&
-      stripsWith(node) &&
-      !writesMarkupBack(node)
-    ) {
-      found(node);
-      return;
-    }
-
-    // text.split(TAG).join(""): the pieces between the tags, put back together.
-    const receiver: ts.Expression = node.expression.expression;
-
-    if (
-      method === "join" &&
-      ts.isCallExpression(receiver) &&
-      ts.isPropertyAccessExpression(receiver.expression) &&
-      receiver.expression.name.text === "split" &&
-      stripsWith(receiver)
-    ) {
-      found(node);
-    }
-  });
-
-  return strips;
-};
-
-type ImportedNamesFunction = (fileName: string, text: string) => Array<string>;
-
-// The names a file imports.
-const importedNames: ImportedNamesFunction = (
-  fileName: string,
-  text: string,
-): Array<string> => {
-  const names: Array<string> = [];
-
-  for (const statement of parse(fileName, text).statements) {
-    if (!ts.isImportDeclaration(statement) || !statement.importClause) {
-      continue;
-    }
-
-    const clause: ts.ImportClause = statement.importClause;
-
-    if (clause.name) {
-      names.push(clause.name.text);
-    }
-
-    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-      for (const element of clause.namedBindings.elements) {
-        names.push(element.name.text);
-      }
-    }
-  }
-
-  return names;
-};
-
-type ImportedModulesFunction = (
-  fileName: string,
-  text: string,
-) => Array<string>;
-
-// The modules a file imports or re-exports from.
-const importedModules: ImportedModulesFunction = (
-  fileName: string,
-  text: string,
-): Array<string> => {
-  const modules: Array<string> = [];
-
-  for (const statement of parse(fileName, text).statements) {
-    if (
-      (ts.isImportDeclaration(statement) ||
-        ts.isExportDeclaration(statement)) &&
-      statement.moduleSpecifier &&
-      ts.isStringLiteral(statement.moduleSpecifier)
-    ) {
-      modules.push(statement.moduleSpecifier.text);
-    }
-  }
-
-  return modules;
-};
 
 interface FixedAlert {
   // The code scanning alerts (js/incomplete-multi-character-sanitization).
@@ -597,6 +166,8 @@ const SCAN_TIMEOUT_IN_MS: number = 300000;
 
 const HTML_TEXT_FILE: string = "packages/Common/Tests/Helpers/HtmlText.ts";
 const HTML_MARKUP_FILE: string = "packages/Common/Types/HtmlMarkup.ts";
+const TAG_STRIP_SCAN_FILE: string =
+  "packages/Common/Tests/Helpers/TagStripScan.ts";
 
 type ReadFunction = (relativePath: string) => string;
 
@@ -681,24 +252,7 @@ describe("every test in the repository reads markup through the shared walk", ()
   it(
     "finds no test file that takes markup out with a pattern of its own",
     () => {
-      const findings: Array<string> = [];
-
-      for (const file of testFiles) {
-        const text: string = read(file);
-
-        // A file that calls neither replace nor split takes nothing out.
-        if (!text.includes("replace") && !text.includes("split")) {
-          continue;
-        }
-
-        for (const strip of findTagStrips(file, text)) {
-          findings.push(
-            `${file}:${strip.line} ${strip.code} - read the text with removeHtmlMarkup (Common/Types/HtmlMarkup) or a reading of Common/Tests/Helpers/HtmlText`,
-          );
-        }
-      }
-
-      expect(findings).toEqual([]);
+      expect(reportTagStrips(testFiles)).toEqual([]);
     },
     SCAN_TIMEOUT_IN_MS,
   );
@@ -739,6 +293,18 @@ describe("every test in the repository reads markup through the shared walk", ()
     expect(importedModules(HTML_MARKUP_FILE, read(HTML_MARKUP_FILE))).toEqual(
       [],
     );
+  });
+
+  /*
+   * ee's own suite (ee/Tests/Server/TestTagStripGuard.test.ts) runs the
+   * detector over ee/'s test files, reaching it as "Common/Tests/Helpers/
+   * TagStripScan": it may import node's fs and path and the TypeScript
+   * parser, and nothing of App's or ee's.
+   */
+  it("keeps the detector importable from ee's own suite", () => {
+    expect(
+      importedModules(TAG_STRIP_SCAN_FILE, read(TAG_STRIP_SCAN_FILE)),
+    ).toEqual(["fs", "path", "typescript"]);
   });
 });
 
@@ -949,5 +515,117 @@ describe("importedNames and importedModules", () => {
       "./side-effect",
       "./b",
     ]);
+  });
+});
+
+describe("listTestFiles and reportTagStrips, on a tree written here", () => {
+  /*
+   * A checkout in miniature: ee/ with tests, a helper and product code, the
+   * folders a walk passes over, and a core package beside it.
+   */
+  const TREE: Record<string, string> = {
+    "ee/Tests/Server/Email.test.ts": code(
+      'import { expect, test } from "@jest/globals";',
+      'const words: string = html.replace(/<[^>]+>/g, "");',
+    ),
+    "ee/Tests/Server/Helpers/Kit.ts": code(
+      "const TAG: RegExp = /<[^>]*>/g;",
+      "export const text = (html: string): string => {",
+      '  return html.replace(TAG, " ");',
+      "};",
+    ),
+    // It replaces, but only whitespace after the shared walk.
+    "ee/Tests/Server/Clean.test.ts": code(
+      'import { removeHtmlMarkup } from "Common/Types/HtmlMarkup";',
+      'const words: string = removeHtmlMarkup(html).replace(/\\s+/g, " ");',
+    ),
+    "ee/Tests/UI/Banner.test.tsx": code(
+      "const view = <p>{text}</p>;",
+      'const words: string = html.split(/<[^>]*>/).join(" ");',
+    ),
+    // A test beside the code it tests.
+    "ee/Dashboard/Widget.test.tsx": 'html.replace(/<[^>]*>/g, "");',
+    // Product code, a declaration and a page: not test code.
+    "ee/Server/Render.ts": 'html.replace(/<[^>]*>/g, "");',
+    "ee/Tests/Server/Globals.d.ts": "declare const html: string;",
+    "ee/Tests/Server/page.html": "<p>Hello</p>",
+    // A dependency, builds and a hidden folder.
+    "ee/node_modules/some-package/Tests/strip.test.js":
+      'html.replace(/<[^>]*>/g, "");',
+    "ee/build/Tests/Server/Email.test.js": 'html.replace(/<[^>]*>/g, "");',
+    "ee/dist/Email.test.js": 'html.replace(/<[^>]*>/g, "");',
+    "ee/.cache/Tests/Email.test.ts": 'html.replace(/<[^>]*>/g, "");',
+    // Core, beside ee/.
+    "packages/Some/Tests/Page.test.ts": 'html.replace(/<[^>]*>/g, "");',
+  };
+
+  const EE_TEST_FILES: Array<string> = [
+    "ee/Dashboard/Widget.test.tsx",
+    "ee/Tests/Server/Clean.test.ts",
+    "ee/Tests/Server/Email.test.ts",
+    "ee/Tests/Server/Helpers/Kit.ts",
+    "ee/Tests/UI/Banner.test.tsx",
+  ];
+
+  let root: string = "";
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "tag-strip-scan-"));
+
+    for (const [file, text] of Object.entries(TREE)) {
+      fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      fs.writeFileSync(path.join(root, file), text);
+    }
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("names a folder's test files from the root, as the walk of the whole tree does", () => {
+    expect(listTestFiles(path.join(root, "ee"), root)).toEqual(EE_TEST_FILES);
+    expect(listTestFiles(root, root)).toEqual([
+      ...EE_TEST_FILES,
+      "packages/Some/Tests/Page.test.ts",
+    ]);
+  });
+
+  it("names files from the repository's root when given no root", () => {
+    expect(
+      listTestFiles(
+        path.join(REPOSITORY_DIRECTORY, path.dirname(HTML_TEXT_FILE)),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        HTML_TEXT_FILE,
+        TAG_STRIP_SCAN_FILE,
+        "packages/Common/Tests/Helpers/TestTagStripGuard.test.ts",
+      ]),
+    );
+  });
+
+  it("reports each tag strip by file and line, with what to read it with instead", () => {
+    expect(
+      reportTagStrips(listTestFiles(path.join(root, "ee"), root), root),
+    ).toEqual([
+      `ee/Dashboard/Widget.test.tsx:1 html.replace(/<[^>]*>/g, "") - ${TAG_STRIP_FIX}`,
+      `ee/Tests/Server/Email.test.ts:2 html.replace(/<[^>]+>/g, "") - ${TAG_STRIP_FIX}`,
+      `ee/Tests/Server/Helpers/Kit.ts:3 html.replace(TAG, " ") - ${TAG_STRIP_FIX}`,
+      `ee/Tests/UI/Banner.test.tsx:2 html.split(/<[^>]*>/).join(" ") - ${TAG_STRIP_FIX}`,
+    ]);
+    expect(TAG_STRIP_FIX).toBe(
+      "read the text with removeHtmlMarkup (Common/Types/HtmlMarkup) or a reading of Common/Tests/Helpers/HtmlText",
+    );
+  });
+
+  it("reads the files from the repository's root when given no root", () => {
+    expect(reportTagStrips([HTML_TEXT_FILE, TAG_STRIP_SCAN_FILE])).toEqual([]);
+    // A file of the tree written here is no file of the repository's.
+    expect(() => {
+      return reportTagStrips(["packages/Some/Tests/Page.test.ts"]);
+    }).toThrow(/ENOENT/);
+    expect(
+      reportTagStrips(["packages/Some/Tests/Page.test.ts"], root),
+    ).toHaveLength(1);
   });
 });
