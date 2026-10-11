@@ -7,6 +7,8 @@ import {
   SET_SITE_ACTION_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/BulkDeviceActionTitles";
 import { MATCH_EACH_DEVICE_LABEL } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/VendorTemplateApplication";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { drawnNetworkLabel, drawnPath } from "./NetworkDocsLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -14,8 +16,9 @@ import path from "path";
 /*
  * The network device guide names the site, role and vendor template bulk
  * actions, and the discovery import's vendor template switch, the way the
- * dashboard does - in English and in Persian, which keeps the dashboard's
- * English labels. Markdown is not compiled, so a renamed action would
+ * dashboard does - in every docs language, each as that language's
+ * Dashboard draws it (drawnNetworkLabel), with menu paths drawn segment by
+ * segment (drawnPath). Markdown is not compiled, so a renamed action would
  * otherwise leave the guide sending readers to a menu item that is not
  * there. The names are read from the module the hooks and the Discovery
  * page take them from.
@@ -27,8 +30,7 @@ const CONTENT_DIR: string = path.resolve(
   "../../../FeatureSet/Docs/Content",
 );
 const DEVICE_GUIDE: string = "monitor/network-device-monitor.md";
-const LANGUAGES: Array<string> = ["en", "fa"];
-const MENU_ARROW: Record<string, string> = { en: "->", fa: "→" };
+const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 function readGuide(language: string): string {
   return fs.readFileSync(
@@ -58,6 +60,10 @@ const SIDE_MENU: string = fs.readFileSync(
 describe.each(LANGUAGES)("the %s network device guide", (language: string) => {
   const guide: string = readGuide(language);
 
+  function drawn(label: string): string {
+    return bold(drawnNetworkLabel(language, label));
+  }
+
   test.each([
     SET_SITE_ACTION_TITLE,
     CLEAR_SITE_ACTION_TITLE,
@@ -65,35 +71,34 @@ describe.each(LANGUAGES)("the %s network device guide", (language: string) => {
     CLEAR_DEVICE_ROLE_ACTION_TITLE,
     APPLY_VENDOR_TEMPLATE_ACTION_TITLE,
   ])("names the %s bulk action as the menu does", (title: string) => {
-    expect(guide).toContain(bold(title));
+    expect(guide).toContain(drawn(title));
   });
 
   test("names the vendor template dialog's matching choice", () => {
-    expect(guide).toContain(bold(MATCH_EACH_DEVICE_LABEL));
+    expect(guide).toContain(drawn(MATCH_EACH_DEVICE_LABEL));
   });
 
   test("names the discovery import's vendor template switch", () => {
     expect(toggleLabel().length).toBeGreaterThan(20);
-    expect(guide).toContain(bold(toggleLabel()));
+    expect(guide).toContain(drawn(toggleLabel()));
   });
 
   test("points at the automatic version of each: site assignment rules and device roles, by their menu paths", () => {
-    const arrow: string = MENU_ARROW[language]!;
-
     expect(guide).toContain(
-      `**Network** ${arrow} **Rules** ${arrow} **Site Assignment Rules**`,
+      drawnPath(language, ["Network", "Rules", "Site Assignment Rules"]),
     );
     expect(guide).toContain(
-      `**Network** ${arrow} **Settings** ${arrow} **Device Roles**`,
+      drawnPath(language, ["Network", "Settings", "Device Roles"]),
     );
   });
 
   test("the vendor template section sends a reader with many devices to the bulk action", () => {
-    const vendorSection: string = guide.slice(
-      guide.indexOf(bold("Vendor Health Template")),
-    );
+    const sectionAt: number = guide.indexOf(drawn("Vendor Health Template"));
 
-    expect(vendorSection).toContain(bold(APPLY_VENDOR_TEMPLATE_ACTION_TITLE));
+    expect(sectionAt).toBeGreaterThan(-1);
+    expect(guide.slice(sectionAt)).toContain(
+      drawn(APPLY_VENDOR_TEMPLATE_ACTION_TITLE),
+    );
   });
 });
 

@@ -417,7 +417,7 @@ Alerts for payments:
 | `trapSourceIp` | 陷阱的来源地址。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapVarbinds` | 陷阱的 varbind，每个形如 `{oid, value}`。仅在 SNMP 陷阱触发检查时。 | `Array<Object>` |
 
-网络设备在每次轮询时都会被 ping，只有在有凭据时才会通过 SNMP 遍历，因此 **在上面的变量中，仅支持 ping 的设备只会填写 `isOnline`**：其他所有变量都来自 SNMP 遍历，没有遍历时会原样保留。在可能用于没有凭据的设备的模板中，请以 `{{isOnline}}` 和设备的名称开头。每种轮询收集哪些内容，请参阅 [网络设备监视器](/docs/monitor/network-device-monitor#what-a-poll-actually-does)。
+网络设备在每次轮询时都会被 ping，只有在有凭据时才会通过 SNMP 遍历，因此 **在上面的变量中，仅支持 ping 的设备只会填写 `isOnline`**：其他所有变量都来自 SNMP 遍历，没有遍历时会原样保留。在可能用于没有凭据的设备的模板中，请以 `{{isOnline}}` 和设备的名称开头。每种轮询收集哪些内容，请参阅 [网络设备监视器](/docs/monitor/network-device-monitor#一次轮询实际做了什么)。
 
 ### 数据库健康监视器
 

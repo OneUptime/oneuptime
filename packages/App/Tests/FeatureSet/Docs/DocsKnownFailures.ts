@@ -228,18 +228,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/network-device-monitor": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "monitor/network-sites": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/network-vendor-guides": {
-    translated: EVERY_TRANSLATION,
-  },
   "permissions/index": {
     sameShape: EVERY_TRANSLATION,
   },
