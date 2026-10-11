@@ -48,13 +48,17 @@ import { Token, marked } from "marked";
  * text, and text that was "&lt;script&gt;" in the HTML - or became so once a
  * tag inside it was taken out - was saved as "<script>".
  *
- * Now tags and comments are read out with removeHtmlMarkup (one walk that
- * leaves no "<" of the HTML), entities are read once after that, and every
- * "<" left in the text that whitespace does not follow gets an invisible
- * word joiner (neutralizeTagStarts): the note reads as the message did, and
- * no renderer reads a tag, a comment, an autolink or a chat mention from it.
+ * Now every tag and comment is read with replaceHtmlMarkup (one walk that
+ * ends a tag only at a ">" outside a quoted value and leaves no "<" of the
+ * HTML) - line breaks, list items, mentions and the ends of blocks become
+ * text as before - entities are read once after that, and the text is
+ * placed in the note as text a stranger typed (FeedMarkdown.reportedValue,
+ * as a form's answers are): each "<" that whitespace does not follow, each
+ * "![" and each "]" a link goes on from gets an invisible word joiner. The
+ * note reads as the message did in Teams, and no renderer reads a tag, a
+ * comment, an autolink, a chat mention, an image or a link from it.
  *
- * A message whose text holds no such "<" is saved exactly as before: the
+ * A message whose text holds none of those is saved exactly as before: the
  * ordinary messages below are each pinned to the note the code before this
  * change saved for them, quirks and all - this change reads markup out
  * completely and changes nothing else.
@@ -308,6 +312,41 @@ const MARKUP_MESSAGES: Array<[string, string, string]> = [
     "<p>p99&lt;200ms and x &lt;= y</p>",
     `p99<${WORD_JOINER}200ms and x <${WORD_JOINER}= y`,
   ],
+  [
+    "an image typed as Markdown",
+    "<p>see ![chart](https://tracker.example/p.png)</p>",
+    `see !${WORD_JOINER}[chart]${WORD_JOINER}(https://tracker.example/p.png)`,
+  ],
+  [
+    "a link typed as Markdown",
+    "<p>[Reset your password](https://login.example/reset)</p>",
+    `[Reset your password]${WORD_JOINER}(https://login.example/reset)`,
+  ],
+  [
+    "a link definition typed as Markdown",
+    "<p>[logo]: https://tracker.example/p.png</p>",
+    `[logo]${WORD_JOINER}: https://tracker.example/p.png`,
+  ],
+  [
+    "a list item whose attribute holds '>'",
+    '<ul><li title="a>b">Drained node-3</li></ul>',
+    "- Drained node-3",
+  ],
+  [
+    "a mention whose attribute holds '>'",
+    '<p><at id="0" title="x>y">Jane</at> please ack</p>',
+    "@Jane please ack",
+  ],
+  [
+    "a line break whose attribute holds '>'",
+    '<p>one<br class="x>y">two</p>',
+    "one\ntwo",
+  ],
+  [
+    "an end tag with a space before its '>'",
+    "<p>first</p ><p>second</p >",
+    "first\nsecond",
+  ],
 ];
 
 describe("a Teams message saved as a note", () => {
@@ -330,12 +369,18 @@ describe("a Teams message saved as a note", () => {
   );
 
   test("no note holds markup marked reads, whatever the message", () => {
+    /*
+     * HTML, an image, a link written in brackets or angle brackets. A bare
+     * address is still a link, as it is wherever somebody types one.
+     */
     for (const [, html] of [...ORDINARY_MESSAGES, ...MARKUP_MESSAGES]) {
       const markup: Array<string> = markdownTokensOf(noteTextOf(html))
         .filter((token: Token): boolean => {
           return (
             token.type === "html" ||
-            (token.type === "link" && token.raw.startsWith("<"))
+            token.type === "image" ||
+            (token.type === "link" &&
+              (token.raw.startsWith("<") || token.raw.startsWith("[")))
           );
         })
         .map((token: Token): string => {
@@ -343,6 +388,21 @@ describe("a Teams message saved as a note", () => {
         });
 
       expect(markup).toEqual([]);
+    }
+  });
+
+  test("as typed, the Markdown in those messages would be read as markup", () => {
+    // So the test above is not passing on text Markdown leaves alone anyway.
+    for (const typed of [
+      "see ![chart](https://tracker.example/p.png)",
+      "[Reset your password](https://login.example/reset)",
+      "<b>bold</b>",
+    ]) {
+      expect(
+        markdownTokensOf(typed).some((token: Token): boolean => {
+          return ["html", "image", "link"].includes(token.type);
+        }),
+      ).toBe(true);
     }
   });
 

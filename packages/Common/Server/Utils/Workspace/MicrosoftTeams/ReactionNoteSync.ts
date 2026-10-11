@@ -40,8 +40,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
-import { neutralizeTagStarts } from "../../../../Utils/Markdown/MarkdownEscape";
-import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
+import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -76,6 +75,60 @@ export enum MicrosoftTeamsReactionOutcome {
   NoText = "NoText",
   NotSupported = "NotSupported",
 }
+
+/*
+ * A card or file attached to a Teams message, with what it holds: the card's
+ * text is read from the message's attachments instead (getAdaptiveCardText).
+ */
+const TEAMS_ATTACHMENT_ELEMENT: RegExp =
+  /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi;
+
+// The name of the tag a piece of markup is, "/" first for an end tag.
+const TAG_NAME: RegExp = /^<(\/?[A-Za-z][A-Za-z0-9-]*)/;
+
+// The ends of the blocks a Teams message is laid out in: each ends a line.
+const TEAMS_BLOCK_ENDS: ReadonlySet<string> = new Set<string>([
+  "/p",
+  "/div",
+  "/li",
+  "/h1",
+  "/h2",
+  "/h3",
+  "/h4",
+  "/h5",
+  "/h6",
+  "/blockquote",
+  "/pre",
+  "/tr",
+]);
+
+type TeamsMarkupAsTextFunction = (markup: string) => string;
+
+/*
+ * What a tag of a Teams message becomes in its text: a line break a line,
+ * a list item "- ", a mention ("<at>Jane</at>") "@" before the name, the end
+ * of a block a line; any other tag or comment, nothing. None of these holds
+ * a "<", so neither does the text (replaceHtmlMarkup).
+ */
+const teamsMarkupAsText: TeamsMarkupAsTextFunction = (
+  markup: string,
+): string => {
+  const name: string = (TAG_NAME.exec(markup)?.[1] || "").toLowerCase();
+
+  if (name === "br") {
+    return "\n";
+  }
+
+  if (name === "li") {
+    return "- ";
+  }
+
+  if (name === "at") {
+    return "@";
+  }
+
+  return TEAMS_BLOCK_ENDS.has(name) ? "\n" : "";
+};
 
 /*
  * Pin (📌) or megaphone (📣 / 📢) a message in an incident, alert, scheduled
@@ -813,13 +866,16 @@ export default class MicrosoftTeamsReactionNoteSync {
    *
    * A note is Markdown, and it goes to the dashboard, to the status page
    * and subscribers' email when it is public, and as a feed item to the
-   * project's Slack and Microsoft Teams channels. So a "<" in the message's
-   * text - one the person typed, which Teams sends as "&lt;" and htmlToText
-   * reads back, or one in a plain-text body or a card - is broken by an
-   * invisible word joiner (neutralizeTagStarts) unless whitespace follows
-   * it: "<img ...>" or "<!channel>" in a message reads as typed in the note,
-   * but no renderer reads a tag or a mention from it. A message with no "<"
-   * in its text is saved exactly as it reads.
+   * project's Slack and Microsoft Teams channels - while the message is
+   * text anyone in the channel may have typed, apps and connectors too, and
+   * Teams showed it as text: a "<b>" typed there (Teams sends it as
+   * "&lt;b&gt;") or a "![x](https://...)" did nothing. So the note's text
+   * is placed as text a stranger typed is everywhere else
+   * (FeedMarkdown.reportedValue, as a form's answers are): it reads exactly
+   * as typed, and no renderer finds a tag, a mention, an image, a link, a
+   * diagram or a reference in it - each "<" that whitespace does not follow,
+   * each "![" and each "]" a link goes on from gets an invisible word joiner.
+   * A message with none of those in its text is saved exactly as it reads.
    */
   public static getMessageText(message: JSONObject): string {
     const body: JSONObject | undefined = message["body"] as
@@ -867,7 +923,7 @@ export default class MicrosoftTeamsReactionNoteSync {
       }
     }
 
-    return neutralizeTagStarts(parts.join("\n\n").trim());
+    return FeedMarkdown.reportedValue(parts.join("\n\n").trim());
   }
 
   /*
@@ -876,14 +932,17 @@ export default class MicrosoftTeamsReactionNoteSync {
    * lines, every other tag and comment out, then entities read - once, so
    * "&amp;lt;" is the text "&lt;".
    *
-   * The tags left after the line breaks are taken out by removeHtmlMarkup
-   * (Common/Types/HtmlMarkup), one walk that leaves no "<" of the HTML
-   * behind. It used to be one pass of a tag pattern, which kept an unclosed
-   * tag ("<img src=x onerror=..." with no ">" after it) as it came, and kept
-   * the end of an attribute value or a comment holding ">" as text. Entities
-   * are read only after that, so text that was "&lt;script&gt;" in the HTML
-   * is text, never a tag this takes out or keeps; getMessageText then makes
-   * it inert for the note.
+   * Every tag and comment is read by replaceHtmlMarkup (Common/Types/
+   * HtmlMarkup), one walk that ends a tag only at a ">" outside a quoted
+   * attribute value, a comment at its "-->", and leaves no "<" of the HTML
+   * behind; teamsMarkupAsText says what each becomes. Tags used to be found
+   * with patterns that each stopped at the first ">" - a line break, a list
+   * item, a mention, then one pass of /<[^>]*>/ for the rest - which kept an
+   * unclosed tag ("<img src=x onerror=..." with no ">" after it) as it came,
+   * and kept the end of an attribute value or a comment holding ">" as
+   * text. Entities are read only after that, so text that was
+   * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
+   * keeps; getMessageText then places it as text for the note.
    */
   public static htmlToText(html: string): string {
     if (!html) {
@@ -891,13 +950,9 @@ export default class MicrosoftTeamsReactionNoteSync {
     }
 
     return this.decodeHtmlEntities(
-      removeHtmlMarkup(
-        html
-          .replace(/<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, "")
-          .replace(/<at\b[^>]*>([\s\S]*?)<\/at>/gi, "@$1")
-          .replace(/<br\s*\/?>/gi, "\n")
-          .replace(/<li\b[^>]*>/gi, "- ")
-          .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|tr)>/gi, "\n"),
+      replaceHtmlMarkup(
+        html.replace(TEAMS_ATTACHMENT_ELEMENT, ""),
+        teamsMarkupAsText,
       ),
     )
       .replace(/\u00a0/g, " ")

@@ -3652,10 +3652,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * unclosed one ("<script" with no ">" after it) matches no tag pattern, so
    * any "<" whose markup never ends goes too, and the text holds no markup
    * at all. It is read by removeHtmlMarkup (Common/Types/HtmlMarkup), the
-   * one walk product code takes markup out of text with - the reaction note
-   * sync reads message bodies through it too - which also ends a tag only
-   * at a ">" outside a quoted attribute value and a comment at its "-->", so
-   * neither leaves the rest of a value or a comment behind as text. Teams
+   * walk the reaction note sync reads message bodies with too, which also
+   * ends a tag only at a ">" outside a quoted attribute value and a comment
+   * at its "-->", so neither leaves the rest of a value or a comment behind
+   * as text. Teams
    * sends a literal "<" in a message as "&lt;", which is left encoded:
    * decoding it here would hand back what this removed.
    */

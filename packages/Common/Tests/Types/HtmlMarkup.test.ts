@@ -1,6 +1,7 @@
 import { stripHtmlTags } from "../../../App/Tests/FeatureSet/Docs/DocsHtmlText";
 import removeHtmlMarkup, {
   removeHtmlMarkup as namedRemoveHtmlMarkup,
+  replaceHtmlMarkup,
 } from "../../Types/HtmlMarkup";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -334,6 +335,89 @@ describe("removeHtmlMarkup", () => {
       ],
     ])("on %s", (_case: string, html: string) => {
       expect(browserText(removeHtmlMarkup(html))).toBe(browserText(html));
+    });
+  });
+
+  describe("tags that never end, then tags that do", () => {
+    /*
+     * Each tag's end is looked for from its "<" until one is found never to
+     * end; from then on every tag's end is looked up, worked out once from
+     * the end of the text. Either way the reading is the same.
+     */
+    it.each([
+      [
+        "an unclosed quoted value, then tags",
+        '<a title="x>y and <b>bold</b> <i>it</i>',
+        'a title="x>y and bold it',
+      ],
+      [
+        "an unclosed value, then a comment and tags",
+        '<p>text <img src="x <!-- note --> <b>b</b>',
+        'text img src="x  b',
+      ],
+      [
+        "tags, an unclosed value, then a quoted value holding '>'",
+        "<b>a</b><c d=\"e>f <b>g</b> <h i='j>k'>l",
+        'ac d="e>f g l',
+      ],
+    ])("reads %s", (_case: string, html: string, text: string) => {
+      expect(removeHtmlMarkup(html)).toBe(text);
+      expect(removeHtmlMarkup(html)).toBe(stripHtmlTags(html));
+    });
+  });
+
+  describe("replaceHtmlMarkup", () => {
+    it("asks what each tag and comment becomes, given it as written", () => {
+      const seen: Array<string> = [];
+      const text: string = replaceHtmlMarkup(
+        'one<br/>two<li class="x>y">three<!-- a > b --></p>',
+        (markup: string): string => {
+          seen.push(markup);
+          return markup === "<br/>" ? "\n" : "|";
+        },
+      );
+
+      expect(seen).toEqual([
+        "<br/>",
+        '<li class="x>y">',
+        "<!-- a > b -->",
+        "</p>",
+      ]);
+      expect(text).toBe("one\ntwo|three||");
+    });
+
+    it("does not ask about a '<' whose markup never ends, which goes alone", () => {
+      const seen: Array<string> = [];
+      const text: string = replaceHtmlMarkup(
+        "a <b>c</b> <img src=x",
+        (markup: string): string => {
+          seen.push(markup);
+          return "";
+        },
+      );
+
+      expect(seen).toEqual(["<b>", "</b>"]);
+      expect(text).toBe("a c img src=x");
+    });
+
+    it("holds no '<' when what it puts in place holds none", () => {
+      for (const html of generatedTexts(5000, 77)) {
+        expect(
+          replaceHtmlMarkup(html, (): string => {
+            return "-";
+          }),
+        ).not.toContain("<");
+      }
+    });
+
+    it("reads markup as removeHtmlMarkup does", () => {
+      for (const html of generatedTexts(5000, 78)) {
+        expect(
+          replaceHtmlMarkup(html, (): string => {
+            return "";
+          }),
+        ).toBe(removeHtmlMarkup(html));
+      }
     });
   });
 

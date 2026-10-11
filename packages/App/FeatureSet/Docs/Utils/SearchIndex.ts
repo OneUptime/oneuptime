@@ -79,7 +79,9 @@ const TEXT_LESS_THAN_MARK: string = "";
  * 2.5 s", "<= 5", "<->" - as TEXT_LESS_THAN_MARK. A run of them ("<<") goes
  * with the character after its last one. A "<" before a letter, "/", "!",
  * "?" or a code span is left for removeHtmlMarkup: what follows it could
- * make a tag, so it must not stay.
+ * make a tag, so it must not stay. That includes one no ">" ever closes -
+ * "p99<threshold" is text to Markdown, and is indexed "p99threshold" - so
+ * that nothing in the index can open a tag, whatever is put after it.
  */
 const markTextLessThans: (text: string) => string = (text: string): string => {
   return text.replace(

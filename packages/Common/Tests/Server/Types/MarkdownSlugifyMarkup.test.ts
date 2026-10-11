@@ -85,6 +85,11 @@ describe("slugify reads a heading's text, not its markup", () => {
   );
 
   test("gives a heading as written the anchor the renderer gives its HTML", async () => {
+    /*
+     * The docs renderer escapes raw HTML an author types (convertToHTML's
+     * renderer.html), so a tag typed in a heading is text on the page and
+     * its name stays in the anchor - as slugifyMarkdownHeading reads it.
+     */
     for (const heading of [
       "`oneuptime <resource> list`",
       "Install `helm` 3",
@@ -93,6 +98,8 @@ describe("slugify reads a heading's text, not its markup", () => {
       "*Überprüfen* der `ceph_health_status`",
       "Tom & Jerry",
       "A <b>tag</b> typed in a heading",
+      "Setup<br>Linux",
+      "API <sup>beta</sup>",
       "Retry <!-- b > c --> Policy",
     ]) {
       const html: string = await Markdown.convertToHTML(
