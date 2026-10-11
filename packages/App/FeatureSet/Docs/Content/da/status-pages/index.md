@@ -1,170 +1,236 @@
 # Statussider – Oversigt
 
-En statusside er det offentlige ansigt på alt det, du overvåger: én URL, dine kunder kan åbne i stedet for at skrive til dig og spørge, om det bare er dem. Den viser den aktuelle tilstand for de tjenester, du vælger at vise frem, de hændelser du arbejder på, den vedligeholdelse du har planlagt, og enhver meddelelse du vil have hængt op øverst.
+En statusside er det offentlige ansigt for alt, hvad du overvåger: én URL, som dine kunder kan åbne i stedet for at skrive til dig og spørge, om problemet kun er hos dem. Den viser den aktuelle status for de tjenester, du vælger at vise, de hændelser, du arbejder på, den vedligeholdelse, du har planlagt, og enhver meddelelse, du vil fastgøre øverst.
 
-Når noget går i stykker klokken to om natten, er statussiden det første, din support linker til. Det er også den, dine abonnenter får besked fra — så den er værd at sætte op, før du får brug for den, ikke midt under nedbruddet.
+Når noget går i stykker klokken 2 om natten, er statussiden det første, din supportkø henviser til. Det er også derfra, dine abonnenter får besked, så det betaler sig at sætte den op, før du får brug for den, ikke midt i nedbruddet.
 
-Statussider bor under **Statussider** i dashboardets venstre navigation, i gruppen **essentials**. Alt på denne side gælder per statusside: et projekt kan køre lige så mange, det vil — en offentlig til kunderne, en privat til et internt publikum, en per region til et bestemt marked.
+:::cards
+- [Opret en statusside](#at-oprette-en-statusside): To felter for at komme i gang, alt det andet bagefter.
+- [Vælg hvad den viser](#at-vælge-hvad-der-vises-på-siden): Hændelser, episoder, meddelelser, vedligeholdelse og oppetid, på ét kort.
+- [Bestem hvem der må se den](#at-begrænse-hvem-der-må-se-siden): Alle med linket, kun personer, der logger ind, eller alle med adgangskoden.
+- [Arkivér en statusside](#at-arkivere-en-statusside): Tag en side offline uden at slette den.
+:::
+
+## Sådan fungerer det
+
+```mermaid title="Hvad en statusside samler"
+flowchart TB
+    subgraph project["Dit projekt"]
+        direction LR
+        M["Monitorer"]
+        E["Hændelser, vedligeholdelse<br/>og meddelelser"]
+    end
+    M --> R["Ressourcer<br/>på siden"]
+    R --> P["Statusside"]
+    E --> P
+    P --> V["Besøgende"]
+    P --> S["Abonnenter"]
+```
+
+Statussider ligger under **Statussider** i menuen **Produkter** i den øverste bjælke, blandt de vigtigste. Alt på denne side gælder pr. statusside: et projekt kan have så mange, det vil — en offentlig til kunder, en privat til et internt publikum, en pr. region til et bestemt marked.
+
+Siden viser de monitorer, du sætter på den, som ressourcer. Hændelser og planlagt vedligeholdelse når siden gennem de monitorer, og meddelelser offentliggøres direkte på den. Besøgende læser siden, og abonnenter får besked om hver ændring på de kanaler, de har valgt.
 
 ## Kort fortalt
 
-- **Oprettes med to felter.** En ny statusside beder kun om **Navn** og **Beskrivelse**. Ressourcer, branding og domæner konfigureres bagefter.
-- **Ressourcer er det, besøgende ser.** Hver række på siden er en **Statusside Ressource** — en monitor (eller monitorgruppe) med sit eget visningsnavn, værktøjstip og oppetidsindstillinger. Grupper deler en lang side op i sektioner og kan ligge inde i hinanden.
-- **En preview-URL fra dag ét.** Hver statusside får et preview-link, så du kan se på den, før der findes et brugerdefineret domæne.
-- **De besøgendes ruter styres af indstillinger.** Hændelser, episoder, meddelelser og planlagte begivenheder dukker kun op, så længe deres kontakt i **Hvad din statusside viser** (på **Avancerede indstillinger**) er slået til, og abonnementssiden kun, så længe **Vis abonnentside** er slået til.
-- **Tre måder at gøre den privat på.** Private brugere, en hovedadgangskode eller SAML SSO / OIDC — plus en IP-hvidliste.
-- **Abonnenter får automatisk besked.** Abonnenter via e-mail, SMS, Slack, Microsoft Teams og webhook kan alle følge en side, hver kanal bag sin egen kontakt.
+- **Oprettes med to felter.** En ny statusside beder kun om **Navn** og **Beskrivelse**. Ressourcer, branding og domæner sætter du op bagefter.
+- **Ressourcer er det, besøgende ser.** Hver række på siden er en **Statusside Ressource**: en monitor (eller monitorgruppe) med sit eget visningsnavn, værktøjstip og oppetidsindstillinger. Grupper deler en lang side op i sektioner og kan indlejres.
+- **En forhåndsvisnings-URL fra første dag.** Hver statusside får et forhåndsvisningslink, så du kan se den, før der findes et brugerdefineret domæne.
+- **Ruterne for besøgende afhænger af indstillinger.** Hændelser, episoder, meddelelser og planlagte begivenheder vises kun, så længe deres kontakt i **Hvad din statusside viser** (under **Avancerede indstillinger**) er slået til, og tilmeldingssiden kun, så længe **Vis abonnentside** er slået til.
+- **Hvem der må se den, er ét valg.** Alle med linket, kun personer, der logger ind (private brugere, SAML- eller OIDC-SSO), eller alle med adgangskoden, på sidens skærm **Adgang**, med en valgfri IP-tilladelsesliste under **Yderligere indstillinger**.
+- **Abonnenter får automatisk besked.** Abonnenter via e-mail, SMS, Slack, Microsoft Teams og webhook kan følge en side, hver kanal bag sin egen kontakt.
 
 ## Nøglebegreber
 
-| Begreb                        | Hvad det betyder                                                                                                                              |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Statusside**                | Én offentlig (eller privat) side med sin egen branding, sine domæner, ressourcer og abonnenter. Modellen `StatusPage`.                          |
-| **Ressource**                 | Én række, de besøgende ser — en monitor eller monitorgruppe vist på siden med et visningsnavn og oppetidsindstillinger.                        |
-| **Gruppe**                    | En navngiven sektion, der rummer ressourcer. Grupper kan ligge inde i andre grupper, og hvert niveau ruller status op for alt nedenunder.       |
-| **Meddelelse**                | En besked, du slår op på en eller flere statussider, med et starttidspunkt og et valgfrit sluttidspunkt.                                        |
-| **Abonnent**                  | En person (eller et system), der følger siden via e-mail, SMS, Slack, Microsoft Teams eller en webhook.                                         |
-| **Brugerdefineret domæne**    | Et domæne, du ejer — `status.example.com` — som peges mod siden med en CNAME og et SSL-certifikat.                                              |
-| **Privat bruger**             | En konto, der kan logge ind på en privat statusside. Adskilt fra brugerne i dit OneUptime-projekt.                                              |
+| Begreb | Hvad det betyder |
+| --- | --- |
+| **Statusside** | Én offentlig (eller privat) side med sin egen branding, sine egne domæner, ressourcer og abonnenter. Modellen `StatusPage`. |
+| **Ressource** | Én række, som besøgende ser: en monitor eller monitorgruppe vist på siden med et visningsnavn og oppetidsindstillinger. |
+| **Gruppe** | En navngivet sektion, der indeholder ressourcer. Grupper indlejres i grupper, og hvert niveau opsummerer status for alt under det. |
+| **Meddelelse** | En besked, du offentliggør på en eller flere statussider, med et starttidspunkt og et valgfrit sluttidspunkt. |
+| **Abonnent** | Nogen (eller noget), der følger siden via e-mail, SMS, Slack, Microsoft Teams eller en webhook. |
+| **Brugerdefineret domæne** | Et domæne, du ejer, `status.example.com`, som peger på siden med en CNAME-post. OneUptime udsteder SSL-certifikatet til det gratis og fornyer det. |
+| **Privat bruger** | En konto, der kan logge ind på en privat statusside. Adskilt fra brugerne i dit OneUptime-projekt. |
 
 ## At oprette en statusside
 
-1. Åbn **Statussider → Alle statussider**, og klik **Opret statusside**.
-2. Udfyld **Navn** (påkrævet, mindst to tegn) og eventuelt **Beskrivelse** i modalen **Create New Status Page**.
-3. Klik **Opret statusside**.
+:::steps
+### Åbn oprettelsesformularen
 
-Det er hele opret-formularen. Listen, du lander tilbage på, viser **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**, og kan filtreres på **Statusside-ID**, **Navn** og **Beskrivelse**.
+Åbn **Statussider → Alle statussider**, og klik på **Opret statusside**.
 
-Åbn den nye side, og du lander på dens **Oversigt**-skærm, som bærer to kort: **Status Page Preview URL** med et link til selve siden, og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har sat.
+### Giv siden et navn
 
-Derefter, i nogenlunde nytteorden:
+Udfyld **Navn** (påkrævet, mindst to tegn) i vinduet **Opret ny: Statusside** og, hvis du vil, **Beskrivelse**, og klik på **Opret statusside**.
 
-- Tilføj ressourcer, så der er noget på siden — se [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups).
-- Sæt sidetitel, favicon, logo og cover, og hægt så et brugerdefineret domæne på — se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
-- Beslut, hvilke kanaler folk kan abonnere på — se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
+Det er hele formularen. Listen, du kommer tilbage til, viser **Navn**, **Beskrivelse**, **Etiketter** og **Ejere** og kan filtreres efter **Statusside-ID**, **Navn** og **Beskrivelse**.
+
+### Åbn den nye side
+
+Åbn den nye side, og du lander på dens skærm **Oversigt**, som har to kort: **Status Page Preview URL** med et link til selve siden og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har angivet. Når projektet har brugerdefinerede felter til statussider, følger et kort **Brugerdefinerede felter**.
+:::
+
+En side, der oprettes med API'et eller med Terraform, er underlagt de samme abonnementer som indstillingerne nedenfor. På OneUptime Cloud afvises oprettelsen af en side med en slået-til-indstilling, som dit abonnement ikke omfatter (for eksempel privat, en skjult liste, brugerdefineret HTML, CSS eller JavaScript, e-mailrapporter, abonnenter via SMS, Slack, Microsoft Teams eller webhook, en IP-tilladelsesliste), med `402 Payment Required`, og beskeden nævner abonnementet. Hver indstillings abonnement står ved indstillingen nedenfor. Indstillinger, der står på standard, som denne formular efterlader dem, virker på alle abonnementer.
+
+Derefter, nogenlunde i rækkefølge efter nytte:
+
+- Tilføj ressourcer, så siden viser noget: se [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups).
+- Angiv sidens titel, favicon, logo og forsidebillede, og tilknyt derefter et brugerdefineret domæne: se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
+- Bestem, hvilke kanaler folk kan abonnere på: se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 - Finjustér, hvad der vises på siden, under **Avancerede indstillinger**.
 
 ## Hvor alting bor
 
-Når en statusside først er åben, er dens egen venstre sidemenu delt i ni sektioner. Brug den som kort over resten af denne dokumentationsgruppe.
+Når du har åbnet en statusside, er dens egen venstremenu delt op i ni sektioner. Brug den som kort over resten af denne del af dokumentationen.
 
-| Sektion               | Hvad der er i den                                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Grundlæggende**     | **Oversigt**, **Meddelelser**, **Ejere**.                                                                                                              |
-| **Ressourcer**        | En enkelt **Ressourcer**-skærm — grupper til venstre, den valgte gruppes monitorer til højre.                                                          |
-| **Abonnenter**        | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**.        |
-| **Notifikationslogs** | **Notifikationslogs** — hvad der blev sendt til abonnenterne.                                                                                          |
-| **Revision**          | **Auditlogs**.                                                                                                                                         |
-| **Branding**          | **Essentiel branding**, **HTML, CSS og JavaScript**, **Brugerdefinerede domæner**, **Sidehoved**, **Sidefod**, **Oversigtsside**, **Sprog**.           |
-| **Sikkerhed**         | **Private brugere**, **SSO**, **OIDC**, **SCIM**, **Godkendelsesindstillinger**.                                                                       |
-| **AI**                | **MCP**.                                                                                                                                               |
-| **Avanceret**         | **Monitor Rules**, **Indlejret status**, **Rapporter**, **Brugerdefinerede felter**, **Avancerede indstillinger**, **Slet statusside**.                |
+| Sektion | Hvad den indeholder |
+| --- | --- |
+| **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
+| **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre) og **Monitor Rules**. |
+| **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
+| **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
+| **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |
+| **Sikkerhed** | **Adgang** (hvem der må se siden), **Private brugere**, **SSO**, **OIDC**, **SCIM**. |
+| **AI** | **MCP**. |
+| **Udvikler** | **Terraform**, **API**, **AI-assistenter**: siden som kode. |
+| **Avanceret** | **Indlejret status**, **Rapporter**, **Brugerdefinerede felter**, **Avancerede indstillinger**, **Auditlogs**, **Slet statusside**. |
 
-To navnefinurligheder, det er værd at kende, før du går på jagt:
+Kun **Grundlæggende** og **Ressourcer**, det siden viser, starter åbne. Alle andre sektioner starter foldet sammen, ligesom de sjældent brugte sektioner i alle OneUptimes menuer: klik på en sektions titel for at vise dens sider. En sektion åbner af sig selv, når du er på en af dens sider, for eksempel **Avancerede indstillinger** eller **E-mail-abonnenter**.
 
-- Punktet **Ressourcer** hedder kun **Ressourcer**, når projektet har monitorgrupper slået til. Ellers står der **Monitorer**. Det er den samme skærm under alle omstændigheder.
-- Der findes ingen selvstændig gruppeside. Grupper og ressourcer blev slået sammen, og den gamle `/groups`-rute viderestiller nu til ressourceskærmen.
+To navneskikke, som er værd at kende, før du begynder at lede:
 
-Uden for en enkelt side har selve **Statussider**-sektionen en **Mere**-sektion med **Meddelelser** og en sammenklappet **Indstillinger**-sektion med **Meddelelsesskabeloner**, **Abonnementsskabeloner**, **Brugerdefinerede felter**, **Ejerregler** og **Etiketregler** — de gælder hele projektet og deles af alle statussider.
+- Punktet **Ressourcer** hedder kun **Ressourcer**, når projektet har monitorgrupper slået til. Ellers hedder det **Monitorer**. Det er den samme skærm i begge tilfælde.
+- Der er ingen separat gruppeside. Grupper og ressourcer er lagt sammen, og den gamle rute `/groups` omdirigerer nu til ressourceskærmen.
+
+Uden for en bestemt side viser selve sektionen **Statussider** **Alle statussider**, og en sektion **Mere** indeholder **Meddelelser**. En sammenfoldet sektion **Indstillinger** indeholder **Meddelelsesskabeloner**, **Abonnementsskabeloner**, **Brugerdefinerede felter**, **Ejerregler** og **Etiketregler**, som gælder for hele projektet og deles af alle statussider. En sammenfoldet sektion **Avanceret** indeholder **Arkiveret**: de statussider, du har taget offline (se [Arkivér en statusside](#at-arkivere-en-statusside)).
+
+**Etiketregler** og **Ejerregler** giver nye statussider etiketter og tildeler dem ejere. En regel har to trin (**Match**, de betingelser en statusside skal opfylde, og derefter **Etiketter** eller **Ejere**, det reglen tilføjer), og dens **Navn** udfyldes ud fra det, du vælger. En ny regel skal tilføje mindst én etiket eller ejer; når du redigerer, bliver der aldrig insisteret på det, og listen markerer en gammel regel, der ikke tilføjer noget, med **Tilføjer intet**. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
 ## Hvad besøgende ser
 
-Den offentlige side er sin egen app med et lille sæt ruter:
+Den offentlige side er en applikation for sig, med et lille sæt ruter:
 
-- `/` — **Oversigt**.
-- `/incidents` og `/incidents/:id` — listen over hændelser og en enkelt hændelse.
+- `/`: **Oversigt**.
+- `/incidents` og `/incidents/:id`: listen over hændelser og en enkelt hændelse.
 - `/announcements` og `/announcements/:id`.
 - `/scheduled-events` og `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/rss` — feedet.
-- `/login`, `/sso` og `/master-password` — kun relevante på en privat side.
+- `/confirm-subscription/:id`, `/update-subscription/:id` og `/unsubscribe/:token`: linkene i de beskeder, abonnenterne får.
+- `/rss`: feedet.
+- `/login`, `/sso` og `/master-password`: kun relevante på en privat side.
 
-Den øverste navigationslinje viser altid **Oversigt**; resten dukker kun op, når de er slået til. **Hændelser**, **Meddelelser** og **Planlagte hændelser** kræver hver sin kontakt slået til; **Abonner** kræver både **Vis abonnentside** og mindst én abonnentkanal aktiveret. En privat side får desuden et **Log ud**-punkt.
+Navigationsbjælken øverst viser altid **Oversigt**; resten vises kun, når det er slået til. **Hændelser**, **Meddelelser** og **Planlagte hændelser** kræver hver deres kontakt; **Abonner** kræver både **Vis abonnentside** og mindst én slået-til abonnementskanal. En privat side har også et punkt **Log ud**.
+
+En enkelt hændelse, episode, meddelelse eller planlagt begivenhed åbner kun, hvis siden ville vise den, uanset dens historikvindue: en privat hændelse eller episode, en, der er skjult på statussider, en planlagt begivenhed, der er skjult på statussider, eller en meddelelse, der er planlagt til senere, findes heller ikke via sit link.
 
 ### Oversigtssiden
 
-Oversigten er den side, de fleste besøgende nogensinde ser. Fra top til bund viser den:
+Oversigten er den side, de fleste besøgende ser. Fra top til bund viser den:
 
-1. **Eventuelle aktive meddelelser** — meddelelser, hvis starttidspunkt er passeret, og hvis sluttidspunkt ikke er det.
-2. **Et samlet statusbanner** — en enkelt linje, der opsummerer, om alle eller kun nogle ressourcer er berørt.
-3. **En samlet oppetidsprocent**, hvis du har slået den til. Slået fra som standard.
-4. **Ressourcegrupperne**, hver med deres ressourcer, deres aktuelle status og deres oppetidshistorik-bjælker.
-5. **Aktive hændelser**.
+1. **Igangværende meddelelser**: meddelelser, hvis starttidspunkt er passeret, og hvis sluttidspunkt ikke er.
+2. **Et banner med den samlede status**: én linje, der opsummerer, om alle ressourcer er berørt eller kun nogle.
+3. **En samlet oppetidsprocent**, hvis du har slået den til: i slutningen af banneret med den samlede status, så længe alle ressourcer er i drift. Slået fra som standard.
+4. **Ressourcegrupperne**, hver med sine ressourcer, deres aktuelle status og deres bjælker med oppetidshistorik.
+5. **Aktive hændelser**, med aktive episoder.
 6. **Planlagte vedligeholdelseshændelser**.
 
-En helt ny side uden noget på viser en tom tilstand, der beder dig tilføje ressourcer fra dashboardet — hvilket er dit stikord til at gå til **Ressourcer**-skærmen.
+En nyoprettet side uden indhold viser en tom tilstand, der beder dig tilføje ressourcer fra dashboardet — signalet til at gå til skærmen **Ressourcer**.
 
-Se [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) for, hvad der overhovedet får en hændelse på denne side, og hvad der fjerner den igen.
+Den oversigt, en besøgende ser, er højst 15 sekunder gammel, og alt, hvad du fjerner fra siden, forsvinder fra den inden for et sekund: en hændelse, episode eller planlagt begivenhed, som du skjuler på statussider, gør privat, begrænser til andre sider eller sletter, en meddelelse, som du afslutter, udskyder eller sletter, en offentlig note, som du sletter, og en ressource, gruppe eller monitor, som du fjerner fra siden eller sletter. Andre ændringer, som en ny titel, vises inden for de 15 sekunder.
+
+Hvad der sætter en hændelse på denne side, og hvad der fjerner den, kan du læse i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities).
 
 ## At vælge hvad der vises på siden
 
-Hvad de besøgende ser, indstilles i ét kort: **Hvad din statusside viser**, på **Statussider → din side → Avanceret → Avancerede indstillinger**. Det har en række for hver liste, siden kan vise, derefter **Oppetidshistorik** og linjen "Powered by OneUptime". Der er ingen redigeringsknap: En kontakt gemmes, så snart du slår den om, og et antal dage, når du forlader feltet eller trykker på Enter.
+Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger**. Det har en række for hver liste, siden kan vise, derefter **Oppetidshistorik** (med den samlede oppetidsprocent og de statusser, der tæller som nedetid) og linjen "Powered by OneUptime". Der er ingen redigeringsknap: en kontakt gemmes, så snart du slår den om, et antal dage, når du forlader feltet eller trykker på Enter, og et valg fra en liste, så snart du træffer det.
 
-- **Vis hændelser** (`showIncidentsOnStatusPage`) — slået til som standard. Under den bestemmer **Vis de seneste … dage** (`showIncidentHistoryInDays`, standard 14), hvor langt tilbage listen over hændelser rækker, og **Vis hændelsesetiketter** (`showIncidentLabelsOnStatusPage`) er slået fra som standard.
-- **Vis kun hændelser, der er begrænset til denne side** (`onlyShowScopedIncidents`) — også i hændelsesrækken, slået fra som standard. Er den slået til, viser siden kun de hændelser, der med **Begræns til disse statussider** er begrænset til den, og kun dem får dens abonnenter besked om. Den afgør også, hvilke hændelser der bringer deres episoder på siden, så den bliver stående, når **Vis hændelser** er slået fra.
-- **Vis episoder** (`showEpisodesOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, slået fra som standard). Episoder er deres egen model med deres egne endpoints, ikke en visning af hændelser.
-- **Vis meddelelser** (`showAnnouncementsOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14).
-- **Vis planlagte vedligeholdelsesbegivenheder** (`showScheduledMaintenanceEventsOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showScheduledEventHistoryInDays`, standard 14) og **Vis begivenhedsetiketter** (`showScheduledEventLabelsOnStatusPage`, slået fra som standard).
-- **Oppetidshistorik** — **Vis de seneste … dage** (`showUptimeHistoryInDays`) er længden af oppetidsbjælken ved siden af hver ressource. Standard er 90 og skal ligge mellem 1 og 90. Hver eneste **Vis oppetid %**- og **Vis statushistorikdiagram**-indstilling på en ressource eller gruppe læser dette tal.
-- **Vis "Powered By OneUptime"-branding** — slået til som standard, så sidefoden hos de besøgende lyder "Powered by OneUptime". Slå den fra for at skjule linjen. Kolonnen gemmer det omvendt, som `hidePoweredByOneUptimeBranding`.
+- **Vis hændelser** (`showIncidentsOnStatusPage`): slået til som standard. Under den bestemmer **Vis de seneste … dage** (`showIncidentHistoryInDays`, standard 14), hvor langt hændelseslisten går tilbage, og **Vis hændelsesetiketter** (`showIncidentLabelsOnStatusPage`) er slået fra som standard.
+- **Vis kun hændelser, der er begrænset til denne side** (`onlyShowScopedIncidents`): også i hændelsesrækken, slået fra som standard. Slå den til, og siden viser, og underretter sine abonnenter om, kun de hændelser, der er begrænset til den med **Begræns til disse statussider**. Hændelser, der ikke er begrænset til nogen side, også dem, som en monitor, Slack, Microsoft Teams, API'et eller AI åbner af sig selv, når aldrig siden, før nogen tilføjer siden til dem. Den bestemmer også, hvilke hændelser der bringer deres episoder på siden, og derfor er den fortsat tilgængelig, når **Vis hændelser** er slået fra. For sider, der deler monitorer, men betjener forskellige målgrupper, se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
+- **Vis episoder** (`showEpisodesOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, slået fra som standard). Episoder er en model for sig med egne endpoints, ikke en visning af hændelser.
+- **Vis meddelelser** (`showAnnouncementsOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14).
+- **Vis planlagte vedligeholdelsesbegivenheder** (`showScheduledMaintenanceEventsOnStatusPage`): slået til som standard, med **Vis de seneste … dage** (`showScheduledEventHistoryInDays`, standard 14) og **Vis begivenhedsetiketter** (`showScheduledEventLabelsOnStatusPage`, slået fra som standard).
+- **Oppetidshistorik**: alt om sidens oppetid, i én række:
+  - **Vis de seneste … dage** (`showUptimeHistoryInDays`) er længden af oppetidsbjælken ved hver ressource. Den er 90 som standard og skal være mellem 1 og 90. Alle en ressources eller gruppes indstillinger **Vis oppetid %** og **Vis statushistorikdiagram** læser dette tal, og det samme gør den samlede oppetidsprocent.
+  - **Vis samlet oppetidsprocent** (`showOverallUptimePercentOnStatusPage`): slået fra som standard. Slå den til, og banneret med den samlede status slutter med en oppetidsprocent for hele siden, gennemsnittet af dens ressourcer og grupper, så længe alt er i drift. Mens den er slået til, vælger **Præcision** (`overallUptimePercentPrecision`), hvor mange decimaler den viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. Hver ressource og hver gruppe har sin egen præcision.
+  - **Tæller som nedetid** (`downtimeMonitorStatuses`): de monitorstatusser, hvis tid tæller imod hver oppetidsprocent på siden: hver ressources, hver gruppes og den samlede. Hver status er en etiket i sin egen farve. Tilføj en fra listen, eller fjern en med dens **×**, og ændringen gemmes med det samme. En ny statusside starter med alle projektets statusser, der ikke er i drift. Der er altid mindst én status tilbage: den sidste kan ikke fjernes, fordi uden nogen ville al oppetid på siden vise 100%.
+- **Vis "Powered By OneUptime"-branding**: slået til som standard, så sidefoden for besøgende siger "Powered by OneUptime". Slå den fra for at skjule linjen. Kolonnen gemmer det omvendt, som `hidePoweredByOneUptimeBranding`.
 
-**En liste, der er slået fra,** forsvinder fra siden sammen med sit punkt i navigationslinjen, hvis den har et; dens offentlige endpoint afviser anmodninger, og sidens abonnenter får ikke besked om den slags begivenhed. Dens række viser så kun kontakten: Hvor langt tilbage en skjult liste går, og om den viser etiketter, ændrer intet.
+**En slået-fra liste** forsvinder fra siden sammen med sit punkt i navigationsbjælken, hvis den har et; dens offentlige endpoint afviser forespørgslen, og sidens abonnenter får ikke besked om den slags begivenhed. Dens række viser så kun dens kontakt: hvor langt en skjult liste går tilbage, og om den viser etiketter, ændrer intet.
 
-**Planer.** På OneUptime Cloud står den nødvendige plan ved siden af en indstilling, som din plan ikke må ændre. De fire listekontakter, de tre etiketkontakter og episodehistorikken kræver **Growth**; at skjule linjen "Powered by OneUptime" kræver **Scale**. De øvrige historikvinduer, **Oppetidshistorik** og **Vis kun hændelser, der er begrænset til denne side** kan ændres på alle planer, og hver indstilling gemmes for sig.
+**Abonnementer.** På OneUptime Cloud viser en indstilling, som dit abonnement ikke kan ændre, det abonnement, den kræver, ved siden af. De fire listekontakter, de tre etiketkontakter og episodernes historik kræver **Growth**; at vise den samlede oppetidsprocent og at skjule linjen "Powered by OneUptime" kræver **Scale**. De andre historikvinduer, **Oppetidshistorik**, **Præcision**, **Tæller som nedetid** og **Vis kun hændelser, der er begrænset til denne side** kan ændres på alle abonnementer, og hver af dem gemmes for sig: en side, hvis samlede oppetidsprocent allerede er slået til, kan ændre dens præcision på ethvert abonnement. At sætte en indstilling tilbage til, som den er på en ny side (vise en liste igen, skjule etiketterne eller den samlede oppetidsprocent, vise linjen "Powered by OneUptime", sætte episodernes historik tilbage til 14 dage), virker på alle abonnementer, så intet, som en prøveperiode ændrede, bliver hængende for mangel på abonnement: kontakten siger, at den stadig kan gå tilbage, og hvilket abonnement der skal til for at ændre den igen.
 
-Om siden viser punktet **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere via, indstilles ikke på denne skærm: Begge dele findes i kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnenter og meddelelser](/docs/status-pages/subscribers)).
+Om siden viser et punkt **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere på, angives ikke på denne skærm: begge dele står på kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnementskanaler](/docs/status-pages/subscribers#abonnementskanaler)).
 
-Under kortet følger et kort, der eksporterer statussidens indstillinger til en JSON-fil, som du kan importere igen, og kortet til at arkivere statussiden.
+Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Archive status page** (se [Arkivér en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
 
-**Hvor farverne er.** Farverne på oppetidsbjælken er ikke her — **Standardbjælkefarve**, reglerne for bjælkefarver, **Nedetidsovervågningsstatusser** og **Vis samlet oppetidsprocent** bor alle på **Statussider → din side → Branding → Oversigtsside**. Der findes ingen tema- eller brandfarveindstilling nogen steder; alt ud over de kontroller klares med **Brugerdefineret CSS**.
+**Hvor farverne er.** Oppetidsbjælkernes farver er ikke her: **Standardbjælkefarve** og farvereglerne for bjælkerne ligger under **Yderligere indstillinger** i **Statussider → din side → Branding → Branding**. Der findes ingen indstilling for tema eller brandfarve nogen steder; alt ud over disse kontroller klarer du med **Brugerdefineret CSS**.
 
 ## At se siden an, før du går live
 
-**Oversigt**-skærmen på hver statusside bærer et **Status Page Preview URL**-kort med et link direkte til siden. Brug det, mens du stadig er i gang med at tilføje ressourcer, og før der findes et brugerdefineret domæne.
+Skærmen **Oversigt** for hver statusside har et kort **Status Page Preview URL** med et direkte link til siden. Brug det, mens du stadig tilføjer ressourcer, og før der findes et brugerdefineret domæne.
 
-Bag kulisserne har hver offentlig rute en preview-tvilling under `/status-page/{statusPageId}/...` — en preview-oversigt, en preview-liste over hændelser, en preview-abonnementsside og så videre. Det betyder, at en URL eller et skærmbillede taget fra preview i dashboardet ikke svarer til det, en kunde ser, når først et brugerdefineret domæne er hægtet på — så tjek ethvert link, du indsætter i et runbook eller en e-mail, en ekstra gang.
+Bag kulisserne har hver offentlig rute en forhåndsvisningstvilling under `/status-page/{statusPageId}/...`: en forhåndsvist oversigt, en forhåndsvist hændelsesliste, en forhåndsvist tilmeldingsside og så videre. En URL eller et skærmbillede taget fra dashboardets forhåndsvisning svarer derfor ikke til det, en kunde ser, når et brugerdefineret domæne er tilknyttet, så tjek alle links, du indsætter i en runbook eller en e-mail.
 
 ## At begrænse hvem der må se siden
 
-Ikke enhver statusside er til offentligheden. Alle kontrollerne ligger under **Sikkerhed**-sektionen.
+Ikke alle statussider er til offentligheden. Hvem der må se en side, er ét valg, det første kort på **Statussider → din side → Sikkerhed → Adgang**, **Hvem der kan se denne statusside**:
+
+- **Alle med linket**: siden er offentlig. Alle nye statussider starter her.
+- **Kun personer, der logger ind**: besøgende lander på `/login` og logger ind som privat bruger eller med din SSO- eller OIDC-udbyder (se nedenfor). Under valget viser kortet den login-opsætning, siden har (hvor mange private brugere den har, og om SSO og OIDC er slået til, hver med et link til sin skærm), og advarer, så længe dette er valget, når ingen endnu kan logge ind.
+- **Alle med adgangskoden**: besøgende lander på `/master-password` og låser siden op med en adgangskode, du deler med dem. Ingen behøver en konto. Når du vælger det, beder samme dialog om adgangskoden, hvis siden ikke har en; har den allerede en, kan du beholde den eller skrive en ny. Bagefter erstatter **Skift adgangskode** under valget den. Adgangskoden gemmes som hash og kan ikke vises igen, og dem, der har indtastet den gamle, kan blive ved med at se siden i op til 7 dage.
+
+Et valg beder om bekræftelse og siger, hvad der ændrer sig for besøgende, og gemmes med det samme. Der er ingen redigeringsknap.
+
+**Billeder.** Et billede i det, siden viser (en offentlig note, en meddelelse, en beskrivelse), åbner på sin egen lange adresse, som ikke kan gættes, og som virker uden login, så e-mails til dine abonnenter også kan vise det. Selve siden kræver stadig login eller adgangskoden.
+
+**Hvad der gemmes.** Valget består af tre kolonner, som API'et og Terraform læser og skriver som før: `isPublicStatusPage`, `enableMasterPassword` og `masterPassword`. Besøgende bliver kun bedt om adgangskoden på en side, der ikke er offentlig, med `enableMasterPassword` slået til og en adgangskode angivet; en privat side med kontakten slået til, men uden adgangskode, er en login-side. At vælge **Alle med linket** slår også `enableMasterPassword` fra, fordi en offentlig side aldrig beder om den. Skærmen **Adgang** skriver kun de kolonner, et valg ændrer.
+
+**Abonnementer.** På OneUptime Cloud kræver det abonnementet **Growth** at gøre en side privat: på et lavere abonnement viser de to private valg det abonnement, de kræver, og kan ikke vælges. At gøre den offentlig igen (**Alle med linket**) virker på alle abonnementer, så en side, der blev efterladt privat, da en prøveperiode sluttede, eller efter et skift til et lavere abonnement, altid kan åbnes igen; dialogen siger, at det kræver **Growth** at gøre den privat igen. At skifte fra **Kun personer, der logger ind** til **Alle med adgangskoden** virker på alle abonnementer, ligesom **Skift adgangskode**.
 
 ### Private brugere
 
-Slå **Er synlig for offentligheden** fra under **Statussider → din side → Sikkerhed → Godkendelsesindstillinger** (kolonnen `isPublicStatusPage`). Besøgende lander så på `/login` og skal logge ind.
+Tilføj de personer, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en handling **Tilføj i bulk**: indsæt en liste med e-mailadresser, og hver adresse får en invitationsmail. Private brugere har deres eget forløb for glemt adgangskode og nulstilling, adskilt fra kontiene i dit OneUptime-projekt.
 
-Tilføj de folk, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en **Tilføj i bulk**-handling — indsæt en liste af e-mailadresser, og hver af dem får en invitation på e-mail. Private brugere har deres eget flow til glemt og nulstillet adgangskode, adskilt fra dine OneUptime-projektkonti.
-
-### Hovedadgangskode
-
-**Godkendelsesindstillinger** har også et **Hovedkodeord**-kort med en **Kræv hovedadgangskode**-kontakt og selve adgangskoden. Besøgende rammer så `/master-password` og låser siden op med én fælles hemmelighed.
-
-**Hovedadgangskode og private brugere kan ikke kombineres.** Så længe hovedadgangskoden er slået til, er godkendelse med private brugere deaktiveret, og skærmen **Private brugere** viser et banner, der fortæller dig det.
+**Private brugere og adgangskoden lægges ikke sammen.** Så længe **Alle med adgangskoden** er valget, kan private brugere ikke logge ind (de indtaster også adgangskoden), og skærmen **Private brugere** siger det, med et link tilbage til **Adgang**.
 
 ### SSO og OIDC
 
-Til en privat side bundet til din identitetsudbyder konfigurerer **Statussider → din side → Sikkerhed → SSO** SAML (du angiver sign-on-URL, issuer og x509-certifikat, og signatur- og digest-metoderne udfyldes under **Flere felter**), og **Statussider → din side → Sikkerhed → OIDC** konfigurerer OpenID Connect: du angiver issuer, client-ID og -secret, og discovery-URL, scopes og claim-navne udfyldes under **Flere felter**. **SCIM** provisionerer private brugere automatisk fra IdP'en. På OneUptime Cloud kræver alle tre Scale-planen eller højere. På en selvhostet installation er SSO og OIDC en del af alle udgaver, mens SCIM kræver [Enterprise Edition](/docs/self-hosted/enterprise).
+For en privat side, der er koblet til din identitetsudbyder, sætter **Statussider → din side → Sikkerhed → SSO** SAML op: du indtaster login-URL'en, udstederen og x509-certifikatet, og signerings- og digest-metoderne udfyldes under **Flere felter**. **Statussider → din side → Sikkerhed → OIDC** sætter OpenID Connect op: du indtaster udstederen, klient-id'et og hemmeligheden, og discovery-URL'en, scopes og claim-navnene udfyldes under **Flere felter**. **SCIM** opretter automatisk private brugere fra IdP'en. På OneUptime Cloud kræver alle tre abonnementet Scale eller højere. I en selvhostet installation er SSO og OIDC en del af alle udgaver, og SCIM kræver [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Et **SSO-indstillinger**-kort viser **Tving SSO til login** (`requireSsoForLogin`, slået fra som standard). Test din SSO-konfiguration, før du slår den til — virker den ikke, låser du dig selv ude af statussiden. På OneUptime Cloud kræver det planen **Scale** at slå den til, mens den kan slås fra på alle planer. En side, der stadig kræver SSO, når en Scale-prøveperiode slutter eller planen sættes ned, bliver ved med at kræve det, indtil nogen slår det fra: siderne **SSO** og **OIDC** viser kontakten under planens opgraderingstilbud til netop det.
+At slå en statussides SSO- eller OIDC-udbyder fra eller slette den logger de private brugere ud, som den har logget ind: deres sessioner slutter ved deres næste forespørgsel, og at slå udbyderen til igen bringer dem ikke tilbage; de logger ind gennem den igen. Et nyt certifikat eller en ny klienthemmelighed, andre URL'er eller et nyt navn holder alle logget ind. På en side, der kræver SSO, låser det alle ude at slå dens sidste udbyder fra, indtil du slår en til igen eller slår **Kræv SSO til login** fra; for at skifte til en anden udbyder skal du sætte den nye op og teste den, før du slår den gamle fra.
 
-### IP-hvidliste
+Under udbyderne indeholder kortet **SSO-indstillinger** kontakten **Kræv SSO til login** (`requireSsoForLogin`, slået fra som standard), som gemmes, så snart du slår den om. At slå den til beder først om bekræftelse, fordi private brugere derefter ikke kan logge ind med e-mail og adgangskode: kun de personer, din SSO- eller OIDC-udbyder lukker ind, kan se siden. Test SSO med linket på den skærm, før du slår den til. Den har kun betydning, så længe **Kun personer, der logger ind** er valget, og skærmen **Adgang** viser den som **SSO påkrævet** under det valg. Mens den er slået til, bliver en privat bruger, der loggede ind med e-mail og adgangskode, også logget ud ved sin næste forespørgsel: kun sessioner, som en SSO- eller OIDC-udbyder har startet, tæller. På OneUptime Cloud kræver det abonnementet **Scale** at slå den til, og at slå den fra virker på alle abonnementer. En side, der stadig kræver SSO, efter at en prøveperiode med Scale er slut, eller efter et skift til et lavere abonnement, bliver ved med det, indtil nogen slår det fra: dens sider **SSO** og **OIDC** viser kontakten til det under abonnementstilbuddet.
 
-**Godkendelsesindstillinger** bærer også et **IP-hvidliste**-kort, understøttet af kolonnen `ipWhitelist`, til sider der kun bør svare fra kendte netværk.
+### IP-tilladelsesliste
+
+Under **Yderligere indstillinger** på **Adgang** begrænser sektionen **IP-tilladelsesliste** (kolonnen `ipWhitelist`) en side til kendte netværk. Den gælder uanset sidens publikum: en besøgende fra enhver anden adresse afvises, også med adgangskoden eller en konto som privat bruger. Skriv én post pr. linje: en IPv4- eller IPv6-adresse eller et IPv4-interval som `10.0.0.0/8`; en linje, der ikke er nogen af delene, afvises, når du gemmer. Lad den være tom for at tillade alle adresser. Mens listen gælder, viser den sammenfoldede overskrift **Yderligere indstillinger** **IP-tilladelsesliste** med antallet af poster i den. På OneUptime Cloud kræver det abonnementet **Scale** at ændre den; at tømme den virker på alle abonnementer.
 
 ## Det indlejrbare mærke og RSS-feedet
 
-To måder at vise status frem et andet sted end på selve siden.
+To måder at vise status andre steder end på selve siden.
 
-**Indlejret statusmærke.** Slå **Aktivér indlejret statusmærke** (`enableEmbeddedOverallStatus`, slået fra som standard) til i kortet **Indlejret statusmærke** under **Statussider → din side → Avanceret → Indlejret status**. Det følges af et `embeddedOverallStatusToken` og serverer mærket fra `/badge/:statusPageId`, så du kan lægge den aktuelle samlede status ind i din dokumentation, i din apps sidefod eller på en marketingside.
+**Indlejret statusmærke.** Under **Statussider → din side → Avanceret → Indlejret status** slår du **Aktivér indlejret statusmærke** til (`enableEmbeddedOverallStatus`, slået fra som standard) og klikker derefter på **Regenerer token** på kortet **Sikkerhedstoken** for at give mærket sit token (`embeddedOverallStatusToken`). Mærket leveres fra `/api/status-page/badge/<status-page-id>?token=<token>`, og skærmen viser det i **Badge-forhåndsvisning** med uddrag, du kan kopiere, så du kan sætte den aktuelle samlede status ind i din dokumentation, din apps sidefod eller en markedsføringsside.
 
-**RSS-feed.** Hver statusside serverer `/rss` — et feed med titlen "{statussidens navn} Updates", hvis punkter er præfikset `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Praktisk for folk, der hellere vil pumpe dine opdateringer ind i en læser eller en chatbot end at abonnere på e-mail.
+**RSS-feed.** Hver statusside leverer `/rss`: et feed med titlen "{sidetitel} Updates", med den **Sidetitel**, der er angivet under **Branding**, eller sidens navn, hvis den ikke har nogen, og hvis elementer begynder med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Nyttigt for dem, der hellere vil trække dine opdateringer ind i en feedlæser eller en chatbot end abonnere via e-mail.
 
-Vil du hellere hente data selv, understøttes statussiden af offentlige læse-endpoints for oversigten, hændelser, planlagte vedligeholdelsesbegivenheder, meddelelser og episoder — se [Offentlig API](/docs/status-pages/public-api).
+Hvis du hellere vil hente dataene selv, bygger statussiden på offentlige læse-endpoints for oversigten, hændelserne, de planlagte vedligeholdelsesbegivenheder, meddelelserne og episoderne: se [Offentlig API](/docs/status-pages/public-api).
 
-## Hvor du kan læse videre
+## At arkivere en statusside
 
-- [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups) — at få monitorer på siden og organisere dem i sektioner.
-- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) — logo, favicon, sidefod, brugerdefineret kode og at pege dit eget domæne mod siden.
-- [Abonnenter og meddelelser](/docs/status-pages/subscribers) — de fem abonnementskanaler, dobbelt opt-in og at slå meddelelser op.
-- [Offentlig API](/docs/status-pages/public-api) — at læse statussidedata programmatisk.
-- [Hændelser – Oversigt](/docs/incidents/index) — de begivenheder, der dukker op på siden.
-- [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — hvad der får en hændelse til at optræde på en statusside, og hvad der fjerner den.
+Arkivér en statusside for at tage den offline uden at slette den. En arkiveret statusside:
+
+- **Er offline.** Dens URL, dens brugerdefinerede domæner, dens indlejrede mærke, dens offentlige API og dens MCP-server svarer, som om siden ikke fandtes ("Status Page not found"), så en besøgende ikke kan skelne en arkiveret side fra en, der aldrig har eksisteret. Dashboardets forhåndsvisningslink holder også op med at virke.
+- **Sender intet til sine abonnenter.** Ingen notifikationer om hændelser, episoder, vedligeholdelse eller meddelelser, ingen rapporter og ingen abonnementsbekræftelser. Ingen kan abonnere på den.
+- **Forsvinder fra listen over statussider.** Du finder den under **Statussider → Avanceret → Arkiveret**.
+- **Beholder alt.** Dens ressourcer, grupper, branding, domæner, private brugere og abonnenter bevares, så når du fjerner den fra arkivet, kommer siden online igen præcis, som den var.
+
+For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Archive status page**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkiv**, eller du åbner den og klikker på **Fjern fra arkiv** i banneret øverst på dens sider.
+
+## Næste trin
+
+:::cards
+- [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups): Sæt monitorer på siden, og organisér dem i sektioner.
+- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains): Dit logo og dine farver, og siden på dit eget domæne.
+- [Abonnenter og meddelelser](/docs/status-pages/subscribers): De fem abonnementskanaler og offentliggørelse af meddelelser.
+- [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience): En side pr. kunde, lokation eller region, og hvilke der får besked om hver hændelse.
+:::

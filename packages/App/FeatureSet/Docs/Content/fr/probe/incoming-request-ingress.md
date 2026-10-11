@@ -1,37 +1,56 @@
-# Entrée de requêtes entrantes
+# Ingress de requêtes entrantes
 
-Une sonde personnalisée peut optionnellement exécuter un **écouteur HTTP entrant** qui accepte les appels `heartbeat` et `incoming-request` depuis l'intérieur de votre réseau privé et les transmet à OneUptime. Cela permet aux services qui **n'ont pas d'accès Internet sortant** de tout de même rapporter à un [Moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor) en envoyant la requête à une sonde sur le réseau local plutôt que directement à `oneuptime.com`.
+Un service sans accès à Internet peut tout de même envoyer des heartbeats à un [moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor). Il les envoie plutôt à une [sonde personnalisée](/docs/probe/custom-probe) de son propre réseau, et la sonde les transmet à OneUptime.
 
-## Vue d'ensemble
+:::cards
+- [Fonctionnement](#fonctionnement): De votre service au moniteur, en passant par la sonde.
+- [Activer l'écouteur](#activer-lécouteur): Un seul réglage sur la sonde, pour Docker, Docker Compose ou Kubernetes.
+- [Envoyer les requêtes à la sonde](#envoyer-les-requêtes-à-la-sonde): Changer l'URL à laquelle votre service envoie, et rien d'autre.
+- [Dépannage](#dépannage): Ce que la sonde journalise quand une requête ne passe pas.
+:::
 
-Lorsque `PROBE_INGRESS_PORT` est défini, la sonde lie un écouteur HTTP supplémentaire sur ce port. L'écouteur accepte les mêmes chemins d'URL `secretkey` que les points d'accès publics OneUptime :
+## Fonctionnement
 
-- `POST /heartbeat/:secretkey`
-- `GET /heartbeat/:secretkey`
-- `POST /incoming-request/:secretkey`
-- `GET /incoming-request/:secretkey`
+```mermaid title="Un heartbeat qui passe par la sonde"
+flowchart TB
+    subgraph net["Votre réseau privé"]
+        direction LR
+        S["Service sans<br/>accès à Internet"] -->|"HTTP"| P["Sonde personnalisée"]
+    end
+    P -->|"HTTPS"| O["OneUptime"]
+    O --> M["Moniteur de requêtes entrantes"]
+```
 
-La sonde proxy ensuite la requête vers votre instance OneUptime, en préservant la méthode, le corps et les en-têtes de requête (moins les en-têtes hop-by-hop tels que `Host`, `Connection`, `Content-Length`, etc.). La sonde attache automatiquement un en-tête `OneUptime-Probe-Id` afin que la requête soit attribuée à la sonde de transmission.
+1. **Votre service envoie la requête à la sonde.** Le même `GET` ou `POST`, avec la même clé secrète, qu'il enverrait à OneUptime, vers un port sur lequel la sonde écoute.
+2. **La sonde répond aussitôt.** Elle répond `200` avant de transmettre la requête, pour que votre service n'attende jamais OneUptime.
+3. **La sonde la transmet.** Elle envoie la requête à OneUptime avec sa méthode, ses en-têtes et son corps, et ajoute un en-tête `OneUptime-Probe-Id` qui désigne la sonde.
+4. **OneUptime la lit comme d'habitude.** Les critères du moniteur voient la requête comme si le service l'avait envoyée directement.
 
-L'écouteur s'exécute sur un **port dédié**, séparé des points d'accès internes de statut/métriques de la sonde, vous pouvez donc l'exposer à votre réseau privé sans rien exposer d'autre.
+L'écouteur tourne sur un port à lui, séparé des contrôles de santé de la sonde : vous pouvez l'ouvrir à votre réseau privé sans rien ouvrir d'autre.
 
 ## Quand l'utiliser
 
-Utilisez l'écouteur d'entrée lorsque :
+Utilisez l'écouteur lorsque :
 
-- Vos services s'exécutent dans un segment réseau isolé sans accès HTTPS sortant
-- Vous avez besoin de garder tout le trafic de surveillance au sein de votre VPC / réseau sur site
-- Vous souhaitez un seul point de sortie — la sonde — autorisé à atteindre OneUptime
-- Vous avez déjà déployé une [sonde personnalisée](/docs/probe/custom-probe) et souhaitez la réutiliser pour les signaux de vie entrants
+- Vos services tournent dans un segment réseau isolé sans accès HTTPS sortant
+- Vous devez garder tout le trafic de surveillance dans votre VPC ou votre réseau sur site
+- Vous voulez un seul point de sortie – la sonde – autorisé à joindre OneUptime
+- Vous avez déjà déployé une [sonde personnalisée](/docs/probe/custom-probe) et voulez la réutiliser pour des heartbeats entrants
 
-Si vos services peuvent déjà atteindre `https://oneuptime.com` (ou votre URL auto-hébergée) directement, vous **n'avez pas** besoin de cette fonctionnalité — appelez directement l'URL de signal de vie depuis le service.
+Si vos services peuvent déjà joindre `https://oneuptime.com` (ou votre URL auto-hébergée) directement, vous n'avez **pas** besoin de cette fonction : appelez l'URL de heartbeat directement depuis le service.
 
-## Activer l'écouteur d'entrée
+## Avant de commencer
 
-Définissez `PROBE_INGRESS_PORT` sur le port sur lequel vous souhaitez que l'écouteur se lie. Toute valeur supérieure à `0` active l'écouteur ; laisser non défini (ou `0`) le désactive.
+- **Une sonde personnalisée en marche.** Son **Statut** indique **Connecté**. Voir [Sondes personnalisées](/docs/probe/custom-probe) pour en installer une.
+- **Un moniteur de requêtes entrantes.** Son URL de heartbeat contient la clé secrète qu'envoie votre service : voir [Surveillance des requêtes entrantes](/docs/monitor/incoming-request-monitor).
+- **Un port de l'hôte de la sonde que vos services peuvent joindre.** Les exemples utilisent `3875`.
 
-### Docker
+## Activer l'écouteur
 
+Réglez `PROBE_INGRESS_PORT` sur le port que doit utiliser l'écouteur. Toute valeur supérieure à `0` l'active ; non définie, ou à `0`, elle le laisse désactivé.
+
+:::tabs
+@tab Docker
 ```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
@@ -41,23 +60,9 @@ docker run --name oneuptime-probe --network host \
   -d oneuptime/probe:release
 ```
 
-Si vous n'utilisez pas `--network host`, publiez le port d'entrée explicitement :
-
-```bash
-docker run --name oneuptime-probe \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e PROBE_INGRESS_PORT=3875 \
-  -p 3875:3875 \
-  -d oneuptime/probe:release
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-
+Sans `--network host`, publiez le port avec `-p 3875:3875`.
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -67,14 +72,13 @@ services:
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
       - PROBE_INGRESS_PORT=3875
-    ports:
-      - "3875:3875"
+    network_mode: host
     restart: always
 ```
 
-### Kubernetes
-
-```yaml
+Sans `network_mode: host`, publiez le port sous `ports:` avec `"3875:3875"`.
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -118,72 +122,94 @@ spec:
   type: ClusterIP
 ```
 
-Les services internes peuvent alors envoyer des signaux de vie à `http://oneuptime-probe-ingress.<espace-de-noms>.svc.cluster.local:3875/heartbeat/<clé-secrète>`.
+Les services du cluster envoient alors à `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+:::
 
-## Envoi de requêtes à la sonde
+Quand l'écouteur est en marche, le journal de la sonde indique `Probe ingress listener started on port 3875 (heartbeat / incoming-request endpoints)`.
 
-Remplacez l'URL publique de signal de vie :
+## Envoyer les requêtes à la sonde
 
-```
-https://oneuptime.com/heartbeat/<clé-secrète>
-```
+Votre service envoie à la sonde au lieu de OneUptime. Remplacez l'URL publique de heartbeat :
 
-par l'URL d'entrée de la sonde :
-
-```
-http://<hôte-sonde>:<PROBE_INGRESS_PORT>/heartbeat/<clé-secrète>
+```text
+https://oneuptime.com/heartbeat/<secret-key>
 ```
 
-Le chemin, la méthode, le corps et les en-têtes sont par ailleurs identiques, donc tout code client existant n'a besoin que de changer l'URL de base.
+par l'URL d'ingress de la sonde :
 
-### Exemples
+```text
+http://<probe-host>:<PROBE_INGRESS_PORT>/heartbeat/<secret-key>
+```
+
+Le chemin, la méthode, le corps et les en-têtes restent identiques par ailleurs : un code client existant n'a qu'à changer l'URL de base. La sonde accepte aussi `/incoming-request/<secret-key>`, qui fonctionne de la même façon.
 
 ```bash
-# Signal de vie GET
-curl http://probe.internal:3875/heartbeat/VOTRE_CLÉ_SECRÈTE
+# GET heartbeat
+curl http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY
 
-# Signal de vie POST avec corps JSON
-curl -X POST http://probe.internal:3875/heartbeat/VOTRE_CLÉ_SECRÈTE \
+# POST heartbeat with JSON body
+curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
   -H "Content-Type: application/json" \
   -d '{"status": "healthy", "version": "1.2.3"}'
 
-# Tâche cron
-*/5 * * * * curl -s http://probe.internal:3875/heartbeat/VOTRE_CLÉ_SECRÈTE > /dev/null
+# Cron job
+*/5 * * * * curl -s http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
 
-## Comportement de transmission
+## Comment les requêtes sont transmises
 
-- **Réponse synchrone, transmission asynchrone.** La sonde accuse réception de la requête entrante immédiatement avec un `200` et transmet à OneUptime en arrière-plan. Votre service n'a pas à attendre que la transmission se termine.
-- **Les en-têtes sont préservés.** Tous les en-têtes sauf les hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) sont transmis. La sonde ajoute un en-tête `OneUptime-Probe-Id` l'identifiant.
-- **Le corps est préservé.** Les charges utiles JSON, encodées en URL et brutes `application/octet-stream` jusqu'à **50 Mo** sont acceptées.
-- **Tentatives avec backoff exponentiel.** Si la transmission échoue, la sonde réessaie jusqu'à `PROBE_INGRESS_FORWARD_RETRY_LIMIT` fois avec un backoff exponentiel (2s, 4s, 8s, plafonné à 15s).
-- **Sensible au proxy.** Si la sonde elle-même est configurée avec `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`, les requêtes transmises passeront par le proxy.
+| Quoi | Comment la sonde le gère |
+| --- | --- |
+| La réponse | `200` avec un objet JSON vide (`{}`), envoyée avant que la requête soit transmise. Comme sur OneUptime, elle est envoyée quoi qu'il arrive ensuite : une clé secrète erronée la reçoit aussi. |
+| Les méthodes | `POST` est transmise en `POST`. `GET`, et `HEAD`, sont transmises en `GET`. Les autres méthodes reçoivent un `404` de la sonde. |
+| Les en-têtes | Tous, sauf les en-têtes hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) et `Content-Encoding`, car la sonde transmet le corps décompressé. La sonde ajoute `OneUptime-Probe-Id`. |
+| Le corps | Les corps JSON et de formulaire jusqu'à 50 Mo, comme quand vous envoyez directement à OneUptime. Comme là-bas, tout autre corps arrive vide au moniteur. |
+| Les nouvelles tentatives | Quand une transmission échoue, la sonde réessaie jusqu'à `PROBE_INGRESS_FORWARD_RETRY_LIMIT` fois, en attendant 2 s, puis 4 s, puis 8 s, et jamais plus de 15 s. Ensuite elle journalise l'échec et abandonne la requête. |
+| Les proxys | La transmission passe par le proxy de la sonde quand `HTTP_PROXY_URL` ou `HTTPS_PROXY_URL` est défini. |
+| La destination | `ONEUPTIME_URL` suivi de `/incoming-request-ingest/incoming-request/<secret-key>`. |
 
 ## Variables d'environnement
 
-| Variable                            | Par défaut               | Description                                                                                                       |
-| ----------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `PROBE_INGRESS_PORT`                | _non défini_ (désactivé) | Port sur lequel l'écouteur entrant se lie. Toute valeur `> 0` active l'entrée.                                    |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                  | Délai d'attente (ms) pour chaque tentative de transmission vers OneUptime. Minimum `1000`.                        |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                      | Nombre de tentatives avant que la sonde abandonne une transmission. Définir à `0` pour désactiver les tentatives. |
+| Variable | Défaut | Ce qu'elle fait |
+| --- | --- | --- |
+| `PROBE_INGRESS_PORT` | non définie (désactivé) | Le port qu'utilise l'écouteur. Toute valeur supérieure à `0` l'active. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Durée maximale de chaque transmission vers OneUptime, en millisecondes. Une valeur inférieure à `1000` revient à la valeur par défaut. |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Combien de fois une transmission échouée est retentée. `0` désactive les nouvelles tentatives. |
 
-Les variables standard de la sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variables de proxy) s'appliquent toutes — voir [Sondes personnalisées](/docs/probe/custom-probe) pour la liste complète.
+Les variables habituelles de la sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` et les variables de proxy) s'appliquent toutes : voir [Sondes personnalisées](/docs/probe/custom-probe) pour la liste complète.
 
 ## Considérations de sécurité
 
-- **Le point d'accès est intentionnellement non authentifié** — la clé secrète dans le chemin d'URL _est_ l'authentification, comme c'est le cas sur le point d'accès public `oneuptime.com`. Traitez la clé secrète comme un identifiant.
-- **Liez à une interface privée uniquement.** L'écouteur d'entrée ne doit pas être accessible depuis Internet public. Utilisez une politique réseau, une règle de pare-feu ou un service `ClusterIP` pour restreindre l'accès.
-- **Utilisez la terminaison HTTPS si vous nécessitez le chiffrement en transit.** L'écouteur de la sonde parle du HTTP brut. Placez-le derrière un équilibreur de charge interne / contrôleur d'entrée si vous avez besoin de TLS sur le saut entrant. La jambe de transmission sonde → OneUptime utilise toujours HTTPS (en supposant que `ONEUPTIME_URL` est `https://`).
-- **Limites de ressources.** L'écouteur accepte des corps de requête jusqu'à 50 Mo. Si vous avez besoin d'un plafond plus strict, placez un proxy inverse devant.
+- **Le point de terminaison est volontairement non authentifié** – la clé secrète dans le chemin de l'URL *est* l'authentification, exactement comme sur le point de terminaison public `oneuptime.com`. Traitez la clé secrète comme un identifiant.
+- **Gardez l'écouteur dans votre réseau privé.** Il ne doit pas être joignable depuis Internet. Utilisez une network policy, une règle de pare-feu ou un service `ClusterIP` pour limiter qui peut le joindre.
+- **Placez TLS devant lui si vous avez besoin de chiffrement dans votre réseau.** L'écouteur parle HTTP simple. Mettez-le derrière un répartiteur de charge interne ou un contrôleur d'ingress pour avoir TLS sur ce tronçon. La transmission de la sonde vers OneUptime utilise HTTPS quand `ONEUPTIME_URL` commence par `https://`.
+- **Limitez vous-même la taille des corps si 50 Mo c'est trop.** Placez devant l'écouteur un proxy inverse avec une limite plus basse.
 
 ## Dépannage
 
-- **La sonde journalise `Probe ingress listener started on port <port>` au démarrage** — confirme que l'écouteur est actif. Si vous ne voyez pas cette ligne, `PROBE_INGRESS_PORT` est non défini, `0` ou invalide.
-- **`Probe ingress: failed to forward to <url> after N attempts`** — la sonde n'a pas pu atteindre OneUptime. Vérifiez la connectivité sortante de la sonde, les paramètres de proxy et la valeur de `ONEUPTIME_URL`.
-- **`Probe ingress: probe ID not available, forwarding without it`** — la sonde ne s'est pas encore enregistrée. La transmission réussit quand même ; le signal de vie ne sera simplement pas attribué à une sonde.
-- **Le signal de vie apparaît dans OneUptime mais pas via la sonde** — confirmez que votre service atteint `http://<hôte-sonde>:<port>/...` et non l'URL publique. Une entrée DNS ou `/etc/hosts` mal configurée est la cause habituelle.
+:::details Le journal de la sonde n'indique jamais que l'écouteur a démarré
+`PROBE_INGRESS_PORT` n'est pas définie, vaut `0` ou n'est pas un nombre. Réglez-la sur un numéro de port et redémarrez la sonde. La ligne de journal est `Probe ingress listener started on port <port> (heartbeat / incoming-request endpoints)`.
+:::
 
-## En lien
+:::details La sonde journalise `Probe ingress: failed to forward to <url> after N attempts`
+La sonde n'a pas pu joindre OneUptime, même après ses nouvelles tentatives. Vérifiez la connectivité sortante de la sonde, ses réglages de proxy et la valeur de `ONEUPTIME_URL`. Si la sonde affiche aussi **Déconnecté**, voir [Sondes personnalisées](/docs/probe/custom-probe) pour trouver où ses requêtes s'arrêtent.
+:::
 
-- [Sondes personnalisées](/docs/probe/custom-probe)
-- [Moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor)
+:::details La sonde journalise `Probe ingress: probe ID not available, forwarding without it`
+La sonde n'a pas encore fini de se connecter à OneUptime, elle transmet donc la requête sans l'en-tête `OneUptime-Probe-Id`. La requête atteint quand même le moniteur.
+:::
+
+:::details Le moniteur reçoit les requêtes, mais pas par la sonde
+Votre service envoie toujours à l'URL publique. Vérifiez qu'il envoie à `http://<probe-host>:<port>/...` : un nom DNS ou une entrée de `/etc/hosts` qui pointe ailleurs en est la cause habituelle.
+:::
+
+:::details Le moniteur ne reçoit rien, et la sonde ne journalise rien
+La requête n'a jamais atteint la sonde. Vérifiez que le service peut joindre l'hôte de la sonde sur le port : une règle de pare-feu, un port non publié, ou un Service Kubernetes qui ne sélectionne pas le pod de la sonde.
+:::
+
+## Prochaines étapes
+
+:::cards
+- [Surveillance des requêtes entrantes](/docs/monitor/incoming-request-monitor): Décider de ce qui compte comme un heartbeat sain.
+- [Sondes personnalisées](/docs/probe/custom-probe): Installer la sonde, et chaque réglage qu'elle lit.
+:::
