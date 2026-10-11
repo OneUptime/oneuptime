@@ -11,9 +11,10 @@ import path from "path";
  *
  *   - Project SSO, SAML: the Teams bullet of the set-up steps;
  *   - Project SSO, OIDC: step 4, which picks the teams;
- *   - the closing notes: why, that every save checks again, that providers
- *     saved earlier keep working, and that anyone who may edit a provider
- *     can still switch it off;
+ *   - the notes on roles and teams, after the two set-ups that pick the
+ *     teams: why, that every save checks again, that providers saved
+ *     earlier keep working, and that anyone who may edit a provider can
+ *     still switch it off;
  *   - SCIM: before the project set-up steps, who may add or change a
  *     connection or see its token, and why.
  */
@@ -80,12 +81,25 @@ function oidcStepFour(language: string): string {
   );
 }
 
-// The paragraphs of the page's last section, after its heading.
-function closingParagraphs(language: string): Array<string> {
-  const page: string = readPage(language, "identity/sso");
-  const last: string = page.slice(page.lastIndexOf("\n## ") + 1);
+/*
+ * The paragraphs of the section on roles and teams, after its heading: the
+ * section in the place the English page's "Roles and teams for SSO users"
+ * has, since a translation translates the heading.
+ */
+function rolesAndTeamsParagraphs(language: string): Array<string> {
+  const index: number = sectionsOf(readPage("en", "identity/sso")).findIndex(
+    (section: string): boolean => {
+      return section.startsWith("## Roles and teams for SSO users\n");
+    },
+  );
 
-  return last
+  expect({ language, found: index > 0 }).toEqual({ language, found: true });
+
+  const section: string = sectionsOf(readPage(language, "identity/sso"))[
+    index
+  ]!;
+
+  return section
     .split(/\n\s*\n/)
     .slice(1)
     .map((paragraph: string): string => {
@@ -132,8 +146,8 @@ describe("in English", () => {
     );
   });
 
-  it("the closing notes say why, that every save checks again, that earlier providers keep working, and that a provider can always be switched off", () => {
-    expect(closingParagraphs("en")).toContain(
+  it("the notes on roles and teams say why, that every save checks again, that earlier providers keep working, and that a provider can always be switched off", () => {
+    expect(rolesAndTeamsParagraphs("en")).toContain(
       "A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.",
     );
   });
@@ -166,8 +180,8 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     expect(terms[terms.length - 1]).toBe(teams);
   });
 
-  it("the closing notes have the provider-teams paragraph after the note on roles", () => {
-    const paragraphs: Array<string> = closingParagraphs(language);
+  it("the notes on roles and teams have the provider-teams paragraph after the note on roles", () => {
+    const paragraphs: Array<string> = rolesAndTeamsParagraphs(language);
 
     expect(paragraphs).toHaveLength(2);
     expect(paragraphs[1]!.length).toBeGreaterThan(100);
