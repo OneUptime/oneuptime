@@ -1,4 +1,6 @@
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
@@ -634,18 +636,12 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
-      if (
-        data.monitorType === MonitorType.Metrics ||
-        data.monitorType === MonitorType.Kubernetes ||
-        data.monitorType === MonitorType.Docker ||
-        data.monitorType === MonitorType.Host ||
-        data.monitorType === MonitorType.Podman ||
-        data.monitorType === MonitorType.DockerSwarm ||
-        data.monitorType === MonitorType.Proxmox ||
-        data.monitorType === MonitorType.VMware ||
-        data.monitorType === MonitorType.Ceph ||
-        data.monitorType === MonitorType.StorageArray
-      ) {
+      /*
+       * Every monitor type evaluated as metric series, IoT Device included:
+       * the one list (MonitorTypeHelper), which TemplateVariablesCatalog
+       * reads too, so the editor offers exactly what is set here.
+       */
+      if (MonitorTypeHelper.isMetricBackedMonitor(data.monitorType)) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;
 

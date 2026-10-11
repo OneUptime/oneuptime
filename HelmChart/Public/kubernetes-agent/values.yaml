@@ -25,13 +25,19 @@ chartDefaultsVersion: "0.7.0"
 #
 #   gke-autopilot — GKE Autopilot. hostPath is blocked, so logs are
 #                   collected via the Kubernetes API from a Deployment.
-#                   A hardened security context is applied.
+#                   A hardened security context is applied. Privileged
+#                   pods are refused, so the eBPF instrumentation and the
+#                   profiler are left out, whatever ebpf.enabled and
+#                   profiling.enabled say.
 #
 #   eks-fargate   — EKS Fargate. Same config as gke-autopilot (no host
-#                   access, no DaemonSets on Fargate).
+#                   access, no privileged pods, no DaemonSets on Fargate).
 #
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
+# The one exception is the privileged pods: on gke-autopilot and
+# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the
+# profiler back on, because those platforms cannot run them.
 preset: ""
 
 # Required: Your OneUptime instance connection details
@@ -820,8 +826,10 @@ cost:
 #     Fedora 34+, RHEL/Stream 9+). Kernel 4.18+ also works on RHEL-family
 #     distros with vendor backports.
 #   - The DaemonSet runs in privileged mode so it can load eBPF programs.
-#     If your cluster's Pod Security Standard rejects privileged pods (e.g.
-#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.
+#     GKE Autopilot and EKS Fargate refuse privileged pods, so the
+#     gke-autopilot and eks-fargate presets leave it out whatever this says.
+#     If another cluster's Pod Security Standard rejects privileged pods,
+#     set `ebpf.enabled: false`.
 ebpf:
   enabled: true
   image:
@@ -1381,7 +1389,8 @@ ebpf:
 #   - Linux kernel 5.10+ (newer than the 5.8 OBI needs).
 #   - Privileged pod with hostPID — same constraints as the eBPF
 #     auto-instrumentation DaemonSet, so it lights up on the same
-#     clusters and fails on the same ones (GKE Autopilot, EKS Fargate).
+#     clusters, and the gke-autopilot and eks-fargate presets leave it
+#     out the same way, whatever this says.
 #   - Nodes whose hostPID is the kernel's root PID namespace, as any
 #     VM or bare-metal node's is. The profiler looks a sample's process
 #     up by its root-namespace PID in the node's /proc, with no

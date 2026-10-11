@@ -1,6 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import MonitorService from "Common/Server/Services/MonitorService";
 import HostService from "Common/Server/Services/HostService";
 import {
@@ -182,25 +184,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
       query: {
         ...MonitorService.getEnabledMonitorQuery(),
 
-        monitorType: DatabaseQueryHelper.any([
-          MonitorType.Logs,
-          MonitorType.SecurityEvents,
-          MonitorType.Llm,
-          MonitorType.Traces,
-          MonitorType.Metrics,
-          MonitorType.Exceptions,
-          MonitorType.Profiles,
-          MonitorType.Kubernetes,
-          MonitorType.Docker,
-          MonitorType.Host,
-          MonitorType.Podman,
-          MonitorType.DockerSwarm,
-          MonitorType.Proxmox,
-          MonitorType.VMware,
-          MonitorType.Ceph,
-          MonitorType.StorageArray,
-          MonitorType.IoTDevice,
-        ]),
+        monitorType: DatabaseQueryHelper.any(
+          MonitorTypeHelper.getTelemetryMonitorTypes(),
+        ),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
             OneUptimeDate.getCurrentDate(),

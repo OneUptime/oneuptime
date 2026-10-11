@@ -95,7 +95,7 @@ Algumas plataformas Kubernetes não permitem que uma carga de trabalho monte um 
 
 Se não tiver certeza, deixe `preset` sem definir para obter `standard`. Se a instalação falhar com um erro de Pod Security que cita `hostPath`, instale de novo com `gke-autopilot`, ou com `eks-fargate` no EKS Fargate.
 
-O GKE Autopilot e o EKS Fargate também recusam pods privilegiados, de que a instrumentação eBPF precisa, então desative-a ali com `--set ebpf.enabled=false`:
+O GKE Autopilot e o EKS Fargate também recusam pods privilegiados, de que a instrumentação eBPF e o profiling precisam, então os presets deles deixam ambos de fora:
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ Os seus serviços aparecem em **Produtos → Traços** e no mapa de serviços em
 
 O eBPF vem ativado por padrão. Desative-o com `--set ebpf.enabled=false` quando:
 
-- O cluster for **GKE Autopilot** ou **EKS Fargate**. Eles recusam pods privilegiados, e o OBI precisa ser privilegiado para carregar os seus programas.
+- O cluster for **GKE Autopilot** ou **EKS Fargate**. Os presets deles fazem isso por você: essas plataformas recusam pods privilegiados, e o OBI precisa ser privilegiado para carregar os seus programas.
 - Os nós rodarem um kernel anterior ao **Linux 5.8** sem BTF. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 e posteriores servem.
 - As suas aplicações já enviarem traces com um SDK do OpenTelemetry, e você não os quiser em dobro.
 
@@ -323,7 +321,7 @@ O [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-
 
 Com a instrumentação eBPF também ativada (o padrão), cada amostra carrega o trace ao qual pertence, então um span tem o seu próprio flame graph. Para isso, o chart pede ao OBI que mantenha disponível o contexto de trace em curso (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), o que custa um pouco às aplicações instrumentadas a cada troca de contexto assíncrona. Defina `profiling.obiProcessContext=false` para ter flame graphs sem a ligação com os spans.
 
-O profiling precisa do **Linux 5.10** ou posterior, e de um pod privilegiado com os IDs de processo do nó: ele não pode rodar no GKE Autopilot nem no EKS Fargate. Em nós que são eles próprios contêineres, como kind ou k3d, ele não consegue distinguir os processos, e quase nenhuma amostra se liga a um span.
+O profiling precisa do **Linux 5.10** ou posterior, e de um pod privilegiado com os IDs de processo do nó: ele não pode rodar no GKE Autopilot nem no EKS Fargate, e os presets deles o deixam desativado. Em nós que são eles próprios contêineres, como kind ou k3d, ele não consegue distinguir os processos, e quase nenhuma amostra se liga a um span.
 
 | Opção | Padrão | O que faz |
 | --- | --- | --- |
@@ -417,14 +415,14 @@ A causa mais comum, principalmente depois de uma reinstalação, é uma chave de
 :::
 
 :::details A instalação falha com "hostPath volumes are not allowed"
-O cluster bloqueia `hostPath`. Mude para um preset que lê os logs pela API do Kubernetes, e desative o eBPF:
+O cluster bloqueia `hostPath`. Mude para um preset que lê os logs pela API do Kubernetes; ele também deixa o eBPF de fora:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 No EKS Fargate, use `--set preset=eks-fargate`.

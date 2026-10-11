@@ -102,8 +102,10 @@ export function getKubernetesAgentPreset(
 
 /*
  * GKE Autopilot and EKS Fargate reject privileged pods and hostPath, so the
- * chart's API-mode preset is needed there, and the eBPF DaemonSet (which
- * must run privileged to load eBPF programs) has to be turned off.
+ * chart's preset for them is needed there: it reads pod logs through the
+ * Kubernetes API, and leaves out the eBPF and profiling DaemonSets, which
+ * must run privileged to load eBPF programs (the chart's
+ * kubernetes-agent.privilegedPodsAllowed), whatever ebpf.enabled says.
  */
 function isRestrictedPlatform(platform: KubernetesPlatform): boolean {
   return getKubernetesAgentPreset(platform) !== "standard";
@@ -144,10 +146,7 @@ export function getKubernetesPlatformInstallFlags(
   if (!isRestrictedPlatform(platform)) {
     return [];
   }
-  return [
-    `--set preset=${getKubernetesAgentPreset(platform)}`,
-    "--set ebpf.enabled=false",
-  ];
+  return [`--set preset=${getKubernetesAgentPreset(platform)}`];
 }
 
 function helmInstallCommand(data: {
@@ -358,7 +357,7 @@ ${helmInstallCommand({
     const platformName: string =
       data.platform === "gke-autopilot" ? "GKE Autopilot" : "EKS Fargate";
     notes.push(
-      `\`preset=${getKubernetesAgentPreset(data.platform)}\` collects pod logs through the Kubernetes API instead of reading them from each node, and \`ebpf.enabled=false\` leaves out eBPF tracing, which needs privileged pods that ${platformName} does not allow.`,
+      `\`preset=${getKubernetesAgentPreset(data.platform)}\` collects pod logs through the Kubernetes API instead of reading them from each node, and leaves out eBPF tracing and profiling, which need privileged pods that ${platformName} does not allow.`,
     );
   }
 
@@ -535,7 +534,7 @@ Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`,
     topics.push({
       title: "Application traces (eBPF)",
       summary: "Why eBPF auto-instrumentation is off on this platform.",
-      markdown: `On other clusters the agent runs [OpenTelemetry eBPF Instrumentation](https://opentelemetry.io/docs/zero-code/obi/) on every node to capture HTTP, gRPC and SQL traces with no code changes. Loading eBPF programs needs privileged pods, which this platform does not allow, so the install command turns it off with \`ebpf.enabled=false\`.
+      markdown: `On other clusters the agent runs [OpenTelemetry eBPF Instrumentation](https://opentelemetry.io/docs/zero-code/obi/) on every node to capture HTTP, gRPC and SQL traces with no code changes. Loading eBPF programs needs privileged pods, which this platform does not allow, so the platform's preset leaves it out, and the continuous profiler with it.
 
 To get traces here, instrument your services with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry) and send them to OneUptime directly.`,
     });
@@ -709,7 +708,7 @@ ${codeBlock(
   `helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
 )}
 
-Then run the install command again with \`--set preset=gke-autopilot --set ebpf.enabled=false\` added. That preset reads pod logs through the Kubernetes API instead of hostPath and applies a hardened security context, and turning eBPF off leaves out the privileged eBPF pods.`,
+Then run the install command again with \`--set preset=gke-autopilot\` added. That preset reads pod logs through the Kubernetes API instead of hostPath, applies a hardened security context, and leaves out the privileged eBPF and profiling pods.`,
     });
   }
 

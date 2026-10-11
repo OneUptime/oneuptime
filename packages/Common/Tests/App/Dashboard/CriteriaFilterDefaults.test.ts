@@ -538,6 +538,28 @@ describe("Criteria filter defaults", () => {
       ).toBe(CheckOn.MetricValue);
     });
 
+    /*
+     * The metric-only types are the metric-backed ones (MonitorTypeHelper's
+     * one list) minus IoT Device, so a type added to that list is metric-only
+     * too unless it is left out here on purpose, as IoT Device is.
+     */
+    test("the metric-only types are every metric-backed type but IoT Device", () => {
+      const metricOnly: Array<MonitorType> = (
+        Object.values(MonitorType) as Array<MonitorType>
+      ).filter((monitorType: MonitorType): boolean => {
+        return CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType);
+      });
+
+      expect([...metricOnly].sort()).toEqual(
+        MonitorTypeHelper.getMetricBackedMonitorTypes()
+          .filter((monitorType: MonitorType): boolean => {
+            return monitorType !== MonitorType.IoTDevice;
+          })
+          .sort(),
+      );
+      expect(metricOnly.length).toBe(10);
+    });
+
     test.each([
       [MonitorType.Exceptions, CheckOn.ExceptionCount, FilterType.EqualTo],
       [MonitorType.Profiles, CheckOn.ProfileCount, FilterType.EqualTo],

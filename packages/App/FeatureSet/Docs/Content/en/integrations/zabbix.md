@@ -152,7 +152,7 @@ Zabbix severities (`Not classified`, `Information`, `Warning`, `Average`, `High`
 **The incident is created but fields are empty.**
 
 - Open the workflow's **Logs** tab and inspect the trigger output. Confirm the field names under **Request Body** match what you reference (`name`, `host`, `severity`, `status`, `event_id`).
-- A missing field resolves to an empty string rather than an error — see [Variables → Gotchas](/docs/workflows/variables#gotchas).
+- A field the payload does not have is not an error, and it is not blanked either: the reference is left as written, braces and all — see [Variables → Gotchas](/docs/workflows/variables#gotchas).
 
 **Everything fires twice.**
 
