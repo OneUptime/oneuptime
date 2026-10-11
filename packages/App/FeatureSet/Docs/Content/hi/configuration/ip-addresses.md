@@ -1,22 +1,29 @@
-# OneUptime.com के लिए IP Address Whitelist
+# IP पते
 
-यदि आप OneUptime.com का उपयोग कर रहे हैं और सुरक्षा कारणों से हमारे IPs को whitelist करना चाहते हैं, तो आप नीचे दिए गए निर्देशों का पालन करके ऐसा कर सकते हैं।
+OneUptime Cloud के प्रोब आपकी वेबसाइटों, API और सर्वरों को IP पतों के एक तय सेट से जाँचते हैं। अगर आप जिस चीज़ की निगरानी करते हैं उसके आगे कोई फ़ायरवॉल या अनुमति-सूची है, तो इन पतों को अनुमति दें ताकि जाँचें पहुँच सकें।
 
-OneUptime.com को आपके resources तक पहुंचने की अनुमति देने के लिए कृपया निम्नलिखित IPs को अपने firewall में whitelist करें।
+```mermaid title="अनुमति-सूची कहाँ लागू होती है"
+flowchart LR
+    P["OneUptime प्रोब"] -->|"सूचीबद्ध IP से जाँच"| F["आपका फ़ायरवॉल"]
+    F -->|"अनुमत"| S["आपकी वेबसाइट, API या सर्वर"]
+```
+
+## अनुमति देने के लिए IP पते
+
+अपने फ़ायरवॉल में इन पतों से आने वाले ट्रैफ़िक को अनुमति दें:
 
 {{IP_WHITELIST}}
 
-ये IPs बदल सकते हैं, ऐसा होने पर हम आपको पहले से सूचित करेंगे।
+> [!NOTE]
+> ये पते बदल सकते हैं। जब ऐसा होता है, OneUptime आपको पहले से बता देता है। घोषणाओं पर नज़र रखे बिना अद्यतन रहने के लिए, जब भी आप अपना फ़ायरवॉल अपडेट करें, [सूची प्राप्त करें](#सूची-प्रोग्राम-से-प्राप्त-करें)।
 
-## IPs को Programmatically प्राप्त करें
+## सूची प्रोग्राम से प्राप्त करें
 
-आप निम्नलिखित API endpoint के माध्यम से probe egress IP addresses की सूची programmatically भी प्राप्त कर सकते हैं:
+यही सूची JSON के रूप में दी जाती है, बिना किसी API कुंजी के, ताकि कोई स्क्रिप्ट आपके फ़ायरवॉल नियमों को अद्यतन रख सके:
 
+```bash
+curl -s https://oneuptime.com/ip-whitelist
 ```
-GET https://oneuptime.com/ip-whitelist
-```
-
-यह एक JSON response लौटाता है:
 
 ```json
 {
@@ -24,4 +31,39 @@ GET https://oneuptime.com/ip-whitelist
 }
 ```
 
-आप इस endpoint का उपयोग अपनी firewall whitelist को स्वचालित रूप से अपडेट रखने के लिए कर सकते हैं।
+`ipWhitelist` एक सरणी है जिसकी हर प्रविष्टि में एक पता होता है। हर पंक्ति में एक पता छापने के लिए, उदाहरण के लिए किसी फ़ायरवॉल स्क्रिप्ट को देने के लिए:
+
+```bash
+curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
+```
+
+## स्व-होस्टेड OneUptime
+
+आपके अपने इंस्टेंस पर, यह पृष्ठ और `/ip-whitelist` एंडपॉइंट इंस्टेंस की `IP_WHITELIST` सेटिंग में दिए पते दिखाते हैं, जो अल्पविराम से अलग की गई सूची है। उन पतों को सूचीबद्ध करें जिनसे आपके अपने प्रोब अपनी जाँचें भेजते हैं।
+
+:::tabs
+@tab Kubernetes
+Helm चार्ट का `ipWhitelist` मान सेट करें:
+
+```yaml title="values.yaml"
+ipWhitelist: "203.0.113.1,203.0.113.2"
+```
+@tab Docker Compose
+`config.env` इसे ऐप तक नहीं पहुँचाता। इसे `docker-compose.yml` के बगल में एक `docker-compose.override.yml` में `app` सेवा के परिवेश में जोड़ें, फिर OneUptime को दोबारा शुरू करें:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      IP_WHITELIST: "203.0.113.1,203.0.113.2"
+```
+:::
+
+जब कुछ भी सेट न हो, तो यह पृष्ठ **No IP addresses configured.** दिखाता है और एंडपॉइंट एक खाली `ipWhitelist` सरणी लौटाता है।
+
+## अगले कदम
+
+:::cards
+- [कस्टम प्रोब](/docs/probe/custom-probe): फ़ायरवॉल खोलने के बजाय अपने नेटवर्क के भीतर एक प्रोब चलाएँ।
+- [मॉनिटर बनाना](/docs/monitor/create-monitor): किसी वेबसाइट, API या सर्वर की जाँच शुरू करें।
+:::
