@@ -2,6 +2,10 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import {
+  HtmlMarkupReplacer,
+  replaceHtmlMarkup,
+} from "../../../Types/HtmlMarkup";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   DEFAULT_OAUTH2_CLIENT_AUTHENTICATION_METHOD,
@@ -47,6 +51,24 @@ const MIN_REDACTABLE_SECRET_LENGTH: number = 4;
 
 // A form-encoded token response, which older endpoints send whatever Accept says.
 const FORM_ENCODED_TOKEN_BODY: RegExp = /^(access_token|error)=/;
+
+/*
+ * Where an error page's script and style elements start and end. What they
+ * hold is code and rules, not words anybody reads.
+ */
+const SCRIPT_START: RegExp = /<script/gi;
+const SCRIPT_END: RegExp = /<\/script>/gi;
+const STYLE_START: RegExp = /<style/gi;
+const STYLE_END: RegExp = /<\/style>/gi;
+
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS: RegExp = /[\u0000-\u001f\u007f]+/g;
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// A tag or comment, as a space: the words either side of it stay apart.
+const MARKUP_AS_SPACE: HtmlMarkupReplacer = (): string => {
+  return " ";
+};
 
 export interface OAuth2TokenRequestConfig {
   grantType: OAuth2GrantType;
@@ -150,21 +172,89 @@ const redactSecrets: RedactFunction = (
   return result;
 };
 
+type WithoutElementsFunction = (
+  html: string,
+  start: RegExp,
+  end: RegExp,
+) => string;
+
+/*
+ * The text with each element that `start` opens and `end` closes - the
+ * element and all it holds, to the first end after its start - as a space.
+ * The text is read once: an element that never ends, and every one after
+ * it, is left for the markup walk, which takes its tags out and keeps what
+ * it holds. A single /<script[\s\S]*?<\/script>/ pass looked for an end
+ * again from every start that had none, which took time that grew with the
+ * square of the text: about a second for 160,000 characters of "<script".
+ */
+const withoutElements: WithoutElementsFunction = (
+  html: string,
+  start: RegExp,
+  end: RegExp,
+): string => {
+  let text: string = "";
+  let index: number = 0;
+
+  for (;;) {
+    start.lastIndex = index;
+    const opened: RegExpExecArray | null = start.exec(html);
+
+    if (!opened) {
+      break;
+    }
+
+    end.lastIndex = opened.index + opened[0].length;
+    const closed: RegExpExecArray | null = end.exec(html);
+
+    if (!closed) {
+      break;
+    }
+
+    text += `${html.slice(index, opened.index)} `;
+    index = closed.index + closed[0].length;
+  }
+
+  return text + html.slice(index);
+};
+
 type ExcerptFunction = (text: string) => string;
 
 /*
- * A readable, bounded quote of a response body for an error message. HTML
- * error pages are reduced to their text, and whitespace is collapsed so a
- * pretty-printed page does not become forty blank lines in a log.
+ * A readable, bounded quote of what a token endpoint answered - its body,
+ * the error and description it sent, or where it redirected - for an error
+ * message. HTML error pages are reduced to their text, and whitespace is
+ * collapsed so a pretty-printed page does not become forty blank lines in a
+ * log.
+ *
+ * The answer comes from whatever server the Token URL names, and the message
+ * is kept on the variable (its Access Token card), returned by the API and
+ * written to the workflow run log. Every tag and comment is read out by
+ * replaceHtmlMarkup (Common/Types/HtmlMarkup), the walk the rest of the
+ * product reads HTML with: a tag ends at the first ">" outside a quoted
+ * attribute value, a comment at its "-->", and a "<" whose markup never
+ * ends is dropped on its own. It used to be one pass of /<[^>]*>/, which
+ * kept an unclosed tag ("<img src=x ..." with no ">" after it) as it came,
+ * and the rest of an attribute value or a comment after a ">" inside it. So
+ * no "<" of the server's answer reaches the message, whatever shows it.
+ * Entities are left as they are: they are text, and nothing here reads them
+ * into markup.
+ *
+ * An answer may be up to a megabyte (OAUTH2_TOKEN_RESPONSE_MAX_BYTES), and
+ * every step reads it in time that grows with its length alone: the single
+ * pass took time that grew with the square of the length, minutes for a
+ * megabyte of tags that never close.
  */
 const toExcerpt: ExcerptFunction = (text: string): string => {
-  const plain: string = (text || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]+/g, " ")
-    .replace(/\s+/g, " ")
+  const plain: string = replaceHtmlMarkup(
+    withoutElements(
+      withoutElements(text || "", SCRIPT_START, SCRIPT_END),
+      STYLE_START,
+      STYLE_END,
+    ),
+    MARKUP_AS_SPACE,
+  )
+    .replace(CONTROL_CHARACTERS, " ")
+    .replace(WHITESPACE_RUN, " ")
     .trim();
 
   if (plain.length <= RESPONSE_EXCERPT_MAX_LENGTH) {
