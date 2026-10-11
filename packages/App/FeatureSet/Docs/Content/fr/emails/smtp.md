@@ -309,6 +309,6 @@ Vérifiez l'**E-mail de l'expéditeur** : votre serveur doit autoriser l'envoi d
 ## Étapes suivantes
 
 :::cards
-- [Récapitulatif des notifications](/docs/emails/notification-rollup): Comment OneUptime regroupe les rafales d'e-mails envoyés aux propriétaires.
+- [Regroupement des notifications](/docs/emails/notification-rollup): Comment OneUptime regroupe les rafales d'e-mails envoyés aux propriétaires.
 - [Abonnés et annonces](/docs/status-pages/subscribers): Envoyer les e-mails aux abonnés d'une page de statut par une configuration SMTP du projet.
 :::
