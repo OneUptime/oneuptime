@@ -19,6 +19,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Black, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
+import { StateListType } from "../../../Utils/StateOrder";
 
 // React's warning for list items without a (unique) key.
 const KEY_WARNING_PATTERN: RegExp = /unique "key"|same key/;
@@ -119,6 +120,7 @@ const renderPanel: RenderPanelFunction = (
   const stateSelections: Array<string> = [];
 
   const props: ComponentProps = {
+    stateList: StateListType.IncidentState,
     states: defaultStates(),
     identifier: "INC-42",
     currentStateId: "created",
@@ -508,6 +510,90 @@ describe("EventStatusPanel overflow states", () => {
 
     expect(menuChoiceNames(openMenu())).toEqual(["Created", "Investigating"]);
   });
+
+  /*
+   * The menu asks the rule every state timeline holds a move to
+   * (Common/Utils/StateMove), by the places the states hold in the
+   * project's list: an episode's header is offered exactly what an
+   * incident's is, and a record in a state of the project's own after
+   * Resolved is offered nothing back up the list.
+   */
+  type PlacedStatesFunction = () => Array<EventStateItem>;
+
+  const placedStates: PlacedStatesFunction = (): Array<EventStateItem> => {
+    return [
+      { ...makeState("created", "Created"), order: 1 },
+      { ...makeState("acknowledged", "Acknowledged"), order: 2 },
+      { ...makeState("investigating", "Investigating"), order: 3 },
+      { ...makeState("resolved", "Resolved", RESOLVED_COLOR), order: 4 },
+      // A state of the project's own after Resolved.
+      { ...makeState("closed", "Closed"), order: 5 },
+    ];
+  };
+
+  test("offers a resolved record only the project's own state after Resolved", () => {
+    renderPanel({
+      stateList: StateListType.IncidentState,
+      states: placedStates(),
+      currentStateId: "resolved",
+      actions: [],
+    });
+
+    expect(menuChoiceNames(openMenu())).toEqual(["Closed"]);
+  });
+
+  test("shows no menu for a record in the last state it can reach", () => {
+    renderPanel({
+      stateList: StateListType.AlertState,
+      states: placedStates(),
+      currentStateId: "closed",
+      actions: [],
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "More actions" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("goes by the states' places, not by the order they are handed in", () => {
+    const [created, acknowledged, investigating, resolved, closed] =
+      placedStates() as [
+        EventStateItem,
+        EventStateItem,
+        EventStateItem,
+        EventStateItem,
+        EventStateItem,
+      ];
+
+    renderPanel({
+      stateList: StateListType.IncidentState,
+      states: [resolved, created, closed, investigating, acknowledged],
+      currentStateId: "acknowledged",
+      actions: [],
+    });
+
+    expect(menuChoiceNames(openMenu())).toEqual([
+      "Resolved",
+      "Closed",
+      "Investigating",
+    ]);
+  });
+
+  test("offers a scheduled maintenance event only the states after the one it is in", () => {
+    renderPanel({
+      stateList: StateListType.ScheduledMaintenanceState,
+      states: [
+        { ...makeState("scheduled", "Scheduled"), order: 1 },
+        { ...makeState("ongoing", "Ongoing"), order: 2 },
+        { ...makeState("ended", "Ended"), order: 3 },
+        { ...makeState("completed", "Completed"), order: 4 },
+      ],
+      currentStateId: "ended",
+      actions: [],
+    });
+
+    expect(menuChoiceNames(openMenu())).toEqual(["Completed"]);
+  });
 });
 
 describe("EventStatusPanel disabled behavior", () => {
@@ -717,6 +803,7 @@ describe("EventStatusPanel header notice", () => {
   test("renders a notice inside the titled header card", () => {
     render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         identifier="INC-42"
         states={[]}
@@ -738,6 +825,7 @@ describe("EventStatusPanel header notice", () => {
   test("adds no empty notice spacing when the optional content is absent", () => {
     const { container } = render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
@@ -752,6 +840,7 @@ describe("EventStatusPanel header notice", () => {
     const onActionClick: MockFunction = getJestMockFunction();
     render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[
           { id: "created", name: "Created", color: CREATED_COLOR },
@@ -795,6 +884,7 @@ describe("EventStatusPanel header notice", () => {
   test("leaves compact consumers unchanged", () => {
     render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         identifier="#7"
         states={[{ id: "created", name: "Created", color: Black }]}
         currentStateId="created"
@@ -947,6 +1037,7 @@ describe("EventStatusPanel header facts", () => {
   test("still renders facts when the header has no pills", () => {
     render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
@@ -963,6 +1054,7 @@ describe("EventStatusPanel header facts", () => {
   test("renders no list and no spacing when facts are missing or empty", () => {
     const { container, rerender } = render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
@@ -974,6 +1066,7 @@ describe("EventStatusPanel header facts", () => {
 
     rerender(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
@@ -1009,6 +1102,7 @@ describe("EventStatusPanel header facts", () => {
   test("renders nothing when every fact is empty", () => {
     const { container } = render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
@@ -1135,6 +1229,7 @@ describe("EventStatusPanel secondary actions", () => {
     });
 
     const baseProps: ComponentProps = {
+      stateList: StateListType.IncidentState,
       states: defaultStates(),
       identifier: "ALR-12",
       currentStateId: "created",
@@ -1445,6 +1540,7 @@ describe("EventStatusPanel secondary actions", () => {
   test("renders even when the panel has no states at all", () => {
     render(
       <EventStatusPanel
+        stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}

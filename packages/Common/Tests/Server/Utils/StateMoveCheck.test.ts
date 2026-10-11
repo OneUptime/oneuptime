@@ -494,7 +494,7 @@ describe("StateMoveCheck.assertUpdateMovesAllowed", () => {
 
     // The same state id, placed differently in the two lists.
     there.all.forEach((state: IncidentState, index: number) => {
-      state._id = here.all[here.all.length - 1 - index]!._id;
+      state._id = here.all[here.all.length - 1 - index]!._id!;
     });
 
     const check: Harness = harness({
