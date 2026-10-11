@@ -32,6 +32,7 @@ import StateMoveUtil, {
   StateMoveRecord,
 } from "../../../Utils/StateMove";
 import { StateListType } from "../../../Utils/StateOrder";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertEpisodeStateTimelineService from "../../Services/AlertEpisodeStateTimelineService";
 import AlertService from "../../Services/AlertService";
@@ -798,10 +799,11 @@ export default class WorkspaceMemberActions {
   /*
    * What a chat says instead of a change-state form with nothing to offer,
    * for a record its member may change but that is in the last state it can
-   * move into (findStateOptions).
+   * move into (findStateOptions). A reply both bots post, so it is mdText
+   * like every other.
    */
   public static getNoLaterStateMessage(type: WorkspaceEventType): string {
-    return `There is no later state to move this ${this.getNoun(type)} to.`;
+    return mdText`There is no later state to move this ${this.getNoun(type)} to.`.toString();
   }
 
   /*
