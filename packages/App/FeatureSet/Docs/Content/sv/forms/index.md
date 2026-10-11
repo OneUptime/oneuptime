@@ -57,7 +57,7 @@ Formulär börjar med de här två, och fler sorters poster kommer.
 
 - **En plan som omfattar formulär.** På OneUptime Cloud kräver formulär planen **Growth** eller högre. Se [Plan](#plan).
 - **Behörighet att skapa formulär.** **Create Form** har projektägare och -administratörer, och de roller som du ger den till. Se [Behörigheter](#behörigheter).
-- **För ett incidentformulär, en allvarlighetsgrad.** Varje incident behöver en: från en fråga, från formulärets inställningar eller från dess incidentmall. Utan den avvisas varje inlämning. Se [Vad en inlämning skapar](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **För ett incidentformulär, en allvarlighetsgrad.** Varje incident behöver en: från en fråga, från formulärets inställningar eller från dess incidentmall. Utan den avvisas varje inlämning. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-incident).
 
 ## Skapa ditt första formulär
 
@@ -76,7 +76,7 @@ Under **Vid inlämning** kontrollerar du hur en inlämning blir en incident elle
 
 ### Lägg till mallar om folk rapporterar samma fall
 
-Under **Mallar** sparar du en mall för varje fall som ofta rapporteras: formuläret listar dem ovanför sina frågor, fyller i sig själv från den valda och ställer frågorna som den mallen säger; en fråga som ett fall behöver kan vara obligatorisk i dess mall och dold i de andra. Se [Mallar](/docs/forms/building#templates).
+Under **Mallar** sparar du en mall för varje fall som ofta rapporteras: formuläret listar dem ovanför sina frågor, fyller i sig själv från den valda och ställer frågorna som den mallen säger; en fråga som ett fall behöver kan vara obligatorisk i dess mall och dold i de andra. Se [Mallar](/docs/forms/building#mallar).
 
 ### Dela länken
 
@@ -229,7 +229,7 @@ Frågor, mallar och inställningar kontrolleras varje gång de sparas (från ins
 
 ### Varumärke i API:t
 
-Ett formulärs varumärke är dess `logoFileId`, `logoAltText` och `faviconFileId`. Ladda först upp bilden med `POST /api/file` i formulärets projekt (med en API-nyckel för det projektet, eller inloggad som medlem i det med dess ID i headern `tenantid`), skicka dess `name`, dess `fileType`, till exempel `image/png`, och byten som base64 i `file`, och ange det `_id` som returneras. En uppladdning till ett projekt som du inte är medlem i avvisas med "You can upload files only to a project you are a member of." Varje uppladdning är privat: `isPublic` anges av OneUptime, oavsett vad begäran säger. Varje bild kontrolleras när formuläret sparas: den måste ha laddats upp i formulärets projekt, och en logotyp måste vara en PNG-, JPEG-, GIF-, WebP- eller SVG-bild på högst 512 KB, en favicon en av dem eller en ICO på högst 128 KB. Sätt ett ID till `null` för att gå tillbaka till OneUptimes. Se [Varumärke](/docs/forms/building#branding).
+Ett formulärs varumärke är dess `logoFileId`, `logoAltText` och `faviconFileId`. Ladda först upp bilden med `POST /api/file` i formulärets projekt (med en API-nyckel för det projektet, eller inloggad som medlem i det med dess ID i headern `tenantid`), skicka dess `name`, dess `fileType`, till exempel `image/png`, och byten som base64 i `file`, och ange det `_id` som returneras. En uppladdning till ett projekt som du inte är medlem i avvisas med "You can upload files only to a project you are a member of." Varje uppladdning är privat: `isPublic` anges av OneUptime, oavsett vad begäran säger. Varje bild kontrolleras när formuläret sparas: den måste ha laddats upp i formulärets projekt, och en logotyp måste vara en PNG-, JPEG-, GIF-, WebP- eller SVG-bild på högst 512 KB, en favicon en av dem eller en ICO på högst 128 KB. Sätt ett ID till `null` för att gå tillbaka till OneUptimes. Se [Varumärke](/docs/forms/building#varumärke).
 
 ### Läsa inlämningar
 

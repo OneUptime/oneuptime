@@ -34,7 +34,7 @@ sequenceDiagram
 
 Een Incoming Webhook of een Teams-werkstroom-URL vervangt het berichten-endpoint van deze bot niet.
 
-Videogesprekken (een Teams-vergadering voor een incident) gebruiken deze bot niet: ze hebben een eigen app-registratie nodig, beschreven in [Videogesprekken](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Videogesprekken (een Teams-vergadering voor een incident) gebruiken deze bot niet: ze hebben een eigen app-registratie nodig, beschreven in [Videogesprekken](/docs/workspace-connections/video-calls#koppelen-met-één-klik-op-een-zelf-gehoste-server).
 
 ## Voordat je begint
 

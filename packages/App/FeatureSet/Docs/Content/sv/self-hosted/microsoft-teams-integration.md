@@ -34,7 +34,7 @@ sequenceDiagram
 
 En Incoming Webhook eller en URL för ett Teams-arbetsflöde ersätter inte den här botens meddelandeslutpunkt.
 
-Videosamtal (ett Teams-möte för en incident) använder inte den här boten: de behöver en egen appregistrering, som beskrivs i [Videosamtal](/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server).
+Videosamtal (ett Teams-möte för en incident) använder inte den här boten: de behöver en egen appregistrering, som beskrivs i [Videosamtal](/docs/workspace-connections/video-calls#anslut-med-ett-klick-på-en-egenvärdad-server).
 
 ## Innan du börjar
 
