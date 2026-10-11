@@ -418,6 +418,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 Кластер блокирует `hostPath`. Переключитесь на пресет, который читает логи через Kubernetes API; он также отключает eBPF:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

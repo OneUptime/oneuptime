@@ -418,6 +418,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 خوشه `hostPath` را مسدود می‌کند. به پیش‌تنظیمی بروید که لاگ‌ها را از راه API در Kubernetes می‌خواند؛ این پیش‌تنظیم eBPF را هم کنار می‌گذارد:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

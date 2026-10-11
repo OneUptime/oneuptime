@@ -418,6 +418,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 集群阻止了 `hostPath`。请切换到通过 Kubernetes API 读取日志的预设，它也会省略 eBPF：
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

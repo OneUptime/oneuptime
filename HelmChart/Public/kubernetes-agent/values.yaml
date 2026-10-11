@@ -35,6 +35,9 @@ chartDefaultsVersion: "0.7.0"
 #
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
+# The one exception is the privileged pods: on gke-autopilot and
+# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the
+# profiler back on, because those platforms cannot run them.
 preset: ""
 
 # Required: Your OneUptime instance connection details

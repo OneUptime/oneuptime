@@ -418,6 +418,7 @@ La cause habituelle, surtout après une réinstallation, est une clé d'ingestio
 Le cluster bloque `hostPath`. Passez à un preset qui lit les journaux via l'API Kubernetes ; il laisse aussi eBPF de côté :
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

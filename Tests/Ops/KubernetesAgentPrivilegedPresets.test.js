@@ -219,4 +219,10 @@ describe("the README and values.yaml say what the presets do", () => {
       "(e.g.\n#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.",
     );
   });
+
+  test("values.yaml names the one exception to 'explicit values win over the preset'", () => {
+    expect(values).toContain(
+      "# still be overridden explicitly — they always win over preset defaults.\n# The one exception is the privileged pods: on gke-autopilot and\n# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the\n# profiler back on, because those platforms cannot run them.\npreset: \"\"",
+    );
+  });
 });

@@ -418,6 +418,7 @@ De gebruikelijke oorzaak, vooral na een herinstallatie, is een verkeerde of inge
 Het cluster blokkeert `hostPath`. Stap over op een preset die logs via de Kubernetes-API leest; die laat eBPF ook weg:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

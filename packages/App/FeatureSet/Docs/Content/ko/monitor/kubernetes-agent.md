@@ -418,6 +418,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 클러스터가 `hostPath` 를 막고 있습니다. Kubernetes API를 통해 로그를 읽는 프리셋으로 바꾸세요. 이 프리셋은 eBPF도 넣지 않습니다.
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

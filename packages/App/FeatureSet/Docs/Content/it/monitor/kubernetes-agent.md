@@ -418,6 +418,7 @@ La causa più comune, soprattutto dopo una reinstallazione, è una chiave di acq
 Il cluster blocca `hostPath`. Passa a un preset che legge i log tramite l'API di Kubernetes; lascia fuori anche eBPF:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

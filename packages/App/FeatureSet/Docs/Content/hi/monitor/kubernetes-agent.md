@@ -418,6 +418,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 क्लस्टर `hostPath` को ब्लॉक करता है। ऐसे प्रीसेट पर जाएँ जो लॉग Kubernetes API से पढ़ता है; वह eBPF को भी छोड़ देता है:
 
 ```bash
+helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \

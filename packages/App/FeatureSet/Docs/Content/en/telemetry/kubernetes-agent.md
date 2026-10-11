@@ -885,9 +885,10 @@ Telemetry usage is aggregated per day, so check the trend over a day or two unde
 
 ### Install fails with "hostPath volumes are not allowed" or a Pod Security admission error
 
-Your cluster blocks `hostPath` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset:
+Your cluster blocks `hostPath` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset. It leaves out eBPF and the profiler too, which need privileged pods those platforms refuse:
 
 ```bash
+helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \

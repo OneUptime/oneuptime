@@ -435,6 +435,29 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         });
       }
 
+      /*
+       * Only a chart with the privileged-pod helpers leaves eBPF out by
+       * itself, so a block that moves an installed agent onto one of these
+       * presets fetches the chart first: `helm upgrade` installs whatever
+       * chart the local repo cache last saw.
+       */
+      const upgradesOntoPreset: Array<string> = lockedDown.filter(
+        (block: string): boolean => {
+          return block.includes("helm upgrade ");
+        },
+      );
+
+      expect(upgradesOntoPreset.length).toBe(1);
+
+      for (const block of upgradesOntoPreset) {
+        expect({
+          block,
+          fetchesTheChartFirst: block.startsWith(
+            "helm repo update\nhelm upgrade ",
+          ),
+        }).toEqual({ block, fetchesTheChartFirst: true });
+      }
+
       expect(english).toContain(
         "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out:",
       );
@@ -632,5 +655,42 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       "The nodes run a kernel older than **Linux 5.8** without BTF.",
     );
     expect(english).toContain("Profiling needs **Linux 5.10** or later");
+  });
+});
+
+/*
+ * The telemetry "Kubernetes Agent" page has its own hostPath
+ * troubleshooting, which moves an installed agent onto the gke-autopilot or
+ * eks-fargate preset. Only a chart with the privileged-pod helpers leaves
+ * eBPF out by itself, so it fetches the chart first, as this page's does.
+ */
+const LOCKED_DOWN_PRESET_FLAG: RegExp =
+  /--set preset=(gke-autopilot|eks-fargate)/;
+
+describe("the telemetry Kubernetes Agent page's hostPath troubleshooting", () => {
+  it("fetches the chart before it moves the agent onto a preset", () => {
+    const telemetry: string = readPage("en", "telemetry/kubernetes-agent");
+    const blocks: Array<string> = scanMarkdown(telemetry)
+      .fences.filter((fence: DocsFence): boolean => {
+        return (
+          fence.lang === "bash" &&
+          fence.code.includes("helm upgrade ") &&
+          LOCKED_DOWN_PRESET_FLAG.test(fence.code)
+        );
+      })
+      .map((fence: DocsFence): string => {
+        return fence.code;
+      });
+
+    expect(blocks.length).toBe(1);
+
+    for (const block of blocks) {
+      expect({
+        block,
+        fetchesTheChartFirst: block.startsWith(
+          "helm repo update\nhelm upgrade ",
+        ),
+      }).toEqual({ block, fetchesTheChartFirst: true });
+    }
   });
 });
