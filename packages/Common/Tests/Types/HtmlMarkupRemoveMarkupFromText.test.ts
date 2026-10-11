@@ -571,26 +571,65 @@ describe("removeMarkupFromText", () => {
   });
 
   /*
-   * A "<" waiting for its ">" is remembered, but a run of them with nothing
-   * between counts once: sixteen million of them, remembered one by one,
-   * took 350 MB.
+   * The walk remembers what still waits in typed arrays that double as
+   * they fill: a "<" waiting for its ">" takes room, but a run of them with
+   * nothing between counts once, and "<" that taken-out markup leaves one
+   * after another share one piece. Sixteen million "<" remembered one by
+   * one took 350 MB. Counted here by the room the walk asks for - which
+   * no garbage collection can hide.
    */
   describe("memory", () => {
     const MEGABYTE: number = 1024 * 1024;
 
+    // The most room any typed array the walk makes while reading `text` has.
+    function mostRoomAskedFor(text: string): number {
+      const RealInt32Array: Int32ArrayConstructor = globalThis.Int32Array;
+      const RealUint8Array: Uint8ArrayConstructor = globalThis.Uint8Array;
+      let most: number = 0;
+
+      class CountedInt32Array extends RealInt32Array {
+        public constructor(length: number) {
+          super(length);
+          most = Math.max(most, length);
+        }
+      }
+
+      class CountedUint8Array extends RealUint8Array {
+        public constructor(length: number) {
+          super(length);
+          most = Math.max(most, length);
+        }
+      }
+
+      globalThis.Int32Array = CountedInt32Array as Int32ArrayConstructor;
+      globalThis.Uint8Array = CountedUint8Array as Uint8ArrayConstructor;
+
+      try {
+        expect(holdsMarkup(read(text), NO_LIMIT)).toBe(false);
+      } finally {
+        globalThis.Int32Array = RealInt32Array;
+        globalThis.Uint8Array = RealUint8Array;
+      }
+
+      return most;
+    }
+
     it.each([
       ["a run of '<' then a '>'", "<".repeat(8 * MEGABYTE) + ">"],
       ["a '<' before every tag", "<<b>".repeat(2 * MEGABYTE)],
+      ["a run of '<' around every tag", "<<<b>>".repeat(MEGABYTE)],
     ])(
-      "remembers %s in a few bytes, not bytes for each '<'",
+      "remembers %s in the room it starts with",
       (_case: string, text: string) => {
-        const before: number = process.memoryUsage().arrayBuffers;
-        const once: string = read(text);
-        const grew: number = process.memoryUsage().arrayBuffers - before;
-
-        expect(holdsMarkup(once, NO_LIMIT)).toBe(false);
-        expect(grew).toBeLessThan(4 * MEGABYTE);
+        expect(mostRoomAskedFor(text)).toBeLessThanOrEqual(16);
       },
     );
+
+    it("makes room for each '<' that waits on its own", () => {
+      // The count is real: tags left waiting in each other's names take room.
+      expect(mostRoomAskedFor("<a".repeat(4096) + ">")).toBeGreaterThanOrEqual(
+        4096,
+      );
+    });
   });
 });
