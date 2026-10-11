@@ -268,7 +268,13 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
         ]}
         isDeleteable={true}
-        createVerb="Create Twilio Config"
+        /*
+         * The card, its button and its dialogs name a config the way the
+         * docs and the card's title do - "Create Twilio Config" - not by
+         * the model's name ("Call and SMS Config").
+         */
+        singularName="Twilio Config"
+        pluralName="Twilio Configs"
         isEditable={true}
         isCreateable={true}
         cardProps={{

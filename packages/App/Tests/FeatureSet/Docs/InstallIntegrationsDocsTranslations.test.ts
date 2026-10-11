@@ -11,6 +11,7 @@ import {
 } from "./DocsContentSupport";
 import {
   dashboardLocale,
+  drawnCreateButton,
   drawnDashboardLabel,
   isDashboardLabel,
 } from "./DocsDashboardLabels";
@@ -358,7 +359,8 @@ const CONNECT_CODES: Record<string, ConnectQuotes> = {
  * The Code Repositories card's own sentence for a plan it does not have
  * (GitHubConnectLock), quoted with "..." for the plan's name.
  */
-const GITHUB_PLAN_SENTENCE: string = "Connecting GitHub needs the {{planName}} plan.";
+const GITHUB_PLAN_SENTENCE: string =
+  "Connecting GitHub needs the {{planName}} plan.";
 const PLAN_NAME_SLOT: string = "{{planName}}";
 
 /*
@@ -593,6 +595,25 @@ const ADMIN_DETAILS_WORDS: Record<string, Array<string>> = {
   [COMPOSE]: ["Disconnected"],
 };
 
+/*
+ * A table's create button, which the Dashboard draws from the name the table
+ * gives its rows - "Create" and "Twilio Config" - rather than looking the
+ * phrase up whole, so a locale that still holds the phrase as the English
+ * draws the template with its own word for a config (drawnCreateButton).
+ */
+const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
+  // The Twilio Config card on Notification Settings (CallSMSConfigTable).
+  [TWILIO]: ["Create Twilio Config"],
+};
+
+// The table that draws each of those buttons, and the name it gives its rows.
+const CREATE_BUTTON_TABLES: Record<string, { file: string; rows: string }> = {
+  "Create Twilio Config": {
+    file: "App/FeatureSet/Dashboard/src/Components/CallSMS/CallSMSConfigTable.tsx",
+    rows: "Twilio Config",
+  },
+};
+
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
 const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
@@ -651,6 +672,13 @@ function nestedValue(
   }
 
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+// How this language's Dashboard draws a bold label of a page.
+function drawnLabel(language: string, page: string, label: string): string {
+  return listed(TABLE_CREATE_BUTTONS, page).includes(label)
+    ? drawnCreateButton(language, label)
+    : drawnDashboardLabel(language, label);
 }
 
 // How the Admin Dashboard draws one of its words, in English where it has none.
@@ -976,9 +1004,39 @@ describe("the lists this test keeps", () => {
       NUMBERS,
       QUOTED_HEADING_LABELS,
       ADMIN_DETAILS_WORDS,
+      TABLE_CREATE_BUTTONS,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
+      }
+    }
+  });
+
+  it("draw a table's create button from the name its table gives its rows", () => {
+    for (const page of Object.keys(TABLE_CREATE_BUTTONS)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const button of TABLE_CREATE_BUTTONS[page] as Array<string>) {
+        const table: { file: string; rows: string } | undefined =
+          CREATE_BUTTON_TABLES[button];
+
+        expect({ button, table: Boolean(table) }).toEqual({
+          button,
+          table: true,
+        });
+
+        const source: string = fs.readFileSync(
+          path.join(PACKAGES_DIR, table!.file),
+          "utf8",
+        );
+
+        expect(button).toBe(`Create ${table!.rows}`);
+        expect(source).toContain(`singularName="${table!.rows}"`);
+        // A verb of its own is drawn before the rows' name.
+        expect(source).not.toContain("createVerb=");
+        expect(labels).toContain(button);
+        expect(isDashboardLabel(button)).toBe(true);
+        expect(drawnCreateButton("en", button)).toBe(button);
       }
     }
   });
@@ -1068,9 +1126,10 @@ describe("the lists this test keeps", () => {
 
   it("name Admin Dashboard keys its English locale has", () => {
     for (const [english, key] of Object.entries(ADMIN_KEYS)) {
-      expect({ english, value: nestedValue(adminLocale("en"), key) }).toEqual(
-        { english, value: english },
-      );
+      expect({ english, value: nestedValue(adminLocale("en"), key) }).toEqual({
+        english,
+        value: english,
+      });
     }
 
     for (const page of Object.keys(ADMIN_LABELS)) {
@@ -1079,7 +1138,8 @@ describe("the lists this test keeps", () => {
           expect({ label, segment, known: true }).toEqual({
             label,
             segment,
-            known: segment === "Admin Dashboard" || Boolean(ADMIN_KEYS[segment]),
+            known:
+              segment === "Admin Dashboard" || Boolean(ADMIN_KEYS[segment]),
           });
         }
       }
@@ -1112,7 +1172,9 @@ describe("the lists this test keeps", () => {
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
-          return !isDashboardLabel(span) && !known.includes(span) && !isQuote(span);
+          return (
+            !isDashboardLabel(span) && !known.includes(span) && !isQuote(span)
+          );
         },
       );
 
@@ -1344,11 +1406,11 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
         })
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnDashboardLabel(language, label)}**`,
+            `**${drawnLabel(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnDashboardLabel(language, label)}`;
+          return `${label} -> ${drawnLabel(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
@@ -1372,7 +1434,7 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
           );
         })
         .map((label: string): [string, string] => {
-          return [label, drawnDashboardLabel(language, label)];
+          return [label, drawnLabel(language, entry.page, label)];
         })
         .filter(([label, drawn]: [string, string]): boolean => {
           return (
@@ -1530,15 +1592,15 @@ describe("the helpers, on these pages' shapes", () => {
       "Slack",
     ]);
 
-    expect(pattern.test("**Projekteinstellungen > Arbeitsbereich > Slack**")).toBe(
-      true,
-    );
+    expect(
+      pattern.test("**Projekteinstellungen > Arbeitsbereich > Slack**"),
+    ).toBe(true);
     expect(
       pattern.test("**Projekteinstellungen** > **Arbeitsbereich** > **Slack**"),
     ).toBe(true);
-    expect(pattern.test("**Arbeitsbereich > Projekteinstellungen > Slack**")).toBe(
-      false,
-    );
+    expect(
+      pattern.test("**Arbeitsbereich > Projekteinstellungen > Slack**"),
+    ).toBe(false);
   });
 
   it("draw the Admin Dashboard's paths from its own locale, and the Dashboard's from the Dashboard's", () => {

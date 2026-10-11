@@ -1,108 +1,148 @@
-# Integração do Twilio para SMS e chamadas de voz
+# Integração do Twilio
 
-O OneUptime auto-hospedado usa sua conta Twilio para enviar alertas por SMS e chamadas de voz. Você paga diretamente ao Twilio. Configure as credenciais no painel do OneUptime: o envio de notificações lê a configuração salva, e o chart Helm não inclui valores para credenciais do Twilio. Uma migração antiga importava `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` e `TWILIO_PHONE_NUMBER`; alterar essas variáveis não é a forma de atualizar as credenciais de uma instalação existente.
+O OneUptime auto-hospedado envia alertas por SMS e por voz pela sua própria conta do Twilio, e você paga o Twilio diretamente. As credenciais do Twilio ficam salvas no painel do OneUptime, não em variáveis de ambiente: o envio de notificações lê a configuração salva, e o chart do Helm não tem valores para as credenciais do Twilio.
+
+> [!NOTE]
+> Uma migração antiga importou `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` e `TWILIO_PHONE_NUMBER`; alterar essas variáveis não é a forma de atualizar as credenciais de uma instalação existente.
+
+:::cards
+- [Prepare sua conta Twilio](#1-prepare-sua-conta-twilio): As credenciais, um número de telefone e os limites da conta.
+- [Salve as credenciais](#2-salve-as-credenciais-no-oneuptime): Para um projeto, ou para a instalação inteira.
+- [Configure o acesso à rede](#3-configure-o-acesso-à-rede): O que o Twilio precisa alcançar no seu servidor, e quando.
+- [Verifique números de telefone](#5-verifique-os-números-de-telefone-dos-membros-da-equipe): Como os números dos membros da equipe são verificados.
+:::
 
 ## 1. Prepare sua conta Twilio
 
-1. Abra o [console do Twilio](https://console.twilio.com/) e obtenha seu **Account SID** e **Auth Token**.
-2. Obtenha um número de telefone Twilio com os recursos de SMS e/ou voz necessários. Use o formato E.164, incluindo o código do país, nos números de remetente e destinatário.
-3. Verifique o saldo da conta, as permissões para os países de destino e os requisitos aplicáveis de registro de remetentes. Contas de avaliação têm restrições de destinatários, geográficas e de outros tipos que podem impedir o funcionamento de alertas reais do OneUptime. Consulte a [documentação do Twilio sobre contas e avaliações](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account) antes dos testes. Use uma conta paga em produção.
+:::steps
+### Copie suas credenciais
+
+Abra o [Twilio Console](https://console.twilio.com/) e copie o seu **Account SID** e o seu **Auth Token**.
+
+### Obtenha um número de telefone
+
+Obtenha um número de telefone do Twilio com os recursos de SMS e/ou voz de que você precisa. Use o formato E.164, com o código do país, para os números de remetente e de destinatário.
+
+### Verifique os limites da conta
+
+Verifique o saldo da conta, as permissões dos países de destino e os requisitos de registro de remetentes aplicáveis. Contas de avaliação têm restrições de destinatários, geográficas e outras que podem impedir que alertas reais do OneUptime funcionem; leia a [documentação do Twilio sobre contas e avaliação gratuita](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account) antes de testar. Em produção, use uma conta atualizada.
+:::
 
 ## 2. Salve as credenciais no OneUptime
 
-Para um projeto:
+Salve as credenciais para um projeto, ou uma única vez para a instalação inteira:
 
-1. Acesse **Configurações do projeto > Notificações > Configurações de notificações**.
-2. Em **Configuração do Twilio**, selecione **Criar configuração do Twilio**.
-3. Insira um nome, **Twilio Account SID**, **Twilio Auth Token** e **Número de telefone principal do Twilio**. Opcionalmente, insira **Números de telefone secundários do Twilio** para outros países, separados por vírgulas.
-4. **Definir como padrão do projeto** vem ativado na primeira configuração do projeto, então os SMS e as chamadas para os membros do projeto, incluindo notificações de plantão, passam por ela assim que você salvar. Desative-o se esta conta for apenas para páginas de status ou chamadas recebidas. Em qualquer configuração posterior, a opção começa desativada: ative-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para mover essas mensagens para ela. Uma solicitação à API que omite `isProjectDefault` é tratada da mesma forma.
-5. Salve. Apenas uma configuração pode ser o padrão do projeto. As páginas de status usam a configuração explicitamente atribuída a cada página.
+| | Configuração do projeto | Configuração da instalação |
+| --- | --- | --- |
+| Onde | O cartão **Configuração do Twilio** em **Configurações do projeto > Notificações > Configurações de notificação** | **Admin Dashboard > Configurações > Chamadas e SMS** |
+| Quem pode definir | **Project Owner**, **Project Admin**, ou **Create Call and SMS** em uma função personalizada | Um administrador mestre |
+| Usada para | SMS e chamadas aos membros do projeto enquanto ela for a padrão do projeto, as páginas de status às quais está atribuída e as políticas de chamadas recebidas que a usam | SMS e chamadas aos membros de qualquer projeto que não tenha configuração padrão |
 
-**SMS** e **Chamadas telefônicas** começam desligados em todo projeto e, até serem ligados, ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto ou alguém com **Billing Admin** ou **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
+Para adicionar uma configuração de projeto:
 
-Para um padrão de toda a instalação, um administrador pode abrir **Painel de administração > Configurações > Chamadas e SMS**, editar as credenciais e os números do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto não tem um padrão. Mantenha o Auth Token confidencial.
+:::steps
+1. Vá para **Configurações do projeto > Notificações > Configurações de notificação**.
+2. Em **Configuração do Twilio**, selecione **Criar: Configuração do Twilio**.
+3. Informe um nome, **SID da Conta Twilio**, **Token de Autenticação Twilio** e **Número de Telefone Principal do Twilio**. Se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países.
+4. **Definir como padrão do projeto** começa ligado na primeira configuração do projeto, então os SMS e as chamadas aos membros do projeto, inclusive as notificações de plantão, passam por ela assim que você salva. Desligue se essa conta for só para páginas de status ou chamadas recebidas. Uma configuração posterior começa com a chave desligada: ligue-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para levar essas mensagens para ela. Uma requisição à API que omite `isProjectDefault` é tratada da mesma forma.
+5. Salve. Só uma configuração pode ser a padrão do projeto. As páginas de status usam a configuração atribuída explicitamente a cada uma.
+
+> [!IMPORTANT]
+> **SMS** e **Chamadas telefônicas** começam desligados em todos os projetos, e enquanto não estiverem ligados ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto, um **Billing Admin** ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
+:::
+
+Para um padrão que valha para a instalação inteira, um administrador pode abrir **Admin Dashboard > Configurações > Chamadas e SMS**, editar as credenciais e os números de telefone do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto deles não tem um padrão. Mantenha o Auth Token em sigilo.
 
 ## 3. Configure o acesso à rede
 
-Uma implantação privada precisa de acesso HTTPS de saída ao Twilio para enviar solicitações de SMS e chamadas. O Twilio recomenda permitir HTTPS de saída para `*.twilio.com`, pois seus endereços de API são dinâmicos; consulte os [endereços IP do Twilio](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Aplique isso ao tráfego de saída da aplicação OneUptime, incluindo NetworkPolicies do Kubernetes e firewalls externos. Permita resolução DNS e HTTPS (TCP 443) de saída da aplicação OneUptime.
+O envio funciona só com acesso de saída. As atualizações de entrega, a confirmação pelo teclado e as chamadas recebidas precisam que o Twilio alcance o seu servidor.
+
+```mermaid title="Envios de saída, callbacks de entrada"
+sequenceDiagram
+    participant O as OneUptime
+    participant T as Twilio
+    participant P as Telefone de quem atende
+    O->>T: Envia um SMS ou inicia uma chamada
+    T->>P: SMS ou chamada de voz
+    T-->>O: Callback do status de entrega do SMS
+    P->>T: Pressiona 1 para confirmar
+    T-->>O: Callback da entrada do teclado
+```
+
+Uma implantação privada precisa de resolução DNS e de HTTPS de saída pela porta TCP 443 até o Twilio para enviar SMS e chamadas. O Twilio recomenda liberar o HTTPS de saída para `*.twilio.com`, porque os endereços da API dele são dinâmicos; veja [os endereços IP do Twilio](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Aplique isso à saída da carga de trabalho da aplicação OneUptime, incluindo as NetworkPolicies do Kubernetes e os firewalls externos.
 
 O acesso de entrada depende do recurso:
 
-| Recurso | O Twilio precisa acessar o OneUptime? |
+| Recurso | O Twilio precisa alcançar o OneUptime? |
 | --- | --- |
-| Envio de SMS | Não. As atualizações do status de entrega precisam de um callback. |
-| Chamada de voz de teste simples | Não. O OneUptime fornece as instruções de voz junto com a solicitação de saída à API. |
-| Pressionar 1 para reconhecer um alerta de plantão | Sim. O Twilio envia a entrada do teclado ao OneUptime. |
-| Políticas de chamadas recebidas | Sim. O Twilio solicita instruções de chamada e informa os resultados da discagem. |
+| Envio de SMS | Não. As atualizações do status de entrega, porém, precisam de um callback. |
+| Uma chamada de voz de teste simples | Não. O OneUptime envia as instruções faladas junto com a requisição de saída à API. |
+| Pressionar 1 para confirmar um alerta de plantão | Sim. O Twilio envia a entrada do teclado ao OneUptime. |
+| Políticas de chamadas recebidas | Sim. O Twilio pede as instruções da chamada e informa os resultados da discagem. |
 
-Estes são os caminhos externos pelo gateway Nginx do OneUptime; os espaços reservados variam por notificação:
+Estes são os caminhos externos, pelo gateway Nginx do OneUptime. Os marcadores variam a cada notificação:
 
 | Método | Caminho | Finalidade |
 | --- | --- | --- |
-| POST | `/notification/sms/status-callback/:smsLogId/:token` | Status de entrega de SMS |
-| POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Reconhecimento pelo teclado |
+| POST | `/notification/sms/status-callback/:smsLogId/:token` | Status de entrega do SMS |
+| POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Confirmação pelo teclado |
 | POST | `/notification/incoming-call/voice` | Instruções opcionais de chamadas recebidas |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Resultados opcionais do roteamento de chamadas recebidas |
 
-O OneUptime gera automaticamente as URLs de SMS e de reconhecimento. Não substitua seus tokens por uma URL de webhook estática. Para chamadas recebidas, siga o guia de [políticas de chamadas recebidas](/docs/on-call/incoming-call-policy), que configura o webhook do número quando você associa um número.
+O OneUptime gera automaticamente as URLs dos SMS e da confirmação. Não substitua os tokens delas por uma URL de webhook fixa. Para chamadas recebidas, siga [as políticas de chamadas recebidas](/docs/on-call/incoming-call-policy), que configuram o webhook do número quando você o associa.
 
-O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve host, protocolo, caminho, parâmetros de consulta, corpo e cabeçalho `X-Twilio-Signature` originais ao passar pelos proxies. Os manipuladores de chamadas recebidas validam as assinaturas do Twilio; a entrega de SMS usa um token de URL por mensagem, e o reconhecimento pelo teclado usa um token de consulta assinado. Não exponha tokens em logs ou capturas de tela compartilhados. Consulte a [segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve, através dos proxies, o host, o protocolo, o caminho, os parâmetros de consulta, o corpo e o cabeçalho `X-Twilio-Signature` originais. Os handlers de chamadas recebidas validam as assinaturas do Twilio; a entrega de SMS usa um token de URL por mensagem, e a confirmação pelo teclado, um token de consulta assinado. Não exponha os tokens em logs compartilhados nem em capturas de tela. Veja [a segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
-### Produção: publique um gateway para a implantação privada
+### Publicar callbacks a partir de uma implantação privada
 
-1. **Escolha um nome de host**, por exemplo `oneuptime.example.com`. Publique registros DNS públicos apontando para um gateway acessível pela Internet. Os fornecedores não conseguem acessar endereços IP privados nem nomes DNS exclusivamente internos. Com DNS dividido, os funcionários podem resolver o mesmo nome de host para o ingress privado e continuar usando o painel pela VPN. O ingress privado também precisa oferecer HTTPS com um certificado válido para esse nome de host.
+:::steps
+1. Publique o DNS do seu nome de host do OneUptime, por exemplo `oneuptime.example.com`, apontando para um proxy reverso ou balanceador de carga exposto à internet. Libere a porta TCP 443 de entrada e configure um certificado de confiança pública com a cadeia completa. Um IP privado, um DNS só interno ou a conexão VPN de um administrador não dão conectividade ao Twilio.
+2. Dê a esse gateway uma rota de rede até o ingress privado do OneUptime, diretamente ou pela sua própria VPN site a site ou link privado. Libere a porta do serviço de origem. Um serviço `ClusterIP` do Kubernetes precisa de um ingress acessível ou de outra rota a partir do gateway. Mantenha privados os bancos de dados e os outros serviços internos.
+3. Publique só os caminhos de callback da tabela acima que você usa. Encaminhe-os pelo gateway Nginx do OneUptime, que mapeia o prefixo externo `/notification` para a aplicação. Mantenha `/api` na rota da confirmação pelo teclado. Preserve o método HTTP e os dados da requisição; não redirecione para outra URL. Preserve o `Host` público e defina no seu proxy cabeçalhos de encaminhamento confiáveis para o host público e o esquema HTTPS.
+4. Exclua essas rotas do SSO do navegador, dos CAPTCHAs e das páginas de login do proxy. Mantenha ativada a autenticação de callbacks do OneUptime. Limite o acesso à origem privada ao gateway e aos clientes internos autorizados.
+5. Defina `HOST=oneuptime.example.com` e `HTTP_PROTOCOL=https` no `config.env` do Docker Compose, ou `host: oneuptime.example.com` e `httpProtocol: https` nos values do Helm. Aplique a mudança na implantação e espere a aplicação reiniciar. Essas configurações geram URLs; elas não criam DNS, certificados nem regras de firewall. O OneUptime não tem uma configuração separada de nome de host para os callbacks do Twilio. Se o nome de host mudar, atualize também o webhook dos números de telefone do Twilio existentes.
+:::
 
-2. **Conecte o gateway ao OneUptime.** Coloque-o em uma DMZ com uma rota para o ingress privado ou use um gateway público conectado pela sua própria VPN de site a site ou conexão privada. Permita tráfego do gateway ao ingress na porta do serviço de destino. Para Kubernetes/Portainer, um serviço privado `ClusterIP` por si só não basta: o gateway precisa de um ingress/controlador ou outro destino acessível. Mantenha bancos de dados e outros serviços internos privados.
+O painel pode ficar num ingress privado: com DNS dividido, os funcionários resolvem o mesmo nome de host para esse ingress pela rede corporativa ou pela VPN, enquanto o Twilio o resolve para o gateway. Sirva nos dois caminhos um certificado válido para esse nome de host. As [configurações de acesso a redes privadas](/docs/self-hosted/private-network-access) do OneUptime regem as requisições de saída para serviços internos; `ALLOW_PRIVATE_NETWORK_WEBHOOKS` não publica um endpoint de entrada.
 
-3. **Termine HTTPS na porta 443** com um certificado de confiança pública e uma cadeia intermediária completa. Permita TCP de entrada na porta 443 do gateway. Instalar um certificado ou alterar o DNS, por si só, não cria a rota para o destino privado.
+### Restrições de IP e implantações sem acesso de entrada
 
-4. Publique apenas as rotas de callback da tabela acima pelo gateway Nginx do OneUptime, que mapeia `/notification` para a aplicação. Preserve `/api` na rota de confirmação pelo teclado. Preserve método, caminho, query string, corpo e cabeçalhos de autenticação (`X-Twilio-Signature`). Mantenha o `Host` público e defina cabeçalhos confiáveis `X-Forwarded-Host` e `X-Forwarded-Proto: https`. Não adicione redirecionamentos.
+Os endereços de origem comuns dos webhooks do Twilio mudam, então não use faixas de IP de SIP ou de mídia como lista de permissões dos callbacks. As edições do Twilio elegíveis oferecem [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Confirme a elegibilidade da sua edição e os produtos compatíveis, e configure o seu firewall com as faixas publicadas atualmente pelo Twilio; continue validando os callbacks mesmo ao usá-lo.
 
-5. Isente essas rotas de SSO do navegador, CAPTCHA e páginas de login do proxy. Mantenha a autenticação do OneUptime ativa. Restrinja o acesso à origem ao gateway e aos clientes internos autorizados; oculte tokens nos logs.
+> [!WARNING]
+> Se uma política proíbe conexões de entrada, o envio de SMS e a reprodução de voz simples embutida podem funcionar com HTTPS de saída. As atualizações de entrega de SMS, a confirmação pelo teclado e o roteamento de chamadas recebidas não funcionam sem callbacks acessíveis. Uma instalação totalmente desconectada não pode usar o Twilio.
 
-6. **Defina a URL canônica do OneUptime**:
-
-   Docker Compose, em `config.env`:
-
-   ```dotenv
-   HOST=oneuptime.example.com
-   HTTP_PROTOCOL=https
-   ```
-
-   Valores de Helm/Portainer:
-
-   ```yaml
-   host: oneuptime.example.com
-   httpProtocol: https
-   ```
-
-   Substitua o exemplo pelo seu domínio. Esses ajustes geram URLs; não criam DNS, TLS nem regras de firewall. Aplique a configuração do Compose ou a atualização do Helm e aguarde a aplicação reiniciar. O OneUptime não oferece um hostname separado para callbacks do Twilio. Se o nome mudar, atualize também os webhooks dos números Twilio existentes.
-
-As [configurações de acesso à rede privada](/docs/self-hosted/private-network-access) controlam solicitações de saída do OneUptime para serviços internos. Ativar `ALLOW_PRIVATE_NETWORK_WEBHOOKS` não torna o OneUptime acessível ao Twilio.
-
-### Acesso de saída e restrições de IP
-
-Os endereços de origem dos webhooks comuns do Twilio mudam; não use intervalos SIP ou de mídia como lista de permissões. Edições elegíveis oferecem [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Verifique a elegibilidade e os produtos compatíveis e configure o firewall com os intervalos publicados atuais. Continue autenticando os callbacks.
-
-### Testes e implantações sem acesso de entrada
-
-Sem acesso de entrada, o envio de SMS e a reprodução de voz simples podem funcionar com HTTPS de saída. Status de entrega, confirmação pelo teclado e roteamento de chamadas de entrada precisam de callbacks acessíveis. Uma instalação totalmente desconectada não pode usar o Twilio.
-
-Para desenvolvimento, o [guia de testes de webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhook-testing) descreve um túnel público. Encaminhe-o a um proxy que permita apenas as rotas necessárias, configure o hostname resultante como acima e pare o túnel após os testes. Um túnel continua expondo acesso de entrada.
+Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) do Twilio descreve o uso de um túnel público: encaminhe-o para um proxy que permita só as rotas necessárias, configure o nome de host resultante como acima e encerre-o depois dos testes. Um túnel ainda assim abre um acesso de entrada.
 
 ## 4. Teste a entrega e os callbacks separadamente
 
-1. De fora da rede corporativa e da VPN, verifique se o hostname dos callbacks resolve para o gateway público e apresenta um certificado TLS válido. Um GET do navegador não testa esses callbacks POST.
-2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino. Ambos exigem permissão para adicionar configurações do Twilio: **Project Owner**, **Project Admin**, ou **Create Call and SMS** e **Read Call and SMS** em uma função personalizada.
-3. Configure o contato verificado do usuário para SMS/chamadas e suas regras de notificação; depois, acione um alerta de plantão controlado. Pressione 1 e confirme o reconhecimento no OneUptime. Se você usa políticas de chamadas de entrada, ligue para o número configurado e verifique o roteamento e o registro de chamadas.
-4. Confirme o status de entrega do SMS no OneUptime e nos logs de mensagens do Twilio. Um envio aceito não comprova a entrega; [o Twilio informa alterações posteriores de status por callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+:::steps
+1. De fora da rede corporativa e da VPN, verifique se o nome de host dos callbacks resolve para o gateway público e apresenta um certificado TLS válido. Um GET no navegador não testa esses callbacks POST.
+2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino. As duas ações exigem permissão para adicionar configurações do Twilio: **Project Owner**, **Project Admin**, ou **Create Call and SMS** e **Read Call and SMS** em uma função personalizada.
+3. Configure o contato de SMS ou chamada verificado do usuário e as regras de notificação, e então dispare um alerta de plantão controlado. Pressione 1 e confirme o reconhecimento no OneUptime. Se você usa políticas de chamadas recebidas, ligue para o número configurado e verifique o roteamento e o registro de chamadas.
+4. Confirme o status de entrega dos SMS no OneUptime e nos logs de mensagens do Twilio. Um envio aceito não prova a entrega; [o Twilio informa mudanças de status posteriores por callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+:::
 
-Se o envio falhar, verifique credenciais, recursos do número, restrições da conta e conectividade de saída. Se a mensagem ou chamada chegar, mas o status ou reconhecimento não for atualizado, examine a URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de recuperação HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. Uma chamada de teste bem-sucedida, por si só, não verifica o acesso dos callbacks.
+| Sintoma | Onde olhar |
+| --- | --- |
+| Nada é enviado | As credenciais, os recursos do número, as restrições da conta e a conectividade de saída. |
+| O SMS ou a chamada chega, mas o status ou a confirmação não é atualizado | A URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de obtenção HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. |
+
+Uma chamada de teste bem-sucedida, sozinha, não prova que os callbacks são acessíveis.
 
 ## 5. Verifique os números de telefone dos membros da equipe
 
-Adicionar um número de telefone para SMS ou chamadas envia o código de verificação imediatamente, e a caixa de diálogo de verificação é aberta. Ela mostra quando o código foi enviado e até quando é válido, e envia um novo código quando solicitado, no máximo uma vez por minuto. Nada precisa ser reenviado antes de verificar.
+Adicionar um número de telefone para SMS ou chamadas envia o código de verificação dele na hora, e o diálogo de verificação se abre. Ele mostra quando o código foi enviado e até quando vale, e envia um código novo quando pedido, no máximo uma vez por minuto. Nada precisa ser reenviado antes de verificar.
 
-Quando nenhum código pode ser enviado, a caixa de diálogo informa o motivo em vez de afirmar que um código foi enviado: por exemplo, que nenhuma conta Twilio está configurada, enquanto não existir uma configuração padrão do projeto nem a configuração de toda a instalação descrita acima. Um número cujo primeiro código não pode ser enviado não é adicionado, e o formulário mostra o motivo, como o Twilio recusar um país de destino.
+Quando nenhum código pode ser enviado, o diálogo diz por quê, em vez de afirmar que um código foi enviado: por exemplo, que nenhuma conta do Twilio está configurada, até que exista uma configuração padrão do projeto ou a configuração da instalação descrita acima. Um número cujo primeiro código não pode ser enviado não é adicionado, e o formulário mostra o motivo, como o Twilio recusar um país de destino.
 
-Um número verificado para SMS também fica verificado para chamadas, sem um segundo código. Verificar por chamada não verifica o SMS, porque um número que recebe chamadas, como um telefone fixo, nem sempre consegue receber mensagens de texto. Se o Twilio aceitar um código que nunca chega, o registro de SMS do projeto mostra o status de entrega.
+Um número verificado para SMS também fica verificado para chamadas, sem um segundo código. A verificação por chamada não verifica o SMS, porque um número que recebe chamadas, como um telefone fixo, nem sempre consegue receber mensagens de texto. Se o Twilio aceitar um código que nunca chega, o log de SMS do projeto mostra o status de entrega dele.
+
+## Próximos passos
+
+:::cards
+- [Política de chamadas recebidas](/docs/on-call/incoming-call-policy): Deixar quem liga falar com os seus engenheiros de plantão por um número do Twilio.
+- [Regras de escalonamento](/docs/on-call/escalation-rules): Decidir quem é acionado em cada nível, por SMS, chamada ou qualquer outro método.
+- [SMTP](/docs/emails/smtp): Enviar também os e-mails pelo seu próprio servidor de e-mail.
+- [Acesso a redes privadas](/docs/self-hosted/private-network-access): Deixar workflows e webhooks alcançarem ferramentas internas.
+:::

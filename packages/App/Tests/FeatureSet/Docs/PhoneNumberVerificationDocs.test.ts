@@ -34,7 +34,8 @@ const HEADINGS: Record<string, string> = {
   en: "## 5. Verify team members' phone numbers",
   de: "## 5. Telefonnummern der Teammitglieder verifizieren",
   fr: "## 5. Vérifier les numéros de téléphone des membres de l'équipe",
-  es: "## 5. Verifique los números de teléfono de los miembros del equipo",
+  // The Spanish docs speak to the reader as tú, as the rest of them do.
+  es: "## 5. Verifica los números de teléfono de los miembros del equipo",
   it: "## 5. Verificare i numeri di telefono dei membri del team",
   pt: "## 5. Verifique os números de telefone dos membros da equipe",
   nl: "## 5. Telefoonnummers van teamleden verifiëren",

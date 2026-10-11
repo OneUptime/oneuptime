@@ -151,12 +151,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
   },
-  "installation/local-development": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "installation/sizing": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "installation/upgrading": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -340,9 +334,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "self-hosted/slack-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/twilio-integration": {
     sameShape: EVERY_TRANSLATION,
   },
   "slo/burn-rate-alerts": {

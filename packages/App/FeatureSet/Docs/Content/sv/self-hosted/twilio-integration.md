@@ -1,108 +1,148 @@
-# Twilio-integration för SMS och röst
+# Twilio-integration
 
-En egenhostad OneUptime-installation använder ditt Twilio-konto för att skicka SMS- och röstvarningar. Du betalar Twilio direkt. Konfigurera autentiseringsuppgifterna i OneUptimes instrumentpanel: aviseringsleveransen läser den sparade konfigurationen, och Helm-diagrammet har inga värden för Twilio-autentiseringsuppgifter. En äldre migrering importerade `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` och `TWILIO_PHONE_NUMBER`; att ändra dessa variabler är inte sättet att uppdatera autentiseringsuppgifterna i en befintlig installation.
+En egenvärdad OneUptime skickar SMS- och röstlarm via ditt eget Twilio-konto, och du betalar Twilio direkt. Twilio-uppgifterna sparar du i OneUptimes dashboard, inte i miljövariabler: leveransen av aviseringar läser den sparade konfigurationen, och Helm-charten har inga värden för Twilio-uppgifter.
+
+> [!NOTE]
+> En gammal migrering importerade `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` och `TWILIO_PHONE_NUMBER`; att ändra de variablerna är inte sättet att uppdatera uppgifterna i en befintlig installation.
+
+:::cards
+- [Förbered ditt Twilio-konto](#1-förbered-ditt-twilio-konto): Autentiseringsuppgifter, ett telefonnummer och kontots gränser.
+- [Spara autentiseringsuppgifterna](#2-spara-autentiseringsuppgifterna-i-oneuptime): För ett projekt, eller för hela installationen.
+- [Konfigurera nätverksåtkomst](#3-konfigurera-nätverksåtkomst): Vad Twilio måste nå på din server, och när.
+- [Verifiera telefonnummer](#5-verifiera-teammedlemmarnas-telefonnummer): Hur teammedlemmarnas nummer verifieras.
+:::
 
 ## 1. Förbered ditt Twilio-konto
 
-1. Öppna [Twilio Console](https://console.twilio.com/) och hämta ditt **Account SID** och **Auth Token**.
-2. Skaffa ett Twilio-telefonnummer med de SMS- och/eller röstfunktioner du behöver. Använd E.164-format inklusive landskod för avsändarens och mottagarens nummer.
-3. Kontrollera kontosaldot, behörigheter för destinationsländer och tillämpliga krav på avsändarregistrering. Provkonton har begränsningar för mottagare, geografiska områden och annat som kan hindra riktiga OneUptime-varningar från att fungera; läs [Twilios dokumentation om konton och provkonton](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account) före testning. Använd ett uppgraderat konto i produktion.
+:::steps
+### Kopiera dina autentiseringsuppgifter
+
+Öppna [Twilio Console](https://console.twilio.com/) och kopiera ditt **Account SID** och din **Auth Token**.
+
+### Skaffa ett telefonnummer
+
+Skaffa ett Twilio-telefonnummer med de SMS- och/eller röstfunktioner du behöver. Använd formatet E.164 med landskod för avsändar- och mottagarnummer.
+
+### Kontrollera kontots gränser
+
+Kontrollera kontots saldo, behörigheterna för mottagarländer och de krav på registrering av avsändare som gäller. Testkonton har begränsningar för mottagare, geografi och annat som kan hindra riktiga larm från OneUptime att fungera; läs [Twilios dokumentation om konton och provperioden](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account) innan du testar. Använd ett uppgraderat konto i produktion.
+:::
 
 ## 2. Spara autentiseringsuppgifterna i OneUptime
 
-För ett projekt:
+Spara autentiseringsuppgifterna för ett projekt, eller en gång för hela installationen:
 
-1. Gå till **Project Settings > Notifications > Notification Settings**.
-2. Välj **Create Twilio Config** under **Twilio Config**.
-3. Ange ett namn, **Twilio Account SID**, **Twilio Auth Token** och **Twilio Primary Phone Number**. Du kan även ange kommaseparerade **Twilio Secondary Phone Numbers** för andra länder.
-4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektmedlemmar, inklusive jouraviseringar, går via den så snart du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. För varje senare konfiguration är inställningen avstängd: slå på den, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta dessa meddelanden dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
-5. Spara. Endast en konfiguration kan vara projektets standard. Statussidor använder den konfiguration som uttryckligen tilldelats varje statussida.
+| | Projektkonfiguration | Konfiguration för hela installationen |
+| --- | --- | --- |
+| Var | Kortet **Twilio-konfiguration** under **Projektinställningar > Aviseringar > Aviseringsinställningar** | **Admin Dashboard > Inställningar > Samtal och SMS** |
+| Vem kan ange den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en anpassad roll | En master admin |
+| Används för | SMS och samtal till projektets medlemmar så länge den är projektstandard, de statussidor den är tilldelad och de policyer för inkommande samtal som använder den | SMS och samtal till medlemmarna i alla projekt som saknar standardkonfiguration |
 
-**SMS** och **Telefonsamtal** är avstängda i varje projekt, och tills de slås på kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare eller någon med **Billing Admin** eller **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
+Så lägger du till en projektkonfiguration:
 
-För ett standardvärde för hela installationen kan en administratör i stället öppna **Admin Dashboard > Settings > Call and SMS**, redigera Twilio-autentiseringsuppgifterna och telefonnumren och spara. Medlemsaviseringar använder den här globala konfigurationen när projektet saknar en standard. Håll Auth Token hemlig.
+:::steps
+1. Gå till **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+2. Välj **Skapa Twilio-konfiguration** i **Twilio-konfiguration**.
+3. Ange ett namn, **Twilio Account SID**, **Twilio Auth Token** och **Twilio primärt telefonnummer**. Du kan också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder.
+4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
+5. Spara. Bara en konfiguration kan vara projektstandard. Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
+
+> [!IMPORTANT]
+> **SMS** och **Telefonsamtal** är avstängda från början i varje projekt, och så länge de är avstängda kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
+:::
+
+För en standard som gäller hela installationen kan en administratör i stället öppna **Admin Dashboard > Inställningar > Samtal och SMS**, redigera Twilio-uppgifterna och telefonnumren och spara. Medlemmarnas aviseringar använder den här globala konfigurationen när deras projekt saknar standard. Håll Auth Token hemlig.
 
 ## 3. Konfigurera nätverksåtkomst
 
-En privat installation behöver utgående HTTPS-åtkomst till Twilio för att begära SMS och samtal. Twilio rekommenderar att tillåta utgående HTTPS till `*.twilio.com` eftersom API-adresserna är dynamiska; se [Twilios IP-adresser](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Tillämpa detta på OneUptime-applikationens utgående trafik, inklusive Kubernetes NetworkPolicies och externa brandväggar. Tillåt DNS-uppslagning och utgående HTTPS (TCP 443) från OneUptime-applikationen.
+Att skicka fungerar med enbart utgående åtkomst. Leveransuppdateringar, kvittering med knappsatsen och inkommande samtal kräver att Twilio når din server.
 
-Behovet av inkommande åtkomst beror på funktionen:
+```mermaid title="Utgående sändningar, inkommande återanrop"
+sequenceDiagram
+    participant O as OneUptime
+    participant T as Twilio
+    participant P as Jourhavandes telefon
+    O->>T: Skickar ett SMS eller startar ett samtal
+    T->>P: SMS eller röstsamtal
+    T-->>O: Återanrop med SMS-leveransstatus
+    P->>T: Trycker 1 för att kvittera
+    T-->>O: Återanrop med knappsatsinmatning
+```
 
-| Funktion | Behöver Twilio nå OneUptime? |
+En privat installation behöver DNS-uppslag och utgående HTTPS över TCP 443 till Twilio för att skicka SMS och samtal. Twilio rekommenderar att tillåta utgående HTTPS till `*.twilio.com` eftersom API-adresserna är dynamiska; se [Twilios IP-adresser](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Tillämpa det på utgående trafik från OneUptime-applikationens arbetslast, inklusive Kubernetes NetworkPolicies och externa brandväggar.
+
+Inkommande åtkomst beror på funktionen:
+
+| Funktion | Måste Twilio nå OneUptime? |
 | --- | --- |
-| Begära SMS-utskick | Nej. Uppdateringar av leveransstatus kräver däremot ett återanrop. |
-| Ett enkelt testsamtal | Nej. OneUptime skickar med röstinstruktionerna i den utgående API-begäran. |
-| Trycka på 1 för att bekräfta en jourvarning | Ja. Twilio skickar knapptryckningen till OneUptime. |
-| Policyer för inkommande samtal | Ja. Twilio begär samtalsinstruktioner och rapporterar uppringningsresultat. |
+| Skicka SMS | Nej. Uppdateringar av leveransstatus behöver dock ett återanrop. |
+| Ett enkelt testsamtal med röst | Nej. OneUptime skickar de talade instruktionerna med den utgående API-begäran. |
+| Trycka 1 för att kvittera ett jourlarm | Ja. Twilio skickar knappsatsinmatningen till OneUptime. |
+| Policyer för inkommande samtal | Ja. Twilio hämtar samtalsinstruktioner och rapporterar resultatet av uppringningen. |
 
-Följande är externa sökvägar genom OneUptimes Nginx-gateway; platshållarna varierar per avisering:
+Det här är de externa sökvägarna via OneUptimes Nginx-gateway. Platshållarna skiljer sig för varje avisering:
 
 | Metod | Sökväg | Syfte |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS-leveransstatus |
-| POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bekräftelse med knapptryckning |
+| POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Kvittering med knappsatsen |
 | POST | `/notification/incoming-call/voice` | Valfria instruktioner för inkommande samtal |
-| POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valfria routningsresultat för inkommande samtal |
+| POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valfria resultat av routning av inkommande samtal |
 
-OneUptime genererar URL:erna för SMS och bekräftelse automatiskt. Ersätt inte deras token med en statisk webhook-URL. För inkommande samtal följer du [Policyer för inkommande samtal](/docs/on-call/incoming-call-policy), som konfigurerar numrets webhook när du kopplar ett nummer.
+OneUptime skapar URL:erna för SMS och kvittering automatiskt. Ersätt inte deras token med en fast webhook-URL. För inkommande samtal följer du [policyer för inkommande samtal](/docs/on-call/incoming-call-policy), som konfigurerar numrets webhook när du kopplar ett nummer.
 
-Twilio kräver [offentligt tillgängliga webhook-URL:er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Använd ett offentligt betrott TLS-certifikat och bevara ursprunglig värd, protokoll, sökväg, frågeparametrar, begärans innehåll och `X-Twilio-Signature`-header genom proxyservrar. Hanterarna för inkommande samtal validerar Twilio-signaturer; SMS-leverans använder en URL-token per meddelande och knapptryckningsbekräftelse använder en signerad frågetoken. Exponera inte token i delade loggar eller skärmbilder. Se [Twilios webhook-säkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio kräver [offentligt nåbara webhook-URL:er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Använd ett offentligt betrott TLS-certifikat och bevara den ursprungliga värden, protokollet, sökvägen, frågeparametrarna, kroppen och headern `X-Twilio-Signature` genom proxyer. Hanterarna för inkommande samtal validerar Twilios signaturer; SMS-leverans använder en URL-token per meddelande, och kvittering med knappsatsen en signerad frågetoken. Visa inte token i delade loggar eller skärmbilder. Se [Twilios webhook-säkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
-### Produktion: publicera en gateway till den privata installationen
+### Publicera återanrop från en privat installation
 
-1. **Välj ett värdnamn**, till exempel `oneuptime.example.com`. Publicera offentliga DNS-poster som pekar på en gateway mot internet. Privata IP-adresser och interna DNS-namn är inte nåbara för leverantörerna. Med delad DNS kan anställda låta samma värdnamn peka på den privata ingressen och fortsätta använda instrumentpanelen via VPN. Den privata ingressen måste också erbjuda HTTPS med ett certifikat som är giltigt för värdnamnet.
+:::steps
+1. Publicera DNS för ditt OneUptime-värdnamn, till exempel `oneuptime.example.com`, så att det pekar på en omvänd proxy eller lastbalanserare som nås från internet. Tillåt inkommande TCP 443 och konfigurera ett offentligt betrott certifikat med fullständig kedja. En privat IP, DNS som bara fungerar internt eller en administratörs VPN-anslutning ger inte Twilio någon anslutning.
+2. Ge gatewayen en nätverksväg till OneUptimes privata ingress, direkt eller via ditt eget site-to-site-VPN eller private link. Tillåt tjänstens uppströmsport. En Kubernetes-tjänst av typen `ClusterIP` behöver en nåbar ingress eller en annan väg från gatewayen. Håll databaser och andra interna tjänster privata.
+3. Publicera bara de återanropssökvägar från tabellen ovan som du använder. Vidarebefordra dem via OneUptimes Nginx-gateway, som mappar det externa prefixet `/notification` till applikationen. Behåll `/api` på vägen för kvittering med knappsatsen. Bevara HTTP-metoden och begärans data; omdirigera inte till en annan URL. Bevara den offentliga `Host` och sätt betrodda vidarebefordringsheaders för den offentliga värden och HTTPS-schemat i din proxy.
+4. Undanta de här vägarna från webbläsar-SSO, CAPTCHA och proxyns inloggningssidor. Låt OneUptimes autentisering av återanrop vara påslagen. Begränsa åtkomsten till det privata ursprunget till gatewayen och behöriga interna klienter.
+5. Sätt `HOST=oneuptime.example.com` och `HTTP_PROTOCOL=https` i Docker Composes `config.env`, eller `host: oneuptime.example.com` och `httpProtocol: https` i Helm-values. Tillämpa ändringen i installationen och vänta tills applikationen har startat om. De här inställningarna skapar URL:er; de skapar inte DNS, certifikat eller brandväggsregler. OneUptime har ingen separat inställning för ett värdnamn för Twilio-återanrop. Om värdnamnet ändras uppdaterar du även webhooken för befintliga Twilio-telefonnummer.
+:::
 
-2. **Anslut gatewayen till OneUptime.** Placera den i en DMZ med en väg till den privata ingressen eller använd en offentlig gateway ansluten via din egen site-to-site-VPN/privata länk. Tillåt trafik från gateway till ingress på den bakomliggande tjänstens port. För Kubernetes/Portainer räcker inte en privat `ClusterIP`-tjänst: gatewayen behöver en ingress/controller eller en annan nåbar bakomliggande tjänst. Håll databaser och andra interna tjänster privata.
+Dashboarden kan ligga kvar på en privat ingress: med delad DNS slår anställda upp samma värdnamn till den ingressen via företagsnätet eller VPN, medan Twilio slår upp det till gatewayen. Leverera ett certifikat som är giltigt för värdnamnet åt båda hållen. OneUptimes [inställningar för åtkomst till privata nätverk](/docs/self-hosted/private-network-access) styr utgående begäranden till interna tjänster; `ALLOW_PRIVATE_NETWORK_WEBHOOKS` publicerar ingen inkommande endpoint.
 
-3. **Terminera HTTPS på port 443** med ett offentligt betrott certifikat och en fullständig kedja av mellanliggande certifikat. Tillåt inkommande TCP 443 till gatewayen. Att installera ett certifikat eller ändra DNS skapar inte i sig en väg till den privata bakomliggande tjänsten.
+### IP-begränsningar och installationer utan inkommande åtkomst
 
-4. Publicera endast callback-sökvägarna i tabellen ovan via OneUptimes Nginx-gateway, som kopplar `/notification` till applikationen. Behåll `/api` på sökvägen för kvittering med knapptryckning. Bevara metod, sökväg, frågesträng, innehåll och autentiseringshuvuden (`X-Twilio-Signature`). Behåll offentlig `Host` och ange betrodda huvuden `X-Forwarded-Host` och `X-Forwarded-Proto: https`. Lägg inte till omdirigeringar.
+Twilios vanliga källadresser för webhooks ändras, så använd inte SIP- eller medie-IP-intervall som tillåtelselista för återanrop. Kvalificerade Twilio-utgåvor erbjuder [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Kontrollera att din utgåva är kvalificerad och vilka produkter som stöds, och konfigurera din brandvägg med de intervall som Twilio publicerar nu; fortsätt att validera återanrop även när du använder det.
 
-5. Undanta dessa sökvägar från webbläsar-SSO, CAPTCHA och proxyns inloggningssidor. Behåll OneUptimes autentisering aktiverad. Begränsa åtkomst till ursprungsservern till gatewayen och behöriga interna klienter; maskera token i loggar.
+> [!WARNING]
+> Om en policy förbjuder inkommande anslutningar kan sändning av SMS och enkel inbyggd röstuppspelning fungera med utgående HTTPS. Uppdateringar av SMS-leverans, kvittering med knappsatsen och routning av inkommande samtal fungerar inte utan nåbara återanrop. En helt frånkopplad installation kan inte använda Twilio.
 
-6. **Ange OneUptimes kanoniska URL**:
-
-   Docker Compose, i `config.env`:
-
-   ```dotenv
-   HOST=oneuptime.example.com
-   HTTP_PROTOCOL=https
-   ```
-
-   Helm-/Portainer-värden:
-
-   ```yaml
-   host: oneuptime.example.com
-   httpProtocol: https
-   ```
-
-   Ersätt exemplet med din domän. Inställningarna genererar URL:er; de skapar inte DNS, TLS eller brandväggsregler. Tillämpa Compose-konfigurationen eller Helm-uppdateringen och vänta på att applikationen startas om. OneUptime har ingen separat inställning för Twilios callback-värdnamn. Om namnet ändras ska även webhooks för befintliga Twilio-telefonnummer uppdateras.
-
-[Inställningarna för privat nätverksåtkomst](/docs/self-hosted/private-network-access) styr OneUptimes utgående begäranden till interna tjänster. Att aktivera `ALLOW_PRIVATE_NETWORK_WEBHOOKS` gör inte OneUptime nåbart för Twilio.
-
-### Utgående åtkomst och IP-begränsningar
-
-Källadresserna för vanliga Twilio-webhooks ändras; använd inte SIP- eller medieintervall som tillåtelselista för callbacks. Berättigade utgåvor erbjuder [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Kontrollera behörighet och stödda produkter och konfigurera brandväggen med de aktuella publicerade intervallen. Fortsätt autentisera callbacks.
-
-### Testning och installationer utan inkommande åtkomst
-
-Utan inkommande åtkomst kan SMS-sändning och enkel röstuppspelning fungera med utgående HTTPS. Leveransstatus, kvittering med knapptryckning och dirigering av inkommande samtal kräver nåbara callbacks. En helt frånkopplad installation kan inte använda Twilio.
-
-För utveckling beskriver Twilios [guide för webhook-testning](https://www.twilio.com/docs/usage/webhooks/webhook-testing) en offentlig tunnel. Vidarebefordra den till en proxy som endast tillåter nödvändiga sökvägar, konfigurera det resulterande värdnamnet enligt ovan och stoppa tunneln efter testningen. En tunnel exponerar fortfarande inkommande åtkomst.
+För utveckling beskriver Twilios [guide för att testa webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) hur man använder en offentlig tunnel: vidarebefordra den till en proxy som bara tillåter de nödvändiga vägarna, konfigurera värdnamnet du får som ovan och stoppa tunneln efter testet. En tunnel öppnar ändå för inkommande åtkomst.
 
 ## 4. Testa leverans och återanrop separat
 
-1. Kontrollera utanför företagsnätverket och VPN att callback-värdnamnet pekar på den offentliga gatewayen och visar ett giltigt TLS-certifikat. En GET från webbläsaren testar inte dessa POST-callbacks.
-2. Använd **Send Test SMS** och **Send Test Call** i projektets Twilio-konfiguration. Bekräfta mottagningen på mottagarens telefon. Båda kräver behörighet att lägga till Twilio-konfigurationer: **Project Owner**, **Project Admin** eller **Create Call and SMS** och **Read Call and SMS** i en egen roll.
-3. Konfigurera användarens verifierade SMS-/samtalskontakt och aviseringsregler och utlös sedan en kontrollerad jourvarning. Tryck på 1 och kontrollera bekräftelsen i OneUptime. Om du använder policyer för inkommande samtal ringer du det konfigurerade numret och kontrollerar dirigering och samtalslogg.
-4. Kontrollera SMS-leveransstatus i OneUptime och Twilios meddelandeloggar. Ett godkänt sändningsförsök bevisar inte leverans; [Twilio rapporterar senare statusändringar via återanrop](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+:::steps
+1. Kontrollera utanför företagsnätet och VPN att värdnamnet för återanrop slås upp till den offentliga gatewayen och levererar ett giltigt TLS-certifikat. En GET från webbläsaren testar inte de här POST-återanropen.
+2. Använd **Skicka test-SMS** och **Skicka testsamtal** på projektets Twilio-konfiguration. Bekräfta att det kommer fram till mottagartelefonen. Båda kräver behörighet att lägga till Twilio-konfigurationer: **Project Owner**, **Project Admin** eller **Create Call and SMS** och **Read Call and SMS** i en anpassad roll.
+3. Ställ in användarens verifierade SMS- eller samtalskontakt och aviseringsregler, och utlös sedan ett kontrollerat jourlarm. Tryck 1 och bekräfta kvitteringen i OneUptime. Om du använder policyer för inkommande samtal ringer du det konfigurerade numret och kontrollerar routningen och samtalsloggen.
+4. Bekräfta SMS-leveransstatusen i OneUptime och i Twilios meddelandeloggar. En godkänd sändning bevisar inte leverans; [Twilio rapporterar senare statusändringar via återanrop](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+:::
 
-Om sändningen misslyckas kontrollerar du autentiseringsuppgifter, numrets funktioner, kontobegränsningar och utgående anslutning. Om ett meddelande eller samtal kommer fram men status eller bekräftelse inte uppdateras undersöker du återanrops-URL:en och den offentliga ingressens loggar. Twilios [vägledning om HTTP-hämtningsfel](https://www.twilio.com/docs/api/errors/11200) hjälper till att diagnostisera onåbara återanrop, TLS-problem och HTTP-fel. Ett lyckat testsamtal verifierar inte i sig återanropsåtkomsten.
+| Symtom | Var du ska titta |
+| --- | --- |
+| Inget skickas | Autentiseringsuppgifter, numrets funktioner, kontots begränsningar och den utgående anslutningen. |
+| SMS:et eller samtalet kommer fram, men status eller kvittering uppdateras inte | Återanrops-URL:en och loggarna från den offentliga ingressen. Twilios [vägledning om fel vid HTTP-hämtning](https://www.twilio.com/docs/api/errors/11200) hjälper till med återanrop som inte nås, TLS-problem och HTTP-fel. |
+
+Ett lyckat testsamtal bevisar inte ensamt att återanrop kan nås.
 
 ## 5. Verifiera teammedlemmarnas telefonnummer
 
-När ett telefonnummer läggs till för sms eller samtal skickas verifieringskoden direkt och verifieringsdialogen öppnas. Den visar när koden skickades och hur länge den gäller, och skickar en ny kod på begäran, högst en gång per minut. Ingenting behöver skickas om innan du verifierar.
+När du lägger till ett telefonnummer för SMS eller samtal skickas dess verifieringskod direkt, och verifieringsdialogen öppnas. Den visar när koden skickades och hur länge den gäller, och skickar en ny kod på begäran, högst en gång per minut. Inget behöver skickas igen innan du verifierar.
 
-När ingen kod kan skickas anger dialogen orsaken i stället för att påstå att en skickades: till exempel att inget Twilio-konto är konfigurerat, så länge varken en standardkonfiguration för projektet eller den installationsövergripande konfigurationen ovan finns. Ett nummer vars första kod inte kan skickas läggs inte till, och formuläret visar orsaken, till exempel att Twilio nekar ett destinationsland.
+När ingen kod kan skickas säger dialogen varför i stället för att påstå att en kod har skickats: till exempel att inget Twilio-konto är konfigurerat, så länge det varken finns en standardkonfiguration för projektet eller konfigurationen för hela installationen ovan. Ett nummer vars första kod inte kan skickas läggs inte till, och formuläret visar orsaken, till exempel att Twilio nekar ett mottagarland.
 
-Ett nummer som är verifierat för sms är även verifierat för samtal, utan en andra kod. Verifiering via samtal verifierar inte sms, eftersom ett nummer som tar emot samtal, till exempel en fast telefon, inte alltid kan ta emot sms. Om Twilio godtar en kod som aldrig kommer fram visar projektets sms-logg leveransstatusen.
+Ett nummer som är verifierat för SMS är också verifierat för samtal, utan en andra kod. Verifiering via samtal verifierar inte SMS, eftersom ett nummer som tar emot samtal, som en fast telefon, inte alltid kan ta emot textmeddelanden. Om Twilio accepterar en kod som aldrig kommer fram visar projektets SMS-logg dess leveransstatus.
+
+## Nästa steg
+
+:::cards
+- [Policy för inkommande samtal](/docs/on-call/incoming-call-policy): Låt den som ringer nå dina jourhavande ingenjörer via ett Twilio-nummer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestäm vem som larmas på varje nivå, via SMS, samtal eller någon annan metod.
+- [SMTP](/docs/emails/smtp): Skicka även e-post via din egen e-postserver.
+- [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access): Låt arbetsflöden och webhooks nå interna verktyg.
+:::

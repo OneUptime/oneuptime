@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Voeg uw Twilio-account toe
 
-Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik in de kaart **Twilio-configuratie** op **Create Twilio Config** en vul het formulier in:
+Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie aanmaken** en vul het formulier in:
 
 - **Naam** en **Beschrijving**: waar het account voor is, zoals "Supportlijn".
 - **Twilio Account SID**: uit de Twilio Console. Hij begint met `AC`.

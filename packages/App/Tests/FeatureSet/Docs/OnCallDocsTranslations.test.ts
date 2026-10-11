@@ -5,7 +5,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
+import {
+  drawnCreateButton,
+  drawnDashboardLabel,
+  isDashboardLabel,
+} from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -125,6 +129,23 @@ const PROSE: Record<string, Array<string>> = {
 };
 
 /*
+ * A table's create button, which the Dashboard draws from the name the table
+ * gives its rows - "Create" and "Twilio Config" - rather than looking the
+ * phrase up whole: named as the table draws it (drawnCreateButton).
+ */
+const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
+  // The Twilio Config card on Notification Settings (CallSMSConfigTable).
+  "on-call/incoming-call-policy": ["Create Twilio Config"],
+};
+
+// How this language's Dashboard draws a bold label of a page.
+function drawnLabel(language: string, page: string, label: string): string {
+  return (TABLE_CREATE_BUTTONS[page] || []).includes(label)
+    ? drawnCreateButton(language, label)
+    : drawnDashboardLabel(language, label);
+}
+
+/*
  * A menu path written as one bold span: "**A > B > C**". Each segment is the
  * language's Dashboard label. Persian is the one exception: its pages write
  * the Notification Settings path as its status page subscribers page does,
@@ -184,6 +205,7 @@ describe("the lists this test keeps", () => {
     for (const [lists, kind] of [
       [KEPT_IN_ENGLISH, "kept"],
       [PROSE, "prose"],
+      [TABLE_CREATE_BUTTONS, "table create button"],
     ] as Array<[Record<string, Array<string>>, string]>) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
@@ -332,11 +354,11 @@ describe.each(LANGUAGES)("%s on-call pages", (language: string) => {
         })
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnDashboardLabel(language, label)}**`,
+            `**${drawnLabel(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnDashboardLabel(language, label)}`;
+          return `${label} -> ${drawnLabel(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
