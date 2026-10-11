@@ -142,7 +142,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 Proxmox VE 9 und neuer kann Metriken über seinen eingebauten OpenTelemetry-Metrikserver übertragen, ohne dass etwas installiert werden muss – siehe die [Anleitung zum Proxmox-Agent](/docs/telemetry/proxmox). OneUptime wandelt die Übertragung in dieselben `pve_*`-Reihen um, sodass der Katalog und die Vorlagen für CPU, Arbeitsspeicher und Speicher damit funktionieren.
 
-**Node Offline** und **Cluster Quorum at Risk** funktionieren ebenfalls: Jeder Knoten überträgt nur seinen eigenen Status, daher wird ein Knoten, der nicht mehr meldet, von den noch lebenden Knoten als ausgefallen gemeldet (`pve_up` = 0) – siehe [Wenn ein Knoten nicht mehr meldet](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** und **Replication Failing** brauchen Daten, die nur der Agent erfasst.
+**Node Offline** und **Cluster Quorum at Risk** funktionieren ebenfalls: Jeder Knoten überträgt nur seinen eigenen Status, daher wird ein Knoten, der nicht mehr meldet, von den noch lebenden Knoten als ausgefallen gemeldet (`pve_up` = 0) – siehe [Wenn ein Knoten nicht mehr meldet](/docs/telemetry/proxmox#wenn-ein-knoten-nicht-mehr-meldet). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** und **Replication Failing** brauchen Daten, die nur der Agent erfasst.
 
 ## Erfasste Metriken
 
