@@ -39,7 +39,7 @@ Open the rules page, for example **Monitors → Settings → Label Rules**.
 
 ### Select Run Now
 
-Select **Run Now** on the rule's row, or select **View** and then **Run Now** on the rule's own page. A dialog says what the run will do.
+Open the **⋯** menu at the end of the rule's row and select **Run Now**, or select **View** and then **Run Now** on the rule's own page. A dialog says what the run will do.
 
 ### Choose whether to notify new owners
 

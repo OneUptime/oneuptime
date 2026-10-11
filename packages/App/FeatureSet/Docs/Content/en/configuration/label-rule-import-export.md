@@ -1,6 +1,6 @@
 # Import and Export Label Rules
 
-Copy label rules between projects, or create many at once, as a JSON file. Every **Label Rules** page has **Export JSON** and **Import JSON** actions in its **More options** (**⋯**) menu, including Incidents, Alerts, Monitors and Network Devices.
+Copy label rules between projects, or create many at once, as a JSON file. Every **Label Rules** page has **Export JSON** and **Import JSON** actions in its **More options** (**⋯**) menu, including Incidents, Alerts, Monitors and Network Devices. The one exception is VMware: its vCenter label rules have neither.
 
 ```mermaid title="Moving label rules between projects"
 flowchart TB

@@ -25,7 +25,7 @@ On a self-hosted installation, OneUptime's own mail server is the one set in the
 
 ## Adding an SMTP Server
 
-Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
+Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Notifications > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
 
 :::steps
 ### Open the form
@@ -34,7 +34,7 @@ Add a project's mail server on **Project Settings > Notifications > Notification
 @tab Project
 On **Project Settings > Notifications > Notification Settings**, click **Create SMTP Config** in the **Custom SMTP Configs** card.
 @tab Self-hosted instance
-In the Admin Dashboard, open **Settings > Emails**. In the **Email Server Settings** card, set **Email Server Type** to `Custom SMTP`, then click **Edit SMTP Config** in the **Custom Email and SMTP Settings** card.
+In the Admin Dashboard, open **Settings**, then **Notifications > Emails** in the side menu (**Notifications** starts folded). In the **Email Server Settings** card, click **Edit Server** and set **Email Server Type** to `Custom SMTP`. Then click **Edit SMTP Config** in the **Custom Email and SMTP Settings** card, which appears below it.
 :::
 
 ### Fill in the Server step
@@ -271,15 +271,19 @@ Then use **Send Test Email** to check it.
 ### Other problems
 
 :::details "Cannot send email. Please check your SMTP config."
-**Send Test Email** says this when a server that signs in with a username and password does not take the email. Check the **Hostname**, **Port**, **Username** and **Password**. If your server does not offer TLS, or its certificate is not valid for its hostname, turn **Require TLS** off under **More fields** and try again. On a self-hosted installation, the OneUptime logs have the server's own error.
+**Send Test Email** says this when a server that signs in with a username and password, or without signing in, does not take the email. Check the **Hostname**, **Port**, **Username** and **Password**. If your server does not offer TLS, or its certificate is not valid for its hostname, turn **Require TLS** off under **More fields** and try again. The server's own answer is kept with the test: open the **Email** tab of **Project Settings > Notifications > Notification Logs** and select **View Status Message** on its row.
 :::
 
 :::details "Cannot send email with OAuth authentication"
 The OAuth sign-in failed, and the message ends with the error your provider returned. Check the **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, that the application has the permissions above, and that admin consent was granted. If your Microsoft 365 tenant has SMTP AUTH turned off, set **Transport** to `Microsoft Graph` instead.
 :::
 
-:::details "SMTP server host … is not allowed"
-OneUptime refused to connect to the project's mail server, and the message names the host and the reason. On OneUptime Cloud, a hostname that resolves to a private, loopback or link-local address is refused: use the mail server's public hostname.
+:::details "Microsoft Graph send failed"
+A config whose **Transport** is `Microsoft Graph` says this when Graph does not take the email, followed by Microsoft's own error. Check that the app has the **Mail.Send** application permission with admin consent granted, that **OAuth Scope** is `https://graph.microsoft.com/.default`, and that the **From Email** is a licensed mailbox in your tenant.
+:::
+
+:::details "SMTP server host … could not be reached"
+OneUptime refused to connect to the project's mail server. On OneUptime Cloud, a hostname that does not resolve, or resolves to a private, loopback or link-local address, is refused with this message, which never says which it was: use the mail server's public hostname. On a self-hosted installation, and for a mail server given as an IP address, the message says why instead. **Send Test Email** shows it only for an OAuth config; for the others, find it under **View Status Message** on the **Email** tab of the notification logs.
 :::
 
 :::details The test email does not arrive
