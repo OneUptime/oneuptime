@@ -1876,8 +1876,8 @@ describe("The status pages overview says who gets status page SSO, OIDC and SCIM
 /*
  * The SLO audit-logs page tells a self-hosted reader that audit logs need the
  * Enterprise Edition. It must also say that recording stops once the license
- * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Only
- * English and Persian have this page.
+ * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Every
+ * docs language has this page, so every one says it.
  */
 describe("The SLO audit logs page says recording stops with the license", () => {
   const SLO_AUDIT_LOGS_PAGE: string = "slo/feed-and-audit-logs";
@@ -1897,7 +1897,7 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     return paragraph || "";
   };
 
-  it.each(["en", "fa"])(
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
     "%s: the Enterprise note links to what happens when a license lapses",
     (lang: string) => {
       const paragraph: string = turningOnSection(lang);
@@ -1918,18 +1918,18 @@ describe("The SLO audit logs page says recording stops with the license", () => 
     );
   });
 
-  it("no other language has the page, so no translation is missing the note", () => {
-    const languagesWithPage: Array<string> =
+  it("every language has the page, so the note above reads every translation", () => {
+    const languagesWithoutPage: Array<string> =
       SUPPORTED_DOCS_LANGUAGE_CODES.filter((lang: string) => {
         try {
           readContent(lang, SLO_AUDIT_LOGS_PAGE);
-          return true;
-        } catch {
           return false;
+        } catch {
+          return true;
         }
       });
 
-    expect(languagesWithPage.sort()).toEqual(["en", "fa"]);
+    expect(languagesWithoutPage).toEqual([]);
   });
 });
 

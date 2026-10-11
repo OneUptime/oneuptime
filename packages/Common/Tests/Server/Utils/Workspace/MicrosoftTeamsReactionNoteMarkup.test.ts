@@ -21,6 +21,8 @@ import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeam
 import MicrosoftTeamsReactionNoteSync, {
   MicrosoftTeamsReactionOutcome,
   MicrosoftTeamsWatchedChannel,
+  withoutAttachmentElements,
+  withoutSpaceBeforeLineEnds,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceReactionNote, {
@@ -33,6 +35,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { Token, marked } from "marked";
 
 /*
@@ -496,6 +499,136 @@ describe("MicrosoftTeamsReactionNoteSync.htmlToText", () => {
       MicrosoftTeamsReactionNoteSync.htmlToText("<p>&amp;lt;b&amp;gt;</p>"),
     ).toBe("&lt;b&gt;");
   });
+});
+
+/*
+ * Two steps of htmlToText were patterns that start again from every place a
+ * match could start: the spaces and tabs before each line break,
+ * /[ \t]+\n/g, and attachment elements,
+ * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi. A run of spaces that no
+ * line break ends, or attachment start tags that no end tag follows, took
+ * time that grew with the square of their length: half a second for 28 KB
+ * of spaces, a Teams message's largest. Both are loops now
+ * (withoutSpaceBeforeLineEnds, withoutAttachmentElements). The old patterns
+ * are the oracle here, on short texts of every shape, where they are quick:
+ * the loops take out exactly what they took out, so every message reads as
+ * it did.
+ */
+describe("the Teams reader reads a message in one pass", () => {
+  const OLD_SPACE_BEFORE_LINE_END: RegExp = /[ \t]+\n/g;
+  const OLD_ATTACHMENT_ELEMENT: RegExp =
+    /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi;
+
+  test("the spaces and tabs before each line break go, exactly as /[ \\t]+\\n/ took them out", () => {
+    const texts: Array<string> = [
+      "",
+      "a  \nb",
+      "a\t \t\nb",
+      // A "\r" ends no run of spaces before a line break.
+      "a  \r\nb",
+      // The last line ends the text, not a line break, so it keeps its spaces.
+      "a  ",
+      "  \n  \n  ",
+      "\n\n",
+      ...generatedTexts(20000, 3141, [
+        " ",
+        "\t",
+        "\n",
+        "\r",
+        "x",
+        "\u00a0",
+        "  ",
+        "\n\n",
+        "\t\t",
+      ]),
+    ];
+
+    // Only the shortest texts repeat.
+    expect(new Set(texts).size).toBeGreaterThan(17000);
+    expect(
+      texts.filter((text: string): boolean => {
+        return (
+          withoutSpaceBeforeLineEnds(text) !==
+          text.replace(OLD_SPACE_BEFORE_LINE_END, "\n")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("attachment elements go, exactly as the attachment pattern took them out", () => {
+    const texts: Array<string> = [
+      '<p>See the card</p><attachment id="74d20c7f"></attachment>',
+      '<attachment id="1">card</attachment><p>x</p><attachment id="2"></attachment>',
+      '<ATTACHMENT id="1"></Attachment>after',
+      "<attachments>not one</attachments>",
+      "<attachment-x>not one</attachment>",
+      // A start tag ends at its first ">", quoted or not.
+      '<attachment id="a>b">x</attachment>y',
+      "<attachment </attachment> >x</attachment>y",
+      "<attachment>never closed",
+      "<attachment with no end",
+      "a</attachment>b<attachment>c</attachment>d",
+      ...generatedTexts(20000, 2718, [
+        "<attachment",
+        "<ATTACHMENT",
+        "<Attachment ",
+        "<attachments",
+        "<attachment_",
+        "<attachment-x",
+        "</attachment>",
+        "</ATTACHMENT>",
+        "</attachment >",
+        "<attachment>",
+        ">",
+        "<",
+        "/",
+        "x",
+        " ",
+        "\n",
+        'id="1"',
+        '"',
+        "<p>",
+      ]),
+    ];
+
+    expect(new Set(texts).size).toBeGreaterThan(17000);
+    expect(
+      texts.filter((html: string): boolean => {
+        return (
+          withoutAttachmentElements(html) !==
+          html.replace(OLD_ATTACHMENT_ELEMENT, "")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  // Far more than a Teams message holds, so time that grows with the square shows.
+  const SIZE: number = 256 * 1024;
+  const repeatTo: (unit: string) => string = (unit: string): string => {
+    return unit.repeat(Math.floor(SIZE / unit.length));
+  };
+
+  test.each([
+    ["spaces that no line break ends", `<p>${repeatTo(" ")}x</p>`],
+    ["tabs and spaces", `<p>${repeatTo("\t ")}x</p>`],
+    ["non-breaking spaces", `<p>${repeatTo("&nbsp;")}x</p>`],
+    ["spaces before line breaks", repeatTo("  \n")],
+    [
+      "attachment start tags that no end tag follows",
+      repeatTo('<attachment id="1">'),
+    ],
+    ["attachment start tags with no '>'", repeatTo("<attachment ")],
+    ["attachment elements", repeatTo('<attachment id="1"></attachment>')],
+  ])(
+    "reads a message of %s in well under a second",
+    (_shape: string, html: string) => {
+      const started: number = Date.now();
+
+      MicrosoftTeamsReactionNoteSync.htmlToText(html);
+
+      expect(Date.now() - started).toBeLessThan(1000);
+    },
+  );
 });
 
 describe("pinning a Teams message saves plain text", () => {
