@@ -27,6 +27,7 @@ import WorkspaceMessagePayload, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Dictionary from "../../../Types/Dictionary";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import ObjectID from "../../../Types/ObjectID";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
@@ -82,7 +83,6 @@ const TEAMS_CHAT_NAME: string = "Ops War Room";
 
 const PROJECT_NAME: string = "Acme Production";
 
-const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
 const USER_MARKDOWN: string =
   "[Alice Admin](https://oneuptime.example.com/dashboard/p1/settings/users/u1)";
 
@@ -3530,8 +3530,7 @@ describe("sendTestNotificationToDestination: project / user lookups are best-eff
         }),
     ).toEqual([]);
     expect(
-      (marked.parse(text, { async: false }) as string)
-        .replace(HTML_TAG_PATTERN, "")
+      removeHtmlMarkup(marked.parse(text, { async: false }) as string)
         .split(WORD_JOINER)
         .join(""),
     ).toContain(
