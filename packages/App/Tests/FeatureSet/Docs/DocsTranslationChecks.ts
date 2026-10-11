@@ -250,8 +250,13 @@ export function anchorProblems(language: string, page: string): Array<string> {
   return problems;
 }
 
-// Code samples and inline code in rendered HTML: an underscore there is code.
-const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
+/*
+ * What Markdown never reads, in rendered HTML: code samples, inline code and
+ * a diagram's source (its caption is text, and stays). An underscore there
+ * is code or a diagram's words ("con_name" in a node), not emphasis.
+ */
+const NOT_MARKDOWN: RegExp =
+  /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>|<div class="mermaid">[\s\S]*?<\/div>/g;
 
 /*
  * A name written with underscores outside code, as a metric is in a details
@@ -271,9 +276,9 @@ const UNDERSCORED_NAME: RegExp = /[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g;
  *
  * What it returns are the lines of the drawn page, as text, that show "**"
  * or an underscore (the renderer draws a run of paragraphs on one line); a
- * page that draws every span it opens returns none. Code is left out first,
- * then the tags (stripHtmlTags), so an underscore in an attribute - a link's
- * address, an image's file name - is no marker either.
+ * page that draws every span it opens returns none. Code and diagram source
+ * are left out first, then the tags (stripHtmlTags), so an underscore in an
+ * attribute - a link's address, an image's file name - is no marker either.
  */
 export async function strayMarkers(
   markdown: string,
@@ -283,7 +288,7 @@ export async function strayMarkers(
     DocsPlaceholders.render(markdown.split("\n").slice(1).join("\n"), language),
   );
 
-  return stripHtmlTags(html.replace(RENDERED_CODE, ""))
+  return stripHtmlTags(html.replace(NOT_MARKDOWN, ""))
     .split("\n")
     .filter((line: string): boolean => {
       return (

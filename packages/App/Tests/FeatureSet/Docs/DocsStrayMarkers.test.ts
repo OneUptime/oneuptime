@@ -128,6 +128,34 @@ describe("strayMarkers", () => {
       ).toEqual([]);
     });
 
+    it("reads no marker in a diagram's source, and reads its caption as text", async () => {
+      expect(
+        await strayMarkers(
+          page(
+            '```mermaid title="Requests by service"',
+            "flowchart LR",
+            '    A["**Probe** _per series"] --> B["con_name"]',
+            "```",
+          ),
+          "de",
+        ),
+      ).toEqual([]);
+
+      // A caption is drawn as it is written: a marker there shows.
+      const captioned: Array<string> = await strayMarkers(
+        page(
+          '```mermaid title="Requests **by service"',
+          "flowchart LR",
+          "    A --> B",
+          "```",
+        ),
+        "de",
+      );
+
+      expect(captioned).toHaveLength(1);
+      expect(captioned[0]).toContain("Requests **by service");
+    });
+
     it("reads no marker in a tag's attributes: link addresses, image files, tab ids", async () => {
       expect(
         await strayMarkers(

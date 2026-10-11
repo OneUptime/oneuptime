@@ -5,11 +5,11 @@ import ts from "typescript";
 
 /*
  * The docs tests take tags out of rendered HTML in one place: stripHtmlTags
- * (DocsHtmlText.ts). Five translation suites each copied strayMarkers, and
+ * (DocsHtmlText.ts). Six translation suites each copied strayMarkers, and
  * with it `line.replace(/<[^>]*>/g, "")`; code scanning opened an alert on
- * every copy (js/incomplete-multi-character-sanitization, #2203, #2207,
- * #2208, #2209). This guard reads every TypeScript file in this folder and
- * fails on:
+ * each copy it had read (js/incomplete-multi-character-sanitization, #2203,
+ * #2207, #2208, #2209). This guard reads every TypeScript file in this
+ * folder and fails on:
  *
  *   1. a strayMarkers declared anywhere but DocsTranslationChecks.ts: a
  *      suite imports that one;
@@ -144,16 +144,35 @@ function patternOf(node: ts.Expression): RegExp | null {
   return null;
 }
 
+// Whether the first thing a pattern matches starts the text and goes past it.
+function takesOutFromStart(pattern: RegExp, text: string): boolean {
+  const match: RegExpExecArray | null = pattern.exec(text);
+
+  return match !== null && match.index === 0 && match[0].length > 1;
+}
+
+// A probe with its angle brackets written as letters: text, not markup.
+function asText(probe: string): string {
+  return Array.from(probe)
+    .map((character: string): string => {
+      return character === "<" || character === ">" ? "x" : character;
+    })
+    .join("");
+}
+
 /*
  * Whether a pattern takes out markup: on one of the probes, the first thing
- * it matches starts at the "<" and goes on past it. A pattern of single
- * characters ("[<>]", "\s+") or of other text matches no probe that way.
+ * it matches starts at the "<" and goes on past it, and the same text
+ * without its angle brackets is not taken out the same way. A pattern of
+ * single characters ("[<>]") or of any text ("^[^/?#]*", the host of a URL)
+ * is not a tag strip.
  */
 function stripsMarkup(pattern: RegExp): boolean {
   return MARKUP_PROBES.some((probe: string): boolean => {
-    const match: RegExpExecArray | null = pattern.exec(probe);
-
-    return match !== null && match.index === 0 && match[0].length > 1;
+    return (
+      takesOutFromStart(pattern, probe) &&
+      !takesOutFromStart(pattern, asText(probe))
+    );
   });
 }
 
@@ -299,6 +318,7 @@ describe("the docs tests strip tags only through stripHtmlTags", () => {
         "ScriptAndInboundMonitorDocsTranslations.test.ts",
         "InfrastructureMonitorDocsTranslations.test.ts",
         "TelemetryDocsTranslations.test.ts",
+        "TelemetryMonitorAndStatusPageDocsTranslations.test.ts",
       ]),
     );
   });
@@ -340,7 +360,7 @@ describe("the docs tests strip tags only through stripHtmlTags", () => {
     }
 
     expect(copies).toEqual([]);
-    // The five suites that copied it, and the test of the shared one.
+    // The six suites that copied it, and the test of the shared one.
     expect(callers).toEqual(
       expect.arrayContaining([
         "DocsStrayMarkers.test.ts",
@@ -349,6 +369,7 @@ describe("the docs tests strip tags only through stripHtmlTags", () => {
         "ScriptAndInboundMonitorDocsTranslations.test.ts",
         "InfrastructureMonitorDocsTranslations.test.ts",
         "TelemetryDocsTranslations.test.ts",
+        "TelemetryMonitorAndStatusPageDocsTranslations.test.ts",
       ]),
     );
   });
@@ -455,6 +476,10 @@ describe("findTagStrips, on files written here", () => {
           'html.replace("<", "");',
           'line.replace(/\\*\\*/g, "");',
           'line.replace(/[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g, "");',
+          'text.replace(/[<>]/g, "\\\\$&");',
+          // Patterns of any text: a URL's host, a whole string.
+          'url.replace(/^[^/?#]*/, "");',
+          'text.replace(/[\\s\\S]*/, "");',
           // The shared helper.
           "stripHtmlTags(html);",
           // A pattern the runtime cannot build is passed over, not thrown on.
