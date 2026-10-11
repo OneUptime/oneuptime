@@ -228,9 +228,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "permissions/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "probe/custom-probe": {
     title: EVERY_LANGUAGE,
     uniqueHeadings: except(EVERY_LANGUAGE, "de"),
@@ -275,19 +272,15 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "self-hosted/enterprise": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION,
   },
   "self-hosted/private-network-access": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "self-hosted/push-notifications": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "self-hosted/sendgrid-inbound-email": {
-    codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
   "status-pages/index": {
