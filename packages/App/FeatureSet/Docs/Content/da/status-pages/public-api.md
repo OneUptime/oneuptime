@@ -15,17 +15,17 @@ Hver request angiver statussiden ved dens ID eller ved et af dens brugerdefinere
 
 ```mermaid title="Sådan besvares en request til en statussides API"
 flowchart TB
-    R["Request med en statussides<br/>ID eller domæne"] --> F{"Velformet ID<br/>eller verificeret domæne?"}
-    F -->|"Nej"| E404["404: Status Page not found"]
-    F -->|"Ja"| A{"Er siden arkiveret?"}
+    R["Request med en<br/>statussides ID<br/>eller domæne"] --> F{"Velformet ID<br/>eller verificeret<br/>domæne?"}
+    F -->|"Ja"| A{"Er siden<br/>arkiveret?"}
+    F -->|"Nej"| E404["404: Status Page<br/>not found"]
+    A -->|"Nej"| IP{"Lukker<br/>IP-tilladelseslisten<br/>kalderen ind?"}
     A -->|"Ja"| E404
-    A -->|"Nej"| IP{"Lukker IP-tilladelseslisten<br/>kalderen ind?"}
-    IP -->|"Nej"| E403["403: IP-adresse blokeret"]
-    IP -->|"Ja"| P{"Er siden offentlig?"}
+    IP -->|"Ja"| P{"Er siden<br/>offentlig?"}
+    IP -->|"Nej"| E403["403: IP-adresse<br/>blokeret"]
+    P -->|"Nej"| S{"Logget ind, eller<br/>låst op med<br/>adgangskoden?"}
     P -->|"Ja"| OK["200 med JSON"]
-    P -->|"Nej"| S{"Logget ind, eller låst op<br/>med adgangskoden?"}
     S -->|"Ja"| OK
-    S -->|"Nej"| E401["401: ikke godkendt"]
+    S -->|"Nej"| E401["401: ikke<br/>godkendt"]
 ```
 
 En privat side svarer kun en browser, der er logget ind på den eller har låst den op med dens adgangskode: API'et læser den samme session som siden. Brug en offentlig side til et script. Se [At begrænse hvem der må se siden](/docs/status-pages/index#at-begrænse-hvem-der-må-se-siden).

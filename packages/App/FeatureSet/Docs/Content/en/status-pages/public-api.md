@@ -15,17 +15,17 @@ Each request names the status page by its ID or by one of its custom domains. On
 
 ```mermaid title="How a status page API request is answered"
 flowchart TB
-    R["Request with a status page ID or domain"] --> F{"Well-formed ID, or verified domain?"}
-    F -->|"No"| E404["404: Status Page not found"]
-    F -->|"Yes"| A{"Page archived?"}
+    R["Request with a status<br/>page ID or domain"] --> F{"Well-formed ID,<br/>or verified<br/>domain?"}
+    F -->|"Yes"| A{"Page<br/>archived?"}
+    F -->|"No"| E404["404: Status Page<br/>not found"]
+    A -->|"No"| IP{"IP allowlist<br/>lets the<br/>caller in?"}
     A -->|"Yes"| E404
-    A -->|"No"| IP{"IP allowlist lets the caller in?"}
-    IP -->|"No"| E403["403: IP address blocked"]
-    IP -->|"Yes"| P{"Page is public?"}
+    IP -->|"Yes"| P{"Page is<br/>public?"}
+    IP -->|"No"| E403["403: IP address<br/>blocked"]
+    P -->|"No"| S{"Signed in, or<br/>unlocked with<br/>the password?"}
     P -->|"Yes"| OK["200 with JSON"]
-    P -->|"No"| S{"Signed in, or unlocked with the password?"}
     S -->|"Yes"| OK
-    S -->|"No"| E401["401: not authenticated"]
+    S -->|"No"| E401["401: not<br/>authenticated"]
 ```
 
 A private page answers only a browser that has signed in to it, or unlocked it with its password: the API reads the same session the page does. For a script, use a public page. See [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page).

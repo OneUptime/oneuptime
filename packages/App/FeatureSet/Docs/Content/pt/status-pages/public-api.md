@@ -15,17 +15,17 @@ Cada requisição identifica a página de status pelo ID ou por um dos seus dom�
 
 ```mermaid title="Como uma requisição à API de uma página de status é respondida"
 flowchart TB
-    R["Requisição com o ID ou o domínio<br/>de uma página de status"] --> F{"ID bem formado<br/>ou domínio verificado?"}
-    F -->|"Não"| E404["404: Status Page not found"]
-    F -->|"Sim"| A{"Página arquivada?"}
+    R["Requisição com o ID<br/>ou o domínio de uma<br/>página de status"] --> F{"ID bem formado<br/>ou domínio<br/>verificado?"}
+    F -->|"Sim"| A{"Página<br/>arquivada?"}
+    F -->|"Não"| E404["404: Status Page<br/>not found"]
+    A -->|"Não"| IP{"A lista de IPs<br/>permitidos deixa<br/>o chamador entrar?"}
     A -->|"Sim"| E404
-    A -->|"Não"| IP{"A lista de IPs permitidos<br/>deixa o chamador entrar?"}
-    IP -->|"Não"| E403["403: endereço IP bloqueado"]
-    IP -->|"Sim"| P{"A página é pública?"}
+    IP -->|"Sim"| P{"A página<br/>é pública?"}
+    IP -->|"Não"| E403["403: endereço IP<br/>bloqueado"]
+    P -->|"Não"| S{"Conectado, ou<br/>desbloqueada<br/>com a senha?"}
     P -->|"Sim"| OK["200 com JSON"]
-    P -->|"Não"| S{"Conectado, ou desbloqueada<br/>com a senha?"}
     S -->|"Sim"| OK
-    S -->|"Não"| E401["401: não autenticado"]
+    S -->|"Não"| E401["401: não<br/>autenticado"]
 ```
 
 Uma página privada só responde a um navegador que entrou nela, ou que a desbloqueou com a senha: a API lê a mesma sessão que a página. Para um script, use uma página pública. Veja [Restringir quem pode ver a página](/docs/status-pages/index#restringir-quem-pode-ver-a-página).

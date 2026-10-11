@@ -15,17 +15,17 @@ Jede Anfrage nennt die Statusseite über ihre ID oder über eine ihrer eigenen D
 
 ```mermaid title="Wie eine Anfrage an die Statusseiten-API beantwortet wird"
 flowchart TB
-    R["Anfrage mit der ID oder Domain einer Statusseite"] --> F{"Gültig geformte ID<br/>oder verifizierte Domain?"}
-    F -->|"Nein"| E404["404: Status Page not found"]
-    F -->|"Ja"| A{"Seite archiviert?"}
+    R["Anfrage mit der ID<br/>oder Domain einer<br/>Statusseite"] --> F{"Gültig geformte ID<br/>oder verifizierte<br/>Domain?"}
+    F -->|"Ja"| A{"Seite<br/>archiviert?"}
+    F -->|"Nein"| E404["404: Status Page<br/>not found"]
+    A -->|"Nein"| IP{"Lässt die<br/>IP-Freigabeliste<br/>den Aufrufer zu?"}
     A -->|"Ja"| E404
-    A -->|"Nein"| IP{"Lässt die IP-Freigabeliste<br/>den Aufrufer zu?"}
-    IP -->|"Nein"| E403["403: IP-Adresse gesperrt"]
-    IP -->|"Ja"| P{"Ist die Seite öffentlich?"}
+    IP -->|"Ja"| P{"Ist die Seite<br/>öffentlich?"}
+    IP -->|"Nein"| E403["403: IP-Adresse<br/>gesperrt"]
+    P -->|"Nein"| S{"Angemeldet oder<br/>mit dem Passwort<br/>entsperrt?"}
     P -->|"Ja"| OK["200 mit JSON"]
-    P -->|"Nein"| S{"Angemeldet oder mit dem<br/>Passwort entsperrt?"}
     S -->|"Ja"| OK
-    S -->|"Nein"| E401["401: nicht authentifiziert"]
+    S -->|"Nein"| E401["401: nicht<br/>authentifiziert"]
 ```
 
 Eine private Seite antwortet nur einem Browser, der sich bei ihr angemeldet oder sie mit ihrem Passwort entsperrt hat: Die API liest dieselbe Sitzung wie die Seite. Für ein Skript verwenden Sie eine öffentliche Seite. Siehe [Einschränken, wer die Seite sehen darf](/docs/status-pages/index#einschränken-wer-die-seite-sehen-darf).

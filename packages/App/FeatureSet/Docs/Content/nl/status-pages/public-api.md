@@ -15,17 +15,17 @@ Elk request noemt de statuspagina bij haar ID of bij een van haar eigen domeinen
 
 ```mermaid title="Hoe een request aan de API van een statuspagina wordt beantwoord"
 flowchart TB
-    R["Request met het ID of domein<br/>van een statuspagina"] --> F{"Geldig gevormd ID<br/>of geverifieerd domein?"}
-    F -->|"Nee"| E404["404: Status Page not found"]
-    F -->|"Ja"| A{"Pagina gearchiveerd?"}
+    R["Request met het ID<br/>of domein van een<br/>statuspagina"] --> F{"Geldig gevormd ID<br/>of geverifieerd<br/>domein?"}
+    F -->|"Ja"| A{"Pagina<br/>gearchiveerd?"}
+    F -->|"Nee"| E404["404: Status Page<br/>not found"]
+    A -->|"Nee"| IP{"Laat de<br/>IP-toegangslijst<br/>de aanroeper toe?"}
     A -->|"Ja"| E404
-    A -->|"Nee"| IP{"Laat de IP-toegangslijst<br/>de aanroeper toe?"}
-    IP -->|"Nee"| E403["403: IP-adres geblokkeerd"]
-    IP -->|"Ja"| P{"Is de pagina publiek?"}
+    IP -->|"Ja"| P{"Is de pagina<br/>publiek?"}
+    IP -->|"Nee"| E403["403: IP-adres<br/>geblokkeerd"]
+    P -->|"Nee"| S{"Aangemeld, of<br/>ontgrendeld met<br/>het wachtwoord?"}
     P -->|"Ja"| OK["200 met JSON"]
-    P -->|"Nee"| S{"Aangemeld, of ontgrendeld<br/>met het wachtwoord?"}
     S -->|"Ja"| OK
-    S -->|"Nee"| E401["401: niet geauthenticeerd"]
+    S -->|"Nee"| E401["401: niet<br/>geauthenticeerd"]
 ```
 
 Een privépagina antwoordt alleen een browser die zich erbij heeft aangemeld of haar met haar wachtwoord heeft ontgrendeld: de API leest dezelfde sessie als de pagina. Gebruik voor een script een publieke pagina. Zie [Beperken wie de pagina mag zien](/docs/status-pages/index#beperken-wie-de-pagina-mag-zien).

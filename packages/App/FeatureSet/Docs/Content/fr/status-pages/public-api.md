@@ -15,17 +15,17 @@ Chaque requête désigne la page de statut par son ID ou par l'un de ses domaine
 
 ```mermaid title="Comment une requête à l'API d'une page de statut reçoit sa réponse"
 flowchart TB
-    R["Requête avec l'ID ou le domaine<br/>d'une page de statut"] --> F{"ID bien formé<br/>ou domaine vérifié ?"}
-    F -->|"Non"| E404["404: Status Page not found"]
-    F -->|"Oui"| A{"Page archivée ?"}
+    R["Requête avec l'ID<br/>ou le domaine d'une<br/>page de statut"] --> F{"ID bien formé<br/>ou domaine<br/>vérifié ?"}
+    F -->|"Oui"| A{"Page<br/>archivée ?"}
+    F -->|"Non"| E404["404: Status Page<br/>not found"]
+    A -->|"Non"| IP{"La liste d'IP<br/>autorisées laisse<br/>passer l'appelant ?"}
     A -->|"Oui"| E404
-    A -->|"Non"| IP{"La liste d'IP autorisées<br/>laisse passer l'appelant ?"}
-    IP -->|"Non"| E403["403 : adresse IP bloquée"]
-    IP -->|"Oui"| P{"La page est publique ?"}
+    IP -->|"Oui"| P{"La page est<br/>publique ?"}
+    IP -->|"Non"| E403["403 : adresse IP<br/>bloquée"]
+    P -->|"Non"| S{"Connecté, ou<br/>déverrouillé avec<br/>le mot de passe ?"}
     P -->|"Oui"| OK["200 avec du JSON"]
-    P -->|"Non"| S{"Connecté, ou déverrouillé<br/>avec le mot de passe ?"}
     S -->|"Oui"| OK
-    S -->|"Non"| E401["401 : non authentifié"]
+    S -->|"Non"| E401["401 : non<br/>authentifié"]
 ```
 
 Une page privée ne répond qu'à un navigateur qui s'y est connecté, ou qui l'a déverrouillée avec son mot de passe : l'API lit la même session que la page. Pour un script, utilisez une page publique. Voir [Restreindre qui peut voir la page](/docs/status-pages/index#restreindre-qui-peut-voir-la-page).

@@ -2273,14 +2273,21 @@ function statusPageWith(settings: Partial<StatusPage>): StatusPage {
   return statusPage;
 }
 
-// The labels of the diagram's answers: E404["404: Status Page not found"].
+/*
+ * The labels of the diagram's answers, E404["404: Status Page<br/>not found"],
+ * read as one line: the breaks keep the diagram inside the docs column.
+ */
 const DIAGRAM_ANSWER: RegExp = /(E\d{3}|OK)\["([^"]+)"\]/g;
+const LINE_BREAK: RegExp = /<br\/>/g;
 
 function diagramAnswers(): Dictionary<string> {
   const answers: Dictionary<string> = {};
 
   for (const match of diagram(PUBLIC_API).matchAll(DIAGRAM_ANSWER)) {
-    answers[match[1] as string] = match[2] as string;
+    answers[match[1] as string] = (match[2] as string).replace(
+      LINE_BREAK,
+      " ",
+    );
   }
 
   return answers;
