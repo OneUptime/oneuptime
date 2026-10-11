@@ -417,7 +417,7 @@ For at vise skærmbilledet af hver fejlet kørsel sætter du billedet i en løkk
 | `trapSourceIp` | Den adresse, trappen kom fra. Kun når en SNMP-trap udløste tjekket. | `string` |
 | `trapVarbinds` | Trappens varbinds, hver som `{oid, value}`. Kun når en SNMP-trap udløste tjekket. | `Array<Object>` |
 
-En netværksenhed pinges ved hver polling og gennemgås kun via SNMP, når den har legitimationsoplysninger, så **`isOnline` er den eneste variabel ovenfor, som en enhed med kun ping udfylder**: alle de andre kommer fra SNMP-gennemgangen og bliver stående, som de er skrevet, uden den. Begynd med `{{isOnline}}` og enhedens navn i skabeloner, der kan blive brugt til enheder uden legitimationsoplysninger. Se [Netværksenheds-monitor](/docs/monitor/network-device-monitor#what-a-poll-actually-does) for, hvad hver slags polling indsamler.
+En netværksenhed pinges ved hver polling og gennemgås kun via SNMP, når den har legitimationsoplysninger, så **`isOnline` er den eneste variabel ovenfor, som en enhed med kun ping udfylder**: alle de andre kommer fra SNMP-gennemgangen og bliver stående, som de er skrevet, uden den. Begynd med `{{isOnline}}` og enhedens navn i skabeloner, der kan blive brugt til enheder uden legitimationsoplysninger. Se [Netværksenheds-monitor](/docs/monitor/network-device-monitor#hvad-en-polling-faktisk-gør) for, hvad hver slags polling indsamler.
 
 ### Databasesundheds-monitorer
 
