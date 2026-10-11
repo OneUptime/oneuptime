@@ -333,9 +333,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     sameShape: EVERY_TRANSLATION,
   },
-  "self-hosted/slack-integration": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "slo/burn-rate-alerts": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
