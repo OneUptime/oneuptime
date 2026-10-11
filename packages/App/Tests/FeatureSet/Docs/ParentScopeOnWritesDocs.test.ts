@@ -112,7 +112,7 @@ const UPGRADE_HEADING: Record<string, string> = {
   nl: "Een record dat onder een ander wordt verplaatst of meer records in een lijst krijgt, krijgt alleen records die de bewerker mag lezen, en een tot labels of tot het bereik Eigendom beperkte toestemming om aan te maken geldt ook voor het record dat ze aanmaakt",
   no: "En post som flyttes under en annen eller får flere poster i en liste, får bare poster den som endrer den, har lov til å lese, og en tillatelse til å opprette begrenset til etiketter eller til omfanget Eid gjelder også posten den oppretter",
   pt: "Um registro movido para baixo de outro, ou que recebe mais registros em uma lista, só recebe registros que quem o altera pode ler, e uma permissão para criar restrita a rótulos ou ao escopo Próprios vale também para o registro que cria",
-  ru: "Запись, которую перемещают под другую или которой добавляют записи в список, получает только записи, которые может читать тот, кто её изменяет, а разрешение на создание, ограниченное метками или областью «Свои», распространяется и на создаваемую запись",
+  ru: "Запись, которую перемещают под другую или которой добавляют записи в список, получает только записи, которые может читать тот, кто её изменяет, а разрешение на создание, ограниченное метками или областью «В собственности», распространяется и на создаваемую запись",
   sv: "En post som flyttas under en annan eller får fler poster i en lista får bara poster som den som ändrar den får läsa, och en behörighet att skapa som är begränsad till etiketter eller till omfattningen Ägda gäller också posten den skapar",
   "zh-CN":
     '把记录移到另一条记录之下或向列表中添加记录时，只能使用修改者能读取的记录；限定到标签或"拥有"范围的创建权限也约束它所创建的记录',
