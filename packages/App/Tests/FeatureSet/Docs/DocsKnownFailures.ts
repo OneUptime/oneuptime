@@ -98,6 +98,7 @@ const WORKSPACE_AND_FORMS_TO_TRANSLATE: Array<string> = except(
   "es",
   "it",
   "pt",
+  "nl",
 );
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
