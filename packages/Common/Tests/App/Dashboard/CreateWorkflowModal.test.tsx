@@ -103,9 +103,16 @@ interface JiraKind {
   /** In the order the picker shows them. */
   templateIds: Array<string>;
   createIssueTemplateId: string;
-  /** Calls Jira, so asks for the site URL and the token and nothing else. */
+  /*
+   * Links the issue in what it writes, and calls Jira: asks for the site the
+   * link goes to, the API URL and the token, and nothing else.
+   */
   createFromIssueTemplateId: string;
-  /** Receive a Jira webhook and write to OneUptime only: nothing to configure. */
+  /** The same three settings, for the same two reasons. */
+  commentToNoteTemplateId: string;
+  /** Calls nothing, but links the issue in its note: asks for the site alone. */
+  issueChangesTemplateId: string;
+  /** Receive a Jira webhook and write to OneUptime only, linking nothing: nothing to configure. */
   webhookOnlyTemplateIds: Array<string>;
 }
 
@@ -126,10 +133,9 @@ const INCIDENT_JIRA_KIND: JiraKind = {
   ],
   createIssueTemplateId: "jira-create-issue-for-incident",
   createFromIssueTemplateId: "jira-declare-incident-from-issue",
-  webhookOnlyTemplateIds: [
-    "jira-status-to-incident-state",
-    "jira-issue-changes-to-incident-private-note",
-  ],
+  commentToNoteTemplateId: "jira-comment-to-incident-private-note",
+  issueChangesTemplateId: "jira-issue-changes-to-incident-private-note",
+  webhookOnlyTemplateIds: ["jira-status-to-incident-state"],
 };
 
 const ALERT_JIRA_KIND: JiraKind = {
@@ -148,10 +154,9 @@ const ALERT_JIRA_KIND: JiraKind = {
   ],
   createIssueTemplateId: "jira-create-issue-for-alert",
   createFromIssueTemplateId: "jira-create-alert-from-issue",
-  webhookOnlyTemplateIds: [
-    "jira-status-to-alert-state",
-    "jira-issue-changes-to-alert-private-note",
-  ],
+  commentToNoteTemplateId: "jira-comment-to-alert-private-note",
+  issueChangesTemplateId: "jira-issue-changes-to-alert-private-note",
+  webhookOnlyTemplateIds: ["jira-status-to-alert-state"],
 };
 
 const JIRA_KINDS: Array<JiraKind> = [INCIDENT_JIRA_KIND, ALERT_JIRA_KIND];
@@ -210,6 +215,18 @@ const JIRA_VALUES: Record<string, string> = {
   jiraProjectKey: "OPS",
   jiraIssueType: "Task",
   oneuptimeUrl: "https://oneuptime.com",
+};
+
+/*
+ * What the templates that link an issue and call Jira ask for, in the order
+ * the wizard asks: the site people open Jira at, then where the requests go
+ * and as whom. On Jira Cloud with a classic token the first two are the
+ * same address.
+ */
+const JIRA_LINKING_VALUES: Record<string, string> = {
+  jiraSiteUrl: "https://acme.atlassian.net",
+  jiraBaseUrl: JIRA_VALUES["jiraBaseUrl"] as string,
+  jiraBasicAuthToken: JIRA_VALUES["jiraBasicAuthToken"] as string,
 };
 
 interface ModelCreateArguments {
@@ -1625,7 +1642,7 @@ type ExpectedRowFunction = (name: string) => WrittenRow;
 const expectedJiraRow: ExpectedRowFunction = (name: string): WrittenRow => {
   return {
     name: name,
-    content: JIRA_VALUES[name],
+    content: { ...JIRA_VALUES, ...JIRA_LINKING_VALUES }[name],
     isSecret: name === JIRA_TOKEN_VARIABLE,
     workflowId: WORKFLOW_ID.toString(),
     projectId: PROJECT_ID.toString(),
@@ -1784,8 +1801,8 @@ describe("CreateWorkflowModal Jira templates", () => {
 
   /*
    * The preview is how someone can tell, before choosing, which Jira
-   * templates need a Jira API token. The four webhook-only ones need nothing
-   * at all.
+   * templates need a Jira API token, and which link the issue on their Jira
+   * site. The two status templates need nothing at all.
    */
   test("each Jira template's preview lists the settings it will ask for", () => {
     renderModal();
@@ -1806,13 +1823,10 @@ describe("CreateWorkflowModal Jira templates", () => {
         JIRA_TOKEN_VARIABLE,
       ],
       "jira-comment-on-incident-update": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
-      "jira-declare-incident-from-issue": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-declare-incident-from-issue": Object.keys(JIRA_LINKING_VALUES),
       "jira-status-to-incident-state": [],
-      "jira-comment-to-incident-private-note": [
-        "jiraBaseUrl",
-        JIRA_TOKEN_VARIABLE,
-      ],
-      "jira-issue-changes-to-incident-private-note": [],
+      "jira-comment-to-incident-private-note": Object.keys(JIRA_LINKING_VALUES),
+      "jira-issue-changes-to-incident-private-note": ["jiraSiteUrl"],
       "jira-create-issue-for-alert": Object.keys(JIRA_VALUES),
       "jira-transition-issue-on-alert-state": [
         "jiraBaseUrl",
@@ -1823,13 +1837,10 @@ describe("CreateWorkflowModal Jira templates", () => {
         JIRA_TOKEN_VARIABLE,
       ],
       "jira-comment-on-alert-update": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
-      "jira-create-alert-from-issue": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-create-alert-from-issue": Object.keys(JIRA_LINKING_VALUES),
       "jira-status-to-alert-state": [],
-      "jira-comment-to-alert-private-note": [
-        "jiraBaseUrl",
-        JIRA_TOKEN_VARIABLE,
-      ],
-      "jira-issue-changes-to-alert-private-note": [],
+      "jira-comment-to-alert-private-note": Object.keys(JIRA_LINKING_VALUES),
+      "jira-issue-changes-to-alert-private-note": ["jiraSiteUrl"],
     };
 
     expect(Object.keys(expectedSettings)).toEqual(JIRA_TEMPLATE_IDS);
@@ -2024,32 +2035,78 @@ describe("CreateWorkflowModal Jira templates", () => {
       });
 
       /*
-       * The other Jira-calling templates ask only where Jira is and as whom.
-       * The token is just as much a credential there, so it is written secret
-       * whichever kind of record the workflow is for.
+       * The templates that write the issue's link into OneUptime ask first
+       * for the site the link goes to, then where Jira's API is and as whom.
+       * The token is just as much a credential there, so it is written
+       * secret whichever kind of record the workflow is for.
        */
-      test("creating from the create-from-issue template writes the site URL and a secret token", async () => {
+      test.each([
+        ["create-from-issue", kind.createFromIssueTemplateId],
+        ["comment-to-note", kind.commentToNoteTemplateId],
+      ])(
+        "creating from the %s template writes the Jira Site URL, the API URL and a secret token",
+        async (_role: string, templateId: string) => {
+          const created: Workflow = createdWorkflow();
+
+          acceptEveryCreate(created);
+
+          const harness: ModalHarness = renderModal();
+          goToConfigure(templateId);
+
+          expect(
+            testIdSuffixes(getStepContent(), VARIABLE_INPUT_TEST_ID_PREFIX),
+          ).toEqual(Object.keys(JIRA_LINKING_VALUES));
+          expect(getVariableInput(JIRA_TOKEN_VARIABLE)).toHaveAttribute(
+            "type",
+            "password",
+          );
+          // An address is not a secret: masking it would hide a typo in it.
+          expect(getVariableInput("jiraSiteUrl")).toHaveAttribute(
+            "type",
+            "text",
+          );
+
+          for (const [name, value] of Object.entries(JIRA_LINKING_VALUES)) {
+            fillVariable(name, value);
+          }
+
+          submit();
+
+          await waitFor(() => {
+            expect(harness.onCreated).toHaveBeenCalledWith(created);
+          });
+
+          const calls: Array<ModelCreateArguments> = createCalls();
+
+          expect(calls[0]?.modelType).toBe(Workflow);
+          expect((calls[0]?.model as Workflow).isEnabled).toBe(false);
+          expect(writtenRows(calls.slice(1))).toEqual(
+            Object.keys(JIRA_LINKING_VALUES).map(expectedJiraRow),
+          );
+          expect(mockDeleteItem).not.toHaveBeenCalled();
+        },
+      );
+
+      /*
+       * The issue-changes template calls nothing in Jira, so it asks for no
+       * API URL and no token - only the site its notes link the issue on.
+       */
+      test("the issue-changes template asks only for the Jira Site URL, and writes it", async () => {
         const created: Workflow = createdWorkflow();
 
         acceptEveryCreate(created);
 
         const harness: ModalHarness = renderModal();
-        goToConfigure(kind.createFromIssueTemplateId);
+        goToConfigure(kind.issueChangesTemplateId);
 
         expect(
           testIdSuffixes(getStepContent(), VARIABLE_INPUT_TEST_ID_PREFIX),
-        ).toEqual(["jiraBaseUrl", JIRA_TOKEN_VARIABLE]);
-        expect(getVariableInput(JIRA_TOKEN_VARIABLE)).toHaveAttribute(
-          "type",
-          "password",
-        );
+        ).toEqual(["jiraSiteUrl"]);
+        expect(
+          screen.getByTestId("modal-footer-submit-button"),
+        ).toHaveTextContent("Create Workflow");
 
-        fillVariable("jiraBaseUrl", JIRA_VALUES["jiraBaseUrl"] as string);
-        fillVariable(
-          JIRA_TOKEN_VARIABLE,
-          JIRA_VALUES[JIRA_TOKEN_VARIABLE] as string,
-        );
-
+        fillVariable("jiraSiteUrl", " https://acme.atlassian.net ");
         submit();
 
         await waitFor(() => {
@@ -2058,13 +2115,85 @@ describe("CreateWorkflowModal Jira templates", () => {
 
         const calls: Array<ModelCreateArguments> = createCalls();
 
-        expect(calls[0]?.modelType).toBe(Workflow);
-        expect((calls[0]?.model as Workflow).isEnabled).toBe(false);
+        expect(calls).toHaveLength(2);
+        // Saved as typed, without the spaces around it.
         expect(writtenRows(calls.slice(1))).toEqual([
-          expectedJiraRow("jiraBaseUrl"),
-          expectedJiraRow(JIRA_TOKEN_VARIABLE),
+          expectedJiraRow("jiraSiteUrl"),
         ]);
-        expect(mockDeleteItem).not.toHaveBeenCalled();
+      });
+
+      /*
+       * Two addresses that are often the same are told apart by their
+       * titles and their help: the one people open Jira at, and the one the
+       * requests go to.
+       */
+      test("the Jira Site URL and the Jira API URL read apart on Configure, the site first", () => {
+        renderModal();
+        goToConfigure(kind.commentToNoteTemplateId);
+
+        const site: HTMLElement = screen.getByLabelText("Jira Site URL");
+        const api: HTMLElement = screen.getByLabelText("Jira API URL");
+
+        expect(site).toBe(getVariableInput("jiraSiteUrl"));
+        expect(api).toBe(getVariableInput("jiraBaseUrl"));
+        expect(getStepContent()).toHaveTextContent(
+          "The address you open Jira at, such as https://your-company.atlassian.net",
+        );
+        expect(getStepContent()).toHaveTextContent(
+          "Where the workflow sends its Jira requests",
+        );
+        expect(
+          site.compareDocumentPosition(api) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      });
+
+      /*
+       * A link built on the setting goes to that site and nowhere else, so a
+       * value that is not a site's address - a page pasted from the address
+       * bar, a query, no https:// - is refused where it is typed, saying
+       * what to type, before anything is created. Fixing it clears the
+       * message, and the slash an address bar ends a site with is taken.
+       */
+      test("a Jira Site URL that is not a site's address is refused before anything is created, saying what to type", async () => {
+        const MESSAGE: string =
+          "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.";
+
+        for (const typed of [
+          "https://acme.atlassian.net/jira/your-work",
+          "https://acme.atlassian.net/browse/OPS-17",
+          "acme.atlassian.net",
+          "https://acme.atlassian.net?next=/browse",
+          "https://user:secret@acme.atlassian.net",
+          "https://a.example)<img src=x>",
+        ]) {
+          mockCreate.mockClear();
+          const view: ModalHarness = renderModal();
+          goToConfigure(kind.commentToNoteTemplateId);
+
+          for (const [name, value] of Object.entries(JIRA_LINKING_VALUES)) {
+            fillVariable(name, value);
+          }
+
+          fillVariable("jiraSiteUrl", typed);
+          submit();
+
+          await waitFor(() => {
+            expect(getStepContent()).toHaveTextContent(MESSAGE);
+          });
+          expect(getVariableInput("jiraSiteUrl")).toHaveAttribute(
+            "aria-invalid",
+            "true",
+          );
+          expect(mockCreate).not.toHaveBeenCalled();
+          expectActiveStep("Configure");
+
+          // Fixing it clears the message.
+          fillVariable("jiraSiteUrl", "https://acme.atlassian.net/");
+
+          expect(getStepContent()).not.toHaveTextContent(MESSAGE);
+
+          view.view.unmount();
+        }
       });
     },
   );

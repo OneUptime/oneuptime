@@ -879,6 +879,43 @@ describe("a picked template's details", () => {
     ).not.toHaveTextContent("Secret");
   });
 
+  /*
+   * A template that links the issue in what it writes says, before it is
+   * chosen, that it needs the Jira site those links go to - first, and
+   * apart from the API URL, which is the one the requests go to.
+   */
+  test("a Jira template that links the issue lists the Jira Site URL first, apart from the Jira API URL", () => {
+    renderPicker();
+    showView(WorkflowTemplateCollection.All);
+
+    for (const templateId of [
+      "jira-comment-to-incident-private-note",
+      "jira-issue-changes-to-alert-private-note",
+    ]) {
+      const settings: HTMLElement = within(detailsOf(templateId)).getByTestId(
+        "workflow-template-details-settings",
+      );
+      const items: Array<HTMLElement> = within(settings).getAllByRole(
+        "listitem",
+      );
+
+      expect(items[0]).toHaveAttribute(
+        "data-testid",
+        "workflow-template-details-setting-jiraSiteUrl",
+      );
+      expect(items[0]).toHaveTextContent("Jira Site URL");
+      expect(items[0]).not.toHaveTextContent("Secret");
+      expect(items[0]).not.toHaveTextContent("(Optional)");
+    }
+
+    const comment: HTMLElement = within(
+      detailsOf("jira-comment-to-incident-private-note"),
+    ).getByTestId("workflow-template-details-setting-jiraBaseUrl");
+
+    expect(comment).toHaveTextContent("Jira API URL");
+    expect(comment).not.toHaveTextContent("Jira Site URL");
+  });
+
   test("a template that asks for nothing says so", () => {
     renderPicker();
 

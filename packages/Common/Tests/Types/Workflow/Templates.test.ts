@@ -799,6 +799,29 @@ describe("workflow template variables", () => {
     }
   });
 
+  /*
+   * Two fields of one Configure step under the same title read as one
+   * question asked twice. The Jira templates that link an issue ask for the
+   * site people open Jira at and for the address their API calls go to -
+   * often the same URL, and not always - so the titles tell them apart.
+   */
+  test("no two settings of a template share a title", () => {
+    for (const template of templates) {
+      const titles: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.title.trim().toLowerCase();
+        },
+      );
+
+      expect({
+        template: template.id,
+        repeated: titles.filter((title: string, index: number): boolean => {
+          return titles.indexOf(title) !== index;
+        }),
+      }).toEqual({ template: template.id, repeated: [] });
+    }
+  });
+
   test("names are unique within a template, because they become one row each", () => {
     for (const template of templates) {
       const names: Array<string> = [
