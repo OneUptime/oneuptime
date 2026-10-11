@@ -579,7 +579,7 @@ Cada endereço do resultado é varrido, e nenhum é tratado como endereço de re
 
 Os alvos são verificados ao salvar a varredura, então um erro de digitação aparece no formulário e não minutos depois como uma varredura com falha.
 
-As faixas de octetos existem para redes que não têm o formato de blocos CIDR. `10.16-22.0-255.51-66` varre de `.51` a `.66` em cada `/24` de `10.16` a `10.22`: 28.672 endereços. Escrito em CIDR, isso exige 1.792 varreduras, e o menor bloco CIDR que o contém (`10.16.0.0/13`) tem 512k endereços, 98% dos quais não valem a pena sondar.
+As faixas de octetos existem para redes que não têm o formato de blocos CIDR. `10.16-22.0-255.51-66` varre de `.51` a `.66` em cada `/24` de `10.16` a `10.22`: 28.672 endereços. Escrito em CIDR, isso exige 1.792 varreduras, e o menor bloco CIDR que o contém (`10.16.0.0/13`) tem 512k endereços, 95% dos quais não valem a pena sondar.
 
 ### O que uma varredura importa
 
@@ -870,6 +870,7 @@ Os modelos de incidente e de alerta de um monitor de dispositivo de rede podem u
 | `{{isOnline}}` | Se o dispositivo está acessível por ping ou SNMP (true ou false) |
 | `{{responseTimeInMs}}` | O tempo do walk SNMP em milissegundos |
 | `{{failureCause}}` | A mensagem de erro quando o walk SNMP falhou |
+| `{{isTimeout}}` | Se o walk SNMP excedeu o tempo limite (true ou false) |
 | `{{oidResponses}}` | As respostas dos OIDs, como array |
 | `{{OID_NAME}}` | O valor de um OID, pelo nome: `{{sysUpTime}}` |
 | `{{sysName}}` | O nome do dispositivo do grupo de sistema SNMP |

@@ -579,7 +579,7 @@ Jede Adresse im Ergebnis wird gescannt, und keine gilt als Netzwerk- oder Broadc
 
 Ziele werden beim Speichern des Scans geprüft, ein Tippfehler erscheint also im Formular statt Minuten später als fehlgeschlagener Scan.
 
-Oktettbereiche gibt es für Netzwerke, die nicht wie CIDR-Blöcke geformt sind. `10.16-22.0-255.51-66` durchsucht `.51` bis `.66` in jedem `/24` von `10.16` bis `10.22`: 28.672 Adressen. In CIDR geschrieben bräuchte das 1.792 Scans, und der kleinste CIDR-Block, der es enthält (`10.16.0.0/13`), umfasst 512k Adressen, 98% davon nicht der Mühe wert.
+Oktettbereiche gibt es für Netzwerke, die nicht wie CIDR-Blöcke geformt sind. `10.16-22.0-255.51-66` durchsucht `.51` bis `.66` in jedem `/24` von `10.16` bis `10.22`: 28.672 Adressen. In CIDR geschrieben bräuchte das 1.792 Scans, und der kleinste CIDR-Block, der es enthält (`10.16.0.0/13`), umfasst 512k Adressen, 95% davon nicht der Mühe wert.
 
 ### Was ein Scan importiert
 
@@ -870,6 +870,7 @@ Vorlagen für Vorfälle und Warnungen eines Netzwerkgerät-Monitors können dies
 | `{{isOnline}}` | Ob das Gerät per Ping oder SNMP erreichbar ist (true oder false) |
 | `{{responseTimeInMs}}` | Die Dauer des SNMP-Walks in Millisekunden |
 | `{{failureCause}}` | Die Fehlermeldung, wenn der SNMP-Walk fehlgeschlagen ist |
+| `{{isTimeout}}` | Ob beim SNMP-Walk das Zeitlimit überschritten wurde (true oder false) |
 | `{{oidResponses}}` | Die OID-Antworten, als Array |
 | `{{OID_NAME}}` | Der Wert einer OID, nach ihrem Namen: `{{sysUpTime}}` |
 | `{{sysName}}` | Der Gerätename aus der SNMP-Systemgruppe |

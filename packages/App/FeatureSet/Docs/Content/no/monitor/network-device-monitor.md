@@ -579,7 +579,7 @@ Hver adresse i resultatet skannes, og ingen behandles som en nettverks- eller kr
 
 Mål kontrolleres når skanningen lagres, så en skrivefeil vises i skjemaet i stedet for minutter senere som en mislykket skanning.
 
-Oktettområder finnes for nettverk som ikke er formet som CIDR-blokker. `10.16-22.0-255.51-66` skanner `.51` til `.66` i hvert `/24` fra `10.16` til `10.22`: 28 672 adresser. Skrevet i CIDR krever det 1 792 skanninger, og den minste CIDR-blokken som inneholder det (`10.16.0.0/13`), er 512k adresser, der 98 % ikke er verdt å undersøke.
+Oktettområder finnes for nettverk som ikke er formet som CIDR-blokker. `10.16-22.0-255.51-66` skanner `.51` til `.66` i hvert `/24` fra `10.16` til `10.22`: 28 672 adresser. Skrevet i CIDR krever det 1 792 skanninger, og den minste CIDR-blokken som inneholder det (`10.16.0.0/13`), er 512k adresser, der 95 % ikke er verdt å undersøke.
 
 ### Hva en skanning importerer
 
@@ -870,6 +870,7 @@ Hendelses- og varselmaler på en nettverksenhetsmonitor kan bruke disse variable
 | `{{isOnline}}` | Om enheten kan nås via ping eller SNMP (true eller false) |
 | `{{responseTimeInMs}}` | SNMP-walkets tid i millisekunder |
 | `{{failureCause}}` | Feilmeldingen når SNMP-walket feilet |
+| `{{isTimeout}}` | Om SNMP-walket fikk tidsavbrudd (true eller false) |
 | `{{oidResponses}}` | OID-svarene, som en array |
 | `{{OID_NAME}}` | Verdien til én OID, etter navnet: `{{sysUpTime}}` |
 | `{{sysName}}` | Enhetens navn fra SNMP-systemgruppen |

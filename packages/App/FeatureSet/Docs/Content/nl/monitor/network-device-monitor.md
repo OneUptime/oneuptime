@@ -579,7 +579,7 @@ Elk adres in het resultaat wordt gescand, en geen enkel wordt als netwerk- of br
 
 Doelen worden gecontroleerd bij het opslaan van de scan, dus een typefout verschijnt op het formulier in plaats van minuten later als mislukte scan.
 
-Octetbereiken bestaan voor netwerken die niet de vorm van CIDR-blokken hebben. `10.16-22.0-255.51-66` scant `.51` tot `.66` in elke `/24` van `10.16` tot `10.22`: 28.672 adressen. In CIDR geschreven kost dat 1.792 scans, en het kleinste CIDR-blok dat het bevat (`10.16.0.0/13`) is 512k adressen, waarvan 98% het aftasten niet waard is.
+Octetbereiken bestaan voor netwerken die niet de vorm van CIDR-blokken hebben. `10.16-22.0-255.51-66` scant `.51` tot `.66` in elke `/24` van `10.16` tot `10.22`: 28.672 adressen. In CIDR geschreven kost dat 1.792 scans, en het kleinste CIDR-blok dat het bevat (`10.16.0.0/13`) is 512k adressen, waarvan 95% het aftasten niet waard is.
 
 ### Wat een scan importeert
 
@@ -870,6 +870,7 @@ Incident- en waarschuwingssjablonen op een netwerkapparaat-monitor kunnen deze v
 | `{{isOnline}}` | Of het apparaat bereikbaar is via ping of SNMP (true of false) |
 | `{{responseTimeInMs}}` | De tijd van de SNMP-walk in milliseconden |
 | `{{failureCause}}` | De foutmelding als de SNMP-walk mislukte |
+| `{{isTimeout}}` | Of er bij de SNMP-walk een time-out optrad (true of false) |
 | `{{oidResponses}}` | De OID-antwoorden, als array |
 | `{{OID_NAME}}` | De waarde van één OID, op naam: `{{sysUpTime}}` |
 | `{{sysName}}` | De apparaatnaam uit de SNMP-systeemgroep |

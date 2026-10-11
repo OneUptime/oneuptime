@@ -579,7 +579,7 @@ Every address in the result is scanned, and none is treated as a network or broa
 
 Targets are checked when the scan is saved, so a typo shows on the form rather than minutes later as a failed scan.
 
-Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.0-255.51-66` sweeps `.51` to `.66` in every `/24` from `10.16` to `10.22`: 28,672 addresses. Written in CIDR that takes 1,792 scans, and the smallest CIDR block that contains it (`10.16.0.0/13`) is 512k addresses, 98% of them not worth probing.
+Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.0-255.51-66` sweeps `.51` to `.66` in every `/24` from `10.16` to `10.22`: 28,672 addresses. Written in CIDR that takes 1,792 scans, and the smallest CIDR block that contains it (`10.16.0.0/13`) is 512k addresses, 95% of them not worth probing.
 
 ### What a scan imports
 
@@ -870,6 +870,7 @@ Incident and alert templates on a Network Device monitor can use these variables
 | `{{isOnline}}` | Whether the device is reachable by ping or SNMP (true or false) |
 | `{{responseTimeInMs}}` | The SNMP walk's time in milliseconds |
 | `{{failureCause}}` | The error message when the SNMP walk failed |
+| `{{isTimeout}}` | Whether the SNMP walk timed out (true or false) |
 | `{{oidResponses}}` | The OID responses, as an array |
 | `{{OID_NAME}}` | One OID's value, by its name: `{{sysUpTime}}` |
 | `{{sysName}}` | The device name from the SNMP system group |

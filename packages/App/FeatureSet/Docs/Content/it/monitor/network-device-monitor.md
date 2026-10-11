@@ -579,7 +579,7 @@ Ogni indirizzo del risultato viene scansionato, e nessuno viene trattato come in
 
 Le destinazioni vengono controllate al salvataggio della scansione, quindi un errore di battitura compare nel modulo e non minuti dopo come scansione fallita.
 
-Gli intervalli di ottetti esistono per le reti che non hanno la forma di blocchi CIDR. `10.16-22.0-255.51-66` scansiona da `.51` a `.66` in ogni `/24` da `10.16` a `10.22`: 28.672 indirizzi. Scritto in CIDR servirebbero 1.792 scansioni, e il più piccolo blocco CIDR che lo contiene (`10.16.0.0/13`) ha 512k indirizzi, il 98% dei quali non vale la pena sondare.
+Gli intervalli di ottetti esistono per le reti che non hanno la forma di blocchi CIDR. `10.16-22.0-255.51-66` scansiona da `.51` a `.66` in ogni `/24` da `10.16` a `10.22`: 28.672 indirizzi. Scritto in CIDR servirebbero 1.792 scansioni, e il più piccolo blocco CIDR che lo contiene (`10.16.0.0/13`) ha 512k indirizzi, il 95% dei quali non vale la pena sondare.
 
 ### Cosa importa una scansione
 
@@ -870,6 +870,7 @@ I modelli di incidente e di avviso di un monitor del dispositivo di rete possono
 | `{{isOnline}}` | Se il dispositivo è raggiungibile via ping o SNMP (true o false) |
 | `{{responseTimeInMs}}` | La durata del walk SNMP in millisecondi |
 | `{{failureCause}}` | Il messaggio di errore quando il walk SNMP è fallito |
+| `{{isTimeout}}` | Se il walk SNMP è andato in timeout (true o false) |
 | `{{oidResponses}}` | Le risposte degli OID, come array |
 | `{{OID_NAME}}` | Il valore di un OID, per nome: `{{sysUpTime}}` |
 | `{{sysName}}` | Il nome del dispositivo dal gruppo di sistema SNMP |

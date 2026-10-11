@@ -579,7 +579,7 @@ Chaque adresse du résultat est analysée, et aucune n'est traitée comme adress
 
 Les cibles sont vérifiées à l'enregistrement de l'analyse, si bien qu'une faute de frappe apparaît dans le formulaire plutôt que des minutes plus tard comme une analyse échouée.
 
-Les plages d'octets existent pour les réseaux qui n'ont pas la forme de blocs CIDR. `10.16-22.0-255.51-66` balaie `.51` à `.66` dans chaque `/24` de `10.16` à `10.22` : 28 672 adresses. Écrit en CIDR, cela demande 1 792 analyses, et le plus petit bloc CIDR qui le contient (`10.16.0.0/13`) compte 512k adresses, dont 98% ne valent pas la peine d'être sondées.
+Les plages d'octets existent pour les réseaux qui n'ont pas la forme de blocs CIDR. `10.16-22.0-255.51-66` balaie `.51` à `.66` dans chaque `/24` de `10.16` à `10.22` : 28 672 adresses. Écrit en CIDR, cela demande 1 792 analyses, et le plus petit bloc CIDR qui le contient (`10.16.0.0/13`) compte 512k adresses, dont 95% ne valent pas la peine d'être sondées.
 
 ### Ce qu'une analyse importe
 
@@ -870,6 +870,7 @@ Les modèles d'incident et d'alerte d'un moniteur Équipement réseau peuvent ut
 | `{{isOnline}}` | Si l'équipement est joignable par ping ou SNMP (true ou false) |
 | `{{responseTimeInMs}}` | La durée du parcours SNMP en millisecondes |
 | `{{failureCause}}` | Le message d'erreur quand le parcours SNMP a échoué |
+| `{{isTimeout}}` | Si le parcours SNMP a expiré (true ou false) |
 | `{{oidResponses}}` | Les réponses OID, sous forme de tableau |
 | `{{OID_NAME}}` | La valeur d'un OID, par son nom : `{{sysUpTime}}` |
 | `{{sysName}}` | Le nom de l'équipement issu du groupe système SNMP |

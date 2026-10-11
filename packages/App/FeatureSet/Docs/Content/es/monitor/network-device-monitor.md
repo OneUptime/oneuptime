@@ -579,7 +579,7 @@ Se escanea cada dirección del resultado, y ninguna se trata como dirección de 
 
 Los objetivos se comprueban al guardar el escaneo, así que una errata aparece en el formulario y no minutos después como un escaneo fallido.
 
-Los rangos de octetos existen para redes que no tienen forma de bloques CIDR. `10.16-22.0-255.51-66` recorre de `.51` a `.66` en cada `/24` de `10.16` a `10.22`: 28.672 direcciones. Escrito en CIDR harían falta 1.792 escaneos, y el bloque CIDR más pequeño que lo contiene (`10.16.0.0/13`) tiene 512k direcciones, el 98% de las cuales no vale la pena sondear.
+Los rangos de octetos existen para redes que no tienen forma de bloques CIDR. `10.16-22.0-255.51-66` recorre de `.51` a `.66` en cada `/24` de `10.16` a `10.22`: 28.672 direcciones. Escrito en CIDR harían falta 1.792 escaneos, y el bloque CIDR más pequeño que lo contiene (`10.16.0.0/13`) tiene 512k direcciones, el 95% de las cuales no vale la pena sondear.
 
 ### Lo que importa un escaneo
 
@@ -870,6 +870,7 @@ Las plantillas de incidentes y alertas de un monitor de dispositivo de red puede
 | `{{isOnline}}` | Si el dispositivo es accesible por ping o SNMP (true o false) |
 | `{{responseTimeInMs}}` | La duración del recorrido SNMP en milisegundos |
 | `{{failureCause}}` | El mensaje de error cuando el recorrido SNMP falló |
+| `{{isTimeout}}` | Si el recorrido SNMP agotó el tiempo de espera (true o false) |
 | `{{oidResponses}}` | Las respuestas de los OID, como array |
 | `{{OID_NAME}}` | El valor de un OID, por su nombre: `{{sysUpTime}}` |
 | `{{sysName}}` | El nombre del dispositivo del grupo de sistema SNMP |
