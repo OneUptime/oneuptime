@@ -1,114 +1,176 @@
-# 使用 Fluentd 向 OneUptime 发送遥测数据
+# Fluentd
 
-## 概述
+[Fluentd](https://www.fluentd.org/) 可以从文件、容器、syslog、应用以及[许多其他来源](https://www.fluentd.org/datasources)收集日志。它内置的 [HTTP 输出](https://docs.fluentd.org/output/http)会把日志发送到 OneUptime 的 Fluentd 端点，之后就可以在 **产品 → 日志** 中搜索这些日志。
 
-您可以使用 [Fluentd](https://www.fluentd.org/) 插件从您的应用程序和服务中收集日志和遥测数据。该插件将遥测数据发送到 OneUptime HTTP 源。您可以使用 Fluentd 的 http 输出插件将遥测数据发送到 OneUptime HTTP 源。该插件可在此处找到：https://docs.fluentd.org/output/http
+:::cards
+- [配置 Fluentd](#配置-fluentd): 添加一个指向 OneUptime 的 HTTP 输出。
+- [如何读取记录](#如何读取记录): 哪些字段会成为消息、严重级别和属性。
+- [自托管 OneUptime](#自托管-oneuptime): 让 Fluentd 发送到你自己的实例。
+:::
 
-## 入门
+## 工作原理
 
-Fluentd 支持数百种数据源，您可以将来自任何数据源的日志摄取到 OneUptime 中。一些常用数据源包括：
+```mermaid title="从 Fluentd 到 OneUptime"
+flowchart TB
+    sources["文件、容器、syslog、应用"] --> fluentd["Fluentd"]
+    fluentd -->|"HTTP 输出，JSON + 摄取密钥"| ingest["OneUptime /fluentd/logs"]
+    ingest --> service["请求中指定的服务"]
+    service --> logs["日志"]
+```
 
-- Docker
-- Syslog
-- Apache
-- Nginx
-- MySQL
-- PostgreSQL
-- MongoDB
-- NodeJS
-- Ruby
-- Python
-- Java
-- PHP
-- Go
-- Rust
+Fluentd 以 JSON 格式批量发送记录，摄取密钥放在 `x-oneuptime-token` 请求头中，服务名称放在 `x-oneuptime-service-name` 中。OneUptime 会把每条记录变成该服务的一条日志，并在首次发送时创建该服务。
 
-以及更多其他数据源。
+## 开始之前
 
-您可以在[此处](https://www.fluentd.org/datasources)找到支持的数据源完整列表。
+- **安装 Fluentd**：参见[安装指南](https://docs.fluentd.org/installation)。
+- **一个 OneUptime 项目。** 在 OneUptime Cloud 上，遥测数据按摄取的 GB 计费（参见[价格](https://oneuptime.com/pricing)），而且 Free 套餐的项目需要先添加付款方式才能发送遥测数据。
+- **一个遥测摄取密钥。** 如果还没有，请按以下步骤创建：
 
-## 前提条件
+:::steps
+### 打开摄取密钥
 
-- **第一步：在您的系统上安装 Fluentd** - 您可以使用[此处](https://docs.fluentd.org/installation)提供的说明安装 Fluentd
-- **第二步：注册 OneUptime 账号** - 您可以在[此处](https://oneuptime.com)注册免费账号。请注意，虽然账号是免费的，但日志摄取是付费功能。您可以在[此处](https://oneuptime.com/pricing)找到有关定价的更多详细信息。
-- **第三步：创建 OneUptime 项目** - 拥有账号后，您可以从 OneUptime 控制台创建项目。如果您在创建项目方面需要帮助或有任何问题，请通过 support@oneuptime.com 联系我们。
-- **第四步：创建遥测摄取令牌** - 创建 OneUptime 账号后，您可以创建遥测摄取令牌，用于从应用程序摄取日志、指标和追踪数据。
+前往 **产品 → 项目设置**，在侧边菜单中展开 **遥测与 APM**，然后选择 **摄取密钥**。
 
-注册 OneUptime 并创建项目后。点击导航栏中的"产品"，然后点击"项目设置"。
+![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
 
-在遥测摄取密钥页面，点击"创建摄取密钥"以创建令牌。
+### 创建密钥
 
-![创建服务](/docs/static/images/TelemetryIngestionKeys.png)
+点击 **创建摄取密钥**。对话框已经填好了密钥名称，并选择了 **服务器**（应用或 Collector 发送数据时使用的密钥类型），因此直接点击 **创建摄取密钥** 即可创建，也可以先改名。
 
-创建令牌后，点击"查看"以查看令牌。
+### 复制机密
 
-![查看服务](/docs/static/images/TelemetryIngestionKeyView.png)
+新密钥会在它自己的页面中打开。复制它的 **密钥**：这就是下面配置中的 `YOUR_SERVICE_TOKEN`。
 
-## 配置
+![显示密钥的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
-您可以使用以下配置将遥测数据发送到 OneUptime HTTP 源。您可以将此配置添加到 Fluentd 配置文件中。配置文件通常位于 `/etc/fluentd/fluent.conf` 或 `/etc/td-agent/td-agent.conf`。
+## 配置 Fluentd
 
-您需要将 `YOUR_SERVICE_TOKEN` 替换为您在上一步创建的令牌。您还需要将 `YOUR_SERVICE_NAME` 替换为您的服务名称。服务名称可以是您喜欢的任何名称。如果该服务在 OneUptime 中不存在，它将自动创建。
+Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent 包则是 `/etc/td-agent/td-agent.conf`。
 
-```yaml
-# 匹配所有模式
+:::steps
+### 添加 HTTP 输出
+
+添加一个把记录发送到 OneUptime 的 `<match>` 段。把 `YOUR_SERVICE_TOKEN` 换成你的摄取密钥，把 `YOUR_SERVICE_NAME` 换成日志要显示的名称（任意名称都可以）：
+
+```text title="fluentd.conf"
+# Match all patterns
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+  </buffer>
 </match>
 ```
 
-以下是完整配置文件的示例：
+`json_array true` 让每次刷新缓冲区时都以一个 JSON 数组发送，`flush_interval 10s` 则每 10 秒发送一批。
 
-```yaml
+### 重启 Fluentd
+
+重启 Fluentd 服务，让它加载新的输出。
+
+### 确认日志已到达
+
+下一次刷新之后几秒钟内，日志就会出现在 **产品 → 日志** 中。服务会列在 **产品 → 服务** 下；如果它之前不存在，OneUptime 会创建它。
+:::
+
+## 完整示例
+
+这份配置在端口 `24224` 上通过 Fluentd 的 forward 协议接收记录，并把它们全部发送到 OneUptime：
+
+```text title="fluentd.conf"
 ####
-## 数据源描述：
+## Source descriptions:
 ##
 
-## 内置 TCP 输入
+## built-in TCP input
 ## @see https://docs.fluentd.org/input/forward
 <source>
-@type forward
-port 24224
-bind 0.0.0.0
+  @type forward
+  port 24224
+  bind 0.0.0.0
 </source>
 
 <match **>
-@type http
+  @type http
 
-endpoint https://oneuptime.com/fluentd/logs
-open_timeout 2
+  endpoint https://oneuptime.com/fluentd/logs
+  open_timeout 2
 
-headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
-content_type application/json
-json_array true
+  content_type application/json
+  json_array true
 
-<format>
-@type json
-</format>
-<buffer>
-flush_interval 10s
-</buffer>
+  <format>
+    @type json
+  </format>
+  <buffer>
+    flush_interval 10s
+  </buffer>
 </match>
 ```
 
-**如果您是自托管 OneUptime**：如果您是自托管 OneUptime，可以将 `endpoint_url` 替换为您的 OneUptime 实例的 URL。`http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`
+要把不同的来源作为不同的服务发送，请为每个标签使用一个 `<match>` 段，并各自设置 `x-oneuptime-service-name`。
 
-## 使用
+## 如何读取记录
 
-将配置添加到 Fluentd 配置文件后，您可以重启 Fluentd 服务。服务重启后，遥测数据将被发送到 OneUptime HTTP 源。您现在可以在 OneUptime 控制台中看到遥测数据。如果您有任何问题或需要配置方面的帮助，请通过 support@oneuptime.com 联系我们。
+OneUptime 从每条记录中读取以下字段：
+
+| 日志字段 | 从记录中以下字段里最先出现的一个读取 | 说明 |
+| --- | --- | --- |
+| 正文 | `message`、`log`、`msg`、`body`、`text` | 日志行。这些字段都没有的记录会整条以 JSON 保存。 |
+| 严重级别 | `level`、`severity`、`loglevel`、`log_level`、`priority`、`severityText`、`severity_text` | 例如 `trace`、`debug`、`info`、`notice`、`warn`、`error`、`critical` 和 `fatal` 这样的名称，不区分大小写。其他任何值都会保存为 `Unspecified`。 |
+| 追踪 ID | `trace_id`、`traceId`、`traceid` | 把日志关联到它的追踪。 |
+| Span ID | `span_id`、`spanId`、`spanid` | 把日志关联到它的 span。 |
+| 服务 | `x-oneuptime-service-name` 请求头 | 未设置该请求头时为 `Fluentd`。 |
+| 时间 | — | OneUptime 收到记录的时间。 |
+
+其他每个字段都会成为一个名为 `fluentd.` 加字段名的属性，可以用来搜索和筛选：例如 `container_name` 字段在日志浏览器中就是 `@fluentd.container_name`。嵌套对象会用点号展开，例如 `fluentd.kubernetes.pod_name`，列表则以 JSON 保存。
+
+Fluentd 日志会像其他日志一样经过你的[日志管道](/docs/telemetry/log-pipelines)、丢弃过滤器和脱敏规则。
+
+## 自托管 OneUptime
+
+把 `endpoint` 中的 `https://oneuptime.com` 换成你的 OneUptime 实例的 URL：`http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`。
+
+## 故障排除
+
+:::details Fluentd 记录了来自 HTTP 输出的 `401`
+摄取密钥缺失、未知或已过期。检查 `headers` 中 `x-oneuptime-token` 的值。
+:::
+
+:::details Fluentd 记录了 `402` 或 `422`
+`402`：在 OneUptime Cloud 上，项目处于 Free 套餐且没有付款方式。请在 **项目设置 → 账单和发票 → 账单** 中添加。`422`：密钥已被禁用，或者是浏览器密钥。请在密钥的设置中重新打开 **已启用**，或者创建一个 **服务器** 密钥。
+:::
+
+:::details 日志归到了 `Fluentd` 服务下
+缺少 `x-oneuptime-service-name` 请求头。在每个 `<match>` 段的 `headers` 中加上它。
+:::
+
+:::details 日志正文显示了整条记录的 JSON
+OneUptime 从记录中 `message`、`log`、`msg`、`body` 或 `text` 里最先出现的一个读取正文，这些都没有时就保存整条记录。把保存日志行的字段重命名为其中之一，例如使用 Fluentd 的 `record_transformer` 过滤器。
+:::
+
+如果对配置有任何问题或需要帮助，请发送邮件至 support@oneuptime.com。
+
+## 后续步骤
+
+:::cards
+- [日志管道](/docs/telemetry/log-pipelines): 解析并丰富 Fluentd 发送的日志。
+- [搜索语法](/docs/telemetry/search-syntax): 在日志浏览器中查找日志。
+- [Fluent Bit](/docs/telemetry/fluentbit): 一个通过 OpenTelemetry 发送的更轻量的代理。
+- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出告警。
+:::
