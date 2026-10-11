@@ -283,6 +283,10 @@ describe("md: a value in a sentence", () => {
     expect(textOfEmail(mdText`Team ${"&#60;x&#x3E; &amp;"}`.toString())).toBe(
       "Team &#60;x&#x3E; &amp;",
     );
+    // Numeric references alone: read as a browser decodes them, not as written.
+    expect(textOfEmail(mdText`${"&#60;b&#62; &#x3C;i&#x3E;"}`.toString())).toBe(
+      "&#60;b&#62; &#x3C;i&#x3E;",
+    );
   });
 
   test("an & at the end of a value cannot start a reference with what follows", () => {

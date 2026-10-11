@@ -138,9 +138,13 @@ export const htmlAsText: HtmlTextFunction = (html: string): string => {
   return decodeHtmlEntities(removeHtmlMarkup(html));
 };
 
-// A <style> or <script> element and all it holds: text nobody is shown.
+/*
+ * A <style> or <script> element and all it holds: text nobody is shown. Its
+ * end tag is read as a browser reads one - any case, and anything after the
+ * name up to the ">" ("</script >", "</script foo>") - but never "</styles>".
+ */
 const STYLE_OR_SCRIPT_ELEMENT: RegExp =
-  /<(style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+  /<(style|script)\b[^>]*>[\s\S]*?<\/\1\b[^>]*>/gi;
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 

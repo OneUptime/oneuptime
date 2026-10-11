@@ -562,6 +562,8 @@ const FIXED_ALERTS: Array<FixedAlert> = [
   },
 ];
 
+const SCAN_TIMEOUT_IN_MS: number = 300000;
+
 const HTML_TEXT_FILE: string = "packages/Common/Tests/Helpers/HtmlText.ts";
 const HTML_MARKUP_FILE: string = "packages/Common/Types/HtmlMarkup.ts";
 
@@ -637,26 +639,31 @@ describe("every test in the repository reads markup through the shared walk", ()
     ).toEqual([]);
   });
 
-  it("finds no test file that takes markup out with a pattern of its own", () => {
-    const findings: Array<string> = [];
+  // Thousands of files are parsed: about ten seconds here, more on a runner.
+  it(
+    "finds no test file that takes markup out with a pattern of its own",
+    () => {
+      const findings: Array<string> = [];
 
-    for (const file of testFiles) {
-      const text: string = read(file);
+      for (const file of testFiles) {
+        const text: string = read(file);
 
-      // A file that calls neither replace nor split takes nothing out.
-      if (!text.includes("replace") && !text.includes("split")) {
-        continue;
+        // A file that calls neither replace nor split takes nothing out.
+        if (!text.includes("replace") && !text.includes("split")) {
+          continue;
+        }
+
+        for (const strip of findTagStrips(file, text)) {
+          findings.push(
+            `${file}:${strip.line} ${strip.code} - read the text with removeHtmlMarkup (Common/Types/HtmlMarkup) or a reading of Common/Tests/Helpers/HtmlText`,
+          );
+        }
       }
 
-      for (const strip of findTagStrips(file, text)) {
-        findings.push(
-          `${file}:${strip.line} ${strip.code} - read the text with removeHtmlMarkup (Common/Types/HtmlMarkup) or a reading of Common/Tests/Helpers/HtmlText`,
-        );
-      }
-    }
-
-    expect(findings).toEqual([]);
-  });
+      expect(findings).toEqual([]);
+    },
+    SCAN_TIMEOUT_IN_MS,
+  );
 
   it.each(FIXED_ALERTS)(
     "$file (alerts $alerts) reads markup through $readsThrough",
