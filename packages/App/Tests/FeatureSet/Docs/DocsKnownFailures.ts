@@ -90,6 +90,14 @@ const except: (
  */
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
+// The rewritten workspace and Forms pages, in the languages not translated yet.
+const WORKSPACE_AND_FORMS_TO_TRANSLATE: Array<string> = except(
+  EVERY_TRANSLATION,
+  "de",
+  "fr",
+  "es",
+);
+
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "ai/ai-agent": {
     sameShape: EVERY_TRANSLATION_BUT_FA,
@@ -140,13 +148,13 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
   "forms/building": {
-    translated: EVERY_TRANSLATION,
+    translated: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
   "forms/on-submit": {
-    translated: EVERY_TRANSLATION,
+    translated: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
   "forms/sharing-and-security": {
-    translated: EVERY_TRANSLATION,
+    translated: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
@@ -440,12 +448,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "workspace-connections/microsoft-teams": {
-    sameShape: EVERY_TRANSLATION,
+    sameShape: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
   "workspace-connections/slack": {
-    sameShape: EVERY_TRANSLATION,
+    sameShape: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
   "workspace-connections/video-calls": {
-    translated: EVERY_TRANSLATION,
+    translated: WORKSPACE_AND_FORMS_TO_TRANSLATE,
   },
 };
