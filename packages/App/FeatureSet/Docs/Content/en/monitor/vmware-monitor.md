@@ -1,59 +1,96 @@
 # VMware Monitor
 
-VMware monitoring allows you to monitor the health and performance of your vSphere environment — vCenter Server, ESXi hosts, virtual machines, datastores, clusters, resource pools, and vSAN. OneUptime collects metrics via a pre-configured OpenTelemetry Collector (the **OneUptime VMware Agent**, built on the collector's native `vcenter` receiver) and evaluates them against your configured criteria.
+A VMware monitor watches one vCenter - its datacenters, clusters, ESXi hosts, virtual machines, datastores, resource pools and vSAN - and tells you when a host saturates, a VM is starved of CPU or memory, a datastore fills up, or vSphere raises an alarm. It reads the `vcenter.*` metrics the OneUptime VMware Agent collects, or one of your probes collects without an agent.
 
-## Overview
+:::cards
+- [Create the monitor](#create-a-vmware-monitor): Six steps in the dashboard.
+- [Templates](#pre-built-alert-templates): Twenty-three ready-made alerts, one incident per host, VM or datastore.
+- [Identity attributes](#identity-attributes): How to target one host, VM or datastore.
+- [Metrics](#collected-metrics): Every `vcenter.*` series the monitor can alert on.
+:::
 
-VMware monitors use metrics from your vCenter to provide visibility into your virtualization workloads. This enables you to:
+## How it works
 
-- Monitor datacenter, cluster, ESXi host, and per-VM health
-- Track CPU, memory, disk, and network usage across hosts and virtual machines
-- Catch CPU ready contention, ballooning, and host swapping before guests slow down
-- Watch datastores approaching capacity
-- Alert on hosts in maintenance mode or unresponsive, on red / yellow vSphere status roll-ups, and on vSAN latency and congestion
+The metrics come from vCenter's API, read with a read-only account in one of two ways:
 
-## Creating a VMware Monitor
+- **The VMware Agent**, an OpenTelemetry Collector with its `vcenter` receiver, which you run on a machine that can reach vCenter. See [VMware Agent](/docs/telemetry/vmware).
+- **A probe**, with nothing to install: you connect the vCenter in OneUptime and pick the probe that reaches it. See [VMware Without an Agent](/docs/telemetry/vmware-agentless).
 
-1. Go to **Monitors** in the OneUptime Dashboard
-2. Click **Create Monitor**
-3. Select **VMware** as the monitor type
-4. Select the vCenter to monitor
-5. Configure metric queries and aggregation
-6. Configure monitoring criteria as needed
+Both send the same series every collection interval (2 minutes by default), stamped with the vCenter's name, `vmware.vcenter.name`. A vCenter is one vSphere endpoint: a vCenter Server or a standalone ESXi host. A VMware monitor is tied to one vCenter. Every minute it runs its query over that vCenter's metrics and compares the result with its criteria.
 
-## Configuration Options
+```mermaid title="From a vCenter to an incident"
+flowchart TB
+    vcenter["vCenter Server or ESXi host"] --> agent["VMware Agent"]
+    vcenter --> probe["Your probe"]
+    agent -->|"vcenter metrics<br/>over OTLP"| oneuptime["OneUptime"]
+    probe --> oneuptime
+    oneuptime --> monitor["VMware monitor"]
+    monitor -->|"every minute"| criteria{"Criteria met?"}
+    criteria -->|"yes"| incident["Incident or alert"]
+    criteria -->|"no"| online["Monitor online"]
+```
 
-### vCenter
+## Before you begin
 
-Select the vCenter to monitor. A vCenter is one vSphere endpoint the agent connects to — a vCenter Server or a standalone ESXi host — and it is auto-registered the first time the OneUptime VMware Agent ships telemetry from it (keyed by the `vmware.vcenter.name` resource attribute). You do not need to create it manually. A vCenter collected [without an agent](/docs/telemetry/vmware-agentless), by one of your probes, is listed from the moment you connect it. Every query the monitor runs is automatically scoped with `resource.vmware.vcenter.name` equal to the selected vCenter's name.
+- **Collect the vCenter's metrics**, with the [VMware Agent](/docs/telemetry/vmware) or [without an agent](/docs/telemetry/vmware-agentless). Both use a vSphere user with the **Read-Only** role on the top-level vCenter object, with **Propagate to children** ticked. The agent reads `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `VMWARE_VCENTER_NAME`, `VCENTER_ENDPOINT`, `VCENTER_USERNAME` and `VCENTER_PASSWORD`.
+- **Check the vCenter is registered.** It appears under **Products → Infrastructure → VMware → All vCenters**: through the agent, named after its `VMWARE_VCENTER_NAME`, after its first full collection; without an agent, from the moment you connect it.
 
-### Resource Filters
+## Create a VMware monitor
 
-Optionally narrow the monitor to one part of the inventory. Each filter is an equality on one of the identity resource attributes the `vcenter` receiver stamps on every series:
+:::steps
+### Start a new monitor
 
-| Filter             | Resource attribute                              | Notes                                                                                                                                      |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Datacenter name    | `resource.vcenter.datacenter.name`              | Present on every series                                                                                                                    |
-| Cluster name       | `resource.vcenter.cluster.name`                 | Present on cluster, host, VM, and resource-pool series inside a cluster; absent for standalone ESXi hosts and the objects on them          |
-| Host name          | `resource.vcenter.host.name`                    | Matches the ESXi host's own series **and** the series of every VM it runs (the receiver stamps the parent host on VM resources)            |
-| VM name            | `resource.vcenter.vm.name`                      | One virtual machine                                                                                                                        |
-| Datastore name     | `resource.vcenter.datastore.name`               | One datastore                                                                                                                              |
-| Resource pool path | `resource.vcenter.resource_pool.inventory_path` | The inventory path (`/DC/host/Cluster/Resources/pool`) rather than the pool name, because pool names are only unique within their parent |
+Go to **Monitors** and click **Create Monitor**.
 
-### Metric Queries
+### Pick VMware
 
-Configure one or more metric queries to evaluate. Each query specifies:
+Under **Monitor Type**, click **More monitor types** and pick **VMware** under **Infrastructure**, or type `vmware` in the search box. Enter a **Name** - it is used in incident and alert titles - and click **Next**.
 
-- **Metric name** — The VMware metric to query (`vcenter.*` series, see the catalog below)
-- **Aggregation** — How to aggregate metric values (Avg, Sum, Max, Min)
-- **Filters** — Attribute-based filtering on the datapoint attributes (`status`, `power_state`, `effective`, `disk_state`, `direction`, `object`, `type`) or on the `resource.vcenter.*` identity attributes
-- **Group By** — Optionally group by an identity attribute (`resource.vcenter.host.name`, `resource.vcenter.vm.name`, `resource.vcenter.datastore.name`, ...) so each host, VM, or datastore is evaluated independently — one incident per object
+### Choose the vCenter
 
-You can also create **formulas** that combine multiple metric queries using mathematical expressions — for example a host memory percentage from `vcenter.host.memory.usage / vcenter.host.memory.capacity`, although the receiver already ships ready-made percentages (`vcenter.host.memory.utilization`) for the common cases.
+Under **VMware Monitor Configuration**, pick the vCenter from **vCenter**. Every vCenter that has sent data, or that you connected without an agent, is in the list.
 
-### Identity Attributes
+### Choose what to watch
 
-The `vcenter` receiver emits one OpenTelemetry resource per vSphere object and identifies it through **resource attributes** — there is no agent-stamped scope label the way Proxmox has `pve.scope`. Which attributes a series carries tells you what kind of object it describes:
+Pick one of the three tabs:
+
+- **Quick Setup** - click a [template](#pre-built-alert-templates). It sets the metric, the attribute filters, the aggregation, the time range, the group-by and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** - pick one metric from **VMware Metric**, then set **Aggregation** and **Time Range**. The form groups it by the object it describes, so each host, VM or datastore is judged on its own, and the [filters](#monitor-settings) narrow it to one datacenter, cluster, host, VM, datastore or resource pool.
+- **Advanced** - build queries and formulas yourself under **Select Metrics**, with filters on attributes such as `disk_state`, `power_state` or `status`. Use **Group by** an [identity attribute](#identity-attributes) to judge each object on its own.
+
+### Check the criteria
+
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+
+### Create the monitor
+
+Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it every minute. Incidents and alerts it raises are also listed on the vCenter's **Incidents** and **Alerts** pages.
+:::
+
+> [!TIP]
+> To set up several templates at once, open the vCenter from **Products → Infrastructure → VMware** and go to **Recommendations**. Pick the templates you want, choose who is paged, and OneUptime creates one monitor per template.
+
+## Monitor settings
+
+| Field | Tab | What it does |
+| --- | --- | --- |
+| **vCenter** | All | Required. Scopes every query to `resource.vmware.vcenter.name`. |
+| **Datacenter** | Custom Metric, Advanced | Optional. One datacenter: `resource.vcenter.datacenter.name`. Every series carries it. |
+| **Cluster** | Custom Metric, Advanced | Optional. One cluster: `resource.vcenter.cluster.name`. Matches the cluster's own series and those of the hosts, VMs and resource pools in it; a standalone ESXi host has none. |
+| **ESXi Host** | Custom Metric, Advanced | Optional. One ESXi host: `resource.vcenter.host.name`. Matches the host's own series **and** those of every VM it runs, because a VM carries its host's name. |
+| **Virtual Machine** | Custom Metric, Advanced | Optional. One VM: `resource.vcenter.vm.name`. VM names need not be unique: add a host or a cluster when two VMs share one. |
+| **Datastore** | Custom Metric, Advanced | Optional. One datastore: `resource.vcenter.datastore.name`. |
+| **Resource Pool Path** | Custom Metric, Advanced | Optional. One resource pool, by its inventory path (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. A path, because pool names are unique only within their parent. |
+| **VMware Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
+| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
+| **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 5 Minutes**; templates set their own. |
+| **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
+
+vCenter is read once per collection interval, 2 minutes by default, so a 1-minute window may hold no sample at all. Keep the window at 5 minutes or more, and longer if you raised the collection interval for a large inventory.
+
+## Identity attributes
+
+The `vcenter` receiver sends one OpenTelemetry resource per vSphere object, and names it with **resource attributes**. Which ones a series carries tells you what kind of object it describes:
 
 | vSphere object      | Identity resource attributes                                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -65,24 +102,51 @@ The `vcenter` receiver emits one OpenTelemetry resource per vSphere object and i
 | Datastore           | `vcenter.datacenter.name`, `vcenter.datastore.name`                                                                            |
 | Resource pool       | `vcenter.datacenter.name`, `vcenter.resource_pool.name`, `vcenter.resource_pool.inventory_path` (+ `vcenter.cluster.name` or `vcenter.host.name`) |
 
-In ClickHouse — and therefore in monitor filters and group-by keys — resource attributes are `resource.`-prefixed (`resource.vcenter.host.name`), while datapoint attributes are bare (`disk_state`, `power_state`, `status`, `effective`, `direction`, `object`, `type`). The receiver's boolean `effective` attribute is stored as the string `"true"` / `"false"`, so filter it with the string. Filter on an identity attribute to scope a query to one object, and group by it to evaluate each object independently.
+In monitor filters and group-by keys, resource attributes start with `resource.` (`resource.vcenter.host.name`), while datapoint attributes do not (`disk_state`, `power_state`, `status`, `effective`, `direction`, `object`, `type`). The boolean `effective` attribute is stored as the text `"true"` or `"false"`, so filter it with the text. Filter on an identity attribute to target one object, and group by it to judge each object on its own.
 
-### Rolling Time Window
+## Pre-built Alert Templates
 
-Select the time window for metric evaluation:
+OneUptime ships 23 templates for common VMware problems, and **Quick Setup** offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
-- Past 1 Minute
-- Past 5 Minutes (default)
-- Past 10 Minutes
-- Past 15 Minutes
-- Past 30 Minutes
-- Past 60 Minutes
+Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 
-The agent polls vCenter every `VCENTER_COLLECTION_INTERVAL` (2 minutes by default), so a 1-minute window may contain no sample at all — new VMware monitors default to 5 minutes for this reason. Keep the window at 5 minutes or longer, and lengthen it if you raised the collection interval for a large inventory.
+| Template | Category | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- | --- |
+| Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Above 90%: every VM on the host competes for cores, and shows CPU ready time | At or below 81% |
+| Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg per host | Above 90%: the host starts taking memory back by ballooning, compression and swapping | At or below 81% |
+| Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max per host | Above 50 ms: every VM whose disks are on that path waits on storage. Needs performance counter level 3 | At or below 45 ms |
+| Host Network Packet Errors | Host | Warning | `vcenter.host.network.packet.error.rate`, Max per host | Above 0: almost always a cable, SFP or switch-port fault | At 0 |
+| Host Network Packet Drops | Host | Warning | `vcenter.host.network.packet.drop.rate`, Max per host | Above 0: an oversubscribed uplink, or NIC ring buffers that overflow | At 0 |
+| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **past 15 minutes** | Above 90% of the VM's vCPUs for all 15 minutes: a VM may use what it was given, so only one that never comes down pages | At or below 81% |
+| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Above 10%: the VM was ready to run, but the host had no physical core for it. Invisible from inside the guest | At or below 9% |
+| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Above 90% of its memory: the guest is about to page | At or below 81% |
+| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Above 0: the host is short of memory and takes it back from this guest | At 0 |
+| VM Memory Swapping | Virtual Machine | Critical | `vcenter.vm.memory.swapped`, Max per VM | Above 0: the host swaps the VM's memory, the last resort after ballooning and compression | At 0 |
+| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Above 50 ms: applications in the guest time out on I/O | At or below 45 ms |
+| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Above 90% of its provisioned storage committed: a thin-provisioned VM is about to claim its full size | At or below 81% |
+| Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Above 80%: an early warning, as thin disks and snapshots use the rest quickly | At or below 72% |
+| Datastore Capacity Critical | Datastore | Critical | `vcenter.datastore.disk.utilization`, Avg per datastore | Above 90%: a full datastore pauses every VM with a disk on it | At or below 81% |
+| Cluster Host Not Effective | Cluster | Critical | `vcenter.cluster.host.count` filtered to `effective = false`, Max per `resource.vcenter.cluster.name` | Above 0: a host is in maintenance mode, disconnected or unresponsive, so the cluster runs with less capacity than it was sized for | At 0 |
+| Datacenter Hosts Unhealthy | Datacenter | Critical | `vcenter.datacenter.host.count` filtered to `status = red`, Max per `resource.vcenter.datacenter.name` | Above 0: a host has a critical alarm, such as a hardware sensor, a lost storage path or an HA agent error | At 0 |
+| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtered to `status = yellow`, Max per datacenter | Above 0: a host has a warning alarm | At 0 |
+| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtered to `power_state = off`, Max per datacenter | Above 0: a host is powered off - it crashed, lost power, or was put on standby by DPM | At 0 |
+| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtered to `status = red`, Max per datacenter | Above 0: a VM has a critical alarm, such as a failed HA restart, a lost datastore or a lost Tools heartbeat | At 0 |
+| Datacenter Clusters Unhealthy | Datacenter | Critical | `vcenter.datacenter.cluster.count` filtered to `status = red`, Max per datacenter | Above 0: a cluster has a critical alarm, such as too few HA failover resources, a failed HA election or a critical vSAN health check | At 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster | Above 20 000 µs (20 ms): storage slows down for every VM on the vSAN datastore. Silent on clusters without vSAN | At or below 18 000 µs |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster | Above 0: a disk group cannot keep up, and vSAN slows down the I/O of its clients | At 0 |
+| Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Above 0: the pool's VMs take memory from host swap, usually because the pool's memory limit or shares are too low | At 0 |
+
+**Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+- **Utilization templates use Avg:** the receiver reports a real 0 to 100 percentage for each object, so the average in a minute is the sustained utilization.
+- **Latency templates use Max:** the metric is already the worst latency across the object's disks, so its highest sample is the honest one.
+- **Count and state templates use Max**, so one collection that shows the condition trips them: packet errors, ballooning, swapping, red and yellow status, hosts that are not effective, congestion.
+- **Every template groups by the object's own identity attribute**, so one incident fires per affected object, and the incident names it.
+- **Thresholds are pinned to their unit** (`%`, `ms`, `us`), so they keep their meaning whatever unit a chart shows.
 
 ## Collected Metrics
 
-The VMware Agent walks the full vSphere inventory every collection interval (2 minutes by default) and emits the series below. Units are the receiver's own OTLP unit metadata: `MHz`, `%`, `MiBy` (mebibytes), `By` (bytes), `KiBy`, `ms`, `us` (microseconds), `{KiBy/s}`, `By/s`, and counts. Metrics marked _off by default_ are not collected until you enable them in `otel-collector-config.yaml` (the shipped config already enables `vcenter.host.memory.capacity`).
+The metrics below are the catalog the monitor form offers. Units are the receiver's own: `MHz`, `%`, `MiBy` (mebibytes), `By` (bytes), `KiBy`, `ms`, `us` (microseconds), `{KiBy/s}`, `By/s` and counts. A metric marked _off by default_ is not collected until you turn it on in the agent's `otel-collector-config.yaml`; the shipped configuration already turns on `vcenter.host.memory.capacity`.
 
 ### Datacenter
 
@@ -178,7 +242,7 @@ The VMware Agent walks the full vSphere inventory every collection interval (2 m
 
 ### vSAN
 
-Only emitted for vSAN-enabled clusters, the hosts in them, and the VMs on a vSAN datastore. Latencies are in **microseconds** (`us`), unlike the millisecond host and VM disk latencies:
+Only sent for clusters with vSAN, the hosts in them, and the VMs on a vSAN datastore. Latencies are in **microseconds** (`us`), unlike the millisecond latencies of hosts and VMs:
 
 | Metric                              | Unit              | Description                                                                                                                                     |
 | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -195,92 +259,50 @@ Only emitted for vSAN-enabled clusters, the hosts in them, and the VMs on a vSAN
 | `vcenter.vm.vsan.operations`        | `{operations/s}`  | vSAN I/O operations per second issued by the VM, by `type`                                                                                      |
 | `vcenter.vm.vsan.throughput`        | `By/s`            | vSAN throughput of the VM, by `direction`                                                                                                       |
 
-> VM power state is not a metric. The receiver emits `vcenter.vm.cpu.*` only for powered-on VMs, so OneUptime infers **Powered on** / **Powered off** per VM from whether CPU datapoints arrived in the same collection as the VM's memory and disk datapoints — the vCenter Virtual Machines page shows the result. To alert on powered-off hosts or on the number of running VMs, use the `power_state` attribute on `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, or `vcenter.cluster.vm.count` instead.
+> [!NOTE]
+> A VM's power state is not a metric. The receiver sends `vcenter.vm.cpu.*` only for powered-on VMs, so OneUptime tells **Powered on** from **Powered off** by whether CPU data arrived in the same collection as the VM's memory and disk data; the vCenter's **Virtual Machines** page shows the result. To alert on powered-off hosts or on how many VMs run, use the `power_state` attribute of `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` or `vcenter.cluster.vm.count`.
 
-## Monitoring Criteria
+## Monitoring criteria
 
-### What Gets Evaluated
+A criteria compares one of the monitor's queries or formulas with a threshold. A VMware monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 
-These monitors always evaluate the **Metric Value** — the value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
+| Field | What it does |
+| --- | --- |
+| **Metric** | The query or formula to check, by its variable name. |
+| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough). |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
+| **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
+| **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
+| **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
 
-### Aggregation Types
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
 
-| Aggregation   | Description                        |
-| ------------- | ---------------------------------- |
-| Average       | Average value over the time window |
-| Sum           | Sum of all values                  |
-| Maximum Value | Highest value in the time window   |
-| Minimum Value | Lowest value in the time window    |
-| All Values    | All values must match the criteria |
-| Any Value     | At least one value must match      |
+Some criteria to start from:
 
-### Conditions
+- **A host is saturated:** `vcenter.host.cpu.utilization`, Average, grouped by `resource.vcenter.host.name`, **Greater Than** `90`, over the past 5 minutes.
+- **A datastore is filling up:** `vcenter.datastore.disk.utilization`, Average, grouped by `resource.vcenter.datastore.name`, **Greater Than** `80`.
+- **A cluster lost a host:** `vcenter.cluster.host.count` filtered to `effective = false`, Maximum, grouped by `resource.vcenter.cluster.name`, **Greater Than** `0`.
+- **Fewer VMs run than expected:** `vcenter.cluster.vm.count` filtered to `power_state = on` and `resource.vcenter.cluster.name = Production`, Sum, **Less Than** the number you expect.
+- **A VM is being host-swapped:** `vcenter.vm.memory.swapped`, Maximum, grouped by `resource.vcenter.vm.name`, **Greater Than** `0`.
 
-Static thresholds — compared against the **Threshold** you enter:
+### Default criteria
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+A monitor you do not build from a template starts with two criteria:
 
-Baseline anomaly detection — no threshold; the form shows **Sensitivity** and **Baseline Window** instead, and compares each sample to the same-hour-of-week baseline built from that window:
+| Order | Criteria | Matches when | Then |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
 
-- **Anomalously High** — Value rises above the expected range
-- **Anomalously Low** — Value falls below the expected range
-- **Anomalous** — Value leaves the expected range in either direction
-
-Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
-
-### Criteria Examples
-
-- **A host is saturated** — `vcenter.host.cpu.utilization`, Average, grouped by `resource.vcenter.host.name`, **Greater Than** `90` over the past 5 minutes.
-- **A datastore is filling up** — `vcenter.datastore.disk.utilization`, Average, grouped by `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **A cluster lost a host** — `vcenter.cluster.host.count` filtered to `effective = false`, Maximum, grouped by `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Fewer VMs are running than expected** — `vcenter.cluster.vm.count` filtered to `power_state = on` and `resource.vcenter.cluster.name = Production`, Sum, **Less Than** the number you expect.
-- **A VM is being host-swapped** — `vcenter.vm.memory.swapped`, Maximum, grouped by `resource.vcenter.vm.name`, **Greater Than** `0`.
-
-## Pre-built Alert Templates
-
-OneUptime ships 23 templates for common VMware monitoring scenarios. Each builds a complete monitor — a metric query, attribute filters, a group-by on the object's own identity attribute, a fire criteria, and an auto-recover criteria — that you can edit after applying. Thresholds are starting points. Templates evaluate over the past 5 minutes unless the table says otherwise, and a criteria must hold for **every** minute of its window before it fires:
-
-| Template                      | Category        | Severity | Watches                                                                                              | Fires when                                                                                                                                                  |
-| ----------------------------- | --------------- | -------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host CPU Saturation           | Host            | Warning  | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name`                                 | > 90% — every VM on the host competes for cores and shows CPU ready time                                                                                    |
-| Host Memory Saturation        | Host            | Warning  | `vcenter.host.memory.utilization`, Avg per host                                                      | > 90% — the host starts reclaiming memory through ballooning, compression, and swapping                                                                     |
-| Host Disk Latency High        | Host            | Warning  | `vcenter.host.disk.latency.max`, Max per host                                                        | > 50 ms — every VM whose disks sit on the affected path waits on storage. Requires performance counter level 3                                              |
-| Host Network Packet Errors    | Host            | Warning  | `vcenter.host.network.packet.error.rate`, Max per host                                               | > 0 — almost always a cable, SFP, or switch-port fault; recovers at 0                                                                                      |
-| Host Network Packet Drops     | Host            | Warning  | `vcenter.host.network.packet.drop.rate`, Max per host                                                | > 0 — an oversubscribed uplink or overflowing NIC ring buffers; recovers at 0                                                                              |
-| VM CPU Saturation             | Virtual Machine | Warning  | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **past 15 minutes**                | > 90% of the VM's vCPUs every minute of the 15-minute window — a VM is entitled to spend its allocation, so only one that never comes down pages            |
-| VM CPU Ready Contention       | Virtual Machine | Warning  | `vcenter.vm.cpu.readiness`, Avg per VM                                                               | > 10% — the VM wanted to run but the host had no physical core for it; invisible from inside the guest                                                      |
-| VM Memory Saturation          | Virtual Machine | Warning  | `vcenter.vm.memory.utilization`, Avg per VM                                                          | > 90% of configured memory — the guest is about to page internally                                                                                          |
-| VM Memory Ballooning          | Virtual Machine | Warning  | `vcenter.vm.memory.ballooned`, Max per VM                                                            | > 0 — the host is short of memory and taking it back from this guest; recovers at 0                                                                         |
-| VM Memory Swapping            | Virtual Machine | Critical | `vcenter.vm.memory.swapped`, Max per VM                                                              | > 0 — host-level swapping, the last resort after ballooning and compression; recovers at 0                                                                  |
-| VM Disk Latency High          | Virtual Machine | Warning  | `vcenter.vm.disk.latency.max`, Max per VM                                                            | > 50 ms — applications inside the guest time out on I/O                                                                                                     |
-| VM Disk Usage High            | Virtual Machine | Warning  | `vcenter.vm.disk.utilization`, Avg per VM                                                            | > 90% of provisioned storage committed — a thin-provisioned VM is about to claim its full size from the datastore                                            |
-| Datastore Capacity Warning    | Datastore       | Warning  | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name`                      | > 80% — early warning; thin disks and snapshots consume the remaining 20% quickly                                                                           |
-| Datastore Capacity Critical   | Datastore       | Critical | `vcenter.datastore.disk.utilization`, Avg per datastore                                              | > 90% — a datastore that fills up pauses every VM with a disk on it                                                                                         |
-| Cluster Host Not Effective    | Cluster         | Critical | `vcenter.cluster.host.count` filtered to `effective = false`, Max per `resource.vcenter.cluster.name` | > 0 — a host is in maintenance mode, disconnected, or unresponsive; the cluster runs with less capacity than it was sized for; recovers at 0                |
-| Datacenter Hosts Unhealthy    | Datacenter      | Critical | `vcenter.datacenter.host.count` filtered to `status = red`, Max per `resource.vcenter.datacenter.name` | > 0 — a host has a triggered critical alarm (hardware sensor, lost storage path, HA agent error); recovers at 0                                            |
-| Datacenter Hosts Degraded     | Datacenter      | Warning  | `vcenter.datacenter.host.count` filtered to `status = yellow`, Max per datacenter                    | > 0 — a host has a triggered warning-level alarm; recovers at 0                                                                                             |
-| Datacenter Hosts Powered Off  | Datacenter      | Warning  | `vcenter.datacenter.host.count` filtered to `power_state = off`, Max per datacenter                  | > 0 — a host is powered off (crashed, lost power, or fenced by DPM); recovers at 0                                                                           |
-| Datacenter VMs Unhealthy      | Datacenter      | Warning  | `vcenter.datacenter.vm.count` filtered to `status = red`, Max per datacenter                         | > 0 — a VM has a triggered critical alarm (failed HA restart, lost datastore, Tools heartbeat lost); recovers at 0                                          |
-| Datacenter Clusters Unhealthy | Datacenter      | Critical | `vcenter.datacenter.cluster.count` filtered to `status = red`, Max per datacenter                    | > 0 — a cluster-level critical alarm (insufficient HA failover resources, HA master election failed, vSAN health critical); recovers at 0                    |
-| vSAN Latency High             | vSAN            | Warning  | `vcenter.cluster.vsan.latency.avg`, Avg per cluster                                                  | > 20 000 µs (20 ms) — a cluster-wide storage slowdown for every VM on the vSAN datastore. Silent on clusters without vSAN                                    |
-| vSAN Congestion               | vSAN            | Warning  | `vcenter.cluster.vsan.congestions`, Max per cluster                                                  | > 0 — a disk group cannot keep up and vSAN is throttling client I/O; recovers at 0                                                                         |
-| Resource Pool Memory Swapped  | Cluster         | Warning  | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path`      | > 0 — the pool's VMs are drawing memory from host swap, usually because the pool's memory limit or shares are too low; recovers at 0                        |
-
-> Notes on the choices baked in: utilization templates use **Avg** because the receiver already reports true 0–100 percentages (one series per object), so the per-minute average is the sustained utilization regardless of how many collections land in the minute; latency templates use **Max** because the metric is itself the worst latency across the object's disks, so the worst sample is the honest value; count and state-style templates (packet errors, ballooning, swapping, red / yellow status, non-effective hosts, congestion) use **Max** so a single collection showing the condition trips the threshold. Every template groups by the object's own identity attribute (`resource.vcenter.host.name`, `resource.vcenter.vm.name`, `resource.vcenter.datastore.name`, `resource.vcenter.cluster.name`, `resource.vcenter.datacenter.name`, `resource.vcenter.resource_pool.inventory_path`), so one incident fires per affected object and the alert names it. Thresholds written in a unit (`%`, `ms`, `us`) are pinned to that unit, so they keep their meaning whatever unit the display layer chooses to render.
-
-## Setup Requirements
-
-To use VMware monitoring, you need to:
-
-1. Install the OneUptime VMware Agent on a machine that can reach vCenter over HTTPS — see the [VMware Agent installation guide](/docs/telemetry/vmware). The required read-only vSphere user is a two-command `govc` snippet (also in the guide)
-2. Pass `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `VMWARE_VCENTER_NAME`, `VCENTER_ENDPOINT`, `VCENTER_USERNAME`, and `VCENTER_PASSWORD` as environment variables
-3. Wait for the vCenter to auto-register (about one collection interval — 2 minutes by default — after the agent starts)
+> [!IMPORTANT]
+> Silence matches neither criteria: a vCenter that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Terraform
 
-The [OneUptime Terraform provider](/docs/terraform/monitor-steps) carries a VMware monitor step's configuration in the `vmware_monitor` escape-hatch attribute — the raw JSON of the `vmwareMonitor` sub-config (`vcenterIdentifier`, `resourceFilters`, `metricViewConfig`, `rollingTime`), written with `jsonencode()`:
+The [OneUptime Terraform provider](/docs/terraform/monitor-steps) carries a VMware monitor step's configuration in the `vmware_monitor` attribute: the raw JSON of the `vmwareMonitor` configuration (`vcenterIdentifier`, `resourceFilters`, `metricViewConfig`, `rollingTime`), written with `jsonencode()`:
 
-```hcl
+```hcl title="main.tf"
 monitor_steps = [{
   vmware_monitor = jsonencode({
     vcenterIdentifier = "prod-vcenter"
@@ -306,34 +328,43 @@ monitor_steps = [{
 }]
 ```
 
-`vcenterIdentifier` is the vCenter's `vmware.vcenter.name` (the `VMWARE_VCENTER_NAME` the agent was started with), not its OneUptime id.
+`vcenterIdentifier` is the vCenter's `vmware.vcenter.name` - the `VMWARE_VCENTER_NAME` the agent was started with - not its OneUptime ID.
 
 ## Troubleshooting
 
-### The vCenter does not appear in the monitor's vCenter picker
+:::details The vCenter is not in the vCenter list
+A vCenter the agent collects registers itself from the agent's data. Check that the agent is running and sending data (see [Verify the Installation](/docs/telemetry/vmware#verify-the-installation)), that `VMWARE_VCENTER_NAME` is set, and that one collection interval has passed: nothing is sent until the first full walk of the inventory completes.
+:::
 
-The vCenter registers itself from the agent's telemetry. Check the agent is running and shipping (see [Verify the Installation](/docs/telemetry/vmware)), that `VMWARE_VCENTER_NAME` is set, and that at least one collection interval has passed — nothing is exported until the first full inventory walk completes.
+:::details Hosts have metrics, but VMs, datastores or clusters do not
+The read-only vSphere user was given its role without **Propagate to children**, or on an object below the vCenter root. Objects the user cannot see are simply missing from the metrics. Set the permission on the top-level vCenter object, with propagation ticked.
+:::
 
-### Hosts have metrics but VMs, datastores, or clusters do not
+:::details Host CPU Saturation never fires
+The template averages `vcenter.host.cpu.utilization` per `resource.vcenter.host.name`, so each host is checked on its own. If you built your own query, group it by the identity attribute with its `resource.` prefix: the bare `vcenter.host.name` matches nothing, and an average across every host is pulled down by the idle ones.
+:::
 
-The read-only vSphere user was granted the role without **Propagate to children**, or on a narrower object than the vCenter root. Objects the user cannot see are silently absent from the metrics. Fix the permission on the top-level vCenter object with propagation enabled.
+:::details The vSAN templates never fire
+`vcenter.cluster.vsan.*`, `vcenter.host.vsan.*` and `vcenter.vm.vsan.*` are only sent for clusters with vSAN, the hosts in them, and the VMs on a vSAN datastore. Without vSAN the series do not exist, and the templates stay silent.
+:::
 
-### Incidents are not firing for "Host CPU Saturation"
+:::details A criteria filtered on effective matches nothing
+The receiver's boolean `effective` attribute is stored as the text `"true"` or `"false"`. Filter it with the text, not a boolean.
+:::
 
-The template evaluates the **Avg** of `vcenter.host.cpu.utilization` grouped by `resource.vcenter.host.name`, so each host is checked independently. If you built a custom query instead, make sure it groups by the identity attribute with the `resource.` prefix — the bare `vcenter.host.name` matches nothing, and an ungrouped average across all hosts is diluted by idle ones and rarely crosses the threshold.
+:::details Disk latency or throughput metrics are missing
+`vcenter.host.disk.latency.avg` and `vcenter.vm.disk.*` need vCenter's statistics level 2, `vcenter.host.disk.latency.max` needs level 3, and `vcenter.host.disk.throughput` level 4. Raise the statistics level of the 5-minute interval under _vCenter → Configure → General → Statistics_.
+:::
 
-### The vSAN templates never fire
+:::details A 1-minute window shows no data
+vCenter is read once per collection interval, 2 minutes by default and often longer for a large inventory, so a 1-minute window may hold no sample. Use 5 minutes or more.
+:::
 
-`vcenter.cluster.vsan.*`, `vcenter.host.vsan.*`, and `vcenter.vm.vsan.*` are only emitted for vSAN-enabled clusters, the hosts in them, and VMs on a vSAN datastore. On environments without vSAN the series do not exist and the templates stay silent by design.
+## Next steps
 
-### A criteria filtered on `effective` matches nothing
-
-The receiver's boolean `effective` attribute is stored as the string `"true"` / `"false"`. Filter with the string, not a boolean.
-
-### Disk latency or throughput metrics are missing
-
-`vcenter.host.disk.latency.avg` and `vcenter.vm.disk.*` need vCenter performance counter **level 2**, `vcenter.host.disk.latency.max` needs **level 3**, and `vcenter.host.disk.throughput` needs **level 4**. Raise the statistics level for the 5-minute interval under _vCenter → Configure → General → Statistics_ if the counters you need are missing.
-
-### A 1-minute window shows no data
-
-The agent polls vCenter every `VCENTER_COLLECTION_INTERVAL` (2 minutes by default, longer on large inventories), so a 1-minute rolling window may contain no sample. Use a 5-minute window or longer.
+:::cards
+- [VMware Agent](/docs/telemetry/vmware): Install the agent that collects from vCenter.
+- [VMware Without an Agent](/docs/telemetry/vmware-agentless): Let a probe collect instead.
+- [Proxmox Monitor](/docs/monitor/proxmox-monitor): The same kind of monitor for Proxmox VE.
+- [Incidents](/docs/incidents/index): What happens after a criteria declares an incident.
+:::
