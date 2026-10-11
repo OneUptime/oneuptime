@@ -11,6 +11,8 @@ import Express, {
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { AddressInfo } from "net";
 import { createServer, Server } from "http";
+import fs from "fs";
+import path from "path";
 import type * as Path from "path";
 import type * as FileSystem from "fs";
 
@@ -129,9 +131,42 @@ afterAll(async () => {
   );
 });
 
-// The overview's first words: the page is untranslated, so English everywhere.
+// The overview's first words in English.
 const OVERVIEW_OPENING: string =
   "A form is a page that anyone with its link can fill in, without a OneUptime account.";
+
+const CONTENT_DIR: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Docs/Content",
+);
+
+/*
+ * A sentence's end: a full stop or a Hindi danda before a space, or the
+ * ideographic full stop Japanese and Chinese write with no space after it.
+ */
+const FIRST_SENTENCE: RegExp = /^.*?(?:[.।](?=\s|$)|。)/u;
+
+// The overview's first sentence, as a language's own page opens.
+type OverviewOpeningFunction = (lang: string) => string;
+
+const overviewOpeningIn: OverviewOpeningFunction = (lang: string): string => {
+  const markdown: string = fs.readFileSync(
+    path.join(CONTENT_DIR, lang, "forms", "index.md"),
+    "utf8",
+  );
+  const opening: string =
+    markdown
+      .split("\n")
+      .slice(1)
+      .find((line: string): boolean => {
+        return line.trim() !== "";
+      }) || "";
+  const sentence: RegExpExecArray | null = FIRST_SENTENCE.exec(opening);
+
+  expect(sentence).not.toBeNull();
+
+  return (sentence as RegExpExecArray)[0];
+};
 
 // The overview's title as the docs menu of a language shows it.
 type OverviewTitleFunction = (lang: string) => string;
@@ -175,17 +210,34 @@ describe("the old Incident Forms page", () => {
         expect(page.status).toBe(200);
         const content: string = await page.text();
 
-        expect(content).toContain(OVERVIEW_OPENING);
+        // The overview in the language's own words: its opening and title.
+        expect(content).toContain(overviewOpeningIn(lang));
 
         if (prefix === "/docs") {
-          // Under the overview's title, in the language's own words.
           expect(content).toContain(overviewTitleIn(lang));
         } else {
-          expect(content.startsWith("# Forms Overview")).toBe(true);
+          expect(content.startsWith(`# ${overviewTitleIn(lang)}\n`)).toBe(
+            true,
+          );
         }
       }
     },
   );
+
+  it("opens on the overview's own first sentence, translated in every language", () => {
+    expect(overviewOpeningIn("en")).toBe(OVERVIEW_OPENING);
+
+    for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      if (lang === "en") {
+        continue;
+      }
+
+      expect({ lang, opening: overviewOpeningIn(lang) }).not.toEqual({
+        lang,
+        opening: OVERVIEW_OPENING,
+      });
+    }
+  });
 
   it("redirects an address without a language too", async () => {
     const html: Response = await fetchManual("/docs/incidents/forms");
