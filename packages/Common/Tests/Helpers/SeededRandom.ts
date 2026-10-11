@@ -21,10 +21,10 @@
  * state is mixed into a draw whose every bit is as good as any other. A
  * whole number below a limit is about as likely as any other, whatever the
  * limit, and the draws of seeds 1, 2 and 3 have nothing to do with one
- * another. The mixing is not one-to-one - some 32-bit numbers come out of
- * two states and others of none - so a test that must be able to reach
- * every 32-bit number draws two halves: random(65536) * 65536 +
- * random(65536).
+ * another. The mixing is not one-to-one: some 32-bit numbers come out of
+ * two states and others of none, so a sweep over the whole 32-bit range
+ * samples it but cannot reach every number in it. A test that needs a
+ * particular number writes it out.
  *
  * Why there is only one. Suites each carried a copy of some generator, and
  * the most copied one, `state * 1103515245 + 12345` with a plain "*",

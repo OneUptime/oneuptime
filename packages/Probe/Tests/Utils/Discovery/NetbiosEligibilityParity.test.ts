@@ -245,13 +245,13 @@ describe("isNetbiosQueryableIPv4Address agrees with the probe's isNetbiosQueryAd
   it("on a seeded random sweep of the whole address space", () => {
     /*
      * Seeded, not Math.random, as in NetbiosNameUtil.test.ts: a parity check
-     * that fails one run in a thousand gets deleted. An address is drawn in
-     * two 16-bit halves, so every one of the 2^32 can come up.
+     * that fails one run in a thousand gets deleted. The edges of every
+     * range are checked above; this samples the space between them.
      */
     const random: SeededRandom = seededRandom(0x3916);
 
     const nextAddress: () => string = (): string => {
-      return toDottedQuad(random(65536) * 65536 + random(65536));
+      return toDottedQuad(random(4294967296));
     };
 
     const values: Array<string> = [];

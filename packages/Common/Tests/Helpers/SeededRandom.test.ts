@@ -249,34 +249,22 @@ describe("seededRandom", () => {
     );
   });
 
-  test("reaches every 32-bit number in two halves", () => {
-    /*
-     * One draw of the whole range is not one-to-one; two 16-bit halves each
-     * take every value, so every 32-bit number can come up.
-     */
+  test("takes every value below a limit of 2^16 within the coupon collector's bound", () => {
+    // 65,536 values come up within about 727,000 draws; two million leave no gap.
     const random: SeededRandom = seededRandom(17);
-    const seen: Array<Uint8Array> = [
-      new Uint8Array(65536),
-      new Uint8Array(65536),
-    ];
-    const missing: Array<number> = [65536, 65536];
-    let pairs: number = 0;
+    const seen: Uint8Array = new Uint8Array(65536);
+    let missing: number = 65536;
 
-    // Every half-value turns up within about a million pairs (the coupon collector's 727,000).
-    while ((missing[0]! > 0 || missing[1]! > 0) && pairs < 2000000) {
-      for (const half of [0, 1]) {
-        const value: number = random(65536);
+    for (let draw: number = 0; draw < 2000000 && missing > 0; draw++) {
+      const value: number = random(65536);
 
-        if (seen[half]![value] === 0) {
-          seen[half]![value] = 1;
-          missing[half] = missing[half]! - 1;
-        }
+      if (seen[value] === 0) {
+        seen[value] = 1;
+        missing--;
       }
-
-      pairs++;
     }
 
-    expect(missing).toEqual([0, 0]);
+    expect(missing).toBe(0);
   });
 });
 

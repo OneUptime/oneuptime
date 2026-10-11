@@ -30,7 +30,11 @@ import {
   isProxmoxSilentNodeDetectionEnabled,
   recordProxmoxNodePushAndFindSilentNodes,
 } from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
-import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * ------------------------------------------------------------------
@@ -443,7 +447,7 @@ function sortDirection(sort: Dictionary<unknown> | undefined): SortOrder {
 
 export class SimulatedMetricTable {
   private rowsByName: Map<string, Array<SimulatedMetricRow>> = new Map();
-  private random: () => number;
+  private random: SeededRandom;
   // Metric names kept; every pve_* series when not given.
   private storedNames: Set<string> | null;
 
@@ -678,16 +682,12 @@ export class SimulatedMetricTable {
 
   // ClickHouse's sum() promises no order; add in a shuffled one.
   private sumInArbitraryOrder(values: Array<number>): number {
-    const shuffled: Array<number> = [...values];
-    for (let index: number = shuffled.length - 1; index > 0; index--) {
-      const swapWith: number = Math.floor(this.random() * (index + 1));
-      const held: number = shuffled[index]!;
-      shuffled[index] = shuffled[swapWith]!;
-      shuffled[swapWith] = held;
-    }
-    return shuffled.reduce((total: number, value: number) => {
-      return total + value;
-    }, 0);
+    return shuffled(values, this.random).reduce(
+      (total: number, value: number) => {
+        return total + value;
+      },
+      0,
+    );
   }
 
   private selectRows(query: Dictionary<unknown>): Array<SimulatedMetricRow> {

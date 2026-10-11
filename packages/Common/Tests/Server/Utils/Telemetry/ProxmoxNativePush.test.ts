@@ -27,7 +27,11 @@ import MonitorStepProxmoxMonitor from "../../../../Types/Monitor/MonitorStepProx
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
-import { seededRandom, shuffled } from "../../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -1584,7 +1588,7 @@ describe("splitProxmoxSiblingInfoWeights", () => {
  * whatever order ClickHouse adds the rows in.
  */
 describe("sibling-report weights keep Quorum at Risk exact at 50 %", () => {
-  type Random = () => number;
+  type Random = SeededRandom;
 
   const PUSH_INTERVAL_MS: number = 10_000;
   const MINUTE_MS: number = 60_000;

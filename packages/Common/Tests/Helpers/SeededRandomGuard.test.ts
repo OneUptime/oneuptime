@@ -369,8 +369,8 @@ describe("what it passes", () => {
     [
       "a multiply by a number no well-known generator uses",
       code(
-        "const bytes: number = count * 65539;",
-        "const id: number = index * 69069 + 1;",
+        "const bytes: number = count * 4096;",
+        "const id: number = index * 7919 + 1;",
       ),
     ],
     [
@@ -383,6 +383,21 @@ describe("what it passes", () => {
     ],
   ])("%s", (_case: string, text: string) => {
     expect(findingsIn("Pass.test.ts", text)).toEqual([]);
+  });
+
+  test("reports a generator in a template on its own line, whatever the line breaks", () => {
+    const lines: Array<string> = [
+      "const script: string = `",
+      "  let seed = 9;",
+      `  seed = (seed * ${ANSI} + 12345) & 0x7fffffff;`,
+      "`;",
+    ];
+
+    for (const lineBreak of ["\n", "\r\n"]) {
+      expect(findingsIn("Child.test.ts", lines.join(lineBreak))).toEqual([
+        [3, ANSI_FINDING],
+      ]);
+    }
   });
 
   test("passes a script that only looks like one", () => {

@@ -31,11 +31,14 @@ import { REPOSITORY_DIRECTORY } from "./TagStripScan";
  * Not a generator, and passed: a hash of a value (FNV, a multiplicative hash
  * such as Math.imul(index, 2654435761), a mixer's x ^= x >>> 16 - right
  * shifts only), a constant that is only compared or listed, a multiply by a
- * number no well-known generator uses, and anything in a comment. It is a
- * guard against the generators tests copy, not a proof that a file has
- * none: a generator of another kind (xoshiro, sfc32, a table) gets past it,
- * and a review has to catch that. Tests/Helpers/SeededRandom itself is where
- * the one generator lives.
+ * number no well-known generator uses, and anything in a comment. A value
+ * XORed with a left shift of itself is read as an xorshift step wherever it
+ * is, so a hash that mixes that way is flagged as well.
+ *
+ * It is a guard against the generators tests copy, not a proof that a file
+ * has none: a generator of another kind (xoshiro, sfc32, a table) gets past
+ * it, and a review has to catch that. Tests/Helpers/SeededRandom itself is
+ * where the one generator lives.
  *
  * It imports nothing but node's fs and path, the TypeScript parser and
  * TagStripScan (for the repository's root).
@@ -62,6 +65,7 @@ export const LCG_MULTIPLIERS: ReadonlyMap<bigint, string> = new Map<
   [BigInt("22695477"), "the Borland LCG"],
   [BigInt("214013"), "the Microsoft LCG"],
   [BigInt("134775813"), "the Delphi LCG"],
+  [BigInt("69069"), "Marsaglia's LCG"],
   [BigInt("1140671485"), "an LCG"],
   [BigInt("747796405"), "the PCG 32-bit LCG"],
   [BigInt("2891336453"), "an LCG"],
@@ -69,6 +73,7 @@ export const LCG_MULTIPLIERS: ReadonlyMap<bigint, string> = new Map<
   [BigInt("16807"), "the Park-Miller (MINSTD) generator"],
   [BigInt("48271"), "the Park-Miller (MINSTD) generator"],
   [BigInt("69621"), "the Park-Miller (MINSTD) generator"],
+  [BigInt("65539"), "RANDU"],
   [BigInt("9301"), "the 9301 / 49297 / 233280 LCG"],
   [BigInt("25214903917"), "Java's LCG"],
   [BigInt("6364136223846793005"), "the Knuth MMIX / PCG 64-bit LCG"],
@@ -439,16 +444,17 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
   const multipliedNames: Set<string> = new Set<string>();
   const addedNames: Set<string> = new Set<string>();
 
-  const report: (node: ts.Node, finding: string, offset?: number) => void = (
+  const report: (node: ts.Node, finding: string, linesIn?: number) => void = (
     node: ts.Node,
     finding: string,
-    offset: number = 0,
+    linesIn: number = 0,
   ): void => {
     found.push({
       file: file,
       line:
-        source.getLineAndCharacterOfPosition(node.getStart(source) + offset)
-          .line + 1,
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+        1 +
+        linesIn,
       finding: finding,
     });
   };
@@ -575,9 +581,9 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
       ts.isTemplateTail(node)
     ) {
       /*
-       * A template's raw text is its source, after the "`" or "}" it starts
-       * with, so a finding is reported on its own line; a quoted string's
-       * text (escapes read) is reported where the string starts.
+       * A template's raw text keeps its line breaks (as "\n", whatever the
+       * file uses), so a finding is reported on its own line; a quoted
+       * string's text (escapes read) is reported where the string starts.
        */
       const rawText: string | undefined = ts.isStringLiteral(node)
         ? undefined
@@ -586,7 +592,11 @@ export const findHandRolledGenerators: FindGeneratorsFunction = (
       const raw: string = rawText ?? node.text;
 
       for (const { offset, finding } of findingsInText(raw)) {
-        report(node, finding, isTemplate ? 1 + offset : 0);
+        report(
+          node,
+          finding,
+          isTemplate ? raw.slice(0, offset).split("\n").length - 1 : 0,
+        );
       }
     }
 
