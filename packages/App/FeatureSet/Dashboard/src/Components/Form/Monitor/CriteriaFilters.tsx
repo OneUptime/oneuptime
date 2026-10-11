@@ -31,8 +31,10 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
     props.filterCondition || FilterCondition.All;
 
   /*
-   * A metric-only monitor's filters are its alert rules: the form pins each
-   * one to the metric value, so its buttons and messages say "rule".
+   * A metric-only monitor's filters are its alert rules: the form hides Filter
+   * Type and pins each one to the metric value, so its buttons and messages
+   * say "rule". IoT Device is metric-backed but not metric-only - its form
+   * keeps Filter Type - so its rows stay filters.
    */
   const isMetricOnly: boolean = CriteriaFilterUtil.isMetricOnlyMonitorType(
     props.monitorType,

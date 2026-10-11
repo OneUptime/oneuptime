@@ -565,17 +565,41 @@ describe("TemplateVariablesCatalog.getVariables - IoT Device", () => {
     expect(seriesGroup?.description).toContain("Group By");
   });
 
-  it("offers the editor the same groups as a Metrics monitor with the same Group By", () => {
-    expect(
-      TemplateVariablesCatalog.getTemplateVariableGroups({
+  it("offers the editor the same groups and variables as a Metrics monitor with the same Group By", () => {
+    const namesOf: (
+      monitorType: MonitorType,
+    ) => Array<[string, Array<string>]> = (
+      monitorType: MonitorType,
+    ): Array<[string, Array<string>]> => {
+      return TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType,
+        seriesAttributeKeys: ["device.id"],
+      }).map((group: EditorTemplateVariableGroup): [string, Array<string>] => {
+        return [
+          group.title,
+          group.variables.map((variable: EditorTemplateVariable): string => {
+            return variable.name;
+          }),
+        ];
+      });
+    };
+
+    expect(namesOf(MonitorType.IoTDevice)).toEqual(
+      namesOf(MonitorType.Metrics),
+    );
+  });
+
+  it("gives {{metricName}} an IoT metric as its example, not a container's", () => {
+    const metricGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
         monitorType: MonitorType.IoTDevice,
-        seriesAttributeKeys: ["device.id"],
       }),
-    ).toEqual(
-      TemplateVariablesCatalog.getTemplateVariableGroups({
-        monitorType: MonitorType.Metrics,
-        seriesAttributeKeys: ["device.id"],
-      }),
+      METRIC_GROUP_TITLE,
+    );
+
+    expect(metricGroup?.variables[0]?.example).toBe("iot_device_up");
+    expect(metricGroup?.variables[0]?.description).toBe(
+      "The name of the metric the monitor's first query reads.",
     );
   });
 });

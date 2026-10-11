@@ -260,10 +260,12 @@ describe("the server's template variables and the editor's list follow the one l
  * at least MIN_COPY_LENGTH of them counts; a type or two handled together
  * (Docker and Podman) does not.
  *
- * MonitorType.ts is where the list lives. The two runs below are not copies
- * of it, and are written out here with why: a new run anywhere fails until it
- * uses MonitorTypeHelper instead, or is added here with its reason, and a run
- * that goes away has to leave this list too.
+ * MonitorType.ts is where the list lives. The run below is not a copy of it,
+ * and is written out here with why: a new run anywhere fails until it uses
+ * MonitorTypeHelper instead, or is added here with its reason, and a run that
+ * goes away has to leave this list too. (The Dashboard's
+ * isMetricOnlyMonitorType used to be one; it is now the shared list minus
+ * IoT Device.)
  */
 
 const MIN_COPY_LENGTH: number = 5;
@@ -286,22 +288,6 @@ interface ListRun {
 }
 
 const NOT_COPIES: Array<ListRun & { why: string }> = [
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter.ts",
-    members: [
-      "Kubernetes",
-      "Docker",
-      "Host",
-      "Podman",
-      "DockerSwarm",
-      "Proxmox",
-      "VMware",
-      "Ceph",
-      "StorageArray",
-      "Metrics",
-    ],
-    why: "CriteriaFilterUtil.isMetricOnlyMonitorType, the types whose criteria form hides Filter Type and pins every filter to the metric value. IoT Device is left out on purpose, so its criteria keep the full filter UI.",
-  },
   {
     file: "packages/Common/Utils/Monitor/MonitorOverviewFamily.ts",
     members: [

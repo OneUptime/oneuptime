@@ -236,6 +236,17 @@ export default class TemplateVariablesCatalog {
     };
   }
 
+  /*
+   * A metric a monitor of this type reads, for {{metricName}}'s Example
+   * column. An IoT Device monitor reads what the IoT agent sends, such as the
+   * Device Offline template's iot_device_up, never a container's metrics.
+   */
+  private static exampleMetricName(monitorType: MonitorType): string {
+    return monitorType === MonitorType.IoTDevice
+      ? "iot_device_up"
+      : "container.cpu.time";
+  }
+
   private static perTypeGroup(
     monitorType: MonitorType,
   ): TemplateVariableGroup | null {
@@ -246,8 +257,8 @@ export default class TemplateVariablesCatalog {
           {
             key: "metricName",
             description:
-              "The OTel metric name the monitor is watching (e.g. container.cpu.time).",
-            example: "container.cpu.time",
+              "The name of the metric the monitor's first query reads.",
+            example: TemplateVariablesCatalog.exampleMetricName(monitorType),
           },
         ],
       };

@@ -91,6 +91,43 @@ enum MonitorType {
 
 export default MonitorType;
 
+/*
+ * The monitor types evaluated as metric series ("metric-backed"): see
+ * MonitorTypeHelper.getMetricBackedMonitorTypes. Kept as constants so the
+ * checks below answer from a set instead of building a list on every call;
+ * the getters hand out copies.
+ */
+const METRIC_BACKED_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  MonitorType.Metrics,
+  MonitorType.Kubernetes,
+  MonitorType.Docker,
+  MonitorType.Host,
+  MonitorType.Podman,
+  MonitorType.DockerSwarm,
+  MonitorType.Proxmox,
+  MonitorType.VMware,
+  MonitorType.Ceph,
+  MonitorType.StorageArray,
+  MonitorType.IoTDevice,
+];
+
+const METRIC_BACKED_MONITOR_TYPE_SET: ReadonlySet<MonitorType> =
+  new Set<MonitorType>(METRIC_BACKED_MONITOR_TYPES);
+
+// The telemetry signals with evaluators of their own, then every metric-backed type.
+const TELEMETRY_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
+  MonitorType.Logs,
+  MonitorType.Traces,
+  MonitorType.Exceptions,
+  MonitorType.Profiles,
+  MonitorType.SecurityEvents,
+  MonitorType.Llm,
+  ...METRIC_BACKED_MONITOR_TYPES,
+];
+
+const TELEMETRY_MONITOR_TYPE_SET: ReadonlySet<MonitorType> =
+  new Set<MonitorType>(TELEMETRY_MONITOR_TYPES);
+
 export interface MonitorTypeProps {
   monitorType: MonitorType;
   description: string;
@@ -241,19 +278,7 @@ export class MonitorTypeHelper {
    * UI.
    */
   public static getMetricBackedMonitorTypes(): Array<MonitorType> {
-    return [
-      MonitorType.Metrics,
-      MonitorType.Kubernetes,
-      MonitorType.Docker,
-      MonitorType.Host,
-      MonitorType.Podman,
-      MonitorType.DockerSwarm,
-      MonitorType.Proxmox,
-      MonitorType.VMware,
-      MonitorType.Ceph,
-      MonitorType.StorageArray,
-      MonitorType.IoTDevice,
-    ];
+    return [...METRIC_BACKED_MONITOR_TYPES];
   }
 
   public static isMetricBackedMonitor(
@@ -263,9 +288,7 @@ export class MonitorTypeHelper {
       return false;
     }
 
-    return MonitorTypeHelper.getMetricBackedMonitorTypes().includes(
-      monitorType,
-    );
+    return METRIC_BACKED_MONITOR_TYPE_SET.has(monitorType);
   }
 
   /*
@@ -274,19 +297,11 @@ export class MonitorTypeHelper {
    * metric-backed type.
    */
   public static getTelemetryMonitorTypes(): Array<MonitorType> {
-    return [
-      MonitorType.Logs,
-      MonitorType.Traces,
-      MonitorType.Exceptions,
-      MonitorType.Profiles,
-      MonitorType.SecurityEvents,
-      MonitorType.Llm,
-      ...MonitorTypeHelper.getMetricBackedMonitorTypes(),
-    ];
+    return [...TELEMETRY_MONITOR_TYPES];
   }
 
   public static isTelemetryMonitor(monitorType: MonitorType): boolean {
-    return MonitorTypeHelper.getTelemetryMonitorTypes().includes(monitorType);
+    return TELEMETRY_MONITOR_TYPE_SET.has(monitorType);
   }
 
   public static isManualMonitor(monitorType: MonitorType): boolean {
