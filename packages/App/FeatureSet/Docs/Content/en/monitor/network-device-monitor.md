@@ -439,7 +439,7 @@ The templates are matched from each device's `sysObjectID` and `sysDescr`, so au
 - **HPE Aruba Instant**: turn on SNMP for the cluster and add its virtual controller's address as one device; it answers for every access point.
 - **HPE Aruba Mobility Controller**: add the controller; campus access points do not answer SNMP themselves.
 - **Extreme IQ Engine**: turn on SNMP in the network policy that ExtremeCloud IQ pushes to the access points, and add each access point.
-- **Extreme wireless controllers**: turn on SNMP in the controller's administration settings and add the controller.
+- **Extreme Wireless Controller**: turn on SNMP in the controller's administration settings and add the controller.
 - **TP-Link Omada**: turn on SNMP for the site in the Omada Controller (Network Config → SNMP), add the access points, and apply the template from their Settings page or with **Apply Vendor Template**.
 - **Juniper Mist**: Mist access points do not answer SNMP. Add them as ping-only devices for reachability, and send Mist's `device-updowns` webhook to an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) to turn an access point going offline into an incident.
 

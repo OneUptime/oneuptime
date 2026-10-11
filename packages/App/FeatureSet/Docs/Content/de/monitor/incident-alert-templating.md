@@ -417,7 +417,7 @@ Um den Screenshot jedes fehlgeschlagenen Laufs zu zeigen, setzen Sie das Bild in
 | `trapSourceIp` | Die Adresse, von der der Trap kam. Nur, wenn ein SNMP-Trap die Prüfung ausgelöst hat. | `string` |
 | `trapVarbinds` | Die Varbinds des Traps, jedes als `{oid, value}`. Nur, wenn ein SNMP-Trap die Prüfung ausgelöst hat. | `Array<Object>` |
 
-Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefragt, wenn es Zugangsdaten hat, deshalb ist **`isOnline` die einzige Variable oben, die ein reines Ping-Gerät füllt**: Jede andere stammt aus dem SNMP-Walk und bleibt ohne ihn so stehen, wie sie geschrieben wurde. Beginnen Sie Vorlagen, die für Geräte ohne Zugangsdaten verwendet werden könnten, mit `{{isOnline}}` und dem Namen des Geräts. Siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor#what-a-poll-actually-does) dazu, was jede Art von Abfrage erfasst.
+Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefragt, wenn es Zugangsdaten hat, deshalb ist **`isOnline` die einzige Variable oben, die ein reines Ping-Gerät füllt**: Jede andere stammt aus dem SNMP-Walk und bleibt ohne ihn so stehen, wie sie geschrieben wurde. Beginnen Sie Vorlagen, die für Geräte ohne Zugangsdaten verwendet werden könnten, mit `{{isOnline}}` und dem Namen des Geräts. Siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor#was-eine-abfrage-tatsächlich-tut) dazu, was jede Art von Abfrage erfasst.
 
 ### Datenbankzustands-Monitore
 
