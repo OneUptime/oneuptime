@@ -172,7 +172,7 @@ Créez un moniteur **Métriques** (voir [Surveillance des métriques](/docs/moni
 4. **Critères :** Metric value **Greater Than** `150` ouvre une alerte.
 5. Utilisez éventuellement les valeurs de regroupement dans le titre de l'alerte, par exemple `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Avec un regroupement défini, chaque passerelle est sa propre série : si WAN2 ralentit, une alerte s'ouvre pour WAN2 seule, et elle se résout d'elle-même quand WAN2 se rétablit. Voir [Alertes par série](/docs/monitor/metrics-monitor).
+Avec un regroupement défini, chaque passerelle est sa propre série : si WAN2 ralentit, une alerte s'ouvre pour WAN2 seule, et elle se résout d'elle-même quand WAN2 se rétablit. Voir [Alertes par série](/docs/monitor/metrics-monitor#alertes-par-série-group-by).
 :::
 
 ## Bon à savoir

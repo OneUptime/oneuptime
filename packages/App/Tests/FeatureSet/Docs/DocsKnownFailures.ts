@@ -270,9 +270,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "monitor/exceptions-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/incident-alert-templating": {
     pageLinks: ["fa"],
     uniqueHeadings: except(EVERY_LANGUAGE, "sv"),
@@ -286,12 +283,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     pageLinks: ["fa"],
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
-  "monitor/logs-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "monitor/metrics-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/network-device-monitor": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -304,14 +295,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "monitor/network-vendor-guides": {
     translated: EVERY_TRANSLATION,
   },
-  "monitor/profiles-monitor": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "monitor/storage-array-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "monitor/traces-monitor": {
-    sameShape: EVERY_TRANSLATION,
   },
   "monitor/vmware-monitor": {
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -417,9 +402,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "slo/monitor-rules": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "status-pages/branding-and-domains": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -427,9 +409,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "status-pages/public-api": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/resources-and-groups": {
     sameShape: EVERY_TRANSLATION,
   },
   "status-pages/subscribers": {

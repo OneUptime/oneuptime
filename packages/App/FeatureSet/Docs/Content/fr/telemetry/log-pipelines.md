@@ -84,7 +84,7 @@ Les valeurs de gravité sont `Fatal`, `Error`, `Warning`, `Information`, `Debug`
 
 ## Key=Value Parser
 
-Les pare-feu et autres équipements réseau journalisent chaque événement sous forme d'une ligne de paires `key=value`. Les champs d'une ligne, et leur ordre, dépendent de l'événement : aucun motif grok unique ne peut donc les décrire. Le Key=Value Parser n'en a pas besoin : il parcourt la ligne et transforme chaque paire trouvée en attribut du journal, quel que soit l'ordre. Une fois en attributs, vous pouvez les chercher et les filtrer, les utiliser dans une [surveillance des journaux](/docs/monitor/logs-monitor) et alerter une fois par tunnel, interface ou utilisateur avec [Regrouper par](/docs/monitor/logs-monitor).
+Les pare-feu et autres équipements réseau journalisent chaque événement sous forme d'une ligne de paires `key=value`. Les champs d'une ligne, et leur ordre, dépendent de l'événement : aucun motif grok unique ne peut donc les décrire. Le Key=Value Parser n'en a pas besoin : il parcourt la ligne et transforme chaque paire trouvée en attribut du journal, quel que soit l'ordre. Une fois en attributs, vous pouvez les chercher et les filtrer, les utiliser dans une [surveillance des journaux](/docs/monitor/logs-monitor) et alerter une fois par tunnel, interface ou utilisateur avec [Regrouper par](/docs/monitor/logs-monitor#alertes-par-groupe-group-by).
 
 ### Configuration
 
@@ -164,7 +164,7 @@ Avec les paramètres par défaut et un préfixe `fortigate`, cela donne `fortiga
 
 ### Alerter une fois par tunnel
 
-Avec les champs analysés, une [surveillance des journaux](/docs/monitor/logs-monitor) peut compter les échecs et lever une alerte distincte pour chaque tunnel : filtrez sur `sophos.log_component` = `IPSec` avec un corps contenant `terminated`, et regroupez par `sophos.con_name`. Voir [Alertes par groupe](/docs/monitor/logs-monitor).
+Avec les champs analysés, une [surveillance des journaux](/docs/monitor/logs-monitor) peut compter les échecs et lever une alerte distincte pour chaque tunnel : filtrez sur `sophos.log_component` = `IPSec` avec un corps contenant `terminated`, et regroupez par `sophos.con_name`. Voir [Alertes par groupe](/docs/monitor/logs-monitor#alertes-par-groupe-group-by).
 
 ## Parseur Grok
 

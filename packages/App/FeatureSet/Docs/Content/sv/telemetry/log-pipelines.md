@@ -84,7 +84,7 @@ Allvarlighetsvärdena är `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `
 
 ## Key=Value Parser
 
-Brandväggar och annan nätverksutrustning loggar varje händelse som en rad med `key=value`-par. Vilka fält en rad har, och i vilken ordning, beror på händelsen, så inget enskilt grok-mönster kan beskriva dem. Key=Value Parser behöver inget: den går igenom raden och gör varje par den hittar till ett loggattribut, oavsett ordning. Som attribut kan du söka och filtrera på dem, använda dem i en [loggövervakning](/docs/monitor/logs-monitor) och få ett larm per tunnel, gränssnitt eller användare med [Gruppera efter](/docs/monitor/logs-monitor).
+Brandväggar och annan nätverksutrustning loggar varje händelse som en rad med `key=value`-par. Vilka fält en rad har, och i vilken ordning, beror på händelsen, så inget enskilt grok-mönster kan beskriva dem. Key=Value Parser behöver inget: den går igenom raden och gör varje par den hittar till ett loggattribut, oavsett ordning. Som attribut kan du söka och filtrera på dem, använda dem i en [loggövervakning](/docs/monitor/logs-monitor) och få ett larm per tunnel, gränssnitt eller användare med [Gruppera efter](/docs/monitor/logs-monitor#varningar-per-grupp-group-by).
 
 ### Konfiguration
 
@@ -164,7 +164,7 @@ Med standardinställningarna och prefixet `fortigate` ger det `fortigate.devname
 
 ### Ett larm per tunnel
 
-Med fälten tolkade kan en [loggövervakning](/docs/monitor/logs-monitor) räkna felen och utlösa ett separat larm för varje tunnel: filtrera på `sophos.log_component` = `IPSec` med en kropp som innehåller `terminated`, och gruppera efter `sophos.con_name`. Se [Larm per grupp](/docs/monitor/logs-monitor).
+Med fälten tolkade kan en [loggövervakning](/docs/monitor/logs-monitor) räkna felen och utlösa ett separat larm för varje tunnel: filtrera på `sophos.log_component` = `IPSec` med en kropp som innehåller `terminated`, och gruppera efter `sophos.con_name`. Se [Larm per grupp](/docs/monitor/logs-monitor#varningar-per-grupp-group-by).
 
 ## Grok Parser
 

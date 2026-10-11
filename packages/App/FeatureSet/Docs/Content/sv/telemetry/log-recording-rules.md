@@ -172,7 +172,7 @@ Skapa en övervakare av typen **Mätvärden** (se [Metrikövervakning](/docs/mon
 4. **Kriterier:** Metric value **Greater Than** `150` öppnar ett larm.
 5. Använd eventuellt grupperingsvärdena i larmets titel, t.ex. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Med gruppering inställd är varje gateway en egen serie: blir WAN2 långsam öppnas ett larm bara för WAN2, och det löser sig självt när WAN2 återhämtar sig. Se [Larm per serie](/docs/monitor/metrics-monitor).
+Med gruppering inställd är varje gateway en egen serie: blir WAN2 långsam öppnas ett larm bara för WAN2, och det löser sig självt när WAN2 återhämtar sig. Se [Larm per serie](/docs/monitor/metrics-monitor#varningar-per-serie-group-by).
 :::
 
 ## Bra att veta

@@ -172,7 +172,7 @@ Erstellen Sie einen Monitor vom Typ **Metriken** (siehe [Metriken-Überwachung](
 4. **Kriterien:** Metric value **Greater Than** `150` öffnet eine Warnung.
 5. Verwenden Sie optional die Gruppierungswerte im Titel der Warnung, z. B. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Mit gesetzter Gruppierung ist jedes Gateway eine eigene Reihe: Wird WAN2 langsam, öffnet sich eine Warnung nur für WAN2, und sie löst sich von selbst, wenn sich WAN2 erholt – siehe [Warnungen pro Reihe](/docs/monitor/metrics-monitor).
+Mit gesetzter Gruppierung ist jedes Gateway eine eigene Reihe: Wird WAN2 langsam, öffnet sich eine Warnung nur für WAN2, und sie löst sich von selbst, wenn sich WAN2 erholt – siehe [Warnungen pro Reihe](/docs/monitor/metrics-monitor#warnungen-pro-reihe-group-by).
 :::
 
 ## Gut zu wissen

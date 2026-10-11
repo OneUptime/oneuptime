@@ -172,7 +172,7 @@ flowchart TB
 4. **标准：** Metric value **Greater Than** `150` 时打开告警。
 5. 可以在告警标题中使用分组值，例如 `SD-WAN latency high on {{gw_name}} ({{profile_name}})`。
 
-设置分组依据后，每个网关都是独立的序列：WAN2 变慢只会为 WAN2 打开告警，并在 WAN2 恢复时自行解决。参见 [按序列告警](/docs/monitor/metrics-monitor)。
+设置分组依据后，每个网关都是独立的序列：WAN2 变慢只会为 WAN2 打开告警，并在 WAN2 恢复时自行解决。参见 [按序列告警](/docs/monitor/metrics-monitor#按序列告警group-by)。
 :::
 
 ## 须知

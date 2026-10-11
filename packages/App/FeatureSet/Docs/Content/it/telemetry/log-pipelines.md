@@ -84,7 +84,7 @@ I valori di gravità sono `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `
 
 ## Key=Value Parser
 
-Firewall e altri apparati di rete registrano ogni evento come una riga di coppie `key=value`. Quali campi abbia una riga, e in che ordine, dipende dall'evento, quindi nessun singolo modello grok può descriverli. Il Key=Value Parser non ne ha bisogno: percorre la riga e trasforma ogni coppia che trova in un attributo del log, qualunque sia l'ordine. Una volta diventati attributi, potete cercarli e filtrarli, usarli in un [monitor log](/docs/monitor/logs-monitor) e ricevere un avviso per ogni tunnel, interfaccia o utente con [Raggruppa per](/docs/monitor/logs-monitor).
+Firewall e altri apparati di rete registrano ogni evento come una riga di coppie `key=value`. Quali campi abbia una riga, e in che ordine, dipende dall'evento, quindi nessun singolo modello grok può descriverli. Il Key=Value Parser non ne ha bisogno: percorre la riga e trasforma ogni coppia che trova in un attributo del log, qualunque sia l'ordine. Una volta diventati attributi, potete cercarli e filtrarli, usarli in un [monitor log](/docs/monitor/logs-monitor) e ricevere un avviso per ogni tunnel, interfaccia o utente con [Raggruppa per](/docs/monitor/logs-monitor#avvisi-per-gruppo-group-by).
 
 ### Configurazione
 
@@ -164,7 +164,7 @@ Con le impostazioni predefinite e un prefisso `fortigate` si ottiene `fortigate.
 
 ### Un avviso per ogni tunnel
 
-Con i campi analizzati, un [monitor log](/docs/monitor/logs-monitor) può contare i guasti e aprire un avviso separato per ogni tunnel: filtrate su `sophos.log_component` = `IPSec` con un corpo che contiene `terminated`, e raggruppate per `sophos.con_name`. Vedete [Avvisi per gruppo](/docs/monitor/logs-monitor).
+Con i campi analizzati, un [monitor log](/docs/monitor/logs-monitor) può contare i guasti e aprire un avviso separato per ogni tunnel: filtrate su `sophos.log_component` = `IPSec` con un corpo che contiene `terminated`, e raggruppate per `sophos.con_name`. Vedete [Avvisi per gruppo](/docs/monitor/logs-monitor#avvisi-per-gruppo-group-by).
 
 ## Grok Parser
 

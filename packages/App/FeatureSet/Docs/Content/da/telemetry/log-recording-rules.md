@@ -172,7 +172,7 @@ Opret en monitor af typen **Metrikker** (se [Metrik-monitor](/docs/monitor/metri
 4. **Kriterier:** Metric value **Greater Than** `150` åbner en alarm.
 5. Brug eventuelt grupperingsværdierne i alarmens titel, f.eks. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-Med gruppering sat er hver gateway sin egen serie: bliver WAN2 langsom, åbnes en alarm alene for WAN2, og den løses af sig selv, når WAN2 kommer sig. Se [Alarmer pr. serie](/docs/monitor/metrics-monitor).
+Med gruppering sat er hver gateway sin egen serie: bliver WAN2 langsom, åbnes en alarm alene for WAN2, og den løses af sig selv, når WAN2 kommer sig. Se [Alarmer pr. serie](/docs/monitor/metrics-monitor#advarsler-pr-serie-group-by).
 :::
 
 ## Godt at vide

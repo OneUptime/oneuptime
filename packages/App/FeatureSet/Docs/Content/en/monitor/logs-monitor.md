@@ -88,6 +88,7 @@ Every log is stored with one of seven severities. For OpenTelemetry logs it come
 - **Every minute.** A Logs monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
 - **One number per evaluation.** The monitor counts the logs that match every filter and arrived within **Monitor Logs for (time)** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
 - **No logs is a count of 0.** A service that stops logging produces 0, which is what the default offline criteria looks for.
+- **OneUptime's own downtime is not silence.** While the time window holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first. A grouped monitor works differently: it checks every criteria for every group — see [Criteria evaluation differs](#criteria-evaluation-differs).
 
 Each status change, with the reason for it, is recorded on the monitor's **Status Timeline**.

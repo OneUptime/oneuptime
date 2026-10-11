@@ -172,7 +172,7 @@ flowchart TB
 4. **條件：** Metric value **Greater Than** `150` 時開啟警示。
 5. 可以在警示標題中使用分組值，例如 `SD-WAN latency high on {{gw_name}} ({{profile_name}})`。
 
-設定分組依據後，每個閘道都是獨立的序列：WAN2 變慢只會為 WAN2 開啟警示，並在 WAN2 恢復時自行解決。請參閱 [依序列警示](/docs/monitor/metrics-monitor)。
+設定分組依據後，每個閘道都是獨立的序列：WAN2 變慢只會為 WAN2 開啟警示，並在 WAN2 恢復時自行解決。請參閱 [依序列警示](/docs/monitor/metrics-monitor#依序列警示group-by)。
 :::
 
 ## 須知

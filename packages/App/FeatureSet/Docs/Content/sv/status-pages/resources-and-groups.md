@@ -1,159 +1,297 @@
-# Resurser och grupper
+# Statussidans resurser och grupper
 
-En resurs är en rad på din statussida — en monitor (eller en monitorgrupp) med ett namn besökarna förstår, en aktuell status och eventuellt en drifttidssiffra och ett historikdiagram. En grupp är en sektion som rymmer resurser, så att en sida med fyrtio monitorer läses som "API", "Webbapp" och "Datapipeline" i stället för som en enda oändlig lista.
+En resurs är en rad på din statussida: en monitor eller en monitorgrupp, med ett namn som dina kunder förstår, dess aktuella status och, om du vill, dess upptid och historik. Grupper är sektioner som innehåller resurser, så att en sida med fyrtio monitorer läses som "API", "Webbapp" och "Datapipeline" i stället för som en ändlös lista. Du bygger båda på en och samma skärm: öppna en statussida och välj **Resurser** i dess sidomeny.
 
-Du bygger båda på en och samma skärm. Öppna en statussida och välj **Resurser** i sidomenyn (posten heter **Monitorer** i projekt som inte har monitorgrupper aktiverade). Grupper hade tidigare en egen sida; det har de inte längre, och den gamla URL:en `/groups` skickar bara vidare hit.
+:::cards
+- [Lägg till en monitor](#lägg-till-en-monitor): Lägg en monitor på sidan, med namnet som besökarna läser.
+- [Grupper](#grupper): Dela upp sidan i sektioner och nästla dem.
+- [Monitorregler](#lägg-till-monitorer-automatiskt-med-monitorregler): Låt en regel lägga till alla matchande monitorer åt dig.
+- [Importera grupper från CSV](#importera-grupper-från-csv): Bygg en djup hierarki på en gång.
+:::
 
-Får du den här delen rätt är resten av statussidan dekoration. Besökarna avgör "är det jag eller är det de?" utifrån de här raderna, så namnge dem som kunderna pratar om er produkt — **Checkout API**, inte `prod-checkout-lb-healthcheck-us-east-1`.
+Besökare avgör utifrån de här raderna om "det är jag eller de", så ge dem de namn som kunderna använder om din produkt: **Checkout API**, inte `prod-checkout-lb-healthcheck-us-east-1`.
+
+## Hur en status rör sig uppåt på sidan
+
+Varje rad visar den aktuella statusen för sin monitor. Varje nivå ovanför visar den sämsta statusen av allt under den, där den sämsta statusen är den med högst prioritet bland ditt projekts monitorstatusar.
+
+```mermaid title="Hur en monitors status når toppen av sidan"
+flowchart TB
+    subgraph Rows["Resursrader"]
+        direction LR
+        M["Monitor:<br/>sin egen status"]
+        MG["Monitorgrupp:<br/>den sämsta av dess monitorer"]
+    end
+    Rows --> G["Grupprubrik:<br/>sämsta status under den"]
+    G --> P["Överordnad grupp:<br/>sämsta status under den"]
+    Rows --> O["Banner med övergripande status:<br/>sämsta status på sidan"]
+```
+
+En resurs avgör mer än färgen på sin rad:
+
+- **Arkiverade monitorer visas inte.** En arkiverad monitor kontrolleras inte längre, så dess senaste status är fryst; sidan utelämnar dess rad (och utelämnar den från en monitorgrupps status) i stället för att visa den frysta statusen som om den vore aktuell. Raden behålls, så när monitorn tas ur arkivet kommer den direkt tillbaka.
+- **Resurser avgör vilka incidenter sidan visar.** En incident visas här, och sidans prenumeranter får höra om den, när en av incidentens monitorer är en resurs på sidan, direkt eller via en monitorgrupp. Lägg samma monitor på flera sidor så når dess incidenter alla, om inte en incident är begränsad till några av de sidorna. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
+- **En monitorgrupps rad står för varje monitor i den, även för prenumeranter.** På en sida som låter prenumeranter välja resurser får den som prenumererar på en monitorgrupp höra om incidenter, planerat underhåll och meddelanden för alla monitorer i gruppen, som om personen hade valt den monitorn. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#låta-prenumeranter-välja-resurser-och-händelsetyper).
 
 ## Skärmen Resurser
 
-Skärmen är tudelad. Till vänster ligger en navigator som listar varje grupp på sidan; till höger ligger innehållet i den grupp du valt.
+Objektet heter **Resurser** i projekt där monitorgrupper är aktiverade, och **Monitorer** i de övriga; det är samma skärm. Grupper hade tidigare en egen sida, och den gamla adressen `/groups` öppnar nu den här skärmen.
 
-- **Gruppnavigatorn (vänster)** — ett träd av grupper, med en sökruta (**Search groups...**) ovanför och en löpande räknare under, i stil med `3 groups · 12 resources`. När en sida har fler grupper än vad som får plats visar en knapp **Show N more of M** resten.
-- **Top of page** — den första raden i navigatorn. Den rymmer resurser som inte ligger i någon grupp, och verktygstipset säger precis vad det innebär: besökarna ser dessa först, ovanför varje grupp. Har sidan inga grupper alls heter den högra rutan **All resources** i stället.
-- **Resursrutan (höger)** — döpt efter gruppen du valt. I dess rubrik ligger **Edit Group**, primärknappen **Lägg till monitor** och en **More actions**-meny.
+Skärmen är delad i två:
 
-Två knappar bor i själva kortrubriken: **New Group** och en trepunktsmeny med **Import groups from CSV** och **Uppdatera**.
+| Del | Vad den innehåller |
+| ---- | ------------- |
+| **Gruppnavigator** (till vänster) | Alla sidans grupper som ett träd, med rutan **Search groups...** ovanför och en räkning nedanför, som `3 groups · 12 resources`. En lång lista slutar med knappen **Show N more of M**. |
+| **Top of page** | Navigatorns första rad: resurser utan grupp, som besökare ser först, ovanför alla grupper. På en sida utan grupper heter den högra panelen i stället **All resources**. |
+| **Resurspanel** (till höger) | Den valda gruppens resurser. Dess rubrik innehåller **Edit Group**, huvudknappen **Lägg till monitor** och menyn **More actions**. |
+| Kortets rubrik | **New Group** och en meny med tre punkter med **Import groups from CSV** och **Uppdatera**. |
 
-Kortets beskrivning ändrar sig efter hur din sida ser ut. Med grupper står det att det här är allt besökarna ser och att du ska välja en grupp till vänster för att ändra vad som ligger i den. Utan grupper puffar den för att skapa en, för att dela upp en längre sida i sektioner.
+**Tomma lägen berättar vad du ska göra.** En tom grupp visar **No monitors here yet** med **Lägg till monitor**, **Add Multiple** och, bara så länge sidan inte har några grupper alls, **Create a Group**. En sökning utan träffar visar **No resources match your search**.
 
-**Tomma tillstånd talar om vad du ska göra.** En tom grupp visar **No monitors here yet** med **Lägg till monitor**, **Add Multiple** och — bara när statussidan inte har några grupper alls — **Create a Group**. En sökning utan träffar visar **No resources match your search**. En tom navigator berättar att grupper delar upp en längre statussida i sektioner och att de kan ligga i varandra.
+## Lägg till en monitor
 
-## Lägga till en monitor
+:::steps
+### Välj var raden ska stå
 
-Välj gruppen resursen ska hamna i (eller **Top of page** för en grupplös rad) och klicka sedan på **Lägg till monitor**. Dialogen heter **Add a monitor to {group}** och är en enda sida som bara frågar efter en sak — monitorn:
+Välj i gruppnavigatorn den grupp som resursen hör till, eller **Top of page** för en rad utan grupp.
 
-- **Övervakning** — rullgardinsmenyn med projektets monitorer, platshållare **Välj övervakning**. Obligatoriskt.
-- **Visningsnamn** — texten besökarna läser. Den fylls i med monitorns namn när du väljer den, och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Den lagras separat från monitorns eget namn, så du kan döpa om den här utan att röra övervakningen.
-- **Fler fält** — ihopfälld. Den rymmer **Beskrivning** (valfri markdown som visas under raden, bra för en mening om vad tjänsten faktiskt gör) och [visningsalternativen](#visningsalternativ-på-en-resurs). Lämnar du den stängd får resursen deras standardvärden.
+### Klicka på Lägg till monitor
 
-Välj en monitor, klicka på **Lägg till monitor**, och raden finns på sidan. I en rutnätsgrupp frågar dialogen också efter raden och kolumnen monitorn ska stå i, ovanför **Fler fält** — se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout).
+Dialogrutan **Add a monitor to {group}** öppnas. Den består av en sida.
 
-Har projektet monitorgrupper aktiverade står det **Add a Monitor Group instead.** i en länk under menyn — klicka på den så byts rullgardinsmenyn **Övervakning** mot en **Monitor Grupp**-meny (**Välj övervakningsgrupp**). Länken vänder sedan till **Add a Monitor instead.** så att du kan gå tillbaka. Använd en monitorgrupp när du vill att en rad på sidan ska representera flera kontroller sammanslagna.
+### Välj monitorn
 
-### Lägga till flera på en gång
+Välj den i **Övervakning** (platshållare **Välj övervakning**). **Visningsnamn**, texten som besökarna läser, fylls i med monitorns namn och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Det lagras separat från monitorns eget namn, så att byta namn här ändrar ingenting i övervakningen.
 
-**Add Multiple** (som också heter **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en enda sida: ett flerval av **Monitorer** i stället för en enkel rullgardinsmeny, och under det samma ihopfällda **Fler fält**-sektion, vars visningsalternativ gäller varje monitor du valt. Varje resurs tar sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till dem — det finns inga steg att gå igenom. Det är snabbaste sättet att fylla en ny sida.
+### Ange visningsalternativen, om du vill
 
-## Visningsalternativ på en resurs
+**Fler fält** är hopfällt. Det innehåller **Beskrivning** (valfri markdown som visas under raden, bra för en mening som förklarar vad tjänsten faktiskt gör; en bild i den visas för alla besökare) och [visningsalternativen](#visningsalternativ-för-en-resurs). Låt det vara stängt så får resursen deras standardvärden.
 
-Sektionen **Fler fält** ser likadan ut i formuläret för en enskild resurs som i massmodalen. Den börjar ihopfälld i båda, och även i **Redigera resurs**, där dess ihopfällda rubrik visar vad i den som inte står på sitt standardvärde. Allt här gäller per resurs — två rader i samma grupp kan vara olika inställda.
+### Spara resursen
 
-| Fält                                                     | Syfte                                                                                                     |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Verktygstips** (`displayTooltip`)                      | Extra text som visas bredvid resursen på din statussida. Använd den för omfattning: "Kunder i USA och EU". |
-| **Visa aktuell resursstatus** (`showCurrentStatus`)      | På som standard. Visar den aktuella statusen — i drift, degraderad, nere — bredvid raden.                  |
-| **Visa upptid %** (`showUptimePercent`)                  | Av som standard. Visar en drifttidsprocent bredvid resursen.                                              |
-| **Välj precision för drifttid** (`uptimePercentPrecision`) | Dyker upp först när **Visa upptid %** är på. Obligatorisk, standard är en decimal.                       |
-| **Visa statushistorikdiagram** (`showStatusHistoryChart`) | På som standard. Visar stapeldiagrammet med drifttid dag för dag för resursen.                            |
+Klicka på **Lägg till monitor**. Raden visas i gruppen och på statussidan.
+:::
 
-**Visningsnamn** (`displayName`) och **Beskrivning** (`displayDescription`) är också rent visuella — de ändrar aldrig monitorn i sig.
+I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska stå i, ovanför **Fler fält**; se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout).
 
-## Drifttidsprocent och historikdiagram
+> [!TIP]
+> För att visa flera kontroller som en rad lägger du till en monitorgrupp. Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Add a Monitor Group instead.** Klicka på den så blir **Övervakning** till **Monitor Grupp** (**Välj övervakningsgrupp**); **Add a Monitor instead.** växlar tillbaka.
 
-Både **Visa upptid %** och **Visa statushistorikdiagram** vilar på en inställning som bor någon annanstans. Fönstret de täcker är **Upptidshistorik** i kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar**. Det tar 1 till 90 dagar och är 90 som standard.
+### Lägg till flera på en gång
 
-Ordningen är alltså: slå på växlarna per resurs, och sätt sedan fönstret en gång för hela sidan.
+**Add Multiple** (även **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
 
-**Precisionen är en avvägning.** Rullgardinsmenyn **Välj precision för drifttid** erbjuder `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` och `99.999% (Three Decimal)`. Fler decimaler ser exakta ut och bjuder in till diskussion om den tredje; publicerar ni ett SLA på tre nior, matcha det och inte mer.
+Flervalslistan har fliken **Etiketter**: klicka på en etikett så väljs alla monitorer med den på en gång.
 
-Grupper har egna kopior av de här växlarna — se nedan — så en grupp kan visa en summerad procent medan de enskilda monitorerna inuti håller tyst, eller tvärtom.
+### Det är säkert att lägga till efter etikett två gånger
 
-Färgerna på historikdiagrammets staplar, och vilka monitorstatusar som räknas som "nere", sätts på varumärkesskärmen **Översiktssida** och behandlas i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
+En statussida visar en monitor en gång. Att lägga till är idempotent, så när du väljer samma etikett igen efter att ha gett några nya monitorer den läggs bara de nya till: monitorerna som redan finns på sidan förblir exakt som de är, med det visningsnamn och de alternativ som du gav dem.
+
+Sammanfattningen efter tillägget av flera säger samma sak: tillagda monitorer listas under **Tillagd**, och de som redan fanns där under **Already Added**. Ingenting rapporteras som ett fel, och ingenting skrivs för dem.
+
+Samma regel gäller överallt där en resurs skapas. Att lägga till en monitor som redan finns på sidan från formuläret för en monitor, eller att låta en befintlig resurs peka på den från redigeringsformuläret, avvisas med *"This monitor is already added to this status page"*, även när den befintliga resursen står i en annan grupp, eftersom en besökare ändå skulle se monitorn två gånger. För att visa en monitor i en annan grupp tar du bort den resurs som den redan har och lägger till den där du vill ha den.
+
+## Visningsalternativ för en resurs
+
+Sektionen **Fler fält** är densamma i formuläret för en monitor och i dialogrutan för flera. Den börjar hopfälld i båda, och även i **Redigera resurs**, där dess hopfällda rubrik visar vad i den som inte står på standardvärdet. Allt här gäller per resurs: två rader i samma grupp kan vara olika inställda.
+
+| Fält | Standard | Vad det gör |
+| ----- | ------- | ------------ |
+| **Verktygstips** (`displayTooltip`) | Tomt | Visas som verktygstips bredvid resursen på din statussida. Använd det för omfattningen: "Kunder i USA och EU". |
+| **Visa aktuell resursstatus** (`showCurrentStatus`) | På | Visar den aktuella statusen, som i drift, försämrad eller offline, bredvid raden. |
+| **Visa upptid %** (`showUptimePercent`) | Av | Visar en upptidsprocent bredvid resursen. |
+| **Välj precision för drifttid** (`uptimePercentPrecision`) | En decimal | Visas när **Visa upptid %** är aktiverat, och är då obligatoriskt. |
+| **Visa statushistorikdiagram** (`showStatusHistoryChart`) | På | Visar resursens dagliga staplar med upptidshistorik. |
+
+**Visningsnamn** (`displayName`) och **Beskrivning** (`displayDescription`) är också bara för visning: de ändrar aldrig själva monitorn.
+
+## Upptidsprocent och historikdiagram
+
+**Visa upptid %** och **Visa statushistorikdiagram** läser båda en enda inställning för hela sidan: hur många dagar de täcker. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar**. Den accepterar 1 till 90 dagar och är 90 som standard. Aktivera alltså reglagen per resurs och ange fönstret en gång för hela sidan.
+
+**Precision är en bedömningsfråga.** **Välj precision för drifttid** erbjuder `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` och `99.999% (Three Decimal)`. Fler decimaler ser exakta ut och bjuder in till diskussioner om den tredje; publicerar du ett SLA på tre nior, matcha det och inte mer.
+
+Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan visa en sammanlagd procent medan monitorerna i den håller tyst, eller tvärtom.
+
+Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Avancerade inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
 ## Grupper
 
-Klicka på **New Group** för att öppna **Create New Status Page Group**. Formuläret är en enda sida: två fält, och under dem två ihopfällda sektioner.
+De flesta grupper behöver bara ett namn.
 
-- **Gruppnamn** (`name`) — obligatoriskt. Det här är sektionsrubriken besökarna ser.
-- **Parent Group** (`parentStatusPageGroupId`) — valfri. Lämna den på **No parent group (top level)** för att hålla gruppen på översta nivån. **Add a sub group** fyller i den åt dig.
-- **Layout** — ihopfälld, och rubriken säger **List** eller **Grid**. Den rymmer **Visningsläge** och ett rutnäts axlar (se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout)), och den öppnas av sig själv för en rutnätsgrupp.
-- **Fler fält** — ihopfälld. Den rymmer resten och speglar resursalternativen på gruppnivå:
-  - **Gruppbeskrivning** (`description`) — valfri markdown, visas under rubriken.
-  - **Expandera på statussidan som standard** (`isExpandedByDefault`) — på som standard: om sektionen börjar öppen eller ihopfälld för besökarna.
-  - **Visa aktuell gruppstatus** (`showCurrentStatus`) — på som standard. Visar en status bredvid gruppens rubrik.
-  - **Visa upptid %** (`showUptimePercent`) — av som standard, med **Välj precision för drifttid** som dyker upp när den slås på.
+:::steps
+### Klicka på New Group
 
-De flesta grupper behöver bara ett namn: skriv det och klicka på **Create Status Page Group**.
+**Create New Status Page Group** öppnas: två fält och sedan två hopfällda sektioner.
 
-Redigering fungerar likadant: **Edit Group** i rutans rubrik, eller **Edit group** i navigatorns radmeny, öppnar **Edit Status Page Group** med en knapp **Spara ändringar**.
+### Namnge gruppen
 
-Rutans rubrik visar etiketter för de inställningar som är påslagna — **Grid**, **Collapsed by default**, **Uptime %** — så att du ser hur en grupp är inställd utan att öppna formuläret.
+Skriv **Gruppnamn**: den sektionsrubrik som besökarna ser.
+
+### Nästla den, om den hör hemma i en annan grupp
+
+Välj en **Parent Group**, eller låt den stå på **No parent group (top level)**. **Add a sub group** i en grupps menyer fyller i det här åt dig.
+
+### Skapa gruppen
+
+Klicka på **Create Status Page Group**. Gruppen visas i navigatorn, redo för monitorer.
+:::
+
+De två fälten är **Gruppnamn** (`name`) och **Parent Group** (`parentStatusPageGroupId`). De två hopfällda sektionerna innehåller resten:
+
+- **Layout**: dess hopfällda rubrik säger **List** eller **Grid**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
+- **Fler fält**: gruppnivåns varianter av resursalternativen:
+  - **Gruppbeskrivning** (`description`): valfri markdown, visas under rubriken. En bild i den visas för alla besökare.
+  - **Expandera på statussidan som standard** (`isExpandedByDefault`): på som standard; avgör om sektionen börjar öppen eller hopfälld för besökare.
+  - **Visa aktuell gruppstatus** (`showCurrentStatus`): på som standard. Visar en status bredvid grupprubriken.
+  - **Visa upptid %** (`showUptimePercent`): av som standard, med **Välj precision för drifttid** när det är aktiverat.
+
+För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **Edit group** i navigatorns radmeny: **Edit Status Page Group** öppnas, med knappen **Spara ändringar**. Panelens rubrik visar märken för de inställningar som är på (**Grid**, **Collapsed by default**, **Uptime %**), så att du ser hur en grupp är inställd utan att öppna formuläret.
 
 ### Hantera en grupp
 
-Navigatorns radmeny rymmer **Edit group**, **Move up**, **Move down**, **Visa ID** och **Delete group**. Rutans **More actions**-meny har de längre motsvarigheterna — **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera** och **Delete this group**. En grupp som sparats utan namn renderas som **Untitled group**, vilket är ett bra tecken på att du tänkte skriva något.
+| Var | Åtgärder |
+| ----- | ------- |
+| Navigatorns radmeny | **Edit group**, **Move up**, **Move down**, **Visa ID**, **Delete group** |
+| Panelens meny **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera**, **Delete this group** |
 
-## Nästlade grupper
+En grupp som sparats utan namn visas som **Untitled group**, ett gott tecken på att du tänkte skriva något.
 
-Grupper kan ligga i varandra: sätt **Parent Group** på barnet, eller använd navigatorns åtgärd **Add a sub group inside this group**. Formulärets egen hjälptext beskriver formen den är byggd för — något i stil med affärsområde › region › marknad — och nämner att varje nivå visar den summerade statusen och drifttiden för allt under sig.
+## Nästla grupper
 
-När en grupp har barn visar resursrutan en rad **Sub groups**-etiketter som länkar rakt in i varje barn, så att du kan vandra genom hierarkin utan att gå tillbaka till navigatorn.
+Grupper kan nästlas: ange **Parent Group** på undergruppen, eller använd **Add a sub group inside this group** i navigatorn. Formulärets hjälptext beskriver den form som det är byggt för (ungefär Affärsenheter › Region › Marknad), och varje nivå visar den sammanlagda statusen och upptiden för allt under den.
 
-Nästling gör verklig nytta på stora sidor: en hostingleverantör med regioner inuti produkter, eller en handlare med marknader inuti affärsområden. På en sida med tolv monitorer är en enda platt nivå vänligare.
+När en grupp har undergrupper visar resurspanelen en rad med märken **Sub groups** som länkar direkt till varje undergrupp, så att du kan gå igenom hierarkin utan att gå tillbaka till navigatorn.
 
-## Listlayout kontra rutnätslayout
+Nästling lönar sig på stora sidor: en hostingleverantör med regioner inuti produkter, eller en återförsäljare med marknader inuti affärsenheter. På en sida med tolv monitorer är en enda platt nivå vänligare.
 
-Sektionen **Layout** i gruppformuläret sätter **Visningsläge** (`viewMode`) för gruppen, och det ändrar hur gruppen renderas publikt.
+## Listlayout eller rutnätslayout
 
-| Om du vill…                                                          | Välj                     |
-| -------------------------------------------------------------------- | ------------------------ |
-| Visa en enkel lodrät lista över tjänster, en per rad                 | **List** (standard)      |
-| Visa samma tjänst över flera regioner eller tenants som en matris    | **Grid**                 |
+Sektionen **Layout** i gruppformuläret anger gruppens **Visningsläge** (`viewMode`), som ändrar hur gruppen visas på statussidan.
 
-Väljer du **Grid** dyker fyra fält till upp:
+| Om du vill… | Välj |
+| --------------- | ---- |
+| Visa en enkel lodrät lista över tjänster, en per rad | **List** (standard) |
+| Visa samma tjänst i flera regioner eller hyresgäster som en matris | **Grid** |
 
-- **Etikett för radaxel** — namnet på raddimensionen, platshållare `Service`.
-- **Värden för radaxel** — själva raderna, tillagda en i taget med **Add Row** (platshållare `e.g. Auth`).
-- **Etikett för kolumnaxel** — kolumndimensionen, platshållare `Region`.
-- **Värden för kolumnaxel** — läggs till med **Add Column** (platshållare `e.g. US-East`).
+Välj **Grid** så visas ytterligare fyra fält:
 
-Varje monitor i en rutnätsgrupp placeras sedan i en cell, så **Lägg till monitor** och massmodalen frågar efter rad och kolumn vid sidan av monitorn, med dina egna axeletiketter.
+| Fält | Vad du ska ange |
+| ----- | ------------- |
+| **Etikett för radaxel** | Namnet på raddimensionen, platshållare `Service`. |
+| **Värden för radaxel** | Raderna, tillagda en i taget med **Add Row** (platshållare `e.g. Auth`). |
+| **Etikett för kolumnaxel** | Kolumndimensionen, platshållare `Region`. |
+| **Värden för kolumnaxel** | Kolumnerna, tillagda med **Add Column** (platshållare `e.g. US-East`). |
 
-**Sätt upp axlarna innan du lägger till monitorer.** En rutnätsgrupp utan rader eller kolumner visar en gul notis om att det inte finns någonstans att lägga en monitor förrän axlarna finns, med en knapp **Set up the grid** som öppnar gruppens formulär vid sektionen **Layout** — och knappen **Lägg till monitor** dras undan tills du gjort det.
+Varje monitor i en rutnätsgrupp står i en cell, så **Lägg till monitor** och dialogrutan för flera ber om raden och kolumnen tillsammans med monitorn, med dina egna axeletiketter.
 
-## Ordna det besökarna ser
+> [!IMPORTANT]
+> Ställ in axlarna innan du lägger till monitorer. En rutnätsgrupp utan rader eller kolumner visar ett meddelande om att det ännu inte finns någonstans att lägga en monitor, med knappen **Set up the grid** som öppnar gruppens formulär på sektionen **Layout**, och gruppens knapp **Lägg till monitor** är borta tills du har gjort det.
 
-Ordningen är uttalad, inte alfabetisk, och den sätts på tre ställen:
+## Ordningen på det som besökarna ser
 
-- **Resurser inuti en grupp** — dra en rad. Rutan säger det själv: **Drag a row to change the order visitors see**.
-- **Grupper i förhållande till varandra** — **Move up** / **Move down** i navigatorns radmeny, eller **Move group up** / **Move group down** i rutans meny.
-- **Grupplösa resurser** — de bor i **Top of page** och renderas alltid ovanför varje grupp, så lägg det alla kollar först där.
+Ordningen bestämmer du själv, inte alfabetet:
 
-**Två fall där dragning är avstängd.** Att filtrera rutan med rutan **Search in {group}...** stänger av omordning — rutan säger `N of M shown · drag to reorder is off while filtering`, så rensa sökningen först. Och rutnätsgrupper stöder aldrig dragordning, eftersom positionen kommer från rad- och kolumnaxlarna i stället.
+| Vad | Så ändrar du ordningen |
+| ---- | ----------------- |
+| Resurser i en grupp | Dra en rad. Panelen säger det: **Drag a row to change the order visitors see**. |
+| Grupper i förhållande till varandra | **Move up** / **Move down** i navigatorns radmeny, eller **Move group up** / **Move group down** i **More actions**. |
+| Resurser utan grupp | De står i **Top of page** och visas alltid ovanför alla grupper, så lägg det som alla kontrollerar först där. |
 
-Sätt den tjänst folk frågar mest om högst upp. Besökare som kom till sidan under ett avbrott slutar oftast läsa efter första skärmen.
+**Två fall där dragning är avstängd.** En sökning i rutan **Search in {group}...** stänger av omordning (panelen säger `N of M shown · drag to reorder is off while filtering`), så rensa sökningen först. Och rutnätsgrupper ordnas aldrig om genom att dra, eftersom en monitors plats kommer från dess rad och kolumn.
+
+Lägg den tjänst som folk frågar mest om överst. Besökare som kommer till sidan under ett avbrott slutar oftast läsa efter första skärmen.
+
+## Lägg till monitorer automatiskt med monitorregler
+
+En monitorregel lägger till monitorer på sidan åt dig: beskriv monitorerna en gång, så hamnar varje monitor som matchar i den grupp som du valde. Regler finns under **Resurser → Monitor Rules**, bredvid skärmen Resurser.
+
+:::steps
+### Öppna Monitor Rules
+
+Öppna statussidan, välj **Monitor Rules** i sektionen **Resurser** i dess sidomeny och klicka på **Skapa Status Page Monitor Rule**.
+
+### Namnge regeln
+
+Ange ett **Namn** under **Grundläggande information**. **Aktiverad** är på som standard.
+
+### Ange vilka monitorer den matchar
+
+Under **Matchningskriterier** fyller du i minst ett av **Övervakningsetiketter** (en monitor med någon av dem matchar), **Övervakningsnamn** och **Övervakningsbeskrivning**. En monitor måste uppfylla varje kriterium som du fyller i. De två mönstren accepterar ett reguljärt uttryck utan skillnad på versaler och gemener (`^api-.*`) eller ett jokertecken `*` (`*checkout*`); `.*` matchar alla monitorer.
+
+### Välj gruppen
+
+Under **Grupp** väljer du **Add Monitors To Group**, eller lämnar det tomt för att lägga till monitorerna utan grupp. Därefter följer samma visningsalternativ som för en resurs; på en regel börjar **Visa upptid %** aktiverat.
+
+### Spara regeln
+
+Regeln körs direkt mot alla monitorer som redan finns, och listan visar under **Adds Monitors To** den grupp som den lägger till monitorer i.
+:::
+
+Därefter körs en regel igen för en monitor varje gång en skapas eller när dess etiketter, namn eller beskrivning ändras. En regel tar bara bort de resurser som den själv har lagt till: att stänga av den eller ta bort den tar bort dem från sidan, och en monitor som du har lagt till för hand rörs aldrig. En monitor som redan finns på sidan läggs aldrig till två gånger.
 
 ## Importera grupper från CSV
 
-Att bygga en djup hierarki för hand är tröttsamt. Trepunktsmenyn i kortrubriken har **Import groups from CSV**, som öppnar modalen **Import Groups from CSV**.
+Det är mödosamt att bygga en djup hierarki för hand. **Import groups from CSV** i kortrubrikens meny med tre punkter öppnar dialogrutan **Import Groups from CSV**.
 
-Flödet är: **Download CSV Template** för att hämta `status-page-groups-template.csv`, fyll i den, **Choose CSV File**, och sedan **Preview Import** för att se vad som kommer att skapas innan något skrivs. Därefter listar en **Import results**-tabell varje rad som **Created**, **Failed** eller **Skipped** tillsammans med orsaken, så att en trasig rad inte försvinner i tysthet.
+:::steps
+### Ladda ned mallen
 
-Bara `name` är obligatoriskt. De godtagna kolumnerna är:
+Klicka på **Download CSV Template** för att hämta `status-page-groups-template.csv`.
 
-| Kolumn                   | Vad den sätter                                        |
-| ------------------------ | ----------------------------------------------------- |
-| `name`                   | Gruppens namn. Obligatoriskt.                         |
-| `parentName`             | Namnet på gruppen som den här ligger i.               |
-| `description`            | Gruppbeskrivningen.                                   |
-| `isExpandedByDefault`    | Om sektionen börjar öppen för besökarna.              |
-| `showCurrentStatus`      | Om en status visas bredvid gruppens rubrik.           |
-| `showUptimePercent`      | Om en drifttidsprocent visas bredvid gruppen.         |
-| `uptimePercentPrecision` | Hur många decimaler den procentsatsen använder.       |
-| `viewMode`               | `List` eller `Grid`.                                  |
-| `rowAxisLabel`           | Namn på raddimensionen för en rutnätsgrupp.           |
-| `rowAxisValues`          | Radvärdena för en rutnätsgrupp.                       |
-| `columnAxisLabel`        | Namn på kolumndimensionen för en rutnätsgrupp.        |
-| `columnAxisValues`       | Kolumnvärdena för en rutnätsgrupp.                    |
+### Fyll i den
 
-Importen skapar grupper, inte resurser — lägg till monitorer efteråt med **Lägg till monitor** eller **Add Multiple**.
+En rad per grupp. Bara `name` är obligatoriskt; kolumnerna listas nedan.
 
-## Läs vidare
+### Ladda upp och förhandsgranska
 
-- [Statussidor – Översikt](/docs/status-pages/index) — vad en statussida är och hur delarna hänger ihop.
-- [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) — logotyp, favicon, diagramfärger och att lägga sidan på er egen domän.
-- [Prenumeranter och meddelanden](/docs/status-pages/subscribers) — vilka som får veta när de här resurserna ändrar sig.
-- [Offentligt API](/docs/status-pages/public-api) — att läsa statussidans data programmatiskt.
-- [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — vad som får en incident att dyka upp på, och försvinna från, sidan.
+Klicka på **Choose CSV File**, välj din fil och sedan **Preview Import** för att kontrollera vad som kommer att skapas innan något skrivs.
+
+### Importera
+
+Kör importen. Tabellen **Import results** listar varje rad som **Skapad**, **Misslyckades** eller **Hoppade över**, med orsaken, så att en felaktig rad aldrig försvinner i tysthet.
+:::
+
+| Kolumn | Vad den anger |
+| ------ | ------------ |
+| `name` | Gruppens namn. Obligatoriskt. |
+| `parentName` | Namnet på den grupp som den här är nästlad i. |
+| `description` | Gruppens beskrivning. |
+| `isExpandedByDefault` | Om sektionen börjar öppen för besökare. |
+| `showCurrentStatus` | Om en status visas bredvid grupprubriken. |
+| `showUptimePercent` | Om en upptidsprocent visas bredvid gruppen. |
+| `uptimePercentPrecision` | Hur många decimaler procenten använder. |
+| `viewMode` | `List` eller `Grid`. |
+| `rowAxisLabel` | Raddimensionens namn, för en rutnätsgrupp. |
+| `rowAxisValues` | Radvärdena, för en rutnätsgrupp. |
+| `columnAxisLabel` | Kolumndimensionens namn, för en rutnätsgrupp. |
+| `columnAxisValues` | Kolumnvärdena, för en rutnätsgrupp. |
+
+Importen skapar grupper, inte resurser: lägg till monitorer efteråt med **Lägg till monitor**, **Add Multiple** eller en monitorregel.
+
+## Felsökning
+
+:::details "This monitor is already added to this status page"
+En sida visar varje monitor en gång, även över grupper. Monitorn har redan en resurs, kanske i en annan grupp eller tillagd av en monitorregel. Sök efter den i navigatorn, ta bort den resursen och lägg till monitorn där du vill ha den.
+:::
+
+:::details En monitor som jag lade till visas inte på statussidan
+Kontrollera om monitorn är arkiverad: en arkiverad monitors rad utelämnas tills du tar den ur arkivet. Kontrollera också gruppen: en grupp som är inställd på att börja hopfälld (**Expandera på statussidan som standard** av) döljer sina rader tills en besökare öppnar den.
+:::
+
+:::details Det finns ingen knapp Lägg till monitor i en rutnätsgrupp
+Rutnätet har ännu inga rader eller kolumner. Klicka på **Set up the grid**, lägg till axelvärdena i sektionen **Layout**, så kommer **Lägg till monitor** tillbaka.
+:::
+
+:::details Jag kan inte dra rader
+Rensa rutan **Search in {group}...**: omordning är avstängd medan panelen är filtrerad. Rutnätsgrupper ordnas aldrig om genom att dra.
+:::
+
+## Nästa steg
+
+:::cards
+- [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains): Logotyp, favicon, historikdiagrammets färger och din egen domän.
+- [Prenumeranter och meddelanden](/docs/status-pages/subscribers): Vem som får veta när de här resurserna ändras.
+- [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience): Samma monitor på många sidor, och en incident som bara når några av dem.
+- [Offentligt API](/docs/status-pages/public-api): Läs resurser, grupper och upptid som JSON.
+:::
