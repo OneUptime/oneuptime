@@ -10,7 +10,7 @@ An SLO keeps two records of its history, and they answer different questions. Th
 | Records | Status changes, burn rate alerts and incidents, and changes to the SLO, its rules, monitors and owners | Every change people made to the SLO, its burn rate rules, monitor rules and owners, with old and new values |
 | Includes OneUptime's own work | Yes: evaluations and monitor rules attaching monitors | Only with **Store System Events** on |
 | Plans | Every plan | The Enterprise plan on OneUptime Cloud, or the Enterprise Edition on a self-hosted installation |
-| Kept | Three years on OneUptime Cloud | 7 to 180 days, as you choose |
+| Kept | Three years on OneUptime Cloud | 7 days by default, up to 180 |
 
 ```mermaid title="What writes to each record"
 flowchart TB
@@ -82,7 +82,7 @@ Click **Edit Audit Log Settings** and turn on **Enable Audit Logs**.
 
 ### Choose what to keep
 
-Set **Retention (days)**, from 7 to 180, and turn on **Store System Events** to also record the changes OneUptime makes itself. Save. The change applies within about a minute.
+Set **Retention (days)**, from 7 (the default) to 180, and turn on **Store System Events** to also record the changes OneUptime makes itself. Save. The change applies within about a minute.
 :::
 
 While audit logging is off, the SLO's **Audit Logs** page says **Audit logging is off**, with a link to turn it on. Entries recorded before it was turned off stay visible. The project's whole audit log, across every resource, is under **Project Settings** → **Audit Logs** → **Audit Logs**.
