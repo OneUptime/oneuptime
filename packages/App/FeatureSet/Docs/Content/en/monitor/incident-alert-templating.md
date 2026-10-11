@@ -138,11 +138,13 @@ Alerts for {{requestBody.receiver}}:
 {{/each}}
 ```
 
-creates an incident whose description reads:
+creates an incident whose description reads as below. Each item keeps the line breaks around it, so a blank line separates the items, and the description still shows one list:
 
 ```text title="Description as created"
 Alerts for payments:
+
 - 0: HighLatency (firing)
+
 - 1: DiskFull (resolved)
 ```
 

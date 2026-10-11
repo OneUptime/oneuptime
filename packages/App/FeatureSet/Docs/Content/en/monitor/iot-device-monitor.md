@@ -62,7 +62,7 @@ Pick one of the three tabs:
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Select Metric Variable**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
 
 ### Create the monitor
 
@@ -138,11 +138,12 @@ Each series carries the device's `device.id` label, and the `iot.scope`, `iot.de
 
 ## Monitoring criteria
 
-A criteria compares one of the monitor's queries or formulas with a threshold. An IoT device monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
+A criteria compares one of the monitor's queries or formulas with a threshold. An IoT device monitor's criteria offer one **Filter Type**, **Metric Value**: every rule checks the metric value, with these fields.
 
 | Field | What it does |
 | --- | --- |
-| **Metric** | The query or formula to check, by its variable name. |
+| **Filter Type** | Always **Metric Value**, the only check this monitor offers. |
+| **Select Metric Variable** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough). |
 | **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
