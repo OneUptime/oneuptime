@@ -95,7 +95,7 @@ kubectl get pods -n oneuptime-kubernetes-agent
 
 Если не уверены, оставьте `preset` пустым, чтобы получить `standard`. Если установка завершается ошибкой Pod Security с упоминанием `hostPath`, установите заново с `gke-autopilot` или с `eks-fargate` в EKS Fargate.
 
-GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию, поэтому отключите его там с помощью `--set ebpf.enabled=false`:
+GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию и профилированию, поэтому их пресеты не включают ни то, ни другое:
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 eBPF включён по умолчанию. Отключите его с помощью `--set ebpf.enabled=false`, когда:
 
-- Кластер — **GKE Autopilot** или **EKS Fargate**. Они отклоняют привилегированные поды, а OBI должен быть привилегированным, чтобы загружать свои программы.
+- Кластер — **GKE Autopilot** или **EKS Fargate**. Их пресеты сделают это за вас: эти платформы отклоняют привилегированные поды, а OBI должен быть привилегированным, чтобы загружать свои программы.
 - На узлах работает ядро старше **Linux 5.8** без BTF. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 и новее подходят.
 - Ваши приложения уже отправляют трассировки через SDK OpenTelemetry, и вам не нужны дубликаты.
 
@@ -323,7 +321,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 Если eBPF-инструментирование тоже включено (по умолчанию), каждая выборка несёт трассировку, к которой относится, поэтому у спана есть собственный flame-граф. Для этого чарт просит OBI держать текущий контекст трассировки доступным (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), что немного стоит инструментированным приложениям при каждом асинхронном переключении контекста. Задайте `profiling.obiProcessContext=false`, чтобы получать flame-графы без связи со спанами.
 
-Профилированию нужен **Linux 5.10** или новее и привилегированный под с идентификаторами процессов узла: оно не может работать в GKE Autopilot или EKS Fargate. На узлах, которые сами являются контейнерами, например в kind или k3d, оно не может различать процессы, и почти ни одна выборка не связывается со спаном.
+Профилированию нужен **Linux 5.10** или новее и привилегированный под с идентификаторами процессов узла: оно не может работать в GKE Autopilot или EKS Fargate, и их пресеты оставляют его выключенным. На узлах, которые сами являются контейнерами, например в kind или k3d, оно не может различать процессы, и почти ни одна выборка не связывается со спаном.
 
 | Параметр | По умолчанию | Что делает |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 :::
 
 :::details Установка завершается ошибкой "hostPath volumes are not allowed"
-Кластер блокирует `hostPath`. Переключитесь на пресет, который читает логи через Kubernetes API, и отключите eBPF:
+Кластер блокирует `hostPath`. Переключитесь на пресет, который читает логи через Kubernetes API; он также отключает eBPF:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 В EKS Fargate используйте `--set preset=eks-fargate`.

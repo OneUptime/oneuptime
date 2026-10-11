@@ -95,7 +95,7 @@ Certaines plateformes Kubernetes ne permettent pas à un workload de monter un v
 
 En cas de doute, laissez `preset` vide pour obtenir `standard`. Si l'installation échoue avec une erreur Pod Security qui mentionne `hostPath`, réinstallez avec `gke-autopilot`, ou `eks-fargate` sur EKS Fargate.
 
-GKE Autopilot et EKS Fargate refusent aussi les pods privilégiés, dont l'instrumentation eBPF a besoin, donc désactivez-la à cet endroit avec `--set ebpf.enabled=false` :
+GKE Autopilot et EKS Fargate refusent aussi les pods privilégiés, dont l'instrumentation eBPF et le profilage ont besoin, donc leurs presets laissent les deux de côté :
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ Vos services apparaissent sous **Produits → Traces** et sur la carte des servi
 
 eBPF est activé par défaut. Désactivez-le avec `--set ebpf.enabled=false` lorsque :
 
-- Le cluster est **GKE Autopilot** ou **EKS Fargate**. Ils refusent les pods privilégiés, et OBI doit être privilégié pour charger ses programmes.
+- Le cluster est **GKE Autopilot** ou **EKS Fargate**. Leurs presets le font pour vous : ces plateformes refusent les pods privilégiés, et OBI doit être privilégié pour charger ses programmes.
 - Les nœuds exécutent un noyau antérieur à **Linux 5.8** sans BTF. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 et les versions ultérieures conviennent.
 - Vos applications envoient déjà des traces avec un SDK OpenTelemetry, et vous ne les voulez pas en double.
 
@@ -323,7 +321,7 @@ Le [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry
 
 Avec l'instrumentation eBPF également activée (le comportement par défaut), chaque échantillon porte la trace à laquelle il appartient, donc un span a son propre flame graph. Pour cela, le chart demande à OBI de garder disponible le contexte de trace en cours (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), ce qui coûte un peu aux applications instrumentées à chaque changement de contexte asynchrone. Définissez `profiling.obiProcessContext=false` pour avoir des flame graphs sans le lien vers les spans.
 
-Le profilage nécessite **Linux 5.10** ou une version ultérieure, et un pod privilégié avec les ID de processus du nœud : il ne peut pas tourner sur GKE Autopilot ni sur EKS Fargate. Sur des nœuds qui sont eux-mêmes des conteneurs, comme kind ou k3d, il ne sait pas distinguer les processus, et presque aucun échantillon n'est relié à un span.
+Le profilage nécessite **Linux 5.10** ou une version ultérieure, et un pod privilégié avec les ID de processus du nœud : il ne peut pas tourner sur GKE Autopilot ni sur EKS Fargate, et leurs presets le laissent désactivé. Sur des nœuds qui sont eux-mêmes des conteneurs, comme kind ou k3d, il ne sait pas distinguer les processus, et presque aucun échantillon n'est relié à un span.
 
 | Option | Par défaut | Ce qu'elle fait |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ La cause habituelle, surtout après une réinstallation, est une clé d'ingestio
 :::
 
 :::details L'installation échoue avec « hostPath volumes are not allowed »
-Le cluster bloque `hostPath`. Passez à un preset qui lit les journaux via l'API Kubernetes, et désactivez eBPF :
+Le cluster bloque `hostPath`. Passez à un preset qui lit les journaux via l'API Kubernetes ; il laisse aussi eBPF de côté :
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 Sur EKS Fargate, utilisez `--set preset=eks-fargate`.

@@ -386,12 +386,29 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       expect(rows[2]![3]).toBe("Nothing: Fargate runs no DaemonSets");
     });
 
-    it("on GKE Autopilot and EKS Fargate turn eBPF off, because its pods are privileged", () => {
+    it("on GKE Autopilot and EKS Fargate leave eBPF and profiling out themselves, because their pods are privileged", () => {
       expect(chartFile("templates/daemonset-ebpf.yaml")).toContain(
         "privileged: true",
       );
       expect(chartFile("templates/daemonset-profiling.yaml")).toContain(
         "privileged: true",
+      );
+
+      // The chart decides it from the preset, as it does hostPath.
+      expect(helpers).toContain(
+        'define "kubernetes-agent.privilegedPodsAllowed" -}}\n{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}\nfalse',
+      );
+      expect(helpers).toContain(
+        '{{- if and ((.Values.ebpf | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}',
+      );
+      expect(helpers).toContain(
+        '{{- if and ((.Values.profiling | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}',
+      );
+      expect(chartFile("templates/daemonset-ebpf.yaml")).toMatch(
+        /^\{\{- if eq \(include "kubernetes-agent\.ebpfEnabled" \.\) "true" \}\}\n/,
+      );
+      expect(chartFile("templates/daemonset-profiling.yaml")).toMatch(
+        /^\{\{- if eq \(include "kubernetes-agent\.profilingEnabled" \.\) "true" \}\}\n/,
       );
 
       const lockedDown: Array<string> = bashBlocks().filter(
@@ -407,23 +424,29 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
 
       /*
        * The Autopilot and Fargate tabs, the hostPath troubleshooting, and the
-       * sharding example.
+       * sharding example: the preset is all they need.
        */
       expect(lockedDown.length).toBe(4);
 
       for (const block of lockedDown) {
-        const flags: Record<string, string> = setFlags(block);
-
-        // The sharding example sets the preset for log tailing alone.
-        if (block.includes("namespaceFilters.rules")) {
-          continue;
-        }
-
-        expect({ block, ebpf: flags["ebpf.enabled"] }).toEqual({
+        expect({ block, ebpf: setFlags(block)["ebpf.enabled"] }).toEqual({
           block,
-          ebpf: "false",
+          ebpf: undefined,
         });
       }
+
+      expect(english).toContain(
+        "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out:",
+      );
+      expect(english).toContain(
+        "- The cluster is **GKE Autopilot** or **EKS Fargate**. Their presets do it for you: those platforms refuse privileged pods, and OBI must be privileged to load its programs.",
+      );
+      expect(english).toContain(
+        "it cannot run on GKE Autopilot or EKS Fargate, and their presets leave it off.",
+      );
+      expect(english).toContain(
+        "Switch to a preset that reads logs through the Kubernetes API; it leaves eBPF out too:",
+      );
     });
   });
 

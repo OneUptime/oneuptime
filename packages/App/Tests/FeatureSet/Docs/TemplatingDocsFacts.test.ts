@@ -59,7 +59,9 @@ import SeriesContextEnricher from "Common/Server/Utils/Monitor/SeriesContextEnri
 import { JSONObject } from "Common/Types/JSON";
 import { getAllIoTAlertTemplates } from "Common/Types/Monitor/IotAlertTemplates";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import TemplateVariablesCatalog, {
   TemplateVariable,
@@ -1124,10 +1126,15 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         "VMware",
         "Ceph",
         "Storage Array",
+        "IoT Device",
         "Metrics",
       ]);
+      // The one list the server sets it from (MonitorTypeHelper).
+      expect([...withMetricName].sort()).toEqual(
+        [...MonitorTypeHelper.getMetricBackedMonitorTypes()].sort(),
+      );
       expect(section).toContain(
-        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph and Storage Array monitors have one variable of their own:",
+        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:",
       );
       expect(
         documentedVariables("### Metric and Infrastructure Monitors"),
@@ -1149,14 +1156,25 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       expect(render("{{metricName}}", map)).toBe("container.cpu.time");
     });
 
-    it("an IoT Device monitor has no metricName, and its templates give each incident {{device.id}}", () => {
+    it("an IoT Device monitor has metricName, and its templates give each incident {{device.id}}", () => {
       const map: JSONObject = storageMap(
         MonitorType.IoTDevice,
-        { metricViewConfig: { queryConfigs: [], formulaConfigs: [] } },
+        {
+          metricViewConfig: {
+            queryConfigs: [
+              {
+                metricQueryData: {
+                  filterData: { metricName: "iot_device_up" },
+                },
+              },
+            ],
+            formulaConfigs: [],
+          },
+        },
         { "device.id": "sensor-001" },
       );
 
-      expect("metricName" in map).toBe(false);
+      expect(render("{{metricName}}", map)).toBe("iot_device_up");
       expect(render("{{device.id}}", map)).toBe("sensor-001");
 
       for (const template of getAllIoTAlertTemplates()) {
@@ -1176,7 +1194,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       }
 
       expect(sectionOf("### Metric and Infrastructure Monitors")).toContain(
-        "An IoT Device monitor has no `metricName`, but a grouped one, as its templates are, has `{{device.id}}`.",
+        "The IoT Device monitor templates group by device, so a monitor made from one also has `{{device.id}}`.",
       );
     });
 

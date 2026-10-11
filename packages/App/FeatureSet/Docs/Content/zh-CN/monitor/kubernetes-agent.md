@@ -95,7 +95,7 @@ kubectl get pods -n oneuptime-kubernetes-agent
 
 如果不确定，请不设置 `preset`，以使用 `standard`。如果安装因提到 `hostPath` 的 Pod Security 错误而失败，请用 `gke-autopilot` 重新安装，在 EKS Fargate 上则用 `eks-fargate`。
 
-GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 插桩所需的特权 Pod，因此在这两个平台上请用 `--set ebpf.enabled=false` 关闭它：
+GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 插桩和性能分析所需的特权 Pod，因此它们的预设会同时省略这两者：
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ Chart 会在每个节点上运行 [OpenTelemetry eBPF Instrumentation (OBI)](htt
 
 eBPF 默认开启。在以下情况下，请用 `--set ebpf.enabled=false` 关闭它：
 
-- 集群是 **GKE Autopilot** 或 **EKS Fargate**。它们会拒绝特权 Pod，而 OBI 必须拥有特权才能加载其程序。
+- 集群是 **GKE Autopilot** 或 **EKS Fargate**。它们的预设会替你关闭：这两个平台会拒绝特权 Pod，而 OBI 必须拥有特权才能加载其程序。
 - 节点运行的内核早于 **Linux 5.8** 且没有 BTF。Debian 11、Ubuntu 20.10、Fedora 34、RHEL 9 及更高版本都没有问题。
 - 你的应用已经通过 OpenTelemetry SDK 发送跟踪，而你不想要重复的数据。
 
@@ -323,7 +321,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 如果同时开启了 eBPF 插桩(默认)，每个样本都会带有它所属的跟踪，因此每个 Span 都有自己的火焰图。为此，Chart 会要求 OBI 保持当前的跟踪上下文可用(`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)，这会让被插桩的应用在每次异步上下文切换时付出少许开销。设置 `profiling.obiProcessContext=false` 可得到不关联 Span 的火焰图。
 
-性能分析需要 **Linux 5.10** 或更高版本，以及一个拥有节点进程 ID 的特权 Pod：它无法在 GKE Autopilot 或 EKS Fargate 上运行。在本身就是容器的节点上(例如 kind 或 k3d)，它无法区分进程，几乎没有样本能关联到 Span。
+性能分析需要 **Linux 5.10** 或更高版本，以及一个拥有节点进程 ID 的特权 Pod：它无法在 GKE Autopilot 或 EKS Fargate 上运行，它们的预设会让它保持关闭。在本身就是容器的节点上(例如 kind 或 k3d)，它无法区分进程，几乎没有样本能关联到 Span。
 
 | 选项 | 默认值 | 作用 |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 :::
 
 :::details 安装失败，提示 "hostPath volumes are not allowed"
-集群阻止了 `hostPath`。请切换到通过 Kubernetes API 读取日志的预设，并关闭 eBPF：
+集群阻止了 `hostPath`。请切换到通过 Kubernetes API 读取日志的预设，它也会省略 eBPF：
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 在 EKS Fargate 上，请使用 `--set preset=eks-fargate`。

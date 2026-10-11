@@ -604,7 +604,7 @@ If an app already exports traces with an OpenTelemetry SDK, OBI notices and stop
 
 You should disable it when:
 
-- Installing on **GKE Autopilot** or **EKS Fargate** — those platforms block privileged pods (use `preset=gke-autopilot` / `preset=eks-fargate` and pair with `ebpf.enabled=false`).
+- Installing on **GKE Autopilot** or **EKS Fargate** — those platforms block privileged pods, so `preset=gke-autopilot` / `preset=eks-fargate` already leave eBPF out for you, and the profiler with it.
 - Nodes run a kernel older than 5.8 without BTF backports.
 - You already ship traces via OpenTelemetry SDKs from every app and do not want the eBPF metrics either. (For traces alone you need not: OBI stops sending eBPF traces for an app it sees exporting its own — see above.)
 
@@ -942,7 +942,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 Common causes:
 
 - **Kernel too old or BTF missing.** OBI needs Linux 5.8+ with BTF. Run `uname -r` on a node. If you cannot upgrade, disable eBPF: `--set ebpf.enabled=false`.
-- **Privileged pods blocked.** Some clusters reject privileged pods (GKE Autopilot, EKS Fargate, and locked-down environments). Disable eBPF.
+- **Privileged pods blocked.** Some clusters reject privileged pods. On GKE Autopilot and EKS Fargate their presets already leave eBPF out; on other locked-down clusters, disable eBPF.
 - **`debugfs` / `tracefs` not mounted on the host.** The `tcpStats` feature attaches to kernel tracepoints that need them. The chart mounts both via `hostPath` — but if your host does not expose them, disable just that family: `--set ebpf.features.tcpStats=false`.
 
 ### No application traces showing up

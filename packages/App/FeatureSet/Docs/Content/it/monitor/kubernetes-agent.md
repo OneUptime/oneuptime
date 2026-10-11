@@ -95,7 +95,7 @@ Alcune piattaforme Kubernetes non consentono a un workload di montare un volume 
 
 Se non sei sicuro, lascia `preset` non impostato per ottenere `standard`. Se l'installazione fallisce con un errore Pod Security che cita `hostPath`, reinstalla con `gke-autopilot`, oppure con `eks-fargate` su EKS Fargate.
 
-GKE Autopilot ed EKS Fargate rifiutano anche i pod privilegiati, di cui l'instrumentazione eBPF ha bisogno, quindi disattivala lì con `--set ebpf.enabled=false`:
+GKE Autopilot ed EKS Fargate rifiutano anche i pod privilegiati, di cui l'instrumentazione eBPF e la profilazione hanno bisogno, quindi i loro preset li lasciano fuori entrambi:
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ I tuoi servizi compaiono in **Prodotti → Tracce** e sulla mappa dei servizi en
 
 eBPF è attivo per impostazione predefinita. Disattivalo con `--set ebpf.enabled=false` quando:
 
-- Il cluster è **GKE Autopilot** o **EKS Fargate**. Rifiutano i pod privilegiati, e OBI deve essere privilegiato per caricare i suoi programmi.
+- Il cluster è **GKE Autopilot** o **EKS Fargate**. Lo fanno i loro preset per te: quelle piattaforme rifiutano i pod privilegiati, e OBI deve essere privilegiato per caricare i suoi programmi.
 - I nodi eseguono un kernel precedente a **Linux 5.8** senza BTF. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 e successivi vanno bene.
 - Le tue applicazioni inviano già tracce con un SDK OpenTelemetry, e non le vuoi doppie.
 
@@ -323,7 +321,7 @@ Anche l'[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentele
 
 Con anche l'instrumentazione eBPF attiva (il comportamento predefinito), ogni campione porta la traccia a cui appartiene, quindi uno span ha il proprio flame graph. Per questo il chart chiede a OBI di tenere disponibile il contesto di traccia in corso (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), il che costa un po' alle applicazioni instrumentate a ogni cambio di contesto asincrono. Imposta `profiling.obiProcessContext=false` per avere flame graph senza il collegamento agli span.
 
-La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con gli ID di processo del nodo: non può essere eseguita su GKE Autopilot né su EKS Fargate. Su nodi che sono essi stessi container, come kind o k3d, non distingue i processi, e quasi nessun campione si collega a uno span.
+La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con gli ID di processo del nodo: non può essere eseguita su GKE Autopilot né su EKS Fargate, e i loro preset la lasciano disattivata. Su nodi che sono essi stessi container, come kind o k3d, non distingue i processi, e quasi nessun campione si collega a uno span.
 
 | Opzione | Predefinito | Cosa fa |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ La causa più comune, soprattutto dopo una reinstallazione, è una chiave di acq
 :::
 
 :::details L'installazione fallisce con «hostPath volumes are not allowed»
-Il cluster blocca `hostPath`. Passa a un preset che legge i log tramite l'API di Kubernetes, e disattiva eBPF:
+Il cluster blocca `hostPath`. Passa a un preset che legge i log tramite l'API di Kubernetes; lascia fuori anche eBPF:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 Su EKS Fargate, usa `--set preset=eks-fargate`.

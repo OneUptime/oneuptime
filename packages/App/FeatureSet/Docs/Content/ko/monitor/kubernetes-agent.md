@@ -95,7 +95,7 @@ kubectl get pods -n oneuptime-kubernetes-agent
 
 잘 모르겠다면 `preset` 을 비워 두어 `standard` 를 쓰세요. 설치가 `hostPath` 를 언급하는 Pod Security 오류로 실패하면 `gke-autopilot` 으로, EKS Fargate에서는 `eks-fargate` 로 다시 설치하세요.
 
-GKE Autopilot과 EKS Fargate는 eBPF 계측에 필요한 특권 파드도 거부하므로, 그곳에서는 `--set ebpf.enabled=false` 로 이를 끄세요.
+GKE Autopilot과 EKS Fargate는 eBPF 계측과 프로파일링에 필요한 특권 파드도 거부하므로, 각 프리셋은 둘 다 넣지 않습니다.
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 eBPF는 기본적으로 켜져 있습니다. 다음 경우에는 `--set ebpf.enabled=false` 로 끄세요.
 
-- 클러스터가 **GKE Autopilot** 또는 **EKS Fargate** 인 경우. 이들은 특권 파드를 거부하는데, OBI는 프로그램을 로드하려면 특권이 필요합니다.
+- 클러스터가 **GKE Autopilot** 또는 **EKS Fargate** 인 경우. 이는 각 프리셋이 대신 해 줍니다. 이들은 특권 파드를 거부하는데, OBI는 프로그램을 로드하려면 특권이 필요합니다.
 - 노드가 BTF 없이 **Linux 5.8** 보다 오래된 커널을 실행하는 경우. Debian 11, Ubuntu 20.10, Fedora 34, RHEL 9 이상은 괜찮습니다.
 - 앱이 이미 OpenTelemetry SDK로 트레이스를 보내고 있어 중복을 원하지 않는 경우.
 
@@ -323,7 +321,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를 함께 담으므로 스팬마다 자체 플레임 그래프가 생깁니다. 이를 위해 차트는 OBI가 실행 중인 트레이스 컨텍스트를 사용할 수 있게 유지하도록 요청하며(`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), 이 때문에 계측된 앱은 비동기 컨텍스트 전환마다 약간의 비용을 치릅니다. 스팬과 연결되지 않은 플레임 그래프를 원하면 `profiling.obiProcessContext=false` 를 설정하세요.
 
-프로파일링에는 **Linux 5.10** 이상과, 노드의 프로세스 ID를 가진 특권 파드가 필요합니다. 그래서 GKE Autopilot이나 EKS Fargate에서는 실행할 수 없습니다. kind나 k3d처럼 노드 자체가 컨테이너인 환경에서는 프로세스를 구분하지 못해, 스팬에 연결되는 샘플이 거의 없습니다.
+프로파일링에는 **Linux 5.10** 이상과, 노드의 프로세스 ID를 가진 특권 파드가 필요합니다. 그래서 GKE Autopilot이나 EKS Fargate에서는 실행할 수 없고, 각 프리셋은 이를 꺼 둡니다. kind나 k3d처럼 노드 자체가 컨테이너인 환경에서는 프로세스를 구분하지 못해, 스팬에 연결되는 샘플이 거의 없습니다.
 
 | 옵션 | 기본값 | 하는 일 |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 :::
 
 :::details 설치가 "hostPath volumes are not allowed" 로 실패함
-클러스터가 `hostPath` 를 막고 있습니다. Kubernetes API를 통해 로그를 읽는 프리셋으로 바꾸고 eBPF를 끄세요.
+클러스터가 `hostPath` 를 막고 있습니다. Kubernetes API를 통해 로그를 읽는 프리셋으로 바꾸세요. 이 프리셋은 eBPF도 넣지 않습니다.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 EKS Fargate에서는 `--set preset=eks-fargate` 를 사용하세요.

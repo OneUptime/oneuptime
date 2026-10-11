@@ -95,7 +95,7 @@ Kubernetes プラットフォームによっては、ワークロードが `host
 
 よくわからない場合は、`preset` を未設定のままにすると `standard` になります。インストールが `hostPath` を挙げた Pod Security エラーで失敗した場合は、`gke-autopilot` で、EKS Fargate では `eks-fargate` でインストールし直してください。
 
-GKE Autopilot と EKS Fargate は、eBPF インストルメンテーションに必要な特権 Pod も拒否するため、そこでは `--set ebpf.enabled=false` でオフにしてください。
+GKE Autopilot と EKS Fargate は、eBPF インストルメンテーションとプロファイリングに必要な特権 Pod も拒否するため、それぞれのプリセットはどちらも含めません。
 
 :::tabs
 @tab Standard
@@ -113,8 +113,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 @tab EKS Fargate
 ```bash
@@ -123,8 +122,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
-  --set preset=eks-fargate \
-  --set ebpf.enabled=false
+  --set preset=eks-fargate
 ```
 :::
 
@@ -204,7 +202,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 eBPF はデフォルトで有効です。次の場合は `--set ebpf.enabled=false` でオフにしてください。
 
-- クラスターが **GKE Autopilot** または **EKS Fargate** の場合。これらは特権 Pod を拒否しますが、OBI はプログラムを読み込むために特権が必要です。
+- クラスターが **GKE Autopilot** または **EKS Fargate** の場合。これはそれぞれのプリセットが自動で行います。これらは特権 Pod を拒否しますが、OBI はプログラムを読み込むために特権が必要です。
 - ノードが BTF のない **Linux 5.8** より古いカーネルで動いている場合。Debian 11、Ubuntu 20.10、Fedora 34、RHEL 9 以降なら問題ありません。
 - アプリがすでに OpenTelemetry SDK でトレースを送信していて、二重に受け取りたくない場合。
 
@@ -323,7 +321,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 eBPF インストルメンテーションもオンにしていると (デフォルト)、各サンプルは属するトレースを持つため、スパンごとにフレームグラフが得られます。そのためにチャートは OBI に、実行中のトレースコンテキストを利用可能な状態に保つよう指示します (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`)。これにより、計装されたアプリでは非同期のコンテキスト切り替えのたびにわずかなコストがかかります。スパンへのリンクなしのフレームグラフにするには、`profiling.obiProcessContext=false` を設定します。
 
-プロファイリングには **Linux 5.10** 以降と、ノードのプロセス ID を持つ特権 Pod が必要です。そのため GKE Autopilot や EKS Fargate では実行できません。kind や k3d のように、ノード自体がコンテナーである環境ではプロセスを区別できず、スパンにリンクされるサンプルはほとんどありません。
+プロファイリングには **Linux 5.10** 以降と、ノードのプロセス ID を持つ特権 Pod が必要です。そのため GKE Autopilot や EKS Fargate では実行できず、それぞれのプリセットはオフのままにします。kind や k3d のように、ノード自体がコンテナーである環境ではプロセスを区別できず、スパンにリンクされるサンプルはほとんどありません。
 
 | オプション | デフォルト | 動作 |
 | --- | --- | --- |
@@ -417,14 +415,13 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 :::
 
 :::details インストールが "hostPath volumes are not allowed" で失敗する
-クラスターが `hostPath` をブロックしています。Kubernetes API 経由でログを読むプリセットに切り替え、eBPF をオフにします。
+クラスターが `hostPath` をブロックしています。Kubernetes API 経由でログを読むプリセットに切り替えます。このプリセットは eBPF も含めません。
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reset-then-reuse-values \
-  --set preset=gke-autopilot \
-  --set ebpf.enabled=false
+  --set preset=gke-autopilot
 ```
 
 EKS Fargate では `--set preset=eks-fargate` を使います。
