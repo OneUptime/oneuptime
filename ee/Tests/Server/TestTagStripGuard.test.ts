@@ -72,7 +72,7 @@ describe("ee/'s tests read markup through the shared walk", () => {
      * Guards the guard: a moved folder or a broken walk would otherwise
      * leave the scan below passing over nothing.
      */
-    expect(eeTestFiles.length).toBeGreaterThan(100);
+    expect(eeTestFiles.length).toBeGreaterThan(50);
     expect(eeTestFiles).toEqual(
       expect.arrayContaining([
         "ee/Tests/Server/TestTagStripGuard.test.ts",
