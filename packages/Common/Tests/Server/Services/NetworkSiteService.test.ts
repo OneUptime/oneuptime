@@ -3989,33 +3989,63 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
     expect(superUpdateSpy).not.toHaveBeenCalled();
   });
 
-  it("turns the retention cron's open root query into a leaf-only ID batch", async () => {
-    const parentId: ObjectID = PARENT_SITE_ID;
-    const leafId: ObjectID = SITE_ID;
-    const retentionQuery: any = { deletedAt: { olderThanThirtyDays: true } };
-
-    jest
-      .spyOn(NetworkSiteService, "findBy")
+  /*
+   * The retention purge's reads (hardDeleteClosedLeafBatch), answered by
+   * what each asks: the child rows that name a candidate, or the candidates
+   * themselves - the cron's query, a page at a time. Every one of them is a
+   * read with the rows deleted before (DatabaseService._findBy's second
+   * argument), which the spy records.
+   */
+  function stubPurgeReads(data: {
+    candidates: Array<NetworkSite>;
+    children: Array<NetworkSite>;
+  }): jest.SpyInstance {
+    return jest
+      .spyOn(
+        NetworkSiteService as unknown as {
+          _findBy: (
+            findBy: any,
+            withDeleted?: boolean,
+          ) => Promise<Array<NetworkSite>>;
+        },
+        "_findBy",
+      )
       .mockImplementation(async (findBy: any) => {
         if (findBy.query?.parentSiteId) {
-          return [
-            fakeSite({
-              id: leafId,
-              _id: leafId.toString(),
-              parentSiteId: parentId,
-            }),
-          ];
+          return data.children;
         }
 
         if (findBy.skip > 0) {
           return [];
         }
 
-        return [
-          fakeSite({ id: parentId, _id: parentId.toString() }),
-          fakeSite({ id: leafId, _id: leafId.toString() }),
-        ];
+        return data.candidates;
       });
+  }
+
+  it("turns the retention cron's open root query into a leaf-only ID batch, read with the rows deleted before", async () => {
+    const parentId: ObjectID = PARENT_SITE_ID;
+    const leafId: ObjectID = SITE_ID;
+    const retentionQuery: any = { deletedAt: { olderThanThirtyDays: true } };
+
+    // findBy leaves deleted rows out: the purge, whose rows are all deleted, reads none through it.
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+    const purgeReadsSpy: jest.SpyInstance = stubPurgeReads({
+      candidates: [
+        fakeSite({ id: parentId, _id: parentId.toString() }),
+        fakeSite({ id: leafId, _id: leafId.toString() }),
+      ],
+      children: [
+        fakeSite({
+          id: leafId,
+          _id: leafId.toString(),
+          parentSiteId: parentId,
+        }),
+      ],
+    });
     const runExclusiveSpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteHierarchyLock, "runExclusive")
       .mockImplementation(runThroughLock as never);
@@ -4032,6 +4062,31 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
       } as DeleteBy<NetworkSite>),
     ).resolves.toBe(1);
 
+    expect(findBySpy).not.toHaveBeenCalled();
+
+    // The candidates: the cron's own query, deleted rows included.
+    const candidateRead: Array<any> = purgeReadsSpy.mock.calls[0]!;
+    expect(candidateRead[0].query).toBe(retentionQuery);
+    expect(candidateRead[0].props).toEqual({ isRoot: true });
+    expect(candidateRead[1]).toBe(true);
+
+    // The leaf check: every child row in the table, deleted rows included.
+    const childRead: Array<any> | undefined = purgeReadsSpy.mock.calls.find(
+      (call: Array<any>): boolean => {
+        return Boolean(call[0].query?.parentSiteId);
+      },
+    );
+    expect(childRead).toBeDefined();
+    expect(childRead![1]).toBe(true);
+    expect(
+      Object.values(childRead![0].query.parentSiteId.objectLiteralParameters)[0],
+    ).toEqual([parentId.toString(), leafId.toString()]);
+
+    // Every read the purge made counts the rows deleted before.
+    for (const call of purgeReadsSpy.mock.calls) {
+      expect(call[1]).toBe(true);
+    }
+
     expect(runExclusiveSpy).toHaveBeenCalledWith(
       expect.objectContaining({ projectIds: [PROJECT_ID] }),
     );
@@ -4042,5 +4097,150 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
     ).toEqual([leafId.toString()]);
     expect(closedDelete.limit).toBe(1);
     expect(closedDelete.skip).toBe(0);
+  });
+
+  it("keeps a deleted site that a child row still names, the child deleted too, and takes no lock", async () => {
+    // The child is no candidate (deleted too recently to purge), yet its row still names the parent.
+    stubPurgeReads({
+      candidates: [
+        fakeSite({ id: PARENT_SITE_ID, _id: PARENT_SITE_ID.toString() }),
+      ],
+      children: [
+        fakeSite({
+          id: SITE_ID,
+          _id: SITE_ID.toString(),
+          parentSiteId: PARENT_SITE_ID,
+          deletedAt: new Date(),
+        }),
+      ],
+    });
+    const runExclusiveSpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteHierarchyLock,
+      "runExclusive",
+    );
+    const superHardDeleteSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseService.prototype,
+      "hardDeleteBy",
+    );
+
+    // Nothing to purge: the cron's loop ends here instead of failing on the foreign key.
+    await expect(
+      NetworkSiteService.hardDeleteBy({
+        query: { deletedAt: { olderThanThirtyDays: true } } as any,
+        limit: 10_000,
+        skip: 0,
+        props: { isRoot: true },
+      } as DeleteBy<NetworkSite>),
+    ).resolves.toBe(0);
+
+    expect(runExclusiveSpy).not.toHaveBeenCalled();
+    expect(superHardDeleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("finds the leaves of later candidate pages, and purges up to its limit", async () => {
+    const leafIds: Array<ObjectID> = [1, 2, 3].map(
+      (index: number): ObjectID => {
+        return new ObjectID(
+          `dddddddd-dddd-4ddd-8ddd-${index.toString().padStart(12, "0")}`,
+        );
+      },
+    );
+    const purgeReadsSpy: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteService as unknown as {
+          _findBy: (
+            findBy: any,
+            withDeleted?: boolean,
+          ) => Promise<Array<NetworkSite>>;
+        },
+        "_findBy",
+      )
+      .mockImplementation(async (findBy: any) => {
+        if (findBy.query?.parentSiteId) {
+          return [];
+        }
+
+        // A page of one candidate at a time (the limit is 2, the page 2).
+        const candidates: Array<NetworkSite> = leafIds.map(
+          (id: ObjectID): NetworkSite => {
+            return fakeSite({ id, _id: id.toString() });
+          },
+        );
+
+        return candidates.slice(findBy.skip, findBy.skip + findBy.limit);
+      });
+    jest
+      .spyOn(NetworkSiteHierarchyLock, "runExclusive")
+      .mockImplementation(runThroughLock as never);
+    const superHardDeleteSpy: jest.SpyInstance = jest
+      .spyOn(DatabaseService.prototype, "hardDeleteBy")
+      .mockResolvedValue(2);
+
+    await expect(
+      NetworkSiteService.hardDeleteBy({
+        query: { deletedAt: { olderThanThirtyDays: true } } as any,
+        limit: 2,
+        skip: 0,
+        props: { isRoot: true },
+      } as DeleteBy<NetworkSite>),
+    ).resolves.toBe(2);
+
+    const closedDelete: any = superHardDeleteSpy.mock.calls[0]![0];
+    expect(
+      Object.values(closedDelete.query._id.objectLiteralParameters)[0],
+    ).toEqual([leafIds[0]!.toString(), leafIds[1]!.toString()]);
+    expect(closedDelete.limit).toBe(2);
+
+    for (const call of purgeReadsSpy.mock.calls) {
+      expect(call[1]).toBe(true);
+    }
+  });
+});
+
+describe("NetworkSiteService.findSitesNamingSiteTypes", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reads the sites that name the types, deleted sites included, in the window asked for", async () => {
+    const site: NetworkSite = fakeSite({
+      networkSiteTypeId: CHILD_SITE_TYPE_ID,
+    });
+    const readSpy: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteService as unknown as {
+          _findBy: (
+            findBy: any,
+            withDeleted?: boolean,
+          ) => Promise<Array<NetworkSite>>;
+        },
+        "_findBy",
+      )
+      .mockResolvedValue([site]);
+    const findBySpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "findBy",
+    );
+
+    await expect(
+      NetworkSiteService.findSitesNamingSiteTypes({
+        networkSiteTypeIds: [CHILD_SITE_TYPE_ID, ROOT_SITE_TYPE_ID],
+        limit: 1000,
+        skip: 2000,
+      }),
+    ).resolves.toEqual([site]);
+
+    expect(findBySpy).not.toHaveBeenCalled();
+    expect(readSpy).toHaveBeenCalledTimes(1);
+
+    const [read, withDeleted] = readSpy.mock.calls[0]! as [any, boolean];
+    expect(withDeleted).toBe(true);
+    expect(
+      Object.values(read.query.networkSiteTypeId.objectLiteralParameters)[0],
+    ).toEqual([CHILD_SITE_TYPE_ID.toString(), ROOT_SITE_TYPE_ID.toString()]);
+    expect(read.select).toEqual({ networkSiteTypeId: true });
+    expect(read.limit).toBe(1000);
+    expect(read.skip).toBe(2000);
+    expect(read.props).toEqual({ isRoot: true });
   });
 });

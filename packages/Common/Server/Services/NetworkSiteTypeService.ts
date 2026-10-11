@@ -231,9 +231,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The retention cron uses one root deletedAt query across all projects.
-     * Convert it to a closed batch of unused leaf types before locking. A
-     * parent and child can therefore never be split by the batch limit; once
-     * leaves are removed, the cron's next iteration can work upward.
+     * Convert it to a closed batch of unused leaf types before locking
+     * (hardDeleteClosedLeafBatch). A parent and child can therefore never be
+     * split by the batch limit; once leaves are removed, the cron's next
+     * iteration can work upward.
      */
     if (
       !NetworkSiteHierarchyLock.isSafeRootMutationScope({
@@ -287,6 +288,26 @@ export class Service extends ProjectReferencesService<Model> {
     return value ?? fallback;
   }
 
+  /*
+   * The retention cron's purge (HardDeleteItemsInDatabase): the site types
+   * deleted more than 30 days ago, in every project.
+   *
+   * Every read here counts the rows deleted before, as a hard delete's own
+   * reads do (findRowsAndHoldDeleteToThem): the types it purges are deleted
+   * rows by definition, and a plain findBy, which leaves deleted rows out,
+   * found none of them, so the purge never removed a site type. The in-use
+   * check counts them too: a child type or a site deleted before still
+   * names its type, and those foreign keys (parentNetworkSiteTypeId and
+   * NetworkSite.networkSiteTypeId, NO ACTION) would refuse the whole
+   * DELETE. So a type some row still names waits until that row is gone -
+   * the cron purges sites first - and a deleted type tree goes from the
+   * leaves up, one level a call. Every call that finds an unused type
+   * removes it, so the cron's loop ends once a call finds none.
+   *
+   * The types read are deleted by their ids inside the hierarchy lock, and
+   * the delete's hook holds the delete to the rows it reads of them
+   * (findRowsAndHoldDeleteToThem).
+   */
   private async hardDeleteClosedLeafBatch(
     deleteBy: DeleteBy<Model>,
   ): Promise<number> {
@@ -307,7 +328,7 @@ export class Service extends ProjectReferencesService<Model> {
     let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
 
     while (leafTypes.length < requestedLimit) {
-      const candidates: Array<Model> = await this.findBy({
+      const candidates: Array<Model> = await this.findByWithDeleted({
         query: deleteBy.query,
         select: { _id: true, projectId: true },
         sort: { _id: SortOrder.Ascending },
@@ -341,7 +362,8 @@ export class Service extends ProjectReferencesService<Model> {
         let childSkip: number = 0;
 
         while (candidateIdBatch.length > 0) {
-          const childTypes: Array<Model> = await this.findBy({
+          // Every child type row still in the table, the deleted ones included.
+          const childTypes: Array<Model> = await this.findByWithDeleted({
             query: {
               parentNetworkSiteTypeId: QueryHelper.any(candidateIdBatch),
             },
@@ -370,16 +392,13 @@ export class Service extends ProjectReferencesService<Model> {
         let siteSkip: number = 0;
 
         while (candidateIdBatch.length > 0) {
-          const sites: Array<NetworkSite> = await NetworkSiteService.findBy({
-            query: {
-              networkSiteTypeId: QueryHelper.any(candidateIdBatch),
-            },
-            select: { networkSiteTypeId: true },
-            sort: { _id: SortOrder.Ascending },
-            limit: REFERENCE_VALIDATION_BATCH_SIZE,
-            skip: siteSkip,
-            props: { isRoot: true },
-          });
+          // Every site row still in the table, the deleted ones included.
+          const sites: Array<NetworkSite> =
+            await NetworkSiteService.findSitesNamingSiteTypes({
+              networkSiteTypeIds: candidateIdBatch,
+              limit: REFERENCE_VALIDATION_BATCH_SIZE,
+              skip: siteSkip,
+            });
 
           for (const site of sites) {
             if (site.networkSiteTypeId) {
