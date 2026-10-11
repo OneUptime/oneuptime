@@ -1255,8 +1255,8 @@ describe("KubectlOutputRedactor", () => {
      * URL password in one - a YAML key in quotes, any key of JSON - went to
      * the model as it was. The seeded corpus of the test below found it
      * ("'+g.-ap://:%:-@@':" is a quoted key with nothing after its colon)
-     * once it drew every text it asked for. A quoted key is now read for
-     * inline material, as a free-text key always was.
+     * once it drew every text it asked for. A quoted key is still a name,
+     * read as one, but a URL password in it is masked.
      */
     it("masks a URL password inside a quoted key, and leaves a quoted key with nothing in it alone", () => {
       const result: KubectlOutputRedaction = redact(
@@ -1267,6 +1267,10 @@ describe("KubectlOutputRedactor", () => {
           '  "auth": "",',
           '"name": "web"',
           "'Image pull secrets': <none>",
+          // Names that look like base64 or a pair stay names.
+          '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
+          '"Path=": "/usr/bin",',
+          '"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U": 1',
         ),
       );
 
@@ -1278,6 +1282,9 @@ describe("KubectlOutputRedactor", () => {
           '  "auth": "",',
           '"name": "web"',
           "'Image pull secrets': <none>",
+          '"AppSettings2FeatureFlagsEnabledForTenant1": "true",',
+          '"Path=": "/usr/bin",',
+          '"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U": 1',
         ),
       );
       expect(result.redactionCount).toBe(3);

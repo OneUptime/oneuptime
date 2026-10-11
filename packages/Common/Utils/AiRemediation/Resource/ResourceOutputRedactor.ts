@@ -136,9 +136,7 @@ const KEY_VALUE_LINE_REGEX: RegExp =
  * An unquoted key with whitespace or `=` in it may be free text rather than
  * a name: "connecting DB_PASSWORD=hunter2 host: db" parses as the key
  * "connecting DB_PASSWORD=hunter2 host". Such a key is scanned for inline
- * material too, and so is a quoted key, which can hold anything - a colon
- * and "//" included, so a URL with its password:
- * "'postgres://app:hunter2@db': enabled".
+ * material too.
  */
 const FREE_TEXT_KEY_REGEX: RegExp = /[\s=]/;
 
@@ -436,8 +434,10 @@ interface ParsedLine {
   contentIndent: number;
   // The key of a "key: value" line, without quotes; absent otherwise.
   key?: string | undefined;
-  // A key that may be free text: quoted, or unquoted with whitespace or "=" in it.
+  // An unquoted key with whitespace or "=" in it, which may be free text.
   keyIsFreeText?: boolean | undefined;
+  // A quoted key, which can hold a colon and "//": a URL.
+  keyIsQuoted?: boolean | undefined;
   // Everything after the colon, trimmed; "" for "key:".
   value?: string | undefined;
   // Column in `raw` where the value text begins.
@@ -507,7 +507,8 @@ function parseLine(raw: string): ParsedLine {
     contentIndent,
     key,
     keyIsFreeText:
-      keyMatch[3] === undefined || FREE_TEXT_KEY_REGEX.test(keyMatch[3]),
+      keyMatch[3] !== undefined && FREE_TEXT_KEY_REGEX.test(keyMatch[3]),
+    keyIsQuoted: keyMatch[3] === undefined,
     value: raw.slice(valueStart).trim(),
     valueStart,
   };
@@ -616,10 +617,17 @@ function maskInlineValue(value: string): string {
 
 /*
  * The part of a `key: value` line before its value. A key that may be free
- * text gets the inline rules; an ordinary key is returned as it is.
+ * text gets the inline rules. A quoted key is a name, and is read as one -
+ * but it can hold a colon and "//", so a URL with its password
+ * ("'postgres://app:hunter2@db': enabled"), and that password is masked.
+ * An ordinary key is returned as it is.
  */
 function redactKeyPrefix(line: ParsedLine): { text: string; count: number } {
   const prefix: string = line.raw.slice(0, line.valueStart ?? 0);
+
+  if (line.keyIsQuoted) {
+    return maskUrlCredentials(prefix);
+  }
 
   if (!line.keyIsFreeText) {
     return { text: prefix, count: 0 };
@@ -1008,6 +1016,20 @@ function maskInlineJsonDataObjects(text: string): {
   return { text: result, count };
 }
 
+// scheme://user:password@host - the password only.
+function maskUrlCredentials(text: string): { text: string; count: number } {
+  let count: number = 0;
+  const masked: string = text.replace(
+    URL_CREDENTIAL_REGEX,
+    (_match: string, user: string): string => {
+      count++;
+      return `://${user}:${GENERIC_REDACTED_MARKER}@`;
+    },
+  );
+
+  return { text: masked, count };
+}
+
 // The rules that apply to any line regardless of its YAML/JSON structure.
 function applyInlineRules(text: string): { text: string; count: number } {
   let count: number = 0;
@@ -1021,13 +1043,7 @@ function applyInlineRules(text: string): { text: string; count: number } {
     count += masked.count;
   };
 
-  result = result.replace(
-    URL_CREDENTIAL_REGEX,
-    (_match: string, user: string): string => {
-      count++;
-      return `://${user}:${GENERIC_REDACTED_MARKER}@`;
-    },
-  );
+  apply(maskUrlCredentials(result));
 
   for (const tokenRegex of [BEARER_TOKEN_REGEX, BASIC_TOKEN_REGEX]) {
     apply(maskAuthorizationTokens(result, tokenRegex));
