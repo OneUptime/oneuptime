@@ -154,7 +154,7 @@ return {
 };
 ```
 
-Una ejecución conserva hasta 20 capturas de pantalla, cada una de hasta 10 MB y 50 MB en total. Una captura también puede mostrarse en el incidente o la alerta que abre una ejecución fallida (en su página y en los correos sobre ella) si la coloca en la descripción de incidente o de alerta del monitor. Consulte [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#monitores-sintéticos).
+Una ejecución conserva hasta 20 capturas de pantalla, cada una de hasta 10 MB y 50 MB en total. Una captura también puede mostrarse en el incidente o la alerta que abre una ejecución fallida (en su página y en los correos sobre ella) si la coloca en la descripción de incidente o de alerta del monitor. Consulte [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#mostrar-una-captura-de-pantalla).
 
 :::details Devolver capturas de pantalla (método heredado)
 Por compatibilidad con versiones anteriores, también puede devolver capturas de pantalla desde el script como parte del valor de retorno. Las capturas devueltas así **solo** se conservan cuando el script termina con normalidad: se pierden si el script lanza un error. Prefiera el canal lateral descrito arriba cuando quiera pruebas de los fallos.
@@ -295,6 +295,6 @@ La sonda se está ejecutando fuera de su imagen Docker, sin Chromium ni Firefox 
 
 :::cards
 - [Monitor de código personalizado](/docs/monitor/custom-code-monitor): Compruebe API con un script, sin navegador.
-- [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#monitores-sintéticos): Ponga la captura de la ejecución fallida en el incidente.
+- [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#mostrar-una-captura-de-pantalla): Ponga la captura de la ejecución fallida en el incidente.
 - [Secretos del monitor](/docs/monitor/monitor-secrets): Mantenga las credenciales fuera de su script.
 :::
