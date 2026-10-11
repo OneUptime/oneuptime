@@ -97,6 +97,15 @@ const BRAND_TITLES: Array<string> = [
 
 const SHIPPER_PAGES: Array<string> = [SERILOG, FLUENT_BIT, FLUENTD, SYSLOG];
 
+// Tab labels that name a tool or a file, which no language translates.
+const TOOL_TABS: Array<string> = [
+  "curl",
+  "Node.js",
+  "Python",
+  "appsettings.json",
+  "ASP.NET Core",
+];
+
 interface TemplateLabel {
   english: string;
   // The locale key the screen draws it from.
@@ -776,6 +785,63 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(detailsCount(translated)).toBe(detailsCount(english));
       expect(tableShape(translated)).toEqual(tableShape(english));
       expect(listItemCount(translated)).toBe(listItemCount(english));
+    });
+
+    /*
+     * A tab named after a tool or a file keeps its name, so a reader's pick
+     * carries over to every page with the same tab (the docs remember it by
+     * label).
+     */
+    it("keeps the tabs named after a tool or a file as they are named", () => {
+      const tabsOf: (markdown: string) => Array<Array<string>> = (
+        markdown: string,
+      ): Array<Array<string>> => {
+        return scanMarkdown(markdown)
+          .containers.filter((container: { name: string }): boolean => {
+            return container.name === "tabs";
+          })
+          .map((container: { tabs: Array<string> }): Array<string> => {
+            return container.tabs;
+          });
+      };
+      const englishTabs: Array<Array<string>> = tabsOf(english);
+      const translatedTabs: Array<Array<string>> = tabsOf(
+        readPage(language, entry.page),
+      );
+
+      expect(translatedTabs.length).toBe(englishTabs.length);
+
+      englishTabs.forEach((labels: Array<string>, index: number): void => {
+        expect(
+          (translatedTabs[index] || []).filter(
+            (_label: string, at: number): boolean => {
+              return TOOL_TABS.includes(labels[at] as string);
+            },
+          ),
+        ).toEqual(
+          labels.filter((label: string): boolean => {
+            return TOOL_TABS.includes(label);
+          }),
+        );
+      });
+    });
+
+    /*
+     * A step heading and a section heading can translate to the same words
+     * ("Configurer le sink" twice) and then share one anchor.
+     */
+    it("gives every heading an anchor of its own", () => {
+      const slugs: Array<string> = sections(readPage(language, entry.page)).map(
+        (heading: DocsHeading): string => {
+          return heading.slug;
+        },
+      );
+
+      expect(
+        slugs.filter((slug: string, index: number): boolean => {
+          return slugs.indexOf(slug) !== index;
+        }),
+      ).toEqual([]);
     });
 
     it("writes its cards with an ASCII ': ' after the link, to the English cards' pages", () => {
