@@ -185,6 +185,8 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           ["attachment elements that never close", repeatTo('<attachment id="1">')],
           ["attachment start tags with no '>'", repeatTo("<attachment ")],
           ["attachment elements", repeatTo('<attachment id="1"></attachment>')],
+          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
+          ["a hexadecimal reference's digits", "<p>&#x" + repeatTo("a") + "</p>"],
         ];
 
         const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
@@ -244,8 +246,8 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
   });
 
   test("the Teams reader of a pinned message reads every shape, each in well under a second", () => {
-    // A megabyte of each shape: the ten above, and five a Teams message can take.
-    expect(report.teamsMessages).toHaveLength(15);
+    // A megabyte of each shape: the ten above, and seven a Teams message can take.
+    expect(report.teamsMessages).toHaveLength(17);
 
     for (const { shape, read, ms } of report.teamsMessages) {
       expect({ shape, read, fast: ms < TEAMS_READ_LIMIT_IN_MS }).toEqual({

@@ -82,8 +82,8 @@ export enum MicrosoftTeamsReactionOutcome {
  * An element runs from its start tag's first ">" to the first end tag after
  * it (withoutAttachmentElements).
  */
-const TEAMS_ATTACHMENT_START: RegExp = /<attachment\b/gi;
-const TEAMS_ATTACHMENT_END: RegExp = /<\/attachment>/gi;
+const TEAMS_ATTACHMENT_START: RegExp = /<attachment\b/i;
+const TEAMS_ATTACHMENT_END: RegExp = /<\/attachment>/i;
 const TEAMS_ATTACHMENT_END_LENGTH: number = "</attachment>".length;
 
 export type WithoutAttachmentElementsFunction = (html: string) => string;
@@ -98,14 +98,15 @@ export type WithoutAttachmentElementsFunction = (html: string) => string;
  * An element is a start tag, everything up to its first ">", and everything
  * up to the first end tag after that. The end tags are found once. When a
  * start tag has no ">" or no end tag after it, no later one has either, so
- * the rest of the HTML stays as it is.
+ * the rest of the HTML stays as it is. Each call searches with patterns of
+ * its own, so no search starts where another one left off.
  */
 export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
   html: string,
 ): string => {
   const ends: Array<number> = [];
 
-  for (const end of html.matchAll(TEAMS_ATTACHMENT_END)) {
+  for (const end of html.matchAll(new RegExp(TEAMS_ATTACHMENT_END, "gi"))) {
     ends.push(end.index);
   }
 
@@ -113,7 +114,7 @@ export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
   let at: number = 0;
   let nextEnd: number = 0;
 
-  for (const start of html.matchAll(TEAMS_ATTACHMENT_START)) {
+  for (const start of html.matchAll(new RegExp(TEAMS_ATTACHMENT_START, "gi"))) {
     // A start tag inside an element already taken out is part of it.
     if (start.index < at) {
       continue;
@@ -1030,10 +1031,14 @@ export default class MicrosoftTeamsReactionNoteSync {
    * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
    * keeps; getMessageText then places it as text for the note.
    *
-   * Every step reads the message once: the attachments and the spaces
-   * before line ends are found with loops (withoutAttachmentElements,
-   * withoutSpaceBeforeLineEnds), not with patterns that start again from
-   * every place a match could start.
+   * Every step takes time that grows with the message's length alone. The
+   * attachments and the spaces before line ends are found with loops
+   * (withoutAttachmentElements, withoutSpaceBeforeLineEnds), where patterns
+   * started again from every place a match could start. The patterns left -
+   * entities, numeric references, runs of line breaks - each match where
+   * they start or not at all. MarkupReadersInLongRunningProcess.test.ts
+   * reads a megabyte of every shape in a process that compiles patterns
+   * unoptimized, numeric references and line breaks included.
    */
   public static htmlToText(html: string): string {
     if (!html) {

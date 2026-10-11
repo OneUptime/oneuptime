@@ -1057,8 +1057,9 @@ const isLinked = (labels) => (Array.isArray(labels) ? labels : []).some((label) 
 });
 // https://your-company.atlassian.net, read off an issue's own REST URL: the scheme, the host and a
 // port, and nothing else. The URL comes with the event, so an issue's link can only ever go to a
-// site, and nothing else written into the address can act.
-const SITE = /^https?:\/\/[A-Za-z0-9._-]+(?::[0-9]{1,5})?(?=\/|$)/;
+// site, and nothing else written into the address can act. A host is letters, marks and digits in
+// any script, ".", "-", "_" and "~", or an IPv6 address in brackets.
+const SITE = /^https?:\/\/(?:[\p{L}\p{M}\p{N}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?(?=\/|$)/u;
 const siteOf = (self) => {
   const match = asText(self).match(SITE);
   return match ? match[0] : '';
@@ -1557,15 +1558,15 @@ if (Number(target.order) <= Number(current.order)) {
   return skip(number + ' is already ' + (oneLine(current.name) || 'past that state') + ', so Jira issue ' + asText(event.issueKey) + ' moving to ' + jiraStatus + ' changes nothing.');
 }
 
-// The issue, its status's name and the name of whoever moved it came from Jira, so they are placed
-// as written (asWritten).
+// The status's name and the name of whoever moved the issue are Jira's text, placed as written
+// (asWritten). The issue key matched ISSUE_KEY when the event was read.
 const changedBy = oneLine(event.changedBy);
 return {
   proceed: true,
   ${r}Id: asText(${r}._id),
   stateId: asText(target._id),
   stateName: oneLine(target.name),
-  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asWritten(asText(event.issueKey)) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
+  rootCause: limit(defuse(FROM_JIRA + ': issue ' + asText(event.issueKey) + ' moved to ' + asWritten(jiraStatus) + (changedBy ? ' by ' + asWritten(changedBy) : '') + '.'), 1000),
 };
 `,
   );
@@ -4402,7 +4403,7 @@ return {
   caseNumber: defuse(caseNumber),
   severityName: oneLine(severity.name),
   ${kind.severityIdColumn}: asText(severity._id),
-  title: limit(defuse(asWritten(oneLine(row.title) || 'Dynamics 365 case ' + caseNumber)), 500),
+  title: limit(defuse(asWritten(oneLine(row.title)) || 'Dynamics 365 case ' + asWritten(caseNumber)), 500),
   description: limit(defuse(lines.join('\n')), 20000),
 };
 `,

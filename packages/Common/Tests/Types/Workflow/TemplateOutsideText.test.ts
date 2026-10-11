@@ -1937,6 +1937,21 @@ describe("the link to a Jira issue", () => {
       "http://jira_dev.corp:8080/rest/api/2/issue/10040",
       "http://jira_dev.corp:8080",
     ],
+    [
+      "an IPv6 address",
+      "http://[2001:db8::1]:8443/rest/api/2/issue/10040",
+      "http://[2001:db8::1]:8443",
+    ],
+    [
+      "a host written in another script",
+      "https://jira.bücher.example/rest/api/2/issue/10040",
+      "https://jira.bücher.example",
+    ],
+    [
+      "a host whose letters carry marks",
+      "https://jira.भारत.example/rest/api/2/issue/10040",
+      "https://jira.भारत.example",
+    ],
   ])(
     "%s: links the issue at its site",
     async (_case: string, self: string, site: string) => {
@@ -1984,6 +1999,15 @@ describe("the link to a Jira issue", () => {
     ["a line break", "https://acme.atlassian.net\n/rest/api/2/issue/10040"],
     ["another scheme", "javascript:alert(1)//acme.atlassian.net/rest"],
     ["no host", "https:///rest/api/2/issue/10040"],
+    [
+      "a right-to-left override in the host",
+      `https://acme${String.fromCharCode(0x202e)}ten.naissalta/rest/api/2/issue/10040`,
+    ],
+    [
+      "a no-break space in the host",
+      `https://acme${String.fromCharCode(0xa0)}.atlassian.net/rest/api/2/issue/10040`,
+    ],
+    ["an unclosed IPv6 address", "http://[2001:db8::1/rest/api/2/issue/10040"],
   ])(
     "%s: names the issue without a link",
     async (_case: string, self: string) => {
