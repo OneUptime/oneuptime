@@ -287,7 +287,13 @@ const PLANS: Array<string> = ["Growth", "Scale"];
 const PRODUCT_TEXT_IN_ENGLISH: Record<string, Array<string>> = {
   [SSO]: ["Admin"],
   [GLOBAL_SSO]: ["Admin"],
-  [SCIM]: ["OneUptime Cloud", "Microsoft Entra ID", "Okta", "SCIM Base URL", "Bearer Token"],
+  [SCIM]: [
+    "OneUptime Cloud",
+    "Microsoft Entra ID",
+    "Okta",
+    "SCIM Base URL",
+    "Bearer Token",
+  ],
   [IP_ADDRESSES]: ["No IP addresses configured."],
 };
 
@@ -536,7 +542,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     ':::details "You are not a member of any project on this OneUptime instance"',
     ':::details "Issuer URL does not match"',
     '"Another change to who can sign in with SSO is being saved. Try again in a moment."',
-    "\"The server's SSO settings are being changed. Create the project again in a moment.\"",
+    '"The server\'s SSO settings are being changed. Create the project again in a moment."',
   ],
 };
 
@@ -552,7 +558,7 @@ const NUMBERS: Record<string, Array<string>> = {
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const DIALOG_COLON: RegExp = /\s*[:：]\s*$/;
 const NUMBER: RegExp = /\d+/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 // A prose line that opens a bold or code span and never closes it.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 
@@ -598,7 +604,11 @@ function appLocale(app: string, language: string): Record<string, unknown> {
 
   const file: string =
     app === "Docs"
-      ? path.join(PACKAGES_DIR, "App/FeatureSet/Docs/Locales", `${language}.json`)
+      ? path.join(
+          PACKAGES_DIR,
+          "App/FeatureSet/Docs/Locales",
+          `${language}.json`,
+        )
       : path.join(
           PACKAGES_DIR,
           `App/FeatureSet/${app}/src/Locales`,
@@ -665,7 +675,10 @@ function isPermissionOrRole(name: string): boolean {
   );
 }
 
-function listed(lists: Record<string, Array<string>>, page: string): Array<string> {
+function listed(
+  lists: Record<string, Array<string>>,
+  page: string,
+): Array<string> {
   return lists[page] || [];
 }
 
@@ -991,7 +1004,12 @@ describe("the lists this test keeps", () => {
     );
 
     // Translated there: these are the labels a translation names in its language.
-    for (const label of ["Name", "Enabled", "More fields", "Require SSO for Login"]) {
+    for (const label of [
+      "Name",
+      "Enabled",
+      "More fields",
+      "Require SSO for Login",
+    ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
         inLocale: label,
@@ -1369,17 +1387,19 @@ describe("the helpers, on these pages' shapes", () => {
     expect(dialogLabel("ja", "Identifier (Entity ID):")).toBe(
       "識別子（エンティティ ID）",
     );
-    expect(shortDialogLabel("de", "Reply URL (Assertion Consumer Service URL):")).toBe(
-      "Antwort-URL",
-    );
-    expect(shortDialogLabel("ja", "Reply URL (Assertion Consumer Service URL):")).toBe(
-      "応答 URL",
-    );
+    expect(
+      shortDialogLabel("de", "Reply URL (Assertion Consumer Service URL):"),
+    ).toBe("Antwort-URL");
+    expect(
+      shortDialogLabel("ja", "Reply URL (Assertion Consumer Service URL):"),
+    ).toBe("応答 URL");
   });
 
   it("read numbers in any digits, without thousands separators", () => {
     expect(
-      Array.from(statedNumbers("Bis zu 1.000 Operationen, ۴۰ دقیقه, 1,000 and 1 000.")),
+      Array.from(
+        statedNumbers("Bis zu 1.000 Operationen, ۴۰ دقیقه, 1,000 and 1 000."),
+      ),
     ).toEqual(["1000", "40"]);
   });
 
