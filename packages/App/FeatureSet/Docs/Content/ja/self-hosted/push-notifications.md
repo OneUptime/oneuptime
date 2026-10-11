@@ -1,69 +1,206 @@
 # プッシュ通知
 
-ネイティブのプッシュ通知（iOS/Android）は **Expo Push** を使用します。セルフホスト環境では既定で OneUptime のプッシュリレーを使用し、リレーへのアウトバウンドアクセスが必要です。
+OneUptime は、スマートフォンでは **OneUptime On-Call** モバイルアプリを通じて、ブラウザーでは Web Push を通じて人を呼び出します。モバイルのプッシュは **Expo Push** で配信されます。セルフホストのインスタンスは既定で OneUptime のプッシュリレーを経由して送信するため、リレーへの外向きのネットワークアクセスがあればよく、Expo、Apple、Google の独自の認証情報は不要です。
+
+:::cards
+- [プッシュの送信方法を選ぶ](#セルフホストの設定): プッシュリレー、または独自の Expo アクセストークン。
+- [ファイアウォールを開ける](#ネットワークアクセス): サーバーと利用者のデバイスが到達するアドレス。
+- [サイレントモードでも鳴らす](#重大なオンコールアラート-サイレントモードを上書き): 消音中のスマートフォンでもオンコールの呼び出しを鳴らします。
+- [届かないプッシュを直す](#トラブルシューティング): Expo の各エラーの意味。
+:::
 
 ## 仕組み
 
-OneUptime モバイルアプリは Expo Push Token をバックエンドに登録します。バックエンドは OneUptime リレー経由で通知を送信し、`EXPO_ACCESS_TOKEN` を設定した場合は Expo に直接送信します。Expo が Apple APNs または Google FCM に転送し、デバイスに配信します。
+```mermaid title="プッシュがスマートフォンやブラウザーに届くまで"
+flowchart TB
+    Server["あなたの OneUptime サーバー"]
+    Relay["OneUptime のプッシュリレー"]
+    Expo["Expo Push"]
+    APNs["Apple APNs"]
+    FCM["Google FCM"]
+    Phone["OneUptime On-Call アプリ"]
+    PushService["ブラウザーの<br/>プッシュサービス"]
+    Browser["ブラウザー"]
+    Server -->|"EXPO_ACCESS_TOKEN なし"| Relay
+    Server -->|"EXPO_ACCESS_TOKEN あり"| Expo
+    Relay --> Expo
+    Expo --> APNs
+    Expo --> FCM
+    APNs --> Phone
+    FCM --> Phone
+    Server -->|"Web Push (VAPID)"| PushService
+    PushService --> Browser
+```
 
-ウェブプッシュ通知はVAPIDキーとウェブプッシュプロトコルを使用し続けます。
+OneUptime のモバイルアプリは、Expo Push トークンをバックエンドに登録します。バックエンドは OneUptime のプッシュリレーを経由して通知を送信し、`EXPO_ACCESS_TOKEN` が設定されている場合は Expo に直接送信します。Expo はメッセージを Apple APNs または Google FCM に転送し、デバイスに届けます。
 
-## セルフホストのセットアップ
+Web のプッシュ通知は引き続き VAPID キーと Web Push プロトコルを使います。
 
-公式モバイルアプリと既定のリレーを使う場合、サーバーに Expo 認証情報は不要です。直接配信する場合は、アプリの Expo プロジェクトに適した認証情報を `EXPO_ACCESS_TOKEN` に設定します。Web Push には `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT` が必要です。
+## セルフホストの設定
+
+公式のモバイルアプリと既定のリレーを使う場合、サーバーに Expo の認証情報は不要です。Expo から直接配信するには、アプリの Expo プロジェクトに合った認証情報で `EXPO_ACCESS_TOKEN` を設定します。Web Push には `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT` が必要です。
+
+| 変数 | Helm の値 | 既定値 | 役割 |
+| --- | --- | --- | --- |
+| `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | `EXPO_ACCESS_TOKEN` が未設定の間、モバイルのプッシュを送る先。 |
+| `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 空 | Expo プロジェクトのトークンを使い、モバイルのプッシュを Expo に直接送ります。 |
+| `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 空 | ブラウザーが購読に使うキーペアの公開側。 |
+| `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 空 | すべての Web Push に署名する秘密側。 |
+| `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | ブラウザーのプッシュサービスがあなたに連絡できる連絡先アドレス。 |
+
+VAPID のキーペアは `npx web-push generate-vapid-keys` で一度だけ生成し、保管してください。あるキーペアで購読したブラウザーは、キーペアが変わるとプッシュを受け取れなくなります。
+
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
+VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+VAPID_SUBJECT=mailto:oncall@example.com
+# Leave unset to send mobile pushes through the push relay.
+EXPO_ACCESS_TOKEN=
+```
+@tab Kubernetes
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  privateKey: your-private-key
+  subject: mailto:oncall@example.com
+# Leave empty to send mobile pushes through the push relay.
+expo:
+  accessToken:
+```
+:::
 
 ## ネットワークアクセス
 
-| 方向 | 宛先 | プロトコル / ポート | 必要な場合 |
+| 方向 | 宛先 | プロトコル / ポート | 必要になる場合 |
 | --- | --- | --- | --- |
-| OneUptime → 既定のリレー | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` 未設定のモバイルプッシュ。 |
-| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` 設定済みの直接モバイルプッシュ。 |
-| OneUptime → ブラウザーのプッシュサービス | プッシュ購読内の HTTPS エンドポイント | HTTPS / 通常 TCP 443 | Web Push。 |
-| モバイルアプリまたはブラウザー → OneUptime | OneUptime のホスト名 | HTTPS / TCP 443 | ログイン、デバイス登録、通知リンクを開く操作。 |
+| OneUptime → 既定のプッシュリレー | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` が未設定のときのモバイルのプッシュ。 |
+| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | `EXPO_ACCESS_TOKEN` が設定されているときの直接のモバイルのプッシュ。 |
+| OneUptime → ブラウザーのプッシュサービス | ブラウザーのプッシュ購読に保存された HTTPS エンドポイント | HTTPS / 通常は TCP 443 | Web Push。 |
+| モバイルアプリまたはブラウザー → OneUptime | あなたの OneUptime のホスト名 | HTTPS / TCP 443 | サインイン、デバイスの登録、通知リンクを開く操作。 |
 
-`PUSH_NOTIFICATION_RELAY_URL` を変更した場合は、その宛先ホストと設定ポートを許可します。独自リレーは OneUptime のリレー API を実装する必要があります。既定値と配信方式の切り替えは [OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)と[プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)、直接接続先は [Expo の送信手順](https://docs.expo.dev/push-notifications/sending-notifications/)を参照してください。OneUptime は、`/send` を `/receipts` に置き換えた同じアドレスでリレーから配信レシートを読み取ります。このルートがないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスは、そのデバイスへの後続のプッシュが拒否されたときに初めて検出されます。
+`PUSH_NOTIFICATION_RELAY_URL` を変更する場合は、その宛先のホスト名と設定したポートを許可してください。独自のリレーは OneUptime のリレー API を実装する必要があります。これらの既定値と、リレーと直接配信の切り替えは、[OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) と [プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) で定義されています。Expo への直接のリクエストは、[Expo の送信ガイド](https://docs.expo.dev/push-notifications/sending-notifications/) に記載されたエンドポイントを使います。OneUptime は、`/send` の代わりに `/receipts` を付けた同じアドレスで、リレーから配信の受領確認を読み取ります。このルートを持たないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスに気づくのは、以後そのデバイスへのプッシュが拒否されたときだけです。
 
-Web Push では使用するブラウザーの実際の購読先ホストを許可します。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` とそのサブドメインを受け付けます。例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。[ブラウザーの購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)が宛先を指定するため、Expo やリレーだけの許可では Web Push は動作しません。
+Web Push では、チームが使うブラウザーの実際の購読エンドポイントのホストを許可してください。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` を、それぞれのサブドメインも含めて受け付けます。典型的な例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。宛先は [ブラウザーのプッシュ購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) が提供します。Expo や OneUptime のリレーだけを許可しても Web Push は有効になりません。
 
-通知を送信する OneUptime プロセスからの DNS とアウトバウンド TLS を許可してください。信頼ストアで宛先証明書を検証でき、プロキシが対話的認証なしで API 要求を転送する必要があります。プッシュ提供元が OneUptime の Webhook を呼ぶことはありません。デバイスから VPN などのプライベート接続で到達できれば、サーバーは非公開のまま運用できます。リレーや外部プッシュサービスに接続できないサーバーは配信できません。
+通知を送信する OneUptime のプロセスから、DNS の名前解決と外向きの TLS を許可してください。そのトラストストアは宛先の証明書を検証できる必要があり、プロキシは対話的な認証なしで API リクエストを通す必要があります。プッシュのプロバイダーが OneUptime サーバーの Webhook を呼び出すことはないため、利用者のデバイスが VPN などのプライベート接続でアクセスできるなら、サーバーはプライベートのままで構いません。リレーや外部のプッシュサービスにアクセスできないサーバーは、これらの通知を配信できません。
 
-デバイス側の接続も必要です。iOS は通常 TCP 5223、フォールバックで TCP 443 を使って APNs に接続します。最新の宛先範囲は [Apple](https://support.apple.com/en-us/102266)を参照してください。Android は TCP 5228–5230 と 443 で FCM に接続します。最新ホストと規則は [Google](https://firebase.google.com/docs/cloud-messaging/network-configuration)を参照してください。これらのデバイスポートを OneUptime のインバウンドで開く必要はありません。サーバーのモバイル配信は APNs/FCM への直接接続ではなく、リレーまたは Expo を使用します。
+デバイスの接続性は別の要件です。iOS のデバイスには APNs へのアクセスが必要で、通常は TCP 5223、フォールバックとして TCP 443 を使います。宛先の範囲は [Apple の最新のネットワーク要件](https://support.apple.com/en-us/102266) を参照してください。Android のデバイスには TCP 5228–5230 と 443 で FCM へのアクセスが必要です。[Google の最新のホストとファイアウォールのガイダンス](https://firebase.google.com/docs/cloud-messaging/network-configuration) を使ってください。これらのデバイスのポートを OneUptime で受信用に開く必要はなく、サーバー側のモバイル配信は APNs/FCM に直接接続するのではなく、リレーまたは Expo を使います。
 
-送信元のコンテナまたは Pod から、選択した配信方式の宛先への DNS と HTTPS を確認します。**User Settings > Notification Methods > Push** からテスト送信し、登録済みデバイスで受信を確認してください。Web Push はブラウザーごとにテストします。OneUptime ログでリレー、Expo、web-push のエラーを確認してください。API での受付成功だけではデバイスへの配信を確認できません。モバイルプッシュについては、OneUptime は各プッシュの約 15 分後に Expo の配信レシートも読み取ります。デバイスに届かなかったプッシュは、プッシュログと、オンコール通知の場合はオンコールのタイムラインに、未配信として表示されます。
+:::steps
+1. 通知を送信するコンテナーまたは Pod から、配信方式の宛先 (リレー、Expo、ブラウザーのプッシュサービス) への DNS と HTTPS を確認します。
+2. **ユーザー設定 > 通知方法 > プッシュ通知** から **テスト通知** でテストを送り、登録済みのデバイスに届くことを確認します。Web Push はブラウザーごとに個別にテストします。
+3. OneUptime のログでリレー、Expo、Web Push のエラーを確認します。API への送信に成功しただけでは、デバイスへの配信は確認できません。
+:::
+
+モバイルのプッシュについては、OneUptime は各プッシュの約 15 分後に Expo の配信の受領確認も読み取ります。デバイスに届かなかったプッシュは、プッシュのログで未配信と表示され、オンコールの呼び出しであればオンコールのタイムラインにも表示されます。
+
+## 重大なオンコールアラート (サイレントモードを上書き)
+
+既定では、プッシュ通知は端末の設定に従います。サイレントのスマートフォンは鳴らず、おやすみモードは通知を保留します。オンコール担当者にとって午前 3 時にこれは誤った既定値なので、モバイルアプリにはデバイスごとの設定 **Settings > Notifications > Critical On-Call Alerts** があり、*オンコールの呼び出しだけ* がその両方を越えて音を鳴らせるようにします。
+
+対象は意図的に狭くしています。対象になるのは、オンコールの通知ルールが生成した呼び出しだけです。オーナーの購読、メモ投稿のお知らせ、状態変更の更新、モニターの通知は、この設定がどうであっても決して昇格しません。
+
+```mermaid title="オンコールの呼び出しがサイレントモードを越えて鳴るとき"
+flowchart TB
+    Page["オンコールの呼び出し"]
+    Device{"このデバイスで Critical On-Call<br/>Alerts がオンか？"}
+    OS{"スマートフォンのシステムが<br/>重大なアラートを許可しているか？"}
+    Loud["サイレントモードとおやすみモードを<br/>越えて音を鳴らす"]
+    Quiet["ほかのプッシュと同じく<br/>静かに配信"]
+    Page --> Device
+    Device -->|"はい"| OS
+    Device -->|"いいえ"| Quiet
+    OS -->|"はい"| Loud
+    OS -->|"いいえ"| Quiet
+```
+
+呼び出しがサイレントモードを上書きするには、次の 3 つがすべて満たされている必要があります。1 つでも欠けていれば、呼び出しは配信されますが、静かに届きます。
+
+1. **担当者がそのデバイスでオンにしている。** デバイスごとに `UserPush.isCriticalAlertEnabled` に保存され、既定ではオフです。同じ人のスマートフォンとタブレットは別々に決めます。
+2. **サーバーが呼び出しを重大とマークする。** iOS には APNs の重大なサウンドのペイロードと `interruptionLevel: critical` を送り、Android には通知チャンネル `oncall_critical` を指定します。
+3. **オペレーティングシステムが許可している**。ここが 2 つのプラットフォームで異なる点です。
+
+:::tabs
+@tab iOS
+iOS の重大なアラートには `com.apple.developer.usernotifications.critical-alerts` エンタイトルメントが必要です。Apple は、緊急の出来事を人に知らせるアプリに対して、申請に応じて開発者アカウントごとにこれを付与します。[Apple の Critical Alerts 申請フォーム](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/) から申請してください。
+
+App Store の公式アプリ **OneUptime On-Call** は、**バージョン 1.5.0** からこのエンタイトルメントを持っています。それより前のバージョンは持っておらず、iOS が重大なアラートを提供することはないため、設定をオンにする前にアプリを更新してください。
+
+アプリを自分でビルドする場合、エンタイトルメントは任意です。プロビジョニングプロファイルはチームに付与されていないエンタイトルメントを持てず、持てないエンタイトルメントを宣言したビルドは **署名に失敗します**。これをオンにしているのは `packages/MobileApp/eas.json` の `production` プロファイルだけで、Apple が公式アプリを公開するチームに付与しているためです。独自の Apple チームで署名するフォークは、Apple がそのチームにもエンタイトルメントを付与するまで、その `env` エントリーを削除する必要があります。付与されたら、ビルド時にオンにします。
+
+```bash
+EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
+```
+
+または、`packages/MobileApp/eas.json` のビルドプロファイルの `env` ブロックに `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` を追加します。
+
+デバイスでは、アプリの **Settings > Notifications > Critical On-Call Alerts** をオンにし、iOS に尋ねられたら重大なアラートを許可します。iOS の設定の **Settings > Notifications > OneUptime On-Call** にアプリ用の **Critical Alerts** スイッチが追加されるのは、アプリが許可を求めた後だけです。そのため、アプリで設定をオンにする前はこのスイッチはありません。確認を拒否した場合でも、後から iOS の設定のこのスイッチで重大なアラートを許可できます。
+
+エンタイトルメントのないビルドでは、iOS は確認もスイッチも表示せず、アプリの設定画面には、このバージョンのアプリは重大なアラートを受け取れないと表示されます。iOS が表示していないスイッチを探しに行くよう担当者を促すことはありません。
+@tab Android
+Android にはベンダーの承認手続きはありませんが、おやすみモードの回避は、アプリ内の確認ではなくシステムの画面で利用者が許可します。担当者が設定をオンにすると、アプリが **Settings > Notifications > Do Not Disturb access** を開き、戻ってきたときに改めて確認します。
+
+2 つの仕組みが働き、それぞれ別のケースをカバーします。
+
+- 通知チャンネル `oncall_critical` は `bypassDnd` を要求します。これはおやすみモードをカバーし、上記のアクセスが必要です。
+- 同じチャンネルは **アラーム** のオーディオストリームを使います。着信音を消音しただけのスマートフォンでも聞こえます。こちらには許可は一切必要ありません。
+
+Android はチャンネルを初めて作成したときにその設定を固定するため、アプリの更新では変更できず、新しいチャンネル ID を出すしかありません。
+:::
+
+動作を確認するには、**ユーザー設定 > 通知方法 > プッシュ通知** からデバイスにテスト通知を送ります。デバイスで重大なアラートが有効になっていれば、テストも重大なアラートとして送られます。先にスマートフォンを消音しておけば、本物の呼び出しが届くかどうかを耳で確かめられます。
 
 ## トラブルシューティング
 
-### プッシュ通知が届かない場合
+### プッシュ通知が届かない
 
-- モバイルアプリがEAS Build（Expo Go）でビルドされていることを確認してください（Expo GoはプッシュBENachrichtigungen通知をサポートしていません）
-- デバイスがデータベースの `UserPush` テーブルに登録されているか確認してください
-- Expo Push APIのエラーについてOneUptimeサーバーログを確認してください
-- デバイスがアクティブなインターネット接続を持ち、通知権限が有効になっていることを確認してください
-- **User Settings > Notification Methods > Push** を確認してください。**通知を受信していません** と表示されているデバイスは通知を受信しなくなっており、もう一度登録する必要があります(下記を参照)
+- モバイルアプリが EAS Build でビルドされていることを確認します (Expo Go はプッシュ通知に対応していません)
+- デバイスがデータベースの `UserPush` テーブルに登録されていることを確認します
+- OneUptime サーバーのログで Expo Push API のエラーを確認します
+- デバイスがインターネットに接続されていて、通知の許可が有効になっていることを確認します
+- **ユーザー設定 > 通知方法 > プッシュ通知** を確認します。**通知を受信していません** と表示されたデバイスは受信を停止しており、再登録が必要です (下記参照)
+
+### iOS の設定に Critical Alerts スイッチがない
+
+- App Store から OneUptime On-Call を更新します。1.5.0 より前のバージョンは Apple の重大なアラートのエンタイトルメントなしでビルドされており、iOS はそれらに Critical Alerts スイッチをまったく表示しません
+- アプリで **Settings > Notifications > Critical On-Call Alerts** をオンにします。iOS が自身の設定にスイッチを追加するのはアプリが許可を求めた後だけで、アプリはこの設定がオンになったときに許可を求めます
+- オンコールの通知ルールやプッシュデバイスを削除して追加し直しても、これは変わりません。この設定はルールではなく、デバイス上のアプリに属します
+
+### 重大なアラートがサイレントモードを上書きしない
+
+- **その** デバイスでスイッチがオンになっているか確認します。設定はデバイスごとで、再インストールや一から設定した新しいスマートフォンでは新しいデバイス登録が作られます (古いスマートフォンのバックアップから設定したスマートフォンは、古いほうが通知を受け取らなくなった時点で、アプリの設定ごと古いスマートフォンの登録を引き継ぎます)
+- **iOS**: ビルドが Apple の重大なアラートのエンタイトルメントを持っていること (上記参照) と、iOS Settings > Notifications > OneUptime On-Call で Critical Alerts が許可されていることを確認します
+- **Android**: Settings > Notifications > Do Not Disturb access で、アプリにおやすみモードへのアクセスがあることを確認します
+- 設定画面には、これらのうち何が欠けているかが表示されます。アプリが最後に要求した内容を信用するのではなく、OS から現在の状態を読み取ります
 
 ### 「未配信」と表示されたプッシュ
 
-Expo がプッシュを受け付けても、デバイスに届いたとは限りません。Apple や Google が拒否することもあります。OneUptime は各モバイルプッシュの配信レシートを送信の約 15 分後に読み取ります。`EXPO_ACCESS_TOKEN` が設定されていない場合はプッシュリレー経由で読み取ります。レシートがエラーを報告すると、その通知のプッシュログとオンコールのタイムラインは送信済みから **Push notification not delivered** に変わり、Expo のエラーコードが表示されます。
+Expo がプッシュを受け付けても、デバイスに届いたとは限りません。Apple や Google がまだ拒否することがあります。OneUptime は各モバイルのプッシュの配信の受領確認を送信の約 15 分後に読み取ります。`EXPO_ACCESS_TOKEN` が設定されていない場合はプッシュリレーを経由します。受領確認がエラーを報告すると、プッシュのログと呼び出しのオンコールのタイムラインが、送信済みから **Push notification not delivered** に変わり、Expo のエラーコードが付きます。
 
-- `DeviceNotRegistered`: モバイルアプリがデバイスから削除されたか、プッシュトークンが無効になっています。次のセクションを参照してください。
-- `MessageRateExceeded`: 短時間にデバイスへ送信された通知が多すぎます。そのデバイスへの以降のプッシュは通常どおり送信されます。
-- `MessageTooBig`: 通知がプッシュサービスの受け付けるサイズを超えていました。OneUptime は通知を収まるように短縮するため、通常は発生しません。発生した場合はご報告ください。
-- `InvalidCredentials` または `MismatchSenderId`: プッシュを送信した Expo プロジェクトのプッシュ認証情報が無効です。`EXPO_ACCESS_TOKEN` を使用している場合は Expo プロジェクトのプッシュ認証情報を確認し、デフォルトのリレーを使用している場合は OneUptime サポートにお問い合わせください。
+- `DeviceNotRegistered`: モバイルアプリがデバイスから削除されたか、そのプッシュトークンが無効になりました。次のセクションを参照してください。
+- `MessageRateExceeded`: 短時間にデバイスへ送られた通知が多すぎました。以後のプッシュは通常どおり送信されます。
+- `MessageTooBig`: 通知がプッシュサービスの受け付ける大きさを超えていました。OneUptime は通知を収まるよう短くするため、通常は起こりません。起きた場合はご報告ください。
+- `InvalidCredentials` または `MismatchSenderId`: プッシュを送った Expo プロジェクトのプッシュ認証情報が無効です。`EXPO_ACCESS_TOKEN` を使う場合は Expo プロジェクトのプッシュ認証情報を確認し、既定のリレーを使う場合は OneUptime のサポートに連絡してください。
 
-Expo がプッシュをその場で拒否した場合、プッシュログにはその理由がすぐに表示されます。プッシュリレー経由でも同様です。リレーはサーバーエラーを返す代わりに Expo のエラーコードを伝えます。
+Expo がプッシュをその場で拒否した場合、プッシュのログにはすぐに理由が表示されます。プッシュリレー経由でも同じです。リレーはサーバーエラーで応答するのではなく、Expo のエラーコードをそのまま伝えます。
 
-### ログに「DeviceNotRegistered」エラーが表示される場合
+### ログに「DeviceNotRegistered」エラーが出る
 
-モバイルアプリがデバイスから削除されたか、デバイスのプッシュトークンが無効になった場合、Expo は `DeviceNotRegistered` を報告します。通常は、OneUptime が送信の約 15 分後に読み取るプッシュの配信レシートで報告され、プッシュがその場で拒否されることもあります。いずれの場合も、OneUptime はそのデバイスへの送信を停止します。デバイスは削除されず、通知を受信していないものとしてマークされるため、通知ルールはそのまま残ります。理由は、届かなかった通知のプッシュログとオンコールのタイムラインに表示されます。**User Settings > Notification Methods > Push** では **通知を受信していません** と表示されます。所有者のほかのデバイスや通知方法には引き続き通知されます。
+Expo は、モバイルアプリがデバイスから削除されたとき、またはデバイスのプッシュトークンが無効になったときに `DeviceNotRegistered` を報告します。通常はプッシュの配信の受領確認でそう伝え、OneUptime はそれをプッシュの約 15 分後に読み取ります。プッシュがその場で拒否されることもあります。いずれの場合も、OneUptime はそのデバイスへの送信を停止します。デバイスは削除されるのではなく通知を受け取っていないとマークされるため、通知ルールは残り、届かなかった呼び出しのプッシュのログとオンコールのタイムラインに理由が表示されます。**ユーザー設定 > 通知方法 > プッシュ通知** には **通知を受信していません** と表示されます。所有者のほかのデバイスと通知方法には、引き続き呼び出しが届きます。
 
-デバイスを復旧するには、サインインした状態でそのデバイスのモバイルアプリを開いてください。アプリがもう一度登録され、Expo でプッシュトークンが更新されて、デバイスはルールを保ったまま再び通知を受信します。アプリを削除した場合は、もう一度インストールしてサインインしてください。アプリが再登録される前に送信されたプッシュのレシートでは、デバイスはマークされません。最新のモバイルアプリを古いスマートフォンのバックアップから新しいスマートフォンにセットアップすると、アプリは以前のプッシュトークンを OneUptime に伝えます。古いスマートフォンのデバイスが通知を受信しなくなっている場合は、新しいスマートフォンがそのデバイスをルールごと引き継ぎます。
+デバイスを復帰させるには、サインインした状態でそのデバイスのモバイルアプリを開きます。アプリが再登録され、Expo でプッシュトークンが更新され、デバイスはそのルールで再び通知を受け取ります。アプリが削除されていた場合は、再インストールしてサインインします。アプリが再登録される前に送られたプッシュの受領確認では、デバイスはマークされません。最新のモバイルアプリを古いスマートフォンのバックアップから新しいスマートフォンに設定すると、アプリは以前のプッシュトークンを OneUptime に伝えます。古いスマートフォンのデバイスがもう通知を受け取っていなければ、新しいスマートフォンがそのルールごと引き継ぎます。
 
-プッシュリレー経由(`EXPO_ACCESS_TOKEN` なし)でも同じように動作します。リレーはプッシュの送信時に `DeviceNotRegistered` を伝え、インスタンスから問い合わせのあった配信レシートを読み取ります。
+プッシュリレー経由 (`EXPO_ACCESS_TOKEN` なし) でも同じように動作します。リレーはプッシュの送信時に `DeviceNotRegistered` を報告し、インスタンスが問い合わせた配信の受領確認を読み取ります。
 
-## サポート
+どれも役に立たない場合は、OneUptime のログのエラーを添えて [hello@oneuptime.com](mailto:hello@oneuptime.com) までご連絡ください。
 
-プッシュ通知に関する問題は、以下の手順で対応してください：
+## 次のステップ
 
-1. 上記のトラブルシューティングセクションを確認する
-2. OneUptimeのログで詳細なエラーメッセージを確認する
-3. [hello@oneuptime.com](mailto:hello@oneuptime.com) に連絡する
+:::cards
+- [モバイルアプリ](/docs/mobile-desktop-apps/index): OneUptime On-Call アプリをインストールしてサインインします。
+- [モバイルアプリのトラブルシューティング](/docs/mobile-desktop-apps/faq-troubleshooting): スマートフォンでのサインインと通知の問題を解決します。
+- [エスカレーションルール](/docs/on-call/escalation-rules): 誰をいつ呼び出すかを決めます。
+- [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access): サーバーが自分のネットワーク内で到達できる範囲。
+:::

@@ -277,9 +277,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "self-hosted/private-network-access": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "self-hosted/push-notifications": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "status-pages/index": {
     sameShape: EVERY_TRANSLATION,
   },
