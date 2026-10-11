@@ -1,37 +1,56 @@
-# Ingreso de solicitudes entrantes
+# Ingress de solicitudes entrantes
 
-Una sonda personalizada puede opcionalmente ejecutar un **receptor HTTP de entrada** que acepta llamadas de `heartbeat` y `incoming-request` desde el interior de tu red privada y las reenvía a OneUptime. Esto permite que los servicios que **no tienen acceso saliente a internet** puedan reportar a un [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor) enviando la solicitud a una sonda en la red local en lugar de hacerlo directamente a `oneuptime.com`.
+Un servicio sin acceso a Internet puede igualmente enviar heartbeats a un [monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor). En su lugar, los envía a una [sonda personalizada](/docs/probe/custom-probe) de su propia red, y la sonda los reenvía a OneUptime.
 
-## Información general
+:::cards
+- [Cómo funciona](#cómo-funciona): De su servicio al monitor, pasando por la sonda.
+- [Activar el escuchador](#activar-el-escuchador): Un solo ajuste en la sonda, para Docker, Docker Compose o Kubernetes.
+- [Enviar solicitudes a la sonda](#enviar-solicitudes-a-la-sonda): Cambiar la URL a la que envía su servicio, y nada más.
+- [Solución de problemas](#solución-de-problemas): Qué registra la sonda cuando una solicitud no llega.
+:::
 
-Cuando se establece `PROBE_INGRESS_PORT`, la sonda vincula un receptor HTTP adicional en ese puerto. El receptor acepta las mismas rutas de URL de `secretkey` que los puntos de conexión públicos de OneUptime:
+## Cómo funciona
 
-- `POST /heartbeat/:secretkey`
-- `GET /heartbeat/:secretkey`
-- `POST /incoming-request/:secretkey`
-- `GET /incoming-request/:secretkey`
+```mermaid title="Un heartbeat a través de la sonda"
+flowchart TB
+    subgraph net["Su red privada"]
+        direction LR
+        S["Servicio sin<br/>acceso a Internet"] -->|"HTTP"| P["Sonda personalizada"]
+    end
+    P -->|"HTTPS"| O["OneUptime"]
+    O --> M["Monitor de solicitudes entrantes"]
+```
 
-La sonda luego redirige la solicitud a tu instancia de OneUptime, preservando el método, el cuerpo y los encabezados de la solicitud (excepto los encabezados de salto a salto como `Host`, `Connection`, `Content-Length`, etc.). La sonda adjunta automáticamente un encabezado `OneUptime-Probe-Id` para que la solicitud se atribuya a la sonda de reenvío.
+1. **Su servicio envía la solicitud a la sonda.** El mismo `GET` o `POST`, con la misma clave secreta, que enviaría a OneUptime, a un puerto en el que escucha la sonda.
+2. **La sonda responde al instante.** Responde `200` antes de reenviar la solicitud, así que su servicio nunca espera a OneUptime.
+3. **La sonda la reenvía.** Envía la solicitud a OneUptime con su método, sus cabeceras y su cuerpo, y añade una cabecera `OneUptime-Probe-Id` que identifica a la sonda.
+4. **OneUptime la lee como siempre.** Los criterios del monitor ven la solicitud como si el servicio la hubiera enviado directamente.
 
-El receptor se ejecuta en un **puerto dedicado**, separado de los puntos de conexión internos de estado/métricas de la sonda, por lo que puedes exponerlo a tu red privada sin exponer nada más.
+El escuchador funciona en un puerto propio, aparte de las comprobaciones de salud de la sonda, así que puede abrirlo a su red privada sin abrir nada más.
 
-## Cuándo usar esto
+## Cuándo usarlo
 
-Usa el receptor de ingreso cuando:
+Use el escuchador cuando:
 
-- Tus servicios se ejecutan en un segmento de red aislado sin acceso HTTPS saliente
-- Necesitas mantener todo el tráfico de monitoreo dentro de tu VPC/red on-premise
-- Quieres un único punto de salida (la sonda) que tenga permitido llegar a OneUptime
-- Ya implementaste una [Sonda personalizada](/docs/probe/custom-probe) y quieres reutilizarla para latidos entrantes
+- Sus servicios se ejecutan en un segmento de red aislado sin acceso HTTPS saliente
+- Necesita mantener todo el tráfico de monitorización dentro de su VPC o de su red local
+- Quiere un único punto de salida, la sonda, autorizado a llegar a OneUptime
+- Ya desplegó una [sonda personalizada](/docs/probe/custom-probe) y quiere reutilizarla para heartbeats entrantes
 
-Si tus servicios ya pueden llegar a `https://oneuptime.com` (o tu URL auto-alojada) directamente, **no** necesitas esta función; llama directamente a la URL de latido desde el servicio.
+Si sus servicios ya pueden llegar directamente a `https://oneuptime.com` (o a su URL autoalojada), **no** necesita esta función: llame a la URL de heartbeat directamente desde el servicio.
 
-## Habilitar el receptor de ingreso
+## Antes de empezar
 
-Establece `PROBE_INGRESS_PORT` en el puerto en el que deseas que el receptor se vincule. Cualquier valor mayor que `0` habilita el receptor; dejarlo sin establecer (o en `0`) lo deshabilita.
+- **Una sonda personalizada en marcha.** Su **Estado** dice **Conectado**. Vea [Sondas personalizadas](/docs/probe/custom-probe) para instalar una.
+- **Un monitor de solicitudes entrantes.** Su URL de heartbeat contiene la clave secreta que envía su servicio: vea [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor).
+- **Un puerto del host de la sonda al que lleguen sus servicios.** Los ejemplos usan `3875`.
 
-### Docker
+## Activar el escuchador
 
+Establezca `PROBE_INGRESS_PORT` en el puerto que debe usar el escuchador. Cualquier valor mayor que `0` lo activa; sin definir, o en `0`, lo deja desactivado.
+
+:::tabs
+@tab Docker
 ```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
@@ -41,23 +60,9 @@ docker run --name oneuptime-probe --network host \
   -d oneuptime/probe:release
 ```
 
-Si no estás usando `--network host`, publica el puerto de ingreso explícitamente:
-
-```bash
-docker run --name oneuptime-probe \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e PROBE_INGRESS_PORT=3875 \
-  -p 3875:3875 \
-  -d oneuptime/probe:release
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-
+Sin `--network host`, publique el puerto con `-p 3875:3875`.
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -67,14 +72,13 @@ services:
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
       - PROBE_INGRESS_PORT=3875
-    ports:
-      - "3875:3875"
+    network_mode: host
     restart: always
 ```
 
-### Kubernetes
-
-```yaml
+Sin `network_mode: host`, publique el puerto bajo `ports:` como `"3875:3875"`.
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -118,72 +122,94 @@ spec:
   type: ClusterIP
 ```
 
-Los servicios internos pueden entonces enviar latidos a `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+Los servicios del clúster envían entonces a `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+:::
 
-## Envío de solicitudes a la sonda
+Cuando el escuchador está en marcha, el registro de la sonda dice `Probe ingress listener started on port 3875 (heartbeat / incoming-request endpoints)`.
 
-Reemplaza la URL de latido pública:
+## Enviar solicitudes a la sonda
 
-```
+Su servicio envía a la sonda en lugar de a OneUptime. Sustituya la URL pública de heartbeat:
+
+```text
 https://oneuptime.com/heartbeat/<secret-key>
 ```
 
-con la URL de ingreso de la sonda:
+por la URL de ingress de la sonda:
 
-```
+```text
 http://<probe-host>:<PROBE_INGRESS_PORT>/heartbeat/<secret-key>
 ```
 
-La ruta, el método, el cuerpo y los encabezados son por lo demás idénticos, por lo que cualquier código de cliente existente solo necesita cambiar la URL base.
-
-### Ejemplos
+La ruta, el método, el cuerpo y las cabeceras son por lo demás idénticos, así que cualquier código cliente existente solo necesita cambiar la URL base. La sonda también acepta `/incoming-request/<secret-key>`, que funciona igual.
 
 ```bash
-# Latido GET
+# GET heartbeat
 curl http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY
 
-# Latido POST con cuerpo JSON
+# POST heartbeat with JSON body
 curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
   -H "Content-Type: application/json" \
   -d '{"status": "healthy", "version": "1.2.3"}'
 
-# Trabajo cron
+# Cron job
 */5 * * * * curl -s http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
 
-## Comportamiento de reenvío
+## Cómo se reenvían las solicitudes
 
-- **Respuesta síncrona, reenvío asíncrono.** La sonda reconoce la solicitud entrante inmediatamente con un `200` y reenvía a OneUptime en segundo plano. Tu servicio no tiene que esperar a que se complete el reenvío.
-- **Los encabezados se preservan.** Todos los encabezados excepto los de salto a salto (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) se transmiten. La sonda agrega un encabezado `OneUptime-Probe-Id` que la identifica.
-- **El cuerpo se preserva.** Se aceptan cargas útiles JSON, con codificación URL y `application/octet-stream` sin procesar de hasta **50 MB**.
-- **Reintentos con retroceso.** Si el reenvío falla, la sonda reintenta hasta `PROBE_INGRESS_FORWARD_RETRY_LIMIT` veces con retroceso exponencial (2s, 4s, 8s, con un máximo de 15s).
-- **Compatible con proxy.** Si la sonda misma está configurada con `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`, las solicitudes reenviadas irán a través del proxy.
+| Qué | Cómo lo trata la sonda |
+| --- | --- |
+| La respuesta | `200` con un objeto JSON vacío (`{}`), enviada antes de reenviar la solicitud. Como en OneUptime, se envía pase lo que pase después: una clave secreta equivocada también la recibe. |
+| Los métodos | `POST` se reenvía como `POST`. `GET`, y `HEAD`, se reenvían como `GET`. Los demás métodos reciben un `404` de la sonda. |
+| Las cabeceras | Todas salvo las de salto a salto (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`). La sonda añade `OneUptime-Probe-Id`. |
+| El cuerpo | Los cuerpos JSON y de formulario de hasta 50 MB, como cuando envía directamente a OneUptime. Como allí, cualquier otro cuerpo llega vacío al monitor. |
+| Los reintentos | Cuando un reenvío falla, la sonda lo reintenta hasta `PROBE_INGRESS_FORWARD_RETRY_LIMIT` veces, esperando 2 s, luego 4 s, luego 8 s, y nunca más de 15 s. Después registra el fallo y descarta la solicitud. |
+| Los proxies | El reenvío pasa por el proxy de la sonda cuando `HTTP_PROXY_URL` o `HTTPS_PROXY_URL` está definida. |
+| A dónde va | `ONEUPTIME_URL` seguida de `/incoming-request-ingest/incoming-request/<secret-key>`. |
 
 ## Variables de entorno
 
-| Variable                            | Predeterminado                   | Descripción                                                                                                        |
-| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `PROBE_INGRESS_PORT`                | _sin establecer_ (deshabilitado) | Puerto al que se vincula el receptor de entrada. Cualquier valor `> 0` habilita el ingreso.                        |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                          | Tiempo de espera (ms) para cada intento de reenvío a OneUptime. Mínimo `1000`.                                     |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                              | Número de reintentos antes de que la sonda abandone un reenvío. Establece en `0` para deshabilitar los reintentos. |
+| Variable | Predeterminado | Qué hace |
+| --- | --- | --- |
+| `PROBE_INGRESS_PORT` | sin definir (desactivado) | El puerto que usa el escuchador. Cualquier valor mayor que `0` lo activa. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Cuánto puede tardar cada reenvío a OneUptime, en milisegundos. Un valor menor que `1000` vuelve al valor predeterminado. |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Cuántas veces se reintenta un reenvío fallido. `0` desactiva los reintentos. |
 
-Las variables estándar de la sonda (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, variables de proxy) se aplican todas; consulta [Sondas personalizadas](/docs/probe/custom-probe) para ver la lista completa.
+Las variables habituales de la sonda (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` y las variables de proxy) se aplican todas: vea [Sondas personalizadas](/docs/probe/custom-probe) para la lista completa.
 
 ## Consideraciones de seguridad
 
-- **El punto de conexión no tiene autenticación por diseño**: la clave secreta en la ruta de la URL _es_ la autenticación, igual que en el punto de conexión público de `oneuptime.com`. Trata la clave secreta como una credencial.
-- **Vincula solo a una interfaz privada.** El receptor de ingreso no debe ser accesible desde internet público. Usa una política de red, una regla de firewall o un servicio `ClusterIP` para restringir el acceso.
-- **Usa la terminación HTTPS si necesitas cifrado en tránsito.** El receptor de la sonda usa HTTP simple. Ponlo detrás de un balanceador de carga interno/controlador de ingreso si necesitas TLS en el salto de entrada. El tramo de reenvío de la sonda → OneUptime siempre usa HTTPS (asumiendo que `ONEUPTIME_URL` es `https://`).
-- **Límites de recursos.** El receptor acepta cuerpos de solicitud de hasta 50 MB. Si necesitas un límite más estricto, coloca un proxy inverso al frente.
+- **El endpoint no tiene autenticación, a propósito**: la clave secreta en la ruta de la URL *es* la autenticación, igual que en el endpoint público `oneuptime.com`. Trate la clave secreta como una credencial.
+- **Mantenga el escuchador en su red privada.** No debe ser accesible desde Internet. Use una network policy, una regla de cortafuegos o un servicio `ClusterIP` para limitar quién puede llegar a él.
+- **Ponga TLS delante si necesita cifrado en su red.** El escuchador habla HTTP sin cifrar. Póngalo detrás de un balanceador de carga interno o un controlador de ingress para tener TLS en ese tramo. El reenvío de la sonda a OneUptime usa HTTPS cuando `ONEUPTIME_URL` empieza por `https://`.
+- **Limite usted mismo el tamaño del cuerpo si 50 MB es demasiado.** Ponga delante del escuchador un proxy inverso con un límite más bajo.
 
 ## Solución de problemas
 
-- **La sonda registra `Probe ingress listener started on port <port>` al iniciar**: confirma que el receptor está activo. Si no ves esta línea, `PROBE_INGRESS_PORT` no está establecido, es `0` o no es válido.
-- **`Probe ingress: failed to forward to <url> after N attempts`**: la sonda no pudo llegar a OneUptime. Comprueba la conectividad saliente de la sonda, los ajustes del proxy y el valor de `ONEUPTIME_URL`.
-- **`Probe ingress: probe ID not available, forwarding without it`**: la sonda aún no se ha registrado. El reenvío sigue teniendo éxito; el latido simplemente no se atribuirá a una sonda.
-- **El latido aparece en OneUptime pero no a través de la sonda**: confirma que tu servicio está llegando a `http://<probe-host>:<port>/...` y no a la URL pública. Una entrada de DNS o `/etc/hosts` mal configurada es la causa habitual.
+:::details El registro de la sonda nunca dice que el escuchador arrancó
+`PROBE_INGRESS_PORT` no está definida, vale `0` o no es un número. Establézcala en un número de puerto y reinicie la sonda. La línea de registro es `Probe ingress listener started on port <port> (heartbeat / incoming-request endpoints)`.
+:::
 
-## Relacionado
+:::details La sonda registra `Probe ingress: failed to forward to <url> after N attempts`
+La sonda no pudo llegar a OneUptime, ni siquiera tras sus reintentos. Revise la conectividad saliente de la sonda, sus ajustes de proxy y el valor de `ONEUPTIME_URL`. Si la sonda también muestra **Desconectado**, vea [Sondas personalizadas](/docs/probe/custom-probe) para encontrar dónde se detienen sus solicitudes.
+:::
 
-- [Sondas personalizadas](/docs/probe/custom-probe)
-- [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor)
+:::details La sonda registra `Probe ingress: probe ID not available, forwarding without it`
+La sonda aún no ha terminado de conectarse a OneUptime, así que reenvía la solicitud sin la cabecera `OneUptime-Probe-Id`. La solicitud llega igualmente al monitor.
+:::
+
+:::details El monitor recibe las solicitudes, pero no a través de la sonda
+Su servicio sigue enviando a la URL pública. Compruebe que envía a `http://<probe-host>:<port>/...`: un nombre DNS o una entrada de `/etc/hosts` que apunta a otro sitio es la causa habitual.
+:::
+
+:::details El monitor no recibe nada y la sonda no registra nada
+La solicitud nunca llegó a la sonda. Compruebe que el servicio llega al host de la sonda en el puerto: una regla de cortafuegos, un puerto sin publicar o un Service de Kubernetes que no selecciona el pod de la sonda.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor): Decidir qué cuenta como un heartbeat sano.
+- [Sondas personalizadas](/docs/probe/custom-probe): Instalar la sonda, y cada ajuste que lee.
+:::

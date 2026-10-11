@@ -398,7 +398,7 @@ If you're still having trouble, create an issue on [GitHub](https://github.com/o
 ## Next steps
 
 :::cards
-- [Create a Monitor](/docs/monitor/create-monitor): Pick what to check, and which probes check it.
+- [Creating a Monitor](/docs/monitor/create-monitor): Pick what to check, and which probes check it.
 - [Incoming Request Ingress](/docs/probe/incoming-request-ingress): Let services without internet access send heartbeats through the probe.
 - [Packet Capture](/docs/probe/packet-capture): Capture the traffic the probe sees, from the dashboard.
 - [Private Network Access](/docs/self-hosted/private-network-access): Let a probe check private addresses.
