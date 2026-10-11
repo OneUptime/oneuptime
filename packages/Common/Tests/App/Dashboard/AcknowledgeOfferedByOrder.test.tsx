@@ -293,10 +293,15 @@ async function renderLoaded(kind: HeaderKind): Promise<void> {
   await screen.findByRole("heading", { level: 2, name: TITLE });
 }
 
-// The ids of the state actions in the header's action row, in DOM order.
+/*
+ * The ids of the state actions in the header's action row, in DOM order.
+ * A row can hold no button at all: a resolved record is offered no action,
+ * and - its states compared by their places - no state after Resolved in the
+ * More actions menu either.
+ */
 function stateActionIds(kind: HeaderKind): Array<string> {
   return within(screen.getByRole("group", { name: "Event actions" }))
-    .getAllByRole("button")
+    .queryAllByRole("button")
     .map((button: HTMLElement): string => {
       return button.id;
     })
