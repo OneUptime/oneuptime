@@ -310,29 +310,28 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
  * text, and an edit button with text of its own hands it to the card's
  * Button as it is.
  */
-const FLAT_LOOKUP_COMPONENTS: ReadonlyArray<{ file: string; draws: string }> =
-  [
-    {
-      file: "Common/UI/Components/Button/Button.tsx",
-      draws: "translateString(title)",
-    },
-    {
-      file: "Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
-      draws: "translateString(props.text)",
-    },
-    {
-      file: "Common/UI/Components/Modal/Modal.tsx",
-      draws: "translateString(props.title)",
-    },
-    {
-      file: "Common/UI/Components/ModelDetail/CardModelDetail.tsx",
-      draws: "title: props.editButtonText || editTitle",
-    },
-    {
-      file: "App/FeatureSet/Dashboard/src/Components/StatusPage/AxisValuesInput.tsx",
-      draws: 'title={props.addButtonLabel || "Add value"}',
-    },
-  ];
+const FLAT_LOOKUP_COMPONENTS: ReadonlyArray<{ file: string; draws: string }> = [
+  {
+    file: "Common/UI/Components/Button/Button.tsx",
+    draws: "translateString(title)",
+  },
+  {
+    file: "Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
+    draws: "translateString(props.text)",
+  },
+  {
+    file: "Common/UI/Components/Modal/Modal.tsx",
+    draws: "translateString(props.title)",
+  },
+  {
+    file: "Common/UI/Components/ModelDetail/CardModelDetail.tsx",
+    draws: "title: props.editButtonText || editTitle",
+  },
+  {
+    file: "App/FeatureSet/Dashboard/src/Components/StatusPage/AxisValuesInput.tsx",
+    draws: 'title={props.addButtonLabel || "Add value"}',
+  },
+];
 
 interface TemplateLabel {
   english: string;
@@ -552,7 +551,8 @@ const RENDERED_CODE: RegExp = /<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>/g;
 const HTML_TAG: RegExp = /<[^>]*>/g;
 
 // A Mermaid diagram's fenced source.
-const MERMAID_BLOCK: RegExp = /^ {0,3}```mermaid[^\n]*\n[\s\S]*?^ {0,3}```[^\n]*$/gm;
+const MERMAID_BLOCK: RegExp =
+  /^ {0,3}```mermaid[^\n]*\n[\s\S]*?^ {0,3}```[^\n]*$/gm;
 
 // The full stop that ends a sentence, in each script the locales write.
 const FULL_STOP: RegExp = /[.。．।]$/;
@@ -950,13 +950,11 @@ describe("the lists this test keeps", () => {
   it("list as flat lookups only labels the template would draw otherwise somewhere", () => {
     for (const page of Object.keys(FLAT_LOOKUP)) {
       for (const label of flatLabels(page)) {
-        const differs: boolean = LANGUAGES.some(
-          (language: string): boolean => {
-            return (
-              flatLabel(language, label) !== drawnActionLabel(language, label)
-            );
-          },
-        );
+        const differs: boolean = LANGUAGES.some((language: string): boolean => {
+          return (
+            flatLabel(language, label) !== drawnActionLabel(language, label)
+          );
+        });
 
         expect({ page, label, differs }).toEqual({
           page,
@@ -1192,7 +1190,9 @@ describe("the English pages", () => {
     (page: string) => {
       const markdown: string = englishPage(page);
 
-      expect(markdown).toContain("**OneUptime's own downtime is not silence.**");
+      expect(markdown).toContain(
+        "**OneUptime's own downtime is not silence.**",
+      );
       expect(markdown).toContain(
         "(/docs/monitor/when-oneuptime-is-not-receiving)",
       );
@@ -1281,14 +1281,13 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
 
     it("points every link into this group at the heading the English link means", () => {
-      const expected: Array<string> = groupAnchorLinks(
-        entry.page,
-        english,
-      ).map((link: string): string => {
-        const [page, anchor] = link.split("#") as [string, string];
+      const expected: Array<string> = groupAnchorLinks(entry.page, english).map(
+        (link: string): string => {
+          const [page, anchor] = link.split("#") as [string, string];
 
-        return `${page}#${anchorInLanguage(language, page, anchor) || "?"}`;
-      });
+          return `${page}#${anchorInLanguage(language, page, anchor) || "?"}`;
+        },
+      );
 
       expect(
         groupAnchorLinks(entry.page, readPage(language, entry.page)),
@@ -1392,11 +1391,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
             return drawnTemplate(language, template);
           },
         ),
-        ...(MESSAGES[entry.page] || []).map(
-          (message: MessageLabel): string => {
-            return drawnMessage(language, message);
-          },
-        ),
+        ...(MESSAGES[entry.page] || []).map((message: MessageLabel): string => {
+          return drawnMessage(language, message);
+        }),
       ].filter((drawn: string): boolean => {
         return !translated.includes(`**${drawn}**`);
       });
@@ -1417,9 +1414,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     it("quotes each sentence as this language's Dashboard words it", () => {
       for (const page of Object.keys(QUOTED_SENTENCES)) {
         const translated: string = readPage(language, page);
-        const missing: Array<string> = (
-          QUOTED_SENTENCES[page] as Array<string>
-        )
+        const missing: Array<string> = (QUOTED_SENTENCES[page] as Array<string>)
           .map((sentence: string): string => {
             return flatLabel(language, sentence);
           })
@@ -1438,11 +1433,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const recipePath: string = RECIPE_PATH.map((part: string): string => {
         return drawnActionLabel(language, part);
       }).join(" > ");
-      const recipeFilter: string = RECIPE_FILTER.map(
-        (part: string): string => {
-          return drawnActionLabel(language, part);
-        },
-      ).join(" = ");
+      const recipeFilter: string = RECIPE_FILTER.map((part: string): string => {
+        return drawnActionLabel(language, part);
+      }).join(" = ");
 
       expect(translated).toContain(`**${recipePath}**`);
       expect(translated).toContain(`**${recipeFilter}**`);
