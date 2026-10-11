@@ -5,9 +5,11 @@ import escapeMarkdownInlineDefault, {
   escapeMarkdownValue,
   neutralizeChatControlSequences,
   neutralizeChatLinkSequences,
+  neutralizeTagStarts,
 } from "../../../Utils/Markdown/MarkdownEscape";
 import { neutralizeChatControlSequences as neutralizeChatControlSequencesFromUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 import { describe, expect, test } from "@jest/globals";
+import { Token, marked } from "marked";
 
 /*
  * escapeMarkdownInline is the one thing standing between a user-typed name and
@@ -638,5 +640,130 @@ describe("neutralizeChatLinkSequences", () => {
     expect(neutralizeChatLinkSequences(once)).toBe(once);
     expect(neutralizeChatLinkSequences(undefined)).toBe("");
     expect(neutralizeChatLinkSequences(null)).toBe("");
+  });
+});
+
+/*
+ * neutralizeTagStarts: text somebody typed in a chat tool - a Microsoft
+ * Teams message saved as a note - placed into Markdown as a whole. Its
+ * lines, lists and words stay as they are; a "<" that whitespace does not
+ * follow gets an invisible word joiner, so no renderer reads a tag, a
+ * comment, an autolink or a chat mention from it, and it still reads as
+ * typed.
+ */
+describe("neutralizeTagStarts", () => {
+  // Every token marked reads in some Markdown, nested ones included.
+  function tokensOf(markdown: string): Array<Token> {
+    const tokens: Array<Token> = [];
+
+    marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+      tokens.push(token);
+    });
+
+    return tokens;
+  }
+
+  /*
+   * What marked reads as HTML, or as an autolink in angle brackets. A bare
+   * address is still a link, as it is wherever somebody types one.
+   */
+  function markupOf(markdown: string): Array<string> {
+    return tokensOf(markdown)
+      .filter((token: Token): boolean => {
+        return (
+          token.type === "html" ||
+          (token.type === "link" && token.raw.startsWith("<"))
+        );
+      })
+      .map((token: Token): string => {
+        return `${token.type}: ${token.raw}`;
+      });
+  }
+
+  const TYPED_MARKUP: Array<string> = [
+    "<b>bold</b>",
+    "<script>alert(1)</script>",
+    "<img src=https://tracker.example/p.png>",
+    "<!-- a comment -->",
+    "<!DOCTYPE html>",
+    "<?php echo 1; ?>",
+    "<https://status.example.com>",
+    "<ops@example.com>",
+    "<!channel>",
+    "<@U0123ABC>",
+    "<#C0123ABC|general>",
+  ];
+
+  test.each(TYPED_MARKUP)(
+    "%j reads as typed, and marked reads no HTML or link in it",
+    (typed: string) => {
+      const markdown: string = `Pinned: ${typed} done`;
+      const neutralized: string = neutralizeTagStarts(markdown);
+
+      expect(neutralized).toContain(`<${WORD_JOINER}`);
+      expect(withoutWordJoiners(neutralized)).toBe(markdown);
+      expect(markupOf(neutralized)).toEqual([]);
+    },
+  );
+
+  test("as typed, marked does read markup in those", () => {
+    // So the test above is not passing on text Markdown leaves alone anyway.
+    const readAsMarkup: Array<string> = TYPED_MARKUP.filter(
+      (typed: string): boolean => {
+        return markupOf(`Pinned: ${typed} done`).length > 0;
+      },
+    );
+
+    expect(readAsMarkup).toEqual(
+      TYPED_MARKUP.filter((typed: string): boolean => {
+        // Slack's own sequences are not Markdown; Slack reads them (below).
+        return !["<!channel>", "<@U0123ABC>", "<#C0123ABC|general>"].includes(
+          typed,
+        );
+      }),
+    );
+  });
+
+  test("Slack reads no mention or link in it once slackify has converted it", () => {
+    const typed: string = [
+      "<!channel>",
+      "<!here>",
+      "<@U0123ABC>",
+      "<#C0123ABC>",
+      "<https://evil.example/login|Open the runbook>",
+    ].join(" ");
+
+    expect(slackTextOf(typed)).toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+
+    const slack: string = slackTextOf(neutralizeTagStarts(typed));
+
+    expect(slack).not.toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+    expect(slack).not.toMatch(SLACK_LINK_PATTERN);
+  });
+
+  test("breaks every '<' that whitespace does not follow, one at the end too", () => {
+    expect(neutralizeTagStarts("a<b <c <1 <= <- << <")).toBe(
+      ["a<", "b <", "c <", "1 <", "= <", "- <", "< <", ""].join(WORD_JOINER),
+    );
+  });
+
+  test.each([
+    "Restarted the primary DB",
+    "- Drained node-3\n- Rolled back v2.4.1",
+    "@Jane and @Ravi, failover done at 12:03.",
+    "p99 < 200 ms is fine, > 2 s pages someone",
+    "a <\tb and c <\nd",
+    'Tom & Jerry said "it\'s fixed" 🔥 数据库已恢复',
+    "",
+  ])("leaves %j exactly as it is", (text: string) => {
+    expect(neutralizeTagStarts(text)).toBe(text);
+  });
+
+  test("is idempotent, and gives nothing for nothing", () => {
+    const once: string = neutralizeTagStarts("<b>x</b> <!here> <a");
+
+    expect(neutralizeTagStarts(once)).toBe(once);
+    expect(neutralizeTagStarts(undefined)).toBe("");
+    expect(neutralizeTagStarts(null)).toBe("");
   });
 });
