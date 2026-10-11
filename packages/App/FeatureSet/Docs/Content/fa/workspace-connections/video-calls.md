@@ -219,7 +219,7 @@ OneUptime Cloud اپ‌های Zoom، Google و Microsoft خودش را برای 
 - **Google Meet**: در [کنسول Google Cloud](https://console.cloud.google.com/)، **Google Meet REST API** را فعال کنید، صفحهٔ رضایت OAuth (**Google Auth Platform**) را با scopeهای `openid`، `email` و `https://www.googleapis.com/auth/meetings.space.created` پیکربندی کنید، و یک کلاینت OAuth از نوع **Web application** با Redirect URI بسازید. اپ را در حالت production منتشر کنید: اپی که در حالت testing بماند پس از هفت روز ورودهایش را از دست می‌دهد. Google اپ‌هایی را که scope مربوط به Meet را می‌خواهند بررسی می‌کند؛ تا آن زمان، افراد پیش از ورود یک هشدار می‌بینند.
 - **Microsoft Teams**: در [مرکز مدیریت Microsoft Entra](https://entra.microsoft.com/)، برنامه‌ای برای **Accounts in any organizational directory** ثبت کنید، Redirect URI را به‌عنوان یک Redirect URI از نوع **Web** بیفزایید، مجوزهای تفویضی Microsoft Graph، یعنی `openid`، `profile`، `email`، `offline_access` و `OnlineMeetings.ReadWrite`، را بیفزایید، و یک راز کلاینت بسازید. از یک ثبت جداگانه استفاده کنید، نه ثبت ربات Microsoft Teams (`MICROSOFT_TEAMS_APP_CLIENT_ID`). تا وقتی اپ ناشر تأییدشده‌ای نداشته باشد، بیشتر سازمان‌ها برای رضایت به آن به یک مدیر نیاز دارند.
 
-شناسه‌های کلاینت عمومی هستند: به داشبورد فرستاده می‌شوند تا بداند کدام ارائه‌دهندگان با یک کلیک وصل می‌شوند. رازها و توکن راز webhook را محرمانه نگه دارید. worker هر روز همهٔ ورودها را تازه می‌کند، پس به همان مقادیری نیاز دارد که app دارد.
+شناسه‌های کلاینت عمومی هستند: به داشبورد فرستاده می‌شوند تا بداند کدام ارائه‌دهندگان با یک کلیک وصل می‌شوند. رازها و توکن راز webhook را محرمانه نگه دارید. worker هر روز ورودهایی را که نوبت تازه‌سازی‌شان رسیده تازه می‌کند، پس به همان مقادیری نیاز دارد که app دارد.
 
 ## رفع اشکال
 

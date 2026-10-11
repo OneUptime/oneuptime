@@ -219,7 +219,7 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 - **Google Meet**：在 [Google Cloud 主控台](https://console.cloud.google.com/) 中啟用 **Google Meet REST API**，使用權限範圍 `openid`、 `email` 和 `https://www.googleapis.com/auth/meetings.space.created` 設定 OAuth 同意畫面（ **Google Auth Platform** ），並使用重新導向 URI 建立一個 **Web application** 類型的 OAuth 用戶端。將應用程式發布到正式環境：停留在測試狀態的應用程式會在七天後失去其登入。Google 會審查要求 Meet 權限範圍的應用程式；在審查完成之前，使用者在登入前會看到一則警告。
 - **Microsoft Teams**：在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，為 **Accounts in any organizational directory** 註冊一個應用程式，將重新導向 URI 新增為 **Web** 重新導向 URI，新增 Microsoft Graph 委派權限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite`，並建立一個用戶端密碼。請使用獨立的註冊，而不是 Microsoft Teams 機器人的註冊（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在應用程式擁有經過驗證的發行者之前，大多數組織都需要管理員對其表示同意。
 
-用戶端 ID 是公開的：它們會被傳送到儀表板，讓儀表板知道哪些服務供應商可以一鍵連接。請對密碼和 webhook 秘密權杖保密。worker 每天更新每個登入，因此它需要與應用程式相同的值。
+用戶端 ID 是公開的：它們會被傳送到儀表板，讓儀表板知道哪些服務供應商可以一鍵連接。請對密碼和 webhook 秘密權杖保密。worker 每天更新到了更新時間的登入，因此它需要與應用程式相同的值。
 
 ## 疑難排解
 

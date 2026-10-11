@@ -31,7 +31,10 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { TEST_NOTIFICATION_PERMISSION_MESSAGE } from "Common/Server/API/TestSendAccess";
-import { FORM_FOREIGN_PAGE_MESSAGE, FORM_SUBMISSION_BODY_MESSAGE } from "Common/Server/API/FormAPI";
+import {
+  FORM_FOREIGN_PAGE_MESSAGE,
+  FORM_SUBMISSION_BODY_MESSAGE,
+} from "Common/Server/API/FormAPI";
 import { getFormSubmissionNote } from "Common/Server/Utils/Form/FormSubmissionNote";
 import MicrosoftTeamsIncidentActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsOnCallDutyActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
@@ -240,7 +243,12 @@ const BRANDS: Array<string> = ["Zoom", "Google Meet"];
 
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: ["Growth", ...CHAT_BUTTONS, ...SLACK_CONTROLS],
-  [TEAMS]: ["Growth", ...CHAT_BUTTONS, ...TEAMS_CARD_BUTTONS, ...TEAMS_CONTROLS],
+  [TEAMS]: [
+    "Growth",
+    ...CHAT_BUTTONS,
+    ...TEAMS_CARD_BUTTONS,
+    ...TEAMS_CONTROLS,
+  ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
   [BUILDING]: [],
   [ON_SUBMIT]: [
@@ -324,17 +332,16 @@ const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
  * a name: each part a Dashboard label, or null for a name somebody gave -
  * a custom field's, a question's - which a translation words its own way.
  */
-const COMPOSED_LABELS: Record<string, Record<string, Array<string | null>>> =
-  {
-    [BUILDING]: {
-      "Incident · Severity": ["Incident", "Severity"],
-      "Custom Field · Region": ["Custom Field", null],
-      "Submitter · Email": ["Submitter", "Email"],
-      "Scheduled Maintenance Date · Hidden": [null, "Hidden"],
-      // Duplicate names the copy after the template, with a number.
-      "Application Outage 2": ["Application Outage 2"],
-    },
-  };
+const COMPOSED_LABELS: Record<string, Record<string, Array<string | null>>> = {
+  [BUILDING]: {
+    "Incident · Severity": ["Incident", "Severity"],
+    "Custom Field · Region": ["Custom Field", null],
+    "Submitter · Email": ["Submitter", "Email"],
+    "Scheduled Maintenance Date · Hidden": [null, "Hidden"],
+    // Duplicate names the copy after the template, with a number.
+    "Application Outage 2": ["Application Outage 2"],
+  },
+};
 
 const COMPOSED_SEPARATOR: string = " · ";
 
@@ -422,7 +429,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Diagrams become code.",
     "The title is plain text.",
   ],
-  [SHARING]: ["Opening a form", "Submitting, per address", "Submitting, per form"],
+  [SHARING]: [
+    "Opening a form",
+    "Submitting, per address",
+    "Submitting, per form",
+  ],
 };
 
 /*
@@ -514,7 +525,8 @@ const PATH_SEPARATOR: string = " > ";
 const MENU_PATH: RegExp = /\*\*[^*\n]+\*\*(?: > \*\*[^*\n]+\*\*)+/g;
 const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+// A thousands separator: a comma, a period, Persian's, a (narrow) no-break space, a space or an apostrophe.
+const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const HEADING_LINE: RegExp = /^(#{1,6})\s/;
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -830,7 +842,9 @@ function lineShape(markdown: string): Array<string> {
     const container: RegExpMatchArray | null = line.match(CONTAINER_LINE);
 
     if (container) {
-      return line.trim().startsWith("@tab") ? "@tab" : line.trim().split(" ")[0]!;
+      return line.trim().startsWith("@tab")
+        ? "@tab"
+        : line.trim().split(" ")[0]!;
     }
 
     const alert: RegExpMatchArray | null = line.match(ALERT_LINE);
@@ -1067,7 +1081,9 @@ describe("the lists this test keeps", () => {
     }
 
     for (const page of Object.keys(PUBLIC_PAGE_MESSAGES)) {
-      for (const message of PUBLIC_PAGE_MESSAGES[page] as Array<PublicPageMessage>) {
+      for (const message of PUBLIC_PAGE_MESSAGES[
+        page
+      ] as Array<PublicPageMessage>) {
         const english: string = accountsText("en", message.key, message.values);
 
         expect({ page, english, quoted: true }).toEqual({
@@ -1252,7 +1268,9 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
     });
 
     it("lays out line for line with the English page", () => {
-      const translated: Array<string> = lineShape(readPage(language, entry.page));
+      const translated: Array<string> = lineShape(
+        readPage(language, entry.page),
+      );
       const source: Array<string> = lineShape(english);
       const differences: Array<string> = [];
 
@@ -1307,9 +1325,11 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
           },
         ),
       ).toEqual(
-        source.containers.map((use: { name: string; steps: number }): string => {
-          return `${use.name}:${use.steps}`;
-        }),
+        source.containers.map(
+          (use: { name: string; steps: number }): string => {
+            return `${use.name}:${use.steps}`;
+          },
+        ),
       );
       expect(translated.alerts).toEqual(source.alerts);
       expect(tableShape(readPage(language, entry.page))).toEqual(
@@ -1496,13 +1516,13 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
  */
 describe("the helpers, on these pages' shapes", () => {
   it("read a menu path's segments, and draw its product as the Products menu titles it", () => {
-    expect(menuPaths("Go to **Incidents** > **Workspace** > **Slack**.")).toEqual(
-      [["Incidents", "Workspace", "Slack"]],
-    );
-    expect(menuPaths("**A** and **B**")).toEqual([]);
     expect(
-      drawnPath("de", SLACK, ["Incidents", "Workspace", "Slack"])[0],
-    ).toBe(productsMenuTitle("de", "Incidents"));
+      menuPaths("Go to **Incidents** > **Workspace** > **Slack**."),
+    ).toEqual([["Incidents", "Workspace", "Slack"]]);
+    expect(menuPaths("**A** and **B**")).toEqual([]);
+    expect(drawnPath("de", SLACK, ["Incidents", "Workspace", "Slack"])[0]).toBe(
+      productsMenuTitle("de", "Incidents"),
+    );
   });
 
   it("lay a page out by its kinds of line", () => {
@@ -1550,7 +1570,9 @@ describe("the helpers, on these pages' shapes", () => {
       ),
     ).toBe(true);
     expect(
-      composedPattern("en", ["Custom Field", null]).test("**Region · Custom Field**"),
+      composedPattern("en", ["Custom Field", null]).test(
+        "**Region · Custom Field**",
+      ),
     ).toBe(false);
     expect(
       composedPattern("en", ["Application Outage 2"]).test(
@@ -1560,9 +1582,9 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("read the public page's words from its own locale, filled in", () => {
-    expect(
-      accountsText("en", "form.reference", { reference: "INC-42" }),
-    ).toBe("Your reference number is INC-42.");
+    expect(accountsText("en", "form.reference", { reference: "INC-42" })).toBe(
+      "Your reference number is INC-42.",
+    );
     expect(accountsText("en", FormMessage.CaptchaFailed)).toBe(
       FormMessage.CaptchaFailed,
     );

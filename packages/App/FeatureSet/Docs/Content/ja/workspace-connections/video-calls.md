@@ -219,7 +219,7 @@ OneUptime Cloud には、ワンクリック接続用の独自の Zoom、Google�
 - **Google Meet**: [Google Cloud コンソール](https://console.cloud.google.com/) で **Google Meet REST API** を有効にし、OAuth の同意画面 ( **Google Auth Platform** ) をスコープ `openid`、 `email`、 `https://www.googleapis.com/auth/meetings.space.created` で設定し、リダイレクト URI を指定して **Web application** タイプの OAuth クライアントを作成します。アプリは本番環境に公開してください。テストのままのアプリは 7 日後にサインインを失います。Google は Meet のスコープを求めるアプリを審査します。審査が終わるまで、サインインの前に警告が表示されます。
 - **Microsoft Teams**: [Microsoft Entra 管理センター](https://entra.microsoft.com/) で **Accounts in any organizational directory** 向けのアプリを登録し、リダイレクト URI を **Web** のリダイレクト URI として追加し、Microsoft Graph の委任されたアクセス許可 `openid`、 `profile`、 `email`、 `offline_access`、 `OnlineMeetings.ReadWrite` を追加して、クライアントシークレットを作成します。Microsoft Teams ボットの登録 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) ではなく、専用の登録を使ってください。アプリに確認済みの発行元がない間は、ほとんどの組織で管理者の同意が必要です。
 
-クライアント ID は公開情報です。どのプロバイダーがワンクリックで接続できるかを知るために、ダッシュボードに送られます。シークレットと Webhook のシークレットトークンは秘密にしてください。ワーカーは毎日すべてのサインインを更新するので、アプリと同じ値が必要です。
+クライアント ID は公開情報です。どのプロバイダーがワンクリックで接続できるかを知るために、ダッシュボードに送られます。シークレットと Webhook のシークレットトークンは秘密にしてください。ワーカーは毎日、更新の時期が来たサインインを更新するので、アプリと同じ値が必要です。
 
 ## トラブルシューティング
 

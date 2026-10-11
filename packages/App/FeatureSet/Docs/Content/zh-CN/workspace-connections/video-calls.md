@@ -219,7 +219,7 @@ OneUptime Cloud 拥有自己的 Zoom、Google 和 Microsoft 应用，用于一�
 - **Google Meet**：在 [Google Cloud 控制台](https://console.cloud.google.com/) 中启用 **Google Meet REST API**，使用权限范围 `openid`、 `email` 和 `https://www.googleapis.com/auth/meetings.space.created` 配置 OAuth 同意屏幕（ **Google Auth Platform** ），并使用重定向 URI 创建一个 **Web application** 类型的 OAuth 客户端。将应用发布到生产环境：停留在测试状态的应用会在七天后失去其登录。Google 会审核请求 Meet 权限范围的应用；在审核完成之前，用户在登录前会看到一条警告。
 - **Microsoft Teams**：在 [Microsoft Entra 管理中心](https://entra.microsoft.com/) 中，为 **Accounts in any organizational directory** 注册一个应用，将重定向 URI 添加为 **Web** 重定向 URI，添加 Microsoft Graph 委托权限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite`，并创建一个客户端密码。请使用单独的注册，而不是 Microsoft Teams 机器人的注册（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在应用拥有经过验证的发布者之前，大多数组织都需要管理员对其表示同意。
 
-客户端 ID 是公开的：它们会被发送到仪表板，以便仪表板知道哪些提供商可以一键连接。请对密码和 webhook 密钥令牌保密。worker 每天刷新每个登录，因此它需要与应用相同的值。
+客户端 ID 是公开的：它们会被发送到仪表板，以便仪表板知道哪些提供商可以一键连接。请对密码和 webhook 密钥令牌保密。worker 每天刷新到了刷新时间的登录，因此它需要与应用相同的值。
 
 ## 故障排除
 
