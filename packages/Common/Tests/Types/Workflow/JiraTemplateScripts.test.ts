@@ -3023,12 +3023,7 @@ for (const kind of KINDS) {
 
     test("without a Jira Site URL, writes the key without a link when the issue has no REST URL to read the site from", async () => {
       const result: JSONObject = await prepareRecord(
-        recordArgs(
-          kind,
-          jiraIssueCreatedEvent({ self: "" }),
-          undefined,
-          null,
-        ),
+        recordArgs(kind, jiraIssueCreatedEvent({ self: "" }), undefined, null),
       );
 
       expect(

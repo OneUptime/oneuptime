@@ -45,7 +45,11 @@ import {
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { decodeHtmlEntities } from "../../Helpers/HtmlText";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
-import { JIRA_ISSUE_KEY, runJiraScript, scriptOf } from "./JiraTemplateFixtures";
+import {
+  JIRA_ISSUE_KEY,
+  runJiraScript,
+  scriptOf,
+} from "./JiraTemplateFixtures";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 import { Token, marked } from "marked";
 
@@ -192,7 +196,10 @@ const SITE_BEFORE: RegExp =
   /^https?:\/\/(?:[\p{L}\p{M}\p{Nd}._~-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?$/u;
 const LONGEST_SITE_BEFORE: number = 300;
 
-function issueLinkBefore(self: JSONValue | undefined, issueKey: string): string {
+function issueLinkBefore(
+  self: JSONValue | undefined,
+  issueKey: string,
+): string {
   const text: string =
     typeof self === "string"
       ? self
@@ -226,11 +233,7 @@ const SITES: Array<[string, string, string]> = [
     "https://acme.atlassian.net/",
     "https://acme.atlassian.net",
   ],
-  [
-    "Jira Data Center",
-    "https://jira.example.com",
-    "https://jira.example.com",
-  ],
+  ["Jira Data Center", "https://jira.example.com", "https://jira.example.com"],
   [
     "Jira Data Center on a port",
     "https://jira.example.com:8443",
@@ -263,11 +266,7 @@ const SITES: Array<[string, string, string]> = [
     "http://jira_dev.corp:8080",
   ],
   ["a host with no dot", "http://jira:8080", "http://jira:8080"],
-  [
-    "an IPv6 address",
-    "http://[2001:db8::1]:8443",
-    "http://[2001:db8::1]:8443",
-  ],
+  ["an IPv6 address", "http://[2001:db8::1]:8443", "http://[2001:db8::1]:8443"],
   [
     "a host written in another script",
     "https://jira.bücher.example",
@@ -316,10 +315,7 @@ const NOT_SITES: Array<[string, string]> = [
   ["a user name and a password", "https://user:secret@acme.atlassian.net"],
   ["a space in the host", "https://acme .atlassian.net"],
   ["a line break in the host", "https://acme\n.atlassian.net"],
-  [
-    "markup after the host",
-    "https://a.example)<img src=x onerror=alert(1)>",
-  ],
+  ["markup after the host", "https://a.example)<img src=x onerror=alert(1)>"],
   [
     "a Markdown link after the host",
     "https://a.example)[x](https://tracker.example/p.png",
@@ -346,14 +342,8 @@ const NOT_SITES: Array<[string, string]> = [
   ["a port of six digits", "https://acme.atlassian.net:844300"],
   ["no host", "https://"],
   ["no host, then a path", "https:///jira"],
-  [
-    "an address longer than a site's can be",
-    `https://${"a".repeat(293)}`,
-  ],
-  [
-    "a reference to a variable that is gone",
-    "{{local.variables.jiraSiteUrl}}",
-  ],
+  ["an address longer than a site's can be", `https://${"a".repeat(293)}`],
+  ["a reference to a variable that is gone", "{{local.variables.jiraSiteUrl}}"],
 ];
 
 // Event URLs, as #4676's tests pinned them: sites, and URLs that are not one.
@@ -467,14 +457,11 @@ const SITE_ALPHABET: Array<string> = [
 /* ------------------------------ The setting ------------------------------ */
 
 describe("the Jira Site URL a workflow is created with", () => {
-  test.each(SITES)(
-    "takes %s",
-    (_case: string, typed: string, site: string) => {
-      expect(JIRA_SITE_URL_PATTERN.test(typed)).toBe(true);
-      // The site links go to is what was typed, bar a slash at the end.
-      expect(typed === site || typed === `${site}/`).toBe(true);
-    },
-  );
+  test.each(SITES)("takes %s", (_case: string, typed: string, site: string) => {
+    expect(JIRA_SITE_URL_PATTERN.test(typed)).toBe(true);
+    // The site links go to is what was typed, bar a slash at the end.
+    expect(typed === site || typed === `${site}/`).toBe(true);
+  });
 
   test.each(NOT_SITES)("refuses %s", (_case: string, typed: string) => {
     expect(JIRA_SITE_URL_PATTERN.test(typed)).toBe(false);
@@ -634,12 +621,14 @@ describe("the templates that link a Jira issue", () => {
     const asking: Array<string> = [];
 
     for (const template of jiraTemplates()) {
-      const builds: boolean = jiraScripts().some((step: ScriptStep): boolean => {
-        return (
-          step.templateId === template.id &&
-          ownCodeOf(step).includes("issueLink(")
-        );
-      });
+      const builds: boolean = jiraScripts().some(
+        (step: ScriptStep): boolean => {
+          return (
+            step.templateId === template.id &&
+            ownCodeOf(step).includes("issueLink(")
+          );
+        },
+      );
 
       if (builds) {
         linking.push(template.id);
@@ -691,7 +680,9 @@ describe("the templates that link a Jira issue", () => {
 
       expect({
         script: `${step.templateId} ${step.componentId}`,
-        declares: code.slice(0, code.indexOf(STEP_SECTION)).includes(declaration),
+        declares: code
+          .slice(0, code.indexOf(STEP_SECTION))
+          .includes(declaration),
       }).toEqual({
         script: `${step.templateId} ${step.componentId}`,
         declares: true,
@@ -942,9 +933,11 @@ describe("a link on each site the setting takes", () => {
     pages = renderAsDashboard(texts);
   });
 
-  test.each(SITES.map((entry: [string, string, string], index: number) => {
-    return [entry[0], entry[2], index] as [string, string, number];
-  }))(
+  test.each(
+    SITES.map((entry: [string, string, string], index: number) => {
+      return [entry[0], entry[2], index] as [string, string, number];
+    }),
+  )(
     "%s: is one link to the issue on that site, wherever it is read",
     (_case: string, site: string, index: number) => {
       const text: string = texts[index]!;
@@ -960,10 +953,11 @@ describe("a link on each site the setting takes", () => {
           return token.type === "link";
         })
         .map((token: Token): [string, string] => {
-          const link: Token & { href: string; text: string } = token as Token & {
-            href: string;
-            text: string;
-          };
+          const link: Token & { href: string; text: string } =
+            token as Token & {
+              href: string;
+              text: string;
+            };
 
           return [link.href, link.text];
         });

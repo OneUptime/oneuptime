@@ -2132,7 +2132,10 @@ describe("the link to a Jira issue, without the workflow's Jira Site URL", () =>
 
         expectOpenings(
           texts,
-          openings(kind, `[${JIRA_ISSUE_KEY}](${site}/browse/${JIRA_ISSUE_KEY})`),
+          openings(
+            kind,
+            `[${JIRA_ISSUE_KEY}](${site}/browse/${JIRA_ISSUE_KEY})`,
+          ),
         );
       }
     },

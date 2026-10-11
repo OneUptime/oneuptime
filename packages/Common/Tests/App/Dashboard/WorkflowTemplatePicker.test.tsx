@@ -895,9 +895,8 @@ describe("a picked template's details", () => {
       const settings: HTMLElement = within(detailsOf(templateId)).getByTestId(
         "workflow-template-details-settings",
       );
-      const items: Array<HTMLElement> = within(settings).getAllByRole(
-        "listitem",
-      );
+      const items: Array<HTMLElement> =
+        within(settings).getAllByRole("listitem");
 
       expect(items[0]).toHaveAttribute(
         "data-testid",

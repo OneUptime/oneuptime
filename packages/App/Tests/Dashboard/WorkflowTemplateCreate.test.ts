@@ -1618,7 +1618,10 @@ describe("Jira templates", () => {
         ],
         ["no scheme", "acme.atlassian.net"],
         ["a query", "https://acme.atlassian.net/?next=/browse"],
-        ["a user name and a password", "https://user:secret@acme.atlassian.net"],
+        [
+          "a user name and a password",
+          "https://user:secret@acme.atlassian.net",
+        ],
         ["markup after the host", "https://a.example)<img src=x>"],
         ["a space in the host", "https://acme .atlassian.net"],
         ["another scheme", "javascript:alert(1)"],
@@ -1651,21 +1654,18 @@ describe("Jira templates", () => {
         ["Jira Data Center under a context path", "https://example.com/jira"],
         ["an address on a port", "http://10.0.0.5:8080"],
         ["spaces around it, which are trimmed", "  https://example.com/jira  "],
-      ])(
-        "a Jira Site URL of %s is taken",
-        (_case: string, typed: string) => {
-          const template: WorkflowTemplate = templateById(
-            kind.templateIds.commentToNote as string,
-          );
+      ])("a Jira Site URL of %s is taken", (_case: string, typed: string) => {
+        const template: WorkflowTemplate = templateById(
+          kind.templateIds.commentToNote as string,
+        );
 
-          expect(
-            validateTemplateVariableValues(template, {
-              ...filledValuesFor(template, ALL_JIRA_VALUES),
-              jiraSiteUrl: typed,
-            }),
-          ).toEqual({});
-        },
-      );
+        expect(
+          validateTemplateVariableValues(template, {
+            ...filledValuesFor(template, ALL_JIRA_VALUES),
+            jiraSiteUrl: typed,
+          }),
+        ).toEqual({});
+      });
     });
 
     describe("buildWorkflowFromTemplate", () => {

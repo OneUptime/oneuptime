@@ -44,7 +44,8 @@ const TABLE_WORDS: Record<string, string> = {
   oneuptimeUrl: "OneUptime URL",
 };
 
-const WEBHOOK_PART: RegExp = /,? ?(?:and )?an? Jira webhook for \*\*[^*]+\*\*$/i;
+const WEBHOOK_PART: RegExp =
+  /,? ?(?:and )?an? Jira webhook for \*\*[^*]+\*\*$/i;
 
 type RowOfFunction = (templateName: string) => Array<string>;
 
@@ -103,9 +104,10 @@ describe("the Jira guide's settings", () => {
     expect(Array.from(titles)).toContain("Jira API URL");
 
     for (const title of titles) {
-      expect({ title, described: GUIDE.includes(`\n- **${title}** — `) }).toEqual(
-        { title, described: true },
-      );
+      expect({
+        title,
+        described: GUIDE.includes(`\n- **${title}** — `),
+      }).toEqual({ title, described: true });
     }
   });
 
