@@ -1,4 +1,4 @@
-{{- if .Values.profiling.enabled }}
+{{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

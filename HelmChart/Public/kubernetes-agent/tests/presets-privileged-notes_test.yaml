@@ -105,3 +105,46 @@ tests:
           pattern: "privileged"
       - notMatchRegexRaw:
           pattern: "\\nPreset:"
+
+  # The collecting list names what the chart rendered: on EKS Fargate no
+  # DaemonSet runs, so no kubelet or cAdvisor metrics; on GKE Autopilot the
+  # node collector runs without hostPath, so no OS metrics.
+  - it: lists no node collector metrics on EKS Fargate, which runs no DaemonSet
+    set:
+      preset: eks-fargate
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "\\(kubeletstats\\)"
+      - notMatchRegexRaw:
+          pattern: "cAdvisor: CFS throttling"
+      - notMatchRegexRaw:
+          pattern: "Per-node OS metrics"
+      - matchRegexRaw:
+          pattern: "\\nThe agent is now collecting:\\n  - Cluster-level metrics: deployments, replicas, pod phases \\(k8s_cluster\\)\\n"
+
+  - it: lists kubelet and cAdvisor metrics but no OS metrics on GKE Autopilot
+    set:
+      preset: gke-autopilot
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
+      - notMatchRegexRaw:
+          pattern: "Per-node OS metrics"
+
+  - it: lists every node collector metric on the standard preset
+    set:
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe agent is now collecting:\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
+      - matchRegexRaw:
+          pattern: "\\n  - Per-node OS metrics \\(disk I/O, filesystem inodes, NIC errors, paging, load average\\)\\n"
