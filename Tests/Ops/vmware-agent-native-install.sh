@@ -2,10 +2,10 @@
 #
 # The VMware agent installed without Docker, end to end: the commands the
 # docs give for it (packages/App/FeatureSet/Docs/Content/en/telemetry/
-# vmware.md — "Alternative — Without Docker", and the upgrade and uninstall
-# that follow), run as written by a sudo user inside a systemd container,
-# against a vCenter simulator (vcsim, from govmomi) and a stand-in OneUptime
-# that records what reaches /otlp/v1/*.
+# vmware.md — the systemd tab of "Install and start the agent", and of the
+# upgrade and uninstall sections), run as written by a sudo user inside a
+# systemd container, against a vCenter simulator (vcsim, from govmomi) and a
+# stand-in OneUptime that records what reaches /otlp/v1/*.
 #
 # VMwareAgentWithoutDocker.test.js runs the same commands against stubs; this
 # shows what only the real thing can:
@@ -190,15 +190,41 @@ out = pathlib.Path(sys.argv[2])
 RAW = "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/"
 
 
+# A section runs to the next heading of its level or higher; a "# comment"
+# line inside a code block is not a heading.
 def section(heading):
     lines = page.split("\n")
     start = lines.index(heading)
     level = len(heading) - len(heading.lstrip("#"))
-    body = []
+    body, fenced = [], False
     for line in lines[start + 1:]:
-        match = re.match(r"^(#{1,6})\s", line)
+        if line.startswith("```"):
+            fenced = not fenced
+        match = None if fenced else re.match(r"^(#{1,6})\s", line)
         if match and len(match.group(1)) <= level:
             break
+        body.append(line)
+    return "\n".join(body)
+
+
+# One tab of a ":::tabs" block ("@tab Name"), up to the next tab or the ":::"
+# that closes the block; nested blocks and code blocks keep their own lines.
+def tab(text, name):
+    lines = text.split("\n")
+    start = lines.index("@tab " + name)
+    body, fenced, depth = [], False, 0
+    for line in lines[start + 1:]:
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced:
+            if line.startswith("@tab ") and depth == 0:
+                break
+            if line.strip() == ":::":
+                if depth == 0:
+                    break
+                depth -= 1
+            elif line.startswith(":::"):
+                depth += 1
         body.append(line)
     return "\n".join(body)
 
@@ -207,9 +233,14 @@ def blocks(text):
     return re.findall(r"^```bash\n(.*?)\n```$", text, re.S | re.M)
 
 
-install, env_commands, env_content, start = blocks(section("## Alternative — Without Docker"))
-upgrade = [b for b in blocks(section("## Upgrading the Agent")) if b.startswith('cd "$(mktemp -d)"')][0]
-uninstall = [b for b in blocks(section("## Uninstalling the Agent")) if b.startswith("sudo systemctl disable")][0]
+# The install without Docker is the page's systemd tab, in each section that has one.
+def without_docker(heading):
+    return blocks(tab(section(heading), "systemd"))
+
+
+install, env_commands, env_content, start = without_docker("### Install and start the agent")
+upgrade = [b for b in without_docker("## Upgrading the agent") if b.startswith('cd "$(mktemp -d)"')][0]
+uninstall = [b for b in without_docker("## Uninstalling the agent") if b.startswith("sudo systemctl disable")][0]
 
 for name, text in {
     "install.sh": install,
