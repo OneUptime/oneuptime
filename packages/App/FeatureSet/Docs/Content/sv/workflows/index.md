@@ -93,8 +93,8 @@ Varje arbetsflöde kommer till på samma sätt:
 1. **Skapa** — välj en utgångspunkt och ge sedan arbetsflödet ett namn. Se [Skapa ett arbetsflöde](/docs/workflows/authoring).
 2. **Välj en utlösare** — manuell, schemalagd, webhook, inkommande e-post eller en händelse från OneUptime. Se [Utlösare](/docs/workflows/triggers).
 3. **Lägg till komponenter** — lägg till åtgärder på arbetsytan och koppla ihop dem. Se [Komponenter](/docs/workflows/components).
-4. **Slå på det** — slå på **Aktiverad** högst upp i **Byggare**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens manuellt.
-5. **Testa** — klicka på **Kör arbetsflöde** i **Byggare** och följ körningen medan den pågår.
+4. **Testa** — klicka på **Kör arbetsflöde** i **Byggare** och följ körningen medan den pågår. Det fungerar medan arbetsflödet fortfarande är avstängt: det är en **Testkörning**.
+5. **Slå på det** — slå på **Aktiverad** högst upp i **Byggare** när det är klart. Därefter startar dess utlösare det.
 :::
 
 Exemplet nedan följer de här stegen för ett riktigt arbetsflöde.
@@ -156,15 +156,15 @@ Klicka på **Lägg till komponent** och klicka sedan på **Logg**. Koppla API-bl
 
 En förfrågan som misslyckas — en URL som inte går att nå, eller ett svar som inte är 2xx — tar nu den här vägen, och körningens logg säger varför.
 
+### Testa det
+
+Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en incident i det här projektet, klicka på **Run Workflow Manually** och bekräfta med **Run**. Arbetsflödet är fortfarande avstängt, så det här är en **Testkörning**, och förfrågan skickas på riktigt.
+
+En panel **Arbetsflödeskörning** öppnas och följer körningen. Öppna steget **API Post (JSON)** för att se bodyn det skickade och svaret det fick.
+
 ### Slå på det
 
 Slå på **Aktiverad** högst upp i **Byggare**.
-
-### Testa det
-
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en incident i det här projektet, klicka på **Run Workflow Manually** och bekräfta med **Run**.
-
-En panel **Arbetsflödeskörning** öppnas och följer körningen. Öppna steget **API Post (JSON)** för att se bodyn det skickade och svaret det fick.
 :::
 
 Från och med nu startar varje ny incident i projektet en körning. Du hittar dem alla under arbetsflödets [Körningar](/docs/workflows/runs-and-logs).

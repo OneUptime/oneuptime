@@ -76,6 +76,7 @@ Los pasos fallidos, los pasos con una advertencia y el único paso de una ejecuc
 
 Algunas ejecuciones se leen de otra manera:
 
+- **Una ejecución de prueba.** Una ejecución que alguien inició con **Ejecutar flujo de trabajo** o **Ejecutar solo este paso** mientras el flujo de trabajo estaba desactivado dice **Ejecución de prueba** en la parte superior, con quién la inició, y las dos listas de ejecuciones la marcan como **Ejecución de prueba** junto a su estado. Sus bloques se ejecutaron de verdad; solo el disparador del flujo de trabajo estaba en pausa. Filtra por **Ejecución de prueba** para listar solo las ejecuciones de prueba, o solo las demás.
 - **Una prueba de un solo paso.** Una ejecución iniciada con **Ejecutar solo este paso** dice **Solo se ejecutó este paso** en la parte superior. Los pasos anteriores no se ejecutaron, así que faltan los valores que lee de ellos (espera una advertencia **No se resolvió** para esos), y los pasos posteriores dicen **(no se ejecutó en esta prueba)**. Usa **Ejecutar flujo de trabajo** para probar todo el camino.
 - **Una ejecución que se detuvo entre pasos.** Si la ejecución se detuvo por un motivo que ningún paso explica — agotó su tiempo entre pasos, o falló antes de su primer paso —, el camino termina con **La ejecución se detuvo aquí** y el motivo.
 - **Una ejecución dormida.** Una ejecución que espera en un bloque **Sleep** termina con **En reposo** y la hora a la que continuará sola; los pasos posteriores al Sleep dicen **(aún no se ha ejecutado)**.
@@ -106,7 +107,7 @@ Una descarga no contiene nada que no pudieras leer ya en la ejecución. Los secr
 ## Solución de problemas
 
 :::details Mi flujo de trabajo no se ejecutó
-1. Asegúrate de que el flujo de trabajo está **Habilitado**: el interruptor está en la parte superior de su **Constructor**, que lo indica encima del lienzo cuando el flujo de trabajo está desactivado. Los flujos de trabajo nuevos empiezan deshabilitados, y un flujo de trabajo deshabilitado rechaza todas las ejecuciones, incluidas las manuales. Una llamada de webhook a él recibe HTTP 400 con un mensaje que explica cómo activarlo.
+1. Asegúrate de que el flujo de trabajo está **Habilitado**: el interruptor está en la parte superior de su **Constructor**, que lo indica encima del lienzo cuando el flujo de trabajo está desactivado. Los flujos de trabajo nuevos empiezan deshabilitados, y mientras un flujo de trabajo está desactivado su disparador no lo inicia: solo **Ejecutar flujo de trabajo** y **Ejecutar solo este paso** lo hacen, como ejecuciones de prueba. Una llamada de webhook a él recibe HTTP 400 con un mensaje que explica cómo activarlo.
 2. Para un disparador de eventos de OneUptime, confirma que el evento ocurrió de verdad: abre el registro y revisa su historial. Un disparador **On Update** con **Listen on** solo salta cuando cambió uno de esos campos.
 3. Para un disparador webhook, confirma que el otro sistema envía a la URL correcta. La mayoría de las herramientas registran cuándo envían un webhook: míralo ahí.
 4. Para un disparador programado, confirma que la expresión cron coincide con la hora que esperas. Las programaciones se ejecutan en UTC.

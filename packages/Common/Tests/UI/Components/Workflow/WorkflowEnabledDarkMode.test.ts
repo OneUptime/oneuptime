@@ -3,8 +3,9 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Builder's turned-off notice, its Enabled switch and the dialog that
- * turns a workflow on, in the dark theme.
+ * The Builder's turned-off notice, its Enabled switch, and how a test run is
+ * marked - the Run Workflow panel's note, the note at the top of a run and
+ * the run lists' pill (WorkflowTestRun) - in the dark theme.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class and per
@@ -18,7 +19,9 @@ const UI_DIR: string = path.join(__dirname, "..", "..", "..", "..", "UI");
 const FILES: Array<string> = [
   "Components/Workflow/WorkflowTurnedOffNotice.tsx",
   "Components/Workflow/WorkflowEnabledSwitch.tsx",
-  "Components/Workflow/WorkflowTurnOnModal.tsx",
+  "Components/Workflow/WorkflowTestRun.tsx",
+  // The Webhook and Incoming Email triggers' note while the workflow is off.
+  "Components/Workflow/WorkflowOffTriggerNote.tsx",
 ];
 
 // Block comments only: prose in Theme.css must not count as a rule.
@@ -141,10 +144,22 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the turned-off workflow's notice, switch and dialog in the dark theme", () => {
-  test("the scan found the notice's colours, so the check below is not vacuous", () => {
+describe("the turned-off workflow's notice, switch and test-run marks in the dark theme", () => {
+  test("the scan found the notice's and the notes' colours, so the check below is not vacuous", () => {
     expect(COLOR_TOKENS).toEqual(
-      expect.arrayContaining(["bg-amber-50", "border-amber-200"]),
+      expect.arrayContaining([
+        // The notice, and the Run Workflow button's name drawn bold in it.
+        "bg-amber-50",
+        "border-amber-200",
+        "text-amber-800",
+        "text-amber-900",
+        // The Run Workflow panel's note.
+        "bg-blue-50",
+        "border-blue-100",
+        "text-blue-700",
+        // Who started a test run, written out beside its pill in the run.
+        "text-gray-500",
+      ]),
     );
   });
 

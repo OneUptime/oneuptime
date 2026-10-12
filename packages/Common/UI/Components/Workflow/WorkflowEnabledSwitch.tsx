@@ -21,8 +21,10 @@ export interface ComponentProps {
  * It used to live only in the Overview's Workflow Details, behind Edit, two
  * pages away from where a workflow is built and run, and nothing in the
  * Builder said it existed. Here the state is in view while the workflow is
- * edited, which matters both ways: a workflow that is off does not run, and
- * one that is on is live, so every saved change to it takes effect at once.
+ * edited, which matters both ways: the trigger of a workflow that is off
+ * starts nothing (only a person testing it from here does, as a test run),
+ * and one that is on is live, so every saved change to it takes effect at
+ * once.
  */
 const WorkflowEnabledSwitch: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

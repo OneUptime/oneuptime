@@ -745,6 +745,90 @@ describe("reads like the Webhook trigger", () => {
   });
 });
 
+describe("while the workflow is off", () => {
+  /*
+   * Off pauses the workflow's trigger: email to its address is ignored until
+   * the workflow is turned on, while Run Workflow still tests it ("Why do I
+   * have to enable a workflow in order to test run it?"). The panel says so
+   * above the address, before anyone sends to it - an ignored email gets no
+   * answer at all.
+   */
+  test("says above the address that email to it is ignored, and that Run Workflow still tests it", () => {
+    renderPanel({ isWorkflowOff: true });
+
+    const note: HTMLElement = screen.getByTestId(
+      "incoming-email-trigger-workflow-off",
+    );
+
+    expect(note).toHaveAttribute("role", "note");
+    expect(note.textContent).toBe(
+      "While this workflow is off, email to this address is ignored. You can still test it with Run Workflow.",
+    );
+    expect(within(note).getByText("Run Workflow").tagName).toBe("STRONG");
+    expect(
+      note.compareDocumentPosition(addressBox()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("adds nothing to press: Copy address is still the first control", () => {
+    renderPanel({
+      isWorkflowOff: true,
+      onResetAddress: getJestMockFunction(),
+    });
+
+    const note: HTMLElement = screen.getByTestId(
+      "incoming-email-trigger-workflow-off",
+    );
+
+    expect(within(note).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getAllByRole("button")[0]!).toHaveAccessibleName(
+      "Copy the email address",
+    );
+  });
+
+  test.each([false, undefined])(
+    "says nothing of the kind while the workflow is on (isWorkflowOff %p)",
+    (isWorkflowOff: boolean | undefined) => {
+      renderPanel({ isWorkflowOff: isWorkflowOff });
+
+      expect(
+        screen.queryByTestId("incoming-email-trigger-workflow-off"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("is not said where there is no address to send to", () => {
+    const { view } = renderPanel({
+      isWorkflowOff: true,
+      canSeeAddress: false,
+      address: null,
+    });
+
+    expect(
+      screen.queryByTestId("incoming-email-trigger-workflow-off"),
+    ).not.toBeInTheDocument();
+
+    view.unmount();
+
+    renderPanel({ isWorkflowOff: true, inboundDomain: null, address: null });
+
+    expect(
+      screen.queryByTestId("incoming-email-trigger-workflow-off"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("says it the way the Webhook trigger does, in its own words for an address", () => {
+    expect(IncomingEmailTriggerPanelCopy.workflowOff).toBe(
+      "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.",
+    );
+    // The same second sentence as the Webhook's, word for word.
+    expect(IncomingEmailTriggerPanelCopy.workflowOff.split(". ")[1]).toBe(
+      WebhookTriggerPanelCopy.workflowOff.split(". ")[1],
+    );
+  });
+});
+
 describe("in another language", () => {
   // The dashboard's own German file, so this also proves the keys line up.
   const german: i18n = createInstance();
@@ -861,5 +945,29 @@ describe("in another language", () => {
         name: "So richten Sie eingehende E-Mails ein",
       }),
     ).toHaveAttribute("href", GUIDE);
+  });
+
+  test("the note while the workflow is off, with the button named as the German toolbar names it", () => {
+    render(
+      <IncomingEmailTriggerPanel
+        inboundDomain={DOMAIN}
+        address={ADDRESS}
+        canSeeAddress={true}
+        setupGuideUrl={GUIDE}
+        isWorkflowOff={true}
+      />,
+      { wrapper: GermanWrapper },
+    );
+
+    const note: HTMLElement = screen.getByTestId(
+      "incoming-email-trigger-workflow-off",
+    );
+
+    expect(note.textContent).toBe(
+      "Solange dieser Arbeitsablauf ausgeschaltet ist, werden E-Mails an diese Adresse ignoriert. Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
+    );
+    expect(within(note).getByText("Arbeitsablauf ausführen").tagName).toBe(
+      "STRONG",
+    );
   });
 });

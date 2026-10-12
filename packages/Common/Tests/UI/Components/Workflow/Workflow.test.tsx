@@ -1609,3 +1609,34 @@ describe("Workflow builder: running and modal state", () => {
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
   });
 });
+
+describe("Workflow builder: a workflow that is off", () => {
+  /*
+   * The page says when the workflow is off (and not archived): runs started
+   * here are then test runs. A step's settings are told too, so the Webhook
+   * and Incoming Email triggers can say their URL or address starts nothing
+   * until the workflow is on (ComponentPrimaryPanel).
+   */
+  test.each([
+    { runsAreTestRuns: true, isWorkflowOff: true },
+    { runsAreTestRuns: false, isWorkflowOff: false },
+    { runsAreTestRuns: undefined, isWorkflowOff: false },
+  ])(
+    "a step's settings are told the workflow is off exactly when runs from here are test runs ($runsAreTestRuns)",
+    (data: {
+      runsAreTestRuns: boolean | undefined;
+      isWorkflowOff: boolean;
+    }) => {
+      const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+
+      renderBuilder({
+        initialNodes: [trigger],
+        runsAreTestRuns: data.runsAreTestRuns,
+      });
+
+      fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
+
+      expect(getSettingsProps().isWorkflowOff).toBe(data.isWorkflowOff);
+    },
+  );
+});

@@ -3,7 +3,7 @@
 Ce qu'il faut savoir avant de confier un vrai trafic à un workflow : comment l'activer en toute sécurité, qui peut faire quoi, comment les secrets et les URL restent privés, ce que les étapes d'un workflow peuvent modifier, et les limites dans lesquelles s'inscrit chaque exécution.
 
 :::cards
-- [Mise en production](#activer-ou-désactiver-un-workflow): Testez avec Exécuter le flux de travail, puis laissez le workflow activé.
+- [Mise en production](#activer-ou-désactiver-un-workflow): Testez avec Exécuter le flux de travail tant qu'il est désactivé, puis activez-le.
 - [Autorisations](#autorisations): Les rôles de workflow, et les autorisations individuelles qui les composent.
 - [Ce que les étapes peuvent faire](#ce-que-les-étapes-dun-workflow-peuvent-faire): Les étapes agissent en tant que Project Admin du projet du workflow.
 - [Limites](#limites-du-forfait): Exécutions par forfait, durée d'une exécution et appels entre workflows.
@@ -11,18 +11,18 @@ Ce qu'il faut savoir avant de confier un vrai trafic à un workflow : comment l'
 
 ## Activer ou désactiver un workflow
 
-Chaque workflow a un interrupteur **Activé** en haut de son **Constructeur**, et sur sa page **Vue d'ensemble**. Quand il est désactivé, le workflow ne s'exécute pas — les appels de webhook, les e-mails entrants, les heures planifiées et les événements OneUptime sont tous ignorés, tout comme **Exécuter le flux de travail** et **Run just this step**. Les nouveaux workflows démarrent désactivés.
+Chaque workflow a un interrupteur **Activé** en haut de son **Constructeur**, et sur sa page **Vue d'ensemble**. Quand il est désactivé, son déclencheur est en pause — les appels de webhook, les e-mails entrants, les heures planifiées, les événements OneUptime et les étapes **Execute Workflow** d'autres workflows ne le lancent pas. **Exécuter le flux de travail** et **Run just this step**, si : une exécution que vous lancez vous-même pendant que le workflow est désactivé est une **Exécution de test**. Les nouveaux workflows démarrent désactivés.
 
 Servez-vous de cet interrupteur comme du feu vert « prêt à partir » :
 
 :::steps
 1. Construisez le workflow.
-2. Cliquez sur **Exécuter le flux de travail** dans le **Constructeur** avec des valeurs réalistes. Un workflow désactivé ne peut pas s'exécuter, même à la main : le Constructeur vous demande donc d'abord de l'activer ; cliquez sur **Activer et exécuter**.
+2. Cliquez sur **Exécuter le flux de travail** dans le **Constructeur** avec des valeurs réalistes, pendant que le workflow est encore désactivé. L'exécution est une **Exécution de test** : chaque bloc s'exécute pour de vrai, alors dirigez-le d'abord vers un canal de test ou un enregistrement de test.
 3. Ouvrez l'exécution et vérifiez que chaque bloc est allé là où vous l'attendiez. Voir [Exécutions](/docs/workflows/runs-and-logs).
-4. Laissez **Activé** s'il est prêt. Sinon, désactivez-le jusqu'à ce qu'il le soit : tant qu'il est activé, son déclencheur se produit sur de vrais événements.
+4. Basculez **Activé** quand il est prêt : à partir de là, son déclencheur se produit sur de vrais événements.
 :::
 
-Désactiver un workflow empêche de nouvelles exécutions de démarrer. Une exécution déjà en cours se termine, mais une exécution qui attend sur un bloc **Sleep** est annulée à son réveil.
+Désactiver un workflow empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil. Les exécutions de test continuent.
 
 ## Archiver un workflow
 
@@ -85,7 +85,7 @@ Le fichier contient le nom du workflow, sa description, son état d'activation e
 - **Les variables globales.** Un bloc qui lit `{{global.variables.MY_SECRET}}` garde cette référence, mais la valeur n'est pas dans le fichier. Créez les variables dans le projet de destination avant d'exécuter le workflow importé.
 - **Les propriétaires et les étiquettes.** Les règles d'étiquettes et de propriétaires de votre projet s'appliquent au workflow importé, comme si vous l'aviez créé à la main.
 
-Un workflow importé est toujours créé **désactivé**, même s'il était activé à l'endroit d'où il a été exporté — son graphe peut pointer vers des moniteurs, des politiques d'astreinte ou d'autres workflows qui n'existent pas dans le projet de destination. Relisez-le, activez-le, testez-le avec **Exécuter le flux de travail**, puis laissez-le activé. Dupliquer un workflow se comporte de la même façon : une copie ne se met donc jamais à se déclencher à côté de l'original avant que vous l'ayez modifiée.
+Un workflow importé est toujours créé **désactivé**, même s'il était activé à l'endroit d'où il a été exporté — son graphe peut pointer vers des moniteurs, des politiques d'astreinte ou d'autres workflows qui n'existent pas dans le projet de destination. Relisez-le, testez-le avec **Exécuter le flux de travail**, puis activez-le. Dupliquer un workflow se comporte de la même façon : une copie ne se met donc jamais à se déclencher à côté de l'original avant que vous l'ayez modifiée.
 
 Comme le graphe voyage tel quel, tout ce qui est saisi directement dans un bloc voyage avec lui. C'est la raison pratique de garder les identifiants dans des variables secrètes : exporter un workflow qui contient un jeton en dur remet ce jeton à quiconque reçoit le fichier.
 

@@ -25,6 +25,8 @@ const FILES: Array<string> = [
   "Components/Workflow/ComponentPrimaryPanel.tsx",
   "Components/Workflow/WebhookTriggerPanel.tsx",
   "Components/Workflow/IncomingEmailTriggerPanel.tsx",
+  // Both panels' note while the workflow is off.
+  "Components/Workflow/WorkflowOffTriggerNote.tsx",
   "Components/Workflow/ManualTriggerPanel.tsx",
   "Components/Workflow/ComponentReturnValueViewer.tsx",
   "Components/Workflow/ComponentPortViewer.tsx",

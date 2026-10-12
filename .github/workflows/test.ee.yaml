@@ -80,6 +80,14 @@ jobs:
       - name: Run App's docs facts that read ee/ with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts --forceExit
+      # App's guard that only the Builder's Run Workflow and Run just this step
+      # hand the workflow queue a person - which is what lets a run start while
+      # the workflow is off, as a test run - walks ee/ too, for any other code
+      # that asks for a run. The App Test job deletes ee/ first, so only this
+      # run reads ee/. It only reads files.
+      - name: Run App's workflow test-run guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/FeatureSet/Workflow/WorkflowTestRunStartersGuard.test.ts --forceExit
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, and the

@@ -18,6 +18,7 @@ import {
 } from "./DocumentationContext";
 import { WorkflowDocsPaths, docsLink } from "./DocumentationLinks";
 import { IncomingEmailTriggerValue } from "../IncomingEmailTrigger";
+import { WORKFLOW_TEST_WHILE_OFF_HELP } from "../WorkflowEnabled";
 
 export type TriggerDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -51,8 +52,8 @@ export const getWebhookDocumentation: TriggerDocumentationFunction = (
       {
         title: "Testing it without the other app",
         paragraphs: [
-          "Click **Run Workflow** in the builder's toolbar to start a run with headers, query parameters and a body you type in.",
-          "Or copy the request under **Try it** at the top of this dialog and run it in a terminal.",
+          `Click **Run Workflow** in the builder's toolbar to start a run with headers, query parameters and a body you type in. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+          "Or, once the workflow is on, copy the request under **Try it** at the top of this dialog and run it in a terminal.",
         ],
       },
       {
@@ -111,8 +112,8 @@ export const getIncomingEmailDocumentation: TriggerDocumentationFunction = (
       {
         title: "Testing it without sending an email",
         paragraphs: [
-          "Click **Run Workflow** in the builder's toolbar and fill in a sender, a subject and a body. The values you leave out arrive empty.",
-          "Or send a real email to the address and open the workflow's runs to see what it brought.",
+          `Click **Run Workflow** in the builder's toolbar and fill in a sender, a subject and a body. The values you leave out arrive empty. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+          "Or, once the workflow is on, send a real email to the address and open the workflow's runs to see what it brought.",
         ],
       },
       {
@@ -168,7 +169,7 @@ export const getScheduleDocumentation: TriggerDocumentationFunction = (
       {
         title: "Testing it",
         paragraphs: [
-          "Click **Run Workflow** in the builder's toolbar to start a run straight away, without waiting for the schedule.",
+          `Click **Run Workflow** in the builder's toolbar to start a run straight away, without waiting for the schedule. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],
