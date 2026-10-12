@@ -1747,10 +1747,14 @@ const VARIABLE_TABLES: ReadonlyArray<VariableTable> = [
     page: STORAGE_ARRAYS_PAGE,
     compose: "agents/StorageArrayAgent/docker-compose.yml",
   },
+  { page: DATABASES_PAGE, compose: "agents/DatabaseAgent/docker-compose.yml" },
 ];
 
 // A row of a variable table: the variable, then whether it is required.
 const REQUIRED_ROW: RegExp = /^\| `([A-Z][A-Z0-9_]*)` \| ([^|]+) \|/;
+
+// The English header of a variable table with a Required column.
+const REQUIRED_TABLE_HEADER: string = "| Variable | Required |";
 
 // How each docs language answers the Required column: yes, then no.
 const REQUIRED_ANSWERS: Record<string, [string, string]> = {
@@ -1782,25 +1786,47 @@ interface RequiredRow {
 // The variable rows of a page, with the line each is on and its answer.
 function requiredRows(markdown: string): Array<RequiredRow> {
   const rows: Array<RequiredRow> = [];
+  // Whether the line is inside a table headed "| Variable | Required |".
+  let inRequiredTable: boolean = false;
 
   markdown.split("\n").forEach((line: string, index: number): void => {
-    const match: RegExpMatchArray | null = line.match(REQUIRED_ROW);
+    if (!line.startsWith("|")) {
+      inRequiredTable = false;
+      return;
+    }
 
-    if (match) {
-      rows.push({
-        line: index,
-        name: match[1] as string,
-        answer: (match[2] as string).trim(),
-      });
+    if (line.startsWith(REQUIRED_TABLE_HEADER)) {
+      inRequiredTable = true;
+      return;
+    }
+
+    const answer: RequiredRow | null = requiredAnswerOf(line, index);
+
+    if (inRequiredTable && answer) {
+      rows.push(answer);
     }
   });
 
   return rows;
 }
 
+// A variable row's variable and the answer in its second column.
+function requiredAnswerOf(line: string, index: number): RequiredRow | null {
+  const match: RegExpMatchArray | null = line.match(REQUIRED_ROW);
+
+  return match
+    ? {
+        line: index,
+        name: match[1] as string,
+        answer: (match[2] as string).trim(),
+      }
+    : null;
+}
+
 /*
  * A language's answer for the English one: its own yes or no, and a
- * condition (the storage array page's "FlashArray") as written.
+ * condition (the storage array page's "FlashArray", the Databases page's
+ * "PostgreSQL, MySQL, SQL Server, Oracle") as written.
  */
 function requiredAnswer(english: string, answers: [string, string]): string {
   if (english === "Yes") {
@@ -1808,6 +1834,16 @@ function requiredAnswer(english: string, answers: [string, string]): string {
   }
 
   return english === "No" ? answers[1] : english;
+}
+
+/*
+ * A condition's names, in order, joined as English joins them: Chinese and
+ * Japanese list them with an ideographic comma, Persian with its own comma.
+ */
+const CONDITION_SEPARATOR: RegExp = /\s*[,\u{060C}\u{3001}]\s*/u;
+
+function conditionNames(answer: string): string {
+  return answer.split(CONDITION_SEPARATOR).join(", ");
 }
 
 // Whether a compose file defaults the variable, in either of its two forms.
@@ -1825,9 +1861,12 @@ describe("the agent pages' Required columns, against the compose files", () => {
       expect(rows.length).toBeGreaterThan(0);
 
       for (const row of rows) {
-        expect({ variable: row.name, answer: row.answer }).toEqual({
+        expect({
           variable: row.name,
-          answer: composeDefaults(compose, row.name) ? "No" : row.answer,
+          required: row.answer === "Yes",
+        }).toEqual({
+          variable: row.name,
+          required: row.answer === "Yes" && !composeDefaults(compose, row.name),
         });
       }
     },
@@ -1850,9 +1889,26 @@ describe("the agent pages' Required columns, against the compose files", () => {
     expect(requiredAnswer("Yes", ["Ja", "Nein"])).toBe("Ja");
     expect(requiredAnswer("No", ["Ja", "Nein"])).toBe("Nein");
     expect(requiredAnswer("FlashArray", ["Ja", "Nein"])).toBe("FlashArray");
+    expect(conditionNames("PostgreSQL\u{3001}MySQL\u{3001}SQL Server")).toBe(
+      "PostgreSQL, MySQL, SQL Server",
+    );
+    expect(conditionNames("PostgreSQL\u{060C} MySQL")).toBe(
+      "PostgreSQL, MySQL",
+    );
+    expect(conditionNames("Ja")).toBe("Ja");
     expect(
-      requiredRows("| `CEPH_CLUSTER_NAME` | No | The cluster's name. |"),
-    ).toEqual([{ line: 0, name: "CEPH_CLUSTER_NAME", answer: "No" }]);
+      requiredRows(
+        [
+          "| Variable | Required | Description |",
+          "| --- | --- | --- |",
+          "| `CEPH_CLUSTER_NAME` | No | The cluster's name. |",
+          "",
+          "| Variable | Default | What it does |",
+          "| --- | --- | --- |",
+          "| `ONEUPTIME_AI_FIXES` | empty | How AI may apply a fix. |",
+        ].join("\n"),
+      ),
+    ).toEqual([{ line: 2, name: "CEPH_CLUSTER_NAME", answer: "No" }]);
     expect(requiredRows("| Variable | Required | Description |")).toEqual([]);
   });
 
@@ -1881,7 +1937,10 @@ describe("the agent pages' Required columns, against the compose files", () => {
             expect({
               variable: row.name,
               line: translated[row.line]?.startsWith(`| \`${row.name}\` |`),
-              answer: requiredRows(translated[row.line] || "")[0]?.answer,
+              answer: conditionNames(
+                requiredAnswerOf(translated[row.line] || "", row.line)
+                  ?.answer || "",
+              ),
             }).toEqual({
               variable: row.name,
               line: true,
