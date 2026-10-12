@@ -96,7 +96,10 @@ const EVERY_SHAPE_OF_A_MODEL: Array<IdShape> = [
   },
   // OpenRouter writes the provider in front and the version with a dot.
   { modelName: "anthropic/claude-opus-4.5", canonicalId: "claude-opus-4-5" },
-  { modelName: "anthropic/claude-sonnet-5.5", canonicalId: "claude-sonnet-5-5" },
+  {
+    modelName: "anthropic/claude-sonnet-5.5",
+    canonicalId: "claude-sonnet-5-5",
+  },
   { modelName: "anthropic/claude-fable-5.1", canonicalId: "claude-fable-5-1" },
   { modelName: "anthropic/claude-opus-4.1", canonicalId: "claude-opus-4-1" },
   { modelName: "anthropic/claude-opus-4", canonicalId: "claude-opus-4" },
@@ -195,8 +198,7 @@ describe("ClaudeModelId.parse", () => {
       major: number,
       minor: number,
     ) => {
-      const version: ClaudeModelVersion | null =
-        ClaudeModelId.parse(modelName);
+      const version: ClaudeModelVersion | null = ClaudeModelId.parse(modelName);
 
       expect(version).toEqual({ family, major, minor });
     },

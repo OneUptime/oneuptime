@@ -127,19 +127,16 @@ describe("a Claude Code traces beta span gets its tokens and a cost", () => {
     ["claude-fable-5-1", 0.07037],
     ["claude-opus-5-5", 0.032948],
     ["claude-sonnet-5-5", 0.016474],
-  ])(
-    "a Claude Code call to %p costs $%p",
-    (model: string, cost: number) => {
-      const fields: LlmSpanFields = LlmSpanUtil.extract(
-        claudeCodeLlmRequest({
-          model: model,
-          "gen_ai.request.model": model,
-        }),
-      );
+  ])("a Claude Code call to %p costs $%p", (model: string, cost: number) => {
+    const fields: LlmSpanFields = LlmSpanUtil.extract(
+      claudeCodeLlmRequest({
+        model: model,
+        "gen_ai.request.model": model,
+      }),
+    );
 
-      expect(fields.llmCost).toBe(cost);
-    },
-  );
+    expect(fields.llmCost).toBe(cost);
+  });
 
   test("a project's own price for the model wins, and charges every input token", () => {
     const overrides: Array<LlmModelPrice> = [
@@ -308,22 +305,19 @@ describe("spans that report gen_ai.usage.* keep the tokens they had", () => {
       },
       [10_000, 20, 10_020],
     ],
-  ])(
-    "%s",
-    (_name: string, usage: Attrs, expected: Array<number>) => {
-      const fields: LlmSpanFields = LlmSpanUtil.extract({
-        "gen_ai.system": "openai",
-        "gen_ai.request.model": "gpt-4o",
-        ...usage,
-      });
+  ])("%s", (_name: string, usage: Attrs, expected: Array<number>) => {
+    const fields: LlmSpanFields = LlmSpanUtil.extract({
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      ...usage,
+    });
 
-      expect([
-        fields.llmInputTokens,
-        fields.llmOutputTokens,
-        fields.llmTotalTokens,
-      ]).toEqual(expected);
-    },
-  );
+    expect([
+      fields.llmInputTokens,
+      fields.llmOutputTokens,
+      fields.llmTotalTokens,
+    ]).toEqual(expected);
+  });
 });
 
 describe("the cost of a call to a current model", () => {

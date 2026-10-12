@@ -34,7 +34,8 @@ const TOKEN_KEY_LISTS: Array<string> = [
   "ClaudeCodeUsageAttributeKeys",
 ];
 
-const THE_ONE_READER: string = "packages/Common/Types/Telemetry/LlmTokenUsage.ts";
+const THE_ONE_READER: string =
+  "packages/Common/Types/Telemetry/LlmTokenUsage.ts";
 
 const SCANNED_PACKAGES: Array<string> = ["packages/Common", "packages/App"];
 

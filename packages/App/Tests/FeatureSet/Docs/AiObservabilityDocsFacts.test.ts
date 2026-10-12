@@ -1139,7 +1139,9 @@ describe("the AI / LLM Observability page", () => {
         .map((key: string): string => {
           return `\`${key}\``;
         })
-        .join(", ")} and \`${claudeCodeKeys[3]}\`, and adds the two cache counts to \`${claudeCodeKeys[0]}\`, which leaves them out.`,
+        .join(
+          ", ",
+        )} and \`${claudeCodeKeys[3]}\`, and adds the two cache counts to \`${claudeCodeKeys[0]}\`, which leaves them out.`,
     );
 
     const numbers: Record<string, number> = {

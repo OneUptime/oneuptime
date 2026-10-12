@@ -654,11 +654,14 @@ describe("LlmCostCatalogUtil.builtInPrefixMatches", () => {
     ["gpt-4o", "gpt-4", false],
     ["claude-opus-4", "anthropic.claude-opus-4", false],
     ["", "gpt-4o", false],
-  ])("%p names %p: %p", (prefix: string, candidate: string, matches: boolean) => {
-    expect(LlmCostCatalogUtil.builtInPrefixMatches(prefix, candidate)).toBe(
-      matches,
-    );
-  });
+  ])(
+    "%p names %p: %p",
+    (prefix: string, candidate: string, matches: boolean) => {
+      expect(LlmCostCatalogUtil.builtInPrefixMatches(prefix, candidate)).toBe(
+        matches,
+      );
+    },
+  );
 });
 
 describe("prompt-cache reads and writes are priced at their own rates", () => {
@@ -831,9 +834,7 @@ describe("a long prompt pays the long-prompt price, from the first token past th
   });
 
   test("xAI: a prompt that reaches 200K tokens", () => {
-    expect(costOf({ model: "grok-4.7", inputTokens: 199_999 })).toBe(
-      0.399998,
-    );
+    expect(costOf({ model: "grok-4.7", inputTokens: 199_999 })).toBe(0.399998);
     expect(costOf({ model: "grok-4.7", inputTokens: 200_000 })).toBe(0.8);
   });
 
@@ -1003,8 +1004,9 @@ describe("a project's own prices still win", () => {
 describe("the catalog's prices hold together", () => {
   test("cache prices, long-prompt prices and thresholds are non-negative numbers", () => {
     for (const entry of LlmModelPricingCatalog) {
-      const tiers: Array<LlmModelPrice | NonNullable<LlmModelPrice["longPrompt"]>> =
-        entry.longPrompt ? [entry, entry.longPrompt] : [entry];
+      const tiers: Array<
+        LlmModelPrice | NonNullable<LlmModelPrice["longPrompt"]>
+      > = entry.longPrompt ? [entry, entry.longPrompt] : [entry];
 
       for (const tier of tiers) {
         for (const price of [
@@ -1063,8 +1065,10 @@ describe("the catalog's prices hold together", () => {
 
   test("no built-in entry is shadowed: every prefix finds itself", () => {
     for (const entry of LlmModelPricingCatalog) {
-      expect({ prefix: entry.modelPrefix, found: prefixOf(entry.modelPrefix) })
-        .toEqual({ prefix: entry.modelPrefix, found: entry.modelPrefix });
+      expect({
+        prefix: entry.modelPrefix,
+        found: prefixOf(entry.modelPrefix),
+      }).toEqual({ prefix: entry.modelPrefix, found: entry.modelPrefix });
     }
   });
 

@@ -330,7 +330,11 @@ describe("Claude Code's traces beta", () => {
         cache_read_tokens: 9_000,
         cache_creation_tokens: 0,
       }),
-    ).toMatchObject({ inputTokens: 9_000, outputTokens: 15, totalTokens: 9_015 });
+    ).toMatchObject({
+      inputTokens: 9_000,
+      outputTokens: 15,
+      totalTokens: 9_015,
+    });
   });
 
   test("any one of the keys is enough, and values sent as strings count", () => {

@@ -268,7 +268,9 @@ describe("a Claude Code traces beta span is stored with its tokens and its cost"
   test("on Amazon Bedrock, through a cross-region inference profile", async () => {
     const row: JSONObject = await ingestOne({
       name: "claude_code.llm_request",
-      attributes: claudeCodeLlmRequest("us.anthropic.claude-sonnet-4-5-20250929-v1:0"),
+      attributes: claudeCodeLlmRequest(
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      ),
     });
 
     // 12 x $3 + 48,000 x $0.30 + 2,100 x $3.75 + 640 x $15, per million.

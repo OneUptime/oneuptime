@@ -1061,7 +1061,10 @@ export class LlmCostCatalogUtil {
    * version. claude-opus-4 matches claude-opus-4-20250514, claude-opus-4-0
    * and claude-opus-4@20250514, and not claude-opus-4-5 or claude-opus-4.5.
    */
-  public static builtInPrefixMatches(prefix: string, candidate: string): boolean {
+  public static builtInPrefixMatches(
+    prefix: string,
+    candidate: string,
+  ): boolean {
     if (!prefix || !candidate.startsWith(prefix)) {
       return false;
     }
