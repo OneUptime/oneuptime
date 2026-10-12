@@ -7,6 +7,8 @@ jest.mock("isolated-vm", () => {
 });
 
 import { describe, expect, test } from "@jest/globals";
+import { Lexer, Token, Tokens } from "marked";
+import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import DetectionRulesGuide, {
   DETECTION_RULE_EXAMPLE_YAML,
   DETECTION_THRESHOLD_EXAMPLES,
@@ -180,6 +182,36 @@ function sectionMarkdown(
   expect(section).toBeDefined();
 
   return section!.markdown;
+}
+
+/*
+ * The body rows of the table with these headers, each as the texts of its
+ * cells, as marked reads them (an escaped "|" is a "|" of the cell's text).
+ */
+function tableRowsUnder(
+  markdown: string,
+  headers: Array<string>,
+): Array<Array<string>> {
+  const cellTexts: (cells: Array<Tokens.TableCell>) => Array<string> = (
+    cells: Array<Tokens.TableCell>,
+  ): Array<string> => {
+    return cells.map((cell: Tokens.TableCell): string => {
+      return cell.text;
+    });
+  };
+  const tables: Array<Tokens.Table> = new Lexer()
+    .lex(markdown)
+    .filter((token: Token): boolean => {
+      return (
+        token.type === "table" &&
+        JSON.stringify(cellTexts((token as Tokens.Table).header)) ===
+          JSON.stringify(headers)
+      );
+    }) as Array<Tokens.Table>;
+
+  expect(tables).toHaveLength(1);
+
+  return tables[0]!.rows.map(cellTexts);
 }
 
 function allMarkdown(guide: SecurityEventsGuide): string {
@@ -736,10 +768,24 @@ describe("Detection Rules guide: the modifier table", () => {
       DetectionRulesGuide,
       "writing-rules",
     );
+    const modifierRows: Array<Array<string>> = tableRowsUnder(writing, [
+      "Modifier",
+      "What it does",
+      "Example",
+    ]);
+
+    expect(modifierRows).toHaveLength(SIGMA_MODIFIER_DOCS.length);
 
     for (const doc of SIGMA_MODIFIER_DOCS) {
       expect(writing).toContain(`\`${doc.modifier}\``);
-      expect(writing).toContain(doc.example.replace(/\|/g, "\\|"));
+      // Placed as a table cell places it: a "|" in it does not end the cell.
+      expect(writing).toContain(markdownTableCell(`\`${doc.example}\``));
+      // Read back as a Markdown reader reads the table: a row of its own, as written.
+      expect(modifierRows).toContainEqual([
+        `\`${doc.modifier}\``,
+        doc.meaning,
+        `\`${doc.example}\``,
+      ]);
     }
   });
 });

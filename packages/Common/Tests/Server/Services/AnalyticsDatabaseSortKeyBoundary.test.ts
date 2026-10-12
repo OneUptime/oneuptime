@@ -176,13 +176,23 @@ function outerOrderBy(statement: Statement): string {
     .split(" LIMIT")[0]!;
 }
 
-/* Resolves rendered `{pN:Identifier}` terms back to the bound column names. */
+// A rendered ORDER BY term: a bound column name, then its direction.
+const ORDER_BY_TERM: RegExp = /^\{(p\d+):Identifier\} (?:ASC|DESC)$/;
+
+/*
+ * Resolves rendered `{pN:Identifier} DESC` terms back to the bound column
+ * names. A term of any other shape is returned as it is, so an assertion on
+ * the names shows it.
+ */
 function orderByColumns(statement: Statement): Array<string> {
   return outerOrderBy(statement)
     .split(", ")
     .map((term: string): string => {
-      const param: string = term.split(":")[0]!.replace("{", "");
-      return statement.query_params[param] as string;
+      const parameter: string | undefined = ORDER_BY_TERM.exec(term)?.[1];
+
+      return parameter === undefined
+        ? term
+        : (statement.query_params[parameter] as string);
     });
 }
 

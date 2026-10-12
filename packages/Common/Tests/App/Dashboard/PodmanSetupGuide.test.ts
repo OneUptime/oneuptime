@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DEFAULT_PODMAN_INSTALL_METHOD,
   PODMAN_AGENT_CONTAINER_NAME,
@@ -307,12 +308,12 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     expect(keyLines.length).toBeGreaterThan(0);
     for (const line of urlLines) {
       expect(line).toMatch(
-        new RegExp(`ONEUPTIME_URL="?${URL.replace(/\./g, "\\.")}"?( \\\\)?$`),
+        new RegExp(`ONEUPTIME_URL="?${escapeRegExp(URL)}"?( \\\\)?$`),
       );
     }
     for (const line of keyLines) {
       expect(line).toMatch(
-        new RegExp(`ONEUPTIME_SERVICE_TOKEN="?${KEY}"?( \\\\)?$`),
+        new RegExp(`ONEUPTIME_SERVICE_TOKEN="?${escapeRegExp(KEY)}"?( \\\\)?$`),
       );
     }
     expect(markdown).not.toContain(SETUP_GUIDE_API_KEY_PLACEHOLDER);

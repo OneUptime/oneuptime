@@ -327,10 +327,14 @@ describe("AnalyticsDatabaseService pagination stability", () => {
         .split(" LIMIT")[0]!;
     };
 
+    // A rendered ORDER BY term: a bound column name, then its direction.
+    const ORDER_BY_TERM: RegExp = /^\{(p\d+):Identifier\} (?:ASC|DESC)$/;
+
     /*
-     * Resolves the rendered `{pN:Identifier}` terms of an ORDER BY back to
-     * the column names they are bound to, so the assertions do not depend
-     * on parameter numbering.
+     * Resolves the rendered `{pN:Identifier} DESC` terms of an ORDER BY back
+     * to the column names they are bound to, so the assertions do not depend
+     * on parameter numbering. A term of any other shape is returned as it
+     * is, so an assertion on the names shows it.
      */
     const orderByColumns: (statement: Statement) => Array<string> = (
       statement: Statement,
@@ -338,8 +342,11 @@ describe("AnalyticsDatabaseService pagination stability", () => {
       return outerOrderBy(statement.query)
         .split(", ")
         .map((term: string): string => {
-          const param: string = term.split(":")[0]!.replace("{", "");
-          return statement.query_params[param] as string;
+          const parameter: string | undefined = ORDER_BY_TERM.exec(term)?.[1];
+
+          return parameter === undefined
+            ? term
+            : (statement.query_params[parameter] as string);
         });
     };
 
