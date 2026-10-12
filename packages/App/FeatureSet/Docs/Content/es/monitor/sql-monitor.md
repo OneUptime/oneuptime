@@ -49,7 +49,7 @@ El conjunto de resultados completo nunca se envía a OneUptime, así que los dat
 
 Los motores compatibles con MySQL y PostgreSQL que hablan el mismo protocolo de red y el mismo dialecto SQL suelen funcionar también, pero solo los tres motores anteriores se prueban oficialmente.
 
-Cuando el host y el puerto a los que se conecta el monitor son uno de los endpoints de una base de datos de la página [Bases de datos](/docs/telemetry/databases), sus alertas e incidentes aparecen también en la página de esa base de datos (consulte [Alertas sobre una base de datos](/docs/telemetry/databases#alerts-on-a-database)). Un host indicado como referencia a un secreto de monitor no se asocia.
+Cuando el host y el puerto a los que se conecta el monitor son uno de los endpoints de una base de datos de la página [Bases de datos](/docs/telemetry/databases), sus alertas e incidentes aparecen también en la página de esa base de datos (consulte [Alertas sobre una base de datos](/docs/telemetry/databases#alertas-sobre-una-base-de-datos)). Un host indicado como referencia a un secreto de monitor no se asocia.
 
 ## Modelo de seguridad
 

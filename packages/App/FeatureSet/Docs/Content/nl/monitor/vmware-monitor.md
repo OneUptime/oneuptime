@@ -333,7 +333,7 @@ monitor_steps = [{
 ## Problemen oplossen
 
 :::details Het vCenter staat niet in de lijst vCenter
-Een vCenter dat de agent verzamelt, registreert zichzelf op basis van de gegevens van de agent. Controleer of de agent draait en gegevens stuurt (zie [De installatie controleren](/docs/telemetry/vmware#verify-the-installation)), of `VMWARE_VCENTER_NAME` is ingesteld, en of er een verzamelinterval voorbij is: er wordt niets verstuurd voordat de eerste volledige doorloop van de inventaris klaar is.
+Een vCenter dat de agent verzamelt, registreert zichzelf op basis van de gegevens van de agent. Controleer of de agent draait en gegevens stuurt (zie [De installatie controleren](/docs/telemetry/vmware#de-installatie-controleren)), of `VMWARE_VCENTER_NAME` is ingesteld, en of er een verzamelinterval voorbij is: er wordt niets verstuurd voordat de eerste volledige doorloop van de inventaris klaar is.
 :::
 
 :::details Hosts hebben metrieken, maar VM's, datastores of clusters niet

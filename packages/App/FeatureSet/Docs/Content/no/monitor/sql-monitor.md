@@ -49,7 +49,7 @@ Hele resultatsettet sendes aldri til OneUptime, så kundedata kopieres ikke over
 
 MySQL-kompatible og PostgreSQL-kompatible motorer som snakker samme wire-protokoll og SQL-dialekt, fungerer som regel også, men bare de tre motorene ovenfor er offisielt testet.
 
-Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#alerts-on-a-database)). En vert som er oppgitt som en henvisning til en overvåkingshemmelighet, blir ikke koblet.
+Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)). En vert som er oppgitt som en henvisning til en overvåkingshemmelighet, blir ikke koblet.
 
 ## Sikkerhetsmodell
 

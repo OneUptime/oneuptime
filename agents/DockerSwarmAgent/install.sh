@@ -156,7 +156,14 @@ fi
 
 echo "Starting the agent..."
 docker compose pull
-docker compose up -d
+# --force-recreate, because running this again on an installed agent is how
+# it picks up new files: Compose recreates a running container only when its
+# service definition or image changed, never for a new
+# otel-collector-config.yaml or inventory-snapshot.sh (bind mounts). The
+# collector reads its config only when it starts, and the inventory poller's
+# loop is the script it started with, so a plain `up -d` would keep both
+# running as they were.
+docker compose up -d --force-recreate
 
 echo ""
 echo "Done. The cluster '${DOCKER_SWARM_CLUSTER_NAME}' should appear in OneUptime within a few minutes."

@@ -158,7 +158,7 @@ One agent reads one array. To monitor several from the same machine, install eac
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo cp systemd/oneuptime-storage-array-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/systemd/oneuptime-storage-array-agent.service -o /etc/systemd/system/oneuptime-storage-array-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-storage-array-agent
 ```

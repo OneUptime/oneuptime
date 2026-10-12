@@ -49,7 +49,7 @@ Det fulde resultatsæt sendes aldrig til OneUptime, så kundedata kopieres ikke 
 
 MySQL- og PostgreSQL-kompatible motorer, der taler den samme wire-protokol og SQL-dialekt, virker som regel også, men kun de tre motorer ovenfor er officielt testet.
 
-Når den vært og port, monitoren forbinder til, er et af endpointene for en database på siden [Databaser](/docs/telemetry/databases), vises dens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alerts-on-a-database)). En vært, der er angivet som en henvisning til en monitorhemmelighed, matches ikke.
+Når den vært og port, monitoren forbinder til, er et af endpointene for en database på siden [Databaser](/docs/telemetry/databases), vises dens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alarmer-på-en-database)). En vært, der er angivet som en henvisning til en monitorhemmelighed, matches ikke.
 
 ## Sikkerhedsmodel
 

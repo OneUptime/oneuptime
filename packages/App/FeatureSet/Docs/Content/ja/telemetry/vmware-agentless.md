@@ -35,7 +35,7 @@ flowchart TB
 ## 始める前に
 
 - **TCP 443 で vCenter に到達できるプローブ。** 通常は vCenter のネットワーク内にある [カスタムプローブ](/docs/probe/custom-probe) です。OneUptime Cloud では共有プローブが vCenter のパスワードを受け取ることはないため、独自のプローブを追加してください。セルフホストのインスタンスでは、インスタンス自身のプローブも収集できます。
-- **Read-Only ロールを持つ vSphere ユーザー。** 最上位の vCenter オブジェクトで付与し、**Propagate to children** をオンにします。[読み取り専用の vSphere ユーザーを作成する](/docs/telemetry/vmware#create-the-read-only-vsphere-user) の手順に従ってください。エージェントが使うものと同じアカウントです。
+- **Read-Only ロールを持つ vSphere ユーザー。** 最上位の vCenter オブジェクトで付与し、**Propagate to children** をオンにします。[読み取り専用の vSphere ユーザーを作成する](/docs/telemetry/vmware#読み取り専用の-vsphere-ユーザーを作成する) の手順に従ってください。エージェントが使うものと同じアカウントです。
 
 > [!IMPORTANT]
 > **Propagate to children** がオフだと、ユーザーはログインできても何も見えず、プローブはアカウントが vCenter のインベントリを読み取れないと報告します。

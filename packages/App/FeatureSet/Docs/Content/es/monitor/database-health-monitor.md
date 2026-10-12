@@ -37,7 +37,7 @@ Azure SQL Database y Azure SQL Managed Instance se conectan como **Microsoft SQL
 
 Los motores compatibles con PostgreSQL y MySQL que hablan el mismo protocolo de red suelen funcionar, pero pueden exponer menos vistas de estadísticas; en ese caso, las métricas afectadas se informan como no disponibles en lugar de recopilarse. Solo los tres motores de arriba se prueban oficialmente.
 
-Cada base de datos que usan tus aplicaciones, clústeres y hosts —estos tres motores y muchos más— también tiene su propia página con sus métricas de motor, sus logs y los servicios que la llaman: consulta [Bases de datos](/docs/telemetry/databases). Cuando el host y el puerto a los que se conecta un monitor de salud de la base de datos son uno de los endpoints de una base de datos, las alertas e incidentes del monitor también aparecen en la página de esa base de datos (consulta [Alertas en una base de datos](/docs/telemetry/databases#alerts-on-a-database)).
+Cada base de datos que usan tus aplicaciones, clústeres y hosts —estos tres motores y muchos más— también tiene su propia página con sus métricas de motor, sus logs y los servicios que la llaman: consulta [Bases de datos](/docs/telemetry/databases). Cuando el host y el puerto a los que se conecta un monitor de salud de la base de datos son uno de los endpoints de una base de datos, las alertas e incidentes del monitor también aparecen en la página de esa base de datos (consulta [Alertas en una base de datos](/docs/telemetry/databases#alertas-sobre-una-base-de-datos)).
 
 ## Cómo funciona
 

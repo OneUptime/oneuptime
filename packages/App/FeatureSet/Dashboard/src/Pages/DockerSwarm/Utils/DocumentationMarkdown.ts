@@ -158,10 +158,13 @@ export function getDockerSwarmAgentDownloadCommand(): string {
 /*
  * Pulls the images the downloaded docker-compose.yml names and recreates the
  * containers. The collector image is pinned there, so this alone does not
- * move the agent forward: download the files again first.
+ * move the agent forward: download the files again first. --force-recreate,
+ * because a new otel-collector-config.yaml or inventory-snapshot.sh is a bind
+ * mount Compose never recreates a container for: the collector and the
+ * inventory poller would keep running the files they started with.
  */
 export const DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND: string =
-  "docker compose pull\ndocker compose up -d";
+  "docker compose pull\ndocker compose up -d --force-recreate";
 
 function getTroubleshootScriptCommand(data: GuideData): string {
   const download: string = `curl -sSL ${getDockerSwarmAgentFileUrl("troubleshoot.sh")} -o troubleshoot.sh`;

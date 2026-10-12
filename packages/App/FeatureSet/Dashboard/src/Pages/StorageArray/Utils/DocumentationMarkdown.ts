@@ -90,6 +90,14 @@ export const STORAGE_ARRAY_AGENT_SOURCE_URL: string =
 export const STORAGE_ARRAY_AGENT_INSTALL_DIR: string =
   "/opt/oneuptime-storage-array-agent";
 
+/*
+ * The agent's systemd unit, and its file in the agent's directory. install.sh
+ * never downloads systemd/, so the guide fetches the unit from the raw URL.
+ */
+export const STORAGE_ARRAY_AGENT_SYSTEMD_UNIT: string =
+  "oneuptime-storage-array-agent";
+export const STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE: string = `systemd/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`;
+
 // The containers docker-compose.yml runs (their container_name / service).
 export const STORAGE_ARRAY_AGENT_CONTAINER: string =
   "oneuptime-storage-array-agent";
@@ -1355,15 +1363,15 @@ function getSystemdTopic(): SetupGuideTopic {
     title: "Run as a systemd service",
     summary:
       "Start the agent with the machine, not only by Docker's restart policy.",
-    markdown: `The agent ships a systemd unit that assumes the install script's folder:
+    markdown: `The agent ships a systemd unit that assumes the install script's folder, \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\`. The install script does not download it, so fetch it:
 
 ${codeBlock(
   "bash",
-  inAgentFolder([
-    "sudo cp systemd/oneuptime-storage-array-agent.service /etc/systemd/system/",
+  [
+    `sudo curl -fsSL ${STORAGE_ARRAY_AGENT_RAW_URL}/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE} -o /etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
     "sudo systemctl daemon-reload",
-    "sudo systemctl enable --now oneuptime-storage-array-agent",
-  ]),
+    `sudo systemctl enable --now ${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}`,
+  ].join("\n"),
 )}`,
   };
 }
