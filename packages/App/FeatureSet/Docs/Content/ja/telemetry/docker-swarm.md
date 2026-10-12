@@ -169,7 +169,7 @@ Docker Compose の場合は、エージェントのフォルダーで 3 つの�
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collector のバージョンはファイルで固定されているため、プルするだけではエージェントは新しくなりません。

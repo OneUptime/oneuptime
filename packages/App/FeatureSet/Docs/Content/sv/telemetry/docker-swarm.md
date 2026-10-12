@@ -169,7 +169,7 @@ Med Docker Compose laddar du ned de tre filerna igen i agentens mapp (och gör s
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collectorversionen är låst i filerna, så att bara hämta images för inte agenten framåt.

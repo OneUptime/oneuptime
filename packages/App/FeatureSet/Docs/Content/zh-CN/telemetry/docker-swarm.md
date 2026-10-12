@@ -169,7 +169,7 @@ sh install.sh
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collector 版本固定在这些文件中，因此仅拉取镜像并不能让代理升级。

@@ -169,7 +169,7 @@ With Docker Compose, download the three files again in the agent's folder (then 
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 The collector version is pinned in the files, so pulling alone does not move the agent forward.

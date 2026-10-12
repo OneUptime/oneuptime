@@ -169,7 +169,7 @@ Docker Compose के साथ, एजेंट के फ़ोल्डर �
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 कलेक्टर वर्शन फ़ाइलों में पिन है, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता।

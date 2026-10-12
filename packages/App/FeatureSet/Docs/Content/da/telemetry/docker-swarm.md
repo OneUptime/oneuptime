@@ -169,7 +169,7 @@ Med Docker Compose skal du hente de tre filer igen i agentens mappe (og derefter
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collector-versionen er fastlåst i filerne, så et pull alene flytter ikke agenten frem.

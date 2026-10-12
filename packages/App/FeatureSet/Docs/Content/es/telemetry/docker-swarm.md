@@ -169,7 +169,7 @@ Con Docker Compose, vuelve a descargar los tres archivos en la carpeta del agent
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 La versión del colector está fijada en los archivos, así que descargar las imágenes no basta para que el agente avance.

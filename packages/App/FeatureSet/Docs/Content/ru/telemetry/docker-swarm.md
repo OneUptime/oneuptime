@@ -169,7 +169,7 @@ sh install.sh
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Версия коллектора закреплена в файлах, поэтому одно лишь скачивание образов не продвигает агента вперёд.

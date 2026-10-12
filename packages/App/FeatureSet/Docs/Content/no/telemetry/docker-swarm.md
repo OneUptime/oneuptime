@@ -169,7 +169,7 @@ Med Docker Compose laster du ned de tre filene på nytt i agentens mappe (og gj�
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collector-versjonen er festet i filene, så å hente nye images alene flytter ikke agenten fremover.

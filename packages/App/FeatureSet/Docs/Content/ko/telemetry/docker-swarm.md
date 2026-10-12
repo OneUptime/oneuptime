@@ -169,7 +169,7 @@ Docker Compose를 사용한다면 에이전트의 폴더에서 세 파일을 다
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Collector 버전은 파일에 고정되어 있으므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다.

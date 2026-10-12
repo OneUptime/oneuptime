@@ -697,6 +697,37 @@ describe("Docker Swarm agent: the install script again, or the files again", () 
       expect(compose[0]).toContain(`-o ${file}`);
     }
   });
+
+  /*
+   * The collector's config and the inventory poller's script are bind
+   * mounts: Compose recreates a container for a new image or definition,
+   * never for a new mounted file, and the collector reads its config, the
+   * poller its loop, only when they start. So an upgrade recreates the
+   * containers, as every other agent's install script and commands do.
+   */
+  test("the Compose tab pulls, then recreates the containers", () => {
+    expect(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND).toBe(
+      "docker compose pull\ndocker compose up -d --force-recreate",
+    );
+  });
+
+  test("the install script recreates the containers it starts, so a re-run reads the new files", () => {
+    const script: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "install.sh"),
+      "utf8",
+    );
+    expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+    expect(script).not.toMatch(/^docker compose up -d$/m);
+
+    const compose: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "docker-compose.yml"),
+      "utf8",
+    );
+    expect(compose).toContain(
+      "./inventory-snapshot.sh:/usr/local/bin/inventory-snapshot.sh:ro",
+    );
+    expect(compose).toContain("./otel-collector-config.yaml:");
+  });
 });
 
 describe("Database agent", () => {

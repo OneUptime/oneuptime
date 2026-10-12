@@ -169,7 +169,7 @@ Laden Sie mit Docker Compose die drei Dateien im Ordner des Agents erneut herunt
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 Die Collector-Version ist in den Dateien festgelegt; ein Pull allein bringt den Agent daher nicht voran.

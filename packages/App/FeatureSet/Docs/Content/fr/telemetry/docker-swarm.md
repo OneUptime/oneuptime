@@ -169,7 +169,7 @@ Avec Docker Compose, téléchargez de nouveau les trois fichiers dans le dossier
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 La version du collecteur est épinglée dans les fichiers : tirer les images ne suffit donc pas à faire avancer l'agent.

@@ -169,7 +169,7 @@ Download met Docker Compose de drie bestanden opnieuw in de map van de agent (en
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 De collectorversie ligt vast in de bestanden, dus alleen pullen brengt de agent niet verder.

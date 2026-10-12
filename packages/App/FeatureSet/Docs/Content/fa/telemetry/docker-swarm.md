@@ -169,7 +169,7 @@ sh install.sh
 
 ```bash
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 نسخه کالکتور در فایل‌ها ثابت شده است، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد.
