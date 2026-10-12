@@ -228,6 +228,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "it",
       "pt",
       "nl",
+      "da",
     ),
   },
   "rum/session-replay-troubleshooting": {
@@ -239,6 +240,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "it",
       "pt",
       "nl",
+      "da",
     ),
   },
   "rum/troubleshooting": {
@@ -250,6 +252,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "it",
       "pt",
       "nl",
+      "da",
     ),
   },
   "telemetry/session-replay": {
@@ -261,6 +264,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "it",
       "pt",
       "nl",
+      "da",
     ),
   },
   "terraform/complete-guide": {
