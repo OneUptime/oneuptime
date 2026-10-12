@@ -15,14 +15,15 @@ export interface ComponentProps {
 }
 
 /*
- * Above the Builder's canvas while the workflow is turned off. People used to
- * find out that a workflow was off from an Error dialog, after trying to run
- * it, and that dialog did not say how to turn it on. This says it up front,
- * with the one thing to do about it.
+ * Above the Builder's canvas while the workflow is turned off. It says what
+ * off means - the workflow's trigger is paused, so nothing starts it on its
+ * own - and what it does not: the workflow can still be tested with Run
+ * Workflow, as a test run (Types/Workflow/WorkflowEnabled). Then the one
+ * thing to do about it, Turn on workflow, for whoever may.
  *
  * Amber rather than red: off is a normal state for a workflow that is still
- * being built, not a failure, but nothing it is meant to do happens until it
- * changes, so it should not be missed either.
+ * being built, not a failure, but nothing it is meant to do on its own
+ * happens until it changes, so it should not be missed either.
  */
 const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

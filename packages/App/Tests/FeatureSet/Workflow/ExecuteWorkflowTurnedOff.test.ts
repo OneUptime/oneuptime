@@ -6,6 +6,13 @@
  * the calling workflow - plainly running - so the step now names the one it
  * called, and says how to turn it on. A workflow in another project is still
  * refused as not belonging to this one, before anything about it is said.
+ *
+ * Off pauses what starts a workflow without a person, and another workflow's
+ * step is not a person - not even in a test run a person started of the
+ * calling workflow ("Why do I have to enable a workflow in order to test run
+ * it?" made Run Workflow work on a workflow that is off, not everything it
+ * calls). So the step is refused the same way inside a test run, and a
+ * workflow it does start is queued with no person: it is never a test run.
  */
 
 import RunWorkflow from "../../../FeatureSet/Workflow/Services/RunWorkflow";
@@ -241,5 +248,78 @@ describe("Execute Workflow calling a workflow that is on", () => {
     expect(queued.workflowId.toString()).toBe(CALLED_WORKFLOW_ID.toString());
     expect(queued.returnValues).toEqual({ incident: "INC-42" });
     expect(queued.callChain).toEqual([CALLING_WORKFLOW_ID.toString()]);
+  });
+
+  test("queues it with no person, so the run it starts is never a test run", async () => {
+    const prepared: Prepared = prepare({
+      projectId: PROJECT_ID,
+      isEnabled: true,
+      name: "Page the on-call engineer",
+    });
+
+    await runTheStep(prepared.runner);
+
+    const queued: Record<string, unknown> = prepared.enqueue.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(Object.keys(queued).sort()).toEqual([
+      "callChain",
+      "returnValues",
+      "workflowId",
+    ]);
+    expect(queued["startedByUserId"]).toBeUndefined();
+  });
+});
+
+describe("Execute Workflow inside a test run of the calling workflow", () => {
+  /*
+   * The runner of a test run: started by a person while the calling
+   * workflow was off. Its first line says so; nothing else about it changes
+   * what the step may start.
+   */
+  const testRunner: (prepared: Prepared) => RunWorkflow = (
+    prepared: Prepared,
+  ): RunWorkflow => {
+    prepared.runner.log(
+      "Test run, started by Ada Lovelace while this workflow is turned off.",
+    );
+
+    return prepared.runner;
+  };
+
+  test("a called workflow that is off is still refused, naming it", async () => {
+    const prepared: Prepared = prepare({
+      projectId: PROJECT_ID,
+      isEnabled: false,
+      name: "Page the on-call engineer",
+    });
+
+    const result: RunReturnType = await runTheStep(testRunner(prepared));
+
+    expect(result.executePort?.id).toBe("error");
+    expect((result.returnValues as JSONObject)["error"]).toBe(
+      getChildWorkflowTurnedOffMessage({
+        workflowId: CALLED_WORKFLOW_ID.toString(),
+        workflowName: "Page the on-call engineer",
+      }),
+    );
+    expect(prepared.enqueue.mock.calls).toHaveLength(0);
+  });
+
+  test("a called workflow that is on runs, as a run of its own with no person", async () => {
+    const prepared: Prepared = prepare({
+      projectId: PROJECT_ID,
+      isEnabled: true,
+    });
+
+    const result: RunReturnType = await runTheStep(testRunner(prepared));
+
+    expect(result.executePort?.id).toBe("out");
+    expect(prepared.enqueue.mock.calls).toHaveLength(1);
+    expect(
+      (prepared.enqueue.mock.calls[0]![0] as Record<string, unknown>)[
+        "startedByUserId"
+      ],
+    ).toBeUndefined();
   });
 });

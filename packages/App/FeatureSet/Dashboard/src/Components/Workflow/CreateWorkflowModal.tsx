@@ -561,7 +561,11 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Create a workflow"
-      description="Workflows are created switched off, so nothing runs until you turn them on."
+      /*
+       * Off pauses the trigger, not a test from the Builder: Run Workflow
+       * tries a new workflow out before it is turned on.
+       */
+      description="Workflows are created switched off, so their trigger doesn't start them until you turn them on."
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       error={error || undefined}

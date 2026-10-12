@@ -33,6 +33,12 @@ export interface WatchedRunDetail extends WatchedRun {
   scheduledAt?: Date | null | undefined;
   startedAt?: Date | null | undefined;
   completedAt?: Date | null | undefined;
+  /*
+   * A person started it while the workflow was off, and who started it by
+   * hand: the run log modal says so at the top (WorkflowTestRun).
+   */
+  isTestRun?: boolean | null | undefined;
+  startedBy?: string | null | undefined;
 }
 
 export type FetchLatestRunFunction = () => Promise<WatchedRunDetail | null>;

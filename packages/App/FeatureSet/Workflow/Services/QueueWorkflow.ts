@@ -432,7 +432,7 @@ export default class QueueWorkflow {
         ? (workflowLog._id?.toString() as string)
         : (workflow._id?.toString() as string),
       buildWorkflowRunJobData({
-        workflowId: workflow._id?.toString() as string,
+        workflowId: workflowId,
         workflowLogId: workflowLog?._id?.toString() || null,
         returnValues: executeWorkflow.returnValues,
         callChain: executeWorkflow.callChain,

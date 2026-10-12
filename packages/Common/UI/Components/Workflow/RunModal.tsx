@@ -3,6 +3,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ConfirmModal from "../Modal/ConfirmModal";
 import SideOver from "../SideOver/SideOver";
 import RunForm from "./RunForm";
+import { WorkflowRunPanelTestRunNote } from "./WorkflowTestRun";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import {
   ComponentInputType,
@@ -15,6 +16,12 @@ export interface ComponentProps {
   onClose: () => void;
   onRun: (trigger: NodeDataProp) => void;
   trigger: NodeDataProp;
+  /*
+   * The workflow is turned off, so this run will be a test run: the panel
+   * says so before anything runs, and that its steps run for real all the
+   * same (WorkflowTestRun).
+   */
+  isTestRun?: boolean | undefined;
 }
 
 const RunModal: FunctionComponent<ComponentProps> = (
@@ -47,6 +54,12 @@ const RunModal: FunctionComponent<ComponentProps> = (
       }}
     >
       <>
+        {props.isTestRun && (
+          <div className="mt-3">
+            <WorkflowRunPanelTestRunNote />
+          </div>
+        )}
+
         {showRunConfirmation && (
           <ConfirmModal
             title={`Run Workflow Manually`}

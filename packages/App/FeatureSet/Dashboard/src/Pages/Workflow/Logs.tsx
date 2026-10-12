@@ -10,6 +10,7 @@ import { getWorkflowRunDownloadActions } from "Common/UI/Components/Workflow/Dow
 import {
   WorkflowRunExport,
   getWorkflowRunExportFromWorkflowLog,
+  getWorkflowRunStartedBy,
 } from "Common/UI/Components/Workflow/WorkflowRunExport";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
@@ -67,12 +68,18 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isViewable={false}
           /*
            * The log and the steps are what View Logs shows and the downloads
-           * save; the workflow's id heads a downloaded log.
+           * save; the workflow's id heads a downloaded log. A test run is
+           * marked beside its status, with who started it.
            */
           selectMoreFields={{
             logs: true,
             stepTrace: true,
             workflowId: true,
+            isTestRun: true,
+            startedByUser: {
+              name: true,
+              email: true,
+            },
           }}
           cardProps={{
             title: "Runs",
@@ -102,6 +109,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Dropdown,
               filterDropdownOptions:
                 DropdownUtil.getDropdownOptionsFromEnum(WorkflowStatus),
+            },
+            {
+              field: {
+                isTestRun: true,
+              },
+              title: "Test Run",
+              type: FieldType.Boolean,
             },
             {
               field: {
@@ -151,9 +165,18 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   throw new BadDataException("Workflow Status not found");
                 }
 
+                /*
+                 * A person ran it from the Builder while the workflow was
+                 * off: marked beside its status, so it is not read as a run
+                 * its trigger started.
+                 */
                 return (
                   <WorkflowStatusElement
                     status={item["workflowStatus"] as WorkflowStatus}
+                    isTestRun={item.isTestRun === true}
+                    testRunStartedBy={getWorkflowRunStartedBy(
+                      item.startedByUser,
+                    )}
                   />
                 );
               },

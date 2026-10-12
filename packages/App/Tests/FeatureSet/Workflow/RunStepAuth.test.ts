@@ -15,10 +15,14 @@
  * not one step on its own, which skips every condition before it.
  *
  * The route deliberately enqueues rather than executing inline. Everything the
- * queue enforces — the workflow being enabled, a paid subscription, the plan's
- * run limit, a WorkflowLog for the audit trail, and running on a worker rather
- * than in the API process — is inherited only because the handler goes through
- * addWorkflowToQueue. A test here pins that it does.
+ * queue enforces — the workflow not being archived, a paid subscription, the
+ * plan's run limit, a WorkflowLog for the audit trail, and running on a worker
+ * rather than in the API process — is inherited only because the handler goes
+ * through addWorkflowToQueue. A test here pins that it does.
+ *
+ * The step is recorded as the signed-in caller's, which is what lets it run
+ * while the workflow is turned off, as a test run (QueueWorkflow): "Why do I
+ * have to enable a workflow in order to test run it?"
  * ---------------------------------------------------------------------------
  */
 
@@ -381,6 +385,39 @@ describe("POST /workflow/run-step/:workflowId", () => {
       expect((enqueued["workflowId"] as ObjectID).toString()).toBe(
         workflowId.toString(),
       );
+    });
+
+    test("records the step's run as the signed-in caller's, whatever the body names", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunStepRoute({
+        workflowId: workflowId.toString(),
+        body: {
+          componentId: "api-post-1",
+          startedByUserId: ObjectID.generate().toString(),
+          isTestRun: true,
+        },
+      });
+
+      const enqueued: JSONObject = addWorkflowToQueueSpy.mock
+        .calls[0]?.[0] as JSONObject;
+
+      expect(String(enqueued["startedByUserId"])).toBe(
+        callerUserId.toString(),
+      );
+      expect(Object.keys(enqueued).sort()).toEqual([
+        "returnValues",
+        "runOnlyComponentId",
+        "startedByUserId",
+        "workflowId",
+      ]);
     });
 
     test("lets a master admin through, without asking what their grants reach", async () => {

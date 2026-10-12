@@ -190,6 +190,12 @@ export interface ComponentProps {
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  /*
+   * A run started from the Run Workflow panel will be a test run: the
+   * workflow is turned off (and not archived, which no run gets past). The
+   * panel says so before anything runs (RunModal).
+   */
+  runsAreTestRuns?: boolean | undefined;
   /** Run one component on its own. */
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
   /*
@@ -1109,6 +1115,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               }) || getPlaceholderTriggerNode()
             ).data
           }
+          isTestRun={Boolean(props.runsAreTestRuns)}
           onClose={() => {
             setShowRunModal(false);
           }}

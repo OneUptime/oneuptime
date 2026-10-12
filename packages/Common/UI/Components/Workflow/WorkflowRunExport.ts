@@ -15,8 +15,9 @@
  * through the API - and nothing else. That is what keeps them safe to hand
  * on: the runner redacts secret variables and sensitive values before a run
  * is ever stored, so the log and the steps arrive redacted, and the only
- * other fields written here are the run's own id, status and times and its
- * workflow's id and name. A user can download exactly what they could read.
+ * other fields written here are the run's own id, status and times, whether
+ * it was a test run and who started it by hand, and its workflow's id and
+ * name. A user can download exactly what they could read.
  *
  * This module only builds names and text; it touches no browser API, so it
  * is tested as plain functions. DownloadWorkflowRun saves the result.
@@ -30,6 +31,7 @@ import {
   parseTrace,
 } from "../../../Types/Workflow/StepTrace";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import User from "../../../Models/DatabaseModels/User";
 import WorkflowLog from "../../../Models/DatabaseModels/WorkflowLog";
 
 export type WorkflowRunDate = Date | string | null | undefined;
@@ -48,6 +50,17 @@ export interface WorkflowRunDetails {
   scheduledAt?: WorkflowRunDate;
   startedAt?: WorkflowRunDate;
   completedAt?: WorkflowRunDate;
+  /**
+   * A person started it from the Builder while the workflow was turned off
+   * (WorkflowLog.isTestRun): its view, its row and its files say so, so it is
+   * never mistaken for a run its trigger started.
+   */
+  isTestRun?: boolean | null | undefined;
+  /**
+   * Who started it by hand - Run Workflow or Run just this step - by name, or
+   * by email when they have no name (WorkflowLog.startedByUser).
+   */
+  startedBy?: string | null | undefined;
 }
 
 /** A run, with everything a download writes. */
@@ -263,6 +276,25 @@ export const hasWorkflowRunContent: HasWorkflowRunContentFunction = (
   );
 };
 
+export type GetWorkflowRunStartedByFunction = (
+  user: Pick<User, "name" | "email"> | null | undefined,
+) => string | null;
+
+/*
+ * The person who started a run by hand, as the run's views name them: their
+ * name, or their email when they have none. Null when the run names nobody -
+ * its trigger or another workflow started it - or the person is gone.
+ */
+export const getWorkflowRunStartedBy: GetWorkflowRunStartedByFunction = (
+  user: Pick<User, "name" | "email"> | null | undefined,
+): string | null => {
+  if (!user) {
+    return null;
+  }
+
+  return cleanText(user.name?.toString()) || cleanText(user.email?.toString());
+};
+
 export type GetWorkflowRunHeadingLinesFunction = (
   run: WorkflowRunDetails,
 ) => Array<string>;
@@ -292,6 +324,9 @@ export const getWorkflowRunHeadingLines: GetWorkflowRunHeadingLinesFunction = (
   addLine("Workflow ID", cleanText(run.workflowId));
   addLine("Run ID", cleanText(run.runId));
   addLine("Status", run.status ? getWorkflowStatusLabel(run.status) : null);
+  // Only a test run says so; any other run is what its trigger started.
+  addLine("Test run", run.isTestRun ? "Yes" : null);
+  addLine("Started by", cleanText(run.startedBy));
   addLine("Scheduled at", toIsoString(run.scheduledAt));
   addLine("Started at", toIsoString(run.startedAt));
   addLine("Completed at", toIsoString(run.completedAt));
@@ -345,8 +380,9 @@ export type GetWorkflowRunJsonFunction = (run: WorkflowRunExport) => JSONObject;
  *
  *   workflow   - its id and name
  *   run        - its id, status (as the API stores it: "Success", not the
- *                list's "Executed"), and when it was scheduled, started and
- *                completed, as ISO times or null
+ *                list's "Executed"), whether it was a test run, who started
+ *                it by hand (or null), and when it was scheduled, started
+ *                and completed, as ISO times or null
  *   stepTrace  - the steps, in the same shape the API returns a run's
  *                stepTrace in (see Types/Workflow/StepTrace)
  *   log        - the full log, one string per line
@@ -362,6 +398,8 @@ export const getWorkflowRunJson: GetWorkflowRunJsonFunction = (
     run: {
       id: cleanText(run.runId),
       status: cleanText(run.status),
+      isTestRun: run.isTestRun === true,
+      startedBy: cleanText(run.startedBy),
       scheduledAt: toIsoString(run.scheduledAt),
       startedAt: toIsoString(run.startedAt),
       completedAt: toIsoString(run.completedAt),
@@ -411,9 +449,9 @@ export type GetWorkflowRunExportFromWorkflowLogFunction = (
 
 /**
  * A row of the run lists, as a run to download. Reads only the columns the
- * lists already ask the API for - the run's id, status and times, its
- * workflow, its log and its steps - so a row downloads exactly what the user
- * was allowed to read.
+ * lists already ask the API for - the run's id, status and times, whether it
+ * was a test run and who started it, its workflow, its log and its steps -
+ * so a row downloads exactly what the user was allowed to read.
  */
 export const getWorkflowRunExportFromWorkflowLog: GetWorkflowRunExportFromWorkflowLogFunction =
   (log: WorkflowLog): WorkflowRunExport => {
@@ -429,6 +467,8 @@ export const getWorkflowRunExportFromWorkflowLog: GetWorkflowRunExportFromWorkfl
       scheduledAt: log.createdAt || null,
       startedAt: log.startedAt || null,
       completedAt: log.completedAt || null,
+      isTestRun: log.isTestRun === true,
+      startedBy: getWorkflowRunStartedBy(log.startedByUser),
       logs: typeof log.logs === "string" ? log.logs : "",
       stepTrace: parseTrace((log.stepTrace as JSONValue) || null),
     };

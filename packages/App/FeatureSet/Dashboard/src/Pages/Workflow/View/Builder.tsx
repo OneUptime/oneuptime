@@ -22,7 +22,6 @@ import ComponentMetadata, {
   NodeDataProp,
   NodeType,
 } from "Common/Types/Workflow/Component";
-import ComponentID from "Common/Types/Workflow/ComponentID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -32,11 +31,10 @@ import { buildStepTitlesByNodeId } from "Common/UI/Components/Workflow/GraphLint
 import WorkflowIssuesModal from "Common/UI/Components/Workflow/WorkflowIssuesModal";
 import useWorkflowEnabled, {
   UseWorkflowEnabledResult,
-  WorkflowRunKind,
 } from "Common/UI/Components/Workflow/UseWorkflowEnabled";
 import WorkflowEnabledSwitch from "Common/UI/Components/Workflow/WorkflowEnabledSwitch";
 import WorkflowTurnedOffNotice from "Common/UI/Components/Workflow/WorkflowTurnedOffNotice";
-import WorkflowTurnOnModal from "Common/UI/Components/Workflow/WorkflowTurnOnModal";
+import { getWorkflowRunStartedBy } from "Common/UI/Components/Workflow/WorkflowRunExport";
 import {
   getLockedReason,
   getWorkflowRunGate,
@@ -162,6 +160,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             createdAt: true,
             startedAt: true,
             completedAt: true,
+            /*
+             * A run started while the workflow is off is a test run, and the
+             * modal says so, with who started it.
+             */
+            isTestRun: true,
+            startedByUser: {
+              name: true,
+              email: true,
+            },
           },
           sort: { createdAt: SortOrder.Descending },
         });
@@ -180,6 +187,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         scheduledAt: latest.createdAt || null,
         startedAt: latest.startedAt || null,
         completedAt: latest.completedAt || null,
+        isTestRun: latest.isTestRun === true,
+        startedBy: getWorkflowRunStartedBy(latest.startedByUser),
       };
     };
 
@@ -188,11 +197,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   });
 
   /*
-   * Whether the workflow is turned on, its Enabled switch at the top of the
-   * page, and what a run started while it is off does: it is held, and a
-   * dialog offers to turn the workflow on and then run it. That used to be
-   * an Error dialog saying "This workflow is not enabled", with no way to
-   * turn it on and no word of where the switch was. See UseWorkflowEnabled.
+   * Whether the workflow is turned on, and its Enabled switch at the top of
+   * the page. Off pauses the workflow's trigger, not a person testing it:
+   * Run Workflow and Run just this step go ahead either way, and a run
+   * started while it is off is a test run, which the run panel, the run and
+   * the run lists say ("Why do I have to enable a workflow in order to test
+   * run it?" - it used to be held behind a dialog that asked to turn the
+   * workflow on first). See UseWorkflowEnabled.
    */
   const workflowEnabled: UseWorkflowEnabledResult = useWorkflowEnabled({
     saveIsEnabled: async (isEnabled: boolean): Promise<void> => {
@@ -203,20 +214,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEnabled: isEnabled,
         },
       });
-    },
-    fetchIsEnabled: async (): Promise<boolean | null> => {
-      const workflow: WorkflowModel | null = await ModelAPI.getItem({
-        modelType: WorkflowModel,
-        id: modelId,
-        select: {
-          isEnabled: true,
-        },
-        requestOptions: {},
-      });
-
-      return typeof workflow?.isEnabled === "boolean"
-        ? workflow.isEnabled
-        : null;
     },
     onError: (message: string): void => {
       setError(message);
@@ -236,8 +233,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * A run of an archived workflow is refused by the server whether or not
-   * the workflow is on, so it is not held behind the "turn it on" dialog -
-   * turning it on would change the switch and still not run it. Say why
+   * the workflow is on, test runs included, so it is not sent: say why
    * instead, in the server's own words.
    */
   const refuseRunWhileArchived: () => boolean = (): boolean => {
@@ -545,23 +541,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
-  /*
-   * The trigger, named by the dialog that turns the workflow on: from then on
-   * it starts the workflow too. Not a Manual trigger, which nothing but Run
-   * Workflow starts.
-   */
-  const triggerNode: Node | undefined = nodes.find((node: Node) => {
-    return (
-      node.data?.componentType === ComponentType.Trigger &&
-      node.data?.nodeType === NodeType.Node
-    );
-  });
-
-  const triggerTitleForTurnOn: string | undefined =
-    triggerNode && triggerNode.data?.metadataId !== ComponentID.Manual
-      ? triggerNode.data?.metadata?.title || undefined
-      : undefined;
-
   type SendRunFunction = (component: NodeDataProp) => Promise<void>;
 
   // Run just this step. Rejects with the API's error when it is refused.
@@ -617,6 +596,27 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     startWatchingRun();
+  };
+
+  type StartRunFunction = (send: () => Promise<void>) => Promise<void>;
+
+  /*
+   * Sends a run as it was asked for, whether the workflow is on or off, and
+   * shows a refusal as the server words it. An archived workflow is not sent
+   * at all: the server refuses it whatever the switch says.
+   */
+  const startRun: StartRunFunction = async (
+    send: () => Promise<void>,
+  ): Promise<void> => {
+    if (refuseRunWhileArchived()) {
+      return;
+    }
+
+    try {
+      await send();
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
   };
 
   return (
@@ -728,8 +728,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         {/*
-         * Said up front, so nobody has to find out from a refused run that
-         * the workflow is off, with the one thing to do about it.
+         * Said up front: off pauses the trigger, the workflow can still be
+         * tested with Run Workflow, and the one thing to do about it.
          */}
         {workflowEnabled.isEnabled === false && !isArchived ? (
           <div style={{ marginBottom: "0.75rem" }}>
@@ -805,6 +805,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunModal(value);
             }}
             showRunModal={showRunModal}
+            // Off: the Run Workflow panel says the run will be a test run.
+            runsAreTestRuns={workflowEnabled.isEnabled === false && !isArchived}
             openStepForNodeId={stepToOpenNodeId}
             onStepOpened={() => {
               setStepToOpenNodeId(null);
@@ -820,28 +822,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             runStepDisabledReason={stepRunLockedReason}
             onRunStep={async (component: NodeDataProp) => {
-              if (refuseRunWhileArchived()) {
-                return;
-              }
-
-              await workflowEnabled.run({
-                kind: WorkflowRunKind.Step,
-                stepTitle: component.metadata?.title || component.id,
-                run: async (): Promise<void> => {
-                  await sendStepRun(component);
-                },
+              await startRun(async (): Promise<void> => {
+                await sendStepRun(component);
               });
             }}
             onRun={async (component: NodeDataProp) => {
-              if (refuseRunWhileArchived()) {
-                return;
-              }
-
-              await workflowEnabled.run({
-                kind: WorkflowRunKind.Workflow,
-                run: async (): Promise<void> => {
-                  await sendWorkflowRun(component);
-                },
+              await startRun(async (): Promise<void> => {
+                await sendWorkflowRun(component);
               });
             }}
           />
@@ -863,6 +850,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     scheduledAt: runWatch.run.scheduledAt,
                     startedAt: runWatch.run.startedAt,
                     completedAt: runWatch.run.completedAt,
+                    isTestRun: runWatch.run.isTestRun,
+                    startedBy: runWatch.run.startedBy,
                   }
                 : undefined
             }
@@ -873,28 +862,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunLogModal(false);
             }}
           />
-        )}
-
-        {/*
-         * After the canvas, so it opens over a step's settings: Run just this
-         * step is pressed in there.
-         */}
-        {workflowEnabled.heldRun ? (
-          <WorkflowTurnOnModal
-            attempt={workflowEnabled.heldRun}
-            triggerTitle={triggerTitleForTurnOn}
-            canTurnOn={canTurnWorkflowOnOrOff}
-            isTurningOn={workflowEnabled.isTurningOn}
-            error={workflowEnabled.turnOnError}
-            onTurnOn={() => {
-              void workflowEnabled.turnOnAndRun();
-            }}
-            onClose={() => {
-              workflowEnabled.dismissHeldRun();
-            }}
-          />
-        ) : (
-          <></>
         )}
 
         {error && (
