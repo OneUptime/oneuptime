@@ -840,6 +840,18 @@ categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
 
+Those languages are actions, go, javascript-typescript and python, each
+uploaded under default setup's category for it (`/language:python` for
+python). When the repository gains a language, default setup starts scanning
+it by itself and this setup does not, so the suite reads git's index for the
+files CodeQL reads as code, by the extensions its documentation lists: default
+setup keeps a language only when its analysis succeeds, and an analysis needs
+such files. Each language with code must be in the matrix or in the suite's
+`LEFT_OUT_LANGUAGES` with the reason: C/C++, C#, Java/Kotlin and Swift, none of
+which default setup scanned on 12 October 2026. Each language in the matrix
+must have code outside `paths-ignore`, because an analysis that finds none
+fails, and a left-out language whose code is gone comes off the list.
+
 It also pins the configuration the setup reads,
 `.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
 packs or threat models would change what default setup analysed), naming only
