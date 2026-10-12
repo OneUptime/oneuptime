@@ -31,6 +31,7 @@ import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -563,7 +564,15 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         mdText`${stateEmoji} Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **${stateName}**`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+      /*
+       * Not posted to Slack and Microsoft Teams for the record's first
+       * state: the message that announced the record names it already
+       * (WorkspaceStateChangePosting). The feed keeps the entry.
+       */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
+          stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
+          stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+        }),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },

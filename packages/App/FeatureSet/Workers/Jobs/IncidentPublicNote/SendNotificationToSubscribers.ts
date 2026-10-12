@@ -1072,8 +1072,13 @@ ${FeedMarkdown.asMarkdown(incidentPublicNote.note)}`.toString(),
         ]
           .filter(Boolean)
           .join("\n\n"),
+        /*
+         * The feed only when every subscriber was reached: a side effect of
+         * the change the channel was told of already. A send that fell short
+         * is still posted - somebody may have to look at it.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
 

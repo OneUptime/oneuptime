@@ -607,6 +607,35 @@ export class Service extends ProjectReferencesService<Model> {
       feedInfoInMarkdown += `This episode was manually created.\n\n`;
     }
 
+    /*
+     * The episode's state and severity, as an alert's created entry names
+     * them: its first state is not posted to Slack and Microsoft Teams on
+     * its own (WorkspaceStateChangePosting), so this is where a channel
+     * reads it. Names are plain text.
+     */
+    const episodeWithState: Model | null = await this.findOneById({
+      id: episode.id,
+      select: {
+        currentAlertState: {
+          name: true,
+        },
+        alertSeverity: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (episodeWithState?.currentAlertState?.name) {
+      feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentAlertState.name} \n\n`;
+    }
+
+    if (episodeWithState?.alertSeverity?.name) {
+      feedInfoInMarkdown += mdText`⚠️ **Severity**: ${episodeWithState.alertSeverity.name} \n\n`;
+    }
+
     const episodeCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await AlertEpisodeWorkspaceMessages.getAlertEpisodeCreateMessageBlocks({
         alertEpisodeId: episode.id,

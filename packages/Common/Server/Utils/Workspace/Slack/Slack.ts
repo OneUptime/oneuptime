@@ -23,6 +23,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
@@ -1684,6 +1685,89 @@ export default class SlackUtil extends WorkspaceBase {
       channel: data.workspaceChannel,
       threadId: (response.jsonData as JSONObject)["ts"] as string,
     };
+  }
+
+  /*
+   * Edits a message the bot posted (chat.update). The blocks are built as a
+   * new message's are; the message keeps its place in the channel, and an
+   * edit notifies nobody. `text` is what a notification or a screen reader
+   * shows of it.
+   */
+  @CaptureSpan()
+  public static override async updateMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    const updateLogAttributes: LogAttributes = {
+      projectId: data.projectId?.toString(),
+      channelId: data.location.channelId,
+    };
+
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.messageBlocks,
+      },
+    );
+
+    const requestData: JSONObject = {
+      channel: data.location.channelId,
+      ts: data.messageId,
+      blocks: blocks,
+    };
+
+    if (data.text) {
+      requestData["text"] = data.text;
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.update"),
+        data: requestData,
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error(
+        "Error response from Slack API when updating a message:",
+        updateLogAttributes,
+      );
+      logger.error(response, updateLogAttributes);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+
+      logger.error(
+        `Slack refused to update a message: ${messageFromSlack}`,
+        updateLogAttributes,
+      );
+
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+  }
+
+  /*
+   * Slack answers message_not_found when the message was deleted: posting a
+   * new one is the only way to show what it said.
+   */
+  public static override isMessageGoneError(error: unknown): boolean {
+    return WorkspaceBase.getSendErrorMessage(error).includes(
+      "message_not_found",
+    );
   }
 
   @CaptureSpan()

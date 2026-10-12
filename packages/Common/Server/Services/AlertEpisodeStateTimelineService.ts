@@ -19,6 +19,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StateChangeLock from "../Utils/StateChangeLock";
@@ -515,7 +516,15 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+      /*
+       * Not posted to Slack and Microsoft Teams for the record's first
+       * state: the message that announced the record names it already
+       * (WorkspaceStateChangePosting). The feed keeps the entry.
+       */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
+          stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
+          stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+        }),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },

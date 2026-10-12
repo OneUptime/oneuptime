@@ -25,6 +25,7 @@ import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedRefe
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -442,7 +443,15 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
 ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+      /*
+       * Not posted to Slack and Microsoft Teams for the record's first
+       * state: the message that announced the record names it already
+       * (WorkspaceStateChangePosting). The feed keeps the entry.
+       */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
+          stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
+          stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+        }),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },

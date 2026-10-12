@@ -51,6 +51,18 @@ export interface WorkspaceChannel {
   membershipType?: string | undefined;
 }
 
+/*
+ * Where a message OneUptime keeps up to date sits, as the workspace needs it
+ * to edit the message: the channel (or Microsoft Teams chat) and, for a
+ * Teams channel, its team.
+ */
+export interface WorkspaceMessageLocation {
+  channelId: string;
+  teamId?: string | undefined;
+  // A Microsoft Teams group or personal chat, rather than a channel.
+  isChat?: boolean | undefined;
+}
+
 export default class WorkspaceBase {
   /*
    * A readable, non-empty message for whatever a send path threw. The
@@ -89,6 +101,34 @@ export default class WorkspaceBase {
     }
 
     return String(err);
+  }
+
+  /*
+   * Edits a message the bot posted, in place: it keeps its place in the
+   * channel and nobody is notified again (Slack chat.update, Microsoft Teams
+   * updateActivity). Throws what the workspace answered when it refuses.
+   */
+  @CaptureSpan()
+  public static async updateMessage(_data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    // What a notification or a screen reader shows of the message.
+    text?: string | undefined;
+  }): Promise<void> {
+    throw new NotImplementedException();
+  }
+
+  /*
+   * Whether an edit failed because the message is no longer there - somebody
+   * deleted it - so a new one has to be posted instead. Any other failure
+   * (the channel is archived, the app was removed, a network error) is not:
+   * posting again would fail the same way, or post twice.
+   */
+  public static isMessageGoneError(_error: unknown): boolean {
+    return false;
   }
 
   @CaptureSpan()

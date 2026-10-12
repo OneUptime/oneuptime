@@ -32,6 +32,7 @@ import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedRefe
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
+import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
 import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -595,7 +596,15 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
 ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-        sendWorkspaceNotification: true,
+      /*
+       * Not posted to Slack and Microsoft Teams for the record's first
+       * state: the message that announced the record names it already
+       * (WorkspaceStateChangePosting). The feed keeps the entry.
+       */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
+          stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
+          stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+        }),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },

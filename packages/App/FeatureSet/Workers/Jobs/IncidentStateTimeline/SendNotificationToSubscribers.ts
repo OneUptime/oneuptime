@@ -1074,8 +1074,13 @@ RunCron(
                 [deliveryMarkdown, customFieldsSentMarkdown]
                   .filter(Boolean)
                   .join("\n\n") || undefined,
+              /*
+               * The feed only: every subscriber was reached, a side effect
+               * of the state change the channel was told of already. A send
+               * that fell short (above) is still posted.
+               */
               workspaceNotification: {
-                sendWorkspaceNotification: true,
+                sendWorkspaceNotification: false,
               },
             });
 

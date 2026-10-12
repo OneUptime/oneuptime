@@ -257,6 +257,9 @@ export class Service extends DatabaseService<Model> {
         query: onUpdate.updateBy.query,
         select: {
           onCallDutyPolicyExecutionLogTimelineId: true,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: true,
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -288,6 +291,25 @@ export class Service extends DatabaseService<Model> {
       }
 
       for (const item of items) {
+        /*
+         * A log that completes says "Notification Sent" on its timeline step
+         * - unless the step already says what became of the page: skipped
+         * (an opt-out, somebody who left), failed, or acknowledged. Moving
+         * those back to "Notification Sent" claimed a page went out that
+         * never did.
+         */
+        if (
+          status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
+          item.onCallDutyPolicyExecutionLogTimeline?.status &&
+          [
+            OnCallDutyExecutionLogTimelineStatus.Skipped,
+            OnCallDutyExecutionLogTimelineStatus.Error,
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          ].includes(item.onCallDutyPolicyExecutionLogTimeline.status)
+        ) {
+          continue;
+        }
+
         await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
           id: item.onCallDutyPolicyExecutionLogTimelineId!,
           data: {
@@ -973,10 +995,18 @@ export class Service extends DatabaseService<Model> {
     timelineStatus: OnCallDutyExecutionLogTimelineStatus;
     statusMessage: string;
   }): Promise<void> {
-    await this.updateOneById({
-      id: data.createdItem.id!,
+    /*
+     * The on-call timeline first: the log's own update (below) carries its
+     * Completed status over to the timeline as "Notification Sent"
+     * (onUpdateSuccess), which this outcome is not - nothing was sent. Written
+     * the other way round, every responder skipped here showed first as
+     * "Notification Sent" and then as "Skipped", in the record's feed and in
+     * Slack and Microsoft Teams alike.
+     */
+    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+      id: data.createdItem.onCallDutyPolicyExecutionLogTimelineId!,
       data: {
-        status: data.status,
+        status: data.timelineStatus,
         statusMessage: data.statusMessage,
       },
       props: {
@@ -984,10 +1014,10 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-      id: data.createdItem.onCallDutyPolicyExecutionLogTimelineId!,
+    await this.updateOneById({
+      id: data.createdItem.id!,
       data: {
-        status: data.timelineStatus,
+        status: data.status,
         statusMessage: data.statusMessage,
       },
       props: {

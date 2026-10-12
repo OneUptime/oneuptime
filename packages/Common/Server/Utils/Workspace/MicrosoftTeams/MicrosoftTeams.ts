@@ -23,6 +23,7 @@ import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
@@ -2265,6 +2266,152 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
       },
     );
+  }
+
+  /*
+   * Edits a card the bot posted, in place (Bot Framework updateActivity): the
+   * post keeps its place in the channel or chat, and an edit notifies nobody.
+   *
+   * A post the bot started in a channel is the root of its own thread, and is
+   * addressed as that thread - "<channel id>;messageid=<post id>" - the same
+   * way OneUptime's replies into a thread are (sendTextReplyToChannelThread).
+   * A chat has no threads: the chat itself is the conversation. The
+   * serviceUrl is the one captured when the app was installed in the team or
+   * added to the chat, as for a new post.
+   */
+  @CaptureSpan()
+  public static override async updateMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    if (!data.location.channelId || !data.messageId) {
+      throw new BadDataException(
+        "A channel or chat and a message id are required to update a Microsoft Teams message",
+      );
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+    if (!tenantId) {
+      throw new BadDataException(
+        "Tenant ID not found in Microsoft Teams integration",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    let conversation: ConversationReference["conversation"];
+    let serviceUrl: string;
+
+    if (data.location.isChat) {
+      const chat: MicrosoftTeamsChat | undefined =
+        miscData.availableChats?.[data.location.channelId];
+
+      if (!chat) {
+        throw new BadDataException(
+          "This chat is not connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and try again.",
+        );
+      }
+
+      conversation = {
+        id: chat.id,
+        name: chat.name,
+        isGroup: chat.chatType === "groupChat",
+        conversationType: chat.chatType,
+        tenantId: tenantId,
+      } as ConversationReference["conversation"];
+      serviceUrl = MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl);
+    } else {
+      const installedTeam: MicrosoftTeamsInstalledTeam | undefined = data
+        .location.teamId
+        ? this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+            data.location.teamId
+          ]
+        : undefined;
+
+      conversation = {
+        id: `${data.location.channelId};messageid=${data.messageId}`,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: tenantId,
+      } as ConversationReference["conversation"];
+      serviceUrl = MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl);
+    }
+
+    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
+      messageBlocks: data.messageBlocks,
+    });
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: conversation,
+      channelId: "msteams",
+      serviceUrl: serviceUrl,
+    };
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        const update: Partial<Activity> = MessageFactory.attachment({
+          contentType: "application/vnd.microsoft.card.adaptive",
+          content: adaptiveCard,
+        });
+
+        update.id = data.messageId;
+
+        if (data.text) {
+          update.summary = data.text;
+        }
+
+        await context.updateActivity(update);
+      },
+    );
+  }
+
+  /*
+   * The Bot Connector answers 404 (NotFound) when the activity is no longer
+   * there - somebody deleted the post.
+   */
+  public static override isMessageGoneError(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (statusCode === 404) {
+      return true;
+    }
+
+    const code: unknown = (error as { code?: unknown } | null)?.code;
+
+    return code === "NotFound" || code === "ActivityNotFoundInConversation";
   }
 
   /*

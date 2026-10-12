@@ -1,4 +1,5 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import IncidentFeedService from "./IncidentFeedService";
@@ -26,6 +27,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 
 // A message that already ends its own sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
@@ -335,6 +337,12 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
             onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
         } as LogAttributes);
 
+        /*
+         * The record's feed only. Slack and Microsoft Teams hear of this
+         * step through the run's one message, which is edited as the run
+         * goes (OnCallPolicyRunMessage) - not through a paragraph per person
+         * per rule per repeat, as they used to.
+         */
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
           await IncidentFeedService.createIncidentFeedItem({
             incidentId:
@@ -343,9 +351,6 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: displayColor,
             feedInfoInMarkdown: feedInfoInMarkdown,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-            },
           });
         }
 
@@ -408,7 +413,52 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
       onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
     });
 
+    // The run's Slack / Microsoft Teams message names this step now.
+    OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
+
     return createdItem;
+  }
+
+  /*
+   * The status each step had before an update that writes one, so the feed
+   * hears of a status only when it changes (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const statusBeforeUpdate: Record<
+      string,
+      OnCallDutyExecutionLogTimelineStatus | undefined
+    > = {};
+
+    if (updateBy.data.status && updateBy.query) {
+      const itemsBeforeUpdate: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          status: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+      for (const item of itemsBeforeUpdate) {
+        if (item.id) {
+          statusBeforeUpdate[item.id.toString()] = item.status;
+        }
+      }
+    }
+
+    return {
+      updateBy: updateBy,
+      carryForward: {
+        statusBeforeUpdate: statusBeforeUpdate,
+      },
+    };
   }
 
   @CaptureSpan()
@@ -424,15 +474,50 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
         },
         select: {
           _id: true,
+          status: true,
+          onCallDutyPolicyExecutionLogId: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
       });
 
+      const statusBeforeUpdate:
+        | Record<string, OnCallDutyExecutionLogTimelineStatus | undefined>
+        | undefined = (
+        onUpdate.carryForward as {
+          statusBeforeUpdate?: Record<
+            string,
+            OnCallDutyExecutionLogTimelineStatus | undefined
+          >;
+        } | null
+      )?.statusBeforeUpdate;
+
       for (const updatedItem of updatedItems) {
-        await this.addToIncidentOrAlertFeed({
-          onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
-        });
+        /*
+         * A step is news for the feed when its status changes, not every
+         * time it is written: a page that reached somebody is marked
+         * Notification Sent when it goes out and again when the person's
+         * notification rules have all run, and each write added a second
+         * "On-Call Alert Notification Sent to <person>" entry - in the feed,
+         * and in Slack and Microsoft Teams. A status read before the update
+         * that is missing (the row was not found then) counts as a change.
+         */
+        const id: string = updatedItem.id!.toString();
+        const statusChanged: boolean =
+          Boolean(onUpdate.updateBy.data.status) &&
+          (!statusBeforeUpdate ||
+            !(id in statusBeforeUpdate) ||
+            statusBeforeUpdate[id] !== updatedItem.status);
+
+        if (statusChanged) {
+          await this.addToIncidentOrAlertFeed({
+            onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
+          });
+        }
+
+        OnCallPolicyRunMessage.refresh(
+          updatedItem.onCallDutyPolicyExecutionLogId,
+        );
       }
     }
 
