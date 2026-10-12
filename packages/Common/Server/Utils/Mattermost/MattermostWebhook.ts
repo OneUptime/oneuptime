@@ -102,16 +102,23 @@ interface MattermostAppError {
 /*
  * What to do about the refusals people meet most, by the id Mattermost gives
  * each. The message Mattermost sends with them is in the server's language;
- * these say how to fix it.
+ * these say how to fix it. A Map, so an id such as "constructor" finds
+ * nothing.
  */
-const REFUSAL_HINTS: Record<string, string> = {
-  "web.incoming_webhook.invalid.app_error":
+const REFUSAL_HINTS: ReadonlyMap<string, string> = new Map<string, string>([
+  [
+    "web.incoming_webhook.invalid.app_error",
     "The webhook may have been deleted: add a new one, and use its URL.",
-  "web.incoming_webhook.disabled.app_error":
+  ],
+  [
+    "web.incoming_webhook.disabled.app_error",
     "A Mattermost system admin turns incoming webhooks on in the System Console, under Integrations.",
-  "web.incoming_webhook.channel_locked.app_error":
+  ],
+  [
+    "web.incoming_webhook.channel_locked.app_error",
     "This webhook is locked to its own channel: leave Channel empty, or use a webhook that is not locked.",
-};
+  ],
+]);
 
 // Only where Channel was filled in: otherwise it is the webhook's own channel that is gone.
 const CHANNEL_NOT_FOUND_ID: string = "web.incoming_webhook.channel.app_error";
@@ -447,7 +454,7 @@ export default class MattermostWebhook {
       const hint: string | undefined =
         appError.id === CHANNEL_NOT_FOUND_ID && data.hasChannel
           ? CHANNEL_NOT_FOUND_HINT
-          : REFUSAL_HINTS[appError.id];
+          : REFUSAL_HINTS.get(appError.id);
 
       const verb: string =
         data.status >= 500

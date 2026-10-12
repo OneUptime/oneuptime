@@ -468,6 +468,23 @@ describe("the words an answer is reported in", () => {
     }
   });
 
+  test("an id that names what every object has is no hint", () => {
+    for (const id of [
+      "constructor",
+      "__proto__",
+      "toString",
+      "hasOwnProperty",
+    ]) {
+      expect(
+        MattermostWebhook.describeAnswer({
+          status: 400,
+          body: JSON.stringify({ id, message: "Nope." }),
+          hasChannel: true,
+        }),
+      ).toBe("Mattermost refused the message (HTTP 400 Bad Request): Nope.");
+    }
+  });
+
   test("an AppError with no id is still quoted, without a hint", () => {
     expect(
       MattermostWebhook.describeAnswer({
