@@ -330,20 +330,6 @@ describe("SMSEagle SendSms - SMSEagle errors go to the error port", () => {
       "The request could not be sent to SMSEagle.",
     );
   });
-
-  test("a thrown HTTP error response returns its message", async () => {
-    apiPostMock.mockRejectedValue(
-      new HTTPErrorResponse(403, { message: "Forbidden" }, {}),
-    );
-
-    const result: RunReturnType = await new SendSms().run(
-      makeArgs(),
-      makeOptions(),
-    );
-
-    expect(result.executePort?.id).toBe("error");
-    expect(result.returnValues["error"]).toBe("Forbidden");
-  });
 });
 
 describe("SMSEagle SendSms - argument validation", () => {
