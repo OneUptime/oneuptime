@@ -57,7 +57,6 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
-import { commitCountFromLinkHeader } from "./Utils/GitHubCommitCount";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -560,7 +559,6 @@ const HomeFeatureSet: FeatureSet = {
 
     let gitHubContributors: Array<JSONObject> = [];
     let gitHubBasicInfo: JSONObject | null = null;
-    let gitHubCommits: string = "-";
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
@@ -592,35 +590,14 @@ const HomeFeatureSet: FeatureSet = {
         gitHubContributors = [...contributors];
       }
 
-      const response: HTTPResponse<JSONObject> = await API.get({
-        url: URL.fromString(
-          "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1",
-        ),
-      });
+      if (!gitHubBasicInfo) {
+        const basicInfo: HTTPResponse<JSONObject> = await API.get({
+          url: URL.fromString(
+            "https://api.github.com/repos/oneuptime/oneuptime",
+          ),
+        });
 
-      if (gitHubCommits === "-") {
-        /*
-         * The count is the last page's number (commitCountFromLinkHeader).
-         * An answer without one - rate limited, say - leaves "-" on the page
-         * and is asked again on the next visit.
-         */
-        const commitsCount: number | null = commitCountFromLinkHeader(
-          response.headers["link"],
-        );
-
-        if (!gitHubBasicInfo) {
-          const basicInfo: HTTPResponse<JSONObject> = await API.get({
-            url: URL.fromString(
-              "https://api.github.com/repos/oneuptime/oneuptime",
-            ),
-          });
-
-          gitHubBasicInfo = basicInfo.data as JSONObject;
-        }
-
-        if (commitsCount !== null) {
-          gitHubCommits = commitsCount.toLocaleString();
-        }
+        gitHubBasicInfo = basicInfo.data as JSONObject;
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -630,7 +607,12 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/about`, {
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
-        commits: gitHubCommits,
+        /*
+         * The commit count the hourly job keeps (FetchGitHubStats), read from
+         * GitHub's Link header there: the page does not ask GitHub for it on
+         * every visit.
+         */
+        commits: getGitHubCommitsCount().toLocaleString(),
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
       });

@@ -311,3 +311,66 @@ describe("linkHeaderUrls", () => {
     expect(linkHeaderUrls("")).toEqual({});
   });
 });
+
+describe("names an object has of its own", () => {
+  // Names and relations are read lowercased: these two are an object's own.
+  const NAMES: Array<string> = ["constructor", "__proto__"];
+  const INHERITED: Array<string> = [
+    ...NAMES,
+    "toString",
+    "hasOwnProperty",
+    "valueOf",
+  ];
+
+  test("a relation named like one is a relation like any other", () => {
+    const urls: Dictionary<string> = linkHeaderUrls(
+      `<https://a.example/1>; rel="${NAMES.join(" ")} next"`,
+    );
+
+    for (const name of NAMES) {
+      expect([name, urls[name]]).toEqual([name, "https://a.example/1"]);
+    }
+
+    expect(urls["next"]).toBe("https://a.example/1");
+    expect(Object.keys(urls).sort()).toEqual([...NAMES, "next"].sort());
+  });
+
+  test("a parameter named like one is read, the first of its name counting", () => {
+    const links: Array<LinkHeaderLink> = readLinkHeader(
+      `<https://a.example/1>; ${NAMES.map((name: string): string => {
+        return `${name}="${name} value"`;
+      }).join("; ")}; constructor="second"; rel=next`,
+    );
+
+    expect(links).toHaveLength(1);
+
+    for (const name of NAMES) {
+      expect([name, links[0]!.parameters[name]]).toEqual([
+        name,
+        `${name} value`,
+      ]);
+    }
+
+    expect(links[0]!.relations).toEqual(["next"]);
+  });
+
+  test("a name nothing gave is not there, whatever it is", () => {
+    const urls: Dictionary<string> = linkHeaderUrls(
+      '<https://a.example/1>; rel="next"',
+    );
+    const parameters: Dictionary<string> = readLinkHeader(
+      '<https://a.example/1>; rel="next"',
+    )[0]!.parameters;
+
+    for (const name of INHERITED) {
+      expect([name, urls[name], parameters[name]]).toEqual([
+        name,
+        undefined,
+        undefined,
+      ]);
+    }
+
+    expect(Object.getPrototypeOf(urls)).toBeNull();
+    expect(Object.getPrototypeOf(parameters)).toBeNull();
+  });
+});

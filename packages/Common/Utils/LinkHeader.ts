@@ -26,9 +26,18 @@ export interface LinkHeaderLink {
   url: string;
   // The rel parameter's relation types, lowercased, in the order written.
   relations: Array<string>;
-  // Each parameter by its lowercased name; the first of a name counts.
+  /*
+   * Each parameter by its lowercased name; the first of a name counts. A
+   * dictionary with no prototype, so any name - "constructor" too - is a
+   * parameter's name and nothing else.
+   */
   parameters: Dictionary<string>;
 }
+
+// A dictionary that holds only what is put in it: no inherited names.
+const emptyDictionary: () => Dictionary<string> = (): Dictionary<string> => {
+  return Object.create(null) as Dictionary<string>;
+};
 
 const LINK_START: string = "<";
 const LINK_END: string = ">";
@@ -126,7 +135,7 @@ export const readLinkHeader: ReadLinkHeaderFunction = (
     }
 
     const url: string = text.slice(index + 1, end).trim();
-    const parameters: Dictionary<string> = {};
+    const parameters: Dictionary<string> = emptyDictionary();
     index = end + 1;
 
     while (index < text.length) {
@@ -219,11 +228,12 @@ export type LinkHeaderUrlsFunction = (
 /*
  * Each relation type of a Link header and the address it names: "next",
  * "last", ... A relation named twice keeps the last address given for it.
+ * The dictionary has no prototype, as a link's parameters have none.
  */
 export const linkHeaderUrls: LinkHeaderUrlsFunction = (
   value: string | undefined | null,
 ): Dictionary<string> => {
-  const urls: Dictionary<string> = {};
+  const urls: Dictionary<string> = emptyDictionary();
 
   for (const link of readLinkHeader(value)) {
     for (const relation of link.relations) {

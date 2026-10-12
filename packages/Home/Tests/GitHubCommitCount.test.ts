@@ -10,12 +10,14 @@ import { JSONObject } from "Common/Types/JSON";
  *
  * The home page and the about page say how many commits OneUptime has. GitHub
  * gives the count as the last page of a one-commit-per-page listing, named by
- * the rel="last" link of the answer's Link header. The about page took the
- * header apart by position - the second link, its first "<" and first ">"
- * replaced - and the hourly job by a substring test and a pattern. Both now
- * read it with the shared Link header reader (Common/Utils/LinkHeader):
- * the link is found by its relation in any order, and an answer with no
- * header or no last link leaves the count as it was instead of throwing.
+ * the rel="last" link of the answer's Link header. The about page asked
+ * GitHub for that listing on every visit and took the header apart by
+ * position - the second link, its first "<" and first ">" replaced - and the
+ * hourly job read it by a substring test and a pattern. Now only the job
+ * asks, and reads the header with the shared Link header reader
+ * (Common/Utils/LinkHeader): the link is found by its relation in any order,
+ * and an answer with no header or no last link leaves the count as it was
+ * instead of throwing. The about page shows the count the job keeps.
  */
 
 type RunFunction = () => Promise<void>;
@@ -158,20 +160,38 @@ describe("the hourly job reads the count the same way", () => {
   });
 });
 
-describe("one reading of the header", () => {
-  it("the about page and the job read it through commitCountFromLinkHeader, and take it apart no other way", () => {
-    for (const file of ["Routes.ts", "Jobs/FetchGitHubStats.ts"]) {
-      const source: string = fs.readFileSync(
-        path.join(__dirname, "..", file),
-        "utf8",
-      );
+function sourceOf(file: string): string {
+  return fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+}
 
-      expect([file, source.includes("commitCountFromLinkHeader(")]).toEqual([
-        file,
-        true,
-      ]);
-      expect([file, source.includes('rel="last"')]).toEqual([file, false]);
-      expect([file, source.includes('.split(",")[1]')]).toEqual([file, false]);
-    }
+// The /about route's handler, up to the next route.
+function aboutRoute(): string {
+  const routes: string = sourceOf("Routes.ts");
+  const start: number = routes.indexOf('app.get("/about"');
+
+  expect(start).toBeGreaterThan(-1);
+
+  const end: number = routes.indexOf("app.get(", start + 1);
+
+  return routes.slice(start, end === -1 ? routes.length : end);
+}
+
+describe("one reading of the header", () => {
+  it("the job reads it through commitCountFromLinkHeader, and takes it apart no other way", () => {
+    const source: string = sourceOf("Jobs/FetchGitHubStats.ts");
+
+    expect(source.includes("commitCountFromLinkHeader(")).toBe(true);
+    expect(source.includes('rel="last"')).toBe(false);
+    expect(source.includes('.split(",")')).toBe(false);
+  });
+
+  it("the about page shows the job's count, and asks GitHub for no commit listing", () => {
+    const route: string = aboutRoute();
+
+    expect(route.includes("commits: getGitHubCommitsCount()")).toBe(true);
+    expect(route.includes("/commits?")).toBe(false);
+    expect(route.includes('headers["link"]')).toBe(false);
+    // Nothing else in the routes reads a Link header either.
+    expect(sourceOf("Routes.ts").includes('headers["link"]')).toBe(false);
   });
 });
