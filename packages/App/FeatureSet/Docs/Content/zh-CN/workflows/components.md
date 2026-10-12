@@ -5,7 +5,7 @@
 搭建时你很少需要一直开着本页。每个块的设置末尾都有 **How to use**：块做什么、配置步骤、根据你自己的工作流生成的示例，以及人们常犯的错误。关于添加和连接块，参见 [创建工作流](/docs/workflows/authoring)。
 
 :::cards
-- [发送消息](#slack): Slack、Microsoft Teams、Discord、Telegram、IRC 和邮件。
+- [发送消息](#slack): Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost 和邮件。
 - [调用 API](#api): 向任意 HTTP API 发送请求并读取响应。
 - [添加逻辑](#conditions): 按值分支、转换数据、等待或记录日志。
 - [处理 OneUptime 记录](#oneuptime-数据组件): 查找、创建、更新和删除监视器、事件等。
@@ -15,7 +15,7 @@
 
 | 想要……                                                        | 使用                                                              |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 在聊天工具中发帖                                              | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram) 或 [IRC](#irc) |
+| 在聊天工具中发帖                                              | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) 或 [Mattermost](#mattermost) |
 | 通过你自己的邮件服务器发送邮件                                | [Email](#email)                                                   |
 | 调用其他任何 API 或你自己的服务                               | [API](#api)                                                       |
 | 总结、分类或起草文本                                          | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Telegram 拒绝消息时，**Error** 会带着 Telegram 的原因触发。
 块的每次运行都是一个独立的连接，而 IRC 网络会限制同一个地址的连接频率：一阵消息可能会以 "Reconnecting too fast" 这样的原因被拒绝，并像其他拒绝一样走 **Error**。对于一分钟内可能触发很多次的工作流，请把要说的话合并成一条消息，或者通过你自己的服务器发送。
 
 把密码保存在 [秘密全局变量](/docs/workflows/variables#全局变量) 中，并在设置里使用该变量；无论如何它们在运行日志中都会被隐藏。到回环地址（`localhost`、`127.0.0.1`）、链路本地地址和云元数据地址的连接会被拒绝。在 OneUptime Cloud 上，位于私有网络地址的服务器，或解析到这类地址的名称，也会被拒绝。自托管安装可以连接到它们自己网络中的 IRC 服务器，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 被设置为 `true`。
+
+## Mattermost
+
+通过传入 Webhook 向 Mattermost Cloud 或你自己服务器上的 Mattermost 频道发送消息。
+
+| 设置                                | 作用                                                                                                                                                                                                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | 用来发帖的 Webhook，与 Mattermost 在 Integrations 下的 Incoming Webhooks 中显示的一致：服务器的地址，后面是 `/hooks/` 和 Webhook 的 ID。Mattermost 的指南介绍了如何 [创建一个](https://docs.mattermost.com/developers/integrate/webhooks/incoming)。                               |
+| **Message Text**                    | 要发送的文本。它会按你写的原样发送，而 Mattermost 支持 Markdown：`**bold**`、`_italic_`、链接、表格，以及 `:rotating_light:` 这样的表情符号。一条 Mattermost 帖子最多容纳 16,383 个字符：更长的消息会被截断以适应长度，并以 "… (truncated — see OneUptime for the full text)" 结尾。 |
+
+位于 **更多字段** 下：
+
+| 设置         | 作用                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | 发到 Webhook 自己的频道以外的地方：填写频道 URL 中显示的频道名称，例如 `town-square`；或者填写 `@` 加用户名来发私信。锁定到自己频道的 Webhook 会拒绝其他任何频道。                                            |
+| **Username** | 发帖时使用的名称。只有在系统管理员允许集成覆盖用户名时，Mattermost 才会使用它。                                                                                                                               |
+| **Icon URL** | 发帖时显示的图片，是一个 `https` 地址。只有在系统管理员允许集成覆盖头像图标时，Mattermost 才会使用它。                                                                                                        |
+
+Mattermost 接受消息时触发 **Success**。无法连接到服务器或 Mattermost 拒绝消息时触发 **Error**，并传下 Mattermost 给出的原因。而缺少 **Mattermost Incoming Webhook URL** 或 **Message Text**、URL 不是传入 Webhook 的 URL，或者某个设置永远不可能生效，会停止运行。
+
+把 Webhook URL 保存在 [秘密全局变量](/docs/workflows/variables#全局变量) 中：任何拿到它的人都能向该频道发帖。无论如何它在运行日志中都会被隐藏。消息从 OneUptime 发出，不会跟随重定向。位于回环地址（`localhost`、`127.0.0.1`）、链路本地地址或云元数据地址上的 Webhook 会被拒绝；位于私有网络地址上的也会被拒绝，除非自托管管理员通过 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允许它。参见 [私有网络访问](/docs/self-hosted/private-network-access)。
 
 ## Email
 

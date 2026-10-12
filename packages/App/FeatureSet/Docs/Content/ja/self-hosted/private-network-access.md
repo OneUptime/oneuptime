@@ -57,6 +57,7 @@ Ping、Port、SSL 証明書、DNS、DNSSEC、SNMP / ネットワークデバイ�
 次の送信先が対象です。宛先は、プロジェクトの認証済みメンバーが書いた URL だからです。
 
 - ワークフローの **API** コンポーネント (GET / POST / PUT / PATCH / DELETE)
+- ワークフローの **Mattermost** コンポーネント
 - ワークフローの **Custom JavaScript** コンポーネントが行う HTTP リクエスト
 - プロジェクトの Webhook 通知 (インシデント、アラート、モニター、オンコール、計画メンテナンス、ステータスページのイベント)
 - オンコールの**ユーザー Webhook**

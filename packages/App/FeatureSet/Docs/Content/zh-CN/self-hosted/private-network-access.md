@@ -57,6 +57,7 @@ Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数
 以下目标受到管控，因为目标是项目中经过身份验证的成员所写的 URL：
 
 - 工作流 **API** 组件（GET / POST / PUT / PATCH / DELETE）
+- 工作流 **Mattermost** 组件
 - 工作流 **Custom JavaScript** 组件发出的 HTTP 请求
 - 项目 Webhook 通知（事件、告警、监视器、值班、计划维护、状态页事件）
 - 值班**用户 Webhook**

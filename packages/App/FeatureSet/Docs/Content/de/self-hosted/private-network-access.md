@@ -57,6 +57,7 @@ IPv6-Schreibweisen, die ein IPv4-Ziel in sich tragen – IPv4-mapped (`::ffff:10
 Diese Ziele sind abgedeckt, weil das Ziel eine URL ist, die ein authentifiziertes Mitglied Ihres Projekts geschrieben hat:
 
 - **API**-Komponenten in Workflows (GET / POST / PUT / PATCH / DELETE)
+- Die **Mattermost**-Komponente in Workflows
 - HTTP-Anfragen der Workflow-Komponente **Custom JavaScript**
 - Projekt-Webhook-Benachrichtigungen (Incidents, Alarme, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
 - **Benutzer-Webhooks** der Bereitschaft

@@ -120,7 +120,7 @@ Os endereços que um bloco pode alcançar dependem do bloco:
 
 | Blocos                                                     | Loopback, link-local, metadados de nuvem                                      | Endereços de rede privada                                                                                                                 |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Os blocos **API** e as requisições de **Run Custom JavaScript** | Recusados, a menos que o host exato esteja em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Recusados, a menos que um administrador self-hosted os permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| Os blocos **API** e **Mattermost**, e as requisições de **Run Custom JavaScript** | Recusados, a menos que o host exato esteja em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Recusados, a menos que um administrador self-hosted os permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** e as URLs de token OAuth 2.0       | Recusados                                                                     | Recusados no OneUptime Cloud. Permitidos em uma instalação self-hosted, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`     |
 | Slack, Microsoft Teams, Discord e Telegram                 | Recusados                                                                     | Recusados: cada um só envia para os endereços do próprio serviço                                                                          |
 
@@ -201,7 +201,7 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
 
 Quando uma verificação recusa um passo, o passo toma a saída **Error** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
 
-Os passos que conversam com outros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code e Generate Text with AI — não leem nem alteram registros do OneUptime, então nada disso os afeta.
+Os passos que conversam com outros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — não leem nem alteram registros do OneUptime, então nada disso os afeta.
 
 ## Limites do plano
 

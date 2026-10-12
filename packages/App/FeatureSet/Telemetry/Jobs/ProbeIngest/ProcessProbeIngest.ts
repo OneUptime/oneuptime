@@ -11,6 +11,7 @@ import OneUptimeDate from "Common/Types/Date";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
@@ -368,6 +369,13 @@ export async function processNetworkDeviceWalkFromQueue(
     pollMode: pollMode,
     pingResponse: pingResponse,
     snmpResponse: snmpResponse,
+    /*
+     * Absent from a job queued before capabilities were forwarded: read as
+     * none, the same as an older probe.
+     */
+    probeCapabilities: ProbeCapabilityUtil.parse(
+      requestBody["probeCapabilities"],
+    ),
     monitoredAt: isNaN(monitoredAt.getTime())
       ? OneUptimeDate.getCurrentDate()
       : monitoredAt,

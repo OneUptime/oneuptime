@@ -120,7 +120,7 @@ Hvilke adresser en blok må nå, afhænger af blokken:
 
 | Blokke                                                        | Loopback, link-local, cloud-metadata                                         | Private netværksadresser                                                                                                                          |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**-blokke og forespørgsler fra **Run Custom JavaScript** | Afvises, medmindre den præcise vært står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Afvises, medmindre en administrator af en selvhostet installation tillader dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **API**- og **Mattermost**-blokke samt forespørgsler fra **Run Custom JavaScript** | Afvises, medmindre den præcise vært står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Afvises, medmindre en administrator af en selvhostet installation tillader dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** og OAuth 2.0-token-URL'er             | Afvises                                                                      | Afvises i OneUptime Cloud. Tilladt på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                       |
 | Slack, Microsoft Teams, Discord og Telegram                   | Afvises                                                                      | Afvises: hver sender kun til sin egen tjenestes adresser                                                                                          |
 
@@ -201,7 +201,7 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
 
 Når en kontrol afviser et trin, tager trinnet sit **Error**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Læs den under workflowets [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
 
-Trin, der taler med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code og Generate Text with AI — læser eller ændrer ikke OneUptime-poster, så intet af dette ændrer noget for dem.
+Trin, der taler med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — læser eller ændrer ikke OneUptime-poster, så intet af dette ændrer noget for dem.
 
 ## Plangrænser
 

@@ -222,9 +222,11 @@ flowchart TB
 
 インストルメンテーションが報告したコスト (`gen_ai.usage.cost`) は、0 であってもそのまま使われます。報告がない場合、OneUptime はスパンの到着時に、トークン数と、OpenAI、Anthropic、Google Gemini、Mistral、DeepSeek、xAI、Cohere、Amazon Nova、Meta Llama の一般的なモデルの組み込み料金表からコストを見積もります。料金は、応答したモデル、次にリクエストしたモデルの順で決まります。
 
-モデルは最も長い名前のプレフィックスで照合されるため、`gpt-4o-2024-08-06` や `us.anthropic.claude-sonnet-4-5-20250929-v1:0` のように日付やベンダーの装飾が付いた ID も、そのファミリーの料金が見つかります。表にないモデルは、新しいリリースであっても推測されることはなく、料金を設定するまでコストは 0 のままです。見積もりには定価が使われ、キャッシュやバッチの割引は含まれません。
+モデルの ID がどの形式でも、各モデルにはそれぞれの料金が付きます。`gpt-4o-2024-08-06` は GPT-4o で、`claude-opus-4-5-20251101`、`us.anthropic.claude-opus-4-5-20251101-v1:0`、`claude-opus-4-5@20251101`、`anthropic/claude-opus-4.5` はどれも Claude Opus 4.5 です。新しいリリースが古いモデルの料金になることはありません。表にないモデルは推測されることはなく、料金を設定するまでコストは 0 のままです。
 
-モデルの料金を自分で設定するには (交渉済みの料金、ファインチューニングしたモデル、セルフホストしたモデルなど)、 **料金** タブの **カスタム LLM 料金** で追加します。 **モデルのプレフィックス** 、 **入力の料金（100 万トークンあたりの USD）** 、 **出力の料金（100 万トークンあたりの USD）** を指定します。独自の料金と組み込みの表をまたいで、一致する最も長いプレフィックスが優先され、同じ長さなら独自の料金が優先されます。料金は保存してから約 1 分後に届いた呼び出しに適用され、保存済みの呼び出しのコストは変わりません。
+スパンがプロバイダーのプロンプトキャッシュから読み取った、またはキャッシュに書き込んだと報告するトークンは、プロバイダーのキャッシュ料金で計算され、書き込みは 5 分間の料金になります。長いプロンプトに高い料金を課すモデル (100,000 トークンを超える Claude Haiku 5.5 など) は、プロンプトの長さに応じて料金が決まります。見積もりは定価で、バッチ割引、高速モード、リージョンごとの割増は適用されません。
+
+モデルの料金を自分で設定するには (交渉済みの料金、ファインチューニングしたモデル、セルフホストしたモデルなど)、 **料金** タブの **カスタム LLM 料金** で追加します。 **モデルのプレフィックス** 、 **入力の料金（100 万トークンあたりの USD）** 、 **出力の料金（100 万トークンあたりの USD）** を指定します。独自の料金と組み込みの表をまたいで、一致する最も長いプレフィックスが優先され、同じ長さなら独自の料金が優先されます。独自の料金は、キャッシュされたかどうかにかかわらず、すべての入力トークンに適用されます。料金は保存してから約 1 分後に届いた呼び出しに適用され、保存済みの呼び出しのコストは変わりません。
 
 ## 1 日のコスト予算
 
@@ -276,6 +278,8 @@ OneUptime は OpenTelemetry の GenAI 規約に加えて、OpenLLMetry、OpenInf
 | 入力トークン | `gen_ai.usage.input_tokens`、`gen_ai.usage.prompt_tokens`、`llm.token_count.prompt`、`llm.usage.prompt_tokens` |
 | 出力トークン | `gen_ai.usage.output_tokens`、`gen_ai.usage.completion_tokens`、`llm.token_count.completion`、`llm.usage.completion_tokens` |
 | 合計トークン | `gen_ai.usage.total_tokens`、`llm.token_count.total`、`llm.usage.total_tokens` |
+| キャッシュから読み取ったトークン | `gen_ai.usage.cache_read.input_tokens`、`gen_ai.usage.cache_read_input_tokens`、`llm.token_count.prompt_details.cache_read` |
+| キャッシュに書き込んだトークン | `gen_ai.usage.cache_write.input_tokens`、`gen_ai.usage.cache_creation.input_tokens`、`gen_ai.usage.cache_creation_input_tokens`、`llm.token_count.prompt_details.cache_write` |
 | コスト (USD) | `gen_ai.usage.cost`、`gen_ai.usage.cost_usd`、`gen_ai.usage.total_cost`、`llm.usage.total_cost`、`gen_ai.cost.total_cost`、`litellm.cost.total` |
 | 会話 | `gen_ai.conversation.id`、`session.id`、`langfuse.session.id`、`traceloop.association.properties.session_id`、`ai.telemetry.metadata.sessionId` |
 | エージェント | `gen_ai.agent.name`、`agent.name` |
@@ -284,6 +288,8 @@ OneUptime は OpenTelemetry の GenAI 規約に加えて、OpenLLMetry、OpenInf
 | エラー | `error.type` |
 
 これらの値のいずれか、または `gen_ai.`、`llm.`、`traceloop.` で始まる属性を持つスパンは、AI 呼び出しとして数えられます。合計が報告されない場合、合計トークンは入力と出力の和になります。`gen_ai.usage.total_tokens` と `gen_ai.usage.cost` のキーは規約に含まれず、規約はどちらも定義していませんが、一般的なインストルメンテーションが送るため OneUptime は読み取ります。
+
+入力トークンには、規約の数え方どおり、キャッシュのトークンも含まれます。スパンのキャッシュの数が入力の数より大きい場合、入力の数はそれを含んでいないため、OneUptime が加算します。Claude Code のトレースのベータは `gen_ai.usage.*` のキーを送りません。モデル名を持つスパンでは、OneUptime は `input_tokens`、`output_tokens`、`cache_read_tokens`、`cache_creation_tokens` を読み取り、2 つのキャッシュの数を、それを含まない `input_tokens` に加算します。
 
 ID のキー (誰が呼び出したか、そのチーム) は [従業員とチームへの帰属](/docs/telemetry/ai-coding-assistants#従業員とチームへの帰属) に一覧があります。
 

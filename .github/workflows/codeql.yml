@@ -11,6 +11,19 @@ name: CodeQL Advanced
 # reaching master was scanned on its pull request; master itself is scanned
 # nightly here, and on demand.
 #
+# When the repository gains a language, default setup starts scanning it by
+# itself: it added python on 4 October 2026, two days after this file was
+# written. This setup scans only the languages its matrix lists, so
+# Tests/Ops/CodeQlWorkflow.test.js fails when the repository holds code in a
+# language CodeQL analyses that the matrix leaves out. Add the language to
+# the matrix, or to that test's LEFT_OUT_LANGUAGES with the reason.
+#
+# It also leaves out what default setup cannot: the third-party browser
+# assets vendored for offline installs (packages/Common/Server/Static/Vendor),
+# through the paths-ignore of .github/codeql/codeql-config.yml, which says
+# why. The alerts default setup raised in them close as no longer found on
+# this setup's first scan of master; none is dismissed.
+#
 # It runs nothing until the default setup is switched off - GitHub refuses an
 # advanced setup's results while default setup is on, and only after the
 # analysis has spent its runner time. To switch over, in this order:
@@ -60,6 +73,8 @@ jobs:
             build-mode: autobuild
           - language: javascript-typescript
             build-mode: none
+          - language: python
+            build-mode: none
     steps:
       - uses: actions/checkout@v4
       - name: Initialize CodeQL
@@ -67,6 +82,9 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          # Its paths-ignore, and nothing else: the default query suite and
+          # threat model stay as default setup had them.
+          config-file: ./.github/codeql/codeql-config.yml
       # The category default setup used for this language, so its alerts
       # stay attached to the same analysis.
       - name: Perform CodeQL Analysis

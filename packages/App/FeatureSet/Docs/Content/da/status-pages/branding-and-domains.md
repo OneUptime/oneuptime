@@ -62,12 +62,24 @@ Header-links er til navigation; sidefodslinks er til det med småt, såsom jurid
 
 ### Yderligere indstillinger
 
-Sidens sidste sektion ligger sammenfoldet under **Yderligere indstillinger**, fordi de færreste nogensinde ændrer det, der står i den. Sammenfoldet nævner dens overskrift de fire sektioner (**Standardbjælkefarve**, **Regler for bjælkefarver**, **Sprog** og **Indeksering i søgemaskiner**) og viser hver af dem, der afviger fra det, en ny statusside starter med: en anden standardbjælkefarve end den grønne, alle sider starter med, en hvilken som helst regel for bjælkefarver, et andet standardsprog end engelsk, en kortere liste over sprog eller indeksering i søgemaskiner slået fra. Klik på den for at åbne den: det er ét kort med de fire sektioner under hinanden, hver med sin egen titel og knap, adskilt af skillelinjer.
+Sidens sidste sektion ligger sammenfoldet under **Yderligere indstillinger**, fordi de færreste nogensinde ændrer det, der står i den. Sammenfoldet nævner dens overskrift de fire sektioner (**Standardbjælkefarve**, **Regler for bjælkefarver**, **Sprog** og **Indeksering i søgemaskiner**) og viser hver af dem, der afviger fra det, en ny statusside starter med: en anden standardbjælkefarve end den grønne, alle sider starter med, andre regler for bjælkefarver end de anbefalede, et andet standardsprog end engelsk, en kortere liste over sprog eller indeksering i søgemaskiner slået fra. Klik på den for at åbne den: det er ét kort med sektionerne under hinanden, hver med sin egen titel, adskilt af skillelinjer.
 
-**Historikdiagrammets farver.** Det er de eneste indbyggede farveindstillinger på en statusside.
+**Historikdiagrammets farver.** Det er de eneste indbyggede farveindstillinger på en statusside. Hver bjælke i oppetidshistorikken er en dag.
 
-- **Standardbjælkefarve for historikdiagrammet**: **Edit Default Bar Color** åbner vælgeren **Standardbjælkefarve**. Alle nye statussider starter med grøn. Med regler for bjælkefarver er det også farven for en dag, som ingen regel matcher. En dag, siden ikke har data for, tegnes altid grå.
-- **Rules for Bar Colors of History Chart**: en ordnet tabel med regler, som du sorterer ved at trække. Hver regel har **Når oppetid % er større end eller lig med** og **Brug så denne søjlefarve**; tabellens kolonner hedder `When Uptime Percent >=` og `Then, Bar Color is`. En ny regels farve er allerede valgt, en som de andre regler endnu ikke bruger; vælg i stedet den, du vil have. Rækkefølgen betyder noget, så sorter reglerne, som du vil have dem evalueret. Uden regler får hver dags søjle farven på dagens laveste monitorstatus.
+- **Standardbjælkefarve**: **Edit Default Bar Color** åbner vælgeren **Standardbjælkefarve**. Det er farven på en dag, som ingen bjælkefarveregel matcher. Alle nye statussider starter med grøn.
+- **Regler for bjælkefarver**: en ordnet tabel med regler, som du sorterer ved at trække. Hver regel har **Når oppetid % er større end eller lig med** og **Brug så denne søjlefarve**; tabellens kolonner hedder `When Uptime Percent >=` og `Then, Bar Color is`. Reglerne tjekkes fra toppen, og den første, en dags oppetid når, bestemmer dens farve, så hold højere procenter over lavere: en regel under en med samme eller lavere procent farver aldrig en dag. En ny regels farve er allerede valgt, en som de andre regler endnu ikke bruger; vælg i stedet den, du vil have.
+- **Forhåndsvisning af bjælkefarver**: hver farve, en dag kan få, som de fleste ser den (**Fuldt farvesyn**), og som personer med rød-grøn farveblindhed ser den (**Deuteranopi (rød-grøn)**, **Protanopi (rød-grøn)**). Den advarer, når to farver ser ens ud for dem, og når en regel aldrig farver en dag.
+
+En dag, siden ikke har data for, tegnes altid grå med diagonale striber, uanset hvad reglerne siger. Uden regler får en dag farven fra den mest alvorlige monitorstatus, den havde, uanset hvor kort: to minutter Offline farver hele dagen i Offline-farven. Derfor starter en statusside, der er oprettet i dashboardet, med de anbefalede regler, som farver en dag efter, hvor længe den var nede:
+
+| Når oppetid % er mindst | Bjælkefarve | På en hel dag |
+| ------------------------- | --------- | ------------- |
+| 100 | `#22c55e` grøn | Intet nedbrud |
+| 99 | `#fde047` lysegul | Op til 14 minutter 24 sekunder nede |
+| 95 | `#c2410c` mørk orange | Op til 72 minutter nede |
+| 0 | `#7f1d1d` meget mørk rød | Mere end 72 minutter nede |
+
+En dags oppetid måles over den del af dagen, der har data, og tæller de statusser, der er valgt i **Tæller som nedetid**. De anbefalede farver adskiller sig i lyshed såvel som i farvetone, så personer med rød-grøn farveblindhed, omkring hver tolvte mand, kan skelne dem fra hinanden; den grønne for Operational og den røde for Offline, som monitorstatusser starter med, ser næsten ens ud for dem. En side, der er oprettet før disse regler eller via API'et eller Terraform, har ingen regler, før du tilføjer nogle: en tom tabel **Regler for bjælkefarver** og **Forhåndsvisning af bjælkefarver** tilbyder begge **Brug anbefalede regler**. Via API'et sender du `"miscDataProps": {"addRecommendedBarColorRules": true}` med den anmodning, der opretter statussiden.
 
 Hvor mange dage diagrammet dækker, angives ikke her. Det er **Oppetidshistorik** på kortet **Hvad din statusside viser** under **Avanceret → Avancerede indstillinger**, fra 1 til 90 dage. Hvilke monitorstatusser der tæller som nede, er **Tæller som nedetid** i samme række på det kort.
 

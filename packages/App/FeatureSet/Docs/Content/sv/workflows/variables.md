@@ -205,7 +205,7 @@ Blockvärden finns bara under den aktuella körningen. Varje ny körning börjar
 Nästan alla textfält tar emot variabler:
 
 - URL:en på ett API-block.
-- Meddelandetexten på Slack, Teams, Discord, Telegram, IRC, Email.
+- Meddelandetexten på Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Ämnet och bodyn i ett e-postmeddelande.
 - Headers och fält i bodyn (inuti strängvärden).
 - Båda sidor av ett **If / Else**-block.

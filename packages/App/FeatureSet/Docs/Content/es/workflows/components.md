@@ -5,7 +5,7 @@ Los componentes son los bloques que añades después del disparador. Cada uno ha
 Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque terminan con **Cómo se usa**: qué hace el bloque, los pasos para configurarlo, un ejemplo construido a partir de tu propio flujo de trabajo y los errores más habituales. Para añadir y conectar bloques, consulta [Crear un flujo de trabajo](/docs/workflows/authoring).
 
 :::cards
-- [Enviar un mensaje](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC y correo electrónico.
+- [Enviar un mensaje](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost y correo electrónico.
 - [Llamar a una API](#api): Envía una solicitud a cualquier API HTTP y lee la respuesta.
 - [Añadir lógica](#conditions): Ramifica según un valor, transforma datos, espera o registra.
 - [Trabajar con registros de OneUptime](#componentes-de-datos-de-oneuptime): Busca, crea, actualiza y elimina monitores, incidentes y más.
@@ -15,7 +15,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 
 | Para…                                                         | Usa                                                               |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Publicar en una herramienta de chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram) o [IRC](#irc) |
+| Publicar en una herramienta de chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
 | Enviar un correo a través de tu propio servidor de correo     | [Email](#email)                                                   |
 | Llamar a cualquier otra API o a tu propio servicio            | [API](#api)                                                       |
 | Resumir, clasificar o redactar texto                          | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ En **Más campos**:
 Cada ejecución del bloque es una conexión propia, y las redes de IRC limitan la frecuencia con que una misma dirección puede conectarse: una ráfaga de mensajes puede rechazarse con un motivo como "Reconnecting too fast", y toma **Error** como cualquier otro rechazo. Para un flujo de trabajo que puede saltar muchas veces por minuto, reúne lo que tenga que decir en un solo mensaje, o envíalo a través de un servidor propio.
 
 Guarda las contraseñas en [variables globales secretas](/docs/workflows/variables#variables-globales) y usa la variable en el ajuste; se ocultan en los registros de ejecución en cualquier caso. Las conexiones a direcciones de loopback (`localhost`, `127.0.0.1`), de enlace local y de metadatos de la nube se rechazan. En OneUptime Cloud, un servidor en una dirección de red privada, o un nombre que se resuelve a una, también se rechaza. Las instalaciones autoalojadas pueden llegar a un servidor de IRC de su propia red, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esté definido como `true`.
+
+## Mattermost
+
+Publica un mensaje en un canal de Mattermost a través de un webhook entrante, en Mattermost Cloud o en un servidor propio.
+
+| Ajuste                              | Qué hace                                                                                                                                                                                                                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | El webhook por el que publicar, tal como lo muestra Mattermost en Integrations, Incoming Webhooks: la dirección del servidor, después `/hooks/` y el ID del webhook. La guía de Mattermost muestra cómo [crear uno](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
+| **Message Text**                    | El texto que enviar. Se envía exactamente como lo escribes, y Mattermost interpreta Markdown: `**bold**`, `_italic_`, enlaces, tablas y emojis como `:rotating_light:`. Una publicación de Mattermost admite 16.383 caracteres: un mensaje más largo se corta para que quepa y termina con "… (truncated — see OneUptime for the full text)". |
+
+En **Más campos**:
+
+| Ajuste       | Qué hace                                                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Publica en otro sitio que no sea el canal del propio webhook: el nombre del canal tal como aparece en su URL, como `town-square`, o `@` y un nombre de usuario para un mensaje directo. Un webhook fijado a su canal rechaza cualquier otro. |
+| **Username** | El nombre con el que publicar. Mattermost solo lo usa donde un administrador del sistema permite a las integraciones cambiar los nombres de usuario.                                                          |
+| **Icon URL** | La imagen con la que publicar, una dirección `https`. Mattermost solo la usa donde un administrador del sistema permite a las integraciones cambiar los iconos de la imagen de perfil.                        |
+
+**Success** salta cuando Mattermost aceptó el mensaje. **Error** salta cuando no se puede llegar al servidor o Mattermost rechaza el mensaje, y transmite el motivo de Mattermost. En cambio, un **Mattermost Incoming Webhook URL** o un **Message Text** que falte, una URL que no sea la de un webhook entrante, o un ajuste que nunca podría funcionar, detiene la ejecución.
+
+Guarda la URL del webhook en una [variable global secreta](/docs/workflows/variables#variables-globales): cualquiera que la tenga puede publicar en el canal. Se oculta en los registros de ejecución en cualquier caso. El mensaje sale de OneUptime y las redirecciones no se siguen. Un webhook en una dirección de loopback (`localhost`, `127.0.0.1`), de enlace local o de metadatos de la nube se rechaza, y también uno en una dirección de red privada, a menos que un administrador autoalojado lo permita con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Consulta [Acceso a red privada](/docs/self-hosted/private-network-access).
 
 ## Email
 

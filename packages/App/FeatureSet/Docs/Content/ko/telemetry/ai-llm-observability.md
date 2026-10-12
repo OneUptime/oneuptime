@@ -222,9 +222,11 @@ flowchart TB
 
 계측이 보고한 비용(`gen_ai.usage.cost`)은 0이라도 그대로 사용됩니다. 보고된 비용이 없으면, OneUptime은 스팬이 도착할 때 토큰 수와, OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova, Meta Llama의 일반적인 모델에 대한 기본 제공 가격표로 비용을 추정합니다. 가격은 응답한 모델을 먼저, 그다음 요청한 모델을 기준으로 정합니다.
 
-모델은 가장 긴 이름 접두사로 맞추므로, `gpt-4o-2024-08-06`와 `us.anthropic.claude-sonnet-4-5-20250929-v1:0`처럼 날짜나 공급업체 표시가 붙은 ID도 해당 제품군의 가격을 찾습니다. 목록에 없는 모델은 새 릴리스라도 추측하지 않으며, 가격을 정할 때까지 비용은 0으로 남습니다. 추정에는 정가를 사용하며, 캐시나 배치 할인은 반영하지 않습니다.
+모델 ID가 어떤 형식이든 각 모델에는 고유한 가격이 매겨집니다. `gpt-4o-2024-08-06`는 GPT-4o이고, `claude-opus-4-5-20251101`, `us.anthropic.claude-opus-4-5-20251101-v1:0`, `claude-opus-4-5@20251101`, `anthropic/claude-opus-4.5`는 모두 Claude Opus 4.5입니다. 새 릴리스가 이전 모델의 가격을 가져가는 일은 없습니다. 목록에 없는 모델은 추측하지 않으며, 가격을 정할 때까지 비용은 0으로 남습니다.
 
-모델 가격을 직접 정하려면(협상된 요율, 파인튜닝한 모델, 직접 호스팅하는 모델 등), **가격** 탭의 **사용자 지정 LLM 가격** 에서 추가합니다. **모델 접두사** , **입력 가격(100만 토큰당 USD)** , **출력 가격(100만 토큰당 USD)** 을 입력합니다. 사용자 지정 가격과 기본 제공 목록을 통틀어 가장 길게 일치하는 접두사가 우선하며, 길이가 같으면 사용자 지정 가격이 우선합니다. 가격은 저장하고 약 1분 뒤에 도착하는 호출부터 적용되며, 이미 저장된 호출의 비용은 바뀌지 않습니다.
+스팬이 공급자의 프롬프트 캐시에서 읽었거나 캐시에 썼다고 보고하는 토큰은 공급자의 캐시 요율로 계산하고, 쓰기는 5분 요율로 계산합니다. 긴 프롬프트에 더 많은 요금을 받는 모델(100,000 토큰을 넘는 Claude Haiku 5.5 등)은 프롬프트 길이에 따라 가격을 매깁니다. 추정치는 정가이며, 배치 할인, 빠른 모드, 지역별 할증은 반영하지 않습니다.
+
+모델 가격을 직접 정하려면(협상된 요율, 파인튜닝한 모델, 직접 호스팅하는 모델 등), **가격** 탭의 **사용자 지정 LLM 가격** 에서 추가합니다. **모델 접두사** , **입력 가격(100만 토큰당 USD)** , **출력 가격(100만 토큰당 USD)** 을 입력합니다. 사용자 지정 가격과 기본 제공 목록을 통틀어 가장 길게 일치하는 접두사가 우선하며, 길이가 같으면 사용자 지정 가격이 우선합니다. 사용자 지정 가격은 캐시 여부와 관계없이 모든 입력 토큰에 적용됩니다. 가격은 저장하고 약 1분 뒤에 도착하는 호출부터 적용되며, 이미 저장된 호출의 비용은 바뀌지 않습니다.
 
 ## 일일 비용 예산
 
@@ -276,6 +278,8 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 | 입력 토큰 | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
 | 출력 토큰 | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
 | 총 토큰 | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| 캐시에서 읽은 토큰 | `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_read_input_tokens`, `llm.token_count.prompt_details.cache_read` |
+| 캐시에 쓴 토큰 | `gen_ai.usage.cache_write.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, `gen_ai.usage.cache_creation_input_tokens`, `llm.token_count.prompt_details.cache_write` |
 | 비용(USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
 | 대화 | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
 | 에이전트 | `gen_ai.agent.name`, `agent.name` |
@@ -284,6 +288,8 @@ OneUptime은 OpenTelemetry GenAI 규칙과 함께 OpenLLMetry, OpenInference, Ve
 | 오류 | `error.type` |
 
 이 값 중 하나를 가지고 있거나, `gen_ai.`, `llm.`, `traceloop.`로 시작하는 속성을 가진 스팬은 AI 호출로 셉니다. 합계가 보고되지 않으면 총 토큰은 입력과 출력의 합입니다. `gen_ai.usage.total_tokens`와 `gen_ai.usage.cost` 키는 규칙에 포함되지 않으며, 규칙은 둘 다 정의하지 않습니다. 일반적인 계측이 보내기 때문에 OneUptime이 읽습니다.
+
+입력 토큰에는 규약의 방식대로 캐시 토큰도 포함됩니다. 스팬의 캐시 수가 입력 수보다 크면 입력 수에서 캐시가 빠진 것이므로 OneUptime이 더합니다. Claude Code의 트레이스 베타는 `gen_ai.usage.*` 키를 보내지 않습니다. 모델 이름이 있는 스팬에서 OneUptime은 `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_creation_tokens`를 읽고, 두 캐시 수를 캐시가 빠진 `input_tokens`에 더합니다.
 
 신원 키(누가 호출했는지와 그 팀)는 [직원 및 팀 귀속](/docs/telemetry/ai-coding-assistants#직원-및-팀-귀속)에 나와 있습니다.
 

@@ -1,10 +1,15 @@
 import StatusPageBrandingCopy, {
   BrandingAdvancedValues,
+  areBarColorRulesChosen,
   isBrandingAdvancedConfigured,
   isDefaultBarColorChosen,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageBrandingCopy";
 import { Green, Red } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import {
+  HistoryChartBarColorRuleInput,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "Common/Utils/StatusPage/HistoryChartBarColors";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -548,6 +553,23 @@ describe("Configured, on the Branding page's folded Advanced section", () => {
 describe("translations", () => {
   // Sentences and names this change wrote, or put on a page of their own.
   const strings: Array<string> = [
+    // The history chart's cards and their preview (issue #486).
+    StatusPageBrandingCopy.defaultBarColorDescription,
+    StatusPageBrandingCopy.barColorRulesDescription,
+    StatusPageBrandingCopy.barColorRulesEmptyTitle,
+    StatusPageBrandingCopy.barColorRulesEmptyDescription,
+    StatusPageBrandingCopy.useRecommendedRules,
+    StatusPageBrandingCopy.barColorPreviewTitle,
+    StatusPageBrandingCopy.barColorPreviewDescription,
+    StatusPageBrandingCopy.fullColorVision,
+    StatusPageBrandingCopy.deuteranopia,
+    StatusPageBrandingCopy.protanopia,
+    StatusPageBrandingCopy.uptimePercentOrMore,
+    StatusPageBrandingCopy.uptimeUnderPercent,
+    StatusPageBrandingCopy.withoutRules,
+    StatusPageBrandingCopy.lookAlike,
+    StatusPageBrandingCopy.shadowedRule,
+    StatusPageBrandingCopy.noRuleMatches,
     StatusPageBrandingCopy.advancedDescription,
     StatusPageBrandingCopy.overviewDescriptionDescription,
     StatusPageBrandingCopy.overviewDescriptionEditButton,
@@ -561,6 +583,9 @@ describe("translations", () => {
 
   // Names every locale already had.
   const names: Array<string> = [
+    StatusPageBrandingCopy.defaultBarColorTitle,
+    StatusPageBrandingCopy.barColorRulesTitle,
+    StatusPageBrandingCopy.noData,
     StatusPageBrandingCopy.overviewDescriptionTitle,
     StatusPageBrandingCopy.languagesTitle,
     "Branding",
@@ -598,4 +623,116 @@ describe("translations", () => {
       }
     },
   );
+});
+
+/*
+ * Issue #486: a status page made in the dashboard starts with the
+ * recommended bar color rules, so they are not something an operator chose
+ * - and neither is having no rules, as older pages and pages made from
+ * Terraform have.
+ */
+describe("Configured, for the bar color rules", () => {
+  const recommended: Array<HistoryChartBarColorRuleInput> = [
+    ...RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+  ];
+
+  test("no rules, or the recommended ones, are not a choice", () => {
+    expect(areBarColorRulesChosen({})).toBe(false);
+    expect(areBarColorRulesChosen({ barColorRuleCount: 0 })).toBe(false);
+    expect(
+      areBarColorRulesChosen({
+        barColorRuleCount: 4,
+        barColorRules: recommended,
+      }),
+    ).toBe(false);
+    expect(
+      isBrandingAdvancedConfigured({
+        defaultBarColor: Green,
+        barColorRuleCount: 4,
+        barColorRules: recommended,
+        defaultLanguage: "en",
+        enabledLanguages: [],
+        enableSearchEngineIndexing: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("the recommended rules as the database hands them back are not either", () => {
+    expect(
+      areBarColorRulesChosen({
+        barColorRuleCount: 4,
+        barColorRules: [
+          { uptimePercentGreaterThanOrEqualTo: "100.00", barColor: "#22C55E" },
+          { uptimePercentGreaterThanOrEqualTo: "99.00", barColor: "#FDE047" },
+          { uptimePercentGreaterThanOrEqualTo: "95.00", barColor: "#C2410C" },
+          { uptimePercentGreaterThanOrEqualTo: "0.00", barColor: "#7F1D1D" },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  test.each([
+    [
+      "a changed color",
+      4,
+      [
+        { uptimePercentGreaterThanOrEqualTo: 100, barColor: "#2ab57d" },
+        ...recommended.slice(1),
+      ],
+    ],
+    [
+      "a changed percentage",
+      4,
+      [
+        { uptimePercentGreaterThanOrEqualTo: 99.9, barColor: "#22c55e" },
+        ...recommended.slice(1),
+      ],
+    ],
+    ["one removed", 3, recommended.slice(0, 3)],
+    [
+      "one added",
+      5,
+      [
+        ...recommended,
+        { uptimePercentGreaterThanOrEqualTo: 50, barColor: "#000000" },
+      ],
+    ],
+    ["the same rules in another order", 4, [...recommended].reverse()],
+    // The table holds more rules than it loaded: they cannot all be read.
+    ["more rules than were loaded", 6, recommended],
+    // Rules counted before they were read: as they always were, a choice.
+    ["rules not read yet", 2, undefined],
+  ] as Array<
+    [string, number, Array<HistoryChartBarColorRuleInput> | undefined]
+  >)(
+    "%s is a choice",
+    (
+      _what: string,
+      count: number,
+      rules: Array<HistoryChartBarColorRuleInput> | undefined,
+    ) => {
+      const values: BrandingAdvancedValues = {
+        barColorRuleCount: count,
+        barColorRules: rules,
+      };
+
+      expect(areBarColorRulesChosen(values)).toBe(true);
+      expect(isBrandingAdvancedConfigured(values)).toBe(true);
+    },
+  );
+});
+
+describe("a status page made in the dashboard", () => {
+  test("asks for the recommended bar color rules with its create", () => {
+    const list: string = readSource(
+      path.join(DASHBOARD_SRC, "Pages", "StatusPages", "StatusPages.tsx"),
+    );
+
+    expect(list).toContain(
+      "onBeforeCreate={( item: StatusPage, miscDataProps: JSONObject, ): Promise<StatusPage> => { miscDataProps[ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY] = true; return Promise.resolve(item); }}",
+    );
+    expect(list).toContain(
+      'import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "Common/Utils/StatusPage/HistoryChartBarColors";',
+    );
+  });
 });

@@ -57,6 +57,7 @@ As grafias de IPv6 que carregam um destino IPv4 dentro de si – IPv4-mapped (`:
 Estes destinos estão cobertos, porque o destino é uma URL escrita por um membro autenticado do seu projeto:
 
 - Os componentes **API** dos workflows (GET / POST / PUT / PATCH / DELETE)
+- O componente **Mattermost** dos workflows
 - As requisições HTTP feitas pelo componente de workflow **Custom JavaScript**
 - As notificações de webhook do projeto (incidentes, alertas, monitores, plantão, manutenção agendada, eventos de páginas de status)
 - Os **webhooks de usuário** do plantão

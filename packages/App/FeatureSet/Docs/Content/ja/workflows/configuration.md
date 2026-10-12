@@ -120,7 +120,7 @@ API ブロックやその他の HTTP ブロックは OneUptime からリクエ�
 
 | ブロック                                                       | ループバック、リンクローカル、クラウドメタデータ                             | プライベートネットワークのアドレス                                                                                                                |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API** ブロックと **Run Custom JavaScript** のリクエスト      | 拒否。ただし、正確なホストが `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` にある場合を除く | 拒否。ただし、セルフホスト環境の管理者が `ALLOW_PRIVATE_NETWORK_WEBHOOKS` または `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` で許可した場合を除く      |
+| **API** と **Mattermost** のブロック、および **Run Custom JavaScript** のリクエスト | 拒否。ただし、正確なホストが `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` にある場合を除く | 拒否。ただし、セルフホスト環境の管理者が `ALLOW_PRIVATE_NETWORK_WEBHOOKS` または `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` で許可した場合を除く      |
 | **Send Email**、**IRC**、OAuth 2.0 のトークン URL              | 拒否                                                                         | OneUptime Cloud では拒否。セルフホスト環境では、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` が `true` でない限り許可                                   |
 | Slack、Microsoft Teams、Discord、Telegram                      | 拒否                                                                         | 拒否。それぞれ自分のサービスのアドレスにしか送りません                                                                                            |
 
@@ -201,7 +201,7 @@ OneUptime のレコードを読み書きするステップ — Find、Create、U
 
 チェックがステップを拒否すると、ステップは拒否された変更を行わずに **Error** の出力をたどり、実行のログにはステップと理由が分かりやすい言葉で記録されます。例: *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*。ワークフローの [実行履歴](/docs/workflows/runs-and-logs) で確認してください。Create Many ステップはレコードを 1 件ずつ作成し、最初に拒否されたところで止まります。それより前に作成したレコードは残ります。
 
-他のシステムとやり取りするステップ — API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Custom Code、Generate Text with AI — は OneUptime のレコードを読み書きしないため、これらには何も変わりません。
+他のシステムとやり取りするステップ — API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost、Custom Code、Generate Text with AI — は OneUptime のレコードを読み書きしないため、これらには何も変わりません。
 
 ## プランの上限
 

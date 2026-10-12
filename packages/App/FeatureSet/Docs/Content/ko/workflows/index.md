@@ -40,7 +40,7 @@ flowchart TB
 
 ## 워크플로로 할 수 있는 일
 
-- **OneUptime을 다른 도구와 연결** — Slack, Microsoft Teams, Discord, Telegram, IRC에 게시하고, Jira 티켓을 만들고, 스택의 어떤 API로든 요청을 보냅니다.
+- **OneUptime을 다른 도구와 연결** — Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost에 게시하고, Jira 티켓을 만들고, 스택의 어떤 API로든 요청을 보냅니다.
 - **OneUptime에서 일어나는 일에 반응** — 인시던트가 생성되면 적절한 채널에 알리고 티켓을 자동으로 엽니다.
 - **일정에 따라 작업 실행** — 5분마다, 매일 밤, 매주 월요일 아침.
 - **외부에서 데이터 받기** — 다른 시스템이 워크플로의 URL을 호출하거나 주소로 이메일을 보내 워크플로를 시작하게 합니다.

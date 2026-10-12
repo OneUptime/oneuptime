@@ -537,6 +537,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
+  /*
+   * Whether a value of a required column (not a switch) counts as given. Any
+   * falsy value is missing here, 0 included: some required numbers rely on
+   * that to refuse a 0 nobody would mean (a reminder every 0 minutes). A
+   * service with a required number that 0 is a real value of - a status page
+   * bar color rule's "uptime of at least 0%" - says so by overriding this.
+   */
+  protected isRequiredColumnValueGiven(
+    _column: string,
+    value: unknown,
+  ): boolean {
+    return Boolean(value);
+  }
+
   protected checkRequiredFields(data: TBaseModel): TBaseModel {
     // Check required fields.
 
@@ -561,7 +575,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           throw new BadDataException(`${requiredField} is required`);
         }
       } else if (
-        !(data as any)[requiredField] &&
+        !this.isRequiredColumnValueGiven(
+          requiredField,
+          (data as any)[requiredField],
+        ) &&
         !data.isDefaultValueColumn(requiredField)
       ) {
         const metadata: TableColumnMetadata =

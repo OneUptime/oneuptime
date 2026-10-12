@@ -205,7 +205,7 @@ Block values only exist during the current run. Each new run starts fresh.
 Almost every text field accepts variables:
 
 - The URL on an API block.
-- The message text on Slack, Teams, Discord, Telegram, IRC, Email.
+- The message text on Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - The subject and body of an email.
 - Headers and body fields (inside string values).
 - Both sides of an **If / Else** block.

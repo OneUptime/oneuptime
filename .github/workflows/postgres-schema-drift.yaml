@@ -531,6 +531,26 @@ jobs:
           Tests/Server/API/StatusPageIncidentScopePostgres.test.ts
           Tests/Server/Services/StatusPageVisibilityWritePostgres.test.ts --forceExit
 
+      # Clones the migrated Project, StatusPage and
+      # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
+      # keys) into an isolated schema, and makes a new status page's
+      # recommended bar color rules through the real services: they read
+      # back from the decimal and color columns in their order, as the
+      # recommended set; the 0% rule at the bottom is accepted (the
+      # required-column check read 0 as missing); a page created without
+      # asking gets none; deleting the page takes its rules with it; and when
+      # one rule cannot be made, the ones made before it are removed.
+      - name: Test status page recommended bar color rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_BAR_COLOR_RULES_TESTS: "true"
+          STATUS_PAGE_BAR_COLOR_RULES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_BAR_COLOR_RULES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_BAR_COLOR_RULES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageRecommendedBarColorRulesPostgres.test.ts --forceExit
+
       # Clones the migrated StatusPageSubscriber table into an isolated schema
       # and runs the audience summary's hand-written count (COUNT(*) FILTER
       # per channel, = ANY($2::uuid[])) against it: only confirmed,

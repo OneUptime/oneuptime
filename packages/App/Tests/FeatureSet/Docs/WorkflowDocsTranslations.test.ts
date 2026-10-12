@@ -153,6 +153,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Telegram Bot Token",
     "Channel",
     "Port",
+    "Username",
     // Send Email.
     "From Email",
     "To Email",
@@ -650,6 +651,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "discord",
   "telegram",
   "irc",
+  "mattermost",
   "email",
   "customCode",
   "json",

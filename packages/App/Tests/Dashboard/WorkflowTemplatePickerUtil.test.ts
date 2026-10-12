@@ -312,6 +312,42 @@ describe("words the way the Add Component picker reads them", () => {
     );
   });
 
+  test("a chat's name finds every template that posts to it, and nothing else", () => {
+    const mattermost: Array<string> = [
+      "incident-created-mattermost",
+      "incident-state-changed-mattermost",
+      "alert-created-mattermost",
+      "monitor-status-changed-mattermost",
+      "maintenance-scheduled-mattermost",
+    ];
+
+    expect([...searchIds("mattermost")].sort()).toEqual([...mattermost].sort());
+    // The start of the name finds them (and any template with "matter" in it).
+    expect(searchIds("matter")).toEqual(expect.arrayContaining(mattermost));
+    // A typo still finds them.
+    expect([...searchIds("matermost")].sort()).toEqual([...mattermost].sort());
+    expect(searchIds("mattermost incident").slice(0, 2).sort()).toEqual([
+      "incident-created-mattermost",
+      "incident-state-changed-mattermost",
+    ]);
+    expect(searchIds("mattermost alert")[0]).toBe("alert-created-mattermost");
+    expect(searchIds("mattermost monitor")[0]).toBe(
+      "monitor-status-changed-mattermost",
+    );
+    expect(searchIds("mattermost maintenance")[0]).toBe(
+      "maintenance-scheduled-mattermost",
+    );
+    // The other chats' searches do not pick them up.
+    for (const chat of ["slack", "discord", "teams", "telegram", "irc"]) {
+      for (const templateId of mattermost) {
+        expect({ chat, found: searchIds(chat).includes(templateId) }).toEqual({
+          chat,
+          found: false,
+        });
+      }
+    }
+  });
+
   test("the start of a word finds the word", () => {
     expect(searchIds("discor")).toEqual(["incident-created-discord"]);
     expect(searchIds("inc").length).toBeGreaterThan(0);

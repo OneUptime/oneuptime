@@ -62,12 +62,24 @@ Sidhuvudslänkar är för navigering; sidfotslänkar är för det finstilta, som
 
 ### Fler inställningar
 
-Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom få någonsin ändrar det som finns där. Hopfälld nämner dess rubrik de fyra sektionerna (**Standardfärg för stapel**, **Regler för stapelfärger**, **Språk** och **Indexering i sökmotorer**) och visar var och en som skiljer sig från det som en ny statussida börjar med: en annan standardfärg för stapeln än den gröna som alla sidor börjar med, någon regel för stapelfärger, ett annat standardspråk än engelska, en kortare lista med språk eller indexering i sökmotorer avstängd. Klicka på den för att öppna den: det är ett enda kort med de fyra sektionerna under varandra, var och en med egen titel och knapp, åtskilda av avdelare.
+Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom få någonsin ändrar det som finns där. Hopfälld nämner dess rubrik de fyra sektionerna (**Standardfärg för stapel**, **Regler för stapelfärger**, **Språk** och **Indexering i sökmotorer**) och visar var och en som skiljer sig från det som en ny statussida börjar med: en annan standardfärg för stapeln än den gröna som alla sidor börjar med, andra regler för stapelfärger än de rekommenderade, ett annat standardspråk än engelska, en kortare lista med språk eller indexering i sökmotorer avstängd. Klicka på den för att öppna den: det är ett enda kort med sektionerna under varandra, var och en med egen titel, åtskilda av avdelare.
 
-**Historikdiagrammets färger.** Det här är de enda inbyggda färginställningarna på en statussida.
+**Historikdiagrammets färger.** Det här är de enda inbyggda färginställningarna på en statussida. Varje stapel i upptidshistoriken är en dag.
 
-- **Standardfärg för stapeln i historikdiagrammet**: **Edit Default Bar Color** öppnar väljaren **Standardfärg för stapel**. Alla nya statussidor börjar med grönt. Med regler för stapelfärger är det också färgen för en dag som ingen regel matchar. En dag som sidan saknar data för ritas alltid grå.
-- **Rules for Bar Colors of History Chart**: en ordnad tabell med regler som du sorterar genom att dra. Varje regel har **När drifttid % är större än eller lika med** och **Använd sedan denna stapelfärg**; tabellens kolumner heter `When Uptime Percent >=` och `Then, Bar Color is`. En ny regels färg är redan vald, en som de andra reglerna inte använder ännu; välj i stället den som du vill ha. Ordningen spelar roll, så ordna reglerna så som du vill att de ska utvärderas. Utan regler får varje dags stapel färgen på dagens lägsta monitorstatus.
+- **Standardfärg för stapel**: **Edit Default Bar Color** öppnar väljaren **Standardfärg för stapel**. Det är färgen på en dag som ingen stapelfärgsregel matchar. Alla nya statussidor börjar med grönt.
+- **Regler för stapelfärger**: en ordnad tabell med regler som du sorterar genom att dra. Varje regel har **När drifttid % är större än eller lika med** och **Använd sedan denna stapelfärg**; tabellens kolumner heter `When Uptime Percent >=` och `Then, Bar Color is`. Reglerna kontrolleras uppifrån, och den första som en dags upptid når bestämmer dess färg, så håll högre procentsatser ovanför lägre: en regel under en med samma eller lägre procentsats färgar aldrig en dag. En ny regels färg är redan vald, en som de andra reglerna inte använder ännu; välj i stället den som du vill ha.
+- **Förhandsvisning av stapelfärger**: varje färg en dag kan få, som de flesta ser den (**Fullt färgseende**) och som personer med röd-grön färgblindhet ser den (**Deuteranopi (röd-grön)**, **Protanopi (röd-grön)**). Den varnar när två färger ser likadana ut för dem och när en regel aldrig färgar en dag.
+
+En dag som sidan saknar data för ritas alltid grå med diagonala ränder, vad reglerna än säger. Utan regler får en dag färgen från den allvarligaste monitorstatus den hade, hur kort den än var: två minuter Offline färgar hela dagen i Offline-färgen. Därför börjar en statussida som skapats i instrumentpanelen med de rekommenderade reglerna, som färgar en dag efter hur länge den var nere:
+
+| När upptid % är minst | Stapelfärg | En hel dag |
+| ------------------------- | --------- | ------------- |
+| 100 | `#22c55e` grön | Inget avbrott |
+| 99 | `#fde047` ljusgul | Upp till 14 minuter 24 sekunder nere |
+| 95 | `#c2410c` mörkorange | Upp till 72 minuter nere |
+| 0 | `#7f1d1d` mycket mörkröd | Mer än 72 minuter nere |
+
+En dags upptid mäts över den del av dagen som har data och räknar de statusar som valts i **Räknas som driftstopp**. De rekommenderade färgerna skiljer sig i ljushet såväl som i nyans, så att personer med röd-grön färgblindhet, ungefär var tolfte man, kan skilja dem åt; det gröna för Operational och det röda för Offline som monitorstatusar börjar med ser nästan likadana ut för dem. En sida som skapats före dessa regler, eller via API:t eller Terraform, har inga regler förrän du lägger till några: en tom tabell **Regler för stapelfärger** och **Förhandsvisning av stapelfärger** erbjuder båda **Använd rekommenderade regler**. Via API:t skickar du `"miscDataProps": {"addRecommendedBarColorRules": true}` med begäran som skapar statussidan.
 
 Hur många dagar diagrammet täcker anges inte här. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Avancerad → Avancerade inställningar**, från 1 till 90 dagar. Vilka monitorstatusar som räknas som nere är **Räknas som driftstopp**, på samma rad på det kortet.
 

@@ -1,4 +1,5 @@
 import fs from "fs";
+import yaml from "js-yaml";
 import path from "path";
 import ts from "typescript";
 import {
@@ -11,8 +12,9 @@ import { REPOSITORY_DIRECTORY, isTestCode } from "./TagStripScan";
 /*
  * CODE READ THE WAY CODE SCANNING READS IT, FOR TWO OF ITS QUERIES.
  *
- * Code scanning (CodeQL) reads every file of the repository and reports,
- * among much else:
+ * Code scanning (CodeQL) reads every file of the repository but those its
+ * configuration leaves out (CODE_SCANNING_IGNORED_PATHS) and reports, among
+ * much else:
  *
  *   js/incomplete-sanitization - a replace that escapes or removes a
  *   character a sink reads as syntax, but not every one of them:
@@ -1662,25 +1664,86 @@ export const CODE_ROOTS: ReadonlyArray<string> = [
 
 const PRODUCT_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
 const DECLARATION_FILE: RegExp = /\.d\.ts$/;
+// Code scanning skips these itself, as it does node_modules.
 const MINIFIED_FILE: RegExp = /\.min\.js$/;
-// Folders of dependencies and builds, and third-party code checked in as is.
+// Folders of dependencies and builds, which the repository never holds.
 const SKIPPED_FOLDERS: ReadonlySet<string> = new Set<string>([
   "node_modules",
   "build",
   "dist",
-  "Vendor",
 ]);
+
+/*
+ * The configuration of code scanning's advanced setup, by its path from the
+ * repository's root (.github/workflows/codeql.yml analyses with it).
+ */
+export const CODE_SCANNING_CONFIG_FILE: string =
+  ".github/codeql/codeql-config.yml";
+
+export type ReadCodeScanningIgnoredPathsFunction = (
+  root?: string,
+) => Array<string>;
+
+/*
+ * The directories code scanning leaves out, by their paths from the root:
+ * the paths-ignore of its configuration under `root` (the repository's).
+ * They hold third-party files checked in as their publisher built them - an
+ * alert in one is fixed by upgrading it, not by editing it - and each is a
+ * plain path (Tests/Ops/CodeQlWorkflow.test.js holds the list to both).
+ */
+export const readCodeScanningIgnoredPaths: ReadCodeScanningIgnoredPathsFunction =
+  (root: string = REPOSITORY_DIRECTORY): Array<string> => {
+    const config: unknown = yaml.load(
+      fs.readFileSync(path.join(root, CODE_SCANNING_CONFIG_FILE), "utf8"),
+    );
+    const ignored: unknown =
+      typeof config === "object" && config !== null
+        ? (config as Record<string, unknown>)["paths-ignore"]
+        : undefined;
+
+    if (
+      !Array.isArray(ignored) ||
+      !ignored.every((entry: unknown): boolean => {
+        return typeof entry === "string" && entry !== "";
+      })
+    ) {
+      throw new Error(
+        `${CODE_SCANNING_CONFIG_FILE} lists no directories under paths-ignore.`,
+      );
+    }
+
+    return ignored as Array<string>;
+  };
+
+/*
+ * What code scanning leaves out is what this reading leaves out: read from
+ * code scanning's configuration, so the two cannot disagree.
+ */
+export const CODE_SCANNING_IGNORED_PATHS: ReadonlyArray<string> =
+  readCodeScanningIgnoredPaths();
+
+export type IsIgnoredByCodeScanningFunction = (relativePath: string) => boolean;
+
+// Whether code scanning leaves a file or folder out, by its path from the root.
+export const isIgnoredByCodeScanning: IsIgnoredByCodeScanningFunction = (
+  relativePath: string,
+): boolean => {
+  return CODE_SCANNING_IGNORED_PATHS.some((ignored: string): boolean => {
+    return relativePath === ignored || relativePath.startsWith(`${ignored}/`);
+  });
+};
 
 export type IsProductCodeFunction = (relativePath: string) => boolean;
 
 /*
  * Whether a file, by its path from the repository's root, is product code:
  * code or a template, not a test (TagStripScan's isTestCode says which
- * files are; a template is read by the same folders), not a build, and not
- * a vendored build checked in as it was published - Common/Server/Static/
- * Vendor (Tailwind, highlight.js) and any minified file. Whether code
- * scanning reads vendored builds is a choice for its configuration, not an
- * edit to the vendored code.
+ * files are; a template is read by the same folders), not a build, not a
+ * minified file, and not in a directory code scanning leaves out - the
+ * third-party builds vendored for offline installs (Common/Server/Static/
+ * Vendor: Tailwind, highlight.js), which CODE_SCANNING_IGNORED_PATHS reads
+ * from code scanning's configuration. Their code is upstream's; it is not
+ * edited here.
  */
 export const isProductCode: IsProductCodeFunction = (
   relativePath: string,
@@ -1692,6 +1755,7 @@ export const isProductCode: IsProductCodeFunction = (
     !PRODUCT_FILE.test(fileName) ||
     DECLARATION_FILE.test(fileName) ||
     MINIFIED_FILE.test(fileName) ||
+    isIgnoredByCodeScanning(relativePath) ||
     parts.slice(0, -1).some((folder: string): boolean => {
       return folder.startsWith(".") || SKIPPED_FOLDERS.has(folder);
     })
@@ -1727,16 +1791,19 @@ export const listProductFiles: ListProductFilesFunction = (
       }
 
       const fullPath: string = path.join(directory, entry.name);
+      const relativePath: string = path
+        .relative(root, fullPath)
+        .split(path.sep)
+        .join("/");
+
+      if (isIgnoredByCodeScanning(relativePath)) {
+        continue;
+      }
 
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
       }
-
-      const relativePath: string = path
-        .relative(root, fullPath)
-        .split(path.sep)
-        .join("/");
 
       if (entry.isFile() && isProductCode(relativePath)) {
         files.push(relativePath);

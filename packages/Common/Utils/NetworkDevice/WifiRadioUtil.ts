@@ -1,5 +1,6 @@
 import {
   SnmpTableColumnRole,
+  SnmpTableFailureReason,
   SnmpTableKind,
   SnmpTableSnapshot,
   SnmpTableSnapshotCell,
@@ -31,6 +32,9 @@ import {
  *   - An SSID row with no name is an interface, not a network: HiveOS lists
  *     every interface in its SSID table, "N/A" for the ones that broadcast
  *     nothing.
+ *   - A band that names several bands ("2.4GHz,5GHz", "5 GHz & 6 GHz") is no
+ *     one band: an SSID that every radio broadcasts shows the text as the
+ *     device wrote it, rather than the first band named in it.
  */
 
 // How vendors write the band: "2.4GHz", "2,4 GHz", "2G", "5 GHz", "6E" ...
@@ -110,6 +114,24 @@ export interface WifiSummary {
   totalClients?: number | undefined;
   collectedAt?: string | undefined;
   failureCause?: string | undefined;
+  failureReason?: SnmpTableFailureReason | undefined;
+}
+
+/*
+ * What a device's Wi-Fi tables, once polled, give the Wi-Fi tab to show.
+ */
+export enum WifiTablesState {
+  // At least one access point, radio or SSID: the tab lists them.
+  HasRows = "hasRows",
+  /*
+   * Nothing, because the probe that polls the device answered without
+   * walking its tables: it predates SNMP tables, and has to be updated.
+   */
+  NotWalkedByProbe = "notWalkedByProbe",
+  // Nothing, because the last walk failed and no earlier walk left rows.
+  WalkFailed = "walkFailed",
+  // Nothing: the tables were walked, and the device reported no rows.
+  NoRows = "noRows",
 }
 
 export const WIFI_TABLE_KINDS: Array<SnmpTableKind> = [
@@ -210,7 +232,37 @@ export default class WifiRadioUtil {
       summary.failureCause = primary.failureCause;
     }
 
+    if (primary?.failureCause && primary.failureReason) {
+      summary.failureReason = primary.failureReason;
+    }
+
     return summary;
+  }
+
+  /*
+   * Whether the tab has anything to list and, when it has not, why not -
+   * the tables speak for the walk the way getSummary's failure does.
+   */
+  public static getTablesState(summary: WifiSummary): WifiTablesState {
+    if (
+      summary.accessPoints.length > 0 ||
+      summary.radios.length > 0 ||
+      summary.ssids.length > 0
+    ) {
+      return WifiTablesState.HasRows;
+    }
+
+    if (
+      summary.failureReason === SnmpTableFailureReason.ProbeDidNotWalkTables
+    ) {
+      return WifiTablesState.NotWalkedByProbe;
+    }
+
+    if (summary.failureCause) {
+      return WifiTablesState.WalkFailed;
+    }
+
+    return WifiTablesState.NoRows;
   }
 
   public static toRadio(
@@ -638,16 +690,23 @@ export default class WifiRadioUtil {
       return undefined;
     }
 
+    // Text that names more than one band ("2.4GHz,5GHz") is no one band.
+    const named: Array<WifiBand> = [];
+
     if (BAND_2_4_GHZ.test(value) || BAND_2G.test(value)) {
-      return WifiBand.Band2_4GHz;
+      named.push(WifiBand.Band2_4GHz);
     }
 
     if (BAND_6_GHZ.test(value) || BAND_6E.test(value)) {
-      return WifiBand.Band6GHz;
+      named.push(WifiBand.Band6GHz);
     }
 
     if (BAND_5_GHZ.test(value)) {
-      return WifiBand.Band5GHz;
+      named.push(WifiBand.Band5GHz);
+    }
+
+    if (named.length > 0) {
+      return named.length === 1 ? named[0] : undefined;
     }
 
     /*

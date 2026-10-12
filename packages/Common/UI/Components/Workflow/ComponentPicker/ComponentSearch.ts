@@ -200,6 +200,7 @@ export const COMPONENT_KEYWORDS: Readonly<
     "libera",
     "oftc",
   ],
+  [ComponentID.MattermostSendMessageToChannel]: [...MESSAGE_KEYWORDS, "post"],
   [ComponentID.SendEmail]: [
     "mail",
     "smtp",

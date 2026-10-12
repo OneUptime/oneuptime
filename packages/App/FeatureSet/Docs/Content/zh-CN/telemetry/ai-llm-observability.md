@@ -222,9 +222,11 @@ flowchart TB
 
 插桩报告的成本（`gen_ai.usage.cost`）会原样使用，即使它为 0。没有报告时，OneUptime 会在 span 到达时，根据 token 数量和内置价目表估算成本，价目表涵盖 OpenAI、Anthropic、Google Gemini、Mistral、DeepSeek、xAI、Cohere、Amazon Nova 和 Meta Llama 的常用模型。先按实际响应的模型定价，再按请求的模型定价。
 
-模型按最长的名称前缀匹配，因此 `gpt-4o-2024-08-06` 和 `us.anthropic.claude-sonnet-4-5-20250929-v1:0` 这类带日期或厂商修饰的 ID 也能找到其系列的价格。价目表不认识的模型，即使是新发布的，也绝不会被猜测：在你为它定价之前，其成本保持为 0。估算使用标价，不含缓存或批处理折扣。
+每个模型都按自己的费率定价，不论其 ID 是什么形式：`gpt-4o-2024-08-06` 是 GPT-4o，而 `claude-opus-4-5-20251101`、`us.anthropic.claude-opus-4-5-20251101-v1:0`、`claude-opus-4-5@20251101` 和 `anthropic/claude-opus-4.5` 都是 Claude Opus 4.5。较新的版本绝不会沿用较旧模型的价格：价目表不认识的模型绝不会被猜测，在你为它定价之前，其成本保持为 0。
 
-若要自行为模型定价（协商费率、微调模型或你自托管的模型），请在 **定价** 标签页的 **自定义 LLM 定价** 中添加： **模型前缀** 、 **输入价格（每 100 万 token 美元）** 和 **输出价格（每 100 万 token 美元）** 。在你的价格和内置价目表之间，匹配最长前缀的胜出；长度相同时，你的价格胜出。价格适用于保存后大约一分钟起到达的调用；已存储的调用保留原有成本。
+span 报告为从提供商的提示缓存读取或写入其中的 token，按提供商的缓存费率计价，写入按 5 分钟的费率计价；对长提示收取更高费用的模型（例如超过 100,000 token 的 Claude Haiku 5.5）按提示的长度计价。估算使用标价：不计批处理折扣、快速模式和区域加价。
+
+若要自行为模型定价（协商费率、微调模型或你自托管的模型），请在 **定价** 标签页的 **自定义 LLM 定价** 中添加： **模型前缀** 、 **输入价格（每 100 万 token 美元）** 和 **输出价格（每 100 万 token 美元）** 。在你的价格和内置价目表之间，匹配最长前缀的胜出；长度相同时，你的价格胜出。你的价格适用于每个输入 token，无论是否来自缓存。价格适用于保存后大约一分钟起到达的调用；已存储的调用保留原有成本。
 
 ## 每日成本预算
 
@@ -276,6 +278,8 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 | 输入 token | `gen_ai.usage.input_tokens`、`gen_ai.usage.prompt_tokens`、`llm.token_count.prompt`、`llm.usage.prompt_tokens` |
 | 输出 token | `gen_ai.usage.output_tokens`、`gen_ai.usage.completion_tokens`、`llm.token_count.completion`、`llm.usage.completion_tokens` |
 | 总 token | `gen_ai.usage.total_tokens`、`llm.token_count.total`、`llm.usage.total_tokens` |
+| 缓存读取 token | `gen_ai.usage.cache_read.input_tokens`、`gen_ai.usage.cache_read_input_tokens`、`llm.token_count.prompt_details.cache_read` |
+| 缓存写入 token | `gen_ai.usage.cache_write.input_tokens`、`gen_ai.usage.cache_creation.input_tokens`、`gen_ai.usage.cache_creation_input_tokens`、`llm.token_count.prompt_details.cache_write` |
 | 成本（USD） | `gen_ai.usage.cost`、`gen_ai.usage.cost_usd`、`gen_ai.usage.total_cost`、`llm.usage.total_cost`、`gen_ai.cost.total_cost`、`litellm.cost.total` |
 | 对话 | `gen_ai.conversation.id`、`session.id`、`langfuse.session.id`、`traceloop.association.properties.session_id`、`ai.telemetry.metadata.sessionId` |
 | 代理 | `gen_ai.agent.name`、`agent.name` |
@@ -284,6 +288,8 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 | 错误 | `error.type` |
 
 当 span 带有其中任意一个值，或任何以 `gen_ai.`、`llm.` 或 `traceloop.` 开头的属性时，它就算作一次 AI 调用。没有报告总数时，总 token 为输入加输出。`gen_ai.usage.total_tokens` 和 `gen_ai.usage.cost` 这两个键不属于约定，约定对两者都没有定义；OneUptime 读取它们是因为常见的插桩会发送它们。
+
+按照约定的计法，输入 token 也包括缓存 token：如果 span 的缓存计数大于其输入计数，说明输入计数没有包括它们，OneUptime 会把它们加上。Claude Code 的测试版跟踪不发送 `gen_ai.usage.*` 键：在指明模型的 span 上，OneUptime 读取其 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens`，并把两个缓存计数加到不包括它们的 `input_tokens` 上。
 
 身份键（谁发起了调用，以及其团队）列在 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属) 中。
 

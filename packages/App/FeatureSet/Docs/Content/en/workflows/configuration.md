@@ -120,7 +120,7 @@ Which addresses a block may reach depends on the block:
 
 | Blocks                                                  | Loopback, link-local, cloud metadata                                     | Private network addresses                                                                                                           |
 | ------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **API** blocks and **Run Custom JavaScript** requests   | Refused, unless the exact host is named in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refused, unless a self-hosted administrator allows them with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **API** and **Mattermost** blocks, and **Run Custom JavaScript** requests | Refused, unless the exact host is named in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refused, unless a self-hosted administrator allows them with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** and OAuth 2.0 token URLs        | Refused                                                                  | Refused on OneUptime Cloud. Allowed on a self-hosted install, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`                 |
 | Slack, Microsoft Teams, Discord and Telegram            | Refused                                                                  | Refused: each sends only to its own service's addresses                                                                             |
 
@@ -201,7 +201,7 @@ The steps that read and change OneUptime records — the Find, Create, Update an
 
 When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
 
-Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
+Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
 
 ## Plan limits
 

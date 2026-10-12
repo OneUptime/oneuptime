@@ -212,11 +212,30 @@ interface MoreSettingsPage {
   sectionTestId: string;
   // The sections' titles, in order: the cards it folds.
   sectionTitles: Array<string>;
+  /*
+   * Sections the folded header leaves out on purpose: the header names the
+   * settings the fold holds, and these hold none (a preview of the settings
+   * above it, say).
+   */
+  sectionsTheHeaderDoesNotName?: Array<string>;
   // Whether the folded header names the cards by those same titles.
   namesSectionsByTitle: boolean;
   // How many of its sections are tables.
   tableCount: number;
 }
+
+type NamedSectionTitlesFunction = (page: MoreSettingsPage) => Array<string>;
+
+// The sections the folded header names, in order.
+const namedSectionTitles: NamedSectionTitlesFunction = (
+  page: MoreSettingsPage,
+): Array<string> => {
+  const unnamed: Array<string> = page.sectionsTheHeaderDoesNotName || [];
+
+  return page.sectionTitles.filter((title: string): boolean => {
+    return !unnamed.includes(title);
+  });
+};
 
 const INCIDENT_TITLES: Record<AiLaneAdvancedCard, string> =
   AI_LANE_ADVANCED_CARD_TITLES[AiLane.Incident];
@@ -299,12 +318,15 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: BRANDING_ADVANCED_SECTION_TEST_ID,
     sectionTitles: [
-      "Default Bar Color of the History Chart",
-      "Rules for Bar Colors of History Chart",
+      "Default Bar Color",
+      "Bar Color Rules",
+      "Bar Color Preview",
       "Languages",
       "Search Engine Indexing",
     ],
-    namesSectionsByTitle: false,
+    // It draws the colors the default and the rules above it give a day.
+    sectionsTheHeaderDoesNotName: ["Bar Color Preview"],
+    namesSectionsByTitle: true,
     tableCount: 1,
   },
   {
@@ -423,10 +445,10 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
 
     const names: Array<string> = listedNames(moreSettings(page));
 
-    expect(names.length).toBe(page.sectionTitles.length);
+    expect(names.length).toBe(namedSectionTitles(page).length);
 
     if (page.namesSectionsByTitle) {
-      expect(names).toEqual(page.sectionTitles);
+      expect(names).toEqual(namedSectionTitles(page));
     }
   });
 

@@ -11,6 +11,7 @@ import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
 import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
+import MattermostComponents from "./Components/Mattermost";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
 import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
@@ -28,6 +29,7 @@ const components: Array<ComponentMetadata> = [
   ...DiscordComponents,
   ...TelegramComponents,
   ...IRCComponents,
+  ...MattermostComponents,
   ...ConditionComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
@@ -82,6 +84,11 @@ export const Categories: Array<ComponentCategory> = [
   {
     name: "IRC",
     description: "Integrate OneUptime with your IRC channels.",
+    icon: IconProp.SendMessage,
+  },
+  {
+    name: "Mattermost",
+    description: "Integrate OneUptime with your Mattermost channels.",
     icon: IconProp.SendMessage,
   },
   {

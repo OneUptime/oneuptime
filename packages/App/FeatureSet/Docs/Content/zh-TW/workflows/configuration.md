@@ -120,7 +120,7 @@ API 區塊和其他 HTTP 區塊會從 OneUptime 發出請求，IRC 區塊會從 
 
 | 區塊                                                           | 回送、link-local、雲端中繼資料                                               | 私人網路位址                                                                                                                                      |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API** 區塊和 **Run Custom JavaScript** 的請求                | 拒絕，除非確切的主機列在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中              | 拒絕，除非自行託管的管理員透過 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允許                                      |
+| **API** 和 **Mattermost** 區塊，以及 **Run Custom JavaScript** 的請求 | 拒絕，除非確切的主機列在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中              | 拒絕，除非自行託管的管理員透過 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允許                                      |
 | **Send Email**、**IRC** 和 OAuth 2.0 權杖 URL                  | 拒絕                                                                         | 在 OneUptime Cloud 上拒絕。在自行託管的安裝上允許，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`                                          |
 | Slack、Microsoft Teams、Discord 和 Telegram                    | 拒絕                                                                         | 拒絕：每個都只會傳送到它自己服務的位址                                                                                                            |
 
@@ -201,7 +201,7 @@ API 區塊和其他 HTTP 區塊會從 OneUptime 發出請求，IRC 區塊會從 
 
 當檢查拒絕某個步驟時，步驟會走它的 **Error** 輸出，不做被拒絕的變更，執行的日誌會用淺白的文字寫明步驟和原因，例如 *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*。可以在工作流程的 [執行記錄](/docs/workflows/runs-and-logs) 中查看。Create Many 步驟會一筆一筆地建立記錄，並在第一筆被拒絕時停止：在它之前建立的記錄會保留。
 
-與其他系統溝通的步驟——API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Custom Code 和 Generate Text with AI——不會讀取或變更 OneUptime 記錄，所以以上這些對它們都沒有影響。
+與其他系統溝通的步驟——API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost、Custom Code 和 Generate Text with AI——不會讀取或變更 OneUptime 記錄，所以以上這些對它們都沒有影響。
 
 ## 方案限制
 

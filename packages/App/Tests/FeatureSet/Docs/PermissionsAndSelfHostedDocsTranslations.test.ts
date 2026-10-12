@@ -191,7 +191,7 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
 
 // Workflow blocks, which the workflow canvas names in English.
 const WORKFLOW_BLOCKS: Record<string, Array<string>> = {
-  [PRIVATE_NETWORK_PAGE]: ["API", "Custom JavaScript", "Email"],
+  [PRIVATE_NETWORK_PAGE]: ["API", "Mattermost", "Custom JavaScript", "Email"],
 };
 
 // What the server writes into a record, quoted as it is written.

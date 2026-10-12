@@ -31,9 +31,12 @@ describe("getDefaultRequestBody", () => {
        * The capability list rides every request: the server hands
        * credential-less (ping-only) network devices only to probes that
        * declare "networkDevicePing", because an older probe would walk
-       * such a device with community "public" and report it Down.
+       * such a device with community "public" and report it Down. A walk
+       * from a probe that declares "snmpTables" and carries no
+       * tableResults was handed no tables; from one that does not, the
+       * server says the probe has to be updated to walk them.
        */
-      probeCapabilities: ["networkDevicePing"],
+      probeCapabilities: ["networkDevicePing", "snmpTables"],
     });
   });
 });

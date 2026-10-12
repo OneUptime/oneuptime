@@ -853,6 +853,7 @@ describe("ArgumentsForm — every free-text argument is a multi-line box", () =>
     [ComponentID.DiscordSendMessageToChannel, "Message Text"],
     [ComponentID.TelegramSendMessageToChat, "Message Text"],
     [ComponentID.IRCSendMessageToChannel, "Message Text"],
+    [ComponentID.MattermostSendMessageToChannel, "Message Text"],
     [ComponentID.AIGenerateText, "System Instructions"],
     [ComponentID.AIGenerateText, "Prompt"],
     [ComponentID.TextToJson, "Text"],
@@ -883,6 +884,10 @@ describe("ArgumentsForm — short values stay on one line", () => {
     [ComponentID.TelegramSendMessageToChat, "Telegram Bot Token"],
     [ComponentID.IRCSendMessageToChannel, "IRC Server"],
     [ComponentID.IRCSendMessageToChannel, "Channel"],
+    [
+      ComponentID.MattermostSendMessageToChannel,
+      "Mattermost Incoming Webhook URL",
+    ],
     [ComponentID.IfElse, "Value to check"],
     [ComponentID.IfElse, "Compare with"],
     [ComponentID.ApiPost, "URL"],

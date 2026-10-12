@@ -231,8 +231,8 @@ export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-> [!WARNING]
-> Mantenha o beta de traces fora do projeto que você usa para o gasto. Os spans de modelo dele carregam `gen_ai.system` e `gen_ai.request.model`, então o OneUptime os lista em **Chamadas**, mas os tokens deles estão em `input_tokens` e `output_tokens`, não nas chaves `gen_ai.usage.*`, então chegam sem tokens e sem custo. Assim que existem, são as linhas que as tabelas **Funcionário**, **Equipe** e **Modelo** mostram, a US$ 0, no lugar do gasto das métricas.
+> [!NOTE]
+> Os spans de modelo do beta de traces carregam `gen_ai.system` e `gen_ai.request.model`, então o OneUptime os lista em **Chamadas**, lê os `input_tokens`, `output_tokens`, `cache_read_tokens` e `cache_creation_tokens` deles como os tokens da chamada e dá a cada chamada o preço de tabela do seu modelo. Assim que existem, são as linhas que as tabelas **Funcionário**, **Equipe** e **Modelo** mostram, no lugar do gasto das métricas. É a estimativa do OneUptime, com as gravações em cache pela tarifa de 5 minutos e sem o preço do modo rápido, então pode diferir de `claude_code.cost.usage`.
 
 Em sessões do Agent SDK e em sessões não interativas `-p`, o Claude Code aproveita um `TRACEPARENT` recebido, então os spans dele entram no trace de quem o chamou; as sessões interativas o ignoram. Ele só envia o cabeçalho `traceparent` ao modelo quando `ANTHROPIC_BASE_URL` não está definido ou é a API da Anthropic; atrás do seu próprio proxy, defina `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`.
 

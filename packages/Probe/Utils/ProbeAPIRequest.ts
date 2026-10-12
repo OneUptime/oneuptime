@@ -5,6 +5,7 @@ import ProxyConfig from "./ProxyConfig";
 import URL from "Common/Types/API/URL";
 import { RequestOptions, RequestOutcome } from "Common/Utils/API";
 import { JSONObject } from "Common/Types/JSON";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 
 /*
  * What this probe build can do, declared on every control-plane request so
@@ -16,10 +17,21 @@ import { JSONObject } from "Common/Types/JSON";
  * capability would receive such a device as an SNMP config with no
  * community, default it to "public", fail the walk, and report the device
  * Down — so the server drops ping-mode devices from an old probe's batch
- * instead. Add to this list only when the code that honours the new
- * capability ships in the same build.
+ * instead.
+ *
+ * "snmpTables": a device's walk covers the SNMP tables its config lists,
+ * and the walk's response always carries `tableResults` for them
+ * (SnmpMonitor.walkTables). The server reads a walk without them from a
+ * probe that does not declare this as a probe that cannot walk tables, and
+ * says so on the device's Wi-Fi and SNMP Tables pages.
+ *
+ * Add to this list only when the code that honours the new capability
+ * ships in the same build.
  */
-export const PROBE_CAPABILITIES: Array<string> = ["networkDevicePing"];
+export const PROBE_CAPABILITIES: Array<string> = [
+  ProbeCapability.NetworkDevicePing,
+  ProbeCapability.SnmpTables,
+];
 
 export default class ProbeAPIRequest {
   public static getDefaultRequestBody(): JSONObject {

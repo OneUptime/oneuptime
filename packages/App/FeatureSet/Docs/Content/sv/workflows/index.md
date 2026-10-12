@@ -40,7 +40,7 @@ Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver
 
 ## Vad du kan göra med arbetsflöden
 
-- **Koppla OneUptime till dina andra verktyg** — posta i Slack, Microsoft Teams, Discord, Telegram eller IRC, skapa Jira-ärenden eller skicka en förfrågan till valfritt API i din stack.
+- **Koppla OneUptime till dina andra verktyg** — posta i Slack, Microsoft Teams, Discord, Telegram, IRC eller Mattermost, skapa Jira-ärenden eller skicka en förfrågan till valfritt API i din stack.
 - **Reagera på det som händer i OneUptime** — när en incident skapas, meddela rätt kanal och öppna ett ärende automatiskt.
 - **Kör jobb enligt ett schema** — var femte minut, varje natt, varje måndagsmorgon.
 - **Ta emot data utifrån** — låt andra system starta ett arbetsflöde genom att anropa dess URL eller skicka e-post till dess adress.

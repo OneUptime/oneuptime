@@ -37,13 +37,23 @@
 #   255); Debian, Ubuntu and RHEL-family images (apt or dnf) work. CI also
 #   runs public.ecr.aws/docker/library/rockylinux:8: systemd 239, the oldest
 #   the docs support, reads a backslash inside single quotes as an escape.
+#
+#   bash Tests/Ops/vmware-agent-native-install.sh --print-vcsim-pin
+#   bash Tests/Ops/vmware-agent-native-install.sh --fetch-vcsim
+#   The first prints this machine's vcsim pin as key=value lines for
+#   $GITHUB_OUTPUT, the second only puts the pinned archive in
+#   VCSIM_CACHE_DIR: the "Ops Config Test" workflow keys its Actions cache
+#   on the one and fills it with the other before the runs.
 
 set -euo pipefail
 
 BASE_IMAGE="public.ecr.aws/docker/library/ubuntu:24.04"
+MODE="run"
 while [ $# -gt 0 ]; do
   case "$1" in
     --image) BASE_IMAGE="${2:?--image needs a value}"; shift 2 ;;
+    --print-vcsim-pin) MODE="print-vcsim-pin"; shift ;;
+    --fetch-vcsim) MODE="fetch-vcsim"; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -60,6 +70,57 @@ IMAGE_TAG="oneuptime-vmware-native-e2e:$(printf '%s' "${BASE_IMAGE}" | tr -c 'a-
 VCSIM_VERSION="0.56.0"
 VCSIM_SHA256_X86_64="1d207f69a1c78a4bc819a66c568013035229a91696131e9756be0444077ac2fe"
 VCSIM_SHA256_ARM64="65e31a3b9f970a32f2078b34c51fd4659cb4eadefc555ffb7de422cb8c08da02"
+# Where the pinned archive is kept between runs. vcsim is a GitHub release
+# asset, and GitHub's release CDN answers 500/504 in bursts: one outlasted the
+# 15-second curl retry this used to have and failed the Ops Config Test on
+# master (run 38249658794, 2026-10-12). So the archive goes through
+# Scripts/GHA/fetch_pinned_artifact.sh, which uses a copy here that still
+# matches the pin without touching the network and otherwise rides out a burst
+# with exponential backoff, and CI keeps this directory in the Actions cache.
+VCSIM_CACHE_DIR="${VCSIM_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/oneuptime/vcsim}"
+
+# This machine as govmomi's release names it.
+vcsim_arch() {
+  case "$(uname -m)" in
+    x86_64 | amd64) echo "x86_64" ;;
+    aarch64 | arm64) echo "arm64" ;;
+    *) echo "No vcsim build pinned for $(uname -m)" >&2; return 1 ;;
+  esac
+}
+
+# vcsim_sha256 <arch>: the pinned sha256 of vcsim_Linux_<arch>.tar.gz.
+vcsim_sha256() {
+  case "$1" in
+    x86_64) echo "${VCSIM_SHA256_X86_64}" ;;
+    arm64) echo "${VCSIM_SHA256_ARM64}" ;;
+  esac
+}
+
+# Puts the pinned archive for this machine in VCSIM_CACHE_DIR.
+vcsim_fetch() {
+  local arch
+  arch="$(vcsim_arch)"
+  bash "${REPO_ROOT}/Scripts/GHA/fetch_pinned_artifact.sh" \
+    --name "vcsim_Linux_${arch}.tar.gz" \
+    --sha256 "$(vcsim_sha256 "${arch}")" \
+    --dest "${VCSIM_CACHE_DIR}" \
+    --source file "https://github.com/vmware/govmomi/releases/download/v${VCSIM_VERSION}/vcsim_Linux_${arch}.tar.gz"
+}
+
+case "${MODE}" in
+  print-vcsim-pin)
+    VCSIM_ARCH="$(vcsim_arch)"
+    echo "version=${VCSIM_VERSION}"
+    echo "platform=Linux_${VCSIM_ARCH}"
+    echo "sha256=$(vcsim_sha256 "${VCSIM_ARCH}")"
+    echo "dir=${VCSIM_CACHE_DIR}"
+    exit 0
+    ;;
+  fetch-vcsim)
+    vcsim_fetch
+    exit 0
+    ;;
+esac
 
 # What the reader types into .env: vcsim accepts exactly this login.
 VCENTER_NAME="e2e-vcenter"
@@ -193,20 +254,9 @@ pass "lifted the install, settings, start, upgrade and uninstall blocks"
 # ----------------------------------------------------------------------------
 section "The machine: ${BASE_IMAGE} with systemd, vcsim and a stand-in OneUptime"
 # ----------------------------------------------------------------------------
-case "$(uname -m)" in
-  x86_64 | amd64) VCSIM_ARCH="x86_64"; VCSIM_SHA256="${VCSIM_SHA256_X86_64}" ;;
-  aarch64 | arm64) VCSIM_ARCH="arm64"; VCSIM_SHA256="${VCSIM_SHA256_ARM64}" ;;
-  *) echo "No vcsim build pinned for $(uname -m)" >&2; exit 1 ;;
-esac
-curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
-  -o "${WORK_DIR}/vcsim.tar.gz" \
-  "https://github.com/vmware/govmomi/releases/download/v${VCSIM_VERSION}/vcsim_Linux_${VCSIM_ARCH}.tar.gz"
-if command -v sha256sum >/dev/null 2>&1; then
-  echo "${VCSIM_SHA256}  ${WORK_DIR}/vcsim.tar.gz" | sha256sum -c - >/dev/null
-else
-  echo "${VCSIM_SHA256}  ${WORK_DIR}/vcsim.tar.gz" | shasum -a 256 -c - >/dev/null
-fi
-tar -xzf "${WORK_DIR}/vcsim.tar.gz" -C "${WORK_DIR}" vcsim
+VCSIM_ARCH="$(vcsim_arch)"
+vcsim_fetch
+tar -xzf "${VCSIM_CACHE_DIR}/vcsim_Linux_${VCSIM_ARCH}.tar.gz" -C "${WORK_DIR}" vcsim
 pass "vcsim ${VCSIM_VERSION} (${VCSIM_ARCH}), checked against its pinned sha256"
 
 # The stand-in OneUptime: records each OTLP request's path, ingestion key

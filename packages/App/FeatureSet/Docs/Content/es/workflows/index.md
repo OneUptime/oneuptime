@@ -40,7 +40,7 @@ Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de t
 
 ## Qué puedes hacer con los flujos de trabajo
 
-- **Conectar OneUptime con tus otras herramientas** — publicar en Slack, Microsoft Teams, Discord, Telegram o IRC, crear tickets de Jira o enviar una solicitud a cualquier API de tu stack.
+- **Conectar OneUptime con tus otras herramientas** — publicar en Slack, Microsoft Teams, Discord, Telegram, IRC o Mattermost, crear tickets de Jira o enviar una solicitud a cualquier API de tu stack.
 - **Reaccionar a lo que pasa en OneUptime** — cuando se crea un incidente, avisar al canal adecuado y abrir un ticket automáticamente.
 - **Ejecutar tareas de forma programada** — cada cinco minutos, cada noche, cada lunes por la mañana.
 - **Recibir datos desde fuera** — dejar que otros sistemas inicien un flujo de trabajo llamando a su URL o escribiendo a su dirección de correo.

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  ClaudeCodeUsageAttributeKeys,
   LlmAgentNameAttributeKeys,
   LlmAttributeNamespacePrefixes,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmCompletionEventNames,
   LlmCompletionIndexedMessageConventions,
   LlmCompletionJsonAttributeKeys,
@@ -59,6 +62,8 @@ const PER_CALL_LISTS: Record<string, Array<string>> = {
   LlmInputTokenAttributeKeys,
   LlmOutputTokenAttributeKeys,
   LlmTotalTokenAttributeKeys,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmCostAttributeKeys,
   LlmConversationIdAttributeKeys,
   LlmAgentNameAttributeKeys,
@@ -274,6 +279,8 @@ describe("list hygiene", () => {
       LlmInputTokenAttributeKeys,
       LlmOutputTokenAttributeKeys,
       LlmTotalTokenAttributeKeys,
+      LlmCacheReadTokenAttributeKeys,
+      LlmCacheWriteTokenAttributeKeys,
       LlmCostAttributeKeys,
       LlmConversationIdAttributeKeys,
       LlmAgentNameAttributeKeys,
@@ -286,6 +293,47 @@ describe("list hygiene", () => {
 
     for (const list of coreLists) {
       expect(list[0]!.startsWith("gen_ai.")).toBe(true);
+    }
+  });
+});
+
+describe("prompt-cache and Claude Code token keys", () => {
+  test("the cache lists name the conventions' keys first, then OpenLLMetry's and OpenInference's", () => {
+    expect(LlmCacheReadTokenAttributeKeys[0]).toBe(
+      "gen_ai.usage.cache_read.input_tokens",
+    );
+    expect(LlmCacheWriteTokenAttributeKeys.slice(0, 2)).toEqual([
+      "gen_ai.usage.cache_write.input_tokens",
+      // The conventions' older name for a write, which OpenLLMetry still sends.
+      "gen_ai.usage.cache_creation.input_tokens",
+    ]);
+  });
+
+  test("no cache key is also an input, output or total key", () => {
+    for (const key of [
+      ...LlmCacheReadTokenAttributeKeys,
+      ...LlmCacheWriteTokenAttributeKeys,
+    ]) {
+      expect(LlmInputTokenAttributeKeys).not.toContain(key);
+      expect(LlmOutputTokenAttributeKeys).not.toContain(key);
+      expect(LlmTotalTokenAttributeKeys).not.toContain(key);
+    }
+  });
+
+  test("Claude Code's bare usage keys are in no convention's list, so no convention reads them", () => {
+    const bareKeys: Array<string> = Object.values(ClaudeCodeUsageAttributeKeys);
+
+    expect(bareKeys).toEqual([
+      "input_tokens",
+      "output_tokens",
+      "cache_read_tokens",
+      "cache_creation_tokens",
+    ]);
+
+    for (const list of Object.values(ALL_STRING_LISTS)) {
+      for (const key of bareKeys) {
+        expect(list).not.toContain(key);
+      }
     }
   });
 });

@@ -14,6 +14,8 @@ import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustom
 import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
+import { JSONObject } from "Common/Types/JSON";
+import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "Common/Utils/StatusPage/HistoryChartBarColors";
 import React, { FunctionComponent, ReactElement } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
@@ -79,6 +81,20 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         modelType={StatusPage}
+        /*
+         * A new page starts with the recommended bar color rules: its uptime
+         * history grades a day by how long it was down, in colors people
+         * with red-green color blindness can tell apart, rather than
+         * painting a whole day in the Offline color for a minute of it
+         * (issue #486). Only a create that asks gets them.
+         */
+        onBeforeCreate={(
+          item: StatusPage,
+          miscDataProps: JSONObject,
+        ): Promise<StatusPage> => {
+          miscDataProps[ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY] = true;
+          return Promise.resolve(item);
+        }}
         enableJsonImportExport={true}
         id="status-page-table"
         userPreferencesKey="status-page-table"

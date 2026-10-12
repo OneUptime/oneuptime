@@ -40,7 +40,7 @@ flowchart TB
 
 ## 你可以用工作流做什么
 
-- **把 OneUptime 连接到你的其他工具** —— 向 Slack、Microsoft Teams、Discord、Telegram 或 IRC 发帖，创建 Jira 工单，或向你技术栈中的任意 API 发送请求。
+- **把 OneUptime 连接到你的其他工具** —— 向 Slack、Microsoft Teams、Discord、Telegram、IRC 或 Mattermost 发帖，创建 Jira 工单，或向你技术栈中的任意 API 发送请求。
 - **对 OneUptime 中发生的事做出反应** —— 事件创建时，通知合适的频道并自动开一个工单。
 - **按计划运行任务** —— 每五分钟、每晚、每周一早上。
 - **接收外部数据** —— 让其他系统通过调用工作流的 URL 或向它的地址发邮件来启动工作流。

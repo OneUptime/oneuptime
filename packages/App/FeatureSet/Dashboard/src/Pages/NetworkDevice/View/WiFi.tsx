@@ -1,15 +1,21 @@
 import PageComponentProps from "../../PageComponentProps";
 import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
+import WifiTablesNotReadState from "../../../Components/NetworkDevice/WifiTablesNotReadState";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { SnmpTableSnapshot } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import {
+  SnmpTableFailureReason,
+  SnmpTableSnapshot,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import ObjectID from "Common/Types/ObjectID";
+import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "Common/Types/Probe/ProbeCapability";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import WifiRadioUtil, {
   WifiAccessPointView,
   WifiRadioView,
   WifiSsidView,
   WifiSummary,
+  WifiTablesState,
 } from "Common/Utils/NetworkDevice/WifiRadioUtil";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
@@ -205,6 +211,11 @@ const NetworkDeviceWiFi: FunctionComponent<
           sysDescr: true,
           monitoringMethod: true,
           oidTemplateId: true,
+          // Who to name when the probe cannot walk the tables.
+          probe: {
+            _id: true,
+            name: true,
+          },
         },
       });
 
@@ -250,6 +261,23 @@ const NetworkDeviceWiFi: FunctionComponent<
   }
 
   const summary: WifiSummary = WifiRadioUtil.getSummary(snapshots);
+
+  const tablesState: WifiTablesState = WifiRadioUtil.getTablesState(summary);
+
+  /*
+   * Polled, and nothing to list: say why rather than draw tiles of zeros
+   * over an empty table.
+   */
+  if (tablesState !== WifiTablesState.HasRows) {
+    return (
+      <WifiTablesNotReadState
+        modelId={modelId}
+        state={tablesState}
+        failureCause={summary.failureCause}
+        probeName={device?.probe?.name || undefined}
+      />
+    );
+  }
 
   const accessPointsUp: number = summary.accessPoints.filter(
     (accessPoint: WifiAccessPointView): boolean => {
@@ -442,7 +470,18 @@ const NetworkDeviceWiFi: FunctionComponent<
 
   return (
     <Fragment>
-      {summary.failureCause ? (
+      {summary.failureReason ===
+      SnmpTableFailureReason.ProbeDidNotWalkTables ? (
+        <Alert
+          type={AlertType.WARNING}
+          className="mb-4"
+          dataTestId="wifi-not-walked-by-probe"
+          title={translator.translateTemplate(
+            "The probe that polls this device answered its last poll without walking its Wi-Fi tables, so these are the values from the last walk that read them. Probes released before version {{version}} do not walk SNMP tables: update the probe to the latest version.",
+            { version: FIRST_PROBE_VERSION_WITH_SNMP_TABLES },
+          )}
+        />
+      ) : summary.failureCause ? (
         <Alert
           type={AlertType.WARNING}
           className="mb-4"
@@ -515,18 +554,26 @@ const NetworkDeviceWiFi: FunctionComponent<
               )
         }
       >
-        <WifiTable
-          testId="wifi-radios"
-          nameTitle={translationKey("Radio")}
-          rows={summary.radios}
-          columns={radioColumns}
-          getKey={(radio: WifiRadioView): string => {
-            return `${radio.index}-${radio.name}`;
-          }}
-          getName={(radio: WifiRadioView): string => {
-            return radio.name;
-          }}
-        />
+        {summary.radios.length > 0 ? (
+          <WifiTable
+            testId="wifi-radios"
+            nameTitle={translationKey("Radio")}
+            rows={summary.radios}
+            columns={radioColumns}
+            getKey={(radio: WifiRadioView): string => {
+              return `${radio.index}-${radio.name}`;
+            }}
+            getName={(radio: WifiRadioView): string => {
+              return radio.name;
+            }}
+          />
+        ) : (
+          <p className="text-sm text-gray-500" data-testid="wifi-no-radios">
+            {translator.translateText(
+              "The device reported no radios on its last walk.",
+            )}
+          </p>
+        )}
       </Card>
 
       {summary.ssids.length > 0 ? (

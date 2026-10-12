@@ -57,6 +57,7 @@ Le scritture IPv6 che contengono una destinazione IPv4 – IPv4-mapped (`::ffff:
 Queste destinazioni sono coperte, perché la destinazione è un URL scritto da un membro autenticato del tuo progetto:
 
 - I componenti **API** dei workflow (GET / POST / PUT / PATCH / DELETE)
+- Il componente **Mattermost** dei workflow
 - Le richieste HTTP effettuate dal componente di workflow **Custom JavaScript**
 - Le notifiche webhook del progetto (incidenti, avvisi, monitor, reperibilità, manutenzione programmata, eventi delle pagine di stato)
 - I **webhook utente** della reperibilità

@@ -205,7 +205,7 @@ sequenceDiagram
 تقریباً هر فیلد متنی متغیر می‌پذیرد:
 
 - نشانی روی یک بلوک API.
-- متن پیام در Slack، Teams، Discord، Telegram، IRC و Email.
+- متن پیام در Slack، Teams، Discord، Telegram، IRC، Mattermost و Email.
 - موضوع و بدنه یک ایمیل.
 - هدرها و فیلدهای بدنه (درون مقدارهای رشته‌ای).
 - هر دو طرف یک بلوک **If / Else**.

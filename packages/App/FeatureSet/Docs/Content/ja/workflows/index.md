@@ -40,7 +40,7 @@ flowchart TB
 
 ## ワークフローでできること
 
-- **OneUptime を他のツールにつなぐ** — Slack、Microsoft Teams、Discord、Telegram、IRC に投稿する、Jira のチケットを作成する、スタック内の任意の API にリクエストを送る。
+- **OneUptime を他のツールにつなぐ** — Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost に投稿する、Jira のチケットを作成する、スタック内の任意の API にリクエストを送る。
 - **OneUptime で起きたことに反応する** — インシデントが作成されたら、適切なチャンネルに知らせ、チケットを自動で起票する。
 - **スケジュールでジョブを実行する** — 5 分ごと、毎晩、毎週月曜の朝。
 - **外部からデータを受け取る** — 他のシステムに、ワークフローの URL の呼び出しやアドレスへのメール送信でワークフローを開始させる。

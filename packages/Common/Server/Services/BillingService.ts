@@ -649,22 +649,48 @@ export class BillingService extends BaseService {
       return;
     }
 
-    const subscriptionItemId: string | undefined =
-      subscription.items.data[0]?.id;
+    const subscriptionItem: SubscriptionItem | undefined =
+      subscription.items.data[0];
 
-    if (!subscriptionItemId) {
+    if (!subscriptionItem?.id) {
       throw new BadDataException(
         Errors.BillingService.SUBSCRIPTION_ITEM_NOT_FOUND,
       );
     }
 
-    await this.stripe.subscriptionItems.update(subscriptionItemId, {
-      quantity: quantity,
-    });
+    // The seats are already what they should be: there is nothing to update.
+    if (subscriptionItem.quantity === quantity) {
+      return;
+    }
 
-    // add billing anchor, so that the billing cycle starts now. New quantity will be charged from now. https://stackoverflow.com/questions/44417047/immediately-charge-for-subscription-changes
+    /*
+     * One update, so the new quantity and the decision about invoicing it
+     * cannot be separated. Updating the item first left its prorations
+     * pending, and a second, empty update with "always_invoice" then
+     * invoiced them - with nothing in either call asking whether the
+     * subscription was still in its trial.
+     *
+     * A trialing subscription asks for no prorations, as a plan change
+     * during a trial does (swapPlanPriceOnSubscription): seats added during
+     * the trial are billed by the invoice that ends it, at the quantity the
+     * subscription has then. Inviting a team mid-trial must not raise an
+     * invoice - not even one for nothing, which is still mailed to a
+     * customer who opted in to invoice emails.
+     *
+     * Outside a trial the added seats are prorated over the rest of the
+     * billing period and invoiced straight away, so a seat is paid for from
+     * the day it is added.
+     */
     await this.stripe.subscriptions.update(subscriptionId, {
-      proration_behavior: "always_invoice",
+      items: [
+        {
+          id: subscriptionItem.id,
+          quantity: quantity,
+        },
+      ],
+      proration_behavior: this.isSubscriptionTrialing(subscription)
+        ? "none"
+        : "always_invoice",
     });
   }
 
@@ -846,6 +872,24 @@ export class BillingService extends BaseService {
     return subscription?.trial_end
       ? OneUptimeDate.fromUnixTimestamp(subscription.trial_end)
       : null;
+  }
+
+  /*
+   * Whether the subscription is still in its free trial, so a change to it
+   * has nothing to charge for yet.
+   *
+   * Stripe reports a subscription in its trial as "trialing". A trial_end
+   * still ahead of us is read as well, so the answer does not rest on the
+   * status alone: either one means the current period is free.
+   */
+  private isSubscriptionTrialing(subscription: Stripe.Subscription): boolean {
+    if (subscription.status === "trialing") {
+      return true;
+    }
+
+    const trialEnd: Date | null = this.getTrialEndOnSubscription(subscription);
+
+    return Boolean(trialEnd && OneUptimeDate.isInTheFuture(trialEnd));
   }
 
   /*

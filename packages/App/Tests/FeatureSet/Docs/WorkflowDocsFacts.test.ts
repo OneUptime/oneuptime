@@ -695,6 +695,7 @@ describe("the components page", () => {
       [ComponentID.DiscordSendMessageToChannel, "## Discord"],
       [ComponentID.TelegramSendMessageToChat, "## Telegram"],
       [ComponentID.IRCSendMessageToChannel, "## IRC"],
+      [ComponentID.MattermostSendMessageToChannel, "## Mattermost"],
       [ComponentID.SendEmail, "## Email"],
     ];
 

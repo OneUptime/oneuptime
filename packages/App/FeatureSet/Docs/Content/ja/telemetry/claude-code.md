@@ -231,8 +231,8 @@ export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-> [!WARNING]
-> トレースのベータは、支出の把握に使うプロジェクトに入れないでください。そのモデルのスパンは `gen_ai.system` と `gen_ai.request.model` を持つため、OneUptime は **呼び出し** に表示しますが、トークンは `gen_ai.usage.*` のキーではなく `input_tokens` と `output_tokens` にあるため、トークンもコストもないまま届きます。それらが存在すると、 **従業員** 、 **チーム** 、 **モデル** の表には、メトリクスの支出ではなく、それらの $0 の行が表示されます。
+> [!NOTE]
+> トレースのベータのモデルのスパンは `gen_ai.system` と `gen_ai.request.model` を持つため、OneUptime は **呼び出し** に表示し、`input_tokens`、`output_tokens`、`cache_read_tokens`、`cache_creation_tokens` を呼び出しのトークンとして読み取り、各呼び出しにモデルの定価で料金を付けます。それらが存在すると、 **従業員** 、 **チーム** 、 **モデル** の表には、メトリクスの支出ではなく、それらの行が表示されます。これは OneUptime の見積もりで、キャッシュへの書き込みは 5 分間の料金で計算し、高速モードの料金は含まないため、`claude_code.cost.usage` と異なることがあります。
 
 Agent SDK のセッションと非対話型の `-p` セッションでは、Claude Code は受け取った `TRACEPARENT` を引き継ぐため、そのスパンは呼び出し元のトレースに加わります。対話型のセッションはこれを無視します。モデルに `traceparent` ヘッダーを送るのは、`ANTHROPIC_BASE_URL` が未設定か Anthropic API の場合だけです。独自のプロキシの背後では `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1` を設定してください。
 

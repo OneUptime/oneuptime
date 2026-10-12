@@ -8,18 +8,18 @@ import {
   LlmAttributeNamespacePrefixes,
   LlmConversationIdAttributeKeys,
   LlmCostAttributeKeys,
-  LlmInputTokenAttributeKeys,
   LlmOperationAttributeKeys,
-  LlmOutputTokenAttributeKeys,
   LlmRequestModelAttributeKeys,
   LlmResponseModelAttributeKeys,
   LlmSystemAttributeKeys,
   LlmTeamAttributeKeys,
   LlmToolNameAttributeKeys,
-  LlmTotalTokenAttributeKeys,
   LlmUserEmailAttributeKeys,
   LlmUserIdAttributeKeys,
 } from "../../../Types/Telemetry/LlmConventions";
+import LlmTokenUsageUtil, {
+  LlmTokenUsage,
+} from "../../../Types/Telemetry/LlmTokenUsage";
 import { AttributeType } from "./Telemetry";
 import {
   LlmCallKind,
@@ -73,7 +73,12 @@ export interface LlmSpanFields {
   llmRequestModel: string;
   // Model the provider actually served (often the resolved/pinned model).
   llmResponseModel: string;
-  // Token usage. 0 when the instrumentation did not report it.
+  /*
+   * Token usage, as the GenAI conventions count it: the input count holds
+   * the tokens read from and written to the prompt cache too (see
+   * LlmTokenUsage, which also reads Claude Code's traces beta). 0 when the
+   * instrumentation did not report it.
+   */
   llmInputTokens: number;
   llmOutputTokens: number;
   llmTotalTokens: number;
@@ -214,29 +219,21 @@ export default class LlmSpanUtil {
     }
 
     /*
-     * Token columns are ClickHouse Int32 — truncate any fractional value a
-     * malformed SDK might report, otherwise the JSONEachRow insert would
-     * reject the row and fail the whole span batch.
+     * Token columns are ClickHouse Int32 — LlmTokenUsage truncates (and
+     * caps) any value a malformed SDK might report, otherwise the
+     * JSONEachRow insert would reject the row and fail the whole span batch.
+     * It derives the total when only the parts were reported.
      */
-    fields.llmInputTokens = Math.trunc(
-      this.getNumber(attributes, LlmInputTokenAttributeKeys),
+    const usage: LlmTokenUsage = this.readTokenUsage(
+      attributes,
+      Boolean(
+        fields.llmSystem || fields.llmRequestModel || fields.llmResponseModel,
+      ),
     );
 
-    fields.llmOutputTokens = Math.trunc(
-      this.getNumber(attributes, LlmOutputTokenAttributeKeys),
-    );
-
-    fields.llmTotalTokens = Math.trunc(
-      this.getNumber(attributes, LlmTotalTokenAttributeKeys),
-    );
-
-    // Derive total when only the parts were reported.
-    if (
-      fields.llmTotalTokens === 0 &&
-      (fields.llmInputTokens > 0 || fields.llmOutputTokens > 0)
-    ) {
-      fields.llmTotalTokens = fields.llmInputTokens + fields.llmOutputTokens;
-    }
+    fields.llmInputTokens = usage.inputTokens;
+    fields.llmOutputTokens = usage.outputTokens;
+    fields.llmTotalTokens = usage.totalTokens;
 
     /*
      * Cost must distinguish "reported as 0" from "not reported at all": a
@@ -305,12 +302,16 @@ export default class LlmSpanUtil {
      * budgets without per-SDK pricing math. The response model is priced in
      * preference to the request model — it names what the provider actually
      * served (e.g. an alias like "gpt-4o" resolved to a dated snapshot).
+     * Tokens read from and written to the prompt cache pay the model's cache
+     * prices where the catalog has them.
      */
     if (fields.isLlmSpan && reportedCost === null) {
       const computedCost: number | null = LlmCostCatalogUtil.computeCostInUSD({
         model: fields.llmResponseModel || fields.llmRequestModel,
-        inputTokens: fields.llmInputTokens,
-        outputTokens: fields.llmOutputTokens,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        cacheReadTokens: usage.cacheReadTokens,
+        cacheWriteTokens: usage.cacheWriteTokens,
         projectPriceOverrides: projectPriceOverrides,
       });
 
@@ -332,6 +333,7 @@ export default class LlmSpanUtil {
         attributes: attributes,
         kind: kind,
         context: context,
+        reportedOutputTokens: usage.reportedOutputTokens,
       });
 
       /*
@@ -345,6 +347,7 @@ export default class LlmSpanUtil {
               attributes: attributes,
               kind: kind,
               context: { ...context, statusCode: SpanStatus.Unset },
+              reportedOutputTokens: usage.reportedOutputTokens,
             }).includes(LlmAnswerIssue.Failed)
           : fields.llmIssues.includes(LlmAnswerIssue.Failed);
     }
@@ -386,6 +389,8 @@ export default class LlmSpanUtil {
     attributes: SpanAttributes;
     kind: LlmCallKind;
     context?: LlmSpanContext | undefined;
+    // The output count as the span reported it: LlmTokenUsage's reading.
+    reportedOutputTokens: number | null;
   }): Array<LlmAnswerIssue> {
     let answer: LlmAnswerReading;
 
@@ -416,10 +421,7 @@ export default class LlmSpanUtil {
       statusIsError: data.context?.statusCode === SpanStatus.Error,
       errorType: answer.errorType,
       finishReasons: answer.finishReasons,
-      outputTokens: this.getNumberOrNull(
-        data.attributes,
-        LlmOutputTokenAttributeKeys,
-      ),
+      outputTokens: data.reportedOutputTokens,
       answer: answer.summary,
       evaluations: answer.evaluations,
     });
@@ -504,6 +506,22 @@ export default class LlmSpanUtil {
     return preview.trim();
   }
 
+  /*
+   * The span's token usage (LlmTokenUsage). Claude Code's bare usage keys are
+   * read only on a span that names its model or provider.
+   */
+  private static readTokenUsage(
+    attributes: SpanAttributes,
+    namesModelOrProvider: boolean,
+  ): LlmTokenUsage {
+    return LlmTokenUsageUtil.read({
+      numberOf: (key: string): number | null => {
+        return this.getNumberOrNull(attributes, [key]);
+      },
+      namesModelOrProvider: namesModelOrProvider,
+    });
+  }
+
   private static detectIsLlmSpan(
     keys: Array<string>,
     fields: LlmSpanFields,
@@ -554,17 +572,10 @@ export default class LlmSpanUtil {
     return "";
   }
 
-  private static getNumber(
-    attributes: SpanAttributes,
-    candidateKeys: Array<string>,
-  ): number {
-    return this.getNumberOrNull(attributes, candidateKeys) ?? 0;
-  }
-
   /**
-   * Like getNumber but null when no candidate key carries a parseable number
-   * — callers that must distinguish "reported as 0" from "absent" (cost) use
-   * this directly.
+   * The first candidate key's number, or null when no candidate key carries
+   * a parseable number — so "reported as 0" stays apart from "absent" (cost,
+   * and the answer checks' output count).
    */
   private static getNumberOrNull(
     attributes: SpanAttributes,

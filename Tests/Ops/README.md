@@ -235,7 +235,7 @@ config:
 - the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
   so a fork reports itself), `server.address`,
   `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
-  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+"true"` and `oneuptime.agent.version` (equal to the compose image pin), and
   deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
   `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
   Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
@@ -404,6 +404,13 @@ Ubuntu 24.04 (systemd 255) and on Rocky Linux 8 (systemd 239, as RHEL 8 ships
 it), the oldest systemd the docs support. That second run is what showed that
 systemd 239 drops a backslash inside single quotes — `'DOMAIN\user'` logged in
 as `DOMAINuser` — which is why the docs double-quote the user and password.
+The pinned vcsim archive is kept in `VCSIM_CACHE_DIR` (default
+`~/.cache/oneuptime/vcsim`) and fetched with
+`Scripts/GHA/fetch_pinned_artifact.sh`, so a copy that still matches the pin
+is used without the network and a download rides out GitHub's release CDN
+bursts; the workflow keeps that directory in the Actions cache, keyed on the
+pin (`--print-vcsim-pin`), and fills it in a step of its own
+(`--fetch-vcsim`).
 
 ```sh
 cd Tests/Ops && npm run vmware-agent-native-install
@@ -832,6 +839,30 @@ languages with the same build modes and default query suite under the same
 categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
+
+Those languages are actions, go, javascript-typescript and python, each
+uploaded under default setup's category for it (`/language:python` for
+python). When the repository gains a language, default setup starts scanning
+it by itself and this setup does not, so the suite reads git's index for the
+files CodeQL reads as code, by the extensions its documentation lists: default
+setup keeps a language only when its analysis succeeds, and an analysis needs
+such files. Each language with code must be in the matrix or in the suite's
+`LEFT_OUT_LANGUAGES` with the reason: C/C++, C#, Java/Kotlin and Swift, none of
+which default setup scanned on 12 October 2026. Each language in the matrix
+must have code outside `paths-ignore`, because an analysis that finds none
+fails, and a left-out language whose code is gone comes off the list.
+
+It also pins the configuration the setup reads,
+`.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
+packs or threat models would change what default setup analysed), naming only
+`packages/Common/Server/Static/Vendor`, the third-party browser assets vendored
+for offline installs. So that list cannot grow to hide OneUptime's own code,
+every directory on it must be a plain path with a README that says it holds
+vendored third-party files, names the configuration, and lists every file in
+it with its source under `## Contents` - a file added there without its row
+fails, as does a row whose file is gone. The suite also checks that the
+product code guard (`packages/Common/Tests/Helpers/CodeScanning.ts`) reads the
+same list rather than keeping its own.
 
 ### `JestIgnorePatterns.test.js`
 

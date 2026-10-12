@@ -118,6 +118,12 @@ type GetStripeSubscriptionFunction = (options?: {
    */
   itemId?: string | undefined;
   items?: Array<{ id: string }> | undefined;
+
+  /*
+   * The seats on each item - what changeQuantity compares the new seat count
+   * with. Omitted means the item reports none.
+   */
+  quantity?: number | undefined;
 }) => Stripe.Subscription;
 
 const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
@@ -127,6 +133,7 @@ const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
   customer?: string | undefined;
   itemId?: string | undefined;
   items?: Array<{ id: string }> | undefined;
+  quantity?: number | undefined;
 }): Stripe.Subscription => {
   const items: Array<{ id: string }> = options?.items || [
     { id: options?.itemId || Faker.generateRandomObjectID().toString() },
@@ -144,6 +151,9 @@ const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
               ProductType.ActiveMonitoring,
             ),
           },
+          ...(options?.quantity !== undefined
+            ? { quantity: options.quantity }
+            : {}),
         } as Stripe.SubscriptionItem;
       }),
     },

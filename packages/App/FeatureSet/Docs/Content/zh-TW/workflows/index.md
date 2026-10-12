@@ -40,7 +40,7 @@ flowchart TB
 
 ## 你可以用工作流程做什麼
 
-- **把 OneUptime 連接到你的其他工具** —— 在 Slack、Microsoft Teams、Discord、Telegram 或 IRC 張貼訊息、建立 Jira 工單，或向你技術堆疊中的任何 API 傳送請求。
+- **把 OneUptime 連接到你的其他工具** —— 在 Slack、Microsoft Teams、Discord、Telegram、IRC 或 Mattermost 張貼訊息、建立 Jira 工單，或向你技術堆疊中的任何 API 傳送請求。
 - **對 OneUptime 中發生的事做出反應** —— 事件建立時，通知合適的頻道並自動開立工單。
 - **依排程執行工作** —— 每五分鐘、每晚、每週一早上。
 - **接收外部資料** —— 讓其他系統透過呼叫工作流程的 URL，或寄電子郵件到它的地址，來啟動工作流程。

@@ -57,6 +57,7 @@ Les écritures IPv6 qui portent une cible IPv4 – IPv4-mapped (`::ffff:10.0.0.5
 Ces destinations sont couvertes, car la cible est une URL écrite par un membre authentifié de votre projet :
 
 - Les composants **API** des workflows (GET / POST / PUT / PATCH / DELETE)
+- Le composant **Mattermost** des workflows
 - Les requêtes HTTP faites par le composant de workflow **Custom JavaScript**
 - Les notifications par webhook de projet (incidents, alertes, moniteurs, astreinte, maintenance planifiée, événements de page de statut)
 - Les **webhooks utilisateur** d'astreinte

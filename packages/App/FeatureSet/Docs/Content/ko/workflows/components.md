@@ -5,7 +5,7 @@
 만드는 동안 이 페이지를 열어 둘 일은 드뭅니다. 각 블록의 설정 끝에는 **How to use**가 있어, 블록이 하는 일, 설정 단계, 여러분의 워크플로를 바탕으로 만든 예시, 흔히 하는 실수를 보여 줍니다. 블록을 추가하고 연결하는 방법은 [워크플로 작성](/docs/workflows/authoring)을 참조하세요.
 
 :::cards
-- [메시지 보내기](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, 이메일.
+- [메시지 보내기](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, 이메일.
 - [API 호출](#api): 어떤 HTTP API로든 요청을 보내고 응답을 읽습니다.
 - [로직 추가](#conditions): 값에 따라 분기하고, 데이터를 바꾸고, 기다리거나 로그를 남깁니다.
 - [OneUptime 레코드 다루기](#oneuptime-데이터-구성-요소): 모니터, 인시던트 등을 찾고, 만들고, 업데이트하고, 삭제합니다.
@@ -15,7 +15,7 @@
 
 | 하려는 일                                                     | 사용할 것                                                         |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 채팅 도구에 게시하기                                          | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) |
+| 채팅 도구에 게시하기                                          | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc), [Mattermost](#mattermost) |
 | 자체 메일 서버로 이메일 보내기                                | [Email](#email)                                                   |
 | 다른 API나 자체 서비스 호출하기                               | [API](#api)                                                       |
 | 텍스트 요약, 분류, 초안 작성하기                              | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Libera.Chat, OFTC 또는 자체 서버 등 어떤 IRC 네트워크든 IRC 채널
 블록의 각 실행은 별도의 연결이며, IRC 네트워크는 한 주소가 연결할 수 있는 빈도를 제한합니다. 메시지가 몰리면 "Reconnecting too fast" 같은 이유로 거부될 수 있으며, 다른 거부와 마찬가지로 **Error**를 따릅니다. 1분에 여러 번 발생할 수 있는 워크플로라면 할 말을 하나의 메시지로 모으거나, 자체 서버를 통해 보내세요.
 
 비밀번호는 [비밀 전역 변수](/docs/workflows/variables#전역-변수)에 보관하고 설정에서는 그 변수를 사용하세요. 어느 쪽이든 실행의 로그에서는 가려집니다. 루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소로의 연결은 거부됩니다. OneUptime Cloud에서는 사설 네트워크 주소의 서버나 그런 주소로 확인되는 이름도 거부됩니다. 셀프 호스팅 설치는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 가 `true` 로 설정되지 않은 한 자체 네트워크의 IRC 서버에 연결할 수 있습니다.
+
+## Mattermost
+
+수신 웹훅을 통해 Mattermost Cloud 또는 자체 서버의 Mattermost 채널에 메시지를 게시합니다.
+
+| 설정                                | 하는 일                                                                                                                                                                                                                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | 게시에 사용할 웹훅으로, Mattermost의 Integrations 아래 Incoming Webhooks에 표시되는 그대로입니다. 서버 주소 다음에 `/hooks/` 와 웹훅 ID가 이어집니다. Mattermost 가이드에서 [만드는 방법](https://docs.mattermost.com/developers/integrate/webhooks/incoming)을 볼 수 있습니다.    |
+| **Message Text**                    | 보낼 텍스트. 쓴 그대로 보내지며, Mattermost는 Markdown을 지원합니다: `**bold**`, `_italic_`, 링크, 표, `:rotating_light:` 같은 이모지. Mattermost 게시물 하나에는 16,383자까지 들어가므로, 그보다 긴 메시지는 맞게 잘리고 "… (truncated — see OneUptime for the full text)"로 끝납니다. |
+
+**추가 필드** 아래:
+
+| 설정         | 하는 일                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | 웹훅 자체 채널이 아닌 다른 곳에 게시합니다. `town-square` 처럼 URL에 표시되는 채널 이름을 쓰거나, 다이렉트 메시지라면 `@` 와 사용자 이름을 씁니다. 채널에 고정된 웹훅은 다른 채널을 모두 거부합니다.          |
+| **Username** | 게시할 때 표시할 이름. Mattermost는 시스템 관리자가 통합 기능의 사용자 이름 재정의를 허용한 경우에만 이 이름을 사용합니다.                                                                                    |
+| **Icon URL** | 게시물에 함께 표시할 사진으로, `https` 주소입니다. Mattermost는 시스템 관리자가 통합 기능의 프로필 사진 아이콘 재정의를 허용한 경우에만 이 사진을 사용합니다.                                                 |
+
+**Success**는 Mattermost가 메시지를 받아들였을 때 발생합니다. **Error**는 서버에 연결할 수 없거나 Mattermost가 메시지를 거부할 때 발생하며, Mattermost의 이유를 전달합니다. 반면 **Mattermost Incoming Webhook URL**이나 **Message Text**의 누락, 수신 웹훅의 것이 아닌 URL, 절대 작동할 수 없는 설정은 실행을 멈춥니다.
+
+웹훅 URL은 [비밀 전역 변수](/docs/workflows/variables#전역-변수)에 보관하세요. URL을 가진 사람은 누구나 채널에 게시할 수 있기 때문입니다. 어느 쪽이든 실행의 로그에서는 가려집니다. 메시지는 OneUptime에서 나가며, 리디렉션은 따라가지 않습니다. 루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소의 웹훅은 거부되며, 사설 네트워크 주소의 웹훅도 셀프 호스팅 관리자가 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 또는 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 로 허용하지 않는 한 거부됩니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참조하세요.
 
 ## Email
 

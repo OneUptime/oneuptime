@@ -1,5 +1,6 @@
 import Tooltip from "../Tooltip/Tooltip";
 import UptimeBarTooltip, { StatusDuration } from "./UptimeBarTooltip";
+import "./DayUptimeGraph.css";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -10,6 +11,11 @@ import DayUptimeGraphUtil, {
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
+import {
+  NO_DATA_BAR_CLASS_NAME,
+  NO_DATA_BAR_COLOR,
+  getBarColorForUptimePercent,
+} from "../../../Utils/StatusPage/HistoryChartBarColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,10 +76,12 @@ export interface DayReading {
  * stand for "we have no idea" is exactly the conflation that made a page with
  * a green default claim uptime it never recorded, and a page with a grey
  * default look unmonitored while it was passing every check. This is a fixed
- * neutral, drawn with a hatch so it is still distinguishable in greyscale and
- * to a colour-blind reader.
+ * neutral, drawn with a hatch (DayUptimeGraph.css) so it is still
+ * distinguishable in greyscale and to a colour-blind reader. Both live in
+ * Utils/StatusPage/HistoryChartBarColors, where a legend's no-data swatch
+ * reads them too.
  */
-export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
+export { NO_DATA_BAR_CLASS_NAME, NO_DATA_BAR_COLOR };
 
 export interface ComponentProps {
   startDate: Date;
@@ -507,12 +515,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      * outranks operator rules on purpose.
      */
     if (hasDataForTheDay) {
-      for (const rules of props.barColorRules || []) {
-        if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
-          color = rules.barColor;
-          break;
-        }
-      }
+      color =
+        getBarColorForUptimePercent(
+          props.barColorRules || [],
+          uptimePercentForTheDay,
+        ) || color;
     }
 
     if (todaysEvents.length >= 1) {
@@ -647,7 +654,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
            */
           className={`${className} relative block p-0 border-0 appearance-none focus:outline-none focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600${
             isClickable ? " cursor-pointer hover:opacity-80" : ""
-          }`}
+          }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}`}
+          data-has-data={hasDataForTheDay ? "true" : "false"}
           style={{
             backgroundColor: color.toString(),
           }}

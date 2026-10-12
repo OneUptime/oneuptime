@@ -120,7 +120,7 @@ Gli indirizzi che un blocco può raggiungere dipendono dal blocco:
 
 | Blocchi                                                    | Loopback, link-local, metadati cloud                                          | Indirizzi di rete privata                                                                                                                 |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| I blocchi **API** e le richieste di **Run Custom JavaScript** | Rifiutati, a meno che l'host esatto non sia indicato in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rifiutati, a meno che un amministratore self-hosted non li consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| I blocchi **API** e **Mattermost**, e le richieste di **Run Custom JavaScript** | Rifiutati, a meno che l'host esatto non sia indicato in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rifiutati, a meno che un amministratore self-hosted non li consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** e gli URL dei token OAuth 2.0      | Rifiutati                                                                     | Rifiutati su OneUptime Cloud. Consentiti su un'installazione self-hosted, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia `true` |
 | Slack, Microsoft Teams, Discord e Telegram                 | Rifiutati                                                                     | Rifiutati: ognuno invia solo agli indirizzi del proprio servizio                                                                          |
 
@@ -201,7 +201,7 @@ I passaggi che leggono e modificano i record di OneUptime — i componenti Find,
 
 Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Error** senza fare la modifica rifiutata, e il registro dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del workflow. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
 
-I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code e Generate Text with AI — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
+I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
 
 ## Limiti di piano
 

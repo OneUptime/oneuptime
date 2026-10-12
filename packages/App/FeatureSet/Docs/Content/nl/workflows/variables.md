@@ -205,7 +205,7 @@ Blokwaarden bestaan alleen tijdens de huidige uitvoering. Elke nieuwe uitvoering
 Bijna elk tekstveld accepteert variabelen:
 
 - De URL van een API-blok.
-- De berichttekst bij Slack, Teams, Discord, Telegram, IRC, Email.
+- De berichttekst bij Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Het onderwerp en de body van een e-mail.
 - Headers en velden in de body (binnen stringwaarden).
 - Beide kanten van een **If / Else**-blok.

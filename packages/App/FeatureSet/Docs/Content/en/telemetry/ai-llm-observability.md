@@ -222,9 +222,11 @@ A figure taken from metrics is marked **from GenAI metrics**, because it has no 
 
 A cost your instrumentation reports (`gen_ai.usage.cost`) is used as it is, even when it is 0. When none is reported, OneUptime estimates one as the span arrives, from its token counts and a built-in list of prices for common OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova and Meta Llama models. The served model is priced first, then the requested model.
 
-Models are matched by the longest name prefix, so dated and vendor-decorated ids such as `gpt-4o-2024-08-06` and `us.anthropic.claude-sonnet-4-5-20250929-v1:0` find their family's price. A model the list does not know, a new release included, is never guessed: its cost stays 0 until you price it. Estimates use list prices, without cache or batch discounts.
+Each model is priced at its own rate, whatever form its id takes: `gpt-4o-2024-08-06` is GPT-4o, and `claude-opus-4-5-20251101`, `us.anthropic.claude-opus-4-5-20251101-v1:0`, `claude-opus-4-5@20251101` and `anthropic/claude-opus-4.5` are all Claude Opus 4.5. A newer release never takes an older model's price: a model the list does not know is never guessed, and its cost stays 0 until you price it.
 
-To price a model yourself (a negotiated rate, a fine-tune or a model you host), add it on the **Pricing** tab, in **Custom LLM Pricing**: a **Model Prefix**, an **Input Price (USD per 1M tokens)** and an **Output Price (USD per 1M tokens)**. The longest matching prefix wins across your prices and the built-in list; your price wins a tie. A price applies to calls that arrive about a minute after you save it; calls already stored keep their cost.
+Tokens a span reports as read from or written to the provider's prompt cache are priced at the provider's cache rates, writes at the 5-minute rate, and a model that charges more for a long prompt, such as Claude Haiku 5.5 past 100,000 tokens, is priced by its prompt's length. Estimates are list prices: batch discounts, fast modes and regional premiums are not applied.
+
+To price a model yourself (a negotiated rate, a fine-tune or a model you host), add it on the **Pricing** tab, in **Custom LLM Pricing**: a **Model Prefix**, an **Input Price (USD per 1M tokens)** and an **Output Price (USD per 1M tokens)**. The longest matching prefix wins across your prices and the built-in list; your price wins a tie. Your price is charged for every input token, cached or not. A price applies to calls that arrive about a minute after you save it; calls already stored keep their cost.
 
 ## Daily cost budgets
 
@@ -276,6 +278,8 @@ OneUptime reads the OpenTelemetry GenAI conventions, and the spellings OpenLLMet
 | Input tokens | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
 | Output tokens | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
 | Total tokens | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| Cache-read tokens | `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_read_input_tokens`, `llm.token_count.prompt_details.cache_read` |
+| Cache-write tokens | `gen_ai.usage.cache_write.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, `gen_ai.usage.cache_creation_input_tokens`, `llm.token_count.prompt_details.cache_write` |
 | Cost (USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
 | Conversation | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
 | Agent | `gen_ai.agent.name`, `agent.name` |
@@ -284,6 +288,8 @@ OneUptime reads the OpenTelemetry GenAI conventions, and the spellings OpenLLMet
 | Error | `error.type` |
 
 A span counts as an AI call when it carries any of these values, or any attribute that starts with `gen_ai.`, `llm.` or `traceloop.`. Total tokens are input plus output when no total is reported. The `gen_ai.usage.total_tokens` and `gen_ai.usage.cost` keys are not part of the conventions, which define neither; OneUptime reads them because common instrumentations send them.
+
+Input tokens count the cached ones too, as the conventions count them: when a span's cache counts are larger than its input count, the input count left them out, and OneUptime adds them in. Claude Code's traces beta sends no `gen_ai.usage.*` keys: on a span that names its model, OneUptime reads its `input_tokens`, `output_tokens`, `cache_read_tokens` and `cache_creation_tokens`, and adds the two cache counts to `input_tokens`, which leaves them out.
 
 The identity keys (who made the call, and their team) are listed under [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 

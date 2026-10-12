@@ -205,7 +205,7 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 ほぼすべてのテキスト欄で変数を使えます。
 
 - API ブロックの URL。
-- Slack、Teams、Discord、Telegram、IRC、Email のメッセージ本文。
+- Slack、Teams、Discord、Telegram、IRC、Mattermost、Email のメッセージ本文。
 - メールの件名と本文。
 - ヘッダーと本文のフィールド（文字列の値の中）。
 - **If / Else** ブロックの両辺。

@@ -120,7 +120,7 @@
 
 | بلوک‌ها                                                   | حلقه‌برگشت، پیوند-محلی، فراداده ابری                                      | نشانی‌های شبکه خصوصی                                                                                                                 |
 | --------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| بلوک‌های **API** و درخواست‌های **Run Custom JavaScript**  | رد می‌شوند، مگر اینکه میزبان دقیق در `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` نام برده شده باشد | رد می‌شوند، مگر اینکه یک مدیر نصب خودمیزبان با `ALLOW_PRIVATE_NETWORK_WEBHOOKS` یا `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` اجازه‌شان را بدهد |
+| بلوک‌های **API** و **Mattermost**، و درخواست‌های **Run Custom JavaScript** | رد می‌شوند، مگر اینکه میزبان دقیق در `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` نام برده شده باشد | رد می‌شوند، مگر اینکه یک مدیر نصب خودمیزبان با `ALLOW_PRIVATE_NETWORK_WEBHOOKS` یا `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` اجازه‌شان را بدهد |
 | **Send Email**، **IRC** و نشانی‌های توکن OAuth 2.0        | رد می‌شوند                                                               | در OneUptime Cloud رد می‌شوند. در یک نصب خودمیزبان مجازند، مگر اینکه `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` برابر `true` باشد          |
 | Slack، Microsoft Teams، Discord و Telegram                 | رد می‌شوند                                                               | رد می‌شوند: هر کدام فقط به نشانی‌های سرویس خودش می‌فرستد                                                                               |
 
@@ -201,7 +201,7 @@
 
 وقتی یک بررسی گامی را رد می‌کند، گام بدون انجام تغییر ردشده خروجی **Error** خود را برمی‌گزیند، و لاگ اجرا گام و دلیل را با کلمات ساده نام می‌برد، برای نمونه *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. آن را زیر [اجراها](/docs/workflows/runs-and-logs)ی گردش کاری بخوانید. یک گام Create Many رکوردهایش را یکی‌یکی می‌سازد و در نخستین رکورد ردشده متوقف می‌شود: رکوردهایی که پیش از آن ساخته بود نگه داشته می‌شوند.
 
-گام‌هایی که با سامانه‌های دیگر حرف می‌زنند — API، Email، Slack، Microsoft Teams، Discord، Telegram، IRC، Custom Code و Generate Text with AI — رکوردهای OneUptime را نمی‌خوانند یا تغییر نمی‌دهند، پس هیچ‌کدام از این‌ها چیزی را درباره آن‌ها تغییر نمی‌دهد.
+گام‌هایی که با سامانه‌های دیگر حرف می‌زنند — API، Email، Slack، Microsoft Teams، Discord، Telegram، IRC، Mattermost، Custom Code و Generate Text with AI — رکوردهای OneUptime را نمی‌خوانند یا تغییر نمی‌دهند، پس هیچ‌کدام از این‌ها چیزی را درباره آن‌ها تغییر نمی‌دهد.
 
 ## محدودیت‌های طرح
 

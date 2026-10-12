@@ -1530,12 +1530,35 @@ export class ProjectService extends ProjectReferencesService<Model> {
       paymentProviderSubscriptionId: subscription.subscriptionId,
       paymentProviderMeteredSubscriptionId: subscription.meteredSubscriptionId,
       paymentProviderSubscriptionSeats: seats,
-      trialEndsAt: subscription.trialEndsAt || endTrialAt || new Date(),
       planName: SubscriptionPlan.getPlanType(
         params.paymentProviderPlanId,
         getAllEnvVars(),
       ),
     };
+
+    /*
+     * The payment provider's trial date wins over the one sent, as in
+     * reactiveSubscription, and the column is left alone when there is no
+     * trial to record. Stamping the moment of the change on a project that
+     * never had a trial - one created on Free - made the Admin Dashboard show
+     * a trial that ended at the upgrade.
+     *
+     * The exception is a row still claiming a future trial the payment
+     * provider no longer has, which only a caller passing endTrialAt: null
+     * can leave behind. That trial is closed now, so the row never claims a
+     * trial Stripe does not have.
+     */
+    const newTrialEndsAt: Date | undefined =
+      subscription.trialEndsAt || endTrialAt;
+
+    if (newTrialEndsAt) {
+      updateData.trialEndsAt = newTrialEndsAt;
+    } else if (
+      project.trialEndsAt &&
+      OneUptimeDate.isInTheFuture(project.trialEndsAt)
+    ) {
+      updateData.trialEndsAt = OneUptimeDate.getCurrentDate();
+    }
 
     if (meteredSubscriptionState) {
       updateData.paymentProviderMeteredSubscriptionStatus =

@@ -120,7 +120,7 @@ Welke adressen een blok mag bereiken, hangt af van het blok:
 
 | Blokken                                                    | Loopback, link-local, cloudmetadata                                           | Privénetwerkadressen                                                                                                                      |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**-blokken en verzoeken van **Run Custom JavaScript** | Geweigerd, tenzij de exacte host in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` staat | Geweigerd, tenzij een beheerder van een zelf gehoste installatie ze toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **API**- en **Mattermost**-blokken, en verzoeken van **Run Custom JavaScript** | Geweigerd, tenzij de exacte host in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` staat | Geweigerd, tenzij een beheerder van een zelf gehoste installatie ze toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** en OAuth 2.0-token-URL's           | Geweigerd                                                                     | Geweigerd in OneUptime Cloud. Toegestaan op een zelf gehoste installatie, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is         |
 | Slack, Microsoft Teams, Discord en Telegram                | Geweigerd                                                                     | Geweigerd: elk stuurt alleen naar de adressen van de eigen dienst                                                                         |
 
@@ -201,7 +201,7 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
 
 Weigert een controle een stap, dan neemt de stap zijn uitgang **Error** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
 
-Stappen die met andere systemen praten — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code en Generate Text with AI — lezen of wijzigen geen OneUptime-records, dus hier verandert voor hen niets.
+Stappen die met andere systemen praten — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code en Generate Text with AI — lezen of wijzigen geen OneUptime-records, dus hier verandert voor hen niets.
 
 ## Planlimieten
 

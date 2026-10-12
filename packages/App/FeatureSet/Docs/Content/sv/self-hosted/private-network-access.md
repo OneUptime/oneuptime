@@ -57,6 +57,7 @@ IPv6-skrivsätt som bär ett IPv4-mål inuti sig – IPv4-mapped (`::ffff:10.0.0
 Dessa mål omfattas, eftersom målet är en URL som en autentiserad medlem i ditt projekt har skrivit:
 
 - **API**-komponenter i arbetsflöden (GET / POST / PUT / PATCH / DELETE)
+- **Mattermost**-komponenten i arbetsflöden
 - HTTP-begäranden från arbetsflödeskomponenten **Custom JavaScript**
 - Projektets webhook-aviseringar (incidenter, larm, övervakare, jour, schemalagt underhåll, händelser på statussidor)
 - **Användarwebhooks** för jour

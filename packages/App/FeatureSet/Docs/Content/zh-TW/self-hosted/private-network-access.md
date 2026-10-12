@@ -57,6 +57,7 @@ Ping、Port、SSL 憑證、DNS、DNSSEC、SNMP / 網路裝置、SQL 查詢、資
 以下目標受到管控，因為目標是專案中經過驗證的成員所寫的 URL：
 
 - 工作流程 **API** 元件（GET / POST / PUT / PATCH / DELETE）
+- 工作流程 **Mattermost** 元件
 - 工作流程 **Custom JavaScript** 元件發出的 HTTP 請求
 - 專案 Webhook 通知（事件、警示、監測器、待命、排定維護、狀態頁面事件）
 - 待命**使用者 Webhook**

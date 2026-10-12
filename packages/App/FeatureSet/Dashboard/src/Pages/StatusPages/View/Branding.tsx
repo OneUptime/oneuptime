@@ -1,13 +1,19 @@
 import PageComponentProps from "../../PageComponentProps";
+import HistoryChartBarColorPreview from "../../../Components/StatusPage/HistoryChartBarColorPreview";
+import { addRecommendedBarColorRules } from "../../../Components/StatusPage/HistoryChartBarColorPreviewModel";
 import SearchEngineIndexingCard from "../../../Components/StatusPage/SearchEngineIndexingCard";
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
   BrandingAdvancedValues,
+  USE_RECOMMENDED_RULES_EMPTY_STATE_TEST_ID,
   getBrandingAdvancedItems,
 } from "../../../Components/StatusPage/StatusPageBrandingCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import API from "Common/UI/Utils/API/API";
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
   StatusPageLanguage,
@@ -93,6 +99,39 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         return { ...current, ...values };
       },
     );
+  };
+
+  // The recommended bar color rules, offered while the page has none.
+  const [barColorRulesReloads, setBarColorRulesReloads] = useState<number>(0);
+  const [isAddingRecommendedRules, setIsAddingRecommendedRules] =
+    useState<boolean>(false);
+  const [addRecommendedRulesError, setAddRecommendedRulesError] =
+    useState<string>("");
+
+  const addRecommendedRules: () => Promise<void> = async (): Promise<void> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (isAddingRecommendedRules || !projectId) {
+      return;
+    }
+
+    setIsAddingRecommendedRules(true);
+    setAddRecommendedRulesError("");
+
+    try {
+      await addRecommendedBarColorRules({
+        statusPageId: modelId,
+        projectId: projectId,
+      });
+    } catch (err) {
+      setAddRecommendedRulesError(API.getFriendlyMessage(err));
+    }
+
+    // Reloaded either way: a refused add has taken back what it made.
+    setBarColorRulesReloads((reloads: number): number => {
+      return reloads + 1;
+    });
+    setIsAddingRecommendedRules(false);
   };
 
   return (
@@ -584,9 +623,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         <CardModelDetail<StatusPage>
           name="Status Page > Branding > Default Bar Color"
           cardProps={{
-            title: "Default Bar Color of the History Chart",
-            description:
-              "Bar color will be used for history chart when no data is set.",
+            title: StatusPageBrandingCopy.defaultBarColorTitle,
+            description: StatusPageBrandingCopy.defaultBarColorDescription,
           }}
           isEditable={true}
           editButtonText={"Edit Default Bar Color"}
@@ -641,12 +679,27 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           dragDropIndexField="order"
           singularName="Rule"
           pluralName="Rules"
+          refreshToggle={
+            barColorRulesReloads > 0 ? String(barColorRulesReloads) : undefined
+          }
           onFetchSuccess={(
-            _rules: Array<StatusPageHistoryChartBarColorRule>,
+            rules: Array<StatusPageHistoryChartBarColorRule>,
             totalCount: number,
           ): void => {
-            rememberAdvanced({ barColorRuleCount: totalCount });
+            rememberAdvanced({
+              barColorRuleCount: totalCount,
+              barColorRules: rules,
+            });
           }}
+          topContent={
+            addRecommendedRulesError ? (
+              <Alert
+                type={AlertType.DANGER}
+                title={addRecommendedRulesError}
+                className="mb-4"
+              />
+            ) : undefined
+          }
           onBeforeCreate={(
             item: StatusPageHistoryChartBarColorRule,
           ): Promise<StatusPageHistoryChartBarColorRule> => {
@@ -660,12 +713,24 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             return Promise.resolve(item);
           }}
           cardProps={{
-            title: `Rules for Bar Colors of History Chart`,
-            description: "Rules for history chart bar colors.",
+            title: StatusPageBrandingCopy.barColorRulesTitle,
+            description: StatusPageBrandingCopy.barColorRulesDescription,
           }}
-          noItemsMessage={
-            "No history chart bar color rules have been set. By default the lowest monitor state color of that particular day will be used."
-          }
+          emptyState={{
+            title: StatusPageBrandingCopy.barColorRulesEmptyTitle,
+            description: StatusPageBrandingCopy.barColorRulesEmptyDescription,
+            actions: [
+              {
+                title: StatusPageBrandingCopy.useRecommendedRules,
+                icon: IconProp.Swatch,
+                isLoading: isAddingRecommendedRules,
+                onClick: (): void => {
+                  void addRecommendedRules();
+                },
+                dataTestId: USE_RECOMMENDED_RULES_EMPTY_STATE_TEST_ID,
+              },
+            ],
+          }}
           formFields={[
             {
               field: {
@@ -711,6 +776,20 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               type: FieldType.Color,
             },
           ]}
+        />
+
+        {/*
+         * What the two cards above make of a day, as most people and as
+         * people with red-green color blindness see it (issue #486).
+         */}
+        <HistoryChartBarColorPreview
+          projectId={ProjectUtil.getCurrentProjectId()}
+          rules={advancedValues.barColorRules || null}
+          fallbackColor={advancedValues.defaultBarColor}
+          onUseRecommendedRules={(): void => {
+            void addRecommendedRules();
+          }}
+          isAddingRecommendedRules={isAddingRecommendedRules}
         />
 
         {/*

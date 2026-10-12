@@ -231,8 +231,8 @@ export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-> [!WARNING]
-> 請不要把搶先版追蹤傳送到你用來統計支出的專案。它的模型 span 帶有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 會在 **呼叫** 中列出它們，但它們的 token 位於 `input_tokens` 和 `output_tokens`，而不是 `gen_ai.usage.*` 鍵中，所以抵達時既沒有 token 也沒有成本。一旦它們存在， **員工** 、 **團隊** 和 **模型** 表格顯示的就是這些成本為 $0 的資料列，而不是指標中的支出。
+> [!NOTE]
+> 搶先版追蹤的模型 span 帶有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 會在 **呼叫** 中列出它們，把它們的 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens` 讀作這次呼叫的 token，並依模型的牌價為每次呼叫計價。一旦它們存在， **員工** 、 **團隊** 和 **模型** 表格顯示的就是這些資料列，而不是指標中的支出。這是 OneUptime 的估算：快取寫入以 5 分鐘的費率計算，不含快速模式的價格，因此可能與 `claude_code.cost.usage` 不同。
 
 在 Agent SDK 工作階段和非互動式 `-p` 工作階段中，Claude Code 會接收傳入的 `TRACEPARENT`，因此它的 span 會加入呼叫端的追蹤；互動式工作階段會忽略它。只有當 `ANTHROPIC_BASE_URL` 未設定或指向 Anthropic API 時，它才會向模型傳送 `traceparent` 標頭；在你自己的 Proxy 後方，請設定 `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`。
 

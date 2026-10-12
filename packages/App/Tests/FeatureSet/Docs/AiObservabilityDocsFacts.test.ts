@@ -27,8 +27,11 @@ import {
   LLM_CONVERSATION_ROUTE,
 } from "Common/Types/Telemetry/LlmConversationApi";
 import {
+  ClaudeCodeUsageAttributeKeys,
   LlmAgentNameAttributeKeys,
   LlmAttributeNamespacePrefixes,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmCompletionEventNames,
   LlmCompletionIndexedMessageConventions,
   LlmCompletionJsonAttributeKeys,
@@ -60,7 +63,11 @@ import {
   LlmUserIdBaseAttributeKeys,
   RESOURCE_ATTRIBUTE_KEY_PREFIX,
 } from "Common/Types/Telemetry/LlmConventions";
-import { LlmCostCatalogUtil } from "Common/Types/Telemetry/LlmCostCatalog";
+import {
+  LlmCostCatalogUtil,
+  LlmModelPrice as CatalogPrice,
+} from "Common/Types/Telemetry/LlmCostCatalog";
+import LlmTokenUsageUtil from "Common/Types/Telemetry/LlmTokenUsage";
 import {
   LlmCostMetricNames,
   LlmInputTokenTypeValues,
@@ -149,6 +156,7 @@ const SOURCES: Record<string, string> = {
   priceLoader:
     "packages/App/FeatureSet/Telemetry/Services/LlmModelPriceService.ts",
   priceCatalog: "packages/Common/Types/Telemetry/LlmCostCatalog.ts",
+  tokenUsage: "packages/Common/Types/Telemetry/LlmTokenUsage.ts",
   telemetryApi: "packages/Common/Server/API/TelemetryAPI.ts",
   projectService: "packages/Common/Server/Services/ProjectService.ts",
   homeAiPage: "packages/Home/Views/ai-observability.ejs",
@@ -827,7 +835,7 @@ describe("the AI / LLM Observability page", () => {
     );
   });
 
-  it("lists the providers of the built-in price list, and its examples find their family's price", () => {
+  it("lists the providers of the built-in price list, and every shape of its examples' ids finds the model's own price", () => {
     const providers: Array<string> = allMatches(
       source("priceCatalog"),
       CATALOG_SECTION,
@@ -851,24 +859,73 @@ describe("the AI / LLM Observability page", () => {
 
     const examples: Record<string, string> = {
       "gpt-4o-2024-08-06": "gpt-4o",
-      "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "claude-sonnet-4",
+      "claude-opus-4-5-20251101": "claude-opus-4-5",
+      "us.anthropic.claude-opus-4-5-20251101-v1:0": "claude-opus-4-5",
+      "claude-opus-4-5@20251101": "claude-opus-4-5",
+      "anthropic/claude-opus-4.5": "claude-opus-4-5",
     };
 
-    for (const [model, family] of Object.entries(examples)) {
+    for (const [model, prefix] of Object.entries(examples)) {
       expect(page).toContain(`\`${model}\``);
       expect(LlmCostCatalogUtil.findPriceForModel(model)?.modelPrefix).toBe(
-        family,
+        prefix,
       );
     }
 
-    // A model the list does not know is never guessed.
+    expect(page).toContain(
+      "are all Claude Opus 4.5. A newer release never takes an older model's price: a model the list does not know is never guessed, and its cost stays 0 until you price it.",
+    );
+
+    // Claude Opus 4.5 is not Opus 4: $5 in and $25 out, not $15 and $75.
+    expect(
+      LlmCostCatalogUtil.findPriceForModel("claude-opus-4-5-20251101")
+        ?.inputPricePerMillionTokensInUSD,
+    ).toBe(5);
+    expect(
+      LlmCostCatalogUtil.findPriceForModel("claude-opus-4-20250514")
+        ?.inputPricePerMillionTokensInUSD,
+    ).toBe(15);
+
+    // A model the list does not know, a later release included, is never guessed.
+    for (const model of ["my-fine-tune-7", "claude-opus-4-9", "gpt-5.9"]) {
+      expect(
+        LlmCostCatalogUtil.computeCostInUSD({
+          model: model,
+          inputTokens: 1000,
+          outputTokens: 1000,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  it("prices cached tokens at the provider's cache rates, writes at the 5-minute rate, and long prompts by their length", () => {
+    expect(page).toContain(
+      "Tokens a span reports as read from or written to the provider's prompt cache are priced at the provider's cache rates, writes at the 5-minute rate, and a model that charges more for a long prompt, such as Claude Haiku 5.5 past 100,000 tokens, is priced by its prompt's length. Estimates are list prices: batch discounts, fast modes and regional premiums are not applied.",
+    );
+
+    const opus: CatalogPrice = LlmCostCatalogUtil.findPriceForModel(
+      "claude-opus-4-5",
+    ) as CatalogPrice;
+
+    // Anthropic's 5-minute cache write is 1.25 times the input price (the 1-hour one is 2 times).
+    expect(opus.cacheWritePricePerMillionTokensInUSD).toBe(
+      opus.inputPricePerMillionTokensInUSD * 1.25,
+    );
     expect(
       LlmCostCatalogUtil.computeCostInUSD({
-        model: "my-fine-tune-7",
-        inputTokens: 1000,
-        outputTokens: 1000,
+        model: "claude-opus-4-5",
+        inputTokens: 1_000_000,
+        cacheReadTokens: 1_000_000,
+        outputTokens: 0,
       }),
-    ).toBeNull();
+    ).toBe(opus.cacheReadPricePerMillionTokensInUSD);
+
+    const haiku: CatalogPrice = LlmCostCatalogUtil.findPriceForModel(
+      "claude-haiku-5-5",
+    ) as CatalogPrice;
+
+    // "Past 100,000 tokens": the long-prompt price starts at the next token.
+    expect(haiku.longPrompt?.fromPromptTokens).toBe(100_001);
   });
 
   it("names the Pricing tab's fields, and says when a new price applies", () => {
@@ -886,8 +943,23 @@ describe("the AI / LLM Observability page", () => {
 
     expect(pricing).toContain("your entry beats the built-in one on ties");
     expect(page).toContain(
-      "The longest matching prefix wins across your prices and the built-in list; your price wins a tie.",
+      "The longest matching prefix wins across your prices and the built-in list; your price wins a tie. Your price is charged for every input token, cached or not.",
     );
+    expect(
+      LlmCostCatalogUtil.computeCostInUSD({
+        model: "claude-opus-4-5",
+        inputTokens: 1_000_000,
+        cacheReadTokens: 900_000,
+        outputTokens: 0,
+        projectPriceOverrides: [
+          {
+            modelPrefix: "claude-opus-4-5",
+            inputPricePerMillionTokensInUSD: 4,
+            outputPricePerMillionTokensInUSD: 20,
+          },
+        ],
+      }),
+    ).toBe(4);
     expect(source("priceLoader")).toContain(
       "const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds",
     );
@@ -1000,6 +1072,8 @@ describe("the AI / LLM Observability page", () => {
       "Input tokens": LlmInputTokenAttributeKeys,
       "Output tokens": LlmOutputTokenAttributeKeys,
       "Total tokens": LlmTotalTokenAttributeKeys,
+      "Cache-read tokens": LlmCacheReadTokenAttributeKeys,
+      "Cache-write tokens": LlmCacheWriteTokenAttributeKeys,
       "Cost (USD)": LlmCostAttributeKeys,
       Conversation: LlmConversationIdAttributeKeys,
       Agent: LlmAgentNameAttributeKeys,
@@ -1039,9 +1113,86 @@ describe("the AI / LLM Observability page", () => {
       "or any attribute that starts with `gen_ai.`, `llm.` or `traceloop.`",
     );
     expect(prefixes).toBe("`gen_ai.`, `llm.`, `traceloop.`");
-    expect(source("llmSpan")).toContain(
-      "fields.llmTotalTokens = fields.llmInputTokens + fields.llmOutputTokens;",
+    // "Total tokens are input plus output when no total is reported."
+    expect(source("tokenUsage")).toContain(
+      "const derivedTotal: number = this.count(inputTokens + outputCount);",
     );
+    expect(
+      LlmTokenUsageUtil.read({
+        numberOf: (key: string): number | null => {
+          return (
+            (
+              {
+                "gen_ai.usage.input_tokens": 1200,
+                "gen_ai.usage.output_tokens": 350,
+              } as Record<string, number>
+            )[key] ?? null
+          );
+        },
+        namesModelOrProvider: true,
+      }).totalTokens,
+    ).toBe(1550);
+    expect(source("llmSpan")).toContain(
+      "fields.llmTotalTokens = usage.totalTokens;",
+    );
+  });
+
+  it("counts cached tokens in the input, and reads Claude Code's own keys where it sends no gen_ai.usage.*", () => {
+    const reference: string = section(page, "Attributes OneUptime reads");
+    const claudeCodeKeys: Array<string> = [
+      ClaudeCodeUsageAttributeKeys.inputTokens,
+      ClaudeCodeUsageAttributeKeys.outputTokens,
+      ClaudeCodeUsageAttributeKeys.cacheReadTokens,
+      ClaudeCodeUsageAttributeKeys.cacheWriteTokens,
+    ];
+
+    expect(reference).toContain(
+      "Input tokens count the cached ones too, as the conventions count them: when a span's cache counts are larger than its input count, the input count left them out, and OneUptime adds them in.",
+    );
+    expect(reference).toContain(
+      `Claude Code's traces beta sends no \`gen_ai.usage.*\` keys: on a span that names its model, OneUptime reads its ${claudeCodeKeys
+        .slice(0, 3)
+        .map((key: string): string => {
+          return `\`${key}\``;
+        })
+        .join(
+          ", ",
+        )} and \`${claudeCodeKeys[3]}\`, and adds the two cache counts to \`${claudeCodeKeys[0]}\`, which leaves them out.`,
+    );
+
+    const numbers: Record<string, number> = {
+      input_tokens: 12,
+      output_tokens: 640,
+      cache_read_tokens: 48_000,
+      cache_creation_tokens: 2_100,
+      "gen_ai.usage.input_tokens": 50,
+      "gen_ai.usage.cache_read_input_tokens": 400,
+    };
+    const numberOf: (key: string) => number | null = (
+      key: string,
+    ): number | null => {
+      return key in numbers ? (numbers[key] as number) : null;
+    };
+
+    // Claude Code: input_tokens + the two cache counts.
+    expect(
+      LlmTokenUsageUtil.read({
+        numberOf: (key: string): number | null => {
+          return key.startsWith("gen_ai.") ? null : numberOf(key);
+        },
+        namesModelOrProvider: true,
+      }).inputTokens,
+    ).toBe(50_112);
+
+    // A conventions count smaller than its own cache count left it out.
+    expect(
+      LlmTokenUsageUtil.read({
+        numberOf: (key: string): number | null => {
+          return key.startsWith("gen_ai.") ? numberOf(key) : null;
+        },
+        namesModelOrProvider: true,
+      }).inputTokens,
+    ).toBe(450);
   });
 
   it("lists where prompts and answers are read from, the conventions' event and attributes first", () => {
@@ -1353,25 +1504,44 @@ describe("the Claude Code page", () => {
     );
   });
 
-  it("warns that the traces beta's model spans arrive with no tokens: their token keys are not ones ingest reads", () => {
+  it("says the traces beta's model spans get their tokens and a cost, read from Claude Code's own keys", () => {
+    const traces: string = section(page, "Traces (beta)");
+
     expect(LlmSystemAttributeKeys).toContain("gen_ai.system");
     expect(LlmRequestModelAttributeKeys).toContain("gen_ai.request.model");
+    expect(ClaudeCodeUsageAttributeKeys).toEqual({
+      inputTokens: "input_tokens",
+      outputTokens: "output_tokens",
+      cacheReadTokens: "cache_read_tokens",
+      cacheWriteTokens: "cache_creation_tokens",
+    });
 
+    // The bare keys are Claude Code's own, never one of the conventions' lists.
     for (const key of ["input_tokens", "output_tokens"]) {
       expect(LlmInputTokenAttributeKeys).not.toContain(key);
       expect(LlmOutputTokenAttributeKeys).not.toContain(key);
     }
 
+    // 12 + 48,000 + 2,100 input tokens and 640 output tokens on Claude Opus 4.8.
     expect(
       LlmCostCatalogUtil.computeCostInUSD({
-        model: "claude-sonnet-4-5",
-        inputTokens: 0,
-        outputTokens: 0,
+        model: "claude-opus-4-8",
+        inputTokens: 50_112,
+        cacheReadTokens: 48_000,
+        cacheWriteTokens: 2_100,
+        outputTokens: 640,
       }),
-    ).toBeNull();
-    expect(section(page, "Traces (beta)")).toContain(
-      "but their tokens are in `input_tokens` and `output_tokens`, not the `gen_ai.usage.*` keys, so they arrive with no tokens and no cost.",
+    ).toBe(0.053185);
+
+    expect(traces).toContain("> [!NOTE]");
+    expect(traces).not.toContain("[!WARNING]");
+    expect(traces).toContain(
+      "reads their `input_tokens`, `output_tokens`, `cache_read_tokens` and `cache_creation_tokens` as the call's tokens, and prices each call at its model's list prices.",
     );
+    expect(traces).toContain(
+      "That is OneUptime's estimate, with cache writes at the 5-minute rate and no fast-mode price, so it can differ from `claude_code.cost.usage`.",
+    );
+    expect(LlmCostMetricNames).toContain("claude_code.cost.usage");
   });
 });
 

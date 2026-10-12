@@ -4,6 +4,7 @@ import {
   SnmpTableColumn,
   SnmpTableColumnRole,
   SnmpTableDefinition,
+  SnmpTableFailureReason,
   SnmpTableKind,
   SnmpTableResult,
   SnmpTableResultRow,
@@ -995,12 +996,36 @@ export default class SnmpTableListUtil {
   }
 
   /*
+   * Every defined table, as a poll that did not walk it leaves it: no rows,
+   * no collection time - nothing was collected - and the cause (and the
+   * reason, when the views explain it). Merged over the stored snapshot
+   * (mergeWithPrevious) it keeps each table's last good rows and marks them
+   * with the cause, exactly like a walk that failed.
+   */
+  public static notWalked(data: {
+    tables: Array<SnmpTableDefinition>;
+    failureCause: string;
+    failureReason?: SnmpTableFailureReason | undefined;
+  }): Array<SnmpTableSnapshot> {
+    return SnmpTableListUtil.materialize({
+      tables: data.tables,
+      results: data.tables.map((table: SnmpTableDefinition) => {
+        return { key: table.key, rows: [], failureCause: data.failureCause };
+      }),
+    }).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+      return data.failureReason
+        ? { ...snapshot, failureReason: data.failureReason }
+        : snapshot;
+    });
+  }
+
+  /*
    * Merge this walk's snapshots over the stored ones.
    *
    * A table that failed this walk keeps its previous rows (with the new
-   * failure cause on it), so a transient timeout does not blank the view; a
-   * table that is no longer defined disappears; everything else is replaced
-   * by what was just walked.
+   * failure cause, and reason, on it), so a transient timeout does not blank
+   * the view; a table that is no longer defined disappears; everything else
+   * is replaced by what was just walked.
    */
   public static mergeWithPrevious(data: {
     current: Array<SnmpTableSnapshot>;
@@ -1035,7 +1060,7 @@ export default class SnmpTableListUtil {
       if (current && current.failureCause) {
         merged.push(
           previous
-            ? { ...previous, failureCause: current.failureCause }
+            ? SnmpTableListUtil.withFailureOf(previous, current)
             : current,
         );
         continue;
@@ -1047,6 +1072,29 @@ export default class SnmpTableListUtil {
     }
 
     return merged;
+  }
+
+  /*
+   * The stored rows, marked with this walk's failure. The reason travels
+   * with the cause it explains: a stored reason never outlives the failure
+   * it was given for.
+   */
+  private static withFailureOf(
+    previous: SnmpTableSnapshot,
+    current: SnmpTableSnapshot,
+  ): SnmpTableSnapshot {
+    const marked: SnmpTableSnapshot = {
+      ...previous,
+      failureCause: current.failureCause,
+    };
+
+    delete marked.failureReason;
+
+    if (current.failureReason) {
+      marked.failureReason = current.failureReason;
+    }
+
+    return marked;
   }
 
   public static findSnapshot(
