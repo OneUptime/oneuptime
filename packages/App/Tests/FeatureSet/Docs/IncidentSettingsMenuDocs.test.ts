@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { dashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -36,7 +37,7 @@ const SETTINGS_PAGE: string = "incidents/settings";
 
 // A table row whose first cell is this bold name.
 function rowPattern(name: string): RegExp {
-  const escaped: string = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped: string = escapeRegExp(name);
 
   return new RegExp(`^\\|\\s*\\*\\*${escaped}\\*\\*\\s*\\|`);
 }

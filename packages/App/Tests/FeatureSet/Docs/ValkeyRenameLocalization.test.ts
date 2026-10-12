@@ -52,7 +52,10 @@ const UPGRADING_PAGE: string = "installation/upgrading";
 const COMPOSE_PAGE: string = "installation/docker-compose";
 const SIZING_PAGE: string = "installation/sizing";
 
-const VALKEY_LINK: string = "https://valkey.io";
+// Valkey's site, as the origin of the URL the pages link to.
+const VALKEY_ORIGIN: string = "https://valkey.io";
+// A Markdown link's address: the "(...)" after its "[text]".
+const MARKDOWN_LINK_ADDRESS: RegExp = /\]\(([^)\s]+)\)/g;
 const RENAMED_IN_VERSION: string = "13.0.0";
 const TODO_MARKER: RegExp = /TODO\(i18n\)/;
 
@@ -154,6 +157,29 @@ function headingShapeOf(body: string): Array<number> {
   });
 }
 
+// A link's origin, or null for an address that is not a whole URL.
+function originOf(address: string): string | null {
+  try {
+    return new URL(address).origin;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * Whether the Markdown links to Valkey's site: a link whose address, read
+ * as a URL, is on https://valkey.io. Looking for the address in the text
+ * would take https://valkey.io.example.com, or the address written in
+ * prose, for the link too (code scanning #1718, #1719).
+ */
+function linksToValkey(markdown: string): boolean {
+  return Array.from(markdown.matchAll(MARKDOWN_LINK_ADDRESS)).some(
+    (match: RegExpMatchArray): boolean => {
+      return originOf(match[1] as string) === VALKEY_ORIGIN;
+    },
+  );
+}
+
 /*
  * The compose and sizing changes are a single bullet and a single paragraph
  * rather than a section, so they are located by the one thing that is identical
@@ -162,7 +188,7 @@ function headingShapeOf(body: string): Array<number> {
 function blockLinkingToValkey(markdown: string): string {
   const blocks: Array<string> = markdown.split(/\n\s*\n/);
   const matches: Array<string> = blocks.filter((block: string): boolean => {
-    return block.includes(VALKEY_LINK);
+    return linksToValkey(block);
   });
 
   expect(matches).toHaveLength(1);
@@ -229,7 +255,7 @@ describe("Valkey rename — installation docs localization", () => {
 
       expect(englishSection.heading.level).toBe(2);
       expect(englishSection.heading.line).toBeLessThan(previous.line);
-      expect(englishSection.body).toContain(VALKEY_LINK);
+      expect(linksToValkey(englishSection.body)).toBe(true);
       expect(codeSpansOf(englishSection.body).length).toBeGreaterThan(0);
       expect(headingShapeOf(englishSection.body).length).toBeGreaterThan(0);
     });
@@ -282,7 +308,10 @@ describe("Valkey rename — installation docs localization", () => {
           lang,
           shape: expectedShape,
         });
-        expect(section.body).toContain(VALKEY_LINK);
+        expect({ lang, linksToValkey: linksToValkey(section.body) }).toEqual({
+          lang,
+          linksToValkey: true,
+        });
       }
     });
 
@@ -379,7 +408,7 @@ describe("Valkey rename — installation docs localization", () => {
 
         const mentioningRedis: Array<string> = bullets.filter(
           (line: string): boolean => {
-            return REDIS_MENTION.test(line) && !line.includes(VALKEY_LINK);
+            return REDIS_MENTION.test(line) && !linksToValkey(line);
           },
         );
 
