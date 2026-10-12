@@ -35,8 +35,8 @@ const RUNS_URL: string = "/docs/workflows/runs-and-logs";
 const OVERVIEW_PAGE: string = "workflows/index.md";
 
 /*
- * Pages that sent readers to "Runs & Logs" by name. Most languages have
- * them all; the circuit-breaker guide exists in English and Persian only.
+ * Pages that sent readers to "Runs & Logs" by name. Every language has them
+ * all, the AI agent circuit-breaker guide among them.
  */
 const PAGES_THAT_NAME_THE_RUNS: Array<string> = [
   RUNS_PAGE,
@@ -261,9 +261,7 @@ describe("the suite reads the docs it claims to", () => {
   test.each(LANGUAGES)(
     "%s has the pages that name the runs",
     (language: string) => {
-      PAGES_THAT_NAME_THE_RUNS.filter((page: string): boolean => {
-        return !page.startsWith("telemetry/");
-      }).forEach((page: string) => {
+      PAGES_THAT_NAME_THE_RUNS.forEach((page: string) => {
         expect({ page, exists: pageExists(language, page) }).toEqual({
           page,
           exists: true,

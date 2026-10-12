@@ -285,8 +285,16 @@ page with no translation is served in English.
   translated again. Without `--apply` it only reports.
 - Links to other pages stay `/docs/<category>/<page>`; the reader is kept in
   their language automatically.
-- Persian (`fa`) is written right to left; code and diagrams stay left to
-  right on their own.
+- Persian (`fa`) is written right to left; code stays left to right on its
+  own, and so does the layout of a diagram. The words in a diagram read the
+  page's way: on a Persian page every line of a label, a sequence diagram's
+  messages and notes, and the caption read right to left, whatever word
+  they start with, so a Persian line may open with a Latin word
+  ("OneUptime حساب"). A line with no Persian in it, such as a path or a
+  status (`200 OK`), must start with a letter and end with a letter or a
+  digit (`HTTP 200 OK`, `config.toml (~/.codex)`): a line laid out right to
+  left draws a number or punctuation that starts or ends it on its other
+  side. `DiagramReadingDirection` checks every line of every page.
 
 ## Checking your work
 

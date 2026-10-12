@@ -251,12 +251,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/ai-agent-circuit-breaker": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/ai-gateways": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/ceph": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
@@ -268,15 +262,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/gemini-cli-and-copilot": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/queues": {
     translated: EVERY_TRANSLATION,
-  },
-  "telemetry/security-events": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/serverless-functions": {
     sameShape: EVERY_TRANSLATION,
@@ -288,10 +275,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "telemetry/storage-arrays": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/threat-intelligence": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/vmware": {

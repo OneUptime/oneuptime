@@ -21,7 +21,7 @@ flowchart TB
         logs["فایل‌های لاگ، ژورنال،<br/>لاگ رویدادها"]
         services["واحدهای systemd یا<br/>سرویس‌های Windows"]
     end
-    machine --> collector["otelcol-contrib:<br/>receivers, resourcedetection"]
+    machine --> collector["otelcol-contrib با<br/>receivers, resourcedetection"]
     collector -->|"OTLP روی HTTPS"| oneuptime["OneUptime"]
     oneuptime --> pages["میزبان: نمای کلی، متریک‌ها،<br/>فرایندها، لاگ‌ها، Inventory"]
 ```

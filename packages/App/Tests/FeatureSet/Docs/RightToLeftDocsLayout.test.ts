@@ -16,6 +16,12 @@ import {
   parsePage,
 } from "Common/Tests/RenderedMarkup";
 import { TAILWIND_BREAKPOINTS_IN_PX } from "Common/Tests/ResponsiveVisibility";
+import {
+  CssRule,
+  DOCS_STYLESHEET,
+  declaredIn,
+  readCssRules,
+} from "./DocsStylesheet";
 import { describe, expect, it } from "@jest/globals";
 import ejs from "ejs";
 import fs from "fs";
@@ -40,10 +46,7 @@ import path from "path";
 
 const DOCS_ROOT: string = path.resolve(__dirname, "../../../FeatureSet/Docs");
 const VIEWS_ROOT: string = path.join(DOCS_ROOT, "Views");
-const STYLESHEET: string = fs.readFileSync(
-  path.join(DOCS_ROOT, "Static", "css", "style.css"),
-  "utf8",
-);
+const STYLESHEET: string = DOCS_STYLESHEET;
 
 // Where the hand-written layer starts; above it is the compiled Tailwind build.
 const DESIGN_LAYER_START: number = STYLESHEET.indexOf(
@@ -101,66 +104,14 @@ const htmlOf: (page: RenderedPage) => RenderedElement = (
   });
 };
 
-interface CssRule {
-  selectors: Array<string>;
-  declarations: Array<[string, string]>;
-}
-
-// Every rule with a declaration block, those inside @media and @supports too.
-const readRules: (css: string) => Array<CssRule> = (
-  css: string,
-): Array<CssRule> => {
-  return Array.from(
-    css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
-  ).map((match: RegExpMatchArray): CssRule => {
-    return {
-      selectors: match[1]!.split(",").map((selector: string): string => {
-        return selector.trim().replace(/\s+/g, " ");
-      }),
-      declarations: match[2]!
-        .split(";")
-        .map((declaration: string): string => {
-          return declaration.trim();
-        })
-        .filter((declaration: string): boolean => {
-          return declaration.length > 0;
-        })
-        .map((declaration: string): [string, string] => {
-          const colon: number = declaration.indexOf(":");
-          return [
-            declaration.slice(0, colon).trim(),
-            declaration
-              .slice(colon + 1)
-              .trim()
-              .replace(/\s+/g, " "),
-          ];
-        }),
-    };
-  });
-};
-
-const RULES: Array<CssRule> = readRules(STYLESHEET);
+const RULES: Array<CssRule> = readCssRules(STYLESHEET);
 
 // What the last rule for a selector sets a property to.
 const declared: (selector: string, property: string) => string | undefined = (
   selector: string,
   property: string,
 ): string | undefined => {
-  let value: string | undefined = undefined;
-
-  for (const rule of RULES) {
-    if (!rule.selectors.includes(selector)) {
-      continue;
-    }
-
-    for (const [name, declaredValue] of rule.declarations) {
-      if (name === property) {
-        value = declaredValue;
-      }
-    }
-  }
-
-  return value;
+  return declaredIn(RULES, selector, property);
 };
 
 // A selector of one class and nothing else, as Tailwind writes a utility's.
@@ -298,7 +249,7 @@ const SIDE_KEYWORD: RegExp = /^(?:left|right)$/;
 const physicalDeclarations: (css: string) => Array<string> = (
   css: string,
 ): Array<string> => {
-  return readRules(css).flatMap((rule: CssRule): Array<string> => {
+  return readCssRules(css).flatMap((rule: CssRule): Array<string> => {
     return rule.declarations
       .filter(([property, value]: [string, string]): boolean => {
         return (
@@ -459,16 +410,62 @@ describe("style.css on a right-to-left page", () => {
     ".docs-diagram .mermaid foreignObject p",
     ".docs-diagram .docs-diagram__caption",
   ])(
-    "reads each line of %s in the direction of its first letter",
+    "on a left-to-right page, reads each line of %s in the direction of its first letter",
     (selector: string) => {
-      /*
-       * A translated label is not English: left to right like the diagram,
-       * a Persian line drew the comma that ends it first, and a Latin word
-       * in it on the wrong side.
-       */
+      // "Rule 1:" keeps its colon at its end, never ":Rule 1".
       expect(declared(selector, "unicode-bidi")).toBe("plaintext");
     },
   );
+
+  it.each([
+    ".docs-diagram:dir(rtl) .mermaid foreignObject div",
+    ".docs-diagram:dir(rtl) .mermaid foreignObject p",
+    ".docs-diagram:dir(rtl) .mermaid text",
+    ".docs-diagram:dir(rtl) .docs-diagram__caption",
+  ])(
+    "on a right-to-left page, reads every line of %s right to left, whatever word it starts with",
+    (selector: string) => {
+      /*
+       * Laid out by its first letter, a Persian line that opened with a
+       * Latin word ("OneUptime حساب", the OneUptime account) was laid out
+       * left to right and read back to front; a sequence diagram's text,
+       * left to right like the diagram, drew the comma that ends a Persian
+       * line first.
+       */
+      expect(declared(selector, "direction")).toBe("rtl");
+      expect(declared(selector, "unicode-bidi")).toBe("isolate");
+    },
+  );
+
+  it("turns a diagram's lines right to left by its article's direction, never by the page's", () => {
+    /*
+     * The English copy of an untranslated page is served on a Persian URL,
+     * in an article marked dir="ltr" (see "the article on a Persian page").
+     * :dir() reads the direction the diagram inherits from its nearest dir
+     * attribute, so that copy's diagrams stay left to right; a rule keyed
+     * on <html dir="rtl"> would have turned them round.
+     */
+    const turned: Array<string> = RULES.filter((rule: CssRule): boolean => {
+      return rule.declarations.some(
+        ([name, value]: [string, string]): boolean => {
+          return name === "direction" && value === "rtl";
+        },
+      );
+    })
+      .flatMap((rule: CssRule): Array<string> => {
+        return rule.selectors;
+      })
+      .filter((selector: string): boolean => {
+        return selector.includes("docs-diagram");
+      });
+
+    expect(turned).toEqual([
+      ".docs-diagram:dir(rtl) .mermaid foreignObject div",
+      ".docs-diagram:dir(rtl) .mermaid foreignObject p",
+      ".docs-diagram:dir(rtl) .mermaid text",
+      ".docs-diagram:dir(rtl) .docs-diagram__caption",
+    ]);
+  });
 
   it("aligns table headers to the start, where browsers would centre them", () => {
     /*

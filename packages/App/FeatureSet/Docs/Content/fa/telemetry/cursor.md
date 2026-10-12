@@ -13,9 +13,9 @@ Cursor تله‌متری تیمش را از سرورهای خود Cursor صاد�
 
 ```mermaid title="تله‌متری Cursor چگونه به OneUptime می‌رسد"
 flowchart TB
-    admin["مدیر تیم"] -->|"Team Settings →<br/>OpenTelemetry Export"| cursor["سرورهای Cursor"]
+    admin["مدیر تیم"] -->|"در Team Settings،<br/>OpenTelemetry Export"| cursor["سرورهای Cursor"]
     devs["توسعه‌دهندگان<br/>کاربر Cursor"] --> cursor
-    cursor -->|"OTLP/HTTP protobuf:<br/>متریک‌ها و لاگ‌ها"| ingest["OneUptime"]
+    cursor -->|"متریک‌ها و لاگ‌ها<br/>با OTLP/HTTP protobuf"| ingest["OneUptime"]
     ingest --> usage["زبانهٔ مصرف"]
     ingest --> logs["کاوشگر لاگ‌ها"]
 ```

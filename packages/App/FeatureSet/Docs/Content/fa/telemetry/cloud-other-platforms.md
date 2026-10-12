@@ -18,7 +18,7 @@
 flowchart TB
     question{"آیا یک تشخیص‌دهندهٔ<br/>منبع بستر را<br/>می‌شناسد؟"} -->|"بله"| detector["تشخیص‌دهنده را<br/>روشن کنید:<br/>Elastic Beanstalk،<br/>App Engine، App Service"]
     question -->|"خیر"| manual["ویژگی‌ها را خودتان<br/>تنظیم کنید:<br/>App Runner،<br/>Container Instances"]
-    detector --> account["App Service:<br/>cloud.account.id<br/>را خودتان اضافه کنید"]
+    detector --> account["برای App Service،<br/>cloud.account.id<br/>را خودتان اضافه کنید"]
 ```
 
 | بستر | `cloud.platform` | چه کسی `cloud.*` را پر می‌کند | شناسهٔ نمونه |
