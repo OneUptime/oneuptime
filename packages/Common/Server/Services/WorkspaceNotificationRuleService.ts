@@ -71,6 +71,7 @@ import FeedMarkdown, {
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -1219,6 +1220,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationFor: NotificationFor;
     feedInfoInMarkdown: string;
+    /*
+     * What the message's notification shows, as plain text
+     * (WorkspaceMessagePayload.text). Without it, a Slack notification has
+     * nothing to show and Microsoft Teams says only that a card was sent.
+     */
+    notificationText?: string | undefined;
     workspaceNotification: {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
@@ -1267,6 +1274,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         workspaceNotificationPaylaods.push({
           ...destination,
           messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+          ...(data.notificationText ? { text: data.notificationText } : {}),
         });
       }
     }
@@ -1400,7 +1408,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           texts.push((block as WorkspacePayloadMarkdown).text);
         }
       }
-      const joined: string = texts.join(" \n").trim();
+      /*
+       * A moment a message names in each reader's own time reads as its
+       * time in UTC here: the log shows no workspace's own formatting.
+       */
+      const joined: string = WorkspaceMessageTime.toPlainText(
+        texts.join(" \n").trim(),
+      );
       return joined;
     };
 

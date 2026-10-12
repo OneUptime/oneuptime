@@ -38,6 +38,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import SSRFProtection from "../../SSRFProtection";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import SlackInlineImages from "./SlackInlineImages";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 import {
@@ -1528,6 +1529,7 @@ export default class SlackUtil extends WorkspaceBase {
             authToken: data.authToken,
             workspaceChannel: channel,
             blocks: blocks,
+            text: data.workspaceMessagePayload.text,
           });
         } catch (error) {
           /*
@@ -1553,6 +1555,7 @@ export default class SlackUtil extends WorkspaceBase {
             authToken: data.authToken,
             workspaceChannel: channel,
             blocks: blocksWithoutImages,
+            text: data.workspaceMessagePayload.text,
           });
         }
 
@@ -1591,6 +1594,8 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    // What each message's notification shows (WorkspaceMessagePayload.text).
+    text?: string | undefined;
   }): Promise<WorkspaceThread | undefined> {
     const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
 
@@ -1609,6 +1614,7 @@ export default class SlackUtil extends WorkspaceBase {
         authToken: data.authToken,
         workspaceChannel: data.workspaceChannel,
         blocks: data.blocks.slice(index, index + maxBlocksPerMessage),
+        text: data.text,
       });
     }
 
@@ -1620,6 +1626,11 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    /*
+     * Plain text: what a push notification, a message preview or a screen
+     * reader shows of the blocks (Slack's top-level `text`).
+     */
+    text?: string | undefined;
   }): Promise<WorkspaceThread> {
     const payloadBlocksLogAttributes: LogAttributes = {
       channelId: data.workspaceChannel?.id,
@@ -1631,14 +1642,20 @@ export default class SlackUtil extends WorkspaceBase {
     );
     logger.debug(JSON.stringify(data, null, 2), payloadBlocksLogAttributes);
 
+    const requestData: JSONObject = {
+      channel: data.workspaceChannel.id,
+      blocks: data.blocks,
+      unfurl_links: false,
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString("https://slack.com/api/chat.postMessage"),
-        data: {
-          channel: data.workspaceChannel.id,
-          blocks: data.blocks,
-          unfurl_links: false,
-        },
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
@@ -1720,7 +1737,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
 
     if (data.text) {
-      requestData["text"] = data.text;
+      requestData["text"] = this.getNotificationText(data.text);
     }
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -1758,6 +1775,16 @@ export default class SlackUtil extends WorkspaceBase {
 
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
+  }
+
+  /*
+   * A message's top-level `text`, from the plain text it was given: what a
+   * notification shows. Slack reads "&", "<" and ">" in it as it reads them
+   * in a message, so they are escaped (escapeSlackText): a name such as
+   * "<!channel>" in it would otherwise notify the whole channel.
+   */
+  public static getNotificationText(text: string): string {
+    return this.escapeSlackText(text);
   }
 
   /*
@@ -2699,7 +2726,14 @@ export default class SlackUtil extends WorkspaceBase {
         SlackUtil.SECTION_TEXT_MAX_LENGTH,
     );
 
-    const text: string = markdown.text ? this.slackify(markdown.text) : "";
+    /*
+     * A moment the Markdown names in each reader's own time - written as
+     * Microsoft Teams reads it - becomes a Slack date here, once the
+     * conversion can no longer escape its "<" (WorkspaceMessageTime).
+     */
+    const text: string = markdown.text
+      ? WorkspaceMessageTime.toSlack(this.slackify(markdown.text))
+      : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
       text: text,

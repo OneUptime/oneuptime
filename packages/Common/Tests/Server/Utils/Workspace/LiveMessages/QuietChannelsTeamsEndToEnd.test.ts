@@ -329,11 +329,37 @@ describe("an incident in its Microsoft Teams channel", () => {
     expect(posts.map(headline)).toEqual([
       expect.stringContaining("Incident INC-8 Created"),
       expect.stringContaining("PolicyX"),
-      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
       expect.stringContaining("State"),
       expect.stringContaining("State"),
     ]);
     expect(posts[4]!.text).toContain("Resolved");
+
+    /*
+     * What each new card's notification says (the activity's summary): the
+     * run's card and the alarm say what they are about, as in Slack; the
+     * record's own cards are as they always were.
+     */
+    expect(
+      posts.map((post: ConnectorRequest): unknown => {
+        return post.activity?.["summary"];
+      }),
+    ).toEqual([
+      undefined,
+      "PolicyX is paging for Incident INC-8",
+      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
+      undefined,
+      undefined,
+    ]);
+
+    /*
+     * When the next rule comes is a moment Teams shows in each reader's own
+     * time - its card text function - the run's rule 1 having started at
+     * 5:15 PM UTC and waiting 6 minutes.
+     */
+    expect(posts[1]!.text).toContain(
+      "**Escalation rule 1 of 3 (fhirst)**: if nobody acknowledges by {{TIME(2026-10-08T17:21:00Z)}}, escalation rule 2 (second) is next.",
+    );
 
     for (const post of posts) {
       // A new post in the channel itself, never into another post's thread.

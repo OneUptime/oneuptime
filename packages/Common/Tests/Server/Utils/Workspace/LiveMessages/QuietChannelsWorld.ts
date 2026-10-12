@@ -142,6 +142,11 @@ export const WORKSPACE_RULE_ID: ObjectID = new ObjectID(
 
 export const DASHBOARD: string = "https://oneuptime.test/dashboard";
 
+// When the screenshots' incident was declared: 5:15 PM UTC, 8 October 2026.
+export const SCREENSHOT_START: string = "2026-10-08T17:15:00.000Z";
+
+const MINUTE_IN_MS: number = 60_000;
+
 export const STATE_IDENTIFIED: ObjectID = new ObjectID(
   "a0000000-0000-4000-8000-000000000051",
 );
@@ -266,6 +271,15 @@ export default class QuietChannelsWorld {
   public deliveries: Array<UserOnCallLogTimeline> = [];
   public rules: Array<RuleScript> = SCREENSHOT_RULES;
   public repeatsAllowed: number = 1;
+
+  /*
+   * The run's clock, as the screenshots ran: the incident at 5:15 PM UTC on
+   * Thursday 8 October, and each escalation when the rule before it has
+   * waited its minutes (5:21, 5:28, 5:35 ...). The run's message names
+   * when its next step comes from it ("by 5:28 PM"), so it is the world's
+   * own, never the real clock.
+   */
+  public clock: Date = new Date(SCREENSHOT_START);
 
   // The record the run pages for, and its state.
   public runFor: "incident" | "alert" = "incident";
@@ -974,7 +988,7 @@ export default class QuietChannelsWorld {
     run.status = OnCallDutyPolicyStatus.Scheduled;
     run.statusMessage = "Scheduled.";
     run.onCallPolicyExecutionRepeatCount = 1;
-    run.createdAt = new Date();
+    run.createdAt = new Date(this.clock);
 
     if (this.runFor === "incident") {
       run.triggeredByIncidentId = INCIDENT_ID;
@@ -1003,6 +1017,18 @@ export default class QuietChannelsWorld {
   // The worker's next tick: the next rule, a repeat, or the end of the run.
   public async escalate(): Promise<void> {
     const order: number = this.run!.lastExecutedEscalationRuleOrder || 0;
+
+    // The tick comes once the rule the run is on has waited its minutes.
+    const current: RuleScript | undefined = this.rules.find(
+      (script: RuleScript): boolean => {
+        return script.order === order;
+      },
+    );
+
+    this.clock = new Date(
+      this.clock.getTime() +
+        (current?.escalateAfterInMinutes || 0) * MINUTE_IN_MS,
+    );
     const next: RuleScript | undefined = this.rules.find(
       (script: RuleScript): boolean => {
         return script.order === order + 1;
@@ -1099,7 +1125,7 @@ export default class QuietChannelsWorld {
     await OnCallDutyPolicyExecutionLogService.updateOneById({
       id: this.run!.id!,
       data: {
-        lastEscalationRuleExecutedAt: new Date(),
+        lastEscalationRuleExecutedAt: new Date(this.clock),
         lastExecutedEscalationRuleId: script.id,
         lastExecutedEscalationRuleOrder: script.order,
         executeNextEscalationRuleInMinutes: script.escalateAfterInMinutes,

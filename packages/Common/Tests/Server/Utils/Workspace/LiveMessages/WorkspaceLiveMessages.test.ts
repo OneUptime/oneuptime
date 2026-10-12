@@ -504,6 +504,7 @@ describe("WorkspaceLiveMessages.postEverywhere", () => {
         messageKey: KEY,
         notificationFor: { incidentId: ObjectID.generate() },
         messageBlocks: [markdown("the run")],
+        text: "PolicyX is paging for Incident INC-8",
         messageData: { alarms: [] },
       });
 
@@ -523,6 +524,10 @@ describe("WorkspaceLiveMessages.postEverywhere", () => {
       expect(call[0].messagePayloadsByWorkspace[0]!.messageBlocks).toEqual([
         markdown("the run"),
       ]);
+      // Every place gets what its notification says of the new message.
+      expect(call[0].messagePayloadsByWorkspace[0]!.text).toBe(
+        "PolicyX is paging for Incident INC-8",
+      );
     }
 
     expect(
@@ -733,6 +738,34 @@ describe("WorkspaceLiveMessages.updateKept", () => {
     ]);
     expect(store.rows).toHaveLength(1);
     expect(store.rows[0]!.messageId).toBe("1700000000.000999");
+  });
+
+  test("posted again, it is a new message: its notification says what the edit would have", async () => {
+    slackUpdate.mockRejectedValue(
+      new BadRequestException("Error from Slack message_not_found"),
+    );
+    answerPost([
+      {
+        channel: {
+          id: "C0INC8",
+          name: "inc-inc-8",
+          workspaceType: WorkspaceType.Slack,
+        },
+        threadId: "1700000000.000999",
+      },
+    ]);
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+        text: "Nitin acknowledged Incident INC-8",
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Reposted);
+
+    expect(postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.text).toBe(
+      "Nitin acknowledged Incident INC-8",
+    );
   });
 
   test("any other refusal is left for the next change: nothing posted, nothing remembered", async () => {

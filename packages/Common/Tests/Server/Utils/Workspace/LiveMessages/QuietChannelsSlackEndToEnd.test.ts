@@ -56,7 +56,23 @@ interface SlackRequest {
   // Set when a message is posted as a reply in another message's thread.
   threadTs: string;
   text: string;
+  /*
+   * The request's top-level `text`: what a push notification, a preview or
+   * a screen reader shows of the message. Undefined when it was not sent.
+   */
+  notification: string | undefined;
   blocks: Array<JSONObject>;
+}
+
+/*
+ * A moment as Slack shows it in each reader's own time: "<!date^...^{time}|
+ * 17:21 UTC>", from the run's clock (QuietChannelsWorld.clock).
+ */
+function slackTime(iso: string): string {
+  const date: Date = new Date(iso);
+  const clock: string = iso.slice(11, 16);
+
+  return `<!date^${Math.floor(date.getTime() / 1000)}^{time}|${clock} UTC>`;
 }
 
 // The Slack API, as far as OneUptime's posting goes, recording every call.
@@ -115,6 +131,8 @@ class FakeSlack {
         ts: ts,
         threadTs: String(body["thread_ts"] || ""),
         text: FakeSlack.textOf(blocks),
+        notification:
+          body["text"] === undefined ? undefined : String(body["text"]),
         blocks: blocks,
       });
 
@@ -247,11 +265,30 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
 
     expect(posts.map(headline)).toEqual([
       expect.stringContaining("Incident INC-8 Created"),
-      expect.stringContaining("Not everyone could be added to this channel"),
+      expect.stringContaining("could not be added to this channel"),
       expect.stringContaining("PolicyX"),
-      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
       expect.stringContaining("State"),
       expect.stringContaining("State"),
+    ]);
+
+    /*
+     * What each new message's notification says. The note, the run's
+     * message and the alarm say what they are about - the alarm above all,
+     * which is posted for somebody to act. The record's own messages are as
+     * they always were.
+     */
+    expect(
+      posts.map((post: SlackRequest): string | undefined => {
+        return post.notification;
+      }),
+    ).toEqual([
+      undefined,
+      "NB User 3 could not be added to this channel",
+      "PolicyX is paging for Incident INC-8",
+      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
+      undefined,
+      undefined,
     ]);
 
     // Every message went to the incident's channel, as a message of its own.
@@ -322,11 +359,14 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     expect(last).toContain("acknowledged");
     expect(last).toContain("stopped paging");
     expect(last).toContain("paged 3 times");
-    expect(last).toContain("SMS, email");
+    expect(last).toContain("SMS and email");
     expect(last).toContain("NB User 3");
     expect(last).toContain("paged once");
     expect(last).toContain("NB User 2");
     expect(last).toContain("not a member of this project");
+    expect(updates[updates.length - 1]!.notification).toBe(
+      "Nitin acknowledged Incident INC-8",
+    );
 
     // And it is kept: one message for the run, in one channel.
     const kept: Array<unknown> = world.liveMessages.rows.filter(
@@ -357,46 +397,49 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       })!.text;
     };
 
-    // Rule "fhirst" paged Nitin.
+    /*
+     * Rule "fhirst" paged Nitin at 5:15 PM. When rule 2 comes is a moment
+     * in each reader's own time - 5:21 PM - never "within 6 minutes", which
+     * a message edited for half an hour cannot anchor.
+     */
     await declareIncidentAndPage();
     let message: string = runMessage();
     expect(message).toContain("is paging for");
     expect(message).toContain(
-      "Escalation rule 1 of 3 (fhirst)*\u200b · repeats once if nobody acknowledges",
+      `Escalation rule 1 of 3 (fhirst)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:21:00Z")}, escalation rule 2 (second) is next.`,
     );
-    expect(message).toContain("Nitin*\u200b: paged once · by SMS, email");
-    expect(message).toContain(
-      "If nobody acknowledges within 6 minutes, escalation rule 2 of 3 (second) is next.",
-    );
-    expect(message).not.toContain("Not paged");
+    expect(message).toContain("Nitin*\u200b: paged once · by SMS and email");
+    expect(message).not.toContain("not paged");
+    expect(message).not.toContain("within");
 
-    // Rule "second" paged NB User 3, and Nitin again.
-    await world.escalate();
-    message = runMessage();
-    expect(message).toContain("Escalation rule 2 of 3 (second)");
-    expect(message).toContain("Nitin*\u200b: paged twice · by SMS, email");
-    expect(message).toContain("NB User 3*\u200b: paged once · by SMS, email");
-    expect(message).toContain(
-      "If nobody acknowledges within 7 minutes, escalation rule 3 of 3 (third) is next.",
-    );
-
-    // Rule "third" reached nobody: NB User 2 left the project.
-    await world.escalate();
-    message = runMessage();
-    expect(message).toContain("Escalation rule 3 of 3 (third)");
-    expect(message).toContain("Not paged");
-    expect(message).toContain("NB User 2*\u200b: not a member of this project");
-    expect(message).toContain(
-      "If nobody acknowledges within 7 minutes, the policy starts again from escalation rule 1.",
-    );
-
-    // Nobody acknowledged: the policy repeats from rule "fhirst".
+    // Rule "second", at 5:21, paged NB User 3, and Nitin again.
     await world.escalate();
     message = runMessage();
     expect(message).toContain(
-      "Escalation rule 1 of 3 (fhirst)*\u200b · repeat 1 of 1",
+      `Escalation rule 2 of 3 (second)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, escalation rule 3 (third) is next.`,
     );
-    expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS, email");
+    expect(message).toContain("Nitin*\u200b: paged twice · by SMS and email");
+    expect(message).toContain(
+      "NB User 3*\u200b: paged once · by SMS and email",
+    );
+
+    // Rule "third", at 5:28, reached nobody: NB User 2 left the project.
+    await world.escalate();
+    message = runMessage();
+    expect(message).toContain(
+      `Escalation rule 3 of 3 (third)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:35:00Z")}, the policy starts again from escalation rule 1.`,
+    );
+    expect(message).toContain(
+      "NB User 2*\u200b: not paged · not a member of this project",
+    );
+
+    // Nobody acknowledged: at 5:35 the policy repeats from rule "fhirst".
+    await world.escalate();
+    message = runMessage();
+    expect(message).toContain(
+      `Escalation rule 1 of 3 (fhirst)*\u200b, repeat 1 of 1: if nobody acknowledges by ${slackTime("2026-10-08T17:41:00Z")}, escalation rule 2 (second) is next.`,
+    );
+    expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS and email");
 
     // Nitin acknowledged.
     await world.acknowledge(NITIN);
@@ -404,11 +447,12 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     expect(headline({ text: message } as SlackRequest)).toContain(
       "acknowledged",
     );
+    expect(message).toContain(", so ");
     expect(message).toContain("stopped paging");
     expect(message).toContain(
-      "Nitin*\u200b: acknowledged ✅ · paged 3 times · by SMS, email",
+      "Nitin*\u200b: acknowledged · paged 3 times · by SMS and email",
     );
-    expect(message).not.toContain("If nobody acknowledges");
+    expect(message).not.toContain("if nobody acknowledges");
     expect(message).toContain("See every step in OneUptime");
 
     // All of it in the one message, posted once; the alarm is the only other post naming the policy.
@@ -421,7 +465,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
         .map(headline),
     ).toEqual([
       expect.stringContaining("is paging for"),
-      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
     ]);
   });
 
@@ -433,9 +477,11 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
 
     expect(last).toContain("is paging for");
     expect(last).toContain("Escalation rule 2 of 3 (second)");
-    expect(last).toContain("repeats once if nobody acknowledges");
-    expect(last).toContain("escalation rule 3 of 3 (third) is next");
-    expect(last).toContain("within 7 minutes");
+    expect(last).toContain(
+      `if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, escalation rule 3 (third) is next`,
+    );
+    // The first pass leaves the repeat to the last rule's next step.
+    expect(last).not.toContain("repeat");
   });
 
   test("a run that ends with nobody acknowledging raises one more alarm, and its message says so", async () => {
@@ -446,17 +492,17 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     await world.escalate();
     await world.escalate();
 
-    const alarms: Array<SlackRequest> = slack
-      .posts()
-      .filter((post: SlackRequest): boolean => {
-        return post.text.includes("Nobody");
-      });
+    // Every post after the run's own message is an alarm.
+    const alarms: Array<SlackRequest> = slack.posts().slice(3);
 
     expect(alarms.map(headline)).toEqual([
-      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
       expect.stringContaining("Nobody has acknowledged"),
     ]);
     expect(alarms[1]!.text).toContain("Someone needs to take it");
+    expect(alarms[1]!.notification).toBe(
+      "Nobody has acknowledged Incident INC-8: someone needs to take it",
+    );
 
     const last: string = slack.updates()[slack.updates().length - 1]!.text;
     expect(last).toContain("nobody acknowledged");
@@ -542,7 +588,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     const notes: Array<SlackRequest> = slack
       .posts()
       .filter((post: SlackRequest): boolean => {
-        return post.text.includes("Not everyone could be added");
+        return post.text.includes("could not be added to this channel");
       });
 
     expect(notes).toHaveLength(1);
@@ -551,8 +597,11 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     // ... and the note comes right under the incident, not above it.
     expect(slack.posts().map(headline)).toEqual([
       expect.stringContaining("Incident INC-8 Created"),
-      expect.stringContaining("Not everyone could be added"),
+      expect.stringContaining("NB User 3"),
     ]);
+    expect(notes[0]!.text).toContain(
+      "NB User 3*\u200b could not be added to this channel: they have not connected their Slack account yet. Add them here yourself, or ask them to connect Slack in",
+    );
 
     for (const post of slack.posts()) {
       expect(post.text).not.toContain("cannot be invited");
@@ -575,12 +624,15 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     // The incident, then the note; the note is edited, not posted again.
     expect(slack.posts()).toHaveLength(2);
     const note: SlackRequest = slack.posts()[1]!;
-    expect(note.text).toContain("Not everyone could be added");
+    expect(note.text).toContain("could not be added to this channel");
 
     expect(slack.updates()).toHaveLength(1);
     expect(slack.updates()[0]!.ts).toBe(note.ts);
     expect(slack.updates()[0]!.text).toContain("NB User 3");
     expect(slack.updates()[0]!.text).toContain("NB User 2");
+    expect(slack.updates()[0]!.notification).toBe(
+      "NB User 3 and NB User 2 could not be added to this channel",
+    );
   });
 
   test("a channel everybody could be added to gets no note at all", async () => {
@@ -610,7 +662,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     const nobodyPaged: Array<SlackRequest> = slack
       .posts()
       .filter((post: SlackRequest): boolean => {
-        return post.text.includes("Nobody was paged");
+        return post.text.includes("paged nobody at");
       });
 
     expect(nobodyPaged).toHaveLength(1);

@@ -150,6 +150,8 @@ export default class WorkspaceLiveMessages {
     messageKey: string;
     notificationFor: NotificationFor;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    // What its notification shows (WorkspaceMessagePayload.text).
+    text?: string | undefined;
     messageData?: WorkspaceLiveMessageData | undefined;
   }): Promise<Array<WorkspaceLiveMessage>> {
     const kept: Array<WorkspaceLiveMessage> = [];
@@ -186,6 +188,7 @@ export default class WorkspaceLiveMessages {
             destination: {
               ...destination,
               messageBlocks: data.messageBlocks,
+              ...(data.text ? { text: data.text } : {}),
             },
             messageData: data.messageData,
             notificationFor: data.notificationFor,
@@ -397,6 +400,7 @@ export default class WorkspaceLiveMessages {
               channelIds: isChat ? [] : [keptMessage.channelId!],
               chatIds: isChat ? [keptMessage.channelId!] : [],
               teamId: keptMessage.teamId || undefined,
+              ...(data.text ? { text: data.text } : {}),
             },
           ],
         });

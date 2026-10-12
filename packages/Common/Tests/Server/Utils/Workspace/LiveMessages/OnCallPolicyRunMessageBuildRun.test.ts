@@ -7,6 +7,7 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import User from "../../../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import { NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE } from "../../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import { NOT_A_PROJECT_MEMBER_STATUS_MESSAGE } from "../../../../../Server/Services/UserOnCallLogService";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import {
   OnCallPolicyRun,
@@ -148,6 +149,8 @@ function delivery(
 function executionLog(options: {
   ruleId?: ObjectID | undefined;
   ruleOrder?: number | undefined;
+  // When the run started the rule it is on.
+  ruleStartedAt?: Date | undefined;
   executeNextInMinutes?: number | undefined;
   repeatCount?: number | undefined;
   repeatsAllowed?: number | undefined;
@@ -168,6 +171,10 @@ function executionLog(options: {
 
   if (options.executeNextInMinutes !== undefined) {
     model.executeNextEscalationRuleInMinutes = options.executeNextInMinutes;
+  }
+
+  if (options.ruleStartedAt) {
+    model.lastEscalationRuleExecutedAt = options.ruleStartedAt;
   }
 
   model.onCallPolicyExecutionRepeatCount = options.repeatCount ?? 1;
@@ -509,8 +516,28 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
         personName: "Nitin",
         reason:
           "could not be paged (Nitin has no verified notification method)",
+        failed: true,
       },
-      { personName: "NB User 3", reason: "could not be paged" },
+      { personName: "NB User 3", reason: "could not be paged", failed: true },
+    ]);
+  });
+
+  test("a page that found the person gone from the project reads like a rule that found them gone", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NB_USER_2,
+          userName: "NB User 2",
+          statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      { personName: "NB User 2", reason: "not a member of this project" },
     ]);
   });
 
@@ -718,6 +745,62 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
     expect(
       build({ log: executionLog({}), timeline: [] }).escalateAfterInMinutes,
     ).toBe(0);
+  });
+
+  test("the next step's moment: when the current rule started, plus its wait, on the minute the run moves on", () => {
+    // Rule 2 started at 17:21:37 and waits 7 minutes: the next tick is 17:29.
+    expect(
+      build({
+        log: executionLog({
+          ruleId: RULE_2,
+          ruleStartedAt: new Date("2026-10-08T17:21:37.250Z"),
+          executeNextInMinutes: 7,
+        }),
+        timeline: [],
+      }).nextStepAt,
+    ).toEqual(new Date("2026-10-08T17:29:00.000Z"));
+
+    // On the minute already: that minute.
+    expect(
+      build({
+        log: executionLog({
+          ruleId: RULE_2,
+          ruleStartedAt: new Date("2026-10-08T17:21:00.000Z"),
+        }),
+        timeline: [],
+      }).nextStepAt,
+    ).toEqual(new Date("2026-10-08T17:28:00.000Z"));
+  });
+
+  test("no moment when the run does not know when the rule started, or the rule moves on at once", () => {
+    expect(
+      build({
+        log: executionLog({ ruleId: RULE_2, executeNextInMinutes: 7 }),
+        timeline: [],
+      }).nextStepAt,
+    ).toBeUndefined();
+
+    expect(
+      build({
+        log: executionLog({
+          ruleId: RULE_2,
+          ruleStartedAt: new Date("2026-10-08T17:21:00.000Z"),
+          executeNextInMinutes: 0,
+        }),
+        timeline: [],
+      }).nextStepAt,
+    ).toBeUndefined();
+
+    expect(
+      build({
+        log: executionLog({
+          ruleId: RULE_2,
+          ruleStartedAt: new Date("not a date"),
+          executeNextInMinutes: 7,
+        }),
+        timeline: [],
+      }).nextStepAt,
+    ).toBeUndefined();
   });
 
   test("the first pass is repeat 0; a policy without repeats allows none", () => {

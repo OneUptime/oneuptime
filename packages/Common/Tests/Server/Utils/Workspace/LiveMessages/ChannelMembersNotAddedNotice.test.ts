@@ -13,6 +13,7 @@ import DatabaseConfig from "../../../../../Server/DatabaseConfig";
 import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
 import UserService from "../../../../../Server/Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
 import ChannelMembersNotAddedNotice from "../../../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceUtil from "../../../../../Server/Utils/Workspace/Workspace";
@@ -38,6 +39,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  * could not add, with how to fix it; a new name edits that note, a name it
  * has already says nothing. Slack only: OneUptime adds nobody to a
  * Microsoft Teams channel, so there is nothing to fix there.
+ *
+ * The people it names are not in the channel, so it is written for those
+ * who are: who is missing, why, and what they can do - add them, or have
+ * them connect Slack.
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -88,6 +93,11 @@ function updatedText(call: number): string {
   return (
     updateSpy.mock.calls[call]![0].messageBlocks[0] as WorkspacePayloadMarkdown
   ).text;
+}
+
+// What the note's notification shows: the payload's plain text.
+function postedNotificationText(call: number): string | undefined {
+  return postSpy.mock.calls[call]![0].messagePayloadsByWorkspace[0]!.text;
 }
 
 beforeEach(() => {
@@ -174,7 +184,10 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(payload.workspaceType).toBe(WorkspaceType.Slack);
     expect(payload.channelIds).toEqual([CHANNEL.id]);
     expect(postedText(0)).toBe(
-      `👥 **Not everyone could be added to this channel.** **NB User 3** has not connected a Slack account to OneUptime yet.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
+      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(postedNotificationText(0)).toBe(
+      "NB User 3 could not be added to this channel",
     );
 
     const kept: Array<unknown> = store.forKey(
@@ -210,7 +223,10 @@ describe("ChannelMembersNotAddedNotice", () => {
       isChat: false,
     });
     expect(updatedText(0)).toBe(
-      `👥 **Not everyone could be added to this channel.** **NB User 3** and **Jane Doe** have not connected their Slack accounts to OneUptime yet.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
+      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(updateSpy.mock.calls[0]![0].text).toBe(
+      "NB User 3 and Jane Doe could not be added to this channel",
     );
     expect(store.rows[0]!.messageData).toEqual({
       userIds: [NB_USER_3.toString(), JANE.toString()],
@@ -222,7 +238,45 @@ describe("ChannelMembersNotAddedNotice", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postedText(0)).toContain(
-      "**NB User 3**, **Jane Doe** and **noname@example.com** have not connected their Slack accounts",
+      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts yet.",
+    );
+    expect(postedNotificationText(0)).toBe(
+      "NB User 3, Jane Doe and noname@example.com could not be added to this channel",
+    );
+  });
+
+  test("REGRESSION: it speaks to the people in the channel - the people it names are not there to read 'then join this channel'", async () => {
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain("Add them here yourself");
+    expect(postedText(0)).not.toContain("join this channel");
+    expect(postedText(0)).not.toContain("ask someone here");
+    // One paragraph: who, why, and what to do.
+    expect(postedText(0)).not.toContain("\n");
+  });
+
+  test("the settings page is named by the product's name as the installation has it", async () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Status");
+
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain(
+      `ask them to connect Slack in [Acme Status → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(postedText(0)).not.toContain("OneUptime");
+  });
+
+  test("without a dashboard address, the settings page is named in words", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockRejectedValue(new Error("no host"));
+
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain(
+      "ask them to connect Slack in OneUptime under **User Settings → Slack**.",
     );
   });
 
@@ -288,6 +342,14 @@ describe("ChannelMembersNotAddedNotice", () => {
     const text: string = postedText(0).replace(ESCAPED_CHARACTER, "");
     expect(text).not.toContain("<!channel>");
     expect(text).not.toContain("](evil-target)");
+
+    /*
+     * The notification line is plain text, the name as typed: Slack escapes
+     * it for its own notification (SlackUtil.getNotificationText).
+     */
+    expect(postedNotificationText(0)).toBe(
+      "<!channel> [x](evil-target) could not be added to this channel",
+    );
   });
 });
 
@@ -318,11 +380,15 @@ describe("ChannelMembersNotAddedNotice.noteAll", () => {
     expect(
       postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual([CHANNEL.id]);
-    expect(postedText(0)).toContain("**NB User 3** has not connected");
+    expect(postedText(0)).toContain(
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet.",
+    );
     expect(
       postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual(["C0OTHER"]);
-    expect(postedText(1)).toContain("**NB User 3** and **Jane Doe** have not");
+    expect(postedText(1)).toContain(
+      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet.",
+    );
   });
 
   test.each([

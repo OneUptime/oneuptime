@@ -208,6 +208,8 @@ export default class WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    // What a notification or a screen reader shows of the message.
+    text?: string | undefined;
   }): Promise<WorkspaceThread> {
     throw new NotImplementedException();
   }

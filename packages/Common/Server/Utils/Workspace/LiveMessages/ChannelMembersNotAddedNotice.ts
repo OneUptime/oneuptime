@@ -17,6 +17,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import UserService from "../../../Services/UserService";
 import WorkspaceLiveMessageService from "../../../Services/WorkspaceLiveMessageService";
 import logger, { LogAttributes } from "../../Logger";
+import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceLiveMessages from "./WorkspaceLiveMessages";
 
@@ -37,6 +38,12 @@ export interface ChannelMembersNotAdded {
   userIds: Array<ObjectID>;
 }
 
+// The note, as posted: its Markdown, and the line its notification shows.
+export interface ChannelMembersNotAddedNote {
+  markdown: string;
+  text: string;
+}
+
 /*
  * "SOME PEOPLE COULD NOT BE ADDED TO THIS CHANNEL", SAID ONCE PER CHANNEL.
  *
@@ -52,6 +59,10 @@ export interface ChannelMembersNotAdded {
  * Now each channel gets one note naming everybody OneUptime could not add,
  * and how to fix it. Somebody new who cannot be added is added to that note,
  * which is edited in place; somebody it names already changes nothing.
+ *
+ * The note is read by the people in the channel - the people it names are
+ * not in it - so it tells them what they can do: add them, or have them
+ * connect their account.
  *
  * In a channel OneUptime has just created, the note comes after the record's
  * own first message ("Incident INC-8 Created"): channel setup hands back who
@@ -186,14 +197,14 @@ export default class ChannelMembersNotAddedNotice {
       return;
     }
 
-    const markdown: string = await this.getMarkdown({
+    const note: ChannelMembersNotAddedNote = await this.getNote({
       projectId: data.projectId,
       userIds: named,
     });
 
     const messageBlock: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
-      text: markdown,
+      text: note.markdown,
     };
 
     const messageData: WorkspaceLiveMessageData = { userIds: named };
@@ -202,7 +213,7 @@ export default class ChannelMembersNotAddedNotice {
       await WorkspaceLiveMessages.updateKept({
         keptMessage: keptMessage,
         messageBlocks: [messageBlock],
-        text: "Some people could not be added to this channel",
+        text: note.text,
         messageData: messageData,
       });
       return;
@@ -217,27 +228,37 @@ export default class ChannelMembersNotAddedNotice {
         messageBlocks: [messageBlock],
         channelNames: [],
         channelIds: [data.channel.id],
+        text: note.text,
       },
       messageData: messageData,
     });
   }
 
   /*
-   * The note: who could not be added, why, and how to fix it. Names are
-   * text: a person's name is theirs to set.
+   * The note: who could not be added, why, and what the people in the
+   * channel can do about it - names first, as a person scanning the channel
+   * reads them:
+   *
+   *   👥 NB User 3 and Jane Doe could not be added to this channel: they
+   *   have not connected their Slack accounts yet. Add them here yourself,
+   *   or ask them to connect Slack in OneUptime → User Settings → Slack.
+   *
+   * Names are text: a person's name is theirs to set. The product's name is
+   * the one the installation goes by (ProductBrandingText).
    */
-  public static async getMarkdown(data: {
+  public static async getNote(data: {
     projectId: ObjectID;
     userIds: Array<string>;
-  }): Promise<string> {
+  }): Promise<ChannelMembersNotAddedNote> {
     const names: Array<string> = await this.getNames(data.userIds);
+    const productName: string = ProductBrandingText.getProductName();
 
-    let settingsLink: MarkdownText = mdText`OneUptime under **User Settings → Slack**`;
+    let settingsLink: MarkdownText = mdText`${productName} under **User Settings → Slack**`;
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-      settingsLink = mdText`[OneUptime → User Settings → Slack](${URL.fromString(
+      settingsLink = mdText`[${productName} → User Settings → Slack](${URL.fromString(
         dashboardUrl.toString(),
       )
         .addRoute(
@@ -249,14 +270,22 @@ export default class ChannelMembersNotAddedNotice {
       logger.debug(err);
     }
 
-    const notConnected: string =
-      names.length === 1
-        ? "has not connected a Slack account"
-        : "have not connected their Slack accounts";
+    const accounts: string =
+      names.length === 1 ? "their Slack account" : "their Slack accounts";
 
-    return mdText`👥 **Not everyone could be added to this channel.** ${this.listNames(names)} ${notConnected} to OneUptime yet.
+    return {
+      markdown:
+        mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected ${accounts} yet. Add them here yourself, or ask them to connect Slack in ${settingsLink}.`.toString(),
+      text: `${this.joinNames(names)} could not be added to this channel`,
+    };
+  }
 
-To fix it, they connect Slack in ${settingsLink}, then join this channel or ask someone here to add them.`.toString();
+  // The note's Markdown (getNote).
+  public static async getMarkdown(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<string> {
+    return (await this.getNote(data)).markdown;
   }
 
   // "**A**", "**A** and **B**", "**A**, **B** and **C**". Names are text.
@@ -272,6 +301,15 @@ To fix it, they connect Slack in ${settingsLink}, then join this channel or ask 
     }
 
     return mdText`${FeedMarkdown.join(bold.slice(0, -1), ", ")} and ${bold[bold.length - 1]!}`;
+  }
+
+  // "A", "A and B", "A, B and C": the names as plain text.
+  private static joinNames(names: Array<string>): string {
+    if (names.length <= 1) {
+      return names[0] || "";
+    }
+
+    return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
   }
 
   // The people's names, in the order given: name, else email.

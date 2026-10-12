@@ -1744,6 +1744,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
                 workspaceChannel: channel,
                 adaptiveCard: adaptiveCard,
                 projectId: data.projectId,
+                summary: data.workspaceMessagePayload.text,
               });
             },
           });
@@ -1799,6 +1800,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
                   chatId: chatId,
                   adaptiveCard: adaptiveCard,
                   projectId: data.projectId,
+                  summary: data.workspaceMessagePayload.text,
                 });
               },
             });
@@ -1870,6 +1872,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     workspaceChannel: WorkspaceChannel;
     adaptiveCard: JSONObject;
     projectId: ObjectID;
+    /*
+     * Plain text: what a notification or the activity feed shows of the
+     * card. Without it Teams says only that a card was sent.
+     */
+    summary?: string | undefined;
   }): Promise<WorkspaceThread> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -2052,6 +2059,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
+
+          if (data.summary) {
+            message.summary = data.summary;
+          }
 
           const response: ResourceResponse | undefined =
             await context.sendActivity(message);
@@ -2685,6 +2696,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     chatId: string;
     projectId: ObjectID;
     adaptiveCard: JSONObject;
+    // What a notification shows of the card (sendAdaptiveCardToChannel).
+    summary?: string | undefined;
   }): Promise<WorkspaceThread> {
     logger.debug("sendAdaptiveCardToChat called with data:");
     logger.debug(`Chat ID: ${data.chatId}`);
@@ -2773,6 +2786,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
+
+          if (data.summary) {
+            message.summary = data.summary;
+          }
 
           const response: ResourceResponse | undefined =
             await context.sendActivity(message);

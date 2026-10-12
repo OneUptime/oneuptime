@@ -114,6 +114,8 @@ const RULE_2_REACHED_NOBODY: Partial<OnCallPolicyRun> = {
 interface Sent {
   method: "post" | "update" | "alarm";
   text: string;
+  // What its notification shows: the plain text it was sent with.
+  notification?: string | undefined;
 }
 
 let store: InMemoryLiveMessages;
@@ -177,7 +179,11 @@ beforeEach(() => {
     }): Promise<Array<WorkspaceSendMessageResponse>> => {
       const payload: WorkspaceMessagePayload =
         data.messagePayloadsByWorkspace[0]!;
-      sent.push({ method: "post", text: textOf(payload) });
+      sent.push({
+        method: "post",
+        text: textOf(payload),
+        notification: payload.text,
+      });
 
       return [
         {
@@ -198,8 +204,13 @@ beforeEach(() => {
 
   jest.spyOn(SlackUtil, "updateMessage").mockImplementation((async (data: {
     messageBlocks: Array<WorkspacePayloadMarkdown>;
+    text?: string | undefined;
   }): Promise<void> => {
-    sent.push({ method: "update", text: data.messageBlocks[0]!.text });
+    sent.push({
+      method: "update",
+      text: data.messageBlocks[0]!.text,
+      notification: data.text,
+    });
   }) as never);
 
   alarmSpy = jest
@@ -209,8 +220,13 @@ beforeEach(() => {
     )
     .mockImplementation((async (data: {
       feedInfoInMarkdown: string;
+      notificationText?: string | undefined;
     }): Promise<void> => {
-      sent.push({ method: "alarm", text: data.feedInfoInMarkdown });
+      sent.push({
+        method: "alarm",
+        text: data.feedInfoInMarkdown,
+        notification: data.notificationText,
+      });
     }) as never);
 
   readSpy = jest.spyOn(OnCallPolicyRunMessage, "readRun");
@@ -250,6 +266,10 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
       }),
     ).toEqual(["post"]);
     expect(lastSent().text).toContain("is paging for");
+    // A new message: its notification says what it is about.
+    expect(lastSent().notification).toBe(
+      "PolicyX is paging for Incident INC-8",
+    );
 
     const kept: Array<unknown> = store.forKey(
       WorkspaceLiveMessageKey.forOnCallPolicyRun(RUN_ID),
@@ -288,8 +308,15 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
         return item.method;
       }),
     ).toEqual(["post", "alarm", "update"]);
-    expect(sent[1]!.text).toContain("Nobody was paged for");
+    expect(sent[1]!.text).toContain(
+      "paged nobody at escalation rule 2 of 2 (second)",
+    );
+    // The alarm is posted to be seen: its notification says what is wrong.
+    expect(sent[1]!.notification).toBe(
+      "PolicyX paged nobody at escalation rule 2 of 2 (second) for Incident INC-8",
+    );
     expect(sent[2]!.text).toContain("Escalation rule 2 of 2 (second)");
+    expect(sent[2]!.notification).toBe("PolicyX is paging for Incident INC-8");
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
     });

@@ -28,6 +28,7 @@ import OnCallDutyPolicyEscalationRuleService, {
 import OnCallDutyPolicyExecutionLogService from "../../../Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Services/OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
+import { NOT_A_PROJECT_MEMBER_STATUS_MESSAGE } from "../../../Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Services/UserOnCallLogTimelineService";
 import WorkspaceLiveMessageService from "../../../Services/WorkspaceLiveMessageService";
 import WorkspaceNotificationRuleService, {
@@ -35,7 +36,9 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import OnCallPolicyRunMessageView, {
+  ON_CALL_RUN_NOT_PAGED,
   OnCallPolicyRun,
   OnCallPolicyRunAlarm,
   OnCallPolicyRunNotPaged,
@@ -235,6 +238,7 @@ export default class OnCallPolicyRunMessage {
           messageKey: messageKey,
           notificationFor: reading.notificationFor,
           messageBlocks: [markdownBlock],
+          text: OnCallPolicyRunMessageView.getPlainText(reading.run),
           messageData: {
             alarms: alarms.map((alarm: OnCallPolicyRunAlarm): string => {
               return alarm.key;
@@ -259,6 +263,8 @@ export default class OnCallPolicyRunMessage {
               projectId: reading.projectId,
               notificationFor: reading.notificationFor,
               feedInfoInMarkdown: alarm.markdown,
+              // An alarm is posted to be seen: its notification says what is wrong.
+              notificationText: alarm.text,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -337,6 +343,7 @@ export default class OnCallPolicyRunMessage {
           triggeredByIncidentEpisodeId: true,
           lastExecutedEscalationRuleId: true,
           lastExecutedEscalationRuleOrder: true,
+          lastEscalationRuleExecutedAt: true,
           executeNextEscalationRuleInMinutes: true,
           onCallPolicyExecutionRepeatCount: true,
           acknowledgedByUserId: true,
@@ -660,6 +667,7 @@ export default class OnCallPolicyRunMessage {
           addNotPaged(`person:${userId}:${reason}`, {
             personName: name,
             reason: reason,
+            failed: true,
           });
           continue;
         }
@@ -803,6 +811,28 @@ export default class OnCallPolicyRunMessage {
     const firstRule: OnCallDutyPolicyEscalationRule | undefined =
       rulesThatReachedNobody[0];
 
+    const escalateAfterInMinutes: number =
+      executionLog.executeNextEscalationRuleInMinutes ??
+      currentRuleModel?.escalateAfterInMinutes ??
+      0;
+
+    /*
+     * When the current rule's wait is over: the next step names that moment
+     * rather than the wait, which never said from when. Known once the run
+     * has recorded when the rule started.
+     */
+    const ruleStartedAt: Date | undefined =
+      executionLog.lastEscalationRuleExecutedAt
+        ? new Date(executionLog.lastEscalationRuleExecutedAt)
+        : undefined;
+
+    const nextStepAt: Date | undefined =
+      ruleStartedAt &&
+      !isNaN(ruleStartedAt.getTime()) &&
+      escalateAfterInMinutes > 0
+        ? WorkspaceMessageTime.endOfWait(ruleStartedAt, escalateAfterInMinutes)
+        : undefined;
+
     return {
       policyName:
         executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
@@ -817,10 +847,8 @@ export default class OnCallPolicyRunMessage {
       ruleCount: data.rules.length,
       currentRule: currentRule,
       nextRule: nextRule,
-      escalateAfterInMinutes:
-        executionLog.executeNextEscalationRuleInMinutes ??
-        currentRuleModel?.escalateAfterInMinutes ??
-        0,
+      escalateAfterInMinutes: escalateAfterInMinutes,
+      nextStepAt: nextStepAt,
       repeatNumber: Math.max(
         (executionLog.onCallPolicyExecutionRepeatCount || 1) - 1,
         0,
@@ -1052,10 +1080,17 @@ export default class OnCallPolicyRunMessage {
   // "Skipped because this user is not a member of the project." -> a phrase.
   private static getSkipReason(statusMessage: string | undefined): string {
     if (!statusMessage || !statusMessage.trim()) {
-      return "not paged";
+      return ON_CALL_RUN_NOT_PAGED;
     }
 
-    if (statusMessage === NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE) {
+    /*
+     * Both ways OneUptime says somebody is not in the project: the rule
+     * found them gone before paging, or their page found them gone.
+     */
+    if (
+      statusMessage === NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE ||
+      statusMessage === NOT_A_PROJECT_MEMBER_STATUS_MESSAGE
+    ) {
       return "not a member of this project";
     }
 
@@ -1065,6 +1100,6 @@ export default class OnCallPolicyRunMessage {
       .replace(YOU_HAVE_PREFIX, "has ")
       .replace(TRAILING_FULL_STOP, "");
 
-    return reason || "not paged";
+    return reason || ON_CALL_RUN_NOT_PAGED;
   }
 }
