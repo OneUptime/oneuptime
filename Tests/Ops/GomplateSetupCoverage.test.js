@@ -1272,10 +1272,10 @@ describe("the setup-gomplate action pins the gomplate configure.sh pins", () => 
 
   test("every other gomplate pin in .github agrees with it", () => {
     /*
-     * test.ops.yaml installs gomplate itself (for the renderer parity check
-     * in EnterpriseEditionBuild.test.js, which pins that step) with its own
-     * copy of the version and the linux-amd64 digest. It runs no prerun, so
-     * it needs no setup step, but two pins of one file must not disagree.
+     * Every job that needs gomplate now takes it from this action (the Ops
+     * workflow's renderer parity check included, since its own download lost
+     * to the CDN's bursts). A workflow or action that pins a copy of its own
+     * again must not disagree with these pins.
      */
     const pinnedDigests = [
       digest("X64", "linux-amd64"),

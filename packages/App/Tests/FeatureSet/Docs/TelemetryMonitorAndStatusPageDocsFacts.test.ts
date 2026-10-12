@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { hasPage, readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import SpanUtil from "../../../FeatureSet/Dashboard/src/Utils/SpanUtil";
 import StatusPageDisplaySettingsCopy, {
@@ -317,10 +318,6 @@ function jsonBlockOf(markdown: string): JSONObject {
 // "1,500" -> 1500 (the English pages' thousands separator).
 function numberOf(text: string): number {
   return Number(text.replace(/,/g, ""));
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // ---- reading the Dashboard's forms as text ---------------------------------------

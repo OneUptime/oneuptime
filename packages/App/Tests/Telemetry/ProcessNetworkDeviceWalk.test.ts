@@ -370,4 +370,52 @@ describe("processNetworkDeviceWalkFromQueue", () => {
     expect(stampedAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(stampedAt.getTime()).toBeLessThanOrEqual(after + 1000);
   });
+
+  /*
+   * What the probe declared decides how a walk without SNMP tables reads:
+   * "handed none" from a probe that walks them, "cannot walk them" from
+   * one that predates them.
+   */
+  describe("the probe's capabilities", () => {
+    test("reach the walk processor as the probe declared them", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            probeCapabilities: ["networkDevicePing", "snmpTables"],
+          }),
+        ),
+      );
+
+      expect(processedArgs()["probeCapabilities"]).toEqual([
+        "networkDevicePing",
+        "snmpTables",
+      ]);
+    });
+
+    test("a job queued without them - an older probe, or before they were forwarded - reads as none", async () => {
+      await processNetworkDeviceWalkFromQueue(makeJobData(makeWalkBody()));
+
+      expect(processedArgs()["probeCapabilities"]).toEqual([]);
+    });
+
+    test("anything that is not a list of capability names is read as none, or cleaned", async () => {
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(makeWalkBody({ probeCapabilities: "snmpTables" })),
+      );
+
+      expect(processedArgs()["probeCapabilities"]).toEqual([]);
+
+      jest.clearAllMocks();
+
+      await processNetworkDeviceWalkFromQueue(
+        makeJobData(
+          makeWalkBody({
+            probeCapabilities: [" snmpTables ", 7, null, "snmpTables"],
+          }),
+        ),
+      );
+
+      expect(processedArgs()["probeCapabilities"]).toEqual(["snmpTables"]);
+    });
+  });
 });

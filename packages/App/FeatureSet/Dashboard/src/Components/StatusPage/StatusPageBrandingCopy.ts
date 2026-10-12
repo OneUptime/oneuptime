@@ -6,6 +6,10 @@ import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  HistoryChartBarColorRuleInput,
+  isRecommendedHistoryChartBarColorRuleSet,
+} from "Common/Utils/StatusPage/HistoryChartBarColors";
 
 /*
  * A status page's Branding page (Status Pages -> a page -> Branding ->
@@ -41,6 +45,24 @@ export const StatusPageBrandingCopy: {
   // The cards under More settings, as its folded header names them.
   defaultBarColorTitle: string;
   barColorRulesTitle: string;
+  // The history chart's cards, and the preview under them (issue #486).
+  defaultBarColorDescription: string;
+  barColorRulesDescription: string;
+  barColorRulesEmptyTitle: string;
+  barColorRulesEmptyDescription: string;
+  useRecommendedRules: string;
+  barColorPreviewTitle: string;
+  barColorPreviewDescription: string;
+  fullColorVision: string;
+  deuteranopia: string;
+  protanopia: string;
+  noData: string;
+  uptimePercentOrMore: string;
+  uptimeUnderPercent: string;
+  withoutRules: string;
+  lookAlike: string;
+  shadowedRule: string;
+  noRuleMatches: string;
   overviewDescriptionTitle: string;
   overviewDescriptionDescription: string;
   overviewDescriptionEditButton: string;
@@ -58,6 +80,39 @@ export const StatusPageBrandingCopy: {
   ),
   defaultBarColorTitle: translationKey("Default Bar Color"),
   barColorRulesTitle: translationKey("Bar Color Rules"),
+  defaultBarColorDescription: translationKey(
+    "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.",
+  ),
+  barColorRulesDescription: translationKey(
+    "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.",
+  ),
+  barColorRulesEmptyTitle: translationKey("No bar color rules"),
+  barColorRulesEmptyDescription: translationKey(
+    "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.",
+  ),
+  useRecommendedRules: translationKey("Use Recommended Rules"),
+  barColorPreviewTitle: translationKey("Bar Color Preview"),
+  barColorPreviewDescription: translationKey(
+    "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.",
+  ),
+  fullColorVision: translationKey("Full color vision"),
+  deuteranopia: translationKey("Deuteranopia (red-green)"),
+  protanopia: translationKey("Protanopia (red-green)"),
+  noData: translationKey("No data"),
+  uptimePercentOrMore: translationKey("{{percent}}% or more"),
+  uptimeUnderPercent: translationKey("Under {{percent}}%"),
+  withoutRules: translationKey(
+    "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.",
+  ),
+  lookAlike: translationKey(
+    "{{first}} and {{second}} look alike to people with red-green color blindness.",
+  ),
+  shadowedRule: translationKey(
+    "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.",
+  ),
+  noRuleMatches: translationKey(
+    "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.",
+  ),
   overviewDescriptionTitle: translationKey("Overview Page Description"),
   overviewDescriptionDescription: translationKey(
     "Shown at the top of your status page's overview, above everything else. Markdown is supported.",
@@ -89,6 +144,10 @@ export const SEARCH_ENGINE_INDEXING_SWITCH_TEST_ID: string =
 export const BRANDING_ADVANCED_SECTION_TEST_ID: string =
   "status-page-branding-advanced";
 
+// The data-testid of Use Recommended Rules, under an empty rules table.
+export const USE_RECOMMENDED_RULES_EMPTY_STATE_TEST_ID: string =
+  "use-recommended-bar-color-rules";
+
 /*
  * What the cards in the Advanced section hold, as each one has loaded it.
  * Anything not loaded yet is left out, and counts as untouched.
@@ -96,10 +155,35 @@ export const BRANDING_ADVANCED_SECTION_TEST_ID: string =
 export interface BrandingAdvancedValues {
   defaultBarColor?: Color | string | null | undefined;
   barColorRuleCount?: number | undefined;
+  // The rules themselves, in their order, as the rules table loaded them.
+  barColorRules?: ReadonlyArray<HistoryChartBarColorRuleInput> | undefined;
   defaultLanguage?: string | null | undefined;
   enabledLanguages?: Array<string> | null | undefined;
   enableSearchEngineIndexing?: boolean | null | undefined;
 }
+
+/*
+ * Whether the bar color rules are some somebody chose. A page made in the
+ * dashboard starts with the recommended ones (StatusPageService), and an
+ * older page, or one made from Terraform, with none: neither is a choice.
+ * Rules not loaded yet count as chosen when there are any, as they always
+ * did.
+ */
+export const areBarColorRulesChosen: (
+  values: BrandingAdvancedValues,
+) => boolean = (values: BrandingAdvancedValues): boolean => {
+  const ruleCount: number = values.barColorRuleCount || 0;
+
+  if (ruleCount === 0) {
+    return false;
+  }
+
+  return !(
+    values.barColorRules &&
+    values.barColorRules.length === ruleCount &&
+    isRecommendedHistoryChartBarColorRuleSet(values.barColorRules)
+  );
+};
 
 /*
  * Whether the default bar color is one somebody chose. Every status page is
@@ -152,7 +236,7 @@ export const getBrandingAdvancedItems: (
       isSet: isDefaultBarColorChosen(values.defaultBarColor),
     }),
     foldedSectionItem(StatusPageBrandingCopy.barColorRulesTitle, {
-      isSet: ruleCount > 0,
+      isSet: areBarColorRulesChosen(values),
       value: String(ruleCount),
     }),
     foldedSectionItem(StatusPageBrandingCopy.languagesTitle, {
@@ -169,9 +253,9 @@ export const getBrandingAdvancedItems: (
 
 /*
  * Whether anything in the More settings section is set to something other
- * than what a new status page starts with: a chosen default bar color, any
- * bar color rule, a default language other than English, a shorter list of
- * languages, or search engines kept away.
+ * than what a new status page starts with: a chosen default bar color, bar
+ * color rules other than the recommended ones, a default language other
+ * than English, a shorter list of languages, or search engines kept away.
  */
 export const isBrandingAdvancedConfigured: (
   values: BrandingAdvancedValues,
@@ -180,7 +264,7 @@ export const isBrandingAdvancedConfigured: (
     return true;
   }
 
-  if ((values.barColorRuleCount || 0) > 0) {
+  if (areBarColorRulesChosen(values)) {
     return true;
   }
 

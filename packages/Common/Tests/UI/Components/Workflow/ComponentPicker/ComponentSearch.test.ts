@@ -483,6 +483,22 @@ describe("hand-written steps and resources together", () => {
     );
     expect(titles(ACTIONS, "oftc")).toEqual(["Send Message to IRC"]);
     expect(titles(ACTIONS, "send irc message")[0]).toBe("Send Message to IRC");
+    expect(titles(ACTIONS, "mattermost")).toEqual([
+      "Send Message to Mattermost",
+    ]);
+    expect(titles(ACTIONS, "send mattermost message")[0]).toBe(
+      "Send Message to Mattermost",
+    );
+    expect(titles(ACTIONS, "post to mattermost channel")[0]).toBe(
+      "Send Message to Mattermost",
+    );
+    // A typo still finds it.
+    expect(titles(ACTIONS, "matermost")[0]).toBe("Send Message to Mattermost");
+    // Its keywords do not pull it above the step a word means.
+    expect(titles(ACTIONS, "send slack message")[0]).toBe(
+      "Send Message to Slack",
+    );
+    expect(titles(ACTIONS, "send a webhook")[0]).toBe("API Post (JSON)");
     expect(titles(ACTIONS, "resolve incident")[0]).toBe("Update One Incident");
     expect(titles(ACTIONS, "open an incident")[0]).toBe("Create One Incident");
 

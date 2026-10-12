@@ -9,8 +9,6 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
-import Icon from "../../../UI/Components/Icon/Icon";
-import { DEFAULT_CATEGORY_ICON } from "../../../UI/Components/Navbar/NavBarCategoryToggle";
 import Navigation from "../../../UI/Utils/Navigation";
 import { Location } from "react-router-dom";
 
@@ -322,64 +320,33 @@ describe("Navbar", () => {
       ).toBeInTheDocument();
     });
 
-    // What <Icon icon={icon} /> draws, to compare a row's glyph against.
-    function glyphOf(icon: IconProp): string {
-      const { container, unmount } = render(<Icon icon={icon} />);
-      const markup: string = container.querySelector("svg")!.innerHTML;
-      unmount();
-      return markup;
-    }
+    it("draws a category's row without an icon, its products with theirs", () => {
+      openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] });
 
-    // The glyph a category's row draws before its name.
-    function categoryIcon(category: string): string {
-      const heading: HTMLElement = screen.getByRole("heading", {
-        level: 3,
-        name: category,
-      });
-      return heading.querySelector("svg")!.innerHTML;
-    }
-
-    it("draws each category with the icon it was given, and the menu's own for the rest", () => {
-      openPhoneMenu({
-        moreMenuCategoriesOpenByDefault: ["Essentials"],
-        moreMenuCategoryIcons: {
-          Essentials: IconProp.Star,
-          Infrastructure: IconProp.ServerStack,
-        },
-      });
-
-      expect(categoryIcon("Essentials")).toBe(glyphOf(IconProp.Star));
-      expect(categoryIcon("Infrastructure")).toBe(
-        glyphOf(IconProp.ServerStack),
-      );
-      expect(categoryIcon("Observability")).toBe(
-        glyphOf(DEFAULT_CATEGORY_ICON),
-      );
-    });
-
-    it("draws a category row as the product rows are: the icon before the name, the same size", () => {
-      openPhoneMenu({
-        moreMenuCategoriesOpenByDefault: ["Essentials"],
-        moreMenuCategoryIcons: { Infrastructure: IconProp.ServerStack },
-      });
-
-      const productIcon: SVGElement = screen
-        .getByRole("link", { name: "Monitors" })
-        .querySelector("svg")!;
-      const rowIcon: SVGElement = screen
-        .getByRole("heading", { level: 3, name: "Infrastructure" })
-        .querySelector("svg")!;
-
-      for (const token of ["mr-1", "h-4", "w-4", "stroke-2"]) {
-        expect([token, productIcon.classList.contains(token)]).toEqual([
-          token,
-          true,
+      for (const category of [
+        "Essentials",
+        "Observability",
+        "Infrastructure",
+      ]) {
+        const row: HTMLElement = screen
+          .getByRole("button", { name: category })
+          .closest("div.relative") as HTMLElement;
+        expect([category, row.querySelectorAll("svg").length]).toEqual([
+          category,
+          // The chevron, and nothing else.
+          1,
         ]);
-        expect([token, rowIcon.classList.contains(token)]).toEqual([
-          token,
-          true,
-        ]);
+        expect([
+          category,
+          screen
+            .getByRole("heading", { level: 3, name: category })
+            .querySelector("svg"),
+        ]).toEqual([category, null]);
       }
+
+      expect(
+        screen.getByRole("link", { name: "Monitors" }).querySelector("svg"),
+      ).not.toBeNull();
       expect(
         screen.getByRole("button", { name: "Infrastructure" }),
       ).toHaveClass("text-base", "font-medium", "text-gray-900");
@@ -456,7 +423,7 @@ describe("Navbar", () => {
   });
 
   describe("the desktop products menu", () => {
-    it("draws each folded category's row with the icon the navbar was given for it", () => {
+    it("draws each folded category's row without an icon", () => {
       // Nothing opened or folded before, by the phone menu's tests above.
       window.localStorage.clear();
       Object.defineProperty(window, "innerWidth", {
@@ -500,7 +467,6 @@ describe("Navbar", () => {
             },
           ]}
           moreMenuCategoriesOpenByDefault={["Essentials"]}
-          moreMenuCategoryIcons={{ Infrastructure: IconProp.ServerStack }}
         />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Products" }));
@@ -508,10 +474,11 @@ describe("Navbar", () => {
       const row: HTMLElement = screen
         .getByRole("button", { name: "Infrastructure" })
         .closest("div.relative") as HTMLElement;
-      const { container } = render(<Icon icon={IconProp.ServerStack} />);
 
-      expect(row.querySelector("svg")!.innerHTML).toBe(
-        container.querySelector("svg")!.innerHTML,
+      // The chevron is the row's only drawing, and the name comes first.
+      expect(row.querySelectorAll("svg")).toHaveLength(1);
+      expect(row.firstElementChild).toBe(
+        screen.getByRole("heading", { level: 3, name: "Infrastructure" }),
       );
       // The category it opens on is a row as well, open.
       expect(

@@ -40,7 +40,7 @@ Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen
 
 ## Hva du kan bruke arbeidsflyter til
 
-- **Koble OneUptime til de andre verktøyene dine** — post i Slack, Microsoft Teams, Discord, Telegram eller IRC, opprett Jira-saker, eller send en forespørsel til et hvilket som helst API i stakken din.
+- **Koble OneUptime til de andre verktøyene dine** — post i Slack, Microsoft Teams, Discord, Telegram, IRC eller Mattermost, opprett Jira-saker, eller send en forespørsel til et hvilket som helst API i stakken din.
 - **Reager på det som skjer i OneUptime** — når en hendelse opprettes, gi beskjed i riktig kanal og åpne en sak automatisk.
 - **Kjør jobber etter en tidsplan** — hvert femte minutt, hver natt, hver mandag morgen.
 - **Ta imot data utenfra** — la andre systemer starte en arbeidsflyt ved å kalle URL-en dens eller sende e-post til adressen dens.

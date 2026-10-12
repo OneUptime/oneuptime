@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
@@ -104,8 +105,6 @@ const SOURCES: Record<string, string> = {
 
 const DASHBOARD_PAGES_DIR: string = path.join(REPO_DIR, DASHBOARD, "Pages");
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A section of an object-literal side menu: its title, whether it says it starts folded, and its links.
 interface MenuSection {
   title: string;
@@ -158,10 +157,6 @@ function readSource(key: string): string {
 
 function english(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 function adminLocale(): Record<string, unknown> {
@@ -274,7 +269,7 @@ function startsFolded(section: MenuSection): boolean {
 // The value a "key: "value"," line of a source file holds.
 function quotedValue(source: string, key: string): string {
   const match: RegExpExecArray | null = new RegExp(
-    `${escapeRegex(key)}: "([^"]+)"`,
+    `${escapeRegExp(key)}: "([^"]+)"`,
   ).exec(source);
 
   expect({ key, found: Boolean(match) }).toEqual({ key, found: true });
@@ -285,7 +280,7 @@ function quotedValue(source: string, key: string): string {
 // The text a "name: translationKey("...")" entry of a source file holds.
 function translationKeyOf(source: string, name: string): string {
   const match: RegExpExecArray | null = new RegExp(
-    `${escapeRegex(name)}: translationKey\\("([^"]+)"\\)`,
+    `${escapeRegExp(name)}: translationKey\\("([^"]+)"\\)`,
   ).exec(source);
 
   expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
@@ -307,7 +302,7 @@ function blockFrom(source: string, marker: string, end: string): string {
 // The first fenced block of a page with this info string.
 function fencedBlock(markdown: string, info: string): string {
   const match: RegExpExecArray | null = new RegExp(
-    "```" + escapeRegex(info) + "\\n([\\s\\S]*?)\\n```",
+    "```" + escapeRegExp(info) + "\\n([\\s\\S]*?)\\n```",
   ).exec(markdown);
 
   expect({ info, found: Boolean(match) }).toEqual({ info, found: true });
@@ -1005,14 +1000,14 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     );
     expect(rowText(adding, "**Transport**")).toMatch(
       new RegExp(
-        `^${escapeRegex(
+        `^${escapeRegExp(
           `\`${MailTransportType.SMTP}\` (the default), or \`${MailTransportType.MicrosoftGraph}\``,
         )}`,
       ),
     );
     expect(rowText(adding, "**Authentication Type**")).toMatch(
       new RegExp(
-        `^${escapeRegex(
+        `^${escapeRegExp(
           `\`${SMTPAuthenticationType.UsernamePassword}\` (the default), \`${SMTPAuthenticationType.OAuth}\`, or \`${SMTPAuthenticationType.None}\``,
         )}`,
       ),

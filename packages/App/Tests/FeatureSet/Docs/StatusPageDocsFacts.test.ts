@@ -30,7 +30,7 @@ import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { SECTION_TITLES_COLLAPSED_BY_DEFAULT } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import { readPage } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
-import { boldSpans, prose } from "./DocsTranslationChecks";
+import { boldSpans, escapeRegExp, prose } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -586,7 +586,7 @@ describe("the Status Pages Overview: what visitors see", () => {
     ] as Array<[string, string]>) {
       expect(items).toMatch(
         new RegExp(
-          `if \\(${condition.replace(/\./g, "\\.")}\\) \\{\\s*addNavItem\\(\\{\\s*id: "${item}"`,
+          `if \\(${escapeRegExp(condition)}\\) \\{\\s*addNavItem\\(\\{\\s*id: "${escapeRegExp(item)}"`,
         ),
       );
     }
@@ -650,7 +650,7 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
       // The first "on/off by default" after the switch's name, on its line.
       const said: RegExpMatchArray | null = card.match(
         new RegExp(
-          `\\*\\*${definition.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\*\\*[^\\n]*?\\b(on|off) by default`,
+          `\\*\\*${escapeRegExp(definition.title)}\\*\\*[^\\n]*?\\b(on|off) by default`,
         ),
       );
 

@@ -38,7 +38,7 @@ import {
   drawnActionLabel,
 } from "./DocsDashboardLabels";
 import { PATH_SEPARATOR } from "./DocsPageShape";
-import { comparableFence } from "./DocsTranslationChecks";
+import { comparableFence, escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -417,12 +417,6 @@ const menuPath: MenuPathFunction = (
       return draw(language, segment);
     })
     .join(PATH_SEPARATOR)}**`;
-};
-
-type EscapeRegexFunction = (text: string) => string;
-
-const escapeRegex: EscapeRegexFunction = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 type StepsOfFunction = (markdown: string) => Array<string>;
@@ -1029,7 +1023,7 @@ describe("One Status Page per Audience docs", () => {
       for (const language of ALL_LANGUAGES) {
         const guide: string = readPage(GUIDE_PAGE, language);
         const draw: (english: string) => string = (english: string): string => {
-          return escapeRegex(drawnActionLabel(language, english));
+          return escapeRegExp(drawnActionLabel(language, english));
         };
 
         expect(guide).toContain(menuPath(language, ["Advanced", "Settings"]));
@@ -1456,7 +1450,7 @@ describe("One Status Page per Audience docs", () => {
         const overview: string = readPage("status-pages/index", language);
 
         // The switch's name, then its column in parentheses, full-width ones in CJK.
-        const switchName: string = escapeRegex(
+        const switchName: string = escapeRegExp(
           drawnActionLabel(
             language,
             IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,

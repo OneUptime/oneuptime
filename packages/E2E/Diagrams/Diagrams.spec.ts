@@ -190,6 +190,105 @@ const recordPageErrors: PageErrorsFunction = (page: Page): Array<string> => {
   return errors;
 };
 
+interface DrawnLine {
+  diagram: number;
+  line: string;
+  words: Array<string>;
+}
+
+type WordsLeftToRightFunction = (
+  page: Page,
+  drawn: DrawnLine,
+) => Promise<Array<string>>;
+
+/*
+ * Some words of one line a docs diagram draws - a line of a label, a
+ * sequence diagram's SVG text, or the caption - in the order they are drawn
+ * from left to right, each placed where its first character is drawn. A
+ * line laid out right to left draws its first word rightmost, whatever
+ * script that word is in.
+ */
+const wordsLeftToRight: WordsLeftToRightFunction = async (
+  page: Page,
+  drawn: DrawnLine,
+): Promise<Array<string>> => {
+  return page.evaluate((lineToRead: DrawnLine): Array<string> => {
+    const box: Element = document.querySelectorAll(".docs-diagram")[
+      lineToRead.diagram
+    ] as Element;
+    const texts: TreeWalker = document.createTreeWalker(
+      box,
+      NodeFilter.SHOW_TEXT,
+    );
+    let found: Text | null = null;
+
+    for (
+      let node: Node | null = texts.nextNode();
+      node;
+      node = texts.nextNode()
+    ) {
+      if (
+        (node.textContent || "").replace(/\s+/g, " ").trim() === lineToRead.line
+      ) {
+        found = node as Text;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw new Error(`The diagram draws no line "${lineToRead.line}"`);
+    }
+
+    const text: Text = found;
+    const svgText: SVGTextContentElement | null = (text.parentElement?.closest(
+      "text",
+    ) || null) as SVGTextContentElement | null;
+
+    const xOf: (offset: number) => number = (offset: number): number => {
+      if (svgText) {
+        // Its place among the characters of the whole <text> element.
+        let before: number = 0;
+        const inText: TreeWalker = document.createTreeWalker(
+          svgText,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = inText.nextNode();
+          node && node !== text;
+          node = inText.nextNode()
+        ) {
+          before += (node.textContent || "").length;
+        }
+
+        return svgText.getExtentOfChar(before + offset).x;
+      }
+
+      const range: Range = document.createRange();
+      range.setStart(text, offset);
+      range.setEnd(text, offset + 1);
+      return range.getBoundingClientRect().left;
+    };
+
+    return lineToRead.words
+      .map((word: string): { word: string; x: number } => {
+        const offset: number = text.data.indexOf(word);
+
+        if (offset < 0) {
+          throw new Error(`"${word}" is not in "${lineToRead.line}"`);
+        }
+
+        return { word: word, x: xOf(offset) };
+      })
+      .sort((a: { x: number }, b: { x: number }): number => {
+        return a.x - b.x;
+      })
+      .map((entry: { word: string }): string => {
+        return entry.word;
+      });
+  }, drawn);
+};
+
 test.describe("the Dashboard's markdown viewer", () => {
   const diagramsIn: (page: Page) => Locator = (page: Page): Locator => {
     return page.getByTestId("markdown").locator('svg[id^="mermaid-"]');
@@ -569,6 +668,181 @@ test.describe("the docs", () => {
       }),
     ).toBe("ltr");
     expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
+  test("lays every line of a Persian diagram out right to left, one that opens with a Latin word too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/docs?diagrams=persian&lang=fa");
+    await expect(diagramsIn(page)).toHaveCount(3);
+
+    // A flowchart's node and link labels: each line's first word is drawn rightmost.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "OneUptime حساب",
+        words: ["OneUptime", "حساب"],
+      }),
+    ).toEqual(["حساب", "OneUptime"]);
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "OTLP به",
+        words: ["OTLP", "به"],
+      }),
+    ).toEqual(["به", "OTLP"]);
+    // The comma that ends a line is drawn at its left end, where it ends.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "را می‌خواند،",
+        words: ["را", "،"],
+      }),
+    ).toEqual(["،", "را"]);
+    // A line of Latin words only reads as it is written.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "localhost:4318",
+        words: ["localhost", "4318"],
+      }),
+    ).toEqual(["localhost", "4318"]);
+    // The caption.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "OneUptime چگونه حساب شما را می‌خواند",
+        words: ["OneUptime", "چگونه", "می‌خواند"],
+      }),
+    ).toEqual(["می‌خواند", "چگونه", "OneUptime"]);
+    // A sequence diagram's message and note, drawn as SVG text.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 1,
+        line: "OTLP به OneUptime",
+        words: ["OTLP", "به", "OneUptime"],
+      }),
+    ).toEqual(["OneUptime", "به", "OTLP"]);
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 1,
+        line: "امضا را بررسی می‌کند،",
+        words: ["امضا", "،"],
+      }),
+    ).toEqual(["،", "امضا"]);
+    // A state diagram's transition label.
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 2,
+        line: "OTLP نیست",
+        words: ["OTLP", "نیست"],
+      }),
+    ).toEqual(["نیست", "OTLP"]);
+
+    // The diagrams themselves still lay out, and scroll, left to right.
+    expect(
+      await page
+        .locator(".docs-diagram")
+        .first()
+        .evaluate((element: Element) => {
+          return getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+  });
+
+  test("draws an English diagram as it always has: each line in the direction of its first letter", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/docs?diagrams=rules");
+    await expect(diagramsIn(page)).toHaveCount(1);
+
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "Rule 1:",
+        words: ["Rule", ":"],
+      }),
+    ).toEqual(["Rule", ":"]);
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "Rule 1: the first match",
+        words: ["Rule", "match"],
+      }),
+    ).toEqual(["Rule", "match"]);
+    expect(
+      await page
+        .locator(".docs-diagram .mermaid foreignObject p")
+        .first()
+        .evaluate((element: Element) => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          return [style.direction, style.unicodeBidi];
+        }),
+    ).toEqual(["ltr", "plaintext"]);
+
+    // A sequence diagram's text is left to right, like the diagram.
+    await page.goto("/docs");
+    await expect(diagramsIn(page)).toHaveCount(2);
+    expect(
+      await diagramsIn(page)
+        .nth(1)
+        .locator("text")
+        .first()
+        .evaluate((element: Element) => {
+          return getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 1,
+        line: "Hello Bob",
+        words: ["Hello", "Bob"],
+      }),
+    ).toEqual(["Hello", "Bob"]);
+  });
+
+  test("turns the lines right to left by the article's direction: the English copy of an untranslated page stays left to right on a Persian page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * On a Persian article every line is laid out right to left, so a line
+     * of Latin words that ends in a colon draws it first: the docs tests
+     * keep such a line off the Persian pages.
+     */
+    await page.goto("/docs?diagrams=rules&lang=fa");
+    await expect(diagramsIn(page)).toHaveCount(1);
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "Rule 1:",
+        words: ["Rule", ":"],
+      }),
+    ).toEqual([":", "Rule"]);
+
+    // The English copy, served on the same Persian page, reads as written.
+    await page.goto("/docs?diagrams=rules&lang=fa&content=en");
+    await expect(diagramsIn(page)).toHaveCount(1);
+    expect(await page.locator("html").getAttribute("dir")).toBe("rtl");
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "Rule 1:",
+        words: ["Rule", ":"],
+      }),
+    ).toEqual(["Rule", ":"]);
+    expect(
+      await wordsLeftToRight(page, {
+        diagram: 0,
+        line: "Rule 1: the first match",
+        words: ["Rule", "match"],
+      }),
+    ).toEqual(["Rule", "match"]);
   });
 
   test("ends in the last theme, every label drawn, when the theme is switched twice in a row", async ({

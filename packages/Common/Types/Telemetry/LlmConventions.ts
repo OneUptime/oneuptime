@@ -124,6 +124,61 @@ export const LlmTotalTokenAttributeKeys: Array<string> = [
 ];
 
 /*
+ * Prompt-cache usage: the input tokens a call read from the provider's prompt
+ * cache, and the ones it wrote to it. Both are PART of the input count in
+ * every convention below - the GenAI conventions say
+ * gen_ai.usage.input_tokens SHOULD include them, and OpenInference's
+ * prompt_details are sub-counts of llm.token_count.prompt - and they cost
+ * differently from the rest of the input (a cache read costs a tenth of an
+ * input token on most Claude models, a cache write more), which is what the
+ * cost estimate reads them for. LlmTokenUsage holds the arithmetic.
+ *
+ *   - gen_ai.usage.cache_read.input_tokens / cache_write.input_tokens: the
+ *     GenAI conventions. cache_creation.input_tokens is the conventions'
+ *     older name for a write, which OpenLLMetry still sends.
+ *   - gen_ai.usage.cache_read_input_tokens / cache_creation_input_tokens:
+ *     OpenLLMetry before its 0.5 conventions.
+ *   - llm.token_count.prompt_details.cache_read / cache_write: OpenInference.
+ */
+export const LlmCacheReadTokenAttributeKeys: Array<string> = [
+  "gen_ai.usage.cache_read.input_tokens",
+  "gen_ai.usage.cache_read_input_tokens",
+  "llm.token_count.prompt_details.cache_read",
+];
+
+export const LlmCacheWriteTokenAttributeKeys: Array<string> = [
+  "gen_ai.usage.cache_write.input_tokens",
+  "gen_ai.usage.cache_creation.input_tokens",
+  "gen_ai.usage.cache_creation_input_tokens",
+  "llm.token_count.prompt_details.cache_write",
+];
+
+/*
+ * Claude Code's traces beta (the claude_code.llm_request span) names its
+ * model with gen_ai.system and gen_ai.request.model, but sets no
+ * gen_ai.usage.* key: it writes the Anthropic API's usage block under these
+ * bare names instead. Its input_tokens LEAVES OUT the tokens read from and
+ * written to the prompt cache, which it reports apart - so, as Claude Code's
+ * own monitoring docs say to, the GenAI input count is their sum.
+ *
+ * The names are generic, so they are read only on a span that already names
+ * its model or provider and reports no input or output count of the lists
+ * above: never on their own, never over a convention's own count, and never
+ * mixed with a convention's cache counts.
+ */
+export const ClaudeCodeUsageAttributeKeys: {
+  inputTokens: string;
+  outputTokens: string;
+  cacheReadTokens: string;
+  cacheWriteTokens: string;
+} = {
+  inputTokens: "input_tokens",
+  outputTokens: "output_tokens",
+  cacheReadTokens: "cache_read_tokens",
+  cacheWriteTokens: "cache_creation_tokens",
+};
+
+/*
  * Cost in USD. A reported cost always wins; when absent, ingest computes an
  * estimate from token counts via Common/Types/Telemetry/LlmCostCatalog.ts.
  */

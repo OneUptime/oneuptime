@@ -36,6 +36,7 @@ import {
   getFeedEventTypeLabel,
 } from "Common/UI/Components/Feed/FeedOptions";
 import { INCIDENT_PREFILL_RESOURCE_KEYS } from "Common/Utils/Incident/IncidentFromAlerts";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -616,12 +617,6 @@ const incidentsGroup: IncidentsGroupFunction = (): NavGroup => {
   expect(group).toBeDefined();
 
   return group as NavGroup;
-};
-
-type EscapeRegExpFunction = (text: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 type TableRowStartingWithFunction = (

@@ -18,6 +18,29 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * 0 is an uptime. "At least 0%" is the rule at the bottom of a list that
+   * every day reaches - the recommended rules end with it - and the
+   * required-column check reads 0 as missing: a rule made with 0 was refused
+   * as "uptimePercentGreaterThanOrEqualTo is required", from the dashboard's
+   * form as from the API. Any number is a value of it; anything else is
+   * still read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "uptimePercentGreaterThanOrEqualTo" &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

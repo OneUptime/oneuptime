@@ -120,7 +120,7 @@ Welche Adressen ein Baustein erreichen darf, hängt vom Baustein ab:
 
 | Bausteine                                                  | Loopback, Link-Local, Cloud-Metadaten                                  | Private Netzwerkadressen                                                                                                              |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**-Bausteine und Anfragen von **Run Custom JavaScript** | Abgelehnt, es sei denn, der genaue Host steht in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Abgelehnt, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt sie mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **API**- und **Mattermost**-Bausteine sowie Anfragen von **Run Custom JavaScript** | Abgelehnt, es sei denn, der genaue Host steht in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Abgelehnt, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt sie mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** und Token-URLs von OAuth 2.0       | Abgelehnt                                                              | In OneUptime Cloud abgelehnt. Auf einer selbst gehosteten Installation erlaubt, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true` |
 | Slack, Microsoft Teams, Discord und Telegram               | Abgelehnt                                                              | Abgelehnt: Jeder sendet nur an die Adressen seines eigenen Dienstes                                                                    |
 
@@ -201,7 +201,7 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-
 
 Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Error**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
 
-Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
+Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
 
 ## Plan-Grenzen
 

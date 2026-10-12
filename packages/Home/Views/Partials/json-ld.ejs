@@ -1,0 +1,16 @@
+<%#
+  Structured data (JSON-LD) for search engines, written from an object.
+
+  JSON.stringify writes every value as JSON: quotes, backslashes and line
+  breaks escaped, numbers and booleans as they are. Every "<" is then written
+  as \u003c, which a JSON reader reads as the same character, so no value can
+  end this script element. Values are not HTML-escaped: a script element's
+  text is never read for character references, so an "&#39;" there would
+  reach search engines as those six characters instead of an apostrophe.
+
+  Every JSON-LD block of the site is written through this partial; the Home
+  tests hold the views to that.
+-%>
+<script type="application/ld+json">
+<%- JSON.stringify(schema, null, 4).replace(/</g, '\\u003c') %>
+</script>

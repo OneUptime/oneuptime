@@ -1,5 +1,6 @@
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { dashboardLocale, drawnActionLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
  * How each docs language names the Network area's labels on the network
@@ -102,7 +103,6 @@ export const VERDICT_HEADLINES: Readonly<Record<string, string>> = {
 const EXPLANATION_START: RegExp = /\s*[—–]\s*|:\s+/;
 const TRAILING_PARENTHETICAL: RegExp = /\s*[(（][^()（）]*[)）]\s*$/;
 const PLURAL_SUFFIX: RegExp = /_(?:zero|one|two|few|many|other)$/;
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 // "{{count}}" once escaped for a pattern.
 const ESCAPED_COUNT: RegExp = /\\\{\\\{count\\\}\\\}/g;
 
@@ -196,9 +196,7 @@ export function verdictPatterns(
   }
 
   return forms.map((form: string): RegExp => {
-    return new RegExp(
-      `^${form.replace(REGEX_SPECIAL, "\\$&").replace(ESCAPED_COUNT, "\\d+")}$`,
-    );
+    return new RegExp(`^${escapeRegExp(form).replace(ESCAPED_COUNT, "\\d+")}$`);
   });
 }
 

@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import StateMoveUtil, { StateMoveRecord } from "Common/Utils/StateMove";
 import { describe, expect, it } from "@jest/globals";
@@ -198,7 +199,7 @@ function templatePattern(template: string): RegExp {
   return new RegExp(
     `^${pieces
       .map((piece: string): string => {
-        return piece.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return escapeRegExp(piece);
       })
       .join(".+?")}$`,
   );

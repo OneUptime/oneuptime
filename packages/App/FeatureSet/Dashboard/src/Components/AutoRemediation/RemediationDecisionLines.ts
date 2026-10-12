@@ -39,6 +39,9 @@ import {
  * did not run because another lane took the signal says nothing: the line
  * of the lane that did act says it all.
  *
+ * The lines also give the card its status pill (getRemediationDecisionStatus):
+ * the decision in a few words, by the tone that matters most.
+ *
  * React-free, so App's tests can read it; RemediationSuggestionCard draws it.
  */
 
@@ -139,6 +142,58 @@ export const REMEDIATION_DECISION_HEADING: string = translationKey(
 export const REMEDIATION_DECISION_CARD_DESCRIPTION: string = translationKey(
   "What OneUptime did to fix this automatically, or why it did nothing.",
 );
+
+/*
+ * The decision in a few words, for the status pill in the card's header,
+ * so "did it fix itself?" is answered before a sentence is read.
+ */
+export interface RemediationDecisionStatus {
+  tone: RemediationDecisionTone;
+  // An English key: the pill translates it.
+  text: string;
+}
+
+export const REMEDIATION_DECISION_STATUS_TEXT: Record<
+  RemediationDecisionTone,
+  string
+> = {
+  waiting: translationKey("Waiting for investigation"),
+  attention: translationKey("Needs attention"),
+  acted: translationKey("Action taken"),
+  info: translationKey("No action taken"),
+};
+
+/*
+ * Which line's tone the pill takes when the lines differ. A line that needs
+ * attention outranks one that acted: the pill is there to send the reader
+ * to what they must look at, and "Action taken" would hide a cluster that
+ * still cannot be fixed. Lines that only say how things stand took no
+ * action.
+ */
+const STATUS_TONE_ORDER: Array<RemediationDecisionTone> = [
+  "waiting",
+  "attention",
+  "acted",
+  "info",
+];
+
+export function getRemediationDecisionStatus(
+  lines: Array<RemediationDecisionLine>,
+): RemediationDecisionStatus | null {
+  for (const tone of STATUS_TONE_ORDER) {
+    const hasTone: boolean = lines.some(
+      (line: RemediationDecisionLine): boolean => {
+        return line.tone === tone;
+      },
+    );
+
+    if (hasTone) {
+      return { tone, text: REMEDIATION_DECISION_STATUS_TEXT[tone] };
+    }
+  }
+
+  return null;
+}
 
 const LINK_CLUSTER_AI_PAGE: string = translationKey(
   "Open the cluster's AI agent page",

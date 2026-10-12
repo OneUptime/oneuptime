@@ -20,6 +20,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -341,7 +342,6 @@ const NAMED_FROM_PICKS: Array<{
   },
 ];
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 // The Arabic decimal separator (U+066B) Persian writes inside a number.
@@ -360,10 +360,6 @@ function listed(
   page: string,
 ): Array<string> {
   return lists[page] || [];
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 // How many times a text holds a piece of text.
@@ -551,7 +547,7 @@ function namedFromPicks(
 
 // An italic span around a text, written with underscores or asterisks.
 function italicPattern(text: string): RegExp {
-  return new RegExp(`[_*]${escapeRegex(text)}[_*]`);
+  return new RegExp(`[_*]${escapeRegExp(text)}[_*]`);
 }
 
 describe("the lists this test keeps", () => {

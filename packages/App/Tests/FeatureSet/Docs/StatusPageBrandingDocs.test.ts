@@ -2,6 +2,11 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "Common/Types/StatusPage/StatusPageLanguage";
+import {
+  ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY,
+  HistoryChartBarColorRuleValues,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "Common/Utils/StatusPage/HistoryChartBarColors";
 import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
@@ -115,8 +120,9 @@ describe("Status Page Branding & Domains (English)", () => {
     );
 
     for (const card of [
-      "**Default Bar Color of the History Chart**",
-      "**Rules for Bar Colors of History Chart**",
+      "**Default Bar Color**",
+      "**Bar Color Rules**",
+      "**Bar Color Preview**",
       "**Languages**",
       "**Search Engine Indexing.**",
     ]) {
@@ -141,9 +147,74 @@ describe("Status Page Branding & Domains (English)", () => {
     );
 
     expect(advanced).toContain(
-      "Click it to open it: it is one card, the four sections one under the other, each with its own title and button, separated by dividers.",
+      "Click it to open it: it is one card, its sections one under the other, each with its own title, separated by dividers.",
     );
     expect(advanced).not.toContain("four cards");
+  });
+
+  /*
+   * Issue #486. The cards were renamed for what they do, a day without
+   * rules takes its most severe status's color (it said "the lowest"), and
+   * the recommended rules a new page starts with are listed: from the code,
+   * so the page cannot quietly drift from what a new page gets.
+   */
+  it("names the history chart cards as the page draws them, and says how a day is colored without rules", () => {
+    const advanced: string = page.slice(
+      page.indexOf("### More settings"),
+      page.indexOf("## Uptime percent and downtime statuses"),
+    );
+
+    for (const gone of [
+      "Default Bar Color of the History Chart",
+      "Rules for Bar Colors of History Chart",
+      "the lowest monitor status",
+    ]) {
+      expect([gone, advanced.includes(gone)]).toEqual([gone, false]);
+    }
+
+    expect(advanced).toContain(
+      "Without rules, a day takes the color of the most severe monitor status it had, however briefly",
+    );
+    expect(advanced).toContain(
+      "A day the page has no data for is always drawn gray with diagonal stripes, whatever the rules say.",
+    );
+    expect(advanced).toContain(
+      "a rule below one with the same or a lower percentage never colors a day",
+    );
+  });
+
+  it("lists the recommended rules as a new status page gets them", () => {
+    // A row of the table: | 99 | `#fde047` pale yellow | ... |
+    const ruleRow: RegExp = /^\| (\d+) \| `(#[0-9a-f]{6})` /;
+
+    const rows: Array<[number, string]> = page
+      .split("\n")
+      .filter((line: string): boolean => {
+        return ruleRow.test(line);
+      })
+      .map((line: string): [number, string] => {
+        const match: RegExpMatchArray = line.match(ruleRow)!;
+
+        return [Number(match[1]), match[2]!];
+      });
+
+    expect(rows).toEqual(
+      RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES.map(
+        (rule: HistoryChartBarColorRuleValues): [number, string] => {
+          return [
+            rule.uptimePercentGreaterThanOrEqualTo,
+            rule.barColor.toString().toLowerCase(),
+          ];
+        },
+      ),
+    );
+  });
+
+  it("tells an API caller how to ask for the recommended rules", () => {
+    expect(page).toContain(
+      `\`"miscDataProps": {"${ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY}": true}\``,
+    );
+    expect(page).toContain("**Use Recommended Rules**");
   });
 
   it("says search engine indexing saves when the switch is flipped, with no Edit button", () => {

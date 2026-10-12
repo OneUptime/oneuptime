@@ -224,19 +224,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "rum/browser-setup": {
-    pageLinks: ["fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "rum/index": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "rum/mobile-setup": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "rum/session-replay-troubleshooting": {
     pageLinks: ["fa"],
     codeLanguage: EN,
@@ -247,32 +234,11 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "rum/web-vitals": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/ai-agent-circuit-breaker": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/ai-gateways": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/gemini-cli-and-copilot": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/security-events": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
   "telemetry/session-replay": {
     pageLinks: ["fa"],
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "telemetry/threat-intelligence": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "terraform/complete-guide": {
     codeLanguage: EN,

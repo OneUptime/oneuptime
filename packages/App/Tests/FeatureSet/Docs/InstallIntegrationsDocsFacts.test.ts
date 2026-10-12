@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
@@ -147,8 +148,6 @@ const mergeEnvScript: {
 } = require(path.join(REPO_DIR, "Scripts", "Install", "MergeEnvTemplate.js"));
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A row of a Markdown table.
 const TABLE_ROW: RegExp = /^\|.*\|$/;
 
@@ -215,10 +214,6 @@ function sourceExists(relativePath: string): boolean {
 
 function english(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 // A cell's text without the backticks or bold marks around it.
@@ -320,7 +315,7 @@ function rowOf(text: string, firstCell: string): Array<string> {
 function fencedBlocks(markdown: string, info: string): Array<string> {
   return [
     ...markdown.matchAll(
-      new RegExp("^```" + escapeRegex(info) + "\\n([\\s\\S]*?)\\n```", "gm"),
+      new RegExp("^```" + escapeRegExp(info) + "\\n([\\s\\S]*?)\\n```", "gm"),
     ),
   ].map((match: RegExpExecArray): string => {
     return match[1] as string;
@@ -344,7 +339,7 @@ function registersRoute(
   method: "get" | "post",
   route: string,
 ): boolean {
-  return new RegExp(`router\\.${method}\\(\\s*"${escapeRegex(route)}"`).test(
+  return new RegExp(`router\\.${method}\\(\\s*"${escapeRegExp(route)}"`).test(
     source,
   );
 }
@@ -1719,7 +1714,7 @@ describe("Slack Integration, against the manifest and the server", () => {
       expect({
         route,
         signed: new RegExp(
-          `router\\.post\\(\\s*"${escapeRegex(route)}",\\s*SlackAuthorization\\.isAuthorizedSlackRequest`,
+          `router\\.post\\(\\s*"${escapeRegExp(route)}",\\s*SlackAuthorization\\.isAuthorizedSlackRequest`,
         ).test(api),
       }).toEqual({ route, signed: true });
     }

@@ -174,6 +174,11 @@ const MULTI_LINE_TEXT_ARGUMENTS: Array<[string, ComponentID, string]> = [
     "text",
   ],
   [
+    "Send Message to Mattermost → Message Text",
+    ComponentID.MattermostSendMessageToChannel,
+    "text",
+  ],
+  [
     "Generate Text with AI → System Instructions",
     ComponentID.AIGenerateText,
     "system-prompt",
@@ -350,6 +355,30 @@ const SINGLE_LINE_ARGUMENTS: Array<
     ComponentID.IRCSendMessageToChannel,
     "sasl-password",
     FormFieldSchemaType.Password,
+  ],
+  [
+    "Send Message to Mattermost → Mattermost Incoming Webhook URL",
+    ComponentID.MattermostSendMessageToChannel,
+    "webhook-url",
+    FormFieldSchemaType.URL,
+  ],
+  [
+    "Send Message to Mattermost → Channel",
+    ComponentID.MattermostSendMessageToChannel,
+    "channel",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send Message to Mattermost → Username",
+    ComponentID.MattermostSendMessageToChannel,
+    "username",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send Message to Mattermost → Icon URL",
+    ComponentID.MattermostSendMessageToChannel,
+    "icon-url",
+    FormFieldSchemaType.URL,
   ],
   ["API Get → URL", ComponentID.ApiGet, "url", FormFieldSchemaType.URL],
   [
@@ -599,6 +628,7 @@ describe("Rules that hold for every workflow argument", () => {
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
       ComponentID.IRCSendMessageToChannel,
+      ComponentID.MattermostSendMessageToChannel,
     ]) {
       expect(findArgument(componentId, "text").type).toBe(
         ComponentInputType.LongText,

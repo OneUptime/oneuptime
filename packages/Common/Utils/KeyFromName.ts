@@ -17,6 +17,8 @@
  * Pure, and free of database and React imports.
  */
 
+import escapeRegExp from "./RegExpEscape";
+
 export interface KeyFormat {
   /*
    * What joins the words: "-" for "time-to-detect", "_" for
@@ -92,14 +94,6 @@ export const transliterateToAscii: TransliterateToAsciiFunction = (
   return result.normalize("NFKD").replace(/\p{M}/gu, "");
 };
 
-type EscapeSeparatorFunction = (separator: string) => string;
-
-const escapeSeparator: EscapeSeparatorFunction = (
-  separator: string,
-): string => {
-  return separator.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
-};
-
 export type TrimKeyToLengthFunction = (
   key: string,
   maxLength: number,
@@ -117,7 +111,7 @@ export const trimKeyToLength: TrimKeyToLengthFunction = (
 ): string => {
   return key
     .slice(0, Math.max(maxLength, 0))
-    .replace(new RegExp(`${escapeSeparator(separator)}+$`), "");
+    .replace(new RegExp(`${escapeRegExp(separator)}+$`), "");
 };
 
 export type MakeKeyFromNameFunction = (
@@ -137,7 +131,7 @@ export const makeKeyFromName: MakeKeyFromNameFunction = (
   name: string,
   format: KeyFormat,
 ): string => {
-  const separator: string = escapeSeparator(format.separator);
+  const separator: string = escapeRegExp(format.separator);
 
   const words: string = transliterateToAscii(name)
     .toLowerCase()

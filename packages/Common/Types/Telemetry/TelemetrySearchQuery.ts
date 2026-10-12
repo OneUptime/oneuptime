@@ -128,11 +128,18 @@ const NUMERIC_REGEX: RegExp = /^-?\d+(\.\d+)?$/;
 const WHITESPACE_REGEX: RegExp = /\s/;
 
 /*
- * A quote is escaped wherever it appears: the tokenizer toggles on any of
- * them, so an unescaped one mid-value would swallow the following space and
- * silently merge two tokens.
+ * What a literal value escapes wherever it appears, in one pass: the escape
+ * character itself, the two wildcards, and the quote - the tokenizer toggles
+ * on any quote, so an unescaped one mid-value would swallow the following
+ * space and silently merge two tokens. Escaping the backslash in the same
+ * pass is what keeps every other escape meaning what it says: a value that
+ * ends in "\" would otherwise escape the quote that closes it.
  */
-const QUOTE_REGEX: RegExp = /(")/g;
+const LITERAL_SYNTAX_CHARACTER_REGEX: RegExp = /[\\*?"]/g;
+
+// What a glob's text holds besides its own escapes and wildcards.
+const BACKSLASH: string = "\\";
+const QUOTE: string = '"';
 
 /*
  * `~ ! > <` are operators ONLY as the first character of a value, and a
@@ -142,7 +149,16 @@ const QUOTE_REGEX: RegExp = /(")/g;
  */
 const LEADING_OPERATOR_REGEX: RegExp = /^([-~!<>])/;
 
-const WRAPPED_LIST_REGEX: RegExp = /^(\()(.*)(\))$|^(\[)(.*)(\])$/;
+/*
+ * The characters a "." of a regular expression does not match. A value with
+ * one of them was never read as wrapped in a bracket pair, and still is not.
+ */
+const LINE_TERMINATORS: ReadonlyArray<string> = [
+  "\n",
+  "\r",
+  String.fromCharCode(0x2028),
+  String.fromCharCode(0x2029),
+];
 
 /*
  * What a bare (unprefixed) key has to look like before `key:value` is read as
@@ -724,12 +740,204 @@ type BuildSearchTokenValueFunction = (literal: string) => string;
 export const buildSearchTokenValue: BuildSearchTokenValueFunction = (
   literal: string,
 ): string => {
-  const escaped: string = escapeWildcards(literal)
-    .replace(QUOTE_REGEX, "\\$1")
-    .replace(LEADING_OPERATOR_REGEX, "\\$1")
-    .replace(WRAPPED_LIST_REGEX, "\\$&");
+  return asSearchTokenValue(
+    literal.replace(LITERAL_SYNTAX_CHARACTER_REGEX, "\\$&"),
+  );
+};
 
-  return WHITESPACE_REGEX.test(escaped) ? `"${escaped}"` : escaped;
+type BuildSearchTokenGlobFunction = (glob: string) => string;
+
+/**
+ * Render a glob - `*` and `?` its wildcards, `\` escaping the character after
+ * it, as typed into an attribute filter form - into a search token that means
+ * that same glob.
+ *
+ * The glob's escapes are the grammar's own, so each `\x` pair is kept as
+ * written, and `*` and `?` are left alone: they are the point of the glob.
+ * What would read differently in a token is escaped: every other quote, and
+ * a `\` that ends the glob - a literal backslash there (WildcardPattern),
+ * which in a quoted token would escape the closing quote and run the token
+ * on into whatever follows it. Then, as for a literal, a leading operator
+ * character and a wrapping bracket pair are escaped, and a glob with a space
+ * is quoted: quotes protect spaces, not wildcards, so it still matches as a
+ * pattern.
+ */
+export const buildSearchTokenGlob: BuildSearchTokenGlobFunction = (
+  glob: string,
+): string => {
+  let escaped: string = "";
+
+  for (let index: number = 0; index < glob.length; index++) {
+    const character: string = glob[index]!;
+
+    if (character === BACKSLASH) {
+      const next: string | undefined = glob[index + 1];
+
+      escaped += next === undefined ? BACKSLASH + BACKSLASH : character + next;
+      index++;
+      continue;
+    }
+
+    escaped += character === QUOTE ? BACKSLASH + QUOTE : character;
+  }
+
+  return asSearchTokenValue(escaped);
+};
+
+type AsSearchTokenValueFunction = (escaped: string) => string;
+
+type WrapsListFunction = (token: string) => boolean;
+
+/*
+ * Whether a bracket pair wraps the whole token - "(a OR b)", "[a, b]" - so
+ * the value grammar would read it as a list. Read by its two ends, with no
+ * pattern over what is between them: a value can be megabytes long.
+ */
+const wrapsList: WrapsListFunction = (token: string): boolean => {
+  if (token.length < 2) {
+    return false;
+  }
+
+  const first: string = token[0]!;
+  const last: string = token[token.length - 1]!;
+
+  return (
+    ((first === "(" && last === ")") || (first === "[" && last === "]")) &&
+    LINE_TERMINATORS.every((terminator: string): boolean => {
+      return token.indexOf(terminator) === -1;
+    })
+  );
+};
+
+interface BracketReading {
+  // A "(" or "[" is still open at the token's end.
+  leavesOpen: boolean;
+  // A ")" or "]" comes with no bracket of the token's own open.
+  closesUnopened: boolean;
+}
+
+type ReadBracketsFunction = (token: string) => BracketReading;
+
+/*
+ * How the tokenizer counts a token's brackets, reading its unquoted text. It
+ * counts every unescaped "(" and "[" and every ")" and "]" wherever they
+ * are, so that a list's spaces stay in its token. A value that leaves one
+ * open ("f(x", ":)(") would take the space after it, and the filters after
+ * that, into itself. A ")" or "]" with nothing open is passed over at the
+ * top level, but inside a "(a OR b)" list it closes the list.
+ */
+const readBrackets: ReadBracketsFunction = (token: string): BracketReading => {
+  let depth: number = 0;
+  let closesUnopened: boolean = false;
+
+  for (let index: number = 0; index < token.length; index++) {
+    const character: string = token[index]!;
+
+    if (character === BACKSLASH) {
+      index++;
+      continue;
+    }
+
+    if (character === "(" || character === "[") {
+      depth++;
+    } else if (character === ")" || character === "]") {
+      if (depth === 0) {
+        closesUnopened = true;
+      } else {
+        depth--;
+      }
+    }
+  }
+
+  return { leavesOpen: depth > 0, closesUnopened: closesUnopened };
+};
+
+/*
+ * A value whose characters are already escaped, as a token: its leading
+ * operator character and a bracket pair wrapping it escaped (only there do
+ * they mean anything to the value), and quoted wherever the tokenizer would
+ * not end the token where the value ends - when it holds whitespace, leaves
+ * a bracket open, or ends in a ":" (read as a key still waiting for its
+ * value, it would take the next word). Quotes protect all three.
+ */
+const asSearchTokenValue: AsSearchTokenValueFunction = (
+  escaped: string,
+): string => {
+  let token: string = escaped.replace(LEADING_OPERATOR_REGEX, "\\$1");
+
+  if (wrapsList(token)) {
+    token = `${BACKSLASH}${token}`;
+  }
+
+  return WHITESPACE_REGEX.test(token) ||
+    readBrackets(token).leavesOpen ||
+    token.endsWith(":")
+    ? `"${token}"`
+    : token;
+};
+
+type SearchTokenListEntryFunction = (token: string) => string;
+
+/**
+ * A token - from {@link buildSearchTokenValue} or
+ * {@link buildSearchTokenGlob} - placed as one entry of a `(a OR b)` list.
+ *
+ * Inside the list the tokenizer is already one bracket deep, so an entry
+ * that closes a bracket it never opened - `a)`, or `\(a)`, a value wrapped
+ * in brackets whose opening one is escaped - would close the list there, and
+ * the rest of the list would be read as other filters. Such an entry is
+ * quoted: brackets inside quotes do not count, and the list reads each entry
+ * without its quotes. Every other entry is placed as it is.
+ */
+export const searchTokenListEntry: SearchTokenListEntryFunction = (
+  token: string,
+): string => {
+  if (token.startsWith(QUOTE) || !readBrackets(token).closesUnopened) {
+    return token;
+  }
+
+  return `${QUOTE}${token}${QUOTE}`;
+};
+
+export type SearchTokenComparisonOperator = ">" | ">=" | "<" | "<=";
+
+type BuildSearchTokenComparisonFunction = (
+  operator: SearchTokenComparisonOperator,
+  literal: string,
+) => string | null;
+
+/**
+ * Render a comparison - `>`, `>=`, `<` or `<=` and a literal - so that the
+ * grammar reads back that operator and exactly that literal: `>-5`.
+ *
+ * A comparison's value is read as written, quotes taken off but no escape
+ * undone (a threshold is a number or a date), so the literal is not
+ * escaped. It is quoted where the tokenizer would not end the token where
+ * the value ends, or would read it differently: when it holds whitespace,
+ * leaves a bracket open or ends in a `:`, and after `>` or `<` when it
+ * starts with `=`, which would make the operator `>=` or `<=`. Null for a
+ * literal with a `"` or a `\`: neither can be written so that the
+ * comparison reads it back.
+ */
+export const buildSearchTokenComparison: BuildSearchTokenComparisonFunction = (
+  operator: SearchTokenComparisonOperator,
+  literal: string,
+): string | null => {
+  if (
+    literal.length === 0 ||
+    literal.includes(QUOTE) ||
+    literal.includes(BACKSLASH)
+  ) {
+    return null;
+  }
+
+  const quoted: boolean =
+    WHITESPACE_REGEX.test(literal) ||
+    readBrackets(literal).leavesOpen ||
+    literal.endsWith(":") ||
+    ((operator === ">" || operator === "<") && literal.startsWith("="));
+
+  return `${operator}${quoted ? `${QUOTE}${literal}${QUOTE}` : literal}`;
 };
 
 type CompileAttributeChipValuesFunction = (
@@ -842,6 +1050,28 @@ export const describeSearchValue: DescribeSearchValueFunction = (
 
 type QueryValueToChipValuesFunction = (value: unknown) => Array<string>;
 
+type ComparisonChipFunction = (
+  operator: SearchTokenComparisonOperator,
+  value: unknown,
+) => string;
+
+/*
+ * A stored comparison as a chip: written as the grammar reads it back
+ * (buildSearchTokenComparison), so "=5" after ">" stays "greater than =5"
+ * instead of reading as ">=". A value that has no such spelling - one with
+ * a quote or a backslash - is written as it always was.
+ */
+const comparisonChip: ComparisonChipFunction = (
+  operator: SearchTokenComparisonOperator,
+  value: unknown,
+): string => {
+  const literal: string = String(value ?? "");
+
+  return (
+    buildSearchTokenComparison(operator, literal) || `${operator}${literal}`
+  );
+};
+
 /**
  * The inverse of {@link compileAttributeChipValues}: turn a stored attribute
  * predicate back into the chip values that would produce it.
@@ -924,19 +1154,19 @@ export const queryValueToChipValues: QueryValueToChipValuesFunction = (
   }
 
   if (value instanceof GreaterThanOrEqual) {
-    return [`>=${String(value.value ?? "")}`];
+    return [comparisonChip(">=", value.value)];
   }
 
   if (value instanceof GreaterThan) {
-    return [`>${String(value.value ?? "")}`];
+    return [comparisonChip(">", value.value)];
   }
 
   if (value instanceof LessThanOrEqual) {
-    return [`<=${String(value.value ?? "")}`];
+    return [comparisonChip("<=", value.value)];
   }
 
   if (value instanceof LessThan) {
-    return [`<${String(value.value ?? "")}`];
+    return [comparisonChip("<", value.value)];
   }
 
   /*

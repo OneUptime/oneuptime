@@ -120,7 +120,7 @@ API 블록과 그 밖의 HTTP 블록은 OneUptime에서 요청을 보내고, IRC
 
 | 블록                                                           | 루프백, 링크 로컬, 클라우드 메타데이터                                       | 사설 네트워크 주소                                                                                                                                |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API** 블록과 **Run Custom JavaScript** 요청                  | 거부. 단, 정확한 호스트가 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 에 있으면 허용 | 거부. 단, 셀프 호스팅 관리자가 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 또는 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 로 허용하면 허용                       |
+| **API** 및 **Mattermost** 블록과 **Run Custom JavaScript** 요청 | 거부. 단, 정확한 호스트가 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 에 있으면 허용 | 거부. 단, 셀프 호스팅 관리자가 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 또는 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 로 허용하면 허용                       |
 | **Send Email**, **IRC**, OAuth 2.0 토큰 URL                    | 거부                                                                         | OneUptime Cloud에서는 거부. 셀프 호스팅 설치에서는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 가 `true` 가 아니면 허용                                |
 | Slack, Microsoft Teams, Discord, Telegram                      | 거부                                                                         | 거부. 각각 자기 서비스의 주소로만 보냅니다                                                                                                        |
 
@@ -201,7 +201,7 @@ OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 
 
 검사가 단계를 거부하면, 단계는 거부된 변경을 하지 않고 **Error** 출력을 따르며, 실행의 로그에는 단계와 이유가 알기 쉬운 말로 나옵니다. 예: *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. 워크플로의 [실행 기록](/docs/workflows/runs-and-logs)에서 읽으세요. Create Many 단계는 레코드를 하나씩 만들며 처음 거부된 것에서 멈춥니다. 그 전에 만든 레코드는 남습니다.
 
-다른 시스템과 대화하는 단계 — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code, Generate Text with AI — 는 OneUptime 레코드를 읽거나 바꾸지 않으므로, 이 중 어느 것도 이들에게는 바뀌는 것이 없습니다.
+다른 시스템과 대화하는 단계 — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code, Generate Text with AI — 는 OneUptime 레코드를 읽거나 바꾸지 않으므로, 이 중 어느 것도 이들에게는 바뀌는 것이 없습니다.
 
 ## 플랜 한도
 

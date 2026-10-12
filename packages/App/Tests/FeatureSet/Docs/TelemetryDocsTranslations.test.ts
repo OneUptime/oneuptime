@@ -20,6 +20,7 @@ import {
   cardTargets,
   comparableFence,
   diagramSkeleton,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -297,14 +298,8 @@ const THOUSANDS_SEPARATOR: RegExp =
   /(\d)[,.\s\u00a0\u202f'\u066c](?=\d{3}(?!\d))/g;
 const PERSIAN_DECIMAL_MARK: RegExp = /(\d)٫(\d)/g;
 
-const REGEXP_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 function englishPage(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEXP_SPECIAL, "\\$&");
 }
 
 // The bold spans of a page that are one label, not a path.

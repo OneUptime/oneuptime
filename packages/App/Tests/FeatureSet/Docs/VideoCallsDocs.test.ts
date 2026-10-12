@@ -16,6 +16,7 @@ import {
   ZOOM_OAUTH_MEETING_SCOPE,
   ZOOM_OAUTH_USER_SCOPE,
 } from "Common/Types/VideoCall/VideoCallProviderCatalog";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -123,17 +124,13 @@ function sectionOf(markdown: string, anchor: string): string {
   return lines.slice(start.line, end ? end.line : lines.length).join("\n");
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /*
  * A field is "named" when its exact title appears in bold or as a table
  * cell - the two ways the page presents the connection form - so a passing
  * mention in prose does not count.
  */
 function namesField(markdown: string, title: string): boolean {
-  const escaped: string = escapeForRegExp(title);
+  const escaped: string = escapeRegExp(title);
 
   return (
     new RegExp(`\\*\\*${escaped}\\*\\*`).test(markdown) ||

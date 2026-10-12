@@ -20,6 +20,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -435,7 +436,6 @@ const QUOTED_SETTING_NAMES: Array<string> = [
   "Require SSO for Login",
 ];
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const PATH_SEPARATOR: RegExp = / (?:→|>) /;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // A number, but not a part of a version such as 13.0.8 or 8.1.
@@ -503,10 +503,6 @@ function isPermissionOrRole(name: string): boolean {
       return props.title === name;
     },
   );
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 function readLocale(file: string): Record<string, unknown> {
@@ -612,7 +608,7 @@ function pathPattern(segments: Array<string>): RegExp {
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
-        return escapeRegex(segment);
+        return escapeRegExp(segment);
       })
       .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
   );

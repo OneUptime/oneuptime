@@ -4716,7 +4716,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 /*
  * Left to right on every page: Mermaid lays diagrams out that way, so a
  * right-to-left page would scroll a wide one from its far end. The text of
- * a label, and of the caption, reads in its own direction (below).
+ * a label, and of the caption, reads the way its page reads (below).
  */
 .docs-diagram {
   margin: 1.75rem 0;
@@ -4741,16 +4741,34 @@ html.dark .docs-theme-toggle .docs-icon-light {
   height: auto;
 }
 /*
- * Each line of a label, and the caption, reads in the direction of its first
- * letter: "Rule 1:" left to right, never ":Rule 1", and a Persian line right
- * to left. Left to right like the diagram, a Persian line drew the comma
- * that ends it first, and a Latin word in it (the A of "Market A") on the
- * wrong side.
+ * On a left-to-right page each line of a label, and the caption, reads in
+ * the direction of its first letter: "Rule 1:" left to right, never
+ * ":Rule 1".
  */
 .docs-diagram .mermaid foreignObject div,
 .docs-diagram .mermaid foreignObject p,
 .docs-diagram .docs-diagram__caption {
   unicode-bidi: plaintext;
+}
+/*
+ * On a right-to-left page every line of a label, a sequence diagram's
+ * names, messages and notes (SVG text), and the caption read right to
+ * left, as the page's own paragraphs do, whatever word they start with.
+ * Laid out by its first letter, a Persian line that opened with a Latin
+ * word ("OneUptime حساب", the OneUptime account) was laid out left to right
+ * and read back to front; laid out left to right like the diagram, a line
+ * drew the comma that ends it first. A line of Latin words only keeps its
+ * order when it starts with a letter and ends with a letter or a digit, as
+ * the docs tests hold every right-to-left page to (DiagramReadingDirection).
+ * :dir() is the article's direction, so the English copy of an untranslated
+ * page, served on a Persian URL, stays left to right.
+ */
+.docs-diagram:dir(rtl) .mermaid foreignObject div,
+.docs-diagram:dir(rtl) .mermaid foreignObject p,
+.docs-diagram:dir(rtl) .mermaid text,
+.docs-diagram:dir(rtl) .docs-diagram__caption {
+  direction: rtl;
+  unicode-bidi: isolate;
 }
 /*
  * A diagram the page could not draw - it does not parse, or this server has
@@ -5316,7 +5334,8 @@ html.dark .docs-btn--primary {
    Persian pages are served with dir="rtl" on <html>. Spacing, borders and
    alignment above are written with logical properties, so they follow the
    reading direction by themselves; this is what those cannot express. Code
-   and diagrams stay left to right on every page - see "Code".
+   and the layout of diagrams stay left to right on every page - see "Code" -
+   while a diagram's words read the page's way (the .docs-diagram rules).
    -------------------------------------------------------------------------- */
 
 /* Arrows and chevrons that point along the reading direction turn with it. */

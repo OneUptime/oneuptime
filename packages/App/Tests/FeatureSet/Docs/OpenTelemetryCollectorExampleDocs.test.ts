@@ -3,6 +3,7 @@ import {
   SUPPORTED_DOCS_LANGUAGE_CODES,
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -617,10 +618,6 @@ function withEnvPlaceholdersMasked(env: { [name: string]: string }): {
   }
 
   return masked;
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 describe("OpenTelemetry docs: the collector example (issue #3978)", () => {

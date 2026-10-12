@@ -231,8 +231,8 @@ export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-> [!WARNING]
-> 트레이스 베타는 지출을 파악하는 프로젝트에 넣지 마세요. 베타의 모델 스팬은 `gen_ai.system`과 `gen_ai.request.model`을 가지므로 OneUptime이 **호출** 에 표시하지만, 토큰이 `gen_ai.usage.*` 키가 아니라 `input_tokens`와 `output_tokens`에 있어서 토큰도 비용도 없이 들어옵니다. 이 스팬이 생기면 **직원** , **팀** , **모델** 표에는 메트릭의 지출 대신 이 스팬의 $0 행이 표시됩니다.
+> [!NOTE]
+> 트레이스 베타의 모델 스팬은 `gen_ai.system`과 `gen_ai.request.model`을 가지므로 OneUptime이 **호출** 에 표시하고, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_creation_tokens`를 호출의 토큰으로 읽어 각 호출에 모델의 정가로 가격을 매깁니다. 이 스팬이 생기면 **직원** , **팀** , **모델** 표에는 메트릭의 지출 대신 이 스팬의 행이 표시됩니다. 이는 OneUptime의 추정치로, 캐시 쓰기는 5분 요율로 계산하고 빠른 모드 가격은 반영하지 않으므로 `claude_code.cost.usage`와 다를 수 있습니다.
 
 Agent SDK 세션과 비대화형 `-p` 세션에서 Claude Code는 들어오는 `TRACEPARENT`를 이어받으므로, 스팬이 호출한 쪽의 트레이스에 합류합니다. 대화형 세션은 이를 무시합니다. 모델에 `traceparent` 헤더를 보내는 것은 `ANTHROPIC_BASE_URL`이 설정되지 않았거나 Anthropic API일 때뿐입니다. 자체 프록시 뒤에서는 `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`을 설정하세요.
 

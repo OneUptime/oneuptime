@@ -40,7 +40,7 @@ You build all of this visually on a canvas. Most workflows need no code at all; 
 
 ## What you can do with workflows
 
-- **Connect OneUptime to your other tools** — post to Slack, Microsoft Teams, Discord, Telegram or IRC, create Jira tickets, or send a request to any API in your stack.
+- **Connect OneUptime to your other tools** — post to Slack, Microsoft Teams, Discord, Telegram, IRC or Mattermost, create Jira tickets, or send a request to any API in your stack.
 - **React to what happens in OneUptime** — when an incident is created, tell the right channel and open a ticket automatically.
 - **Run jobs on a schedule** — every five minutes, every night, every Monday morning.
 - **Receive data from outside** — let other systems start a workflow by calling its URL or emailing its address.

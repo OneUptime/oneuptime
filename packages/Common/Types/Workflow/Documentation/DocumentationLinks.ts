@@ -70,6 +70,7 @@ export const WorkflowDocsPaths: {
   readonly discord: string;
   readonly telegram: string;
   readonly irc: string;
+  readonly mattermost: string;
   readonly email: string;
   readonly customCode: string;
   readonly json: string;
@@ -100,6 +101,7 @@ export const WorkflowDocsPaths: {
   discord: "/workflows/components#discord",
   telegram: "/workflows/components#telegram",
   irc: "/workflows/components#irc",
+  mattermost: "/workflows/components#mattermost",
   email: "/workflows/components#email",
   customCode: "/workflows/components#custom-code",
   json: "/workflows/components#json",

@@ -2,6 +2,7 @@ import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGE_CODES,
 } from "../../../FeatureSet/Docs/Utils/I18n";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -641,7 +642,7 @@ function clientMaxBodySizesFor(
     })
     .join("\n");
   const opening: RegExp = new RegExp(
-    `^\\s*location\\s+${location.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\s*\\{`,
+    `^\\s*location\\s+${escapeRegExp(location)}\\s*\\{`,
     "gm",
   );
   const sizes: Array<NginxSize> = [];
@@ -1120,10 +1121,12 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       const expected: Array<string> = [
         "en/telemetry/open-telemetry.md",
         "en/telemetry/iot-devices.md",
-        "en/telemetry/gemini-cli-and-copilot.md",
-        "fa/telemetry/gemini-cli-and-copilot.md",
         ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
           return `${lang}/telemetry/iot-devices.md`;
+        }),
+        // Gemini CLI's collector example, in every language's copy.
+        ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
+          return `${lang}/telemetry/gemini-cli-and-copilot.md`;
         }),
       ].map((page: string): string => {
         return relativeToRepo(path.join(CONTENT_DIR, page));
@@ -1210,9 +1213,7 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       const router: string = read(OTEL_INGEST_ROUTER_FILE);
 
       expect(router).toMatch(
-        new RegExp(
-          `router\\.post\\(\\s*"${PROFILES_ROUTE.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}"`,
-        ),
+        new RegExp(`router\\.post\\(\\s*"${escapeRegExp(PROFILES_ROUTE)}"`),
       );
 
       const profileExporters: Array<{

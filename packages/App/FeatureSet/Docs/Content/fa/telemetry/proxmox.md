@@ -16,7 +16,7 @@
 ```mermaid title="دو راه برای رساندن یک خوشه به OneUptime"
 flowchart TB
     api["API در Proxmox VE<br/>(پورت ۸۰۰۶)"]
-    nodes["هر گره،<br/>Proxmox VE 9+"]
+    nodes["هر گره،<br/>Proxmox VE 9 به بالا"]
     exporter["pve-exporter"] -->|"با توکن PVEAuditor<br/>می‌خواند"| api
     collector["کالکتور"] -->|"هر ۳۰ ثانیه<br/>برداشت می‌کند"| exporter
     collector -->|"OTLP"| oneuptime["OneUptime"]

@@ -1,4 +1,4 @@
-import Icon, { ThickProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -9,13 +9,14 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
  *
  * Columns: a row of the desktop products menu's list of categories. The
  * list is a grid (CATEGORY_LIST_COLUMNS) and every row takes its columns
- * from it, so the icons, the names, the products each holds and the counts
- * each line up in a column, however long a category's name is.
+ * from it, so the names, the products each holds and the counts each line
+ * up in a column, however long a category's name is.
  *
- * Stacked: the phone menu, too narrow for columns. The row is drawn as the
- * product rows around it are (NavBarItem): the icon before the name, at the
- * same size, stroke and weight, with the products it holds on the line
- * below the name.
+ * Stacked: the phone menu, too narrow for columns. The name, with the
+ * products it holds on the line below it.
+ *
+ * A category's row is a heading, not a product, so it is drawn without an
+ * icon: only the products under it have one.
  */
 export enum NavBarCategoryToggleLayout {
   Columns = "Columns",
@@ -24,43 +25,36 @@ export enum NavBarCategoryToggleLayout {
 
 /*
  * The columns of the desktop menu's list of categories, which its rows take
- * as a subgrid: icon, name, products, count, chevron. The name takes the
- * width of the longest one; the products take what is left and give way.
+ * as a subgrid: name, products, count, chevron. The name takes the width of
+ * the longest one; the products take what is left and give way.
  *
  * Below sm there is no room for the products beside the names, so there are
- * four columns, the products go on a second line under the name, and the
- * icon, count and chevron sit across both lines (COLUMN_PLACEMENT). The
- * Dashboard shows its phone menu there instead, but the dialog itself still
- * holds together in a narrow window.
+ * three columns, the products go on a second line under the name, and the
+ * count and chevron sit across both lines (COLUMN_PLACEMENT). The Dashboard
+ * shows its phone menu there instead, but the dialog itself still holds
+ * together in a narrow window.
  */
 export const CATEGORY_LIST_COLUMNS: string =
-  "grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]";
+  "grid-cols-[minmax(0,1fr)_auto_auto] sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]";
 
 // Where each part of a row sits on the list's columns, narrow and from sm up.
 export const COLUMN_PLACEMENT: {
-  icon: string;
   name: string;
   products: string;
   count: string;
   chevron: string;
 } = {
-  icon: "col-start-1 row-start-1 row-end-3 sm:row-end-2",
-  name: "col-start-2 row-start-1",
-  products: "col-start-2 row-start-2 sm:col-start-3 sm:row-start-1",
-  count: "col-start-3 row-start-1 row-end-3 sm:col-start-4 sm:row-end-2",
-  chevron: "col-start-4 row-start-1 row-end-3 sm:col-start-5 sm:row-end-2",
+  name: "col-start-1 row-start-1",
+  products: "col-start-1 row-start-2 sm:col-start-2 sm:row-start-1",
+  count: "col-start-2 row-start-1 row-end-3 sm:col-start-3 sm:row-end-2",
+  chevron: "col-start-3 row-start-1 row-end-3 sm:col-start-4 sm:row-end-2",
 };
-
-// The icon of a category the caller gave none: the products menu's own.
-export const DEFAULT_CATEGORY_ICON: IconProp = IconProp.Squares;
 
 export interface ComponentProps {
   // The category's name as the catalog gives it (already in the reader's language).
   title: string;
   // The names of the products inside, for the folded row.
   itemTitles: ReadonlyArray<string>;
-  // The category's icon; the products menu's own when unset.
-  icon?: IconProp | undefined;
   // Columns in the desktop products menu, stacked (the default) on a phone.
   layout?: NavBarCategoryToggleLayout | undefined;
   isOpen: boolean;
@@ -86,8 +80,8 @@ export interface ComponentProps {
 /*
  * A category's row, which folds and opens the products under it.
  *
- * Folded, it says what is inside without opening it: the category's icon and
- * name, the products it holds ("Hosts, Kubernetes, Docker, ...") and how
+ * Folded, it says what is inside without opening it: the category's name,
+ * the products it holds ("Hosts, Kubernetes, Docker, ...") and how
  * many. Open, the same row heads the products, with the chevron turned down
  * as a side-menu section's is.
  *
@@ -112,37 +106,11 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     props.layout === NavBarCategoryToggleLayout.Columns;
   const isActive: boolean = Boolean(props.isActive);
 
-  const icon: IconProp = props.icon || DEFAULT_CATEGORY_ICON;
-
-  // In columns, the icon sits in a tile, as a product card's does.
-  const iconTile: ReactElement = (
-    <div
-      aria-hidden="true"
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ring-1 transition-colors duration-150 ${
-        isActive ? "bg-white ring-indigo-200" : "bg-gray-50 ring-gray-200"
-      } ${COLUMN_PLACEMENT.icon}`}
-    >
-      <Icon
-        icon={icon}
-        className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-gray-500"}`}
-      />
-    </div>
-  );
-
   const heading: ReactElement = (
     <h3
       id={props.headingId}
-      className={`min-w-0 ${
-        isColumns ? `sm:pr-3 ${COLUMN_PLACEMENT.name}` : "flex items-center"
-      }`}
+      className={`min-w-0 ${isColumns ? `sm:pr-3 ${COLUMN_PLACEMENT.name}` : ""}`}
     >
-      {!isColumns && (
-        <Icon
-          icon={icon}
-          className="mr-1 h-4 w-4 flex-shrink-0 text-gray-900"
-          thick={ThickProp.Thick}
-        />
-      )}
       <button
         type="button"
         id={props.id}
@@ -176,7 +144,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
       className={`min-w-0 truncate text-gray-500 ${
         isColumns
           ? `text-sm ${COLUMN_PLACEMENT.products}`
-          : "block pl-5 text-xs leading-4"
+          : "block text-xs leading-4"
       }`}
     >
       <span className="sr-only">
@@ -233,7 +201,6 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
         onMouseMove={props.onMouseMove}
         className={`relative col-span-full grid grid-cols-subgrid items-center px-3 py-2 transition-colors duration-150 ${rowState}`}
       >
-        {iconTile}
         {heading}
         {summary}
         {countPill}

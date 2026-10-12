@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import Label from "Common/Models/DatabaseModels/Label";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
@@ -116,7 +117,6 @@ const LABEL_RULES: string = "slo/label-and-owner-rules";
 
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const TABLE_ROW: RegExp = /^\|.*\|$/;
 // A "title: "..."" entry of a source file.
@@ -138,10 +138,6 @@ function readSource(name: string): string {
 
 function englishPage(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 // Every match of a pattern's first group, in order.
@@ -233,7 +229,7 @@ function blockFrom(source: string, marker: string, end: string): string {
 // The number a "NAME: number = 123;" constant of a source file holds.
 function numberConstant(source: string, name: string): number {
   const match: RegExpExecArray | null = new RegExp(
-    `${escapeRegex(name)}: number =\\s*([\\d.]+)`,
+    `${escapeRegExp(name)}: number =\\s*([\\d.]+)`,
   ).exec(source);
 
   expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
@@ -244,7 +240,7 @@ function numberConstant(source: string, name: string): number {
 // The field type a form field with this title declares, in a source file.
 function fieldTypeOf(source: string, title: string): string {
   const match: RegExpExecArray | null = new RegExp(
-    `title: "${escapeRegex(title)}",[\\s\\S]*?fieldType: FormFieldSchemaType\\.(\\w+)`,
+    `title: "${escapeRegExp(title)}",[\\s\\S]*?fieldType: FormFieldSchemaType\\.(\\w+)`,
   ).exec(source);
 
   expect({ title, found: Boolean(match) }).toEqual({ title, found: true });
@@ -1497,7 +1493,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
     const defaultOf: (title: string) => string = (title: string): string => {
       const match: RegExpExecArray | null = new RegExp(
-        `title: "${escapeRegex(title)}",[\\s\\S]*?defaultValue: (\\w+),`,
+        `title: "${escapeRegExp(title)}",[\\s\\S]*?defaultValue: (\\w+),`,
       ).exec(model);
 
       expect({ title, found: Boolean(match) }).toEqual({ title, found: true });

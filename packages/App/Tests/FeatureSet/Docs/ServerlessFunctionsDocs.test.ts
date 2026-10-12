@@ -6,6 +6,7 @@ import {
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -137,9 +138,9 @@ function tableRow(markdown: string, attribute: string): string {
   const row: string | undefined = markdown
     .split("\n")
     .find((line: string): boolean => {
-      return new RegExp(
-        `^\\|\\s*\`${attribute.replace(/\./g, "\\.")}\`\\s*\\|`,
-      ).test(line);
+      return new RegExp(`^\\|\\s*\`${escapeRegExp(attribute)}\`\\s*\\|`).test(
+        line,
+      );
     });
 
   expect({ attribute, found: row !== undefined }).toEqual({

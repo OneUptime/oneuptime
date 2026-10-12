@@ -441,14 +441,17 @@ describe("the essentials open with the menu, every time", () => {
       within(line("Essentials")).getByRole("heading", { level: 3 }),
     ).toHaveTextContent(/^Essentials$/);
     expect(line("Essentials")).toHaveTextContent(/^Essentials3$/);
-    // The chevron is the row's last svg: turned down open, to the side folded.
+    /*
+     * The chevron is the row's only svg (a category's row has no icon):
+     * turned down open, to the side folded.
+     */
     const chevron: (category: string) => SVGElement = (
       category: string,
     ): SVGElement => {
       const glyphs: NodeListOf<SVGElement> =
         line(category).querySelectorAll("svg");
-      expect(glyphs).toHaveLength(2);
-      return glyphs[1]!;
+      expect(glyphs).toHaveLength(1);
+      return glyphs[0]!;
     };
     expect(chevron("Essentials")).toHaveClass("rotate-0");
     expect(chevron("Infrastructure")).toHaveClass("-rotate-90");

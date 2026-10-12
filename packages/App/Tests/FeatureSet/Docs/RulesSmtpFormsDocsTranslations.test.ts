@@ -16,6 +16,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -527,7 +528,6 @@ const AUTO_NAMES: Record<string, Array<AutoName>> = {
   ],
 };
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
 const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
@@ -674,10 +674,6 @@ function pathsOf(page: string): Array<string> {
   });
 }
 
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
-}
-
 /*
  * A path's segments, as the screen it runs through draws them: the Admin
  * Dashboard's own words after "Admin Dashboard" (and on the SMTP page's
@@ -713,7 +709,7 @@ function pathPattern(segments: Array<string>): RegExp {
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
-        return escapeRegex(segment);
+        return escapeRegExp(segment);
       })
       .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
   );

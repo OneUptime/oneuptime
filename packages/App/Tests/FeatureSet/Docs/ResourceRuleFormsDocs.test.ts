@@ -9,6 +9,7 @@ import {
   OWNER_RULE_ADDS_NOTHING_MESSAGE,
 } from "Common/Utils/Rules/RuleAction";
 import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
  * Every label and owner rule is created in two steps - Match, then Labels
@@ -71,10 +72,6 @@ function uiName(language: string, page: string, english: string): string {
     : dashboardLabel(language, english);
 }
 
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // The incident settings page's section on label and owner rules.
 const INCIDENT_RULES_HEADING: Record<string, string> = {
   en: "## Incident label and owner rules",
@@ -131,7 +128,7 @@ describe.each(LANGUAGES)(
       );
       expect(content).toMatch(
         new RegExp(
-          `\\*\\*${escapeRegex(uiName(language, page, "Notify Owners"))}\\*\\* \\([^)]*\\*\\*${escapeRegex(uiName(language, page, "More fields"))}\\*\\*`,
+          `\\*\\*${escapeRegExp(uiName(language, page, "Notify Owners"))}\\*\\* \\([^)]*\\*\\*${escapeRegExp(uiName(language, page, "More fields"))}\\*\\*`,
         ),
       );
     });

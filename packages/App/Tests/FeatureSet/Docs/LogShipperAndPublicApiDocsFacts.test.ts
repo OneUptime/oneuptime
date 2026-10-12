@@ -426,11 +426,9 @@ function nginxLocations(location: string): Array<string> {
   let at: number = NGINX_TEMPLATE.indexOf(opening);
 
   while (at >= 0) {
+    // The location line up to its brace, then the block from that brace on.
     blocks.push(
-      blockFrom(NGINX_TEMPLATE, at + opening.length - 1).replace(
-        "{",
-        `${opening.slice(0, -1)}{`,
-      ),
+      `${opening.slice(0, -1)}${blockFrom(NGINX_TEMPLATE, at + opening.length - 1)}`,
     );
     at = NGINX_TEMPLATE.indexOf(opening, at + opening.length);
   }
