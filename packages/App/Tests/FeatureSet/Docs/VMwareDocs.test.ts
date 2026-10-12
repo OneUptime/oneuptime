@@ -26,6 +26,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_AGENT_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import { parseSystemdEnvironmentFile } from "Common/Tests/App/Dashboard/SystemdEnvironmentFile";
+import { detailsBody, tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -68,17 +69,30 @@ const MONITOR_PAGE: string = "monitor/vmware-monitor";
 const OWNED_PAGES: ReadonlyArray<string> = [TELEMETRY_PAGE, MONITOR_PAGE];
 
 /*
- * The languages the agent page is translated into. `fa` is the only
- * translated corpus for it (every other language falls back to English per
- * page at request time), so a new translation only has to be added here.
+ * Every language besides English: both pages ship in each of them (the
+ * agent page since docs task 22).
  */
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
-
-/* Every language besides English: the monitor page ships in each of them. */
 const MONITOR_PAGE_LANGUAGES: ReadonlyArray<string> =
   SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
     return language !== "en";
   });
+
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
+
+/*
+ * The languages whose custom-code monitor and Terraform monitor-steps pages
+ * name the vCenter attribute and escape hatch: the ones those pages are
+ * translated into.
+ */
+const ESCAPE_HATCH_LANGUAGES: ReadonlyArray<string> = ["fa"];
+
+/*
+ * The install without Docker: the "systemd" tab of "Install and start the
+ * agent", the first systemd tab on the page.
+ */
+function installWithoutDocker(markdown: string): string {
+  return tabPanel(markdown, "systemd");
+}
 
 interface LanguagePage {
   language: string;
@@ -265,7 +279,7 @@ describe("VMware docs", (): void => {
 
     it("open with the titles the nav uses", (): void => {
       expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe(
-        "# OneUptime VMware Agent",
+        "# VMware Agent",
       );
       expect(readPage(MONITOR_PAGE).split("\n")[0]).toBe("# VMware Monitor");
     });
@@ -640,7 +654,7 @@ describe("VMware docs", (): void => {
     it("documents every environment variable the agent's docker-compose.yml passes, and nothing else", (): void => {
       const table: string = section(
         readPage(TELEMETRY_PAGE),
-        "## Environment Variables",
+        "## Environment variables",
       );
       const documented: Array<string> = table
         .split("\n")
@@ -658,9 +672,10 @@ describe("VMware docs", (): void => {
     });
 
     it("uses the same .env example the compose quick start and the E2E spec expect", (): void => {
-      const quickStart: string = section(
+      // The Docker Compose tab of "Install and start the agent".
+      const quickStart: string = tabPanel(
         readPage(TELEMETRY_PAGE),
-        "## Alternative — Docker Compose",
+        "Docker Compose",
       );
 
       for (const name of composeEnvironmentVariables()) {
@@ -692,7 +707,7 @@ describe("VMware docs", (): void => {
     it("lists the identity resource attributes and the collected metric families", (): void => {
       const collected: string = section(
         readPage(TELEMETRY_PAGE),
-        "## What Gets Collected",
+        "## What the agent collects",
       );
 
       for (const attribute of [
@@ -729,9 +744,9 @@ describe("VMware docs", (): void => {
     it("explains the VM power-state inference and the syslog option", (): void => {
       const markdown: string = readPage(TELEMETRY_PAGE);
 
-      expect(markdown).toContain("### VM Power State");
+      expect(markdown).toContain("### VM power state");
       expect(markdown).toContain("send_batch_max_size");
-      expect(markdown).toContain("## Optional — Ship ESXi Syslog");
+      expect(markdown).toContain("## Optional — Ship ESXi syslog");
       expect(markdown).toContain("Syslog.global.logHost");
       expect(markdown).toContain("5514");
     });
@@ -797,10 +812,7 @@ describe("VMware docs", (): void => {
     });
 
     it("documents the install without Docker with the setup guide's own commands, in order", (): void => {
-      const part: string = section(
-        readPage(TELEMETRY_PAGE),
-        "## Alternative — Without Docker",
-      );
+      const part: string = installWithoutDocker(readPage(TELEMETRY_PAGE));
       const blocks: Array<string> = [
         bashBlock(getVMwareNativeInstallCommand()),
         bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
@@ -848,10 +860,7 @@ describe("VMware docs", (): void => {
     });
 
     it("the .env of the install without Docker sets exactly what the collector reads, as systemd reads it", (): void => {
-      const part: string = section(
-        readPage(TELEMETRY_PAGE),
-        "## Alternative — Without Docker",
-      );
+      const part: string = installWithoutDocker(readPage(TELEMETRY_PAGE));
       const env: string = codeBlocks(part).find((block: string): boolean => {
         return block.startsWith("ONEUPTIME_URL=");
       }) as string;
@@ -886,13 +895,13 @@ describe("VMware docs", (): void => {
       expect(
         fs.existsSync(path.join(AGENT_DIR, VMWARE_AGENT_NATIVE_UNIT_FILE)),
       ).toBe(true);
-      expect(section(markdown, "## Upgrading the Agent")).toContain(
+      expect(section(markdown, "## Upgrading the agent")).toContain(
         bashBlock(getVMwareNativeUpgradeCommand()),
       );
-      expect(section(markdown, "## Uninstalling the Agent")).toContain(
+      expect(section(markdown, "## Uninstalling the agent")).toContain(
         bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
       );
-      expect(section(markdown, "## Verify the Installation")).toContain(
+      expect(section(markdown, "### Verify the installation")).toContain(
         bashBlock(
           `${VMWARE_NATIVE_STATUS_COMMAND}\n${VMWARE_NATIVE_LOGS_COMMAND}`,
         ),
@@ -900,9 +909,9 @@ describe("VMware docs", (): void => {
     });
 
     it("troubleshoots the install without Docker with what it has: the journal, curl and the collector's own counters", (): void => {
-      const part: string = section(
+      const part: string = detailsBody(
         readPage(TELEMETRY_PAGE),
-        "### Installed without Docker",
+        "Installed without Docker",
       );
 
       // troubleshoot.sh probes from the agent container, so it cannot help here.
@@ -919,7 +928,7 @@ describe("VMware docs", (): void => {
 
     it("says the install without Docker has no AI agent, and never promises one", (): void => {
       const markdown: string = readPage(TELEMETRY_PAGE);
-      const part: string = section(markdown, "## Alternative — Without Docker");
+      const part: string = installWithoutDocker(markdown);
 
       expect(part).toContain(
         "the [AI agent](#ai-agent) ships only as a container image",
@@ -988,7 +997,7 @@ describe("VMware docs", (): void => {
   });
 
   describe("translations", (): void => {
-    it("ship the agent page in fa, and the monitor page in every language", (): void => {
+    it("ship both pages in every language", (): void => {
       for (const { language, page } of TRANSLATED_PAGES) {
         expect({
           language,
@@ -1076,7 +1085,7 @@ describe("VMware docs", (): void => {
     });
 
     it("mention the reserved vCenter attribute and the Terraform escape hatch where English does", (): void => {
-      for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+      for (const language of ["en", ...ESCAPE_HATCH_LANGUAGES]) {
         expect(readPage("monitor/custom-code-monitor", language)).toContain(
           "`vmware.vcenter.name`",
         );

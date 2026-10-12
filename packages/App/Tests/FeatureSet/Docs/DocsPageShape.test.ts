@@ -1,10 +1,14 @@
 import {
   boldLabels,
   boldPaths,
+  detailsBlocks,
+  detailsBody,
   lineShape,
   PATH_SEPARATOR,
   stepCount,
   tabLabels,
+  tabPanel,
+  tabPanels,
   tables,
   unbalancedLines,
 } from "./DocsPageShape";
@@ -198,5 +202,114 @@ describe("tables", () => {
       [["One"], ["1"]],
       [["Two"], ["2"]],
     ]);
+  });
+});
+
+/*
+ * Sections that moved into components: a tab panel holds what a page once
+ * put under a heading (an install method, a language), and a :::details
+ * block a troubleshooting entry. Suites that hold such a part to the code
+ * read it through these.
+ */
+describe("tabPanels and tabPanel", () => {
+  it("reads each panel's lines up to the next tab, code blocks included", () => {
+    expect(tabPanels(PAGE)).toEqual([
+      {
+        label: "Docker",
+        body: ["```bash", "# a comment, not a heading", "docker run **not-bold**", "```"].join("\n"),
+      },
+      { label: "Kubernetes", body: "Text." },
+    ]);
+  });
+
+  it("ends the last panel at the tabs' own close, not at a nested component's", () => {
+    const page: string = [
+      ":::steps",
+      "### Install",
+      ":::tabs",
+      "@tab install.sh",
+      "Run it.",
+      ":::details Why",
+      "Because.",
+      ":::",
+      "After the details.",
+      "@tab Docker Compose",
+      "```yaml",
+      ":::",
+      "@tab not a tab",
+      "```",
+      ":::",
+      "Outside the tabs.",
+      ":::",
+    ].join("\n");
+
+    expect(tabPanel(page, "install.sh")).toBe(
+      ["Run it.", ":::details Why", "Because.", ":::", "After the details."].join("\n"),
+    );
+    expect(tabPanel(page, "Docker Compose")).toBe(
+      ["```yaml", ":::", "@tab not a tab", "```"].join("\n"),
+    );
+    expect(tabPanels(page).map((panel) => panel.label)).toEqual([
+      "install.sh",
+      "Docker Compose",
+    ]);
+  });
+
+  it("picks a later panel with the same label by its place, and fails on a label the page lacks", () => {
+    const page: string = [
+      ":::tabs",
+      "@tab systemd",
+      "First.",
+      ":::",
+      "",
+      ":::tabs",
+      "@tab systemd",
+      "Second.",
+      ":::",
+    ].join("\n");
+
+    expect(tabPanel(page, "systemd")).toBe("First.");
+    expect(tabPanel(page, "systemd", 1)).toBe("Second.");
+    expect(() => {
+      return tabPanel(page, "Windows");
+    }).toThrow('No tab panel "Windows"');
+    expect(() => {
+      return tabPanel(page, "systemd", 2);
+    }).toThrow();
+  });
+});
+
+describe("detailsBlocks and detailsBody", () => {
+  const page: string = [
+    "## Troubleshooting",
+    "",
+    ":::details Run the diagnostic script first",
+    "It checks everything.",
+    "",
+    "```bash",
+    ":::",
+    "```",
+    ":::",
+    "",
+    ":::details No cluster appears",
+    "1. Read the logs.",
+    ":::",
+  ].join("\n");
+
+  it("reads each block's summary and lines, a code block's ::: included", () => {
+    expect(detailsBlocks(page)).toEqual([
+      {
+        summary: "Run the diagnostic script first",
+        body: ["It checks everything.", "", "```bash", ":::", "```"].join("\n"),
+      },
+      { summary: "No cluster appears", body: "1. Read the logs." },
+    ]);
+  });
+
+  it("finds a block by its summary, and fails on one the page lacks", () => {
+    expect(detailsBody(page, "No cluster appears")).toBe("1. Read the logs.");
+    expect(() => {
+      return detailsBody(page, "Something else");
+    }).toThrow('No :::details block "Something else"');
   });
 });

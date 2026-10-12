@@ -107,7 +107,7 @@ Azure's resource detectors (the Functions host's own, the .NET isolated worker's
 So OneUptime keys the function on `service.name`, fills in `faas.name` with the Function App's name, and shows **one Serverless Function per Function App**. The resource describes the app, not one of its functions: every instance reports the same app-level attributes whichever of the app's functions it runs, and on the Flex Consumption plan some functions even scale out on instances of their own. The individual functions are in the telemetry itself:
 
 - The host starts a span for each invocation, named after the function it ran: search the function's **Traces** page by that name.
-- The host records `faas.invoke_duration`, a histogram in seconds, with the function's name in the datapoint attribute `faas.name`: group the metric by it on the **Metrics** page or on a dashboard for each function's latency.
+- The host records `faas.invoke_duration`, a histogram in seconds, with the function's name in the data-point attribute `faas.name`: group the metric by it on the **Metrics** page or on a dashboard for each function's latency.
 
 Don't add `faas.name` to `OTEL_RESOURCE_ATTRIBUTES` on a Function App, as the generic [first step](#set-the-otlp-exporter-environment-variables) example does. Application settings reach every process of the app, so the telemetry of all its functions would carry that one name, and OneUptime never replaces a `faas.name` it is given. Microsoft's guide says the same: don't put function-specific values on the resource. Leave it unset, and the function is named after the app.
 

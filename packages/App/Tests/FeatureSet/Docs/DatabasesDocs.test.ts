@@ -49,6 +49,7 @@ import {
   getDatabaseLivenessLabel,
 } from "../../../FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import { spawnSync, SpawnSyncReturns } from "child_process";
 import fs from "fs";
@@ -214,6 +215,18 @@ function section(markdown: string, heading: string): string {
   }
 
   return body.join("\n");
+}
+
+/*
+ * A part of a page: the body of a heading's section, or, for "@tab Label",
+ * the first tab panel with that label (DocsPageShape.tabPanel). The agent's
+ * install methods and each engine's monitoring user sit in tab panels of
+ * the Database Agent's steps; the README still heads them.
+ */
+function partOf(markdown: string, where: string): string {
+  return where.startsWith("@tab ")
+    ? tabPanel(markdown, where.slice("@tab ".length))
+    : section(markdown, where);
 }
 
 /* Fenced code blocks of some markdown, each as its full text between the fences. */
@@ -613,7 +626,7 @@ describe("Databases docs", (): void => {
     it("documents every variable docker-compose.yml passes, and nothing it does not", (): void => {
       const compose: Array<string> = composeEnvironmentVariables();
       const table: Array<string> = firstColumnTokens(
-        section(readPage(), "### Environment Variables"),
+        section(readPage(), "### Environment variables"),
       );
 
       expect([...table].sort()).toEqual([...compose].sort());
@@ -633,7 +646,7 @@ describe("Databases docs", (): void => {
         heading: string,
       ): Array<string> => {
         const block: string | undefined = codeBlocks(
-          section(markdown, heading),
+          partOf(markdown, heading),
         ).find((text: string): boolean => {
           return text.split("\n").some((line: string): boolean => {
             return line.startsWith("ONEUPTIME_URL=");
@@ -652,7 +665,7 @@ describe("Databases docs", (): void => {
           .sort();
       };
 
-      expect(envSample(readPage(), "### Alternative — Docker Compose")).toEqual(
+      expect(envSample(readPage(), "@tab Docker Compose")).toEqual(
         compose,
       );
       expect(
@@ -946,7 +959,7 @@ describe("Databases docs", (): void => {
     });
 
     it("lists exactly the metrics each config switches on in the What Gets Collected table", (): void => {
-      const table: string = section(readPage(), "### What Gets Collected");
+      const table: string = section(readPage(), "### What gets collected");
 
       for (const engine of AGENT_ENGINES) {
         const label: string = COLLECTED_ROW_LABELS[engine] as string;
@@ -1471,7 +1484,7 @@ describe("Databases docs", (): void => {
     it("tells a hand-written .env and a Kubernetes Secret to double every $ in the password", (): void => {
       const markdown: string = readPage();
 
-      expect(section(markdown, "### Alternative — Docker Compose")).toContain(
+      expect(partOf(markdown, "@tab Docker Compose")).toContain(
         "write every `$` in it as `$$`",
       );
       expect(section(markdown, "## Kubernetes")).toContain(
@@ -1500,11 +1513,11 @@ describe("Databases docs", (): void => {
         "# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.",
       );
       for (const [markdown, heading] of [
-        [readPage(), "### Alternative — Docker Compose"],
+        [readPage(), "@tab Docker Compose"],
         [readAgentFile("README.md"), "## Quick Start — Docker Compose"],
       ] as Array<[string, string]>) {
         const sample: string | undefined = codeBlocks(
-          section(markdown, heading),
+          partOf(markdown, heading),
         ).find((text: string): boolean => {
           return text.includes("\nONEUPTIME_URL=");
         });
@@ -1525,10 +1538,10 @@ describe("Databases docs", (): void => {
      */
     it("names every character the SQL Server connection string cannot carry, and how to reach a named instance", (): void => {
       for (const [markdown, heading] of [
-        [readPage(), "#### SQL Server"],
+        [readPage(), "@tab SQL Server"],
         [readAgentFile("README.md"), "### SQL Server"],
       ] as Array<[string, string]>) {
-        const text: string = section(markdown, heading);
+        const text: string = partOf(markdown, heading);
 
         expect({ heading, text }).toEqual({
           heading,
@@ -1608,7 +1621,7 @@ describe("Databases docs", (): void => {
         markdown,
         "### Which engine a database shows",
       );
-      const grants: string = section(markdown, "#### MySQL / MariaDB");
+      const grants: string = partOf(markdown, "@tab MySQL / MariaDB");
 
       expect(markdown).not.toContain("10.11.7-MariaDB");
       expect(ownCollector).toContain("`resource_attributes.db.system.name`");
@@ -1644,7 +1657,7 @@ describe("Databases docs", (): void => {
         [readPage(), "### Upgrading and uninstalling"],
         [readAgentFile("README.md"), "## Upgrading, Uninstalling"],
       ] as Array<[string, string]>) {
-        const text: string = section(markdown, heading);
+        const text: string = partOf(markdown, heading);
 
         expect({ heading, text }).toEqual({
           heading,
@@ -1681,7 +1694,7 @@ describe("Databases docs", (): void => {
     it("explains that PostgreSQL explain plans need table access, and that it is not a missing grant", (): void => {
       const markdown: string = readPage();
 
-      expect(section(markdown, "#### PostgreSQL")).toContain(
+      expect(partOf(markdown, "@tab PostgreSQL")).toContain(
         "`failed to explain`",
       );
       expect(
@@ -2663,11 +2676,11 @@ describe("Databases docs", (): void => {
      */
     it("uses an identity in the .env samples that creates its database", (): void => {
       for (const [markdown, heading] of [
-        [readPage(), "### Alternative — Docker Compose"],
+        [readPage(), "@tab Docker Compose"],
         [readAgentFile("README.md"), "## Quick Start — Docker Compose"],
       ] as Array<[string, string]>) {
         const sample: string | undefined = codeBlocks(
-          section(markdown, heading),
+          partOf(markdown, heading),
         ).find((text: string): boolean => {
           return text.includes("DATABASE_SERVER_ADDRESS=");
         });
@@ -2774,7 +2787,7 @@ describe("Databases docs", (): void => {
    */
   describe("what the end-to-end run found", (): void => {
     it("says the PostgreSQL, SQL Server and Memcached receivers report no version", (): void => {
-      const collected: string = section(readPage(), "### What Gets Collected");
+      const collected: string = section(readPage(), "### What gets collected");
 
       expect(collected).toContain(
         "The PostgreSQL, SQL Server and Memcached receivers report none, so under the agent alone those databases show no version",
@@ -2882,9 +2895,9 @@ describe("Databases docs", (): void => {
     });
 
     it("says Valkey's redis_version is not its own, and the product ignores it", (): void => {
-      const grants: string = section(
+      const grants: string = partOf(
         readPage(),
-        "#### Redis / Valkey / KeyDB / Dragonfly",
+        "@tab Redis / Valkey / KeyDB / Dragonfly",
       );
 
       expect(grants).toContain(
@@ -3104,7 +3117,7 @@ describe("Databases docs", (): void => {
     });
 
     it("promises a curated Overview for every engine the agent monitors", (): void => {
-      const collected: string = section(readPage(), "### What Gets Collected");
+      const collected: string = section(readPage(), "### What gets collected");
 
       expect(collected).toContain(
         "charts a curated set for every engine in this table",
@@ -3163,7 +3176,7 @@ describe("Databases docs", (): void => {
           statements: statements(block as string),
         });
       }
-      expect(section(readPage(), "### What Gets Collected")).toContain(
+      expect(section(readPage(), "### What gets collected")).toContain(
         "with the query text as their message",
       );
     });
@@ -3207,7 +3220,7 @@ describe("Databases docs", (): void => {
      * bytes, 8112 read "7.9 KiB") reads in pages.
      */
     it("says what a Metrics tab row's value is, and how MariaDB's buffer pool limit reads", (): void => {
-      const collected: string = section(readPage(), "### What Gets Collected");
+      const collected: string = section(readPage(), "### What gets collected");
       const queries: string = fs.readFileSync(
         path.join(
           REPO_ROOT,

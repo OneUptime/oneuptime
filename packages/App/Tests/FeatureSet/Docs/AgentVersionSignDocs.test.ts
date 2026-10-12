@@ -5,7 +5,10 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getDockerAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
-import { getDockerSwarmAgentInstallScriptCommand } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import {
+  DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND,
+  getDockerSwarmAgentInstallScriptCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
@@ -264,35 +267,48 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
     expect(podman).toContain(getPodmanAgentUpgradeCommand("podman-compose"));
   });
 
-  test("Docker Swarm: a new upgrade section runs the install script again, and says the sign follows the pinned collector", () => {
-    for (const language of ["en", "fa"]) {
-      const guide: string = readGuide(
+  test.each(LANGUAGES)(
+    "%s Docker Swarm: the upgrade section runs the install script again, or the dialog's Compose commands, and says the sign follows the pinned collector",
+    (language: string) => {
+      // In every language, line for line with the English page (docs task 22).
+      const section: string = sectionInLanguage(
         language,
-        "telemetry/docker-swarm.md",
-      ) as string;
-      expect(guide).toContain(
+        "telemetry/docker-swarm",
+        "## Upgrading the agent",
+      );
+      expect(section).toContain(
         "```bash\n" + getDockerSwarmAgentInstallScriptCommand() + "\n```",
       );
-      expect(guide).toContain("`docker compose pull`");
-      expect(guide).toContain(`**${labelIn(language, "Overview")}**`);
-    }
-    expect(readGuide("en", "telemetry/docker-swarm.md")).toContain(
-      "## Upgrading the agent",
-    );
-  });
+      expect(section).toContain(
+        "```bash\n" + DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND + "\n```",
+      );
+      expect(section.indexOf(getDockerSwarmAgentInstallScriptCommand())).toBeLessThan(
+        section.indexOf(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND),
+      );
+      expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
+    },
+  );
 
-  test("Databases: the upgrade section says the sign follows the pinned collector, and every way to upgrade", () => {
-    const guide: string = readGuide("en", "telemetry/databases.md") as string;
-    const section: string = guide.slice(
-      guide.indexOf("### Upgrading and uninstalling"),
-      guide.indexOf("## AI agent"),
-    );
-    expect(section).toContain("**Agent version**");
-    expect(section).toContain("**Overview**");
-    expect(section).toContain("install script");
-    expect(section).toContain("Docker Compose");
-    expect(section).toContain("Kubernetes");
-  });
+  test.each(LANGUAGES)(
+    "%s Databases: the upgrade section says the sign follows the pinned collector, and every way to upgrade",
+    (language: string) => {
+      // In every language, line for line with the English page (docs task 22).
+      const section: string = sectionInLanguage(
+        language,
+        "telemetry/databases",
+        "### Upgrading and uninstalling",
+      );
+      expect(section).toContain(`**${drawnLabelIn(language, "Agent version")}**`);
+      expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
+      expect(section).toContain("`install.sh`");
+      expect(section).toContain("`docker compose up -d --force-recreate`");
+      if (language === "en") {
+        expect(section).toContain("install script");
+        expect(section).toContain("Docker Compose");
+        expect(section).toContain("Kubernetes");
+      }
+    },
+  );
 });
 
 /*
@@ -392,65 +408,40 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
 });
 
 describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follows the pinned collector, with the dialog's commands", () => {
-  // The upgrade section: from its heading to the next.
-  function upgradeSection(guide: string, heading: string): string {
-    const start: number = guide.indexOf(heading);
-    expect(start).toBeGreaterThan(-1);
-    const end: number = guide.indexOf("\n## ", start + heading.length);
-    return guide.slice(start, end);
-  }
-
-  // The Ceph, VMware and Storage Array guides' upgrade headings.
-  const HEADINGS: Record<string, string> = {
-    en: "## Upgrading the Agent",
-    fa: "## ارتقای عامل",
-  };
-
   /*
-   * The Proxmox guide is in every language, line for line with the English
-   * one (docs task 21), and names the Dashboard as each language draws it.
+   * The four guides are in every language, line for line with the English
+   * ones (docs tasks 21 and 22), and name the Dashboard as each language
+   * draws it: a section is found where the English one is.
    */
   const PROXMOX: string = "telemetry/proxmox.md";
+  const CEPH: string = "telemetry/ceph.md";
+  const VMWARE: string = "telemetry/vmware.md";
+  const STORAGE_ARRAYS: string = "telemetry/storage-arrays.md";
 
   function upgradeSectionOf(language: string, page: string): string {
-    if (page === PROXMOX) {
-      return sectionInLanguage(
-        language,
-        "telemetry/proxmox",
-        "## Upgrading the agent",
-      );
-    }
-
-    return upgradeSection(
-      readGuide(language, page) as string,
-      HEADINGS[language] as string,
+    return sectionInLanguage(
+      language,
+      page.replace(/\.md$/, ""),
+      "## Upgrading the agent",
     );
   }
 
-  function labelFor(language: string, page: string, english: string): string {
-    return page === PROXMOX
-      ? drawnLabelIn(language, english)
-      : labelIn(language, english);
-  }
-
-  test.each([
-    ...LANGUAGES.map((language: string): [string, string] => {
-      return [language, PROXMOX];
+  test.each(
+    LANGUAGES.flatMap((language: string): Array<[string, string]> => {
+      return [PROXMOX, CEPH, VMWARE, STORAGE_ARRAYS].map(
+        (page: string): [string, string] => {
+          return [language, page];
+        },
+      );
     }),
-    ["en", "telemetry/ceph.md"],
-    ["fa", "telemetry/ceph.md"],
-    ["en", "telemetry/vmware.md"],
-    ["fa", "telemetry/vmware.md"],
-    ["en", "telemetry/storage-arrays.md"],
-    ["fa", "telemetry/storage-arrays.md"],
-  ])(
+  )(
     "%s %s: names the Agent Version on the Overview, and pulling alone is gone",
     (language: string, page: string) => {
       const section: string = upgradeSectionOf(language, page);
       expect(section).toContain(
-        `**${labelFor(language, page, "Agent Version")}**`,
+        `**${drawnLabelIn(language, "Agent Version")}**`,
       );
-      expect(section).toContain(`**${labelFor(language, page, "Overview")}**`);
+      expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
       expect(section).toContain("docker compose up -d --force-recreate");
       expect(section).not.toMatch(
         /docker compose pull\ndocker compose up -d\n/,
@@ -464,13 +455,14 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
    * files and a recreate in its own folder. Never the script's folder by
    * hand any more: the script finds it.
    */
-  test.each([
-    ...LANGUAGES.map((language: string): [string, string, string] => {
-      return [language, PROXMOX, "proxmox"];
+  test.each(
+    LANGUAGES.flatMap((language: string): Array<[string, string, string]> => {
+      return [
+        [language, PROXMOX, "proxmox"],
+        [language, CEPH, "ceph"],
+      ];
     }),
-    ["en", "telemetry/ceph.md", "ceph"],
-    ["fa", "telemetry/ceph.md", "ceph"],
-  ])(
+  )(
     "%s %s: the install script again, or the files and the recreate, as the dialog shows them",
     (language: string, page: string, agent: string) => {
       const section: string = upgradeSectionOf(language, page);
@@ -493,13 +485,10 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     },
   );
 
-  test.each(["en", "fa"])(
+  test.each(LANGUAGES)(
     "%s Storage Arrays: the install script again (INSTALL_DIR for another folder), or every file and the recreate",
     (language: string) => {
-      const section: string = upgradeSection(
-        readGuide(language, "telemetry/storage-arrays.md") as string,
-        HEADINGS[language] as string,
-      );
+      const section: string = upgradeSectionOf(language, STORAGE_ARRAYS);
       expect(section).toContain(
         "```bash\n" + getStorageArrayAgentUpgradeCommand() + "\n```",
       );
@@ -515,13 +504,10 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     },
   );
 
-  test.each(["en", "fa"])(
+  test.each(LANGUAGES)(
     "%s VMware: the install script again, the files and the recreate, or the release without Docker",
     (language: string) => {
-      const section: string = upgradeSection(
-        readGuide(language, "telemetry/vmware.md") as string,
-        HEADINGS[language] as string,
-      );
+      const section: string = upgradeSectionOf(language, VMWARE);
       expect(section).toContain(
         "```bash\n" + getVMwareAgentUpgradeCommand() + "\n```",
       );
@@ -532,7 +518,7 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
           VMWARE_AGENT_RECREATE_COMMAND +
           "\n```",
       );
-      // The dialog's Without Docker tab: the release the agent pins, again.
+      // The dialog's Without Docker tab (the page's systemd tab): the release the agent pins, again.
       expect(section).toContain(
         "```bash\n" + getVMwareNativeUpgradeCommand() + "\n```",
       );

@@ -1,8 +1,15 @@
 # Databases
 
-## Overview
+**Databases** gives every database server your project runs or talks to its own page: what is calling it and how fast, where it runs, the engine's own health metrics, its logs and traces, the incidents, alerts and scheduled maintenance attached to it, and the alert monitors recommended for its engine. Databases have labels, owners, label and owner rules, per-database retention and archiving, like every other resource. Open them under **Products → Resources → Databases**.
 
-**Databases** (_Resources → Databases_ in the dashboard) gives every database server your project runs or talks to its own page: what is calling it and how fast, where it runs, the engine's own health metrics, its logs and traces, the incidents, alerts and scheduled maintenance attached to it, and the alert monitors recommended for its engine. Databases have labels, owners, label and owner rules, per-database retention and archiving, like every other resource.
+:::cards
+- [The Database Agent](#the-database-agent): Engine metrics for PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch and Memcached.
+- [How databases are detected](#how-databases-are-detected): From traces, Kubernetes, Docker, Podman and collectors.
+- [Alerts on a database](#alerts-on-a-database): Recommended monitors, and monitors you build.
+- [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
+:::
+
+## How it works
 
 Most databases appear on their own. OneUptime assembles each one from up to four sources, and each source contributes something different:
 
@@ -13,11 +20,17 @@ Most databases appear on their own. OneUptime assembles each one from up to four
 | **Docker / Podman** | The [Docker agent](/docs/telemetry/docker-host) or [Podman agent](/docs/telemetry/podman-host) | Where it runs: the containers, their CPU and memory, and their logs |
 | **Database Agent** (an OpenTelemetry Collector) | The [Database Agent](#the-database-agent) or your own collector | **Engine metrics** — connections, throughput, cache hit ratio, locks, replication lag, memory, as far as the engine has them (see [What Gets Collected](#what-gets-collected)) — plus optional query samples, top queries and the engine's log file |
 
+```mermaid title="Four sources, one database page"
+flowchart TB
+    traces["Application traces"] -->|"queries, callers,<br/>latency"| db["The database's page"]
+    k8s["Kubernetes agent"] -->|"pods, CPU,<br/>memory, logs"| db
+    docker["Docker or<br/>Podman agent"] -->|"containers, CPU,<br/>memory, logs"| db
+    agent["Database Agent or<br/>your own collector"] -->|"engine metrics,<br/>query events"| db
+```
+
 Engine metrics only ever come from a collector talking to the database itself (or, for a managed cloud database, to its provider's monitoring API). Traces and container inventories tell OneUptime that a database exists and how it is used, but not how it is doing inside — the **Engine metrics** status on each database says whether that part is connected.
 
-You can also add a database by hand: **Databases → Create Database** with its engine, address and port.
-
-This page covers the [supported databases](#supported-databases), [how databases are detected](#how-databases-are-detected), the Database Agent, Kubernetes, how [endpoints](#endpoints-and-the-one-owner-rule) tie the sources together, [alerting](#alerts-on-a-database), the [lifecycle](#lifecycle-archiving-and-retention) of a discovered database and troubleshooting. For a probe-based health check that needs no agent at all, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
+You can also add a database by hand: **Databases → Create Database** with its engine, address and port. For a probe-based health check that needs no agent at all, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
 
 ## Supported databases
 
@@ -123,7 +136,7 @@ The usual other spellings are accepted too: `postgres` and `pg`, `mssql` and `sq
 
 ## How databases are detected
 
-Each database remembers the source that created it (the **Discovery source** column), and the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container — or Compose or Swarm service — and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it. Later sources add to the same database rather than creating another one, as long as they describe the same endpoint (see [Endpoints](#endpoints-and-the-one-owner-rule)).
+Each database remembers the source that created it (the **Discovered from** column), and the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container — or Compose or Swarm service — and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it. Later sources add to the same database rather than creating another one, as long as they describe the same endpoint (see [Endpoints](#endpoints-and-the-one-owner-rule)).
 
 ### From application traces
 
@@ -199,18 +212,19 @@ The OneUptime Database Agent is a pre-configured OpenTelemetry Collector for **P
 
 The agent lives in the [DatabaseAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent): `docker-compose.yml`, one collector config per receiver (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` and a systemd unit. A fork or drop-in runs its family's config and reports its own name: `DATABASE_SYSTEM=mariadb` runs `configs/mysql.yaml` and the database shows as MariaDB.
 
-### Prerequisites
+### Before you begin
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach the database's port (or a Kubernetes cluster — see [Kubernetes](#kubernetes))
-- A monitoring user on the database with the grants below
-- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_
+- Docker Engine 20.10 or later with the Docker Compose v2 plugin, on a machine that can reach the database's port (or a Kubernetes cluster: see [Kubernetes](#kubernetes)).
+- A login on the database that can create the monitoring user and grant it the statistics below.
+- An ingestion key. Create one under **Project Settings → Telemetry & APM → Ingestion Keys** and copy its value.
 
+:::steps
 ### Create a monitoring user
 
 Give the agent its own login with read access to the engine's statistics — never an administrator and never an application's login. If you already created a monitoring user for the [Database Health Monitor](/docs/monitor/database-health-monitor#create-a-monitoring-user), its PostgreSQL, MySQL and SQL Server grants cover the agent as well.
 
-#### PostgreSQL
-
+:::tabs
+@tab PostgreSQL
 ```sql
 CREATE USER oneuptime_monitor WITH PASSWORD 'a-strong-password';
 GRANT pg_monitor TO oneuptime_monitor;
@@ -227,9 +241,7 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 Explain plans on top queries need `SELECT` on the tables the queries touch, which `pg_monitor` does not grant — give it per schema (`GRANT SELECT ON ALL TABLES IN SCHEMA app TO oneuptime_monitor`) if you want plans. Without it top queries still arrive with empty plans, and the collector logs `failed to explain` for each one; the diagnostic script reports that as a warning, not as a missing grant.
 
 On a managed service where `pg_monitor` is unavailable, `pg_read_all_stats` covers the same views. The agent already skips the internal databases of Amazon RDS, Azure, Cloud SQL and AlloyDB that no customer login can open.
-
-#### MySQL / MariaDB
-
+@tab MySQL / MariaDB
 ```sql
 CREATE USER 'oneuptime_monitor'@'%' IDENTIFIED BY 'a-strong-password';
 GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'oneuptime_monitor'@'%';
@@ -237,9 +249,7 @@ GRANT SELECT ON performance_schema.* TO 'oneuptime_monitor'@'%';
 ```
 
 `PROCESS` and `REPLICATION CLIENT` cover the global status counters, InnoDB status and replica status; `performance_schema` (on by default since MySQL 5.6) is read for query samples and top queries. MariaDB 10.5.9 and later split replica status into its own privilege, so also run `GRANT SLAVE MONITOR ON *.* TO 'oneuptime_monitor'@'%';` there. Set `DATABASE_SYSTEM=mariadb` for a MariaDB server: the same config monitors it, and the database shows as MariaDB. That is the reliable way. An agent installed as `mysql` against MariaDB 10 or later ends up there too, by its version number (`11.4.13` — MySQL never released a 10.x or 11.x), but a MariaDB 5.5 stays MySQL.
-
-#### SQL Server
-
+@tab SQL Server
 ```sql
 CREATE LOGIN oneuptime_monitor WITH PASSWORD = 'a-strong-password';
 GRANT VIEW SERVER STATE TO oneuptime_monitor;
@@ -249,9 +259,7 @@ GRANT VIEW ANY DEFINITION TO oneuptime_monitor;
 `VIEW SERVER STATE` (on SQL Server 2022 and later `VIEW SERVER PERFORMANCE STATE` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver puts the login into a connection string without quoting it, so the user name and password must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space — `install.sh` refuses them. The driver negotiates encryption with the server itself, so the TLS variables do not apply.
 
 For a named instance (`sql1.corp\INST01`), point `DATABASE_ENDPOINT` at the instance's own TCP port — never the default instance's 1433, which reaches the default instance instead. SQL Server Configuration Manager shows it (the instance's TCP/IP protocol, IPAll), or run `SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;` on the instance. `install.sh` refuses `host\instance` and asks for `host:port`.
-
-#### Oracle
-
+@tab Oracle
 ```sql
 -- In the pluggable database the agent connects to, e.g. ALTER SESSION SET CONTAINER = FREEPDB1;
 CREATE USER oneuptime_monitor IDENTIFIED BY "a-strong-password";
@@ -260,17 +268,13 @@ GRANT SELECT_CATALOG_ROLE TO oneuptime_monitor;
 ```
 
 `SELECT_CATALOG_ROLE` reads the `V$` and `DBA_` views the metrics, query samples and top queries come from, and grants no access to your tables. `DATABASE_ORACLE_SERVICE` names the service the agent connects to (`FREEPDB1`, `ORCLPDB1`, …).
-
-#### Redis / Valkey / KeyDB / Dragonfly
-
+@tab Redis / Valkey / KeyDB / Dragonfly
 ```text
 ACL SETUSER oneuptime_monitor on >a-strong-password -@all +info +ping
 ```
 
 The receiver only runs `INFO`. Persist the user with `ACL SAVE` (or a `user` line in `redis.conf` / your ACL file). On a server protected only by `requirepass`, leave `DATABASE_USERNAME` empty and set `DATABASE_PASSWORD`; on a server without authentication leave both empty. Set `DATABASE_SYSTEM` to `valkey`, `keydb` or `dragonfly` for those servers. The receiver reads the version from `INFO`'s `redis_version`, which Valkey keeps at `7.2.4` (the Redis release it forked from) and Dragonfly sets to the Redis version it emulates. OneUptime ignores it for them, so a Valkey or Dragonfly database shows the version of its container image when Kubernetes, Docker or Podman runs it, and none under the agent alone.
-
-#### MongoDB
-
+@tab MongoDB
 ```js
 db.getSiblingDB("admin").createUser({
   user: "oneuptime_monitor",
@@ -280,9 +284,7 @@ db.getSiblingDB("admin").createUser({
 ```
 
 `clusterMonitor` covers every metric. Explain plans on top queries additionally need `{ role: "read", db: "<database>" }` for each monitored database; without it top queries still arrive, with empty plans. The agent connects to exactly one member (`direct_connection`), so run one agent per replica-set member.
-
-#### Elasticsearch / OpenSearch
-
+@tab Elasticsearch / OpenSearch
 ```text
 POST /_security/role/oneuptime_monitor
 { "cluster": ["monitor"], "indices": [{ "names": ["*"], "privileges": ["monitor"] }] }
@@ -292,12 +294,15 @@ POST /_security/user/oneuptime_monitor
 ```
 
 The `monitor` privileges read node, cluster and index statistics and no documents. On OpenSearch with the security plugin, grant the cluster permission `cluster_monitor` and the index permission `indices_monitor` on `*` instead; on a cluster without security, leave `DATABASE_USERNAME` and `DATABASE_PASSWORD` empty. One agent monitors the whole cluster through one endpoint, a URL (`http://search.internal:9200`, or `https://` for TLS). Set `DATABASE_SYSTEM=opensearch` for an OpenSearch cluster.
-
-#### Memcached
-
+@tab Memcached
 Memcached has no users: the receiver runs `stats` over the text protocol, so leave `DATABASE_USERNAME` and `DATABASE_PASSWORD` empty. A server started with SASL authentication (`-S`) cannot be monitored this way.
+:::
 
-### Quick Start (Install Script)
+### Install and start the agent
+
+:::tabs
+@tab install.sh
+Download the install script and run it on the machine that will host the agent:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
@@ -308,10 +313,8 @@ The script asks for your OneUptime URL and ingestion key, the engine, the endpoi
 
 Every prompt can be answered with an exported variable of the same name, and `INSTALL_DIR` picks the directory — for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders bash install.sh` for a second database. Re-running the script reuses every value in your existing `.env` (see [Upgrading and uninstalling](#upgrading-and-uninstalling)).
 
-Any character is fine in the password, apart from the few SQL Server's connection string cannot carry (see [SQL Server](#sql-server)). The collector expands `$` inside the values it reads once more — `$$` becomes `$` and `${NAME}` becomes another variable — so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, on top of quoting the values for Docker Compose.
-
-### Alternative — Docker Compose
-
+Any character is fine in the password, apart from the few SQL Server's connection string cannot carry (see the SQL Server tab of [Create a monitoring user](#create-a-monitoring-user)). The collector expands `$` inside the values it reads once more — `$$` becomes `$` and `${NAME}` becomes another variable — so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, on top of quoting the values for Docker Compose.
+@tab Docker Compose
 Download `docker-compose.yml` and the config for your engine from the [DatabaseAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) into one folder, saving the config as `otel-collector-config.yaml`:
 
 ```bash
@@ -346,15 +349,19 @@ Single-quote the password, and write every `$` in it as `$$`. The first line say
 ```bash
 docker compose up -d
 ```
+:::
+
+### Find the database in OneUptime
 
 After the first collection the database appears under **Databases** — or, if OneUptime had already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network (`db.prod.internal`, a cluster-local name), create the database first or set `DATABASE_SERVER_ID` (see [From the Database Agent or your own collector](#from-the-database-agent-or-your-own-collector)).
+:::
 
-### Environment Variables
+### Environment variables
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host) |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key from _Project Settings → Telemetry & APM → Ingestion Keys_ |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys** |
 | `DATABASE_SYSTEM` | Yes | The engine, stamped as `db.system.name`: `postgresql`, `mysql`, `mariadb`, `redis`, `valkey`, `keydb`, `dragonfly`, `mongodb`, `microsoft.sql_server`, `oracle.db`, `elasticsearch`, `opensearch` or `memcached`. `install.sh` accepts the usual spellings and downloads the matching config |
 | `DATABASE_ENDPOINT` | Yes | `host:port` the agent connects to. Use `host.docker.internal:<port>` when the agent runs on the database machine (see [Troubleshooting](#troubleshooting) if that is refused). For Elasticsearch / OpenSearch a URL: `http://host:9200`, or `https://` for TLS |
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`'s host on its own — the SQL Server receiver takes host and port apart. `install.sh` writes it |
@@ -370,7 +377,7 @@ After the first collection the database appears under **Databases** — or, if O
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server and Oracle). They contain query text. Defaults to `false` |
 | `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its **Documentation** tab has it, prefilled). The data then joins that database directly and shows on its pages, whatever address it reports (or none) — the way to go in Kubernetes and for private IPs. It must be a database in the project the ingestion key belongs to |
 
-### What Gets Collected
+### What gets collected
 
 | Engine | Receiver | Also enabled by the agent (off upstream) | Query events |
 | --- | --- | --- | --- |
@@ -395,7 +402,7 @@ Every batch carries `db.system.name` (from `DATABASE_SYSTEM`), `server.address`,
 
 The PostgreSQL, MySQL, Redis and MongoDB configs have a commented `filelog` receiver. Uncomment it, add it to the `logs` pipeline, and mount the engine's log directory at `/var/log/database` in `docker-compose.yml` (for example `- /var/log/postgresql:/var/log/database:ro`). The collector runs as a non-root user, so the files must be readable by it. The `resource` processor stamps the same identity, so the lines land on the database's **Logs** tab.
 
-### Run as a systemd Service
+### Run as a systemd service
 
 ```bash
 sudo cp /opt/oneuptime-database-agent/systemd/oneuptime-database-agent.service /etc/systemd/system/
@@ -445,7 +452,10 @@ Databases running in a cluster with the OneUptime Kubernetes agent are [detected
 
 The in-app **Documentation** tab of a detected database renders this manifest prefilled for that database — namespace, engine, address and id. By hand:
 
-1. Put the config for your engine in a ConfigMap and the secrets in a Secret (write every `$` in the password as `$$` — the collector expands it):
+:::steps
+### Put the config and the secrets in the namespace
+
+Put the config for your engine in a ConfigMap and the secrets in a Secret (write every `$` in the password as `$$` — the collector expands it):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
@@ -455,7 +465,7 @@ kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=DATABASE_PASSWORD='a-strong-password'
 ```
 
-2. Apply the Deployment:
+### Apply the Deployment
 
 ```yaml
 apiVersion: apps/v1
@@ -530,6 +540,7 @@ spec:
           configMap:
             name: oneuptime-database-agent
 ```
+:::
 
 Two values tie the metrics to the database OneUptime already detected:
 
@@ -674,7 +685,7 @@ Inside the agent's container, `localhost` is the container itself. Use `host.doc
 
 ### Login, permission or TLS errors in the collector log
 
-- `password authentication failed`, `Access denied for user`, `Login failed for user`, `ORA-01017`, `WRONGPASS`, `Authentication failed`: check the credentials. The collector expands `$` inside them once more, so every `$` must be written as `$$` in `.env` or a Kubernetes Secret (`install.sh` does this). Quote a password containing `#`, spaces or quotes in `.env`. On SQL Server a login containing `;` or `"`, or with spaces around it, always fails: its connection string cannot carry them (see [SQL Server](#sql-server)).
+- `password authentication failed`, `Access denied for user`, `Login failed for user`, `ORA-01017`, `WRONGPASS`, `Authentication failed`: check the credentials. The collector expands `$` inside them once more, so every `$` must be written as `$$` in `.env` or a Kubernetes Secret (`install.sh` does this). Quote a password containing `#`, spaces or quotes in `.env`. On SQL Server a login containing `;` or `"`, or with spaces around it, always fails: its connection string cannot carry them (see the SQL Server tab of [Create a monitoring user](#create-a-monitoring-user)).
 - Connections always `1`, `permission denied`, `Access denied; you need … privilege(s)` (MySQL / MariaDB error 1227: `PROCESS`, or `SLAVE MONITOR` on MariaDB 10.5.9 and later), `NOPERM`, `not authorized`, `VIEW SERVER STATE`, `ORA-00942`: the monitoring user is missing its grant — see [Create a monitoring user](#create-a-monitoring-user).
 - `ORA-12514` or `ORA-12505`: the Oracle listener answers — so the connection check passes — but does not know the service `DATABASE_ORACLE_SERVICE` names; `lsnrctl services` on the database host lists the ones it does.
 - `ORA-28000` or `ORA-28001`: the Oracle monitoring user is locked or its password expired.

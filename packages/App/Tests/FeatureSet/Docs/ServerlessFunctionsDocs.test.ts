@@ -272,20 +272,31 @@ describe("Serverless Functions docs", (): void => {
 
     it("keeps its sections in reading order, with Azure Functions after the Lambda layer", (): void => {
       expect(headings(readPage(), 2)).toEqual([
-        "## Overview",
-        "## Prerequisites",
+        "## How it works",
+        "## Before you begin",
         "## How OneUptime identifies a function",
-        "## Step 1 — Set the OTLP exporter environment variables",
-        "## Step 2 — (AWS Lambda) add the OpenTelemetry layer",
+        "## Send a function's telemetry",
         "## Azure Functions",
         "## What you get",
+        "## Label functions and assign owners",
+        "## Troubleshooting",
+        "## Next steps",
+      ]);
+
+      // The generic steps, the Lambda layer among them, come first.
+      expect(
+        headings(section(readPage(), "## Send a function's telemetry"), 3),
+      ).toEqual([
+        "### Set the OTLP exporter environment variables",
+        "### Add the OpenTelemetry Lambda layer (AWS Lambda)",
+        "### Invoke the function and check it arrives",
       ]);
 
       expect(headings(section(readPage(), "## Azure Functions"), 3)).toEqual([
         "### How a Function App shows up",
-        "### Step 1 — Turn on OpenTelemetry in the Functions host",
-        "### Step 2 — Point the host at OneUptime",
-        "### Step 3 — (Optional) instrument your function code",
+        "### Turn on OpenTelemetry in the Functions host",
+        "### Point the host at OneUptime",
+        "### Instrument your function code (optional)",
         "### Limitations",
       ]);
     });
@@ -431,7 +442,7 @@ describe("Serverless Functions docs", (): void => {
     it("keeps Azure readers from copying the generic faas.name example", (): void => {
       const step1: string = section(
         readPage(),
-        "## Step 1 — Set the OTLP exporter environment variables",
+        "### Set the OTLP exporter environment variables",
       );
       const example: Array<FencedBlock> = fencedBlocks(step1);
 
@@ -546,7 +557,7 @@ describe("Serverless Functions docs", (): void => {
       const text: string = section(azure(), "### How a Function App shows up");
 
       expect(text).toContain(
-        "Don't add `faas.name` to `OTEL_RESOURCE_ATTRIBUTES` on a Function App, as the generic [Step 1](#step-1-set-the-otlp-exporter-environment-variables) example does.",
+        "Don't add `faas.name` to `OTEL_RESOURCE_ATTRIBUTES` on a Function App, as the generic [first step](#set-the-otlp-exporter-environment-variables) example does.",
       );
       expect(text).toContain(
         "OneUptime never replaces a `faas.name` it is given",
@@ -567,22 +578,24 @@ describe("Serverless Functions docs", (): void => {
         "a worker that reports a second name makes a second Serverless Function",
       );
       expect(text).toContain(
-        "A worker whose resource has no FaaS `cloud.platform` joins no Serverless Function at all — see [Step 3](#step-3-optional-instrument-your-function-code).",
+        "A worker whose resource has no FaaS `cloud.platform` joins no Serverless Function at all — see [Instrument your function code](#instrument-your-function-code-optional).",
       );
     });
 
     it("turns the host on with a host.json that parses", (): void => {
       const text: string = section(
         azure(),
-        "### Step 1 — Turn on OpenTelemetry in the Functions host",
+        "### Turn on OpenTelemetry in the Functions host",
       );
+      // The fence names the file it is: ```json title="host.json"
       const json: Array<FencedBlock> = fencedBlocks(text).filter(
         (block: FencedBlock): boolean => {
-          return block.info === "json";
+          return block.info.split(" ")[0] === "json";
         },
       );
 
       expect(json).toHaveLength(1);
+      expect((json[0] as FencedBlock).info).toBe('json title="host.json"');
       expect(JSON.parse((json[0] as FencedBlock).body)).toEqual({
         version: "2.0",
         telemetryMode: "OpenTelemetry",
@@ -595,7 +608,7 @@ describe("Serverless Functions docs", (): void => {
     it("sets the exporter with a well-formed az command", (): void => {
       const text: string = section(
         azure(),
-        "### Step 2 — Point the host at OneUptime",
+        "### Point the host at OneUptime",
       );
       const { command, options, settings }: AzAppSettingsCommand =
         azAppSettingsCommand(text);
@@ -625,7 +638,7 @@ describe("Serverless Functions docs", (): void => {
     it("names only OTLP routes ingest serves", (): void => {
       const text: string = section(
         azure(),
-        "### Step 2 — Point the host at OneUptime",
+        "### Point the host at OneUptime",
       );
       const router: string = fs.readFileSync(OTEL_INGEST_ROUTER_FILE, "utf8");
       const routes: Array<string> = Array.from(
@@ -649,14 +662,14 @@ describe("Serverless Functions docs", (): void => {
     it("keeps Application Insights optional: both destinations receive the data when both are set", (): void => {
       const text: string = section(
         azure(),
-        "### Step 2 — Point the host at OneUptime",
+        "### Point the host at OneUptime",
       );
 
       expect(text).toContain("`APPLICATIONINSIGHTS_CONNECTION_STRING`");
       expect(text).toContain(
         "with both set, the host sends the same OpenTelemetry data to Application Insights and to OneUptime",
       );
-      expect(text).toContain("**This token is a secret.**");
+      expect(text).toContain("> [!WARNING]\n> This token is a secret:");
       expect(text).toContain("@Microsoft.KeyVault(SecretUri=");
     });
 
@@ -670,12 +683,12 @@ describe("Serverless Functions docs", (): void => {
     it("says the Key Vault secret holds the whole header, and who may read it", (): void => {
       const text: string = section(
         azure(),
-        "### Step 2 — Point the host at OneUptime",
+        "### Point the host at OneUptime",
       );
       const note: string | undefined = text
         .split("\n")
         .find((line: string): boolean => {
-          return line.startsWith("> **This token is a secret.**");
+          return line.startsWith("> This token is a secret:");
         });
 
       expect(note).toBeDefined();
@@ -696,7 +709,7 @@ describe("Serverless Functions docs", (): void => {
     it("names the worker package or setting for every language", (): void => {
       const text: string = section(
         azure(),
-        "### Step 3 — (Optional) instrument your function code",
+        "### Instrument your function code (optional)",
       );
 
       for (const token of [
@@ -730,7 +743,7 @@ describe("Serverless Functions docs", (): void => {
     it("tells workers without an Azure detector how to join the function", (): void => {
       const text: string = section(
         azure(),
-        "### Step 3 — (Optional) instrument your function code",
+        "### Instrument your function code (optional)",
       );
 
       expect(text).toContain(
@@ -744,7 +757,7 @@ describe("Serverless Functions docs", (): void => {
       );
 
       const step2: AzAppSettingsCommand = azAppSettingsCommand(
-        section(azure(), "### Step 2 — Point the host at OneUptime"),
+        section(azure(), "### Point the host at OneUptime"),
       );
       const { options, settings }: AzAppSettingsCommand =
         azAppSettingsCommand(text);

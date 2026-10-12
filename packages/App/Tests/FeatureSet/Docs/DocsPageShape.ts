@@ -152,6 +152,200 @@ export function unbalancedLines(markdown: string): Array<string> {
     });
 }
 
+// A component's opening line, ":::tabs" or ":::details Summary", and its name.
+const CONTAINER_OPENING: RegExp = /^:::([a-z]+)(?:\s+(.*))?$/;
+
+export interface DocsTabPanel {
+  label: string;
+  // The panel's lines, between its @tab line and the next @tab or the close.
+  body: string;
+}
+
+export interface DocsDetailsBlock {
+  summary: string;
+  // The block's lines, between its :::details line and its closing :::.
+  body: string;
+}
+
+interface OpenContainer {
+  name: string;
+  summary: string;
+  start: number;
+  lines: Array<string>;
+  // The open panel of a :::tabs container.
+  panel: { label: string; start: number; lines: Array<string> } | null;
+}
+
+interface FoundPanel extends DocsTabPanel {
+  start: number;
+}
+
+interface FoundDetails extends DocsDetailsBlock {
+  start: number;
+}
+
+/*
+ * Walk a page's components: every tab panel and every :::details block,
+ * each with the lines inside it (a nested component's lines included), in
+ * the order they open. Lines in code blocks are content, never components.
+ */
+function walkComponents(markdown: string): {
+  panels: Array<FoundPanel>;
+  details: Array<FoundDetails>;
+} {
+  const panels: Array<FoundPanel> = [];
+  const details: Array<FoundDetails> = [];
+  const open: Array<OpenContainer> = [];
+  let inFence: boolean = false;
+
+  const append: (line: string) => void = (line: string): void => {
+    for (const container of open) {
+      container.lines.push(line);
+      container.panel?.lines.push(line);
+    }
+  };
+
+  const closePanel: (container: OpenContainer) => void = (
+    container: OpenContainer,
+  ): void => {
+    if (container.panel) {
+      panels.push({
+        label: container.panel.label,
+        start: container.panel.start,
+        body: container.panel.lines.join("\n"),
+      });
+      container.panel = null;
+    }
+  };
+
+  markdown.split("\n").forEach((line: string, index: number): void => {
+    if (FENCE_LINE.test(line)) {
+      inFence = !inFence;
+      append(line);
+      return;
+    }
+
+    if (inFence) {
+      append(line);
+      return;
+    }
+
+    const trimmed: string = line.trim();
+    const innermost: OpenContainer | undefined = open[open.length - 1];
+    const tab: RegExpMatchArray | null = trimmed.match(TAB_LINE);
+
+    if (tab && innermost?.name === "tabs") {
+      closePanel(innermost);
+      innermost.panel = {
+        label: (tab[1] as string).trim(),
+        start: index,
+        lines: [],
+      };
+      return;
+    }
+
+    if (trimmed === ":::" && innermost) {
+      open.pop();
+      closePanel(innermost);
+
+      if (innermost.name === "details") {
+        details.push({
+          summary: innermost.summary,
+          start: innermost.start,
+          body: innermost.lines.join("\n"),
+        });
+      }
+
+      append(line);
+      return;
+    }
+
+    const opening: RegExpMatchArray | null = trimmed.match(CONTAINER_OPENING);
+
+    if (opening) {
+      append(line);
+      open.push({
+        name: opening[1] as string,
+        summary: (opening[2] || "").trim(),
+        start: index,
+        lines: [],
+        panel: null,
+      });
+      return;
+    }
+
+    append(line);
+  });
+
+  const byStart: (a: { start: number }, b: { start: number }) => number = (
+    a: { start: number },
+    b: { start: number },
+  ): number => {
+    return a.start - b.start;
+  };
+
+  return { panels: panels.sort(byStart), details: details.sort(byStart) };
+}
+
+// Every tab panel of a page, in order: its label and the lines inside it.
+export function tabPanels(markdown: string): Array<DocsTabPanel> {
+  return walkComponents(markdown).panels.map(
+    (panel: FoundPanel): DocsTabPanel => {
+      return { label: panel.label, body: panel.body };
+    },
+  );
+}
+
+/*
+ * The lines inside a page's tab panel with this label: the first such
+ * panel, or the one at `index` among the panels with that label. A page
+ * that has no such panel fails the test that asks for it.
+ */
+export function tabPanel(
+  markdown: string,
+  label: string,
+  index: number = 0,
+): string {
+  const found: DocsTabPanel | undefined = tabPanels(markdown).filter(
+    (panel: DocsTabPanel): boolean => {
+      return panel.label === label;
+    },
+  )[index];
+
+  if (!found) {
+    throw new Error(`No tab panel "${label}" (number ${index + 1}) on the page`);
+  }
+
+  return found.body;
+}
+
+// Every :::details block of a page, in order: its summary and its lines.
+export function detailsBlocks(markdown: string): Array<DocsDetailsBlock> {
+  return walkComponents(markdown).details.map(
+    (block: FoundDetails): DocsDetailsBlock => {
+      return { summary: block.summary, body: block.body };
+    },
+  );
+}
+
+/*
+ * The lines inside the :::details block whose summary is this text. A page
+ * that has none fails the test that asks for it.
+ */
+export function detailsBody(markdown: string, summary: string): string {
+  const found: DocsDetailsBlock | undefined = detailsBlocks(markdown).find(
+    (block: DocsDetailsBlock): boolean => {
+      return block.summary === summary;
+    },
+  );
+
+  if (!found) {
+    throw new Error(`No :::details block "${summary}" on the page`);
+  }
+
+  return found.body;
+}
+
 /*
  * Every table of a page, in order, as rows of trimmed cells (the header
  * first, without the delimiter row).

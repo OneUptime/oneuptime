@@ -21,10 +21,10 @@ import path from "path";
  * first in the upgrade, and promise only what install.sh does. Markdown is
  * not compiled, so this reads the files.
  *
- * The Proxmox page is checked in every language: its translations lie line
- * for line beside the English page (InfrastructureAgentDocsTranslations), so
- * a section is found where the English one is. The Ceph page is checked in
- * English and Persian, by its headings, until its own docs task.
+ * The Proxmox and Ceph pages are checked in every language: their
+ * translations lie line for line beside the English pages
+ * (InfrastructureAgentDocsTranslations), so a section is found where the
+ * English one is.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -68,17 +68,7 @@ function section(markdown: string, heading: string): string {
 }
 
 const PROXMOX_PAGE: string = "telemetry/proxmox";
-
-// The Ceph page's headings, in the two languages it is checked in.
-const CEPH_QUICK_START: Record<string, string> = {
-  en: "## Quick Start (Install Script)",
-  fa: "## شروع سریع (اسکریپت نصب)",
-};
-
-const CEPH_UPGRADE: Record<string, string> = {
-  en: "## Upgrading the Agent",
-  fa: "## ارتقای عامل",
-};
+const CEPH_PAGE: string = "telemetry/ceph";
 
 const AGENTS: Array<Agent> = [
   {
@@ -113,25 +103,18 @@ const AGENTS: Array<Agent> = [
     dir: "agents/CephAgent",
     installDir: CEPH_AGENT_INSTALL_DIR,
     upgrade: getCephAgentUpgradeCommand(),
-    languages: ["en", "fa"],
+    languages: [...SUPPORTED_DOCS_LANGUAGE_CODES],
     installSection: (language: string): string => {
-      return section(
-        readPage(language, "telemetry/ceph.md"),
-        CEPH_QUICK_START[language]!,
-      );
+      return sectionInLanguage(language, CEPH_PAGE, "## Install the agent");
     },
     upgradeSection: (language: string): string => {
-      return section(
-        readPage(language, "telemetry/ceph.md"),
-        CEPH_UPGRADE[language]!,
-      );
+      return sectionInLanguage(language, CEPH_PAGE, "## Upgrading the agent");
     },
     upgradeAnchor: (language: string): string => {
-      return slugify(CEPH_UPGRADE[language]!.replace(/^## /, ""));
+      return anchorInLanguage(language, CEPH_PAGE, "upgrading-the-agent") || "";
     },
     reusesEnv: {
       en: "Running the script again reuses everything in that `.env` instead of prompting again",
-      fa: "را از همان `.env` بازاستفاده",
     },
   },
 ];

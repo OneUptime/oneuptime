@@ -93,6 +93,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import { normalizeObiReceivingSideMessagingSpanKind } from "../../../FeatureSet/Telemetry/Utils/ObiReceivingSideMessagingSpan";
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
+import { tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -820,7 +821,7 @@ describe("Queues docs", (): void => {
       const markdown: string = readPage();
 
       for (const heading of [
-        "## Overview",
+        "## How it works",
         SUPPORTED_SYSTEMS_HEADING,
         "## How queues are discovered",
         "### From application traces",
@@ -851,7 +852,7 @@ describe("Queues docs", (): void => {
 
       expect(lifecycle).toContain("**Archive to dismiss.**");
       expect(lifecycle).toContain("**Automatic archiving.**");
-      expect(section(markdown, "## Overview")).toContain(
+      expect(section(markdown, "## How it works")).toContain(
         "**Queues → Create Queue**",
       );
     });
@@ -864,7 +865,7 @@ describe("Queues docs", (): void => {
      */
     it("says where a queue's fullness comes from, the application's own gauge included", (): void => {
       const paragraph: string = paragraphWith(
-        section(readPage(), "## Overview"),
+        section(readPage(), "## How it works"),
         "but not how full it is",
       );
       const applicationReported: Array<MessagingSystemDescriptor> =
@@ -4081,7 +4082,7 @@ describe("Queues docs", (): void => {
      */
     it("lets a hand-made Service Bus or Event Hubs queue leave its namespace empty only for what Azure Monitor never reaches", (): void => {
       const byHand: string = paragraphWith(
-        section(readPage(), "## Overview"),
+        section(readPage(), "## How it works"),
         "**Queues → Create Queue**",
       );
 
@@ -4600,7 +4601,7 @@ describe("Queues docs", (): void => {
 
   describe("instrumenting applications", (): void => {
     it("turns on the Azure SDK's .NET spans with the switch and the sources it needs", (): void => {
-      const dotnet: string = section(readPage(), "### .NET");
+      const dotnet: string = tabPanel(readPage(), ".NET");
       const code: string | undefined = fencedBlocks(dotnet)
         .filter((block: FencedBlock): boolean => {
           return block.info === "csharp";
@@ -4624,7 +4625,7 @@ describe("Queues docs", (): void => {
      * `celery.*`, but no system: the broker behind them is unknown.
      */
     it("says Celery's spans create no queue, as the resolver decides", (): void => {
-      expect(section(readPage(), "### Python")).toContain(
+      expect(tabPanel(readPage(), "Python")).toContain(
         "Celery's spans carry no `messaging.system` and name no broker, so they do not create queues.",
       );
       expect(
@@ -4640,7 +4641,7 @@ describe("Queues docs", (): void => {
     });
 
     it("names the Java agent's opt-in for the newer messaging attributes", (): void => {
-      expect(section(readPage(), "### Java")).toContain(
+      expect(tabPanel(readPage(), "Java")).toContain(
         "`OTEL_SEMCONV_STABILITY_OPT_IN=messaging`",
       );
     });
@@ -4655,7 +4656,7 @@ describe("Queues docs", (): void => {
      */
     it("gives the Java Pub/Sub client an OpenTelemetry instance as well as the tracing switch", (): void => {
       const bullet: string = lineWith(
-        section(readPage(), "### Java"),
+        tabPanel(readPage(), "Java"),
         "**Google Cloud Pub/Sub**",
       );
 
@@ -4673,7 +4674,7 @@ describe("Queues docs", (): void => {
      * contrib instrumentation for Kafka, RabbitMQ and NATS.
      */
     it("points kafka-go users to Go auto-instrumentation, whose spans make one queue", (): void => {
-      const go: string = section(readPage(), "### Go");
+      const go: string = tabPanel(readPage(), "Go");
 
       expect(go).not.toContain("OpenTelemetry has no Go instrumentation");
       expect(lineWith(go, "`segmentio/kafka-go`")).toContain(
@@ -4723,7 +4724,7 @@ describe("Queues docs", (): void => {
       );
 
       for (const language of ["Java", ".NET", "Node.js", "Python", "Go"]) {
-        expect(instrumenting).toContain(`\n### ${language}\n`);
+        expect(instrumenting).toContain(`\n@tab ${language}\n`);
       }
     });
   });
