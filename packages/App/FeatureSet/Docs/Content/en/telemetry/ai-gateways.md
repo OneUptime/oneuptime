@@ -1,27 +1,51 @@
-# Observing AI Gateways (LiteLLM & Portkey)
+# AI Gateways (LiteLLM, Portkey)
 
-An AI gateway is a natural observability choke point: every LLM call from every app flows through it. Point the gateway's OpenTelemetry export at OneUptime once, and you get [AI / LLM observability](/docs/telemetry/ai-llm-observability) — traces, token usage, cost, prompts and completions — for everything behind it, without instrumenting each application.
+An AI gateway sits between your apps and the model providers, so every model call passes through it. Send the gateway's OpenTelemetry to OneUptime once, and every call behind it arrives in [AI / LLM](/docs/telemetry/ai-llm-observability) with its model, tokens, cost and, unless you turn it off, the prompt and the answer, without instrumenting each app.
 
-This guide covers the two most common gateways:
+:::cards
+- [LiteLLM Proxy](#litellm-proxy): Built-in export, set with three variables.
+- [Who spent what](#one-virtual-key-per-employee): One LiteLLM virtual key per employee names each person.
+- [Portkey](#portkey): Built-in export on self-hosted gateways; instrument the app elsewhere.
+- [Check that calls arrive](#check-that-calls-arrive): What you should see, and what to do if you don't.
+:::
 
-- **[LiteLLM Proxy](#litellm-proxy)** — built-in OTel export in the open-source proxy.
-- **[Portkey](#portkey)** — built-in export on self-hosted/enterprise deployments; a client-side pattern for the open-source and hosted gateway.
+## How it works
 
-## Before you start
+```mermaid title="One export covers every app behind the gateway"
+flowchart TB
+    subgraph apps["Your apps, agents and tools"]
+        direction LR
+        app["App"] ~~~ agent["Agent"] ~~~ tool["Coding tool"]
+    end
+    apps --> gateway["AI gateway:<br/>LiteLLM or Portkey"]
+    gateway --> providers["Model providers"]
+    gateway -->|"OTLP traces"| ingest["OneUptime"]
+    ingest --> llm["AI / LLM: calls,<br/>usage and cost"]
+```
 
-1. Create a telemetry ingestion token in OneUptime: **Project Settings → Telemetry & APM → Ingestion Keys → Create Ingestion Key**.
-2. Note your OTLP endpoint: `https://oneuptime.com/otlp` — or `https://YOUR-ONEUPTIME-HOST/otlp` if you self-host. Traces are accepted at `/otlp/v1/traces` over OTLP HTTP, in both protobuf and JSON encoding.
-3. The token travels as the `x-oneuptime-token` header on every export request.
+| | LiteLLM Proxy | Portkey, self-hosted or Enterprise | Portkey, open source or hosted |
+| --- | --- | --- | --- |
+| Export to OneUptime | Built in | Built in, experimental | None: instrument the app instead |
+| Endpoint to set | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | The app's own exporter |
+| Names each person | Yes, with one virtual key per employee | No | Only what the app sends |
+| Prompts and answers | Sent unless you turn them off | Always sent | Depends on the instrumentation |
+
+## Before you begin
+
+- An ingestion key: open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**.
+- Your OTLP base URL: `https://oneuptime.com/otlp`, or `https://YOUR-ONEUPTIME-HOST/otlp` if you host OneUptime yourself. OneUptime accepts OTLP over HTTP, in protobuf and in JSON.
+- The key travels in the `x-oneuptime-token` header of every export request.
 
 ## LiteLLM Proxy
 
-LiteLLM's OpenTelemetry callback ships in the open-source proxy. The official Docker image (`ghcr.io/berriai/litellm`) bundles the OpenTelemetry packages, so export is purely a matter of configuration. (Installing via pip instead? `pip install litellm[proxy]` does **not** include them — add `pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp`.)
+LiteLLM's OpenTelemetry callback is part of the open-source proxy, and the official Docker image (`ghcr.io/berriai/litellm`) ships the packages it needs.
 
-### 1. Enable the OTel callback
+:::steps
+### Turn on the otel callback
 
-In your LiteLLM `config.yaml`:
+Add `otel` to the callbacks in the proxy's `config.yaml`:
 
-```yaml
+```yaml title="config.yaml"
 model_list:
   - model_name: gpt-4o
     litellm_params:
@@ -32,9 +56,9 @@ litellm_settings:
   callbacks: ["otel"]
 ```
 
-### 2. Point the exporter at OneUptime
+### Point the exporter at OneUptime
 
-Set three environment variables on the proxy:
+Set three variables on the proxy:
 
 ```bash
 export OTEL_EXPORTER="otlp_http"
@@ -42,17 +66,10 @@ export OTEL_ENDPOINT="https://oneuptime.com/otlp/v1/traces"
 export OTEL_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 
-Notes on the exact values:
+### Start the proxy
 
-- Use the **full `/v1/traces` path** in `OTEL_ENDPOINT`. LiteLLM v1.79+ normalizes a base URL like `https://oneuptime.com/otlp` to the right per-signal path automatically, but older versions pass the endpoint through verbatim — the full path works on every version.
-- `OTEL_HEADERS` takes comma-separated `key=value` pairs, so multiple headers are `key1=val1,key2=val2`.
-- The standard OpenTelemetry names (`OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`) also work and take precedence over LiteLLM's short names.
-- `OTEL_SERVICE_NAME` sets the service the spans appear under in OneUptime (default: `litellm`).
-
-### 3. Run it
-
-Docker example, all together:
-
+:::tabs
+@tab Docker
 ```bash
 docker run \
   -v $(pwd)/config.yaml:/app/config.yaml \
@@ -65,24 +82,75 @@ docker run \
   ghcr.io/berriai/litellm:main-stable \
   --config /app/config.yaml
 ```
+@tab pip
+```bash
+pip install 'litellm[proxy]' opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp
+litellm --config config.yaml
+```
+:::
 
-Every request through the proxy now produces a span named `litellm_request` carrying `gen_ai.system` (provider), `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens`, request parameters, and the prompt and completion content — all attributes OneUptime [recognizes natively](/docs/telemetry/ai-llm-observability).
+`litellm[proxy]` alone doesn't include the OpenTelemetry packages, so install them with it.
 
-**Cost:** LiteLLM prices each call itself and reports it on the span (`gen_ai.cost.total_cost`, or `litellm.cost.total` in v2 mode). OneUptime reads that as the span's reported cost, so LiteLLM's own pricing — including any custom per-model rates you configured on the proxy — wins over OneUptime's catalog estimate. When LiteLLM can't price a call (a custom model with no pricing configured), OneUptime falls back to [computing an estimate](/docs/telemetry/ai-llm-observability) from the token counts.
+### Send a request through it
 
-### Prompt content and privacy
+Call the proxy once, then check AI / LLM as described in [Check that calls arrive](#check-that-calls-arrive).
+:::
 
-The `otel` callback captures **full prompt and completion content by default**. Three ways to turn that off, if your gateway fronts sensitive traffic:
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `OTEL_EXPORTER` | `otlp_http` | Also read as `OTEL_EXPORTER_OTLP_PROTOCOL` |
+| `OTEL_ENDPOINT` | `https://oneuptime.com/otlp/v1/traces` | The full `/v1/traces` path works with every LiteLLM version; also read as `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| `OTEL_HEADERS` | `x-oneuptime-token=YOUR_INGESTION_TOKEN` | Comma-separated `key=value` pairs; also read as `OTEL_EXPORTER_OTLP_HEADERS` |
+| `OTEL_SERVICE_NAME` | Your gateway's name | The service its calls show under; `litellm` when unset |
 
-```yaml
-# Option 1: global kill-switch for all logging callbacks
+### What LiteLLM sends
+
+Each call carries `gen_ai.system`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens`, its parameters, and the prompt and the answer: everything OneUptime needs to [read the call](/docs/telemetry/ai-llm-observability).
+
+Since LiteLLM 1.81, these attributes are on the request's `Received Proxy Server Request` span, and there is no separate `litellm_request` span. When one request makes several model calls, each call overwrites the last one's attributes there, so set `USE_OTEL_LITELLM_REQUEST_SPAN=true` to get a `litellm_request` span for every call.
+
+LiteLLM prices each call itself, including any custom rates you set on the proxy, and reports the price as `gen_ai.cost.total_cost`. OneUptime takes a reported cost over its own estimate, and [estimates from the tokens](/docs/telemetry/ai-llm-observability) only when LiteLLM couldn't price the call, such as a custom model with no price set.
+
+### One virtual key per employee
+
+Give each person their own LiteLLM virtual key, and every call they make arrives with who they are. LiteLLM writes the key owner's id, email and team on the span, and OneUptime reads them as the employee and the team, so the **Usage** tab ranks spend by person with no setup on their machines.
+
+Virtual keys need a database and a master key on the proxy (`DATABASE_URL` and `LITELLM_MASTER_KEY`). Create a user with their email, then a key for that user:
+
+```bash
+curl -X POST "http://localhost:4000/user/new" \
+  -H "Authorization: Bearer YOUR_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_email": "alice@example.com"}'
+
+curl -X POST "http://localhost:4000/key/generate" \
+  -H "Authorization: Bearer YOUR_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "USER_ID_FROM_THE_FIRST_CALL", "team_id": "platform"}'
+```
+
+| LiteLLM span attribute | OneUptime reads it as |
+| --- | --- |
+| `metadata.user_api_key_user_id` | The employee's id |
+| `metadata.user_api_key_user_email` | The employee's email |
+| `metadata.user_api_key_team_id` | The team |
+| `metadata.user_api_key_end_user_id` | Never the employee: it is the `user` your app sends for its own customer |
+
+In LiteLLM's OpenTelemetry v2 mode the same values arrive with a `litellm.` prefix (`litellm.metadata.user_api_key_user_email` and so on), which OneUptime reads too.
+
+### Keep prompts out
+
+The `otel` callback sends full prompts and answers by default. To keep them out, use one of these:
+
+:::tabs
+@tab Every callback
+```yaml title="config.yaml"
 litellm_settings:
   callbacks: ["otel"]
   turn_off_message_logging: true
 ```
-
-```yaml
-# Option 2: just the otel callback (callback_settings is a TOP-LEVEL key)
+@tab OTel callback only
+```yaml title="config.yaml"
 litellm_settings:
   callbacks: ["otel"]
 
@@ -90,63 +158,53 @@ callback_settings:
   otel:
     message_logging: False
 ```
-
+@tab Environment variable
 ```bash
-# Option 3: environment variable
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT="NO_CONTENT"
 ```
+:::
 
-You can also keep content flowing and redact selectively with OneUptime's telemetry scrub rules under **Traces → Settings**.
+`callback_settings` is a top-level key, not a key under `litellm_settings`. To keep prompts but mask parts of them, use scrub rules under **Traces → Settings** instead.
 
-### Optional: unified traces with OTel v2
-
-Newer LiteLLM versions ship an opt-in "OpenTelemetry v2" mode (`LITELLM_OTEL_V2=true`, no `config.yaml` change needed) that emits one unified trace per request — HTTP handling, auth, guardrails, and the LLM call as canonical GenAI-semantic-convention spans named like `chat gpt-4o`. In v2 mode, prompt content is **off** by default and opted in via `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. Pick one mode or the other, not both.
-
-### Troubleshooting
-
-- Set `OTEL_EXPORTER="console"` temporarily — if spans print to the proxy's stdout, LiteLLM is instrumenting fine and the problem is the endpoint or token.
-- Set `DEBUG_OTEL="true"` for verbose exporter logging.
-- Only traces are exported by default; LiteLLM's OTel metrics/events are separate opt-ins and aren't needed for OneUptime's AI / LLM features.
+:::details LiteLLM's OpenTelemetry v2 mode
+Newer LiteLLM versions have an opt-in OpenTelemetry v2 mode (`LITELLM_OTEL_V2=true`, no change to `config.yaml`). It sends one trace per request, with the HTTP handling, authentication, guardrails and the model call as GenAI spans named like `chat gpt-4o`. In v2 mode prompts are off by default; turn them on with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. Its cost arrives as `litellm.cost.total`, which OneUptime reads as well. Use one mode or the other, not both.
+:::
 
 ## Portkey
 
-Portkey's story depends on how you run it — check your deployment against these three rows first:
+What Portkey can send depends on how you run it:
 
-| Deployment                                 | OTel trace export to OneUptime                                      |
-| ------------------------------------------ | ------------------------------------------------------------------- |
-| Self-hosted / enterprise gateway           | **Built-in** (experimental) — configure with env vars below         |
-| Open-source gateway (`portkey-ai/gateway`) | Not available — use client-side instrumentation                     |
-| Hosted (portkey.ai)                        | Not available on the gateway side — use client-side instrumentation |
+| Deployment | Export to OneUptime |
+| --- | --- |
+| Self-hosted or Enterprise gateway | Built in (experimental): set the variables below |
+| Open-source gateway (`portkey-ai/gateway`) | None: instrument the app that calls it |
+| Hosted gateway (portkey.ai) | None on the gateway: instrument the app that calls it |
 
-Don't confuse this with Portkey's own OpenTelemetry **ingestion** endpoint (`api.portkey.ai/v1/otel`) — that receives traces _into_ Portkey and is the opposite direction from what this guide sets up.
+Portkey also has an OpenTelemetry endpoint of its own (`api.portkey.ai/v1/otel`). It receives traces into Portkey, the other direction from this page.
 
-### Self-hosted / enterprise gateway: built-in export
+### Self-hosted and Enterprise gateways
 
-Portkey's enterprise and self-hosted gateway can push every LLM request/response as an OTLP trace span, following GenAI semantic conventions (1.40.0). Set these environment variables on the gateway container:
+Set these variables on the gateway's container:
 
-```yaml
+```yaml title="Gateway environment"
 EXPERIMENTAL_GEN_AI_OTEL_TRACES_ENABLED: "true"
 EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_ENDPOINT: "https://oneuptime.com/otlp"
 EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_HEADERS: "x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 
-Details worth knowing:
+- Give the base OTLP URL: Portkey adds `/v1/traces` itself.
+- Headers are comma-separated `key=value` pairs. `EXPERIMENTAL_GEN_AI_OTEL_RESOURCE_ATTRIBUTES` adds resource attributes the same way, such as `deployment.environment=production`.
+- Portkey sends OTLP over HTTP with JSON only, which OneUptime accepts without a collector in between.
+- Each call is a span named `{operation} {model}`, such as `chat gpt-4o`, under the service `portkey`, with `gen_ai.provider.name`, the requested and served model, the token counts, `gen_ai.conversation.id`, and the messages in `gen_ai.input.messages` and `gen_ai.output.messages`.
+- Full prompts and answers are always included. Mask what you must with scrub rules under **Traces → Settings**.
+- Each call is sent on its own after the answer, with no batching and no retry: a failed export is lost. Treat it as observability, not as an audit log.
+- When your `x-portkey-trace-id` is a valid trace id (32 hex characters), Portkey reuses it, so the gateway's spans join your app's own trace.
 
-- Give the **base** OTLP URL — Portkey appends `/v1/traces` itself.
-- Headers are comma-separated `key=value` pairs.
-- The export is OTLP over **HTTP/JSON** (no gRPC). OneUptime's OTLP endpoint accepts JSON, so no collector is needed in between.
-- Spans are named `{operation} {model}` (for example `chat gpt-4o`) and arrive under the service name `portkey`, carrying `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens`, `gen_ai.conversation.id`, and structured `gen_ai.input.messages` / `gen_ai.output.messages`.
-- Exports happen asynchronously after the response (no request latency), but there is **no batching and no retry** — a failed export is dropped, so treat this as observability, not an audit log.
-- **Full prompt and completion content is included.** Apply OneUptime scrub rules (**Traces → Settings**) if you need redaction.
-- If Portkey reuses your `x-portkey-trace-id` as the trace id (it does when the id is a valid 32-hex string), gateway spans correlate with your app's own traces.
+Portkey marks this export experimental. If the variables have no effect, check Portkey's current documentation against your gateway's version.
 
-Portkey marks the feature experimental; if the variables have no effect, check their current docs and your gateway image version — older Helm charts documented earlier variable names.
+### Open-source and hosted gateways
 
-### Open-source and hosted gateway: instrument the client
-
-The open-source `portkey-ai/gateway` has no OTel exporter, and on the hosted gateway you can't set server env vars. The supported pattern for both: **instrument the application that calls through Portkey**, and export those spans to OneUptime.
-
-Portkey is OpenAI-API-compatible, so the same GenAI instrumentations from the [AI / LLM Observability guide](/docs/telemetry/ai-llm-observability) — OpenLLMetry, OpenInference, OpenLIT — wrap your OpenAI/Anthropic SDK calls normally even when the base URL points at Portkey:
+The open-source gateway has no exporter, and on the hosted gateway you can't set its variables. Instrument the app that calls Portkey instead. Portkey speaks the OpenAI API, so the GenAI instrumentations from [AI / LLM Observability](/docs/telemetry/ai-llm-observability) (OpenLLMetry, OpenInference, OpenLIT) trace your SDK calls even with the base URL pointing at Portkey:
 
 ```python
 from traceloop.sdk import Traceloop
@@ -165,27 +223,48 @@ client = OpenAI(
 # Calls through Portkey are now traced to OneUptime.
 ```
 
-One honest caveat: client-side spans describe the call _as your app made it_ — requested model, latency as observed, tokens as returned. Gateway-internal decisions (fallback routing, retries, cache hits) stay visible only inside Portkey. If you need those in OneUptime, that's what the enterprise export above is for.
+These spans describe the call as your app made it: the model it asked for, the time it waited, the tokens it got back. What the gateway decided along the way, such as a fallback, a retry or a cache hit, stays in Portkey. To see that in OneUptime, use the self-hosted gateway's export.
 
-## Verify the spans landed
+## Check that calls arrive
 
-Send a test request through the gateway, wait a few seconds, then open **AI / LLM** in OneUptime's navigation (under Observability):
+:::steps
+1. Send a request through the gateway and wait a few seconds.
+2. Open **Products → AI / LLM → Calls**. The call is listed with its provider, model and tokens.
+3. Click the call to open its trace, and open the span's **LLM** tab: the model, the tokens, the parameters and, unless you turned them off, the prompt and the answer.
+4. Open **Usage**: the call counts in the totals, with the cost the gateway reported or the one OneUptime estimated.
+:::
 
-1. **Calls** should list the call — provider, model, and token counts filled in. LiteLLM spans are named `litellm_request`; Portkey's enterprise export names them `chat <model>`.
-2. Click the call to open the trace, and check the span's **AI / LLM panel**: model, input/output tokens, request parameters, and (unless you disabled content capture) the prompt and completion.
-3. **Usage** should count the call in its totals; cost appears too — reported by the gateway where available, otherwise [computed at ingest](/docs/telemetry/ai-llm-observability) from token counts for known models.
+## Troubleshooting
 
-Nothing showing up?
+:::details Nothing arrives from LiteLLM
+Set `OTEL_EXPORTER="console"` for a moment. If spans print in the proxy's output, LiteLLM is tracing and the problem is the endpoint or the key. `DEBUG_OTEL="true"` prints what the exporter does.
+:::
 
-- Re-check the token — a wrong `x-oneuptime-token` is rejected at ingest.
-- Re-check the endpoint spelling for your setup: LiteLLM wants the full `/otlp/v1/traces` path; Portkey wants the base `/otlp`.
-- Use each gateway's debug switch (`OTEL_EXPORTER=console` for LiteLLM; gateway logs for Portkey) to confirm spans are being produced at all.
-- Filter the **Traces** page by the gateway's service name (`litellm`, `portkey`, or your `OTEL_SERVICE_NAME`) to see raw spans even if they aren't classified as LLM calls.
+:::details The key is rejected
+OneUptime answers `401` for a missing, unknown or expired key, and `422` for a disabled key or a browser key. Create a server key under **Project Settings → Telemetry & APM → Ingestion Keys** and send it in `x-oneuptime-token`.
+:::
 
-## What this unlocks
+:::details The endpoint is wrong
+LiteLLM takes the full path, `https://oneuptime.com/otlp/v1/traces`. Portkey takes the base URL, `https://oneuptime.com/otlp`, and adds `/v1/traces` itself.
+:::
 
-Once gateway spans land as `gen_ai.*` traces, everything in OneUptime's AI observability works on them:
+:::details Spans arrive, but not in AI / LLM
+Filter **Traces** by the gateway's service (`litellm`, `portkey`, or your `OTEL_SERVICE_NAME`) to see its raw spans. A span counts as a model call only when it carries `gen_ai.*` attributes: check that the callback is `otel` and that the call went to a model.
+:::
 
-- **[Daily cost budgets](/docs/telemetry/ai-llm-observability)** across every app behind the gateway — published as metrics your monitors alert on.
-- **[Traces monitors](/docs/monitor/traces-monitor)** on span patterns, like a runaway agent calling the same tool in a loop.
-- **[Async circuit breaking](/docs/telemetry/ai-agent-circuit-breaker)** — chain those alerts to a Workflow that calls your infrastructure to stop a runaway agent, without putting anything new in the request path.
+:::details Spend shows as Unattributed
+The calls carry no person. Give each employee their own virtual key, as in [One virtual key per employee](#one-virtual-key-per-employee). The `user` field your app sends names its customer, not the employee, and is never read as the employee.
+:::
+
+:::details Only the last of several calls shows
+Since LiteLLM 1.81, a request's model calls share one span. Set `USE_OTEL_LITELLM_REQUEST_SPAN=true` to get a span for each call.
+:::
+
+## Next steps
+
+:::cards
+- [AI / LLM Observability](/docs/telemetry/ai-llm-observability): Conversations, alerts, usage and daily cost budgets for these calls.
+- [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Put a gateway in front of tools that send no telemetry of their own.
+- [AI Agent Circuit Breakers](/docs/telemetry/ai-agent-circuit-breaker): Stop a runaway agent when its alert fires.
+- [Traces Monitor](/docs/monitor/traces-monitor): Alert on span patterns, such as a tool called in a loop.
+:::

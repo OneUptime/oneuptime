@@ -1,92 +1,210 @@
 # Threat Intelligence (STIX/TAXII)
 
-OneUptime enriches your [security events](/docs/telemetry/security-events) against threat-intelligence feeds you subscribe to. Feeds speak the open standards — **TAXII 2.1** for transport, **STIX 2.1** for the indicator objects — so anything that publishes STIX `indicator` objects over TAXII 2.1 works: your own MISP, OpenCTI, or OpenTAXII instance, or a commercial provider's TAXII collection. Supported authentication is anonymous, bearer-token, or HTTP basic; feeds that require TLS client-certificate (mutual TLS) authentication, such as CISA AIS, are not supported. (Note also that MITRE's public ATT&CK TAXII server carries the ATT&CK knowledge base — attack-patterns and groups, not indicators — so subscribing it yields an empty feed.) There is no bundled feed content: you bring the collections, the same way you bring the Sigma rules.
+A threat intel feed brings known-bad IP addresses, domains, URLs, email addresses and file hashes into OneUptime, and tells you when your [security events](/docs/telemetry/security-events) mention one. Each feed subscribes one TAXII 2.1 collection of STIX 2.1 indicators: your own MISP, OpenCTI or OpenTAXII server, or a provider's collection. OneUptime ships no feed content of its own: you bring the collections, as you bring the Sigma rules.
 
-## Subscribing a feed
+:::cards
+- [Subscribe a feed](#subscribe-a-feed): A TAXII server, a collection and how to sign in.
+- [What gets ingested](#what-gets-ingested): The indicator patterns OneUptime keeps, and for how long.
+- [How matches are found](#how-matches-are-found): Tagged as events arrive, and matched every minute.
+- [Threat levels](#threat-levels): How an indicator's confidence becomes a severity.
+:::
 
-**Security Events → Threat Intel → Create** takes:
+## How it works
 
-| Field | What it is |
-|---|---|
-| **TAXII API Root URL** | The TAXII 2.1 API root, e.g. `https://taxii.example.com/api1/`. Collections are addressed beneath it. |
-| **Collection ID** | The collection to poll for indicator objects. |
-| **API Token** / **Basic Auth** | Optional. Bearer-token or basic-auth credentials for authenticated collections; leave both empty for anonymous ones. Secrets are encrypted at rest and never returned by the API — rotate them through the row's **Update Credentials** action. |
-| **Poll Interval (Minutes)** | How often new objects are fetched. Whole minutes, `1`–`1440`; default `60`. |
-| **Minimum Confidence** | Skip indicators whose STIX `confidence` is below this (0–100). `0` ingests everything. Indicators that carry no confidence always pass, so an unscored feed does not go silently empty when you set a minimum. |
+```mermaid title="From a TAXII collection to an alert"
+flowchart TB
+    taxii["TAXII 2.1 collection"] -->|"Polled on the<br/>feed's interval"| indicators["Indicators: IPs, domains,<br/>URLs, emails, hashes"]
+    events["New security events"] --> tag["Tagged as they arrive<br/>with threat.* attributes"]
+    indicators --> tag
+    indicators --> match["Matched every minute<br/>against recent events"]
+    match --> act["An alert, an optional<br/>incident and a finding"]
+```
 
-Polls identify themselves as `User-Agent: OneUptime/<version> (+https://oneuptime.com)`. Providers whose WAF blocks anonymous HTTP-library user agents (a common default rule, and one that answers `403` before the request reaches the TAXII API) should allowlist that string.
+## Before you begin
 
-The poller tracks each feed with an `added_after` cursor (the server's `X-TAXII-Date-Added-Last` header), fetching up to ten pages per poll — a large initial sync progresses across successive polls, one poll interval apart, and **Last Poll Summary** on the feed row says how far it got. To drain a big collection quickly, set a short poll interval (down to 1 minute) until the sync catches up.
+- A TAXII 2.1 server that publishes STIX 2.1 `indicator` objects, and the ID of the collection to poll. A feed signs in anonymously, with a bearer token, or with HTTP basic auth.
+- Servers that require a TLS client certificate (mutual TLS), such as CISA AIS, are not supported. MITRE's public ATT&CK server publishes techniques and groups rather than indicators, so a feed pointed at it stays empty.
+- A role that can create feeds: Project Owner, Project Admin, Security Admin or Security Member. Security Viewer can read feeds and indicators. See [Roles](/docs/permissions/reference#roles).
+
+## Subscribe a feed
+
+:::steps
+### Open Threat Intel
+
+Open **Products → Security Events → Threat Intel**.
+
+### Create the feed
+
+Click **Create Threat Intel Feed** and fill in its four steps: **Basic Info**, **TAXII Server**, **Authentication** and **On Match**. The fields are in the table below.
+
+### Check the first poll
+
+Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Summary** says what the poll fetched. Indicators appear in the **Indicators** table under the feeds.
+:::
+
+| Field | What to enter |
+| --- | --- |
+| **TAXII API Root URL** | The server's TAXII 2.1 API root, such as `https://taxii.example.com/api1/`. Collections are addressed under it. |
+| **Collection ID** | The collection that publishes the indicators. |
+| **Poll Interval (Minutes)** | How often to fetch new objects: 1 to 1440 minutes, 60 by default. |
+| **Minimum Confidence** | Indicators with a lower STIX `confidence` are skipped: 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
+| **API Token** | A bearer token, for a collection that asks for one. |
+| **Basic Auth Username** and **Basic Auth Password** | For a collection that uses HTTP basic auth. Leave both and the token empty for a public collection. |
+| **Create Alert on Match** | On by default: each matched indicator opens an alert. |
+| **Alert Severity** | The severity of every alert this feed opens. Leave it empty to take each indicator's threat level. |
+| **Create Incident on Match** | Off by default. Incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for indicator matches. |
+| **Incident Severity** | Like **Alert Severity**, for incidents. |
+| **Write Detection Finding on Match** | On by default: each match writes a finding into the event stream. |
+
+Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **API Token (Bearer)**, **Basic Auth** or **Anonymous (clear stored credentials)**: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
+
+### How a feed is polled
+
+Each poll asks for the objects added since the previous one, through TAXII's `added_after` cursor, and reads up to 10 pages of 500 objects. A large collection therefore syncs over several polls: **Last Poll Summary** says when more pages remain. To finish a big first sync sooner, lower **Poll Interval (Minutes)**, down to 1, until it catches up.
+
+Polls name themselves with the user agent `OneUptime/<version> (+https://oneuptime.com)`. If the provider's firewall answers `403`, ask them to allow it: many firewalls block requests that look like an unnamed script.
+
+A disabled feed is neither polled nor matched. The indicators it already has keep tagging new events until they expire.
 
 ## What gets ingested
 
-STIX `indicator` objects whose pattern is plain IOC equality:
+OneUptime keeps STIX `indicator` objects whose pattern is plain equality on one of these types:
 
-```
-[ipv4-addr:value = '198.51.100.7']
+| Type | Example pattern |
+| --- | --- |
+| IPv4 address (`ipv4-addr`) | `[ipv4-addr:value = '198.51.100.7']` |
+| IPv6 address (`ipv6-addr`) | `[ipv6-addr:value = '2001:db8::7']` |
+| Domain name (`domain-name`) | `[domain-name:value = 'evil.example']` |
+| URL (`url`) | `[url:value = 'http://evil.example/payload']` |
+| Email address (`email-addr`) | `[email-addr:value = 'billing@evil.example']` |
+| File hash, SHA-256 (`file-hash-sha256`) | `[file:hashes.'SHA-256' = 'e3b0…b855']` |
+| File hash, SHA-1 (`file-hash-sha1`) | `[file:hashes.'SHA-1' = 'da39…0709']` |
+| File hash, MD5 (`file-hash-md5`) | `[file:hashes.MD5 = 'd41d…427e']` |
+
+Comparisons joined with `OR`, inside one `[...]` or across several, are fine, and each value becomes an indicator of its own:
+
+```text
 [domain-name:value = 'evil.example' OR domain-name:value = 'evil2.example']
-[file:hashes.'SHA-256' = 'aa...ff'] OR [url:value = 'http://evil.example/x']
+[ipv4-addr:value = '198.51.100.7'] OR [url:value = 'http://evil.example/x']
 ```
 
-Supported observable paths: `ipv4-addr:value`, `ipv6-addr:value`, `domain-name:value`, `url:value`, `email-addr:value`, and `file:hashes` (SHA-256, SHA-1, MD5) — singly or OR-combined, including across multiple `[...]` observation expressions.
+Any other pattern, with `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, a time qualifier such as `WITHIN`, or another object type, is skipped whole and counted as unsupported in **Last Poll Summary**. Translating only part of an `AND` pattern would match far more than the feed's author meant.
 
-Anything beyond that — `AND`, `FOLLOWEDBY`, temporal qualifiers, negation, `LIKE`/`MATCHES`, other object paths — is deliberately **skipped whole**, and counted in the feed's Last Poll Summary as an unsupported pattern. A half-translated `AND` pattern would match far *more* than its author intended, which for a detection feed is the dangerous direction.
+### How long an indicator stays active
 
-Each supported pattern becomes one indicator row per IOC value, carrying the STIX id, confidence, labels, and validity window:
+- An indicator matches from its `valid_from` until its `valid_until`. With no `valid_until`, it stays active for 365 days from `valid_from`, and polling it again doesn't extend that.
+- A revoked indicator, or one updated with a `valid_until` in the past, stops matching as soon as the update is polled. So does a value the provider drops from an updated pattern.
+- Values are stored in lowercase and matched whatever their case.
 
-- **`valid_from` / `valid_until`** bound when the indicator matches. An indicator with no `valid_until` stays active for 365 days from `valid_from` — the window is anchored at `valid_from` and is not extended by re-polling; only a producer update that moves `valid_from` (or sets `valid_until`) changes the expiry. Expiry is enforced at query time on every match and lookup; storage cleanup follows separately via TTL.
-- **Revocations** (`revoked: true`), **expired updates** (a `valid_until` moved into the past — the other standard STIX deactivation idiom), and **updated objects** all arrive as newer versions and supersede the older rows — re-polls are idempotent. A value that an update drops from the pattern (a corrected typo, say) is retracted with a tombstone version at the same time, so it stops matching immediately rather than lingering until its original `valid_until`.
+The **Indicators** table lists indicators as they are stored, with a **Status** of **Active**, **Expired** or **Revoked**. A re-polled indicator can show twice for a while, and an expired or revoked row stays listed until storage cleanup removes it, up to about a month after it expires. Matching always checks validity and revocation, so such a row never matches.
 
-Indicator values are matched **case-insensitively** against event observables, matching the case-insensitive semantics observables already have platform-wide.
+## How matches are found
 
-## Enrichment at ingest
+### Tagged as events arrive
 
-Every incoming security event — HTTP ingest and every managed connector alike — is checked against your active indicators *before* it is stored. When any of the event's observables (IPs, hosts, domains, hashes, users) matches, the event is stamped with flattened attributes:
-
-| Attribute | Value |
-|---|---|
-| `threat.matched` | always `"true"` on a stamped event |
-| `threat.indicator_id` | the STIX indicator id |
-| `threat.indicator_type` | `ipv4-addr`, `domain-name`, `url`, `email-addr`, `file-hash-sha256`, ... |
-| `threat.indicator_value` | the matched IOC value (canonical, lowercased) |
-| `threat.feed` / `threat.feed_id` | which feed the indicator came from |
-| `threat.confidence` | the indicator's STIX confidence |
-| `threat.match_count` | how many of the event's observables matched indicators |
-
-When several indicators match one event, the highest-confidence one wins the scalar stamps.
-
-Because these are ordinary flattened attributes, they work everywhere attributes already work, with no new query language: a Sigma rule can say `threat.matched: "true"` or `threat.confidence|gte: 80`, a Security Events monitor can filter on them, and they appear in the explorer's attribute column picker.
-
-Enrichment can only stamp indicators that are *already known* at ingest time; ClickHouse rows are immutable, so events are never retro-stamped. Intel that lands between an event's ingest and the close of its matcher window is still caught by the matcher below; intel arriving later than that only affects future events.
-
-## Matching on a schedule
-
-Every minute, each enabled feed's active indicators are joined against the security events whose **event time** falls in the window since the feed's last evaluation (capped at 24 hours). Each window is evaluated once, at close, against the indicators known at that moment: intel that arrived after the enricher saw an event but before the event's window closed is caught here (and after matcher downtime, the next evaluation catches up to 24 hours), but intel arriving later than that is not retroactively joined against already-evaluated events. One consequence worth knowing: the window keys on each event's own `time`, not its arrival — an event ingested late with an older source timestamp that predates the current window is not picked up by the matcher (it is still enriched at ingest against the indicators known at that moment).
-
-A match behaves exactly like a Sigma rule match:
-
-- a **Threat Intel finding** is written back into the events table — OCSF class 2004 (`Detection Finding`), product `OneUptime Threat Intel`, attributed to a telemetry service of the same name, one finding per matched indicator value per evaluation (capped at the 100 busiest indicator values per feed per evaluation, ordered by match count; values beyond the cap are picked up when they match again in a later window);
-- a **deduplicated alert** opens per `(feed, indicator value)` — a still-matching indicator does not stack alerts, and a resolved alert can re-open as a fresh one;
-- optionally an **incident** opens (off by default — incidents drive on-call, SLAs and status pages, so opt in per feed).
-
-Alert severity follows the same precedence as detection rules: the feed's explicit severity if set, else the indicator's confidence mapped onto your project's severities (90+ Critical, 70+ High, 40+ Medium, below Low; unscored reads as Medium).
-
-Findings carry the `oneuptime.threat.*` attribute block, the sibling of `oneuptime.detection.*`:
+Every incoming security event, from the ingest API or a connection, is checked against your active indicators before it is stored. When one of its observables (the IPs, hosts, domains, hashes and users taken from the event) equals an indicator's value, the event is stamped with these attributes:
 
 | Attribute | Value |
-|---|---|
-| `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | the feed |
-| `oneuptime.threat.indicator_id` | the STIX indicator id |
-| `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | what matched |
-| `oneuptime.threat.confidence` | the indicator's confidence |
-| `oneuptime.threat.match_count` | how many events are behind this finding |
+| --- | --- |
+| `threat.matched` | Always `"true"` on a tagged event |
+| `threat.indicator_id` | The STIX indicator's id |
+| `threat.indicator_type` | The indicator's type, such as `ipv4-addr` or `file-hash-sha256` |
+| `threat.indicator_value` | The matched value, in lowercase |
+| `threat.feed` / `threat.feed_id` | The feed the indicator came from |
+| `threat.confidence` | The indicator's STIX confidence |
+| `threat.match_count` | How many of the event's observables matched an indicator |
 
-Findings are excluded from matching input (their OCSF class is), so the write-back can never feed itself.
+When several indicators match one event, the one with the highest confidence fills in these values. They are ordinary attributes, so you can search on them in **Events**, filter Security Events monitors with them, and use them in detection rules:
 
-## Watching your matches
+```yaml title="Sigma rule"
+title: High-confidence indicator in a successful logon
+level: critical
+detection:
+  selection:
+    threat.matched: 'true'
+    threat.confidence|gte: 80
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
 
-Because Threat Intel findings are ordinary security events, everything that composes with detection findings composes here too. The **Create Monitor** row action on a feed opens monitor creation pre-filled with the `Detection Finding` class and a filter on that feed's `oneuptime.threat.feed_id` (its id, never its name — findings carry the feed's *current* name, so a rename would silently orphan a name-filtered monitor). Use it for match storms, per-feed rate changes, or alerting when a normally-noisy feed goes quiet.
+Tagging knows only the indicators that exist when an event arrives: events are never tagged again later.
+
+### Matched every minute
+
+Every minute, each enabled feed's active indicators are matched against the events whose event time falls since the feed's previous check. This catches intel that arrived after an event was tagged.
+
+- The first check covers the last 15 minutes. After an outage, the next check catches up on at most the last 24 hours.
+- Each window is checked once. Intel that arrives after its window was checked applies only to later events.
+- An event that arrives late, with a time from before the previous check, is still tagged as it arrives, but not matched.
+- Each check matches at most 100 indicator values per feed: the ones seen in the most events.
+
+### What a match does
+
+- An alert, titled `[Threat Intel] <feed name> — <indicator value>`, one per feed and value while it stays open. Once it is resolved, the next match opens a new one. Alerts are not resolved automatically.
+- An incident, only with **Create Incident on Match**, deduplicated the same way.
+- A Threat Intel finding, with **Write Detection Finding on Match**: a `Detection Finding` event (OCSF class 2004) from the product `OneUptime Threat Intel`, with the indicator's threat level as its severity, and these attributes:
+
+| Attribute | Value |
+| --- | --- |
+| `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | The feed |
+| `oneuptime.threat.indicator_id` | The STIX indicator's id |
+| `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | What matched |
+| `oneuptime.threat.confidence` | The indicator's confidence |
+| `oneuptime.threat.match_count` | How many events are behind this finding |
+
+Findings are never matched themselves, so one match can't set off another.
+
+## Threat levels
+
+Indicators have no Sigma level: their STIX `confidence` sets a threat level instead.
+
+| Indicator confidence | Threat level |
+| --- | --- |
+| 90 to 100 | Critical |
+| 70 to 89 | High |
+| 40 to 69 | Medium |
+| 1 to 39 | Low |
+| Not scored (0 or missing) | Medium |
+
+An unscored indicator counts as Medium: someone still chose to put it in a feed. The threat level is the severity of the finding, and picks the alert's severity from your project's severities, in this order:
+
+1. The feed's **Alert Severity** (or **Incident Severity**), when set: it applies to every match from the feed.
+2. Your severity named after the threat level, such as High, whatever its case.
+3. By rank: Critical and High take your most severe severity, Medium and Low your least severe.
+
+The threat level belongs to each indicator, not to the feed, so one feed can open a Critical alert and a Low one in the same minute. **Minimum Confidence** filters on the same number: a minimum of 70 keeps only High and Critical indicators, plus unscored ones, which always pass.
+
+## Watch a feed's matches
+
+The **Create Monitor** action in a feed's row opens a new Security Events monitor that counts the feed's findings: event class `Detection Finding`, filtered by the feed's id in `oneuptime.threat.feed_id` (never its name, which a rename would change), over the last hour. Use it for a sudden burst of matches, or for a busy feed going quiet.
 
 ## Retention and billing
 
-Indicators are configuration, not telemetry — they are not metered as ingest. Finding rows written on matches are ordinary security events and follow the `securityEvents` retention pillar like everything else in the events table. Indicator rows carry a ClickHouse TTL of one day past their `valid_until`, but expired rows are dropped a whole monthly partition at a time — a row can remain on disk (and visible in the Indicators table) for up to about a month after it expires. That is storage cleanup only: expiry and revocation are always enforced at query time, so a stale row is never matched.
+Indicators are configuration, not telemetry, and are not billed as ingested data. The findings a match writes are ordinary security events, billed and kept like the rest: see [Security Events](/docs/telemetry/security-events#retention-and-billing).
+
+## Troubleshooting
+
+:::details Last Error is set after a poll
+`401` or `403`: the credentials are wrong or missing; replace them with **Update Credentials**. A `403` can also be the provider's firewall blocking the user agent. `404`: check the **TAXII API Root URL**, which usually ends in a path such as `/api1/`, and the **Collection ID**. The error clears on the next successful poll.
+:::
+
+:::details The feed polls, but no indicators appear
+Read **Last Poll Summary**. No objects fetched: the collection is empty or publishes no indicators. Unsupported patterns: the provider uses pattern features this page lists as skipped. Below minimum confidence: lower **Minimum Confidence**. Already inactive: the provider sent indicators that were already revoked or expired.
+:::
+
+:::details Indicators exist, but nothing matches
+Matching compares an indicator's value with an event's observables, not with every field: open an event you expected to match in **Events** and check that its observables hold the value. Only indicators with the **Active** status match. Check **Last Match Error** on the feed.
+:::
+
+:::details A match didn't open an alert
+**Create Alert on Match** is off, or an alert for the same feed and value is still open, and later matches are folded into it. A project needs at least one alert severity for a feed to open alerts.
+:::
+
+## Next steps
+
+:::cards
+- [Security Events](/docs/telemetry/security-events): Send events, search them and write detection rules.
+- [Google SecOps](/docs/integrations/google-secops): Bring Chronicle's detections and events in.
+- [Permission Reference](/docs/permissions/reference): The Security roles, and what each can do.
+:::

@@ -317,7 +317,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/threat-intelligence": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/vmware": {

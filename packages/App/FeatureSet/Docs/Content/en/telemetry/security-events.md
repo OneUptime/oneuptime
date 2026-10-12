@@ -1,90 +1,246 @@
 # Security Events (SIEM)
 
-OneUptime stores SIEM signals as a first-class telemetry type: security events live in the same ClickHouse data lake as your logs, traces, and metrics, normalized to [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework) whatever dialect they arrived in.
+OneUptime keeps security events beside your logs, traces and metrics, and gives every one the same shape, [OCSF](https://schema.ocsf.io/) (the Open Cybersecurity Schema Framework), whatever format it arrived in. Send events from any source, search them, and turn the ones that matter into alerts with Sigma detection rules, threat intelligence and monitors.
 
-## Ingesting security events
+:::cards
+- [Send events](#send-security-events): An HTTPS POST, a Fluent Bit output, or a connection to a security product.
+- [Search and correlate](#explore-security-events): The Events explorer and the Correlate graph.
+- [Detection rules](#detection-rules): Sigma rules that open alerts.
+- [Monitors](#security-events-monitors): Counts over a rolling window, with a status that recovers.
+:::
 
-Send JSON over HTTPS with your project's telemetry ingestion key:
+## How it works
 
+```mermaid title="From a security source to an alert"
+flowchart TB
+    subgraph sources["Sources"]
+        direction LR
+        api["Ingest API"] ~~~ connections["Connections: Sentinel,<br/>CrowdStrike and more"]
+    end
+    sources --> normalize["Normalized to OCSF,<br/>tagged with threat intel"]
+    normalize --> events["Security events"]
+    events --> rules["Detection rules<br/>(Sigma)"]
+    events --> monitors["Security Events<br/>monitors"]
+    rules --> act["Alerts, incidents<br/>and findings"]
+    monitors --> act
+```
+
+Open **Products → Security Events**, under **Observability**. Its tabs:
+
+| Tab | What it is for |
+| --- | --- |
+| **Events** | Search and filter every event, and open one to see all its fields |
+| **Correlate** | A graph of the events that share a host, a user or an IP address |
+| **Detection Rules** | Sigma rules that run on a schedule and open alerts |
+| **Threat Intel** | STIX/TAXII feeds of known-bad indicators |
+| **Monitors** | The project's Security Events monitors |
+| **Connections** | Security products that OneUptime polls for new records |
+| **Setup Guide** | Snippets to send events, filled in with your ingestion key |
+
+## Before you begin
+
+Security data is read only by the Project Owner and Project Admin roles and by the three Security roles; other roles see nothing in Security Events. See [Roles](/docs/permissions/reference#roles).
+
+| Role | What it can do |
+| --- | --- |
+| Security Admin | Everything: events, detection rules, threat intel feeds and connections |
+| Security Member | Read events and threat intel, and create, change and delete detection rules and feeds. It can't set up connections or delete security data. |
+| Security Viewer | Read events, rules, feeds, indicators and connections |
+
+## Send security events
+
+:::steps
+### Create an ingestion key
+
+Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. Security events use the same keys as the rest of your telemetry.
+
+### Post your events
+
+Send JSON to `/security-events/v1/ingest` with the key in `x-oneuptime-token`:
+
+:::tabs
+@tab OCSF
+```bash
+curl -X POST "https://oneuptime.com/security-events/v1/ingest?format=ocsf" \
+  -H "Content-Type: application/json" \
+  -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
+  -H "x-oneuptime-service-name: my-security-source" \
+  -d '{ "events": [ { "class_uid": 3002, "severity_id": 4, "time": 1755770400000, "status": "Failure", "message": "Failed logon for alice", "actor": { "user": { "name": "alice" } }, "src_endpoint": { "ip": "203.0.113.7" } } ] }'
+```
+@tab Google UDM
+```bash
+curl -X POST "https://oneuptime.com/security-events/v1/ingest?format=udm" \
+  -H "Content-Type: application/json" \
+  -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
+  -d '{ "events": [ { "metadata": { "event_type": "USER_LOGIN", "event_timestamp": "2026-08-21T10:00:00Z" }, "principal": { "user": { "userid": "alice" }, "ip": ["203.0.113.7"] }, "security_result": [{ "severity": "HIGH", "action": ["BLOCK"] }] } ] }'
+```
+@tab Generic JSON
 ```bash
 curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
   -H "Content-Type: application/json" \
-  -H "x-oneuptime-token: <your telemetry ingestion key>" \
-  -d '{ "events": [ { "class_uid": 3002, "severity_id": 4, "time": 1755770400000, "message": "Failed logon for alice", "actor": { "user": { "name": "alice" } } } ] }'
+  -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
+  -d '{ "events": [ { "timestamp": "2026-08-21T10:00:00Z", "severity": "high", "event_type": "ssh_brute_force", "message": "12 failed SSH logins in 60s", "username": "root", "hostname": "web-01", "src_ip": "203.0.113.7" } ] }'
+```
+:::
+
+The endpoint answers `200` once the events are queued.
+
+### Find them in Events
+
+Open **Products → Security Events → Events**. The events show within a few seconds, with their severity, class, user, host and IP addresses filled in.
+:::
+
+### Formats
+
+| `format` | What it reads | Also accepted |
+| --- | --- | --- |
+| `ocsf` | OCSF event JSON (`class_uid`, `severity_id` and so on) | None |
+| `udm` | Google SecOps (Chronicle) UDM events (`metadata.event_type` and so on) | `chronicle`, `google-secops` |
+| `google-secops-alert` | Google SecOps detections and alerts: SOAR webhooks and the detections stream | `secops-alert`, `detection` |
+| `generic` | Any other JSON, read by common field names | None |
+
+Name the format with `?format=`, with the `x-oneuptime-security-event-format` header, or with a top-level `"format"` field. Leave it out, and each event's format is worked out on its own, so one webhook can mix detections with raw events.
+
+- The body can be one event, an array of events, or `{ "events": [...] }`.
+- The `x-oneuptime-service-name` header names the telemetry service the events belong to. Without it, they belong to the service named after the first event's product or vendor, or to `Security Events`.
+- Nothing is dropped because it didn't map: every field of the source arrives in the event's attributes.
+
+### Generic JSON fields
+
+A generic event is read by common field names:
+
+| Field of the event | Read from the first of |
+| --- | --- |
+| `message` | `message`, `msg`, `summary`, `description`, `title` |
+| `severityName` | `severity`, `severity_name`, `level`, `priority`, `risk_level` |
+| `time` | `timestamp`, `time`, `@timestamp`, `event_time`, `created_at` |
+| `principalUser` | `user`, `username`, `user_name`, `account`, `actor` |
+| `principalHost` | `host`, `hostname`, `computer`, `device`, `machine` |
+| `principalIp` | `source_ip`, `src_ip`, `client_ip`, `ip` |
+| `targetIp` | `destination_ip`, `dest_ip`, `dst_ip`, `target_ip` |
+| `className` | `event_type`, `category`, `type`, `action` |
+| `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
+| `productName` | `product`, `product_name`, `source`, `log_source` |
+
+A severity word becomes an OCSF level: `info` reads as Informational, `warning` as Low, `error` as Medium, `alert` as Critical and `emergency` as Fatal.
+
+### Forward with Fluent Bit
+
+To send security logs you already collect, such as auditd, syslog or Falco, add an `http` output to Fluent Bit:
+
+```ini title="fluent-bit.conf"
+[OUTPUT]
+    Name             http
+    Match            security.*
+    Host             oneuptime.com
+    Port             443
+    tls              On
+    URI              /security-events/v1/ingest
+    Format           json
+    Json_date_key    timestamp
+    Json_date_format iso8601
+    Header           x-oneuptime-token YOUR_INGESTION_TOKEN
+    Header           x-oneuptime-service-name my-security-source
+    Retry_Limit      5
 ```
 
-Accepted dialects:
+The **Setup Guide** tab has these snippets with your own host and key filled in.
 
-| `format` | Dialect |
-|---|---|
-| `ocsf` | Native OCSF event JSON (`class_uid`, `severity_id`, ...) |
-| `udm` | Google SecOps / Chronicle UDM (`metadata.event_type`, ...) |
-| `google-secops-alert` | SecOps detection/alert payloads (SOAR webhooks, detections stream) |
-| `generic` | Anything else — common field names are mapped best-effort |
+### Connect a security product
 
-Omit `format` and the dialect is detected per event, so one webhook can mix detection alerts with raw events. The body accepts a single object, a bare array, or `{ "events": [...] }`.
+**Connections** polls a security product for you and imports its new records as security events. A connection holds the product's settings and an encrypted credential; a worker polls it on the interval you set and skips records it already imported.
 
-## What a security event looks like
+| Product | Imports | Setup guide |
+| --- | --- | --- |
+| Google SecOps (Chronicle) | Rule detections, curated detections and alerts, as Detection Findings | [Google SecOps](/docs/integrations/google-secops) |
+| Microsoft Sentinel | Incidents, as Incident Findings | [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) |
+| Microsoft Defender XDR | Alerts, as Detection Findings | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) |
+| CrowdStrike Falcon | Alerts, as Detection Findings | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) |
+| Splunk Enterprise Security | Notable events, or any search, as Detection Findings | [Splunk Enterprise Security](/docs/integrations/splunk) |
+| Elastic Security | Detection alerts, as Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
+| AWS Security Hub | Findings, as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
+| Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
 
-Every event is normalized onto typed columns plus a flattened attributes map:
+- A connection reads records by the time the product created them, not by the time of the activity they describe. A SIEM rule that runs hourly creates detections long after the events it matched, and they are still imported.
+- The first poll looks back 24 hours, so a new connection shows recent records at once.
+- **Test connection**, in the connection's row, checks access to the product and that OneUptime's own workers are running, and imports nothing. **Run now** polls straight away.
 
-- **Classification**: OCSF `categoryName` / `className` / `activityName` (e.g. `Identity & Access Management` / `Authentication` / `Logon`) with their numeric uids.
-- **Severity**: OCSF severity (`Unknown`, `Informational`, `Low`, `Medium`, `High`, `Critical`, `Fatal`).
-- **Actors and targets**: `principalUser`, `principalHost`, `principalIp`, `principalProcess`, `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource`.
-- **Observables**: every extracted entity value (users, hosts, IPs, domains) in one indexed array — "all events mentioning X" is a single cheap query.
-- **Detection provenance**: `ruleId` / `ruleName`, MITRE ATT&CK `mitreTactics` / `mitreTechniques`.
-- **Attributes**: the full source payload, flattened to dot-notation keys — nothing is dropped just because it did not map.
+## What an event holds
 
-## Exploring events
+Every event is stored with typed fields and its source payload:
 
-**Security Events → Events** is a telemetry explorer, the same one the Logs, Traces and Exceptions pages use: a severity-stacked volume chart over the window, a facet sidebar, a dense event list, and a detail drawer that shows every typed field and every source attribute of one event.
+| Group | Fields |
+| --- | --- |
+| Classification | `categoryName`, `className`, `activityName`, `statusName`, with their OCSF ids (`categoryUid`, `classUid`) |
+| Severity | `severityName`, one of Unknown, Informational, Low, Medium, High, Critical, Fatal or Other, and `severityId` |
+| Who did it | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
+| What it touched | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Source | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
+| Content | `message`, `mitreTactics`, `mitreTechniques` and `observables`: every user, host, IP address, domain and hash taken from the event |
+| Attributes | The whole source payload, flattened to dotted keys |
 
-The product's other destinations — **Correlate**, **Detection Rules**, **Threat Intel**, **Monitors**, **Connections** and the **Setup Guide** — are tabs in the page header.
+## Explore security events
+
+**Events** is a telemetry explorer like the Logs and Traces explorers: a chart of the window's events by severity, a sidebar of facets, the list, and a panel with every field and attribute of the event you open. The window, the filters and the search all live in the URL, so a filtered view can be shared and survives a refresh.
 
 ### Search
 
-The search bar speaks the same query language as the other telemetry explorers:
+The search bar speaks the same language as the other telemetry explorers (see [Search Syntax](/docs/telemetry/search-syntax)):
 
 | Syntax | Means | Example |
-|---|---|---|
-| free text | the message contains this | `failed logon` |
-| `"quoted phrase"` | keep spaces together | `"brute force"` |
-| `<field>:<value>` | a typed column | `severity:Critical` |
-| `@<attribute>:<value>` | a flattened source field | `@threat.matched:true` |
-| `-<filter>` | negate any filter | `-severity:Informational` |
-| `<field>:(a OR b)` | any of these values | `severity:(High OR Critical)` |
-| `<field>:a*` | glob — `*` is any text, `?` one character | `host:web-*` |
-| `@<attr>:*` | the attribute is present | `@threat.indicator:*` |
-| `@<attr>:~text` | the attribute contains | `@finding_info.title:~ransom` |
+| --- | --- | --- |
+| free text | The message contains it | `failed logon` |
+| `"quoted phrase"` | Keep the words together | `"brute force"` |
+| `<field>:<value>` | A typed field | `severity:Critical` |
+| `@<attribute>:<value>` | A source attribute | `@threat.matched:true` |
+| `-<filter>` | Not this | `-severity:Informational` |
+| `<field>:(a OR b)` | Any of these values | `severity:(High OR Critical)` |
+| `<field>:a*` | `*` is any text, `?` one character | `host:web-*` |
+| `@<attribute>:*` | The attribute is present | `@threat.indicator_id:*` |
+| `@<attribute>:~text` | The attribute contains the text | `@finding_info.title:~ransom` |
 
-Field names are the friendly ones (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) or the column's own name (`severityName`, `principalHost`, ...). Anything else is read as a source attribute, since every un-typed source field lands in the attributes map.
-
-`observable:<value>` is the "all events mentioning X" query — it matches any extracted entity, whichever side of the interaction it was on.
+A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
 
 ### Facets
 
-The sidebar counts the window by Source, Severity, Event Class, Category, Activity, Status, Vendor, Product, Detection Rule, Principal User and Principal Host. Clicking a value filters the list; the `-` beside it excludes that value instead. The chart and every facet count describe exactly the rows the list is showing, so a count never promises rows a click cannot reach. A dimension with nothing in the window folds away and is counted in the sidebar's footer.
+The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. The chart and every count describe exactly the events in the list.
 
-The window, the chips and the search text all live in the URL, so a filtered view is shareable and survives a refresh.
+### Correlate
 
-## Detection rules (Sigma)
+**Correlate** draws the events around a host, a user or an IP address: their event classes around what you searched, marked by their worst severity, and the other values seen in the same events on the outer ring. Click a class to list its events, or a value to correlate on it next. Every observable in an event's panel on **Events** opens **Correlate** on it.
 
-**Security Events → Detection Rules** evaluates [Sigma](https://sigmahq.io/) rules against your events every minute (per-rule interval configurable). A rule that matches:
+## Detection rules
 
-- opens a OneUptime **alert** (deduplicated per rule and group value, routed through alert severities and on-call),
-- optionally opens an **incident** — off by default, since incidents drive on-call escalation, SLAs and status pages; severity follows the same precedence as alerts (explicit per-rule severity, else the Sigma level mapped onto your incident severities), and
-- writes a **Detection Finding** event back into the events table, so detections are themselves searchable signals.
+A detection rule is a [Sigma](https://sigmahq.io/) rule, an open YAML format for describing suspicious activity, that OneUptime runs on a schedule against your events. When it matches, it opens an alert, optionally an incident, and writes a Detection Finding back into the events.
 
-The supported Sigma subset is the boolean core: named selections (field maps with `contains` / `startswith` / `endswith` / `re` / `cidr` / `gt` / `lt` / `all` / `cased` / `windash` / `exists` modifiers, keyword lists) and the full condition grammar (`and` / `or` / `not`, parentheses, `1 of x*`, `all of them`). Aggregation conditions (`| count() ...`) are rejected at save time rather than silently ignored. Field names can be OneUptime columns (`principalUser`), common aliases (`CommandLine`, `src_ip`), or any flattened source key (`principal.hostname`).
+```mermaid title="How a detection rule fires"
+flowchart TB
+    tick["Every minute: rules<br/>whose interval is due"] --> query["Events since<br/>the rule's last run"]
+    query --> count["Counted per value of<br/>the Group By Field"]
+    count --> check{"Count reaches the<br/>Match Count Threshold?"}
+    check -->|"Yes"| fire["Alert, optional incident<br/>and a Detection Finding"]
+    check -->|"No"| wait["Nothing, until<br/>the next run"]
+```
 
-Example:
+### Create a rule
 
-```yaml
-title: Possible Brute Force
+:::steps
+1. Open **Products → Security Events → Detection Rules** and click **Create Detection Rule**.
+2. In **Basic Info**, give it a **Name**, and keep **Enabled** on.
+3. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
+4. In **Evaluation**, set how often it runs and how many matches it takes; see [Evaluation settings](#evaluation-settings).
+5. In **On Match**, choose what a match does: **Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on), with an optional **Alert Severity** and **Incident Severity**.
+:::
+
+A first rule, which matches failed logons from outside `10.x.x.x`:
+
+```yaml title="Sigma rule"
+title: Failed logon burst
+description: Repeated authentication failures from one source.
 level: high
 tags:
-  - attack.credential_access
   - attack.t1110
+  - attack.ta0006
 detection:
   selection:
     className: Authentication
@@ -94,98 +250,131 @@ detection:
   condition: selection and not filter_internal
 ```
 
+### What a rule can say
+
+OneUptime runs the boolean core of Sigma:
+
+- Selections are field maps (every field must match; a list of values matches any of them) or keyword lists, which match anywhere in the message.
+- Conditions combine selections with `and`, `or`, `not` and parentheses, or with `1 of selection_*`, `all of selection_*`, `any of them` and `all of them`.
+- Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` and `windash`. Text is compared ignoring case, unless you add `cased`.
+- A field is a typed field (`principalUser`), a common Sigma spelling of one (`CommandLine`, `src_ip`, `Hostname`), or any attribute key, spelled as it is in the event (`threat.matched`).
+- `level` sets the severity: `informational`, `low`, `medium`, `high` or `critical`, and `medium` when missing. ATT&CK ids in `tags` (`attack.t1110`, `attack.ta0006`) fill the finding's MITRE fields.
+
+Aggregations such as `| count() by principalIp > 5` are refused when you save: use **Group By Field** and **Match Count Threshold** instead. `logsource` is informational only and narrows nothing: put that filter in a selection, such as `className: Authentication`. A `timeframe` is ignored, because the rule's interval sets its window.
+
 ### Evaluation settings
 
-A rule's **Evaluation** step controls when it runs and how much has to match before it fires:
-
 | Field | What it does |
-|---|---|
-| **Evaluation Interval (Minutes)** | How often the rule runs. Each run scans the events that arrived since the previous run. Whole minutes, `1`–`1440`. |
-| **Group By Field** | Optional. Collapse matches sharing a value (for example `principalHost`) into one finding, so a noisy host raises one alert instead of hundreds. Counting is per group. |
-| **Distinct Count Field** | Optional. Count *distinct values* of this field instead of raw matching events. Empty values are not counted. |
-| **Match Count Threshold** | Hold the rule back until a group's count reaches this number within one evaluation window. Defaults to `1`, which fires on any match. Whole numbers, `1`–`1000000`. |
+| --- | --- |
+| **Evaluation Interval (Minutes)** | How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5. |
+| **Group By Field** | Optional. Matches that share this field's value, such as `principalHost`, are counted, alerted and deduplicated together: one alert per host instead of hundreds. |
+| **Distinct Count Field** | Optional. Count the different values of this field instead of the matching events. Empty values are not counted. |
+| **Match Count Threshold** | A group fires only when its count reaches this number within one run: 1 to 1000000, and 1 fires on any match. |
 
-Names that are not typed event columns are looked up in the event's attributes map, so `groupByField` and `distinctCountField` accept the same field vocabulary as the Sigma rule itself.
+Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one run", with no monitor on top:
 
-The next step, **On Match**, says what a match does: open an alert (with an optional **Alert Severity**), open an incident (with an optional **Incident Severity**), and write a Detection Finding back into the event stream.
+| Goal | Group By Field | Distinct Count Field | Threshold |
+| --- | --- | --- | --- |
+| Alert on any match | Empty | Empty | 1 |
+| One alert per host | `principalHost` | Empty | 1 |
+| Brute force: 5 failed logons from one IP | `principalIp` | Empty | 5 |
+| Password spraying: one IP failing against 5 different accounts | `principalIp` | `principalUser` | 5 |
+| Port scan: one IP reaching 20 different ports | `principalIp` | `targetPort` | 20 |
 
-#### Count-based detections
+### When a rule runs
 
-Set a threshold above `1` to express "N of this, from the same thing, inside a window" on the rule itself — you do not need a monitor on top of it. The rule above fires on a single failed login; to require five from one source instead:
+OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events whose event time falls between the previous run and now, then moves on:
 
-- **Evaluation Interval (Minutes):** `10`
-- **Group By Field:** `principalIp`
-- **Distinct Count Field:** *(leave empty)*
-- **Match Count Threshold:** `5`
+- Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
+- After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
+- An event that arrives late, with a time from before the rule's last run, is stored and searchable, but that rule never reads it.
+- At most 100 groups fire per run: the ones with the highest counts.
 
-Adding a **Distinct Count Field** changes what the threshold counts. Group by `principalIp`, distinct-count `principalUser`, threshold `5` is password spraying — one source failing logins across five *different* accounts — not one account brute-forced five times.
+### Severity
 
-#### Windows are tumbling, not rolling
+A rule's `level` is the severity of its findings: `informational`, `low`, `medium`, `high` and `critical` become Informational, Low, Medium, High and Critical. Its alerts and incidents take one of your project's severities, in this order:
 
-Each run counts the events that arrived since the previous run and then advances the cursor; windows do not overlap. With interval `10` and threshold `5`, three failures at 09:58 and two at 10:01 fall in different windows and nothing fires. Size thresholds with that in mind rather than setting them to the exact minimum you care about.
+1. The rule's **Alert Severity** (or **Incident Severity**), when set.
+2. Your severity named after the level, such as High, whatever its case.
+3. By rank: `critical` and `high` rules take your most severe severity, the others your least severe.
 
-After worker downtime, or when you re-enable a disabled rule, the next window covers the whole gap (capped at 24 hours) — so a "5 in 10 minutes" rule can briefly behave like "5 since we last ran".
+> [!TIP]
+> Name your alert severities after the Sigma levels (Critical, High, Medium, Low, Informational), and every rule lands on the right one without a setting per rule.
 
-## Monitors
+### Alerts and findings
 
-The **Security Events** monitor type counts matching events (by severity, class, message, attributes, source service) over a sliding window and drives the standard criteria machinery — change monitor status, open alerts or incidents, route to on-call. **Security Events → Monitors** lists every monitor of this type. On the monitor's form the message, time window, severity and event class filters are on screen; the telemetry service and attribute filters wait under **More fields**, whose folded header shows the ones a monitor uses.
+Each firing group opens an alert titled `[Detection] <rule name> — <group value>`, or `[Detection] <rule name>` for a rule without a Group By Field. While it is open, more matches for that group don't open another. A rule only sees matches and can't tell that an attack has stopped, so its alerts stay open until someone resolves them.
 
-Detection rules and monitors overlap more than they first appear, but they are still not two flavors of one feature.
-
-A rule matches a Sigma pattern and, with a **Match Count Threshold**, can require N occurrences *per group* inside one tumbling window before it fires. It has no "unmatch", so what it produces is a finding and an alert — never a status.
-
-A monitor re-reads a *rolling* window and asks *"how many, right now?"*. It has no group-by, so it can count "five auth failures anywhere" but never "five from the same source IP" — and the count falling back under the threshold is what lets it say the coast is clear again.
-
-In practice: use the rule's threshold for the detection itself. Reach for a monitor when you want a genuinely rolling window, monitor status and status-page exposure, or on-call policies pinned per criterion.
-
-## Watching your detections
-
-Every rule match is also written back into the events table as a **Detection Finding** event (OCSF class 2004), attributed to a telemetry service named `OneUptime Detections`. A finding carries the rule's name and id, its MITRE ATT&CK tags, the matched group value in `observables`, and these attributes:
+A Detection Finding is a security event of class `Detection Finding` (OCSF class 2004) from the product `OneUptime Detections`, with the rule's MITRE tags, the group value first in `observables`, and these attributes:
 
 | Attribute | Value |
-|---|---|
-| `oneuptime.detection.rule_id` | id of the rule that fired |
-| `oneuptime.detection.rule_name` | its name |
-| `oneuptime.detection.match_count` | how many events are behind this finding |
-| `oneuptime.detection.distinct_count` | how many distinct values are behind it, on rules that set a Distinct Count Field |
-| `oneuptime.detection.group_value` | the Group By value, when the rule sets one |
-| `oneuptime.detection.sigma_id` | the Sigma rule's own `id:` field |
+| --- | --- |
+| `oneuptime.detection.rule_id` | The id of the rule that fired |
+| `oneuptime.detection.rule_name` | The rule's name |
+| `oneuptime.detection.match_count` | How many events are behind the finding |
+| `oneuptime.detection.distinct_count` | How many different values are behind it, for a rule with a Distinct Count Field |
+| `oneuptime.detection.group_value` | The group's value, for a rule with a Group By Field |
+| `oneuptime.detection.sigma_id` | The Sigma rule's own `id` |
 
-Because findings are ordinary security events, a **Security Events monitor** can watch them — and that composes the two features into a second tier of detection:
+Findings are ordinary events: search them in **Events** and pivot on them in **Correlate**. To try a new rule quietly, turn off every action but the finding until you trust it.
 
-- **Detection storms.** A monitor over event class `Detection Finding`, counting all findings. Twenty different rules firing in an hour is a signal no individual rule can see — each only knows its own matches. The monitor sees the aggregate, changes status, and can open an incident.
-- **Per-rule rate changes.** Filter on the `oneuptime.detection.rule_id` attribute (immutable — a filter on `rule_name` silently stops matching if the rule is ever renamed). A rule that fires weekly firing fifty times an hour is a different event with a different response.
-- **Detection pipeline silence.** Findings dropping to zero when you normally see a handful usually means a broken forwarder, not a peaceful network. Express it as a count-below-threshold criteria.
+## Security Events monitors
 
-The quickest path to that second tier is the **Create Monitor** row action on **Security Events → Detection Rules**: it opens monitor creation pre-filled with the `Detection Finding` class and a filter on that rule's id (never its name — findings carry the rule's *current* name, so a rename would silently orphan a name-filtered monitor).
+A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; **Security Events → Monitors** lists them all.
 
-Note what such a monitor counts: **findings, not the events behind them**. A rule with a Group By writes one finding per group per run, so this measures detection *rate*. To require N events before a detection happens at all, use **Match Count Threshold** on the rule itself.
+Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service** and **Filter by Attributes** wait under **More fields**, whose header shows the ones a monitor uses. Its criteria check **Security Event Count**.
+
+| | Detection rule | Security Events monitor |
+| --- | --- | --- |
+| Matches | A Sigma rule | Filters on severity, class, message, service and attributes |
+| Window | Back to back, one per run | Rolling: the last 5 seconds to 24 hours |
+| Counts per group | Yes, with **Group By Field** | No: one count for everything that matches |
+| Opens | Alerts, incidents and findings | A status, alerts and incidents |
+| Recovers | No: alerts stay open until resolved | Yes: the status returns when the count does |
+
+Write the detection itself as a rule, with its threshold. Use a monitor when you want a rolling window, a status that recovers on its own, a status page, or different on-call policies per criteria.
+
+### Watch your detections
+
+Findings are events, so a monitor can watch the rules themselves:
+
+- Storms: a monitor on the `Detection Finding` class, counting every finding. Twenty different rules firing in an hour is a signal no single rule can see.
+- Rate changes: filter on one rule's `oneuptime.detection.rule_id`. A rule that fires weekly firing fifty times an hour needs a different response.
+- Silence: findings falling to zero, when you normally see a few, usually means a source stopped sending. Use a criteria that checks for a count below a number.
+
+The **Create Monitor** action in a rule's row opens a new monitor already set up this way: the `Detection Finding` class, the rule's id (never its name, which a rename would change), and the last hour. Such a monitor counts findings, one per group per run, not the events behind them. To need a number of events before anything fires, use the rule's **Match Count Threshold**.
 
 ## Threat intelligence
 
-**Security Events → Threat Intel** subscribes STIX/TAXII 2.1 feeds: indicators enrich incoming events with `threat.*` attributes at ingest (filterable by Sigma rules and monitors with no new syntax), and a scheduled matcher joins recent events against active indicators — matches write findings and open deduplicated alerts exactly like detection rules. See the [threat intelligence guide](/docs/telemetry/threat-intelligence).
+**Threat Intel** subscribes STIX/TAXII feeds of known-bad IP addresses, domains, URLs, email addresses and file hashes. Events that mention one are tagged with `threat.*` attributes as they arrive, which rules and monitors can filter on, and every minute recent events are matched against the feeds, opening alerts and findings like a rule does. See [Threat Intelligence](/docs/telemetry/threat-intelligence).
 
 ## Retention and billing
 
-Security events are metered per GB ingested, like other telemetry, and honor the same retention configuration (project default, per-service override, and a dedicated `securityEvents` retention pillar). Rows are TTL-deleted by ClickHouse when their retention date passes.
+Security events are billed per GB ingested, like the rest of your telemetry, and kept for your telemetry retention: the project's **Default Retention (Days)**, under **Project Settings → Telemetry & APM → Data Retention**, or a retention set on the telemetry service they belong to. When an event's retention ends, it is deleted.
 
-## Managed connectors
+## Troubleshooting
 
-Besides the ingest endpoint, **Security Events → Connections** can poll a security product directly. A connection holds the product's non-secret settings plus an encrypted credential; a background worker polls it on the interval you set and imports new records as normalized security events, deduplicated by the source's own record identifier.
+:::details Events don't appear
+Check the key in `x-oneuptime-token` and the path, `/security-events/v1/ingest`. Then check the window in **Events**, the past day unless you change it: an event is placed at its own time, so one with an older timestamp falls outside it.
+:::
 
-Every managed connector polls by the time the **source created** a record, not by the time of the underlying activity. A SIEM rule that runs hourly creates its detections long after the events it matched, so a poller that walked forward by event time would skip them; walking by creation time cannot. The first poll looks back 24 hours so a new connection shows recent records right away, and **Test connection** runs from the API without a worker so it can tell you when OneUptime's own workers or scheduler are the problem.
+:::details A rule never matches
+Check that it is **Enabled**, and read **Last Evaluated** and **Last Error** in its row. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
+:::
 
-| Connector | Imports | Guide |
-|---|---|---|
-| Google SecOps (Chronicle) | Rule detections, curated detections and alerts as Detection Findings | [Google SecOps](/docs/integrations/google-secops) |
-| Microsoft Sentinel | Incidents as Incident Findings | [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) |
-| Microsoft Defender XDR | Alerts as Detection Findings | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) |
-| CrowdStrike Falcon | Alerts as Detection Findings | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) |
-| Splunk Enterprise Security | Notable events (or any search) as Detection Findings | [Splunk Enterprise Security](/docs/integrations/splunk) |
-| Elastic Security | Detection alerts as Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
-| AWS Security Hub | Findings as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
-| Okta System Log | Authentication, MFA, account and policy events as identity events | [Okta System Log](/docs/integrations/okta) |
+:::details A rule matched, but no alert opened
+**Create Alert on Match** is off, or an alert for the same rule and group value is still open, and later matches are folded into it. A project needs at least one alert severity for rules to open alerts.
+:::
 
-## Google SecOps
+:::details A rule opens too many alerts
+Each value of the **Group By Field** gets its own alert: group by something coarser, raise the threshold, or add a Distinct Count Field. To care about the rate rather than each match, turn **Create Alert on Match** off and put a monitor on the rule's findings.
+:::
 
-See the [Google SecOps integration guide](/docs/integrations/google-secops) for connecting Chronicle: SOAR playbook webhooks, the managed detections connector, and UDM forwarding.
+## Next steps
+
+:::cards
+- [Threat Intelligence](/docs/telemetry/threat-intelligence): Match your events against STIX/TAXII feeds.
+- [Google SecOps](/docs/integrations/google-secops): Bring Chronicle's detections and events in.
+- [Search Syntax](/docs/telemetry/search-syntax): Everything the search bar understands.
+- [Permission Reference](/docs/permissions/reference): The Security roles, and what each can do.
+:::
