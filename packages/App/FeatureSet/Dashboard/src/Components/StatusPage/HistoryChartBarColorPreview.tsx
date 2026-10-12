@@ -268,8 +268,13 @@ const HistoryChartBarColorPreview: FunctionComponent<ComponentProps> = (
     entries: Array<BarColorPreviewEntry>,
   ): ReactElement => {
     return (
+      /*
+       * Scrolls sideways on a phone, or with many rules, rather than
+       * squeezing the swatches; the names wrap so a long translation does
+       * not push the swatches off the card.
+       */
       <div className="overflow-x-auto">
-        <table className="border-separate border-spacing-x-3 border-spacing-y-2 -mx-3">
+        <table className="-mx-2 border-separate border-spacing-x-2 border-spacing-y-2">
           <thead>
             <tr>
               {/* The corner, above the row names. */}
@@ -279,7 +284,7 @@ const HistoryChartBarColorPreview: FunctionComponent<ComponentProps> = (
                   <th
                     key={entry.key}
                     scope="col"
-                    className="min-w-[4.5rem] max-w-[8rem] align-bottom text-center text-xs font-medium text-gray-600"
+                    className="min-w-[3.25rem] max-w-[6.5rem] break-words align-bottom text-center text-xs font-medium text-gray-600"
                   >
                     {getEntryLabel(entry)}
                   </th>
@@ -293,7 +298,7 @@ const HistoryChartBarColorPreview: FunctionComponent<ComponentProps> = (
                 <tr key={row.vision}>
                   <th
                     scope="row"
-                    className="whitespace-nowrap pr-2 text-left text-xs font-medium text-gray-500"
+                    className="min-w-[6rem] max-w-[11rem] pr-2 text-left text-xs font-medium text-gray-500"
                   >
                     {translator.translateText(row.label) || row.label}
                   </th>
