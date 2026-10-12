@@ -1,10 +1,10 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
-import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackScheduledMaintenanceMessages from "../Slack/Messages/ScheduledMaintenance";
@@ -17,9 +17,7 @@ export default class ScheduledMaintenanceWorkspaceMessages {
     scheduledMaintenanceId: ObjectID;
     scheduledMaintenanceNumber: number;
     scheduledMaintenanceNumberWithPrefix?: string;
-  }): Promise<{
-    channelsCreated: NotificationRuleWorkspaceChannel[];
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       // we will notify the workspace about the scheduledMaintenance creation with the bot tokken which is in WorkspaceProjectAuth Table.
       return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(

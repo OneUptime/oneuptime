@@ -1,0 +1,476 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import User from "../../../../../Models/DatabaseModels/User";
+import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
+import UserService from "../../../../../Server/Services/UserService";
+import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
+import ChannelMembersNotAddedNotice from "../../../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import WorkspaceUtil from "../../../../../Server/Utils/Workspace/Workspace";
+import { WorkspaceSendMessageResponse } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
+import URL from "../../../../../Types/API/URL";
+import Email from "../../../../../Types/Email";
+import ObjectID from "../../../../../Types/ObjectID";
+import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
+import WorkspaceMessagePayload, {
+  WorkspacePayloadMarkdown,
+} from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import InMemoryLiveMessages from "./InMemoryLiveMessages";
+
+jest.mock("../../../../../Server/Utils/Logger");
+
+/*
+ * "NB User 3 cannot be invited to the channel because the account is not
+ * connected to Slack" was posted for every person, every time OneUptime
+ * tried to add them - at channel creation, and again each time an on-call
+ * rule paged them (the maintainer's screenshots show it three times in one
+ * incident channel). Now a channel gets ONE note naming everybody OneUptime
+ * could not add, with how to fix it; a new name edits that note, a name it
+ * has already says nothing. Slack only: OneUptime adds nobody to a
+ * Microsoft Teams channel, so there is nothing to fix there.
+ *
+ * The people it names are not in the channel, so it is written for those
+ * who are: who is missing, why, and what they can do - add them, or have
+ * them connect Slack.
+ */
+
+const PROJECT_ID: ObjectID = ObjectID.generate();
+const NB_USER_3: ObjectID = ObjectID.generate();
+const JANE: ObjectID = ObjectID.generate();
+const NO_NAME: ObjectID = ObjectID.generate();
+const CHANNEL: { id: string; name: string } = {
+  id: "C0INC8",
+  name: "inc-inc-8",
+};
+const SETTINGS_LINK: string =
+  "https://oneuptime.test/dashboard/" +
+  PROJECT_ID.toString() +
+  "/user-settings/slack-integration";
+
+function person(id: ObjectID, name?: string, email?: string): User {
+  const user: User = new User();
+  user.id = id;
+
+  if (name) {
+    user.name = name as never;
+  }
+
+  if (email) {
+    user.email = new Email(email);
+  }
+
+  return user;
+}
+
+// An escaped character: what is left without them is Markdown syntax.
+const ESCAPED_CHARACTER: RegExp = /\\./gu;
+
+let store: InMemoryLiveMessages;
+let postSpy: SpyInstance<
+  typeof WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot
+>;
+let updateSpy: SpyInstance<typeof SlackUtil.updateMessage>;
+let nextTs: number;
+
+function postedText(call: number): string {
+  const payload: WorkspaceMessagePayload =
+    postSpy.mock.calls[call]![0].messagePayloadsByWorkspace[0]!;
+  return (payload.messageBlocks[0] as WorkspacePayloadMarkdown).text;
+}
+
+function updatedText(call: number): string {
+  return (
+    updateSpy.mock.calls[call]![0].messageBlocks[0] as WorkspacePayloadMarkdown
+  ).text;
+}
+
+// What the note's notification shows: the payload's plain text.
+function postedNotificationText(call: number): string | undefined {
+  return postSpy.mock.calls[call]![0].messagePayloadsByWorkspace[0]!.text;
+}
+
+beforeEach(() => {
+  store = new InMemoryLiveMessages();
+  store.install();
+  nextTs = 1;
+
+  jest
+    .spyOn(Semaphore, "lock")
+    .mockRejectedValue(new Error("Redis client is not connected"));
+
+  jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
+
+  jest
+    .spyOn(UserService, "findBy")
+    .mockResolvedValue([
+      person(NB_USER_3, "NB User 3"),
+      person(JANE, "Jane Doe"),
+      person(NO_NAME, undefined, "noname@example.com"),
+    ]);
+
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+    .mockImplementation((async (): Promise<WorkspaceProjectAuthToken> => {
+      const token: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+      token.authToken = "xoxb-token";
+      token.workspaceType = WorkspaceType.Slack;
+      return token;
+    }) as never);
+
+  postSpy = jest
+    .spyOn(WorkspaceUtil, "postMessageToAllWorkspaceChannelsAsBot")
+    .mockImplementation((async (data: {
+      messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
+    }): Promise<Array<WorkspaceSendMessageResponse>> => {
+      const payload: WorkspaceMessagePayload =
+        data.messagePayloadsByWorkspace[0]!;
+      return [
+        {
+          workspaceType: payload.workspaceType,
+          threads: [
+            {
+              channel: {
+                id: payload.channelIds[0]!,
+                name: CHANNEL.name,
+                workspaceType: payload.workspaceType,
+              },
+              threadId: `17000000${nextTs++}.0001`,
+            },
+          ],
+        },
+      ];
+    }) as never);
+
+  updateSpy = jest.spyOn(SlackUtil, "updateMessage").mockResolvedValue();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+function note(
+  userIds: Array<ObjectID>,
+  channels: Array<{ id: string; name?: string }> = [CHANNEL],
+  workspaceType: WorkspaceType = WorkspaceType.Slack,
+): Promise<void> {
+  return ChannelMembersNotAddedNotice.noteMembersNotAdded({
+    projectId: PROJECT_ID,
+    workspaceType: workspaceType,
+    channels: channels,
+    userIds: userIds,
+  });
+}
+
+describe("ChannelMembersNotAddedNotice", () => {
+  test("the first person who could not be added: one note, naming them and how to fix it", async () => {
+    await note([NB_USER_3]);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    const payload: WorkspaceMessagePayload =
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!;
+    expect(payload.workspaceType).toBe(WorkspaceType.Slack);
+    expect(payload.channelIds).toEqual([CHANNEL.id]);
+    expect(postedText(0)).toBe(
+      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(postedNotificationText(0)).toBe(
+      "NB User 3 could not be added to this channel",
+    );
+
+    const kept: Array<unknown> = store.forKey(
+      WorkspaceLiveMessageKey.forChannelMembersNotAdded(),
+    );
+    expect(kept).toHaveLength(1);
+    expect(store.rows[0]!.messageData).toEqual({
+      userIds: [NB_USER_3.toString()],
+    });
+  });
+
+  test("REGRESSION: the same person again - paged again, or an owner again - says nothing more", async () => {
+    await note([NB_USER_3]);
+    await note([NB_USER_3]);
+    await note([NB_USER_3, NB_USER_3]);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("somebody new is added to the same note, edited in place, naming everybody", async () => {
+    await note([NB_USER_3]);
+    await note([JANE]);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0].messageId).toBe(
+      store.rows[0]!.messageId,
+    );
+    expect(updateSpy.mock.calls[0]![0].location).toEqual({
+      channelId: CHANNEL.id,
+      teamId: undefined,
+      isChat: false,
+    });
+    expect(updatedText(0)).toBe(
+      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(updateSpy.mock.calls[0]![0].text).toBe(
+      "NB User 3 and Jane Doe could not be added to this channel",
+    );
+    expect(store.rows[0]!.messageData).toEqual({
+      userIds: [NB_USER_3.toString(), JANE.toString()],
+    });
+  });
+
+  test("several people at once: one note naming them all; a person without a name by their email", async () => {
+    await note([NB_USER_3, JANE, NO_NAME]);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(postedText(0)).toContain(
+      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts yet.",
+    );
+    expect(postedNotificationText(0)).toBe(
+      "NB User 3, Jane Doe and noname@example.com could not be added to this channel",
+    );
+  });
+
+  test("REGRESSION: it speaks to the people in the channel - the people it names are not there to read 'then join this channel'", async () => {
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain("Add them here yourself");
+    expect(postedText(0)).not.toContain("join this channel");
+    expect(postedText(0)).not.toContain("ask someone here");
+    // One paragraph: who, why, and what to do.
+    expect(postedText(0)).not.toContain("\n");
+  });
+
+  test("the settings page is named by the product's name as the installation has it", async () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Status");
+
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain(
+      `ask them to connect Slack in [Acme Status → User Settings → Slack](${SETTINGS_LINK}).`,
+    );
+    expect(postedText(0)).not.toContain("OneUptime");
+  });
+
+  test("without a dashboard address, the settings page is named in words", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockRejectedValue(new Error("no host"));
+
+    await note([NB_USER_3]);
+
+    expect(postedText(0)).toContain(
+      "ask them to connect Slack in OneUptime under **User Settings → Slack**.",
+    );
+  });
+
+  test("each channel gets its own note, once each", async () => {
+    await note([NB_USER_3], [CHANNEL, { id: "C0OTHER", name: "other" }]);
+    await note([NB_USER_3], [CHANNEL, { id: "C0OTHER", name: "other" }]);
+
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(
+      postSpy.mock.calls.map(
+        (
+          call: Array<{
+            messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
+          }>,
+        ): string => {
+          return call[0]!.messagePayloadsByWorkspace[0]!.channelIds[0]!;
+        },
+      ),
+    ).toEqual([CHANNEL.id, "C0OTHER"]);
+  });
+
+  test("a channel listed twice in one call gets one note", async () => {
+    await note([NB_USER_3], [CHANNEL, CHANNEL]);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("nobody to name: nothing is posted or read", async () => {
+    await note([]);
+
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(UserService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("Microsoft Teams: no note - OneUptime adds nobody to a Teams channel, so connecting would change nothing", async () => {
+    await note(
+      [NB_USER_3],
+      [{ id: "19:inc8@thread.tacv2", name: "inc-8" }],
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(store.rows).toEqual([]);
+  });
+
+  test("a note that cannot be posted in one channel does not stop the next", async () => {
+    postSpy.mockRejectedValueOnce(new Error("channel_not_found"));
+
+    await note([NB_USER_3], [{ id: "C0GONE" }, CHANNEL]);
+
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(store.rows).toHaveLength(1);
+    expect(store.rows[0]!.channelId).toBe(CHANNEL.id);
+  });
+
+  test("names are text: a name cannot become a link or a mention", async () => {
+    jest
+      .spyOn(UserService, "findBy")
+      .mockResolvedValue([person(NB_USER_3, "<!channel> [x](evil-target)")]);
+
+    await note([NB_USER_3]);
+
+    const text: string = postedText(0).replace(ESCAPED_CHARACTER, "");
+    expect(text).not.toContain("<!channel>");
+    expect(text).not.toContain("](evil-target)");
+
+    /*
+     * The notification line is plain text, the name as typed: Slack escapes
+     * it for its own notification (SlackUtil.getNotificationText).
+     */
+    expect(postedNotificationText(0)).toBe(
+      "<!channel> [x](evil-target) could not be added to this channel",
+    );
+  });
+});
+
+/*
+ * The notes of channels OneUptime has just created: channel setup hands back
+ * who it could not add, and the record's service notes them all at once,
+ * right after the record's own first message (noteAll).
+ */
+describe("ChannelMembersNotAddedNotice.noteAll", () => {
+  test("notes every list it is handed, channel by channel, each person once", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [{ id: "C0OTHER", name: "other" }],
+          userIds: [NB_USER_3, JANE],
+        },
+      ],
+    });
+
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual([CHANNEL.id]);
+    expect(postedText(0)).toContain(
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet.",
+    );
+    expect(
+      postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual(["C0OTHER"]);
+    expect(postedText(1)).toContain(
+      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet.",
+    );
+  });
+
+  test.each([
+    ["no list", undefined],
+    ["a null list", null],
+    ["an empty list", []],
+  ])("%s: nothing is posted or read", async (_label: string, list: unknown) => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: list as never,
+    });
+
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(UserService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("no project: nothing is posted", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: undefined,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+      ],
+    });
+
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Microsoft Teams list says nothing; the Slack list next to it is noted", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          channels: [{ id: "19:inc8@thread.tacv2", name: "inc-8" }],
+          userIds: [NB_USER_3],
+        },
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+      ],
+    });
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.workspaceType,
+    ).toBe(WorkspaceType.Slack);
+  });
+
+  test("never throws: a list that cannot be noted is logged, and the next one is still noted", async () => {
+    const noteSpy: SpyInstance<
+      typeof ChannelMembersNotAddedNotice.noteMembersNotAdded
+    > = jest.spyOn(ChannelMembersNotAddedNotice, "noteMembersNotAdded");
+    noteSpy.mockRejectedValueOnce(new Error("Valkey is down"));
+
+    await expect(
+      ChannelMembersNotAddedNotice.noteAll({
+        projectId: PROJECT_ID,
+        membersNotAdded: [
+          {
+            workspaceType: WorkspaceType.Slack,
+            channels: [{ id: "C0FIRST", name: "first" }],
+            userIds: [JANE],
+          },
+          {
+            workspaceType: WorkspaceType.Slack,
+            channels: [CHANNEL],
+            userIds: [NB_USER_3],
+          },
+        ],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(noteSpy).toHaveBeenCalledTimes(2);
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual([CHANNEL.id]);
+  });
+});

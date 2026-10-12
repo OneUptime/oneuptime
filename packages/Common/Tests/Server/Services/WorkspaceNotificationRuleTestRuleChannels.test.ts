@@ -386,6 +386,38 @@ describe("testRule posts to channels it created, even when the rule posts nowher
 
     expect(mocks.createChannelsSpy).toHaveBeenCalledTimes(1);
     expect(mocks.inviteUsersSpy).toHaveBeenCalledTimes(1);
+    // The test says when the tester could not be invited.
+    expect(mocks.inviteUsersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ throwOnInviteError: true }),
+    );
+  });
+
+  test("REGRESSION: an invite the workspace refuses fails the test, saying what it answered", async () => {
+    const rule: WorkspaceNotificationRule = makeRule({
+      overrides: {
+        shouldCreateNewChannel: true,
+        teamToCreateChannelIn: TEAM_A,
+      },
+    });
+
+    const mocks: Mocks = mockDeps({
+      rule: rule,
+      createdChannels: [
+        makeCreatedChannel({
+          id: "19:new@thread.tacv2",
+          name: "oneuptime-alert-x",
+          teamId: TEAM_A,
+        }),
+      ],
+      responses: [makeSendResponse({})],
+    });
+    mocks.inviteUsersSpy.mockRejectedValue(
+      new Error("Error from Slack missing_scope"),
+    );
+
+    await expect(runTestRule(rule)).rejects.toThrow(
+      "Cannot invite users to the channel. Error from Slack missing_scope",
+    );
   });
 
   test("a failed send to a created channel fails the test instead of reporting success", async () => {

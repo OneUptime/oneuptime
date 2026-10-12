@@ -89,6 +89,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 
 En kanal som regelen oppretter, får navnet sitt fra **New Microsoft Teams Channel Name** etterfulgt av postens nummer, som `oneuptime-incident-42`, og bare en opprettet kanal får folkene regelen inviterer. En privat hendelse, et privat varsel eller en privat episode får en privat kanal. Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene og chattene dens.
 
+Kanaler og chatter holder seg lesbare: hver begivenhet publiseres én gang, og postens første tilstand står i kortet som kunngjør posten, ikke i et eget kort. En kjøring av en vaktretningslinje er ett kort som redigeres etter hvert som kjøringen eskalerer: hvem som ble tilkalt, hvor ofte og hvordan, hvem som ikke ble det og hvorfor, og hvem som bekreftet. Et nytt kort publiseres bare når noen må handle: en eskaleringsregel nådde ingen, eller kjøringen endte uten at noen bekreftet. At postens eiere eller statussidens abonnenter fikk beskjed, står i feeden dens i OneUptime.
+
 **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** viser kanalene OneUptime ser i teamene dine, og chattene den er lagt til i, med **Send test** ved siden av hver. En chat vises så snart OneUptime-appen er lagt til i den i Microsoft Teams; **Refresh Chats** henter nye chatter og de nåværende navnene deres.
 
 ## Teste en regel

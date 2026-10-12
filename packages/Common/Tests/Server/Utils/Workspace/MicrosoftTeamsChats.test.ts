@@ -73,6 +73,7 @@ import {
   WorkspaceThread,
 } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import {
+  MessageFactory,
   TeamsInfo,
   type ConversationReference,
   type TeamsChannelAccount,
@@ -1344,6 +1345,42 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChat", () => {
     });
   });
 
+  test("the card's activity carries the summary its notification shows; a card sent without one has none", async () => {
+    const chat: MicrosoftTeamsChat = buildChat({
+      id: "19:groupchat@thread.v2",
+      name: "Alice, Bob",
+    });
+    mockProjectAuthWithChats({ chats: { [chat.id]: chat } });
+    installFakeBotAdapter();
+
+    const attachment: jest.Mock = MessageFactory.attachment as jest.Mock;
+    attachment.mockClear();
+
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+      chatId: chat.id,
+      projectId: ObjectID.generate(),
+      adaptiveCard: ADAPTIVE_CARD,
+      summary: "PolicyX is paging for Incident INC-8",
+    });
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+      chatId: chat.id,
+      projectId: ObjectID.generate(),
+      adaptiveCard: ADAPTIVE_CARD,
+    });
+
+    const activities: Array<JSONObject> = attachment.mock.results.map(
+      (result: jest.MockResult<unknown>): JSONObject => {
+        return result.value as JSONObject;
+      },
+    );
+
+    expect(activities).toHaveLength(2);
+    expect(activities[0]!["summary"]).toBe(
+      "PolicyX is paging for Incident INC-8",
+    );
+    expect(activities[1]!).not.toHaveProperty("summary");
+  });
+
   test("personal chat sends with isGroup false and conversationType personal", async () => {
     const chat: MicrosoftTeamsChat = buildChat({
       id: "a:1personal",
@@ -1621,6 +1658,32 @@ describe("MicrosoftTeamsUtil.sendMessage - chat routing", () => {
     );
     expect(response.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
     expect(response.errors).toEqual([]);
+  });
+
+  test("the payload's text is each chat card's summary: what its notification shows", async () => {
+    mockChatsForProject(TWO_CHATS);
+    const sendCardSpy: jest.SpyInstance = mockSendCard();
+    const chatPayload: WorkspaceMessagePayload = buildChatPayload({
+      chatIds: ["chat-1", "chat-2"],
+    });
+    chatPayload.text = "PolicyX is paging for Incident INC-8";
+
+    await MicrosoftTeamsUtil.sendMessage({
+      workspaceMessagePayload: chatPayload,
+      authToken: "auth-token",
+      userId: "user-1",
+      projectId: ObjectID.generate(),
+    });
+
+    expect(sendCardSpy).toHaveBeenCalledTimes(2);
+
+    for (const call of sendCardSpy.mock.calls) {
+      expect(call[0]).toEqual(
+        expect.objectContaining({
+          summary: "PolicyX is paging for Incident INC-8",
+        }),
+      );
+    }
   });
 
   test("threads are collected per chat from sendAdaptiveCardToChat results", async () => {

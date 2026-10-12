@@ -1,7 +1,15 @@
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * A STATUS UPDATE OF ON-CALL EXECUTION LOGS REACHES THE FEED OF EVERY LOG
@@ -47,6 +55,17 @@ function onUpdateSuccess(
 }
 
 describe("OnCallDutyPolicyExecutionLogService: the feed lines of a status update", () => {
+  beforeEach(() => {
+    /*
+     * Every update also asks for the run's Slack / Microsoft Teams message,
+     * which reads the run itself (OnCallRunMessageHooks.test.ts pins that).
+     * Kept out of here, where the feed's reads are counted.
+     */
+    jest.spyOn(OnCallPolicyRunMessage, "refresh").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
