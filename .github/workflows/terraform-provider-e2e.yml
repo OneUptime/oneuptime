@@ -1,8 +1,19 @@
 name: Terraform Provider E2E Tests
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+#
+# A release run is different. release.yml calls this as the gate of the
+# release it publishes, and a called workflow reads the caller's
+# github.workflow and github.ref, so every release run used to land in one
+# group. A newer release run, or a re-run of an older one, cancelled the suite
+# of the release in flight: 14.0.47's (run 38302467596) a minute after
+# 14.0.46's run was re-run. Each release has to pass its own suite, so
+# release.yml passes its run id as release_run_id, and that gives every release
+# run a group of its own. A pull request's group stays "<workflow name>-<PR
+# number>", the group cancel-closed-pr-runs.yml joins to stop it.
+# Tests/Ops/ReleaseE2ePipeline.test.js and CancelClosedPrRuns.test.js hold both.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 
@@ -20,6 +31,11 @@ on:
   # Lets the release pipeline invoke this workflow as a gate (release.yml
   # `uses:` this workflow). Nothing below may rely on pull_request-only context.
   workflow_call:
+    inputs:
+      # The calling release run's id, for the concurrency group above.
+      release_run_id:
+        type: string
+        required: false
 
 jobs:
   terraform-e2e-tests:
