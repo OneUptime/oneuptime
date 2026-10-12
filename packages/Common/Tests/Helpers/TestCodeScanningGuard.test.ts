@@ -9,16 +9,16 @@ import {
   CodeScanningFinding,
   SHARED_REGEXP_ESCAPE_FILE,
   findCodeScanningProblems,
-  isIgnoredByCodeScanning,
+  isCodeScanningFile,
   isProductCode,
   isTestCodeFile,
-  listFilesReadByCodeScanning,
   listProductFiles,
   listTestCodeFiles,
   reachesCommon,
 } from "./CodeScanning";
 import {
   REPOSITORY_DIRECTORY,
+  SKIPPED_FOLDER_NAMES,
   importedNames,
   isTestCode,
   listTestFiles,
@@ -461,11 +461,6 @@ const EE_IS_CHECKED_OUT: boolean = fs.existsSync(
   path.join(REPOSITORY_DIRECTORY, "ee"),
 );
 
-// What code scanning reads as code: scripts and the templates they sit in.
-const CODE_OR_TEMPLATE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
-const DECLARATION_FILE: RegExp = /\.d\.ts$/;
-const MINIFIED_FILE: RegExp = /\.min\.js$/;
-
 // The files git tracks, by their paths from the repository's root.
 const trackedFiles: () => Array<string> = (): Array<string> => {
   return childProcess
@@ -538,16 +533,12 @@ describe("every test file writes nothing code scanning reports", () => {
     // Nothing of a dependency, a build, a test report or a hidden folder.
     expect(
       files.filter((file: string): boolean => {
-        return (
-          file.includes("node_modules/") ||
-          file.includes("/build/") ||
-          file.includes("/dist/") ||
-          file.includes("/coverage/") ||
-          file.includes("/playwright-report/") ||
-          file.includes("/test-results/") ||
-          file.startsWith(".") ||
-          file.includes("/.")
-        );
+        return file
+          .split("/")
+          .slice(0, -1)
+          .some((folder: string): boolean => {
+            return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
+          });
       }),
     ).toEqual([]);
   });
@@ -582,17 +573,14 @@ describe("every test file writes nothing code scanning reports", () => {
         return (
           file.includes("/") &&
           !file.startsWith(".") &&
-          CODE_OR_TEMPLATE_FILE.test(file) &&
-          !DECLARATION_FILE.test(file) &&
-          !MINIFIED_FILE.test(file) &&
-          !isIgnoredByCodeScanning(file) &&
+          isCodeScanningFile(file) &&
           fs.existsSync(path.join(REPOSITORY_DIRECTORY, file))
         );
       },
     );
 
-    // Guards the check: git answered, and with the files the guards read.
-    expect(trackedCode.length).toBeGreaterThan(15000);
+    // Guards the check: git answered, with product code and tests.
+    expect(trackedCode.length).toBeGreaterThan(files.length);
     expect(
       productFiles.filter((file: string): boolean => {
         return testFileSet.has(file);
@@ -601,6 +589,12 @@ describe("every test file writes nothing code scanning reports", () => {
     expect(
       trackedCode.filter((file: string): boolean => {
         return !readByAGuard.has(file);
+      }),
+    ).toEqual([]);
+    // And the other way: the walks read nothing code scanning does not.
+    expect(
+      [...productFiles, ...files].filter((file: string): boolean => {
+        return !isCodeScanningFile(file);
       }),
     ).toEqual([]);
   });
@@ -791,6 +785,8 @@ describe("isTestCodeFile and listTestCodeFiles, on a tree written here", () => {
     "packages/Common/Tests/Helpers/Helper.ts",
     "packages/Common/Tests/Utils/A.test.ts",
     "packages/E2E/Fixtures/page.html",
+    // A template named like a declaration is still a template.
+    "packages/E2E/Fixtures/layout.d.html",
     "packages/E2E/Specs/k.ts",
     "packages/Home/Tests/Views/m.ejs",
     "packages/MobileApp/src/utils/text.test.ts",
@@ -841,6 +837,7 @@ describe("isTestCodeFile and listTestCodeFiles, on a tree written here", () => {
     ]);
     expect(listTestCodeFiles(root, ["packages/E2E", "Tests"])).toEqual([
       "Tests/Ops/run-suite.mjs",
+      "packages/E2E/Fixtures/layout.d.html",
       "packages/E2E/Fixtures/page.html",
       "packages/E2E/Specs/k.ts",
     ]);
@@ -860,11 +857,12 @@ describe("isTestCodeFile and listTestCodeFiles, on a tree written here", () => {
       expect([file, isTestCodeFile(file)]).toEqual([file, false]);
     }
 
-    expect(
-      listFilesReadByCodeScanning(root, [""]).filter((file: string) => {
-        return !isTestCodeFile(file);
-      }),
-    ).toEqual(listProductFiles(root, [""]));
+    // What is left of the tree for the product walk: its code and templates.
+    expect(listProductFiles(root, [""])).toEqual([
+      "packages/App/FeatureSet/X/public/index.html",
+      "packages/Common/Utils/A.ts",
+      "packages/Home/Views/d.ejs",
+    ]);
   });
 
   test("reads a template in a test folder for its code, as code scanning does", () => {

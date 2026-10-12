@@ -34,21 +34,25 @@ export type OrderByColumnsFunction = (statement: Statement) => Array<string>;
 
 /*
  * The column names the outer ORDER BY sorts by, each term's bound parameter
- * resolved, so assertions do not depend on parameter numbering. A term of
- * any other shape - another direction, a name written in place, a
- * parameter that is no identifier - is returned as written, so an
- * assertion on the names shows it.
+ * resolved, so assertions do not depend on parameter numbering; none
+ * without an ORDER BY. A term of any other shape - another direction, a
+ * name written in place, a parameter that is no identifier - is returned as
+ * written, so an assertion on the names shows it.
  */
 export const orderByColumns: OrderByColumnsFunction = (
   statement: Statement,
 ): Array<string> => {
-  return outerOrderBy(statement.query)
-    .split(TERM_SEPARATOR)
-    .map((term: string): string => {
-      const parameter: string | undefined = ORDER_BY_TERM.exec(term)?.[1];
+  const terms: string = outerOrderBy(statement.query);
 
-      return parameter === undefined
-        ? term
-        : (statement.query_params[parameter] as string);
-    });
+  if (terms === "") {
+    return [];
+  }
+
+  return terms.split(TERM_SEPARATOR).map((term: string): string => {
+    const parameter: string | undefined = ORDER_BY_TERM.exec(term)?.[1];
+
+    return parameter === undefined
+      ? term
+      : (statement.query_params[parameter] as string);
+  });
 };

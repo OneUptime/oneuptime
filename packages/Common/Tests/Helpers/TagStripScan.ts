@@ -35,10 +35,12 @@ const TEST_FOLDER_NAMES: ReadonlySet<string> = new Set<string>([
   "__tests__",
 ]);
 /*
- * Folders of dependencies, builds and test reports, never code of the
- * repository's: each is gitignored, so a coverage report or a Playwright
- * report a local run leaves behind is not read as if it were a test. Every
- * walk of the guards skips them - this one, and CodeScanning's.
+ * Names of folders that hold no code of the repository's: dependencies,
+ * builds, and the test reports a local run leaves behind (a coverage report,
+ * a Playwright report and its test results), which git ignores where they
+ * are written. The walks of this file and of CodeScanning skip them, so such
+ * a report is not read as if it were a test; TestCodeScanningGuard fails if
+ * a file git tracks ever sits in one.
  */
 export const SKIPPED_FOLDER_NAMES: ReadonlySet<string> = new Set<string>([
   "node_modules",

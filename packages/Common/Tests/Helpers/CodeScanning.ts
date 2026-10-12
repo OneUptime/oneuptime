@@ -1762,40 +1762,60 @@ export const isIgnoredByCodeScanning: IsIgnoredByCodeScanningFunction = (
   });
 };
 
+export type IsCodeScanningFileFunction = (relativePath: string) => boolean;
+
 /*
- * Whether code scanning reads a file, by its path from the repository's
- * root: code or a template, not a declaration, not a minified file, outside
- * dependencies, builds, test reports and hidden folders (TagStripScan's
- * SKIPPED_FOLDER_NAMES, which the repository never holds), and not in a
- * directory code scanning leaves out - the third-party builds vendored for
- * offline installs (Common/Server/Static/Vendor: Tailwind, highlight.js),
- * which CODE_SCANNING_IGNORED_PATHS reads from code scanning's
- * configuration. Their code is upstream's; it is not edited here.
+ * Whether a file, by its path from the repository's root, is of the kind
+ * code scanning reads: code or a template, not a declaration, not a
+ * minified file, and not in a directory code scanning leaves out - the
+ * third-party builds vendored for offline installs (Common/Server/Static/
+ * Vendor: Tailwind, highlight.js), which CODE_SCANNING_IGNORED_PATHS reads
+ * from code scanning's configuration. Their code is upstream's; it is not
+ * edited here.
  */
-function isReadByCodeScanning(relativePath: string): boolean {
-  const parts: Array<string> = relativePath.split("/");
-  const fileName: string = parts[parts.length - 1]!;
+export const isCodeScanningFile: IsCodeScanningFileFunction = (
+  relativePath: string,
+): boolean => {
+  const fileName: string = relativePath.slice(
+    relativePath.lastIndexOf("/") + 1,
+  );
 
   return (
     CODE_OR_TEMPLATE_FILE.test(fileName) &&
     !DECLARATION_FILE.test(fileName) &&
     !MINIFIED_FILE.test(fileName) &&
-    !isIgnoredByCodeScanning(relativePath) &&
-    !parts.slice(0, -1).some((folder: string): boolean => {
-      return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
-    })
+    !isIgnoredByCodeScanning(relativePath)
+  );
+};
+
+/*
+ * Whether the guards read a file code scanning reads: one outside hidden
+ * folders and the folders TagStripScan's SKIPPED_FOLDER_NAMES says hold no
+ * code of the repository's (dependencies, builds, test reports).
+ */
+function isReadByCodeScanning(relativePath: string): boolean {
+  return (
+    isCodeScanningFile(relativePath) &&
+    !relativePath
+      .split("/")
+      .slice(0, -1)
+      .some((folder: string): boolean => {
+        return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
+      })
   );
 }
 
 /*
  * Whether a file is test code, by TagStripScan's isTestCode: a template is
  * test code where a script of its name would be - page.html in a Tests
- * folder as page.ts, Widget.spec.html anywhere as Widget.spec.ts.
+ * folder as page.js, Widget.spec.html anywhere as Widget.spec.js. (A .js
+ * name, so that a template named x.d.html is read as x.d.js, no
+ * declaration.)
  */
 function isTestCodeOrTemplate(relativePath: string): boolean {
   return isTestCode(
     TEMPLATE_FILE.test(relativePath)
-      ? `${relativePath.slice(0, relativePath.lastIndexOf("."))}.ts`
+      ? `${relativePath.slice(0, relativePath.lastIndexOf("."))}.js`
       : relativePath,
   );
 }
@@ -1915,21 +1935,6 @@ export const listTestCodeFiles: ListTestCodeFilesFunction = (
 ): Array<string> => {
   return walkFiles(root, folders, isTestCodeFile);
 };
-
-export type ListFilesReadByCodeScanningFunction = (
-  root: string,
-  folders: ReadonlyArray<string>,
-) => Array<string>;
-
-/*
- * Every file code scanning reads under the given folders of `root`, product
- * code and test code alike, by its path from `root`: what the product and
- * test walks share out between them.
- */
-export const listFilesReadByCodeScanning: ListFilesReadByCodeScanningFunction =
-  (root: string, folders: ReadonlyArray<string>): Array<string> => {
-    return walkFiles(root, folders, isReadByCodeScanning);
-  };
 
 export type FindCodeScanningProblemsFunction = (
   file: string,
