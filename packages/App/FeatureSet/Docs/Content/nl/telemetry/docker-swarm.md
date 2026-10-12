@@ -104,7 +104,7 @@ Het installatiescript schrijft de eerste drie naar `/opt/oneuptime-docker-swarm-
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Je OneUptime-URL, zoals `https://oneuptime.com` of je zelf-gehoste instantie. Gebruik `http://` en de poort als de instantie alleen HTTP spreekt. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Ja | De naam van het cluster in OneUptime, en de sleutel waarop de gegevens van elke node samenkomen: op alles gestempeld als het resource-attribuut `docker.swarm.cluster.name`. Houd hem stabiel: een latere wijziging registreert een tweede cluster. Standaard `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | Nee | De naam van het cluster in OneUptime, en de sleutel waarop de gegevens van elke node samenkomen: op alles gestempeld als het resource-attribuut `docker.swarm.cluster.name`. Houd hem stabiel: een latere wijziging registreert een tweede cluster. Standaard `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nee | Hoe vaak de inventarispoller een snapshot maakt, in seconden. Standaard `300`. |
 | `DOCKER_API_VERSION` | Nee | De versie van de Docker Engine-API die de collector en de inventarispoller spreken. Standaard `1.44`; leeg onderhandelt hem met de daemon (zie [Problemen oplossen](#problemen-oplossen)). De AI-agent onderhandelt hem, tenzij je er een instelt. |
 

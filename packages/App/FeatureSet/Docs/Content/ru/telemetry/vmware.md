@@ -186,7 +186,7 @@ Docker Compose читает их из `.env` рядом с `docker-compose.yml`;
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Да | Ваш URL OneUptime, например `https://oneuptime.com`, или ваш собственный экземпляр. Если экземпляр работает только по HTTP, используйте `http://` и его порт. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Да | Ключ приёма из раздела **Настройки проекта → Телеметрия и APM → Ключи приема**. |
-| `VMWARE_VCENTER_NAME` | Да | Имя vCenter в OneUptime, проставляемое на каждую метрику как атрибут ресурса `vmware.vcenter.name`. Не меняйте его: изменение позже регистрирует второй vCenter. По умолчанию `vmware-vcenter`. |
+| `VMWARE_VCENTER_NAME` | Нет | Имя vCenter в OneUptime, проставляемое на каждую метрику как атрибут ресурса `vmware.vcenter.name`. Не меняйте его: изменение позже регистрирует второй vCenter. По умолчанию `vmware-vcenter`. |
 | `VCENTER_ENDPOINT` | Да | Схема и хост vCenter Server или отдельного хоста ESXi, **без** `/sdk`, например `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | Да | Пользователь vSphere с ролью Read-Only, например `oneuptime@vsphere.local` (или `DOMAIN\user` для источника идентификации Active Directory). |
 | `VCENTER_PASSWORD` | Да | Пароль этого пользователя. Если в нём есть `$`, `#`, пробелы или кавычки, заключите его в одинарные кавычки в `.env` установки через Docker (`install.sh` делает это за вас) и в двойные — в файле установки через systemd (см. [Устранение неполадок](#устранение-неполадок)). |

@@ -186,7 +186,7 @@ Docker Compose 從 `.env`（位於 `docker-compose.yml` 旁邊）中讀取這些
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
-| `VMWARE_VCENTER_NAME` | 是 | vCenter 在 OneUptime 中的名稱，會作為 `vmware.vcenter.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個 vCenter。預設為 `vmware-vcenter`。 |
+| `VMWARE_VCENTER_NAME` | 否 | vCenter 在 OneUptime 中的名稱，會作為 `vmware.vcenter.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個 vCenter。預設為 `vmware-vcenter`。 |
 | `VCENTER_ENDPOINT` | 是 | vCenter Server 或獨立 ESXi 主機的通訊協定和主機，**不含** `/sdk`，例如 `https://vcsa.example.com`。 |
 | `VCENTER_USERNAME` | 是 | 具有 Read-Only 角色的 vSphere 使用者，例如 `oneuptime@vsphere.local`（Active Directory 身分識別來源則為 `DOMAIN\user`）。 |
 | `VCENTER_PASSWORD` | 是 | 該使用者的密碼。如果其中包含 `$`、`#`、空格或引號，在 Docker 安裝的 `.env` 中要用單引號括起來（`install.sh` 會替你完成），在 systemd 安裝的檔案中則用雙引號括起來（請參閱 [疑難排解](#疑難排解)）。 |

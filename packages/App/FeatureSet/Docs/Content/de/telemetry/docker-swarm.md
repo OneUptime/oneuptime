@@ -104,7 +104,7 @@ Das Installationsskript schreibt die ersten drei nach `/opt/oneuptime-docker-swa
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Ihre OneUptime-URL, etwa `https://oneuptime.com` oder Ihre selbst gehostete Instanz. Verwenden Sie `http://` und ihren Port, wenn die Instanz nur HTTP spricht. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Ja | Der Name des Clusters in OneUptime und der Schlüssel, über den die Daten jedes Knotens zusammenfinden: an alles als Ressourcenattribut `docker.swarm.cluster.name` gehängt. Halten Sie ihn stabil: Eine spätere Änderung registriert einen zweiten Cluster. Standard ist `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | Nein | Der Name des Clusters in OneUptime und der Schlüssel, über den die Daten jedes Knotens zusammenfinden: an alles als Ressourcenattribut `docker.swarm.cluster.name` gehängt. Halten Sie ihn stabil: Eine spätere Änderung registriert einen zweiten Cluster. Standard ist `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nein | Wie oft der Inventar-Poller einen Snapshot erstellt, in Sekunden. Standard ist `300`. |
 | `DOCKER_API_VERSION` | Nein | Die Version der Docker-Engine-API, die der Collector und der Inventar-Poller sprechen. Standard ist `1.44`; leer handelt sie mit dem Daemon aus (siehe [Fehlerbehebung](#fehlerbehebung)). Der KI-Agent handelt sie aus, sofern Sie keine festlegen. |
 

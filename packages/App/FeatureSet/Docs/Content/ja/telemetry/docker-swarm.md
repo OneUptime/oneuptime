@@ -104,7 +104,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | --- | --- | --- |
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_SERVICE_TOKEN` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
-| `DOCKER_SWARM_CLUSTER_NAME` | はい | OneUptime でのクラスターの名前で、すべてのノードのデータをまとめるキーです。すべてに `docker.swarm.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `docker-swarm` です。 |
+| `DOCKER_SWARM_CLUSTER_NAME` | いいえ | OneUptime でのクラスターの名前で、すべてのノードのデータをまとめるキーです。すべてに `docker.swarm.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `docker-swarm` です。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | いいえ | インベントリポーラーがスナップショットを取る間隔 (秒)。既定は `300` です。 |
 | `DOCKER_API_VERSION` | いいえ | Collector とインベントリポーラーが使う Docker Engine API のバージョン。既定は `1.44` です。空にするとデーモンとネゴシエートします ([トラブルシューティング](#トラブルシューティング) を参照)。AI エージェントは、指定しない限りネゴシエートします。 |
 

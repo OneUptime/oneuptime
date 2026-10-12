@@ -115,7 +115,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-ceph-agent/.env`; un'ins
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
-| `CEPH_CLUSTER_NAME` | Sì | Il nome del cluster in OneUptime, applicato a ogni metrica come attributo di risorsa `ceph.cluster.name`. Mantienilo stabile: cambiarlo in seguito registra un secondo cluster. Il valore predefinito è `ceph`. |
+| `CEPH_CLUSTER_NAME` | No | Il nome del cluster in OneUptime, applicato a ogni metrica come attributo di risorsa `ceph.cluster.name`. Mantienilo stabile: cambiarlo in seguito registra un secondo cluster. Il valore predefinito è `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Sì | Ogni daemon mgr come elenco `host:port` separato da virgole tra parentesi quadre, come `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. Lo script di installazione aggiunge le parentesi per te. |
 
 Le impostazioni proprie dell'agente IA sono in [Agente IA](#agente-ia).

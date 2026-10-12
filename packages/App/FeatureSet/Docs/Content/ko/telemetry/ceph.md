@@ -115,7 +115,7 @@ Everything is ready. Begin running and processing data.
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
-| `CEPH_CLUSTER_NAME` | 예 | OneUptime에서의 클러스터 이름으로, 모든 메트릭에 `ceph.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `ceph`입니다. |
+| `CEPH_CLUSTER_NAME` | 아니요 | OneUptime에서의 클러스터 이름으로, 모든 메트릭에 `ceph.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `ceph`입니다. |
 | `CEPH_MGR_ENDPOINTS` | 예 | 모든 mgr 데몬을 대괄호로 감싼 쉼표 구분 `host:port` 목록으로 지정합니다. 예: `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. 대괄호는 설치 스크립트가 붙여 줍니다. |
 
 AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있습니다.

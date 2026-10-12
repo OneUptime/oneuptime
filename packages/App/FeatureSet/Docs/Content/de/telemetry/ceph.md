@@ -115,7 +115,7 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-ceph-agent/.env`; ei
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Ihre OneUptime-URL, etwa `https://oneuptime.com` oder Ihre selbst gehostete Instanz. Verwenden Sie `http://` und ihren Port, wenn die Instanz nur HTTP spricht. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
-| `CEPH_CLUSTER_NAME` | Ja | Der Name des Clusters in OneUptime, an jede Metrik als Ressourcenattribut `ceph.cluster.name` gehängt. Halten Sie ihn stabil: Eine spätere Änderung registriert einen zweiten Cluster. Standard ist `ceph`. |
+| `CEPH_CLUSTER_NAME` | Nein | Der Name des Clusters in OneUptime, an jede Metrik als Ressourcenattribut `ceph.cluster.name` gehängt. Halten Sie ihn stabil: Eine spätere Änderung registriert einen zweiten Cluster. Standard ist `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Ja | Jeder mgr-Daemon als kommagetrennte `host:port`-Liste in eckigen Klammern, etwa `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. Das Installationsskript setzt die Klammern für Sie. |
 
 Die eigenen Einstellungen des KI-Agents stehen unter [KI-Agent](#ki-agent).

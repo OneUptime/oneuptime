@@ -115,7 +115,7 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-ceph-agent/.env`; en Do
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din självhostade instans. Använd `http://` och dess port om instansen bara använder HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
-| `CEPH_CLUSTER_NAME` | Ja | Klustrets namn i OneUptime, stämplat på varje mätvärde som resursattributet `ceph.cluster.name`. Håll det stabilt: att ändra det senare registrerar ett andra kluster. Standard är `ceph`. |
+| `CEPH_CLUSTER_NAME` | Nej | Klustrets namn i OneUptime, stämplat på varje mätvärde som resursattributet `ceph.cluster.name`. Håll det stabilt: att ändra det senare registrerar ett andra kluster. Standard är `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Ja | Varje mgr-daemon som en kommaseparerad `host:port`-lista inom hakparenteser, till exempel `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. Installationsskriptet lägger till hakparenteserna åt dig. |
 
 AI-agentens egna inställningar finns under [AI-agent](#ai-agent).

@@ -186,7 +186,7 @@ Docker Compose leest deze uit de `.env` naast `docker-compose.yml`; de systemd-i
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Je OneUptime-URL, zoals `https://oneuptime.com` of je zelf-gehoste instantie. Gebruik `http://` en de poort als de instantie alleen HTTP spreekt. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
-| `VMWARE_VCENTER_NAME` | Ja | De naam van het vCenter in OneUptime, op elke metric gestempeld als het resource-attribuut `vmware.vcenter.name`. Houd hem stabiel: een latere wijziging registreert een tweede vCenter. Standaard `vmware-vcenter`. |
+| `VMWARE_VCENTER_NAME` | Nee | De naam van het vCenter in OneUptime, op elke metric gestempeld als het resource-attribuut `vmware.vcenter.name`. Houd hem stabiel: een latere wijziging registreert een tweede vCenter. Standaard `vmware-vcenter`. |
 | `VCENTER_ENDPOINT` | Ja | Het schema en de host van de vCenter Server of van een zelfstandige ESXi-host, **zonder** `/sdk`, zoals `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | Ja | De vSphere-gebruiker met de rol Read-Only, zoals `oneuptime@vsphere.local` (of `DOMAIN\user` voor een Active Directory-identiteitsbron). |
 | `VCENTER_PASSWORD` | Ja | Het wachtwoord van die gebruiker. Bevat het `$`, `#`, spaties of aanhalingstekens, zet het dan in de `.env` van de Docker-installatie tussen enkele aanhalingstekens (`install.sh` doet dit voor je), en in die van de systemd-installatie tussen dubbele (zie [Problemen oplossen](#problemen-oplossen)). |

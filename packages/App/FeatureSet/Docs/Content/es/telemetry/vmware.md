@@ -186,7 +186,7 @@ Docker Compose las lee del `.env` que está junto a `docker-compose.yml`; la ins
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sí | Tu URL de OneUptime, como `https://oneuptime.com` o tu instancia autoalojada. Usa `http://` y su puerto si la instancia solo admite HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sí | La clave de ingesta de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
-| `VMWARE_VCENTER_NAME` | Sí | El nombre del vCenter en OneUptime, marcado en cada métrica como el atributo de recurso `vmware.vcenter.name`. Mantenlo estable: cambiarlo más tarde registra un segundo vCenter. Su valor predeterminado es `vmware-vcenter`. |
+| `VMWARE_VCENTER_NAME` | No | El nombre del vCenter en OneUptime, marcado en cada métrica como el atributo de recurso `vmware.vcenter.name`. Mantenlo estable: cambiarlo más tarde registra un segundo vCenter. Su valor predeterminado es `vmware-vcenter`. |
 | `VCENTER_ENDPOINT` | Sí | El esquema y el host del vCenter Server o de un host ESXi independiente, **sin** `/sdk`, como `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | Sí | El usuario de vSphere con el rol Read-Only, como `oneuptime@vsphere.local` (o `DOMAIN\user` para un origen de identidades de Active Directory). |
 | `VCENTER_PASSWORD` | Sí | La contraseña de ese usuario. Si contiene `$`, `#`, espacios o comillas, ponla entre comillas simples en el `.env` de la instalación con Docker (`install.sh` lo hace por ti), y entre comillas dobles en el de la instalación con systemd (consulta [Solución de problemas](#solución-de-problemas)). |

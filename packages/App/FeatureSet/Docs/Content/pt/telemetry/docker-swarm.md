@@ -104,7 +104,7 @@ O script de instalação grava as três primeiras em `/opt/oneuptime-docker-swar
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sim | A sua URL do OneUptime, como `https://oneuptime.com` ou a sua instância auto-hospedada. Use `http://` e a porta dela se a instância for só HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sim | A chave de ingestão de **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Sim | O nome do cluster no OneUptime, e a chave pela qual os dados de cada nó se juntam: marcado em tudo como o atributo de recurso `docker.swarm.cluster.name`. Mantenha-o estável: mudá-lo depois registra um segundo cluster. O padrão é `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | Não | O nome do cluster no OneUptime, e a chave pela qual os dados de cada nó se juntam: marcado em tudo como o atributo de recurso `docker.swarm.cluster.name`. Mantenha-o estável: mudá-lo depois registra um segundo cluster. O padrão é `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Não | Com que frequência o poller de inventário tira um snapshot, em segundos. O padrão é `300`. |
 | `DOCKER_API_VERSION` | Não | A versão da API do Docker Engine que o coletor e o poller de inventário falam. O padrão é `1.44`; vazio, ela é negociada com o daemon (veja [Solução de problemas](#solução-de-problemas)). O agente de IA a negocia, a menos que você defina uma. |
 

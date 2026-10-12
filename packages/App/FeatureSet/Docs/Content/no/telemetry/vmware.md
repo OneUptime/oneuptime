@@ -186,7 +186,7 @@ Docker Compose leser disse fra `.env` ved siden av `docker-compose.yml`; systemd
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | OneUptime-URL-en din, for eksempel `https://oneuptime.com` eller den selvhostede instansen din. Bruk `http://` og porten hvis instansen bare bruker HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inntaksnøkkelen fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
-| `VMWARE_VCENTER_NAME` | Ja | vCenter-ets navn i OneUptime, stemplet på hver metrikk som ressursattributtet `vmware.vcenter.name`. Hold det stabilt: å endre det senere registrerer et nytt vCenter. Standard er `vmware-vcenter`. |
+| `VMWARE_VCENTER_NAME` | Nei | vCenter-ets navn i OneUptime, stemplet på hver metrikk som ressursattributtet `vmware.vcenter.name`. Hold det stabilt: å endre det senere registrerer et nytt vCenter. Standard er `vmware-vcenter`. |
 | `VCENTER_ENDPOINT` | Ja | Skjemaet og verten til vCenter Server eller en frittstående ESXi-vert, **uten** `/sdk`, for eksempel `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | Ja | vSphere-brukeren med rollen Read-Only, for eksempel `oneuptime@vsphere.local` (eller `DOMAIN\user` for en Active Directory-identitetskilde). |
 | `VCENTER_PASSWORD` | Ja | Passordet til den brukeren. Hvis det inneholder `$`, `#`, mellomrom eller anførselstegn, setter du det i enkle anførselstegn i `.env`-filen til Docker-installasjonen (`install.sh` gjør dette for deg), og i doble i den til systemd-installasjonen (se [Feilsøking](#feilsøking)). |

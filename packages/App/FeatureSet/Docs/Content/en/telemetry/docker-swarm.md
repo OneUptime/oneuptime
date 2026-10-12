@@ -104,7 +104,7 @@ The install script writes the first three to `/opt/oneuptime-docker-swarm-agent/
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Yes | The cluster's name in OneUptime, and the key every node's data joins by: stamped on everything as the `docker.swarm.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | No | The cluster's name in OneUptime, and the key every node's data joins by: stamped on everything as the `docker.swarm.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | No | How often the inventory poller takes a snapshot, in seconds. Defaults to `300`. |
 | `DOCKER_API_VERSION` | No | The Docker Engine API version the collector and the inventory poller speak. Defaults to `1.44`; empty negotiates it with the daemon (see [Troubleshooting](#troubleshooting)). The AI agent negotiates it unless you set one. |
 

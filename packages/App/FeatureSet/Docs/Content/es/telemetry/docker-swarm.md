@@ -104,7 +104,7 @@ El script de instalación escribe las tres primeras en `/opt/oneuptime-docker-sw
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sí | Tu URL de OneUptime, como `https://oneuptime.com` o tu instancia autoalojada. Usa `http://` y su puerto si la instancia solo admite HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sí | La clave de ingesta de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Sí | El nombre del clúster en OneUptime, y la clave con la que se unen los datos de cada nodo: marcado en todo como el atributo de recurso `docker.swarm.cluster.name`. Mantenlo estable: cambiarlo más tarde registra un segundo clúster. Su valor predeterminado es `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | No | El nombre del clúster en OneUptime, y la clave con la que se unen los datos de cada nodo: marcado en todo como el atributo de recurso `docker.swarm.cluster.name`. Mantenlo estable: cambiarlo más tarde registra un segundo clúster. Su valor predeterminado es `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | No | Cada cuánto toma el sondeador de inventario una instantánea, en segundos. Su valor predeterminado es `300`. |
 | `DOCKER_API_VERSION` | No | La versión de la API de Docker Engine que hablan el colector y el sondeador de inventario. Su valor predeterminado es `1.44`; vacío, se negocia con el daemon (consulta [Solución de problemas](#solución-de-problemas)). El agente de IA la negocia salvo que fijes una. |
 

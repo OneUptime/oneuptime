@@ -186,7 +186,7 @@ Docker Compose इन्हें `.env` से पढ़ता है, जो `
 | --- | --- | --- |
 | `ONEUPTIME_URL` | हाँ | आपका OneUptime URL, जैसे `https://oneuptime.com` या आपका सेल्फ़-होस्टेड इंस्टेंस। अगर इंस्टेंस सिर्फ़ HTTP पर है तो `http://` और उसका पोर्ट उपयोग करें। |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
-| `VMWARE_VCENTER_NAME` | हाँ | OneUptime में vCenter का नाम, हर मेट्रिक पर `vmware.vcenter.name` रिसोर्स एट्रिब्यूट के रूप में लगाया गया। इसे स्थिर रखें: बाद में बदलने से एक दूसरा vCenter रजिस्टर होता है। डिफ़ॉल्ट `vmware-vcenter` है। |
+| `VMWARE_VCENTER_NAME` | नहीं | OneUptime में vCenter का नाम, हर मेट्रिक पर `vmware.vcenter.name` रिसोर्स एट्रिब्यूट के रूप में लगाया गया। इसे स्थिर रखें: बाद में बदलने से एक दूसरा vCenter रजिस्टर होता है। डिफ़ॉल्ट `vmware-vcenter` है। |
 | `VCENTER_ENDPOINT` | हाँ | vCenter Server या स्टैंडअलोन ESXi होस्ट का स्कीम और होस्ट, `/sdk` के **बिना**, जैसे `https://vcsa.example.com`। |
 | `VCENTER_USERNAME` | हाँ | Read-Only भूमिका वाला vSphere उपयोगकर्ता, जैसे `oneuptime@vsphere.local` (या Active Directory पहचान स्रोत के लिए `DOMAIN\user`)। |
 | `VCENTER_PASSWORD` | हाँ | उस उपयोगकर्ता का पासवर्ड। अगर उसमें `$`, `#`, स्पेस या उद्धरण चिह्न हों, तो Docker इंस्टॉल की `.env` में उसे सिंगल कोट्स में रखें (`install.sh` यह आपके लिए करती है), और systemd इंस्टॉल की फ़ाइल में डबल कोट्स में ([समस्या निवारण](#समस्या-निवारण) देखें)। |

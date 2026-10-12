@@ -186,7 +186,7 @@ Docker Compose این‌ها را از `.env` کنار `docker-compose.yml` می
 | --- | --- | --- |
 | `ONEUPTIME_URL` | بله | نشانی OneUptime شما، مانند `https://oneuptime.com` یا نمونه خودمیزبان شما. اگر نمونه فقط HTTP دارد، از `http://` و پورتش استفاده کنید. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | بله | کلید دریافت داده از **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده**. |
-| `VMWARE_VCENTER_NAME` | بله | نام vCenter در OneUptime، که به‌صورت ویژگی منبع `vmware.vcenter.name` روی هر متریک مُهر زده می‌شود. ثابتش نگه دارید: تغییرش در آینده vCenter دومی ثبت می‌کند. پیش‌فرض آن `vmware-vcenter` است. |
+| `VMWARE_VCENTER_NAME` | خیر | نام vCenter در OneUptime، که به‌صورت ویژگی منبع `vmware.vcenter.name` روی هر متریک مُهر زده می‌شود. ثابتش نگه دارید: تغییرش در آینده vCenter دومی ثبت می‌کند. پیش‌فرض آن `vmware-vcenter` است. |
 | `VCENTER_ENDPOINT` | بله | طرح و میزبان vCenter Server یا یک میزبان ESXi مستقل، **بدون** `/sdk`، مانند `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | بله | کاربر vSphere با نقش Read-Only، مانند `oneuptime@vsphere.local` (یا `DOMAIN\user` برای منبع هویت Active Directory). |
 | `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` نصب Docker آن را درون نقل‌قول تکی بگذارید (`install.sh` این کار را برایتان می‌کند)، و در فایل نصب systemd درون نقل‌قول دوتایی ([رفع اشکال](#رفع-اشکال) را ببینید). |

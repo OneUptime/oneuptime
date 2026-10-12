@@ -104,7 +104,7 @@ Installationsskriptet skriver de tre första till `/opt/oneuptime-docker-swarm-a
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din självhostade instans. Använd `http://` och dess port om instansen bara använder HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
-| `DOCKER_SWARM_CLUSTER_NAME` | Ja | Klustrets namn i OneUptime och nyckeln som varje nods data sammanförs på: stämplat på allt som resursattributet `docker.swarm.cluster.name`. Håll det stabilt: att ändra det senare registrerar ett andra kluster. Standard är `docker-swarm`. |
+| `DOCKER_SWARM_CLUSTER_NAME` | Nej | Klustrets namn i OneUptime och nyckeln som varje nods data sammanförs på: stämplat på allt som resursattributet `docker.swarm.cluster.name`. Håll det stabilt: att ändra det senare registrerar ett andra kluster. Standard är `docker-swarm`. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nej | Hur ofta inventariepollern tar en ögonblicksbild, i sekunder. Standard är `300`. |
 | `DOCKER_API_VERSION` | Nej | Den Docker Engine-API-version som collectorn och inventariepollern talar. Standard är `1.44`; tom förhandlar den med daemonen (se [Felsökning](#felsökning)). AI-agenten förhandlar den om du inte anger en. |
 

@@ -115,7 +115,7 @@ Het installatiescript schrijft deze naar `/opt/oneuptime-ceph-agent/.env`; een D
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Je OneUptime-URL, zoals `https://oneuptime.com` of je zelf-gehoste instantie. Gebruik `http://` en de poort als de instantie alleen HTTP spreekt. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
-| `CEPH_CLUSTER_NAME` | Ja | De naam van het cluster in OneUptime, op elke metric gestempeld als het resource-attribuut `ceph.cluster.name`. Houd hem stabiel: een latere wijziging registreert een tweede cluster. Standaard `ceph`. |
+| `CEPH_CLUSTER_NAME` | Nee | De naam van het cluster in OneUptime, op elke metric gestempeld als het resource-attribuut `ceph.cluster.name`. Houd hem stabiel: een latere wijziging registreert een tweede cluster. Standaard `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Ja | Elke mgr-daemon als een door komma's gescheiden `host:port`-lijst tussen vierkante haken, zoals `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. Het installatiescript zet de haken er voor je omheen. |
 
 De eigen instellingen van de AI-agent staan onder [AI-agent](#ai-agent).

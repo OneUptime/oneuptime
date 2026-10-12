@@ -115,7 +115,7 @@ The install script writes these to `/opt/oneuptime-ceph-agent/.env`; a Docker Co
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
-| `CEPH_CLUSTER_NAME` | Yes | The cluster's name in OneUptime, stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `ceph`. |
+| `CEPH_CLUSTER_NAME` | No | The cluster's name in OneUptime, stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Yes | Every mgr daemon as a comma-separated `host:port` list in square brackets, such as `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. The install script adds the brackets for you. |
 
 The AI agent's own settings are under [AI agent](#ai-agent).

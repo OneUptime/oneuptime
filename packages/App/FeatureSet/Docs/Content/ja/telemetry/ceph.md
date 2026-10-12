@@ -115,7 +115,7 @@ Everything is ready. Begin running and processing data.
 | --- | --- | --- |
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
-| `CEPH_CLUSTER_NAME` | はい | OneUptime でのクラスターの名前で、すべてのメトリクスに `ceph.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `ceph` です。 |
+| `CEPH_CLUSTER_NAME` | いいえ | OneUptime でのクラスターの名前で、すべてのメトリクスに `ceph.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `ceph` です。 |
 | `CEPH_MGR_ENDPOINTS` | はい | すべての mgr デーモンを、角かっこで囲んだカンマ区切りの `host:port` リストで指定します。例: `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`。角かっこはインストールスクリプトが付けます。 |
 
 AI エージェント自身の設定は [AI エージェント](#ai-エージェント) にあります。

@@ -186,7 +186,7 @@ Docker Compose はこれらを `.env` (`docker-compose.yml` の横にあるも�
 | --- | --- | --- |
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
-| `VMWARE_VCENTER_NAME` | はい | OneUptime での vCenter の名前で、すべてのメトリクスに `vmware.vcenter.name` リソース属性として付与されます。変えないでください。あとで変更すると別の vCenter として登録されます。既定は `vmware-vcenter` です。 |
+| `VMWARE_VCENTER_NAME` | いいえ | OneUptime での vCenter の名前で、すべてのメトリクスに `vmware.vcenter.name` リソース属性として付与されます。変えないでください。あとで変更すると別の vCenter として登録されます。既定は `vmware-vcenter` です。 |
 | `VCENTER_ENDPOINT` | はい | vCenter Server またはスタンドアロンの ESXi ホストのスキームとホスト。 **末尾に** `/sdk` **は付けません** (例: `https://vcsa.example.com`)。 |
 | `VCENTER_USERNAME` | はい | Read-Only ロールを持つ vSphere ユーザー。例: `oneuptime@vsphere.local` (Active Directory の ID ソースの場合は `DOMAIN\user`)。 |
 | `VCENTER_PASSWORD` | はい | そのユーザーのパスワード。`$`、`#`、空白、引用符を含む場合は、Docker でのインストールの `.env` では単一引用符で囲み (`install.sh` が自動で行います)、systemd でのインストールのものでは二重引用符で囲みます ([トラブルシューティング](#トラブルシューティング) を参照)。 |

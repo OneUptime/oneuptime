@@ -186,7 +186,7 @@ Docker Compose는 이 값들을 `.env`(`docker-compose.yml` 옆의 파일)에서
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
-| `VMWARE_VCENTER_NAME` | 예 | OneUptime에서의 vCenter 이름으로, 모든 메트릭에 `vmware.vcenter.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 vCenter가 등록됩니다. 기본값은 `vmware-vcenter`입니다. |
+| `VMWARE_VCENTER_NAME` | 아니요 | OneUptime에서의 vCenter 이름으로, 모든 메트릭에 `vmware.vcenter.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 vCenter가 등록됩니다. 기본값은 `vmware-vcenter`입니다. |
 | `VCENTER_ENDPOINT` | 예 | vCenter Server 또는 독립형 ESXi 호스트의 스킴과 호스트로, `/sdk`는 **붙이지 않습니다**. 예: `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | 예 | Read-Only 역할을 가진 vSphere 사용자. 예: `oneuptime@vsphere.local`(Active Directory ID 소스라면 `DOMAIN\user`). |
 | `VCENTER_PASSWORD` | 예 | 그 사용자의 암호. `$`, `#`, 공백, 따옴표가 들어 있으면 Docker 설치의 `.env`에서는 작은따옴표로 감싸고(`install.sh`가 대신 해 줍니다), systemd 설치의 파일에서는 큰따옴표로 감쌉니다([문제 해결](#문제-해결) 참고). |

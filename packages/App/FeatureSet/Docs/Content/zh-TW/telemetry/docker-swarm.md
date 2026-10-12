@@ -104,7 +104,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
-| `DOCKER_SWARM_CLUSTER_NAME` | 是 | 叢集在 OneUptime 中的名稱，也是匯合每個節點資料的鍵：會作為 `docker.swarm.cluster.name` 資源屬性加到所有資料上。請保持不變：之後變更它會註冊另一個叢集。預設為 `docker-swarm`。 |
+| `DOCKER_SWARM_CLUSTER_NAME` | 否 | 叢集在 OneUptime 中的名稱，也是匯合每個節點資料的鍵：會作為 `docker.swarm.cluster.name` 資源屬性加到所有資料上。請保持不變：之後變更它會註冊另一個叢集。預設為 `docker-swarm`。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | 否 | 清單輪詢器拍攝快照的頻率，單位為秒。預設為 `300`。 |
 | `DOCKER_API_VERSION` | 否 | Collector 和清單輪詢器使用的 Docker Engine API 版本。預設為 `1.44`；留空則與常駐程式協商（請參閱 [疑難排解](#疑難排解)）。除非你指定一個版本，否則 AI 代理程式會自行協商。 |
 

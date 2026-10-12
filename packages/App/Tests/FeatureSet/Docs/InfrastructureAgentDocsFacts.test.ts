@@ -1650,6 +1650,176 @@ describe("the Storage Array agent page, against the agent", () => {
   });
 });
 
+/*
+ * The Required column of the agent pages' variable tables. A variable its
+ * compose file gives a default ("${NAME:-default}", or "${NAME-default}")
+ * runs without one, and install.sh offers the same default at its prompt,
+ * so the page never marks it required: CEPH_CLUSTER_NAME, the Docker Swarm
+ * cluster name and the vCenter name all said "Yes" beside "Defaults to".
+ */
+interface VariableTable {
+  page: string;
+  compose: string;
+}
+
+const VARIABLE_TABLES: ReadonlyArray<VariableTable> = [
+  { page: CEPH_PAGE, compose: "agents/CephAgent/docker-compose.yml" },
+  {
+    page: DOCKER_SWARM_PAGE,
+    compose: "agents/DockerSwarmAgent/docker-compose.yml",
+  },
+  { page: VMWARE_PAGE, compose: "agents/VMwareAgent/docker-compose.yml" },
+  {
+    page: STORAGE_ARRAYS_PAGE,
+    compose: "agents/StorageArrayAgent/docker-compose.yml",
+  },
+];
+
+// A row of a variable table: the variable, then whether it is required.
+const REQUIRED_ROW: RegExp = /^\| `([A-Z][A-Z0-9_]*)` \| ([^|]+) \|/;
+
+// How each docs language answers the Required column: yes, then no.
+const REQUIRED_ANSWERS: Record<string, [string, string]> = {
+  en: ["Yes", "No"],
+  de: ["Ja", "Nein"],
+  fr: ["Oui", "Non"],
+  es: ["Sí", "No"],
+  it: ["Sì", "No"],
+  pt: ["Sim", "Não"],
+  nl: ["Ja", "Nee"],
+  da: ["Ja", "Nej"],
+  no: ["Ja", "Nei"],
+  sv: ["Ja", "Nej"],
+  ru: ["Да", "Нет"],
+  ja: ["はい", "いいえ"],
+  ko: ["예", "아니요"],
+  "zh-CN": ["是", "否"],
+  "zh-TW": ["是", "否"],
+  hi: ["हाँ", "नहीं"],
+  fa: ["بله", "خیر"],
+};
+
+interface RequiredRow {
+  line: number;
+  name: string;
+  answer: string;
+}
+
+// The variable rows of a page, with the line each is on and its answer.
+function requiredRows(markdown: string): Array<RequiredRow> {
+  const rows: Array<RequiredRow> = [];
+
+  markdown.split("\n").forEach((line: string, index: number): void => {
+    const match: RegExpMatchArray | null = line.match(REQUIRED_ROW);
+
+    if (match) {
+      rows.push({
+        line: index,
+        name: match[1] as string,
+        answer: (match[2] as string).trim(),
+      });
+    }
+  });
+
+  return rows;
+}
+
+/*
+ * A language's answer for the English one: its own yes or no, and a
+ * condition (the storage array page's "FlashArray") as written.
+ */
+function requiredAnswer(english: string, answers: [string, string]): string {
+  if (english === "Yes") {
+    return answers[0];
+  }
+
+  return english === "No" ? answers[1] : english;
+}
+
+// Whether a compose file defaults the variable, in either of its two forms.
+function composeDefaults(compose: string, name: string): boolean {
+  return compose.includes(`\${${name}:-`) || compose.includes(`\${${name}-`);
+}
+
+describe("the agent pages' Required columns, against the compose files", () => {
+  it.each(VARIABLE_TABLES)(
+    "$page marks required only what $compose gives no default",
+    (table: VariableTable) => {
+      const compose: string = repoFile(table.compose);
+      const rows: Array<RequiredRow> = requiredRows(english(table.page));
+
+      expect(rows.length).toBeGreaterThan(0);
+
+      for (const row of rows) {
+        expect({ variable: row.name, answer: row.answer }).toEqual({
+          variable: row.name,
+          answer: composeDefaults(compose, row.name) ? "No" : row.answer,
+        });
+      }
+    },
+  );
+
+  it("reads a default in either compose form, and no other variable's", () => {
+    const compose: string = [
+      "      - CEPH_CLUSTER_NAME=${CEPH_CLUSTER_NAME:-ceph}",
+      "      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}",
+      "      - CEPH_MGR_ENDPOINTS=${CEPH_MGR_ENDPOINTS}",
+    ].join("\n");
+
+    expect(composeDefaults(compose, "CEPH_CLUSTER_NAME")).toBe(true);
+    expect(composeDefaults(compose, "DOCKER_API_VERSION")).toBe(true);
+    expect(composeDefaults(compose, "CEPH_MGR_ENDPOINTS")).toBe(false);
+    expect(composeDefaults(compose, "CEPH_CLUSTER")).toBe(false);
+  });
+
+  it("answers a translation's Required cell in its words, and a condition as written", () => {
+    expect(requiredAnswer("Yes", ["Ja", "Nein"])).toBe("Ja");
+    expect(requiredAnswer("No", ["Ja", "Nein"])).toBe("Nein");
+    expect(requiredAnswer("FlashArray", ["Ja", "Nein"])).toBe("FlashArray");
+    expect(
+      requiredRows("| `CEPH_CLUSTER_NAME` | No | The cluster's name. |"),
+    ).toEqual([{ line: 0, name: "CEPH_CLUSTER_NAME", answer: "No" }]);
+    expect(requiredRows("| Variable | Required | Description |")).toEqual([]);
+  });
+
+  it("answers the column in every docs language", () => {
+    expect(Object.keys(REQUIRED_ANSWERS).sort()).toEqual(
+      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
+    );
+  });
+
+  describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s",
+    (language: string) => {
+      it.each(VARIABLE_TABLES)(
+        "$page answers Yes and No where English does",
+        (table: VariableTable) => {
+          const answers: [string, string] = REQUIRED_ANSWERS[language] as [
+            string,
+            string,
+          ];
+          const translated: Array<string> = readPage(
+            language,
+            table.page,
+          ).split("\n");
+
+          for (const row of requiredRows(english(table.page))) {
+            expect({
+              variable: row.name,
+              line: translated[row.line]?.startsWith(`| \`${row.name}\` |`),
+              answer: requiredRows(translated[row.line] || "")[0]?.answer,
+            }).toEqual({
+              variable: row.name,
+              line: true,
+              answer: requiredAnswer(row.answer, answers),
+            });
+          }
+        },
+      );
+    },
+  );
+});
+
 describe("the Products menu paths of the task 22 pages", () => {
   const navigation: string = repoFile(
     "packages/App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",

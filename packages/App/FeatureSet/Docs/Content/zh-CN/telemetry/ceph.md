@@ -115,7 +115,7 @@ Everything is ready. Begin running and processing data.
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
-| `CEPH_CLUSTER_NAME` | 是 | 集群在 OneUptime 中的名称，作为 `ceph.cluster.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个集群。默认为 `ceph`。 |
+| `CEPH_CLUSTER_NAME` | 否 | 集群在 OneUptime 中的名称，作为 `ceph.cluster.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个集群。默认为 `ceph`。 |
 | `CEPH_MGR_ENDPOINTS` | 是 | 每个 mgr 守护进程，写成放在方括号中、以逗号分隔的 `host:port` 列表，例如 `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`。安装脚本会为你加上方括号。 |
 
 AI 代理自己的设置见 [AI 代理](#ai-代理)。

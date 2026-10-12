@@ -115,7 +115,7 @@ Everything is ready. Begin running and processing data.
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
-| `CEPH_CLUSTER_NAME` | 是 | 叢集在 OneUptime 中的名稱，會作為 `ceph.cluster.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個叢集。預設為 `ceph`。 |
+| `CEPH_CLUSTER_NAME` | 否 | 叢集在 OneUptime 中的名稱，會作為 `ceph.cluster.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個叢集。預設為 `ceph`。 |
 | `CEPH_MGR_ENDPOINTS` | 是 | 每個 mgr 常駐程式，寫成放在方括號中、以逗號分隔的 `host:port` 清單，例如 `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`。安裝指令碼會為你加上方括號。 |
 
 AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。

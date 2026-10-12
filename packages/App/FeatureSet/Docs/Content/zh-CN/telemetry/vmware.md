@@ -186,7 +186,7 @@ Docker Compose 从 `.env`（位于 `docker-compose.yml` 旁边）中读取这些
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
-| `VMWARE_VCENTER_NAME` | 是 | vCenter 在 OneUptime 中的名称，作为 `vmware.vcenter.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个 vCenter。默认为 `vmware-vcenter`。 |
+| `VMWARE_VCENTER_NAME` | 否 | vCenter 在 OneUptime 中的名称，作为 `vmware.vcenter.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个 vCenter。默认为 `vmware-vcenter`。 |
 | `VCENTER_ENDPOINT` | 是 | vCenter Server 或独立 ESXi 主机的协议和主机，**不带** `/sdk`，例如 `https://vcsa.example.com`。 |
 | `VCENTER_USERNAME` | 是 | 具有 Read-Only 角色的 vSphere 用户，例如 `oneuptime@vsphere.local`（对于 Active Directory 身份源则为 `DOMAIN\user`）。 |
 | `VCENTER_PASSWORD` | 是 | 该用户的密码。如果其中包含 `$`、`#`、空格或引号，在 Docker 安装的 `.env` 中要用单引号括起来（`install.sh` 会替你完成），在 systemd 安装的文件中则用双引号括起来（参见 [故障排除](#故障排查)）。 |
