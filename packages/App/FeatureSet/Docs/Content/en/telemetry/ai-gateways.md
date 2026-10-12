@@ -13,11 +13,7 @@ An AI gateway sits between your apps and the model providers, so every model cal
 
 ```mermaid title="One export covers every app behind the gateway"
 flowchart TB
-    subgraph apps["Your apps, agents and tools"]
-        direction LR
-        app["App"] ~~~ agent["Agent"] ~~~ tool["Coding tool"]
-    end
-    apps --> gateway["AI gateway:<br/>LiteLLM or Portkey"]
+    apps["Your apps, agents<br/>and coding tools"] --> gateway["AI gateway:<br/>LiteLLM or Portkey"]
     gateway --> providers["Model providers"]
     gateway -->|"OTLP traces"| ingest["OneUptime"]
     ingest --> llm["AI / LLM: calls,<br/>usage and cost"]
