@@ -331,9 +331,9 @@ func failOnErrors(t *testing.T, doing string, diagnostics []*tfprotov6.Diagnosti
 // ruleConfig is a resource block like the one in issue #4719.
 func (tf *barColorRuleTerraform) ruleConfig(uptime *big.Float) tftypes.Value {
 	return objectWith(tf.resourceType, map[string]tftypes.Value{
-		"status_page_id":                          tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
+		"status_page_id": tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
 		"uptime_percent_greater_than_or_equal_to": tftypes.NewValue(tftypes.Number, uptime),
-		"bar_color":                               tftypes.NewValue(tftypes.String, "#86EFAC"),
+		"bar_color": tftypes.NewValue(tftypes.String, "#86EFAC"),
 	})
 }
 
@@ -692,9 +692,9 @@ func TestBarColorRuleMadeInTheDashboardImportsWithoutChanges(t *testing.T) {
 				requireUptime(t, state, configNumber(t, written), "after the import")
 
 				config := objectWith(tf.resourceType, map[string]tftypes.Value{
-					"status_page_id":                          tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
+					"status_page_id": tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
 					"uptime_percent_greater_than_or_equal_to": tftypes.NewValue(tftypes.Number, configNumber(t, written)),
-					"bar_color":                               tftypes.NewValue(tftypes.String, "#22C55E"),
+					"bar_color": tftypes.NewValue(tftypes.String, "#22C55E"),
 				})
 				tf.requireNoChanges(state, config)
 			})
@@ -726,7 +726,7 @@ func TestBarColorRuleDataSourceReadsTheUptime(t *testing.T) {
 
 			for written, wantID := range map[string]string{"99.65": madeID, "100": dashboardID} {
 				byUptime := tf.lookUp(map[string]tftypes.Value{
-					"status_page_id":                          tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
+					"status_page_id": tftypes.NewValue(tftypes.String, barColorRuleStatusPageID),
 					"uptime_percent_greater_than_or_equal_to": tftypes.NewValue(tftypes.Number, uptimes[written]),
 				})
 				if got := stringAttribute(t, byUptime, "id"); got != wantID {

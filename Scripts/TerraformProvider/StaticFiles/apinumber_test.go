@@ -253,8 +253,8 @@ func TestNumberFromAPIReadsBackTheConfiguredNumber(t *testing.T) {
 
 		answers := map[string]interface{}{
 			"as text, the way servers before the fix answered": stored,
-			"as a JSON number":                                 jsonNumber(t, strconv.FormatFloat(mustFloat64(t, config), 'g', -1, 64)),
-			"wrapped":                                          map[string]interface{}{"_type": "Decimal", "value": stored},
+			"as a JSON number": jsonNumber(t, strconv.FormatFloat(mustFloat64(t, config), 'g', -1, 64)),
+			"wrapped":          map[string]interface{}{"_type": "Decimal", "value": stored},
 		}
 
 		for shape, answer := range answers {
