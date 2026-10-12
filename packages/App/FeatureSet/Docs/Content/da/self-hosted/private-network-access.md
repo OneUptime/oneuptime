@@ -57,6 +57,7 @@ IPv6-skrivemåder, der bærer et IPv4-mål i sig – IPv4-mapped (`::ffff:10.0.0
 Disse destinationer er omfattet, fordi målet er en URL, som et godkendt medlem af dit projekt har skrevet:
 
 - **API**-komponenter i workflows (GET / POST / PUT / PATCH / DELETE)
+- **Mattermost**-komponenten i workflows
 - HTTP-forespørgsler fra workflow-komponenten **Custom JavaScript**
 - Projektets webhook-notifikationer (hændelser, alarmer, monitorer, vagt, planlagt vedligeholdelse, hændelser på statussider)
 - **Bruger-webhooks** til vagt

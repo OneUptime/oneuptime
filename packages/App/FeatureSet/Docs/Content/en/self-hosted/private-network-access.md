@@ -57,6 +57,7 @@ IPv6 spellings that carry an IPv4 target inside them — IPv4-mapped (`::ffff:10
 These sinks are covered, because the target is a URL an authenticated member of your project wrote:
 
 - Workflow **API** components (GET / POST / PUT / PATCH / DELETE)
+- The workflow **Mattermost** component
 - HTTP requests made by the workflow **Custom JavaScript** component
 - Project webhook notifications (incidents, alerts, monitors, on-call, scheduled maintenance, status page events)
 - On-call **user webhooks**

@@ -5,7 +5,7 @@ Componenten zijn de blokken die je na de trigger toevoegt. Elk doet één ding �
 Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok eindigen met **How to use**: wat het blok doet, de stappen om het in te stellen, een voorbeeld dat uit je eigen workflow is opgebouwd en de fouten die vaak worden gemaakt. Zie [Een workflow maken](/docs/workflows/authoring) voor het toevoegen en verbinden van blokken.
 
 :::cards
-- [Een bericht sturen](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC en e-mail.
+- [Een bericht sturen](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost en e-mail.
 - [Een API aanroepen](#api): Stuur een verzoek naar elke HTTP-API en lees het antwoord.
 - [Logica toevoegen](#conditions): Vertakken op een waarde, gegevens omvormen, wachten of loggen.
 - [Werken met OneUptime-records](#oneuptime-datacomponenten): Monitoren, incidenten en meer vinden, aanmaken, bijwerken en verwijderen.
@@ -15,7 +15,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 
 | Om…                                                           | Gebruik                                                           |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram) of [IRC](#irc) |
+| In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) of [Mattermost](#mattermost) |
 | Een e-mail via je eigen mailserver te sturen                  | [Email](#email)                                                   |
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Onder **Meer velden**:
 Elke uitvoering van het blok is een eigen verbinding, en IRC-netwerken beperken hoe vaak één adres mag verbinden: een golf berichten kan worden geweigerd met een reden zoals "Reconnecting too fast", en neemt **Error** zoals elke andere weigering. Voor een workflow die vele keren per minuut kan afgaan, bundel je wat hij te zeggen heeft in één bericht, of stuur je het via een eigen server.
 
 Bewaar de wachtwoorden in [geheime globale variabelen](/docs/workflows/variables#globale-variabelen) en gebruik de variabele in de instelling; ze zijn hoe dan ook verborgen in de logboeken van uitvoeringen. Verbindingen naar loopback- (`localhost`, `127.0.0.1`), link-local- en cloudmetadata-adressen worden geweigerd. In OneUptime Cloud wordt ook een server op een privénetwerkadres, of een naam die daarnaar verwijst, geweigerd. Zelf gehoste installaties kunnen een IRC-server op hun eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat.
+
+## Mattermost
+
+Post een bericht in een Mattermost-kanaal via een inkomende webhook, in Mattermost Cloud of op een eigen server.
+
+| Instelling                          | Wat het doet                                                                                                                                                                                                                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | De webhook waarlangs je post, zoals Mattermost hem toont onder Integrations, Incoming Webhooks: het adres van de server, dan `/hooks/` en de ID van de webhook. De handleiding van Mattermost laat zien hoe je [er een maakt](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
+| **Message Text**                    | De tekst om te versturen. Die wordt verstuurd precies zoals je hem typt, en Mattermost begrijpt Markdown: `**bold**`, `_italic_`, links, tabellen en emoji zoals `:rotating_light:`. Een Mattermost-bericht bevat hooguit 16.383 tekens: een langer bericht wordt ingekort tot het past en eindigt met "… (truncated — see OneUptime for the full text)". |
+
+Onder **Meer velden**:
+
+| Instelling   | Wat het doet                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Post ergens anders dan in het eigen kanaal van de webhook: de naam van het kanaal zoals die in de URL staat, bijvoorbeeld `town-square`, of `@` en een gebruikersnaam voor een direct bericht. Een webhook die aan zijn kanaal is gebonden, weigert elk ander kanaal. |
+| **Username** | De naam waaronder je post. Mattermost gebruikt hem alleen waar een systeembeheerder integraties gebruikersnamen laat overschrijven.                                                                           |
+| **Icon URL** | De afbeelding waarmee je post, een `https`-adres. Mattermost gebruikt die alleen waar een systeembeheerder integraties profielfoto's laat overschrijven.                                                      |
+
+**Success** gaat af als Mattermost het bericht aannam. **Error** gaat af als de server niet bereikbaar is of Mattermost het bericht weigert, en geeft de reden van Mattermost door. Een ontbrekende **Mattermost Incoming Webhook URL** of **Message Text**, een URL die niet van een inkomende webhook is, of een instelling die nooit zou kunnen werken, stopt de uitvoering daarentegen.
+
+Bewaar de webhook-URL in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen): iedereen die hem heeft, kan in het kanaal posten. Hij is hoe dan ook verborgen in de logboeken van uitvoeringen. Het bericht gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een webhook op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een webhook op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
 ## Email
 

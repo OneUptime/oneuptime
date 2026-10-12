@@ -40,7 +40,7 @@ Du bygger det hele visuelt på et lærred. De fleste workflows kræver ingen kod
 
 ## Hvad du kan bruge workflows til
 
-- **Forbind OneUptime med dine andre værktøjer** — post i Slack, Microsoft Teams, Discord, Telegram eller IRC, opret Jira-sager, eller send en forespørgsel til enhver API i din stak.
+- **Forbind OneUptime med dine andre værktøjer** — post i Slack, Microsoft Teams, Discord, Telegram, IRC eller Mattermost, opret Jira-sager, eller send en forespørgsel til enhver API i din stak.
 - **Reager på det, der sker i OneUptime** — når en hændelse oprettes, så giv den rigtige kanal besked og åbn automatisk en sag.
 - **Kør job efter en tidsplan** — hvert femte minut, hver nat, hver mandag morgen.
 - **Modtag data udefra** — lad andre systemer starte et workflow ved at kalde dets URL eller skrive til dets e-mailadresse.

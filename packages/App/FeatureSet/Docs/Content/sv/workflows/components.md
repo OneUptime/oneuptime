@@ -5,7 +5,7 @@ Komponenter är de block du lägger till efter utlösaren. Var och en gör en sa
 Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar slutar med **How to use**: vad blocket gör, stegen för att konfigurera det, ett exempel byggt utifrån ditt eget arbetsflöde och de misstag folk ofta gör. Se [Skapa ett arbetsflöde](/docs/workflows/authoring) för att lägga till och koppla ihop block.
 
 :::cards
-- [Skicka ett meddelande](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC och e-post.
+- [Skicka ett meddelande](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost och e-post.
 - [Anropa ett API](#api): Skicka en förfrågan till valfritt HTTP-API och läs svaret.
 - [Lägg till logik](#conditions): Förgrena på ett värde, omforma data, vänta eller logga.
 - [Arbeta med OneUptime-poster](#oneuptime-datakomponenter): Hitta, skapa, uppdatera och ta bort monitorer, incidenter och mer.
@@ -15,7 +15,7 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 
 | För att …                                                     | Använd                                                            |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Posta i ett chattverktyg                                      | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram) eller [IRC](#irc) |
+| Posta i ett chattverktyg                                      | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
 | Skicka e-post via din egen e-postserver                       | [Email](#email)                                                   |
 | Anropa vilket annat API som helst, eller din egen tjänst      | [API](#api)                                                       |
 | Sammanfatta, klassificera eller skriva utkast till text       | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Under **Fler fält**:
 Varje körning av blocket är en egen anslutning, och IRC-nätverk begränsar hur ofta en adress får ansluta: en skur av meddelanden kan avvisas med en orsak som "Reconnecting too fast" och tar **Error** som vilken annan avvisning som helst. För ett arbetsflöde som kan aktiveras många gånger i minuten samlar du det det har att säga i ett meddelande, eller skickar det via din egen server.
 
 Förvara lösenorden i [hemliga globala variabler](/docs/workflows/variables#globala-variabler) och använd variabeln i inställningen; de döljs i körningsloggarna oavsett. Anslutningar till loopback- (`localhost`, `127.0.0.1`), link-local- och molnmetadata-adresser avvisas. I OneUptime Cloud avvisas även en server på en privat nätverksadress, eller ett namn som pekar på en. Självhostade installationer kan nå en IRC-server på sitt eget nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är satt till `true`.
+
+## Mattermost
+
+Posta ett meddelande i en Mattermost-kanal via en inkommande webhook, i Mattermost Cloud eller på din egen server.
+
+| Inställning                         | Vad den gör                                                                                                                                                                                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | Webhooken som det ska postas via, så som Mattermost visar den under Integrations, Incoming Webhooks: serverns adress, sedan `/hooks/` och webhookens ID. Mattermosts guide visar hur du [skapar en](https://docs.mattermost.com/developers/integrate/webhooks/incoming).           |
+| **Message Text**                    | Texten som ska skickas. Den skickas exakt som du skriver den, och Mattermost förstår Markdown: `**bold**`, `_italic_`, länkar, tabeller och emojier som `:rotating_light:`. Ett Mattermost-inlägg rymmer 16 383 tecken: ett längre meddelande kapas så att det får plats och slutar med "… (truncated — see OneUptime for the full text)". |
+
+Under **Fler fält**:
+
+| Inställning  | Vad den gör                                                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Postar någon annanstans än i webhookens egen kanal: kanalens namn så som det står i dess URL, till exempel `town-square`, eller `@` och ett användarnamn för att skicka ett direktmeddelande. En webhook som är låst till sin kanal avvisar alla andra. |
+| **Username** | Namnet som det ska postas under. Mattermost använder det bara där en systemadministratör låter integrationer åsidosätta användarnamn.                                                                         |
+| **Icon URL** | Bilden som det ska postas med, en `https`-adress. Mattermost använder den bara där en systemadministratör låter integrationer åsidosätta profilbilder.                                                        |
+
+**Success** aktiveras när Mattermost tog emot meddelandet. **Error** aktiveras när servern inte går att nå eller Mattermost avvisar meddelandet, och lämnar vidare Mattermosts orsak. En saknad **Mattermost Incoming Webhook URL** eller **Message Text**, en URL som inte tillhör en inkommande webhook, eller en inställning som aldrig skulle kunna fungera, stoppar däremot körningen.
+
+Förvara webhook-URL:en i en [hemlig global variabel](/docs/workflows/variables#globala-variabler): alla som har den kan posta i kanalen. Den döljs i körningsloggarna oavsett. Meddelandet skickas från OneUptime, och en omdirigering följs inte. En webhook på en loopback- (`localhost`, `127.0.0.1`), link-local- eller molnmetadata-adress avvisas, och det gör även en webhook på en privat nätverksadress, om inte en administratör för en självhostad installation tillåter det med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 
 ## Email
 

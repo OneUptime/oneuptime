@@ -5,7 +5,7 @@
 作業中にこのページを開いておく必要はあまりありません。各ブロックの設定の最後には **使い方** があり、ブロックが何をするか、設定手順、あなたのワークフローから組み立てた例、よくある間違いが示されます。ブロックの追加と接続については、[ワークフローを作成する](/docs/workflows/authoring) を参照してください。
 
 :::cards
-- [メッセージを送る](#slack): Slack、Microsoft Teams、Discord、Telegram、IRC、メール。
+- [メッセージを送る](#slack): Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost、メール。
 - [API を呼び出す](#api): 任意の HTTP API にリクエストを送り、応答を読みます。
 - [ロジックを加える](#conditions): 値で分岐する、データを整形する、待つ、ログに残す。
 - [OneUptime のレコードを扱う](#oneuptime-データコンポーネント): モニター、インシデントなどを検索、作成、更新、削除します。
@@ -15,7 +15,7 @@
 
 | やりたいこと                                                  | 使うもの                                                          |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| チャットツールに投稿する                                      | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) |
+| チャットツールに投稿する                                      | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc)、[Mattermost](#mattermost) |
 | 自前のメールサーバーからメールを送る                          | [Email](#email)                                                   |
 | その他の API や自前のサービスを呼び出す                       | [API](#api)                                                       |
 | テキストを要約、分類、下書きする                              | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Libera.Chat、OFTC、自前のサーバーなど、任意の IRC ネットワー
 ブロックの実行はそれぞれ独立した接続で、IRC ネットワークは 1 つのアドレスからの接続頻度を制限しています。メッセージが集中すると "Reconnecting too fast" のような理由で拒否されることがあり、他の拒否と同じく **Error** をたどります。1 分間に何度も発火しうるワークフローでは、伝えたいことを 1 つのメッセージにまとめるか、自前のサーバー経由で送ってください。
 
 パスワードは [シークレットのグローバル変数](/docs/workflows/variables#グローバル変数) に保存し、設定ではその変数を使ってください。いずれにしても実行のログでは隠されます。ループバック（`localhost`、`127.0.0.1`）、リンクローカル、クラウドメタデータのアドレスへの接続は拒否されます。OneUptime Cloud では、プライベートネットワークのアドレスにあるサーバーや、そこに解決される名前も拒否されます。セルフホスト環境では、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` が `true` に設定されていない限り、自分のネットワーク上の IRC サーバーに到達できます。
+
+## Mattermost
+
+受信 Webhook を通して、Mattermost Cloud または自前のサーバー上の Mattermost チャンネルにメッセージを投稿します。
+
+| 設定                                | 役割                                                                                                                                                                                                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | 投稿に使う Webhook。Mattermost の Integrations にある Incoming Webhooks に表示されるとおりのもので、サーバーのアドレスの後に `/hooks/` と Webhook の ID が続きます。Mattermost のガイドで [作成方法](https://docs.mattermost.com/developers/integrate/webhooks/incoming) を確認できます。 |
+| **Message Text**                    | 送信するテキスト。書いたとおりに送られ、Mattermost は Markdown を解釈します: `**bold**`、`_italic_`、リンク、表、`:rotating_light:` などの絵文字。Mattermost の投稿は 1 件につき 16,383 文字までなので、それより長いメッセージは収まるように切り詰められ、"… (truncated — see OneUptime for the full text)" で終わります。 |
+
+**その他の項目** の下:
+
+| 設定         | 役割                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Webhook 自身のチャンネル以外の場所に投稿します。チャンネルの URL に表示されるとおりの名前（例: `town-square`）か、ダイレクトメッセージなら `@` に続けてユーザー名を入力します。チャンネルに固定された Webhook は、他のチャンネルへの投稿を拒否します。 |
+| **Username** | 投稿者として表示する名前。Mattermost がこれを使うのは、システム管理者がインテグレーションによるユーザー名の上書きを許可している場合だけです。                                                                 |
+| **Icon URL** | 投稿に表示する画像で、`https` のアドレスを指定します。Mattermost がこれを使うのは、システム管理者がインテグレーションによるプロフィール画像アイコンの上書きを許可している場合だけです。                       |
+
+**Success** は Mattermost がメッセージを受け付けたときに発火します。**Error** は、サーバーに到達できないとき、または Mattermost がメッセージを拒否したときに発火し、Mattermost の理由を渡します。一方、**Mattermost Incoming Webhook URL** や **Message Text** の欠落、受信 Webhook のものではない URL、決して機能しない設定は、実行を停止させます。
+
+Webhook の URL は [シークレットのグローバル変数](/docs/workflows/variables#グローバル変数) に保存してください。URL を知っていれば誰でもそのチャンネルに投稿できるからです。いずれにしても実行のログでは隠されます。メッセージは OneUptime から送信され、リダイレクトはたどりません。ループバック（`localhost`、`127.0.0.1`）、リンクローカル、クラウドメタデータのアドレスにある Webhook は拒否されます。プライベートネットワークのアドレスにあるものも、セルフホスト環境の管理者が `ALLOW_PRIVATE_NETWORK_WEBHOOKS` または `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` で許可しない限り拒否されます。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 
 ## Email
 

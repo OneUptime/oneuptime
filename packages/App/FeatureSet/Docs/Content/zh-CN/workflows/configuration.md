@@ -120,7 +120,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 
 | 块                                                             | 回环、链路本地、云元数据                                                     | 私有网络地址                                                                                                                                      |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API** 块和 **Run Custom JavaScript** 的请求                  | 拒绝，除非确切的主机列在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中              | 拒绝，除非自托管管理员通过 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允许                                          |
+| **API** 和 **Mattermost** 块，以及 **Run Custom JavaScript** 的请求 | 拒绝，除非确切的主机列在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中              | 拒绝，除非自托管管理员通过 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允许                                          |
 | **Send Email**、**IRC** 和 OAuth 2.0 令牌 URL                  | 拒绝                                                                         | 在 OneUptime Cloud 上拒绝。在自托管安装上允许，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true`                                              |
 | Slack、Microsoft Teams、Discord 和 Telegram                    | 拒绝                                                                         | 拒绝：每个都只发送到它自己服务的地址                                                                                                              |
 
@@ -201,7 +201,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 
 当检查拒绝某个步骤时，步骤会走它的 **Error** 输出，不做被拒绝的更改，运行的日志会用通俗的语言写明步骤和原因，例如 *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*。可以在工作流的 [运行记录](/docs/workflows/runs-and-logs) 中查看。Create Many 步骤会一条一条地创建记录，并在第一条被拒绝时停止：在它之前创建的记录会保留。
 
-与其他系统通信的步骤——API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Custom Code 和 Generate Text with AI——不读取也不更改 OneUptime 记录，所以以上这些对它们都没有影响。
+与其他系统通信的步骤——API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost、Custom Code 和 Generate Text with AI——不读取也不更改 OneUptime 记录，所以以上这些对它们都没有影响。
 
 ## 套餐限制
 

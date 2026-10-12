@@ -40,7 +40,7 @@ Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei workfl
 
 ## Cosa puoi fare con i workflow
 
-- **Collegare OneUptime agli altri tuoi strumenti** — pubblicare su Slack, Microsoft Teams, Discord, Telegram o IRC, creare ticket Jira o inviare una richiesta a qualsiasi API del tuo stack.
+- **Collegare OneUptime agli altri tuoi strumenti** — pubblicare su Slack, Microsoft Teams, Discord, Telegram, IRC o Mattermost, creare ticket Jira o inviare una richiesta a qualsiasi API del tuo stack.
 - **Reagire a ciò che succede in OneUptime** — quando viene creato un incidente, avvisare il canale giusto e aprire automaticamente un ticket.
 - **Eseguire lavori a intervalli regolari** — ogni cinque minuti, ogni notte, ogni lunedì mattina.
 - **Ricevere dati dall'esterno** — lasciare che altri sistemi avviino un workflow chiamando il suo URL o scrivendo al suo indirizzo email.

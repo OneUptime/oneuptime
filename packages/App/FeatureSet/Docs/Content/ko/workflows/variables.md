@@ -205,7 +205,7 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 거의 모든 텍스트 입력란이 변수를 받습니다.
 
 - API 블록의 URL.
-- Slack, Teams, Discord, Telegram, IRC, Email의 메시지 텍스트.
+- Slack, Teams, Discord, Telegram, IRC, Mattermost, Email의 메시지 텍스트.
 - 이메일의 제목과 본문.
 - 헤더와 본문 필드(문자열 값 안).
 - **If / Else** 블록의 양쪽.

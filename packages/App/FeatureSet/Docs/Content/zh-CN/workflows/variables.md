@@ -205,7 +205,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 几乎每个文本输入框都接受变量：
 
 - API 块上的 URL。
-- Slack、Teams、Discord、Telegram、IRC、Email 上的消息文本。
+- Slack、Teams、Discord、Telegram、IRC、Mattermost、Email 上的消息文本。
 - 邮件的主题和正文。
 - 标头和正文字段（在字符串值内）。
 - **If / Else** 块的两侧。

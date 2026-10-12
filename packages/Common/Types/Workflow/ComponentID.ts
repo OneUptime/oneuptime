@@ -7,6 +7,7 @@ enum ComponentID {
   DiscordSendMessageToChannel = "discord-send-message-to-channel",
   TelegramSendMessageToChat = "telegram-send-message-to-chat",
   IRCSendMessageToChannel = "irc-send-message-to-channel",
+  MattermostSendMessageToChannel = "mattermost-send-message-to-channel",
   Schedule = "schedule",
   JavaScriptCode = "javascript",
   Manual = "manual",

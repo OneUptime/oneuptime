@@ -120,7 +120,7 @@ Les adresses qu'un bloc peut atteindre dépendent du bloc :
 
 | Blocs                                                      | Bouclage, lien local, métadonnées cloud                                      | Adresses de réseau privé                                                                                                                  |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Les blocs **API** et les requêtes de **Run Custom JavaScript** | Refusées, sauf si l'hôte exact est nommé dans `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refusées, sauf si un administrateur auto-hébergé les autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| Les blocs **API** et **Mattermost**, et les requêtes de **Run Custom JavaScript** | Refusées, sauf si l'hôte exact est nommé dans `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refusées, sauf si un administrateur auto-hébergé les autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** et les URL de jeton OAuth 2.0      | Refusées                                                                     | Refusées sur OneUptime Cloud. Autorisées sur une installation auto-hébergée, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`     |
 | Slack, Microsoft Teams, Discord et Telegram                | Refusées                                                                     | Refusées : chacun n'envoie qu'aux adresses de son propre service                                                                          |
 
@@ -201,7 +201,7 @@ Les étapes qui lisent et modifient des enregistrements OneUptime — les compos
 
 Quand une vérification refuse une étape, l'étape prend sa sortie **Error** sans faire la modification refusée, et le journal de l'exécution nomme l'étape et la raison en termes simples, par exemple *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lisez-le dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow. Une étape Create Many crée ses enregistrements un par un et s'arrête au premier refusé : les enregistrements créés avant celui-là sont conservés.
 
-Les étapes qui dialoguent avec d'autres systèmes — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code et Generate Text with AI — ne lisent ni ne modifient d'enregistrements OneUptime : rien de tout cela ne les concerne.
+Les étapes qui dialoguent avec d'autres systèmes — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code et Generate Text with AI — ne lisent ni ne modifient d'enregistrements OneUptime : rien de tout cela ne les concerne.
 
 ## Limites du forfait
 

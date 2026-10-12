@@ -5,7 +5,7 @@ Komponenten sind die Bausteine, die Sie nach dem Trigger hinzufügen. Jede erled
 Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins enden mit **Verwendung**: was der Baustein tut, die Schritte zum Einrichten, ein Beispiel aus Ihrem eigenen Workflow und die Fehler, die häufig passieren. Wie Sie Bausteine hinzufügen und verbinden, steht unter [Einen Workflow erstellen](/docs/workflows/authoring).
 
 :::cards
-- [Eine Nachricht senden](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC und E-Mail.
+- [Eine Nachricht senden](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost und E-Mail.
 - [Eine API aufrufen](#api): Eine Anfrage an jede HTTP-API senden und die Antwort lesen.
 - [Logik hinzufügen](#conditions): Nach einem Wert verzweigen, Daten umformen, warten oder protokollieren.
 - [Mit OneUptime-Datensätzen arbeiten](#oneuptime-datenkomponenten): Monitore, Vorfälle und mehr finden, anlegen, ändern und löschen.
@@ -15,7 +15,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 
 | Um…                                                      | Verwenden Sie                                                     |
 | -------------------------------------------------------- | ----------------------------------------------------------------- |
-| In einem Chat-Tool zu posten                             | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram) oder [IRC](#irc) |
+| In einem Chat-Tool zu posten                             | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) oder [Mattermost](#mattermost) |
 | Eine E-Mail über Ihren eigenen Mailserver zu senden      | [E-Mail](#email)                                                  |
 | Jede andere API oder Ihren eigenen Dienst aufzurufen     | [API](#api)                                                       |
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Unter **Weitere Felder**:
 Jeder Lauf des Bausteins ist eine eigene Verbindung, und IRC-Netze begrenzen, wie oft eine Adresse sich verbinden darf: Eine Folge von Nachrichten kann mit einem Grund wie "Reconnecting too fast" abgelehnt werden und nimmt **Error** wie jede andere Ablehnung. Bei einem Workflow, der viele Male pro Minute auslösen kann, fassen Sie zusammen, was er zu sagen hat, in eine Nachricht, oder senden Sie sie über einen eigenen Server.
 
 Bewahren Sie die Passwörter in [geheimen globalen Variablen](/docs/workflows/variables#globale-variablen) auf und verwenden Sie die Variable in der Einstellung; in den Protokollen der Ausführungen sind sie so oder so verborgen. Verbindungen zu Loopback (`localhost`, `127.0.0.1`), Link-Local- und Cloud-Metadaten-Adressen werden abgelehnt. In OneUptime Cloud wird auch ein Server auf einer privaten Netzwerkadresse oder ein Name, der zu einer auflöst, abgelehnt. Selbst gehostete Installationen erreichen einen IRC-Server in ihrem eigenen Netz, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt.
+
+## Mattermost
+
+Eine Nachricht über einen Incoming Webhook in einem Mattermost-Kanal posten, in Mattermost Cloud oder auf einem eigenen Server.
+
+| Einstellung                         | Was sie tut                                                                                                                                                                                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | Der Webhook, über den gepostet wird, so wie Mattermost ihn unter Integrations, Incoming Webhooks anzeigt: die Adresse des Servers, dann `/hooks/` und die ID des Webhooks. Die Anleitung von Mattermost zeigt, wie Sie [einen anlegen](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
+| **Message Text**                    | Der Text, der gesendet wird. Er wird genau so gesendet, wie Sie ihn tippen, und Mattermost versteht Markdown: `**bold**`, `_italic_`, Links, Tabellen und Emojis wie `:rotating_light:`. Ein Mattermost-Beitrag fasst 16.383 Zeichen: Eine längere Nachricht wird so gekürzt, dass sie passt, und endet mit "… (truncated — see OneUptime for the full text)". |
+
+Unter **Weitere Felder**:
+
+| Einstellung  | Was sie tut                                                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Postet woanders als im eigenen Kanal des Webhooks: der Name des Kanals, wie er in seiner URL steht, etwa `town-square`, oder `@` und ein Benutzername für eine Direktnachricht. Ein Webhook, der auf seinen Kanal beschränkt ist, lehnt jeden anderen ab. |
+| **Username** | Der Name, unter dem gepostet wird. Mattermost verwendet ihn nur, wo ein Systemadministrator Integrationen erlaubt, Benutzernamen zu überschreiben.                                                            |
+| **Icon URL** | Das Bild, mit dem gepostet wird, eine `https`-Adresse. Mattermost verwendet es nur, wo ein Systemadministrator Integrationen erlaubt, Profilbilder zu überschreiben.                                          |
+
+**Success** löst aus, wenn Mattermost die Nachricht angenommen hat. **Error** löst aus, wenn der Server nicht erreichbar ist oder Mattermost die Nachricht ablehnt, und gibt den Grund von Mattermost weiter. Eine fehlende **Mattermost Incoming Webhook URL** oder ein fehlender **Message Text**, eine URL, die nicht zu einem Incoming Webhook gehört, oder eine Einstellung, die nie funktionieren kann, stoppt stattdessen die Ausführung.
+
+Bewahren Sie die Webhook-URL in einer [geheimen globalen Variable](/docs/workflows/variables#globale-variablen) auf: Wer sie hat, kann im Kanal posten. In den Protokollen der Ausführungen ist sie so oder so verborgen. Die Nachricht geht von OneUptime aus, und eine Weiterleitung wird nicht verfolgt. Ein Webhook auf einer Loopback- (`localhost`, `127.0.0.1`), Link-Local- oder Cloud-Metadaten-Adresse wird abgelehnt, ebenso ein Webhook auf einer privaten Netzwerkadresse, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt ihn mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 ## Email
 

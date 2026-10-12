@@ -205,7 +205,7 @@ sequenceDiagram
 Переменные принимают почти все текстовые поля:
 
 - URL в блоке API.
-- Текст сообщения в Slack, Teams, Discord, Telegram, IRC, Email.
+- Текст сообщения в Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Тема и тело письма.
 - Заголовки и поля тела (внутри строковых значений).
 - Обе стороны блока **If / Else**.
