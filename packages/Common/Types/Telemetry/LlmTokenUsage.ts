@@ -133,8 +133,12 @@ export default class LlmTokenUsageUtil {
           return value !== null;
         })
       ) {
-        input = claudeCode[0] ?? null;
-        output = claudeCode[1] ?? null;
+        /*
+         * A convention's explicit 0 stays where Claude Code says nothing:
+         * the answer checks read a reported 0 output as an empty answer.
+         */
+        input = claudeCode[0] ?? input;
+        output = claudeCode[1] ?? output;
         cacheRead = claudeCode[2] ?? null;
         cacheWrite = claudeCode[3] ?? null;
         cachedTokensApart = true;

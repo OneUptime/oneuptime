@@ -363,6 +363,21 @@ describe("Claude Code's traces beta", () => {
     });
   });
 
+  test("a convention's explicit output of 0 stays reported where Claude Code's keys say nothing about output", () => {
+    // The answer checks read a reported 0 output as an empty answer.
+    expect(
+      read({
+        "gen_ai.usage.input_tokens": 0,
+        "gen_ai.usage.output_tokens": 0,
+        input_tokens: 500,
+      }),
+    ).toMatchObject({
+      inputTokens: 500,
+      outputTokens: 0,
+      reportedOutputTokens: 0,
+    });
+  });
+
   test("a convention count of 0, as a processor might stamp on, does not keep Claude Code's keys out", () => {
     expect(
       read({
