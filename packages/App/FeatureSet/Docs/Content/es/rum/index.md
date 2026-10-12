@@ -1,6 +1,6 @@
 # Visión general de RUM
 
-El Real User Monitoring (RUM) muestra lo que viven los usuarios reales en tus aplicaciones web y móviles: cargas de página, solicitudes, errores y Core Web Vitals, informados por la propia aplicación en lugar de por una sonda. OneUptime guarda esa telemetría en una aplicación RUM que puedes graficar, consultar y vigilar con alertas.
+El monitoreo de usuarios reales (RUM) muestra lo que viven los usuarios reales en tus aplicaciones web y móviles: cargas de página, solicitudes, errores y Core Web Vitals, informados por la propia aplicación en lugar de por una sonda. OneUptime guarda esa telemetría en una aplicación RUM que puedes graficar, consultar y vigilar con alertas.
 
 :::cards
 - [Cómo funciona](#cómo-funciona): Un único pipeline de OpenTelemetry, clasificado como RUM al llegar.
