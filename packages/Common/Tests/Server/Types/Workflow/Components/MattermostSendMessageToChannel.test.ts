@@ -1,7 +1,10 @@
 import SendMessageToChannel, {
   MATTERMOST_MAX_STEP_TIME_IN_MS,
 } from "../../../../../Server/Types/Workflow/Components/Mattermost/SendMessageToChannel";
-import { RunOptions } from "../../../../../Server/Types/Workflow/ComponentCode";
+import {
+  RunOptions,
+  RunReturnType,
+} from "../../../../../Server/Types/Workflow/ComponentCode";
 import DataSourceEgressGuard, {
   PinnedAgents,
   ResolvedAddress,
@@ -25,14 +28,11 @@ import {
   TestCertificate,
   createTestCertificate,
 } from "../../../Utils/IRC/TestCertificate";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types jest.spyOn() as a spy
+ * the global jest.SpiedFunction annotations here do not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import dns from "dns";
 import tls from "tls";
 
@@ -121,11 +121,10 @@ async function run(
   remainingInMs?: number | undefined,
 ): Promise<StepRun> {
   const logs: Array<string> = [];
-  const result: { returnValues: JSONObject; executePort?: { id: string } } =
-    await new SendMessageToChannel().run(
-      args,
-      makeOptions(logs, remainingInMs),
-    );
+  const result: RunReturnType = await new SendMessageToChannel().run(
+    args,
+    makeOptions(logs, remainingInMs),
+  );
 
   return {
     port: result.executePort?.id || "",

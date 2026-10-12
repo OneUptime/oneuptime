@@ -1,12 +1,10 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types jest.fn() and
+ * jest.spyOn() as mocks the global jest.Mock and jest.SpiedFunction
+ * annotations here do not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   act,
   cleanup,

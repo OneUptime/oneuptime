@@ -36,33 +36,12 @@ jobs:
       # EnterpriseEditionBuild.test.js checks its Dockerfile renderer against
       # gomplate, which is what really renders every Dockerfile.tpl
       # (Scripts/Install/configure.sh). With CI set that test fails, rather
-      # than skips, when gomplate is missing, so install the release binary at
-      # the version configure.sh pins (read from there, so the two cannot
-      # drift) and check it runs.
-      - name: Install gomplate
-        run: |
-          set -euo pipefail
-          GOMPLATE_VERSION="$(sed -n 's/^GOMPLATE_VERSION="\([0-9.]*\)"$/\1/p' Scripts/Install/configure.sh)"
-          test -n "$GOMPLATE_VERSION"
-          mkdir -p "$RUNNER_TEMP/gomplate-bin"
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
-            -o "$RUNNER_TEMP/gomplate-bin/gomplate" \
-            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64"
-          # The binary runs in CI with the repository checked out, so verify
-          # it against a digest pinned here, not one fetched from the same
-          # release. Bumping GOMPLATE_VERSION in configure.sh fails this step
-          # until the matching digest is pinned too.
-          GOMPLATE_PINNED_VERSION="3.11.8"
-          GOMPLATE_LINUX_AMD64_SHA256="edd7e578094a08e97552d002e84cce576b4df61bb6e29724c2026dc9c9afbc38"
-          if [ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]; then
-            echo "configure.sh pins gomplate $GOMPLATE_VERSION but this step pins the sha256 of $GOMPLATE_PINNED_VERSION: update GOMPLATE_PINNED_VERSION and GOMPLATE_LINUX_AMD64_SHA256 together (checksums-v<version>_sha256.txt in the gomplate release)." >&2
-            exit 1
-          fi
-          echo "${GOMPLATE_LINUX_AMD64_SHA256}  $RUNNER_TEMP/gomplate-bin/gomplate" | sha256sum -c -
-          chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"
-          echo "$RUNNER_TEMP/gomplate-bin" >> "$GITHUB_PATH"
-          export PATH="$RUNNER_TEMP/gomplate-bin:$PATH"
-          gomplate --version | grep -F "$GOMPLATE_VERSION"
+      # than skips, when gomplate is missing, so put the gomplate configure.sh
+      # pins on PATH. The action takes it from the Actions cache, checked
+      # against its pinned sha256, and checks it runs; GitHub's release CDN,
+      # which answers 500/504 in bursts, is only asked on a cache miss, and
+      # then with backoff (Scripts/GHA/fetch_pinned_artifact.sh).
+      - uses: ./.github/actions/setup-gomplate
       # Static/structural tests over the ClickHouse config.d drop-ins, the
       # docker-compose mounts and the backup/restore scripts. No services are
       # started: beyond the package's own deps this needs only gomplate
@@ -153,8 +132,45 @@ jobs:
       # systemd-analyze verify flags a unit directive only newer systemd knows.
       - name: Warm the base images the VMware install without Docker runs on
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/ubuntu:24.04 --image public.ecr.aws/docker/library/rockylinux:8
+      # The vCenter simulator those runs talk to (govmomi's vcsim) is a GitHub
+      # release asset, and GitHub's release CDN answers 500/504 in bursts: one
+      # failed this job on master on 2026-10-12 (run 38249658794). So the
+      # archive the script pins comes from the Actions cache, keyed on that
+      # pin, and the CDN is only asked on a miss -- through
+      # Scripts/GHA/fetch_pinned_artifact.sh, which backs off exponentially and
+      # goes round again after 30s and 90s. The cache is filled by a step of
+      # its own, before the runs, because actions/cache's post step only saves
+      # when the whole job passes.
+      - name: Resolve the pinned vcsim
+        id: vcsim
+        env:
+          VCSIM_CACHE_DIR: ${{ runner.temp }}/vcsim
+        run: bash Tests/Ops/vmware-agent-native-install.sh --print-vcsim-pin >>"$GITHUB_OUTPUT"
+      - name: Restore vcsim from the Actions cache
+        id: vcsim-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ steps.vcsim.outputs.dir }}
+          key: vcsim-${{ steps.vcsim.outputs.version }}-${{ steps.vcsim.outputs.platform }}-${{ steps.vcsim.outputs.sha256 }}
+      # Runs on a hit too: a restored archive is only used once it matches the
+      # pin, and one that does not is downloaded again.
+      - name: Verify vcsim, or download it on a cache miss
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+        run: bash Tests/Ops/vmware-agent-native-install.sh --fetch-vcsim
+      # Two runs missing at once both try to save; the loser only logs a warning.
+      - name: Save vcsim to the Actions cache
+        if: steps.vcsim-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ steps.vcsim.outputs.dir }}
+          key: ${{ steps.vcsim-cache.outputs.cache-primary-key }}
       - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/ubuntu:24.04
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
       - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/rockylinux:8
+        env:
+          VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
