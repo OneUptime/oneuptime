@@ -1143,6 +1143,92 @@ describe("built-in help says what each step really does", () => {
     }
   });
 
+  test("Switch / Case's help says the first case that matches wins, and what Default is for", () => {
+    const metadata: ComponentMetadata = findStep(BUILT_IN, ComponentID.Switch);
+
+    for (const graph of [[], [INCIDENT_TRIGGER]]) {
+      const documentation: ComponentDocumentation = docsOf(metadata, graph);
+      const text: string = allText(documentation).join(" ");
+
+      expect(documentation.summary).toContain("the first case that matches");
+      expect(documentation.summary).toContain("**Default**");
+      expect(text).toContain("the first that matches wins");
+      expect(text).toContain("Only the first case that matches runs.");
+      // Every case is an output on the canvas, named after it.
+      expect(text).toContain(
+        "Each case is an output on the canvas, named after its value.",
+      );
+      // What happens to a removed case's connection.
+      expect(text).toContain(
+        "Removing a case removes the connection from its output too",
+      );
+      // Default unconnected ends the run, without an error.
+      expect(text).toContain("the run ends without an error");
+      // A case compares as If / Else does.
+      expect(text).toContain(
+        "A case matches exactly when an **If / Else** with the same comparison and value would say Yes.",
+      );
+    }
+  });
+
+  test("Switch / Case's examples fill in its settings, with comparisons its list offers", () => {
+    const comparisonLabels: Array<string> = CONDITION_COMPARISONS.map(
+      (comparison: ConditionComparison) => {
+        return comparison.label;
+      },
+    );
+    const metadata: ComponentMetadata = findStep(BUILT_IN, ComponentID.Switch);
+
+    for (const graph of [[], [INCIDENT_TRIGGER]]) {
+      const examples: Array<ComponentDocumentationExample> = docsOf(
+        metadata,
+        graph,
+      ).examples;
+
+      expect(examples.length).toBeGreaterThan(0);
+
+      for (const example of examples) {
+        const cases: string =
+          (example.fields || []).find(
+            (field: { name: string }): boolean => {
+              return field.name === "Cases";
+            },
+          )?.value || "";
+
+        // Each case starts with one of the comparisons the list offers.
+        for (const part of cases.split(", then ")) {
+          expect({
+            part,
+            known: comparisonLabels.some((label: string): boolean => {
+              return part.startsWith(label);
+            }),
+          }).toEqual({ part, known: true });
+        }
+
+        expect(
+          (example.fields || []).map((field: { name: string }): string => {
+            return field.name;
+          }),
+        ).toEqual(["Value to check", "Cases"]);
+      }
+    }
+
+    // With a step to read from, the example reads the trigger's value.
+    expect(
+      docsOf(metadata, [INCIDENT_TRIGGER]).examples[0]?.fields?.[0]?.value,
+    ).toBe("{{local.components.incident-on-create-1.returnValues.model.title}}");
+  });
+
+  test("Switch / Case's help links to its own section of the components guide", () => {
+    expect(docsOf(findStep(BUILT_IN, ComponentID.Switch)).links).toEqual([
+      {
+        title: "Switch / Case guide",
+        site: ComponentDocumentationLinkSite.Docs,
+        path: "/workflows/components#switch-case",
+      },
+    ]);
+  });
+
   test("callouts are tips or warnings, and the irreversible ones are warnings", () => {
     for (const metadata of [...BUILT_IN, ...INCIDENT_STEPS]) {
       for (const note of docsOf(metadata).notes) {
