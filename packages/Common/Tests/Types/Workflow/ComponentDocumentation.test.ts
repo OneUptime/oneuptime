@@ -729,6 +729,8 @@ describe("examples are built from this step and this workflow", () => {
    */
   const HYPOTHETICAL_STEPS: Record<string, Array<string>> = {
     [ComponentID.IfElse]: ["api-get-1"],
+    // The same, for Switch / Case: "an API step called api-get-1".
+    [ComponentID.Switch]: ["api-get-1"],
     [ComponentID.WorkflowRun]: ["manual-1"],
   };
 

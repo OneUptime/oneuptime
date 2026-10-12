@@ -76,6 +76,7 @@ describe("what the picker leads with", () => {
     expect(titlesOf(ACTIONS.popular)).toEqual([
       "Log",
       "If / Else",
+      "Switch / Case",
       "API Post (JSON)",
       "API Get (JSON)",
       "Send Message to Slack",

@@ -60,6 +60,7 @@ import ComponentMetadata, {
   ReturnValue,
 } from "../../../Types/Workflow/Component";
 import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -187,11 +188,18 @@ const hydrate: HydrateFunction = (
     },
   );
 
+  /*
+   * With the output each connection leaves from, as the builder hands the
+   * checks its edges: a Switch / Case's checks look at which of its cases
+   * are connected, and every step's at whether an output it no longer has
+   * still has a connection.
+   */
   const edges: Array<LintGraphEdge> = rawEdges.map(
     (edge: JSONObject): LintGraphEdge => {
       return {
         source: edge["source"] as string,
         target: edge["target"] as string,
+        sourceHandle: edge["sourceHandle"] as string,
       };
     },
   );
@@ -1476,11 +1484,13 @@ describe.each(
         node.metadataId,
       ) as ComponentMetadata;
 
-      const port: Port | undefined = metadata.outPorts.find(
-        (candidate: Port) => {
-          return candidate.id === edge.fromPort;
-        },
-      );
+      // As the step is set up: a Switch / Case has an output per case.
+      const port: Port | undefined = getComponentOutPorts({
+        metadata: metadata,
+        arguments: node.args,
+      }).find((candidate: Port) => {
+        return candidate.id === edge.fromPort;
+      });
 
       expect({
         from: edge.fromComponentId,
