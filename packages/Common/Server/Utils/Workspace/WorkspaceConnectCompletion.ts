@@ -64,7 +64,8 @@ const STATE_TIMELINE_MODELS: Record<WorkspaceEventType, DatabaseBaseModelType> =
     [WorkspaceEventType.Alert]: AlertStateTimeline,
     [WorkspaceEventType.IncidentEpisode]: IncidentEpisodeStateTimeline,
     [WorkspaceEventType.AlertEpisode]: AlertEpisodeStateTimeline,
-    [WorkspaceEventType.ScheduledMaintenance]: ScheduledMaintenanceStateTimeline,
+    [WorkspaceEventType.ScheduledMaintenance]:
+      ScheduledMaintenanceStateTimeline,
   };
 
 const LATE_PRESSES: Record<WorkspacePendingActionKind, WorkspaceLatePress> = {
@@ -145,8 +146,8 @@ export default class WorkspaceConnectCompletion {
           projectId: request.projectId,
         });
 
-      const event: WorkspaceEventRecord = await WorkspaceMemberActions.authorize(
-        {
+      const event: WorkspaceEventRecord =
+        await WorkspaceMemberActions.authorize({
           props: props,
           modelType: STATE_TIMELINE_MODELS[pendingAction.eventType],
           action: request.purpose,
@@ -154,13 +155,14 @@ export default class WorkspaceConnectCompletion {
             type: pendingAction.eventType,
             id: pendingAction.eventId,
           },
-        },
-      );
+        });
 
       const standing: WorkspaceEventStanding =
         await WorkspaceMemberActions.getStanding(event);
 
-      if (WorkspaceConnectCompletion.isDoneAlready(pendingAction.kind, standing)) {
+      if (
+        WorkspaceConnectCompletion.isDoneAlready(pendingAction.kind, standing)
+      ) {
         return await WorkspaceActionAnswers.getAlreadyAnswer({
           event: event,
           press: LATE_PRESSES[pendingAction.kind],
@@ -278,9 +280,8 @@ export default class WorkspaceConnectCompletion {
         projectId: request.projectId,
         workspaceType: request.workspaceType,
         userId: data.userId,
-        buttonAction: WorkspaceConnectCompletion.getLoggedButtonAction(
-          pendingAction,
-        ),
+        buttonAction:
+          WorkspaceConnectCompletion.getLoggedButtonAction(pendingAction),
       };
 
       const channelId: string | undefined =

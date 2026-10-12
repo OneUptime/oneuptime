@@ -28139,5 +28139,6 @@
   "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.": "شما با حساب کسی جز کسی که در Microsoft Teams دکمهٔ اتصال را زد وارد Microsoft شدید، پس چیزی وصل نشد. لطفاً با حساب کاری خودتان وارد شوید و دوباره امتحان کنید.",
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "شما با حساب کسی جز کسی که در Slack دکمهٔ اتصال را زد وارد Slack شدید، پس چیزی وصل نشد. لطفاً با حساب خودتان وارد Slack شوید و دوباره امتحان کنید.",
   "Your {{workspace}} account is connected": "حساب {{workspace}} شما وصل شد",
-  "Go back to {{workspace}} and press the button again.": "به {{workspace}} برگردید و دوباره دکمه را بزنید."
+  "Go back to {{workspace}} and press the button again.": "به {{workspace}} برگردید و دوباره دکمه را بزنید.",
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime نتوانست در {{workspace}} به شما پاسخ دهد. برای دیدن وضعیت آن، مورد را در OneUptime باز کنید."
 }

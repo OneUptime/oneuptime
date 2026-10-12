@@ -28139,5 +28139,6 @@
   "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.": "Microsoft Teams で接続ボタンを押した人とは別の人として Microsoft にサインインしたため、何も接続されませんでした。ご自身の職場アカウントでサインインして、もう一度お試しください。",
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "Slack で接続ボタンを押した人とは別の人として Slack にサインインしたため、何も接続されませんでした。ご自身のアカウントで Slack にサインインして、もう一度お試しください。",
   "Your {{workspace}} account is connected": "{{workspace}} アカウントが接続されました",
-  "Go back to {{workspace}} and press the button again.": "{{workspace}} に戻って、もう一度ボタンを押してください。"
+  "Go back to {{workspace}} and press the button again.": "{{workspace}} に戻って、もう一度ボタンを押してください。",
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime は {{workspace}} で返信できませんでした。OneUptime でレコードを開いて、現在の状態を確認してください。"
 }

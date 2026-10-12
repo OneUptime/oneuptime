@@ -197,7 +197,8 @@ export default class WorkspaceActionAnswers {
 
       if (button === WorkspaceConnectButton.None) {
         return {
-          markdown: mdText`${ask} In ${productName}, go to **User Settings → Workspace → ${workspaceName}** and press **Connect my account with ${workspaceName}**. ${then}`.toString(),
+          markdown:
+            mdText`${ask} In ${productName}, go to **User Settings → Workspace → ${workspaceName}** and press **Connect my account with ${workspaceName}**. ${then}`.toString(),
           text: text,
         };
       }
@@ -286,7 +287,8 @@ export default class WorkspaceActionAnswers {
     const verb: string = this.getDoneVerb(data.kind);
 
     return {
-      markdown: mdText`✅ You ${verb} ${this.getRecordMarkdown(record)}.`.toString(),
+      markdown:
+        mdText`✅ You ${verb} ${this.getRecordMarkdown(record)}.`.toString(),
       text: `You ${verb} ${record.label}`,
     };
   }
@@ -356,7 +358,8 @@ export default class WorkspaceActionAnswers {
 
     if (data.press === WorkspaceLatePress.ExecuteOnCallPolicy) {
       return {
-        markdown: mdText`${markdown}, so no on-call policy was started.`.toString(),
+        markdown:
+          mdText`${markdown}, so no on-call policy was started.`.toString(),
         text: `${text}, so no on-call policy was started`,
       };
     }
@@ -775,7 +778,9 @@ export default class WorkspaceActionAnswers {
     }
   }
 
-  private static async getRecordLink(event: WorkspaceEventRecord): Promise<URL> {
+  private static async getRecordLink(
+    event: WorkspaceEventRecord,
+  ): Promise<URL> {
     switch (event.type) {
       case WorkspaceEventType.Incident:
         return await IncidentService.getIncidentLinkInDashboard(

@@ -158,6 +158,13 @@ const CHAT_BUTTONS: Array<string> = [
 // Microsoft Teams cards' own Escalate, and the lead of the bullet about it.
 const TEAMS_CARD_BUTTONS: Array<string> = ["Escalate", "Escalate."];
 
+/*
+ * The Connect button the app answers a press from an unconnected account
+ * with, as each chat shows it: in English, as the server writes it.
+ */
+const SLACK_CONNECT_BUTTON: Array<string> = ["Connect Slack account"];
+const TEAMS_CONNECT_BUTTON: Array<string> = ["Connect Microsoft Teams account"];
+
 // Slack's own controls and the app's shortcuts, by the names Slack shows.
 const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
@@ -243,11 +250,17 @@ const PROVIDER_CONSOLES: Array<string> = [
 const BRANDS: Array<string> = ["Zoom", "Google Meet"];
 
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  [SLACK]: ["Growth", ...CHAT_BUTTONS, ...SLACK_CONTROLS],
+  [SLACK]: [
+    "Growth",
+    ...CHAT_BUTTONS,
+    ...SLACK_CONNECT_BUTTON,
+    ...SLACK_CONTROLS,
+  ],
   [TEAMS]: [
     "Growth",
     ...CHAT_BUTTONS,
     ...TEAMS_CARD_BUTTONS,
+    ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
@@ -387,6 +400,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    "Where you are answered.",
+    "If your Slack account is not connected.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -404,6 +419,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    "Where the person is answered.",
+    "If their account is not connected.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -438,6 +455,14 @@ const PROSE_LEADS: Record<string, Array<string>> = {
 };
 
 /*
+ * How a button pressed too late is answered, in both chats: who got there
+ * first, and when (WorkspaceActionAnswers.getAlreadyAnswer), as the pages
+ * show it with a made-up record, person and moment.
+ */
+const LATE_PRESS_EXAMPLE: string =
+  "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM.";
+
+/*
  * What a server or a chat bot answers in English, whatever the reader's
  * language, which the pages quote as it is sent.
  */
@@ -447,12 +472,14 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
     SlackIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
+    LATE_PRESS_EXAMPLE,
   ],
   [TEAMS]: [
     TEST_NOTIFICATION_PERMISSION_MESSAGE,
     WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
     MicrosoftTeamsIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
+    LATE_PRESS_EXAMPLE,
     MicrosoftTeamsOnCallDutyActions.ESCALATE_NEEDS_RECORD_MESSAGE,
     MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE.split("(")[0]!.trim(),
     "Please pick it again.",
@@ -986,6 +1013,8 @@ describe("the lists this test keeps", () => {
     const external: Array<string> = [
       ...PLANS,
       ...CHAT_BUTTONS,
+      ...SLACK_CONNECT_BUTTON,
+      ...TEAMS_CONNECT_BUTTON,
       ...TEAMS_CARD_BUTTONS,
       ...SLACK_CONTROLS,
       ...TEAMS_CONTROLS,

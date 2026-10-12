@@ -670,7 +670,9 @@ function expectConnectWithoutLink(
 
 // Whether a reply asks the sender to connect their account, whatever its form.
 function asksToConnect(reply: string | undefined): boolean {
-  return Boolean(reply && reply.includes("Connect your Microsoft Teams account"));
+  return Boolean(
+    reply && reply.includes("Connect your Microsoft Teams account"),
+  );
 }
 
 /*

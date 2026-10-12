@@ -28139,5 +28139,6 @@
   "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.": "Sie haben sich bei Microsoft als eine andere Person angemeldet als die, die in Microsoft Teams die Schaltfläche zum Verbinden gedrückt hat, daher wurde nichts verbunden. Bitte melden Sie sich mit Ihrem eigenen Arbeitskonto an und versuchen Sie es erneut.",
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "Sie haben sich bei Slack als eine andere Person angemeldet als die, die in Slack die Schaltfläche zum Verbinden gedrückt hat, daher wurde nichts verbunden. Bitte melden Sie sich mit Ihrem eigenen Konto bei Slack an und versuchen Sie es erneut.",
   "Your {{workspace}} account is connected": "Ihr {{workspace}}-Konto ist verbunden",
-  "Go back to {{workspace}} and press the button again.": "Gehen Sie zurück zu {{workspace}} und drücken Sie die Schaltfläche erneut."
+  "Go back to {{workspace}} and press the button again.": "Gehen Sie zurück zu {{workspace}} und drücken Sie die Schaltfläche erneut.",
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime konnte Ihnen in {{workspace}} nicht antworten. Öffnen Sie den Eintrag in OneUptime, um zu sehen, wie er steht."
 }

@@ -129,11 +129,11 @@ OneUptime Cloud では、通知ルールとサマリーは **Growth** プラン�
 
 ## Slack からインシデントとメンテナンスを作成する
 
-`/incident` と `/maintenance` は、あなたが入力して自分として送信するフォームを開きます。自分の Slack アカウントが接続されている OneUptime アカウント ([Slack を接続する](#slack-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。Slack アカウントが接続されていない場合や、OneUptime アカウントがもうプロジェクトのメンバーでない場合は、OneUptime がダイレクトメッセージでどうすればよいかを伝え、フォームは開きません。 **Create New Incident** と **Create Scheduled Event** のショートカットも同じフォームを開きます。
+`/incident` と `/maintenance` は、あなたが入力して自分として送信するフォームを開きます。自分の Slack アカウントが接続されている OneUptime アカウント ([Slack を接続する](#slack-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。Slack アカウントが接続されていない場合や、OneUptime アカウントがもうプロジェクトのメンバーでない場合は、OneUptime がコマンドを実行した場所に、あなただけに見えるメッセージでどうすればよいかを伝え、フォームは開きません。 **Create New Incident** と **Create Scheduled Event** のショートカットも同じフォームを開きます。
 
-- **使える人。** OneUptime でインシデントを宣言できる人、または定期メンテナンスイベントを作成できる人です。インシデントには **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member** (カスタムロールでは **Create Incident**)、イベントには **Scheduled Maintenance Admin** と **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) です。それ以外の人にはダイレクトメッセージでそう伝えられ、フォームは開きません。
+- **使える人。** OneUptime でインシデントを宣言できる人、または定期メンテナンスイベントを作成できる人です。インシデントには **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member** (カスタムロールでは **Create Incident**)、イベントには **Scheduled Maintenance Admin** と **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) です。それ以外の人にはコマンドを実行した場所でそう伝えられ、フォームは開きません。
 - **フォームが提示するもの。** 各一覧 (重大度、モニター、モニターのステータス、オンコールポリシー、ラベル) には、OneUptime の同じ一覧と同じく、あなたが読めるものが含まれます。一部のラベルに限定されたロールなら、それらのラベルが付いたモニターとオンコールポリシーです。まったく読めない一覧はフォームから外されます。アーカイブされたオンコールポリシーは提示されません。
-- **フォームで指定できるもの。** インシデントやイベントはあなた自身の権限で作成され、あなたの操作として記録されます。読めないモニター、オンコールポリシー、ラベル、重大度、ステータス、または別のプロジェクトのものは、アクセスが変わる前に開いたフォームからであっても、プロジェクトにないものとして拒否され、何も作成されません。理由は OneUptime がダイレクトメッセージで伝えます。
+- **フォームで指定できるもの。** インシデントやイベントはあなた自身の権限で作成され、あなたの操作として記録されます。読めないモニター、オンコールポリシー、ラベル、重大度、ステータス、または別のプロジェクトのものは、アクセスが変わる前に開いたフォームからであっても、プロジェクトにないものとして拒否され、何も作成されません。理由は OneUptime がチャンネルで、あなただけに見えるメッセージで伝えます。
 
 インシデント、アラート、エピソードの **Execute On-Call Policy** も同じように動作します。オンコールポリシーを実行する権限 ( **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member**、またはカスタムロールの **Create On-Call Duty Policy Execution Log** ) と、そのインシデント、アラート、エピソードを読む権限が必要で、あなたが読める有効なオンコールポリシーが提示されます。
 
@@ -141,9 +141,11 @@ OneUptime Cloud では、通知ルールとサマリーは **Growth** プラン�
 
 OneUptime の Slack メッセージのボタンも、あなたとして動作します。自分の Slack アカウントが接続されている OneUptime アカウントとして、そのアカウントのプロジェクトでの権限で動作します。インシデント、アラート、エピソードの **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note**、 **Execute On-Call Policy**、そして定期メンテナンスイベントの **Mark as Ongoing**、 **Mark as Complete**、 **Change State**、 **Add Note** は、それぞれ OneUptime で同じ操作を行ったときと同じ変更を行い、その変更は OneUptime であなたの操作として記録されます。レコードの状態タイムラインとフィードには、あなたが状態を変更したことが表示され、メモもあなたのものになります。絵文字リアクションでメッセージから保存したメモも、同じように投稿されます。
 
-- **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。それ以外の人にはダイレクトメッセージでそう伝えられ、何も変わりません。
+- **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。それ以外の人にはそう伝えられ、何も変わりません。
 - **対象のレコード。** OneUptime と同じく、あなたが読めるレコードです。一部のラベルに限定されたロールなら、それらのラベルが付いたインシデント、アラート、エピソード、イベントです。ほかのレコードや別のプロジェクトのレコードのボタンには、そのレコードが "was not found in this project, or you do not have access to it." と返され、何も変わりません。OneUptime Cloud では、プロジェクトのプランに含まれない変更は、必要なプランを示して拒否されます。
 - **Change State が提示するもの。** あなたが読める状態のうち、レコードが次に移れる状態を、プロジェクトの順序で提示します。今の状態より前の状態は提示されません。これはインシデント、アラート、定期メンテナンスイベントと同様にエピソードでも同じです。状態の変更でレコードが一覧の上に戻ることはないからです ([順序は表示上の好みではなく、実際の制約](/docs/incidents/states-and-severities#順序は表示上の好みではなく実際の制約) を参照)。読める状態が 1 つもない場合は "No incident states are available to you in this project. Ask a project admin for access to them." と伝えられ、レコードが到達できる最後の状態にある場合は "There is no later state to move this incident to." と伝えられます。どちらの場合も空のフォームは開きません。
+- **返答が届く場所。** ボタンのあるメッセージの下に、あなただけに見えるメッセージで届きます。ダイレクトメッセージには届きません。遅すぎたボタンの操作には、誰がいつ先に行ったかが伝えられます。たとえば "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM." です。
+- **Slack アカウントが接続されていない場合。** 返答は **Connect Slack account** ボタンで接続を求めます。このボタンは OneUptime のあなた自身の Slack 設定を開き、必要なら OneUptime にサインインした後、1 ステップでアカウントを接続します。その後 OneUptime は、あなたが押した操作をあなたとして完了し、同じメッセージの下に返答します。フォームを開くボタンやコマンドの場合は、もう一度押すか実行するよう求めます。ボタンは 30 分間、1 回だけ、押した Slack アカウントに対してのみ機能します。別の人として Slack にサインインしている場合は、何も接続しません。
 
 ## 接続を解除する
 
@@ -164,7 +166,7 @@ Slack から接続されないまま戻ってくると、開始したページ�
 :::
 
 :::details ボタンやコマンドで Slack アカウントが接続されていないと表示される
-**ユーザー設定** > **ワークスペース** > **Slack** で **Connect my account with Slack** を使ってリンクしてください。プロジェクトのメンバーでなくなっている場合は、OneUptime がそう伝え、あなたの代わりに何も操作しません。
+その返答の **Connect Slack account** を押すと 1 ステップで接続できます。または **ユーザー設定** > **ワークスペース** > **Slack** で **Connect my account with Slack** を使ってリンクしてください。プロジェクトのメンバーでなくなっている場合は、OneUptime がそう伝え、あなたの代わりに何も操作しません。
 :::
 
 :::details 通知は届くが、ボタンとコマンドが何もしない

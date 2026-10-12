@@ -799,7 +799,10 @@ export default class SlackScheduledMaintenanceActions {
       const { props, event: scheduledMaintenance } = authorized;
 
       // Complete already: who and when, where the press was.
-      if ((await WorkspaceMemberActions.getStanding(scheduledMaintenance)).isComplete) {
+      if (
+        (await WorkspaceMemberActions.getStanding(scheduledMaintenance))
+          .isComplete
+      ) {
         await SlackActionAnswer.answerAlready({
           source: slackRequest,
           event: scheduledMaintenance,

@@ -124,7 +124,7 @@ Kies in **Projectinstellingen > Werkruimte > Slack** de optie **Connect with Sla
 
 ### Verbind uw eigen Slack-account
 
-Knoppen, formulieren en opdrachten handelen als de OneUptime-gebruiker die is gekoppeld aan het Slack-account dat ze gebruikt. Iedereen opent **Gebruikersinstellingen > Werkruimte > Slack** en kiest **Connect my account with Slack**. Wie geen account heeft verbonden, krijgt van de app een direct bericht met het verzoek dat te doen.
+Knoppen, formulieren en opdrachten handelen als de OneUptime-gebruiker die is gekoppeld aan het Slack-account dat ze gebruikt. Iedereen opent **Gebruikersinstellingen > Werkruimte > Slack** en kiest **Connect my account with Slack**. Wie geen account heeft verbonden, krijgt waar die drukte een antwoord met een knop **Connect Slack account**, die het in één stap koppelt.
 :::
 
 ## Omgevingsvariabelen
@@ -228,6 +228,7 @@ Als Slack u terugstuurt en de verbinding niet tot stand is gekomen, toont de Sla
 | **"Je bent geen lid meer van dit project."** | Om uw eigen Slack-account te verbinden, moet u lid van het project zijn wanneer Slack u terugstuurt. |
 | **"Dit project is nog niet verbonden met een Slack-werkruimte."** | Installeer OneUptime eerst in Slack vanuit **Projectinstellingen > Werkruimte > Slack** en verbind daarna uw eigen account. |
 | **"Je bent aangemeld bij een andere Slack-werkruimte dan die waarmee dit project verbonden is."** | Verbind uw account terwijl u bent aangemeld bij de Slack-werkruimte waarin het project is geïnstalleerd. |
+| **"Je bent bij Slack aangemeld als iemand anders dan de persoon die in Slack op de koppelknop drukte, dus er is niets gekoppeld."** | Een knop **Connect Slack account** werkt alleen voor het Slack-account dat hem indrukte. Meld je bij Slack aan als jezelf, of vraag de persoon die hem indrukte om erop te drukken. |
 | **"De verbinding is geannuleerd, dus er is niets gewijzigd."** | Het verzoek is in Slack niet toegestaan. Begin opnieuw en sta het toe. |
 | **"Slack is niet ingesteld op deze OneUptime-server."** | Stel `SLACK_APP_CLIENT_ID` en `SLACK_APP_CLIENT_SECRET` in (zie [Omgevingsvariabelen](#omgevingsvariabelen)) en start OneUptime opnieuw. |
 | **"OneUptime kon het verbinden niet afronden. Probeer het opnieuw."** | Slack antwoordde met een fout, of een verzoek of een schrijfactie mislukte bij het afronden. Het log van de OneUptime-server zegt welke. Probeer het opnieuw; blijft het gebeuren, controleer dan het log en de instellingen van de Slack-app. |
@@ -243,7 +244,7 @@ Meldingen zijn uitgaand en werken dus zonder inkomende toegang. Knoppen, snelkop
 :::
 
 :::details De app zegt dat mijn Slack-account niet met OneUptime is verbonden
-Knoppen, formulieren en opdrachten hebben uw Slack-account nodig, gekoppeld aan uw OneUptime-gebruiker. Open **Gebruikersinstellingen > Werkruimte > Slack** en kies **Connect my account with Slack**. Bent u uit het project verwijderd, dan zegt de app dat in plaats daarvan, en worden acties vanuit Slack geweigerd.
+Knoppen, formulieren en opdrachten hebben uw Slack-account nodig, gekoppeld aan uw OneUptime-gebruiker. Druk in het antwoord van de app op **Connect Slack account**, of open **Gebruikersinstellingen > Werkruimte > Slack** en kies **Connect my account with Slack**. Bent u uit het project verwijderd, dan zegt de app dat in plaats daarvan, en worden acties vanuit Slack geweigerd.
 :::
 
 :::details Screenshots verschijnen als tekst

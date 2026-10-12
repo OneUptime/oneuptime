@@ -5169,7 +5169,8 @@ All monitoring checks are passing normally.`;
     const productName: string = ProductBrandingText.getProductName();
 
     return {
-      markdown: mdText`${productName} could not tell what this button does. Please open the record in ${productName} instead.`.toString(),
+      markdown:
+        mdText`${productName} could not tell what this button does. Please open the record in ${productName} instead.`.toString(),
       text: `${productName} could not tell what this button does`,
     };
   }

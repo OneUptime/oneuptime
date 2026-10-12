@@ -92,6 +92,7 @@ import WorkspaceConnectCompletion, {
   WorkspaceConnectCompletionResult,
 } from "../Utils/Workspace/WorkspaceConnectCompletion";
 import SlackActionAnswer, {
+  SlackAnswerDelivery,
   SlackAnswerPlace,
 } from "../Utils/Workspace/Slack/Actions/Answer";
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
@@ -200,6 +201,8 @@ export default class SlackAPI {
         userId: data.userId,
       });
 
+    let delivery: SlackAnswerDelivery = SlackAnswerDelivery.None;
+
     if (data.projectAuthToken) {
       const place: SlackAnswerPlace = {
         projectAuthToken: data.projectAuthToken,
@@ -218,14 +221,22 @@ export default class SlackAPI {
         place.responseUrl = request.slack!.responseUrl;
       }
 
-      await SlackActionAnswer.answer({
+      delivery = await SlackActionAnswer.answer({
         place: place,
         answer: result.answer,
       });
     }
 
     const params: Dictionary<string> = {
-      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: result.outcome,
+      /*
+       * The page never says the answer is in Slack when Slack took none: it
+       * says to look at the record instead.
+       */
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
+        result.outcome === ConnectRequestOutcome.Answered &&
+        delivery === SlackAnswerDelivery.None
+          ? ConnectRequestOutcome.NotAnswered
+          : result.outcome,
     };
 
     // Where the page's "Back to Slack" goes: the channel the press was in.

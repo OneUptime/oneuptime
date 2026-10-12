@@ -141,15 +141,17 @@ function user(name: string, email?: string): User {
 }
 
 function useUsers(byId: Map<string, User>): void {
-  jest
-    .spyOn(UserService, "findOneBy")
-    .mockImplementation((async (data: { query: { _id: ObjectID } }) => {
-      return byId.get(data.query._id.toString()) || null;
-    }) as never);
+  jest.spyOn(UserService, "findOneBy").mockImplementation((async (data: {
+    query: { _id: ObjectID };
+  }) => {
+    return byId.get(data.query._id.toString()) || null;
+  }) as never);
 }
 
 beforeEach(() => {
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
   jest
     .spyOn(IncidentService, "getIncidentLinkInDashboard")
     .mockResolvedValue(URL.fromString(INCIDENT_LINK));
@@ -424,12 +426,11 @@ describe("a press that comes too late says who got there first, and when", () =>
         incidentRow(ACKNOWLEDGED, "2026-10-08T18:07:00.000Z", SIMON),
       ]);
 
-    const answer: WorkspaceAnswer = await WorkspaceActionAnswers.getAlreadyAnswer(
-      {
+    const answer: WorkspaceAnswer =
+      await WorkspaceActionAnswers.getAlreadyAnswer({
         event: incident(ACKNOWLEDGED),
         press: WorkspaceLatePress.Acknowledge,
-      },
-    );
+      });
 
     expect(answer).toEqual({
       markdown: `✅ **[Incident INC-2](${INCIDENT_LINK})** was already acknowledged by **Simon Lee** at {{TIME(2026-10-08T18:07:00Z)}}.`,
@@ -483,12 +484,11 @@ describe("a press that comes too late says who got there first, and when", () =>
         incidentRow(RESOLVED, "2026-10-08T18:20:00.000Z", JANE),
       ]);
 
-    const answer: WorkspaceAnswer = await WorkspaceActionAnswers.getAlreadyAnswer(
-      {
+    const answer: WorkspaceAnswer =
+      await WorkspaceActionAnswers.getAlreadyAnswer({
         event: incident(RESOLVED),
         press: WorkspaceLatePress.Acknowledge,
-      },
-    );
+      });
 
     // Jane's name is text: what she typed, never bold, a link or a mention.
     expect(answer.markdown).toBe(
@@ -631,17 +631,15 @@ describe("a press that comes too late says who got there first, and when", () =>
     jest
       .spyOn(AlertService, "getAlertLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/alert"));
-    jest
-      .spyOn(AlertStateService, "getAllAlertStates")
-      .mockResolvedValue([
-        state(new AlertState(), { id: CREATED, order: 1, created: true }),
-        state(new AlertState(), {
-          id: ACKNOWLEDGED,
-          order: 2,
-          acknowledged: true,
-        }),
-        state(new AlertState(), { id: RESOLVED, order: 3, resolved: true }),
-      ]);
+    jest.spyOn(AlertStateService, "getAllAlertStates").mockResolvedValue([
+      state(new AlertState(), { id: CREATED, order: 1, created: true }),
+      state(new AlertState(), {
+        id: ACKNOWLEDGED,
+        order: 2,
+        acknowledged: true,
+      }),
+      state(new AlertState(), { id: RESOLVED, order: 3, resolved: true }),
+    ]);
     const row: AlertStateTimeline = new AlertStateTimeline();
     row.alertStateId = new ObjectID(ACKNOWLEDGED);
     row.startsAt = new Date("2026-10-08T18:07:00.000Z");
@@ -650,8 +648,8 @@ describe("a press that comes too late says who got there first, and when", () =>
       .spyOn(AlertStateTimelineService, "findBy")
       .mockResolvedValue([row]);
 
-    const answer: WorkspaceAnswer = await WorkspaceActionAnswers.getAlreadyAnswer(
-      {
+    const answer: WorkspaceAnswer =
+      await WorkspaceActionAnswers.getAlreadyAnswer({
         event: {
           type: WorkspaceEventType.Alert,
           id: alertId,
@@ -661,8 +659,7 @@ describe("a press that comes too late says who got there first, and when", () =>
           numberWithPrefix: null,
         },
         press: WorkspaceLatePress.Acknowledge,
-      },
-    );
+      });
 
     expect(answer.markdown).toBe(
       "✅ **[Alert #5](https://oneuptime.test/alert)** was already acknowledged by **Simon Lee** at {{TIME(2026-10-08T18:07:00Z)}}.",
@@ -736,7 +733,10 @@ describe("a press that comes too late says who got there first, and when", () =>
 
     beforeEach(() => {
       jest
-        .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceLinkInDashboard")
+        .spyOn(
+          ScheduledMaintenanceService,
+          "getScheduledMaintenanceLinkInDashboard",
+        )
         .mockResolvedValue(URL.fromString("https://oneuptime.test/sm"));
       jest
         .spyOn(
@@ -913,10 +913,26 @@ describe("a press finished once the account is connected", () => {
   });
 
   test.each([
-    [WorkspaceConnectRequestAgainKind.Command, "/incident", "run /incident again"],
-    [WorkspaceConnectRequestAgainKind.Command, undefined, "run the command again"],
-    [WorkspaceConnectRequestAgainKind.Question, undefined, "ask your question again"],
-    [WorkspaceConnectRequestAgainKind.Button, undefined, "press the button again"],
+    [
+      WorkspaceConnectRequestAgainKind.Command,
+      "/incident",
+      "run /incident again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.Command,
+      undefined,
+      "run the command again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.Question,
+      undefined,
+      "ask your question again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.Button,
+      undefined,
+      "press the button again",
+    ],
   ])(
     "what to press again, as plain text: %s %s",
     (

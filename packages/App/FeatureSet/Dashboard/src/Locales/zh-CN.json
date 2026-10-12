@@ -28139,5 +28139,6 @@
   "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.": "您登录 Microsoft 时使用的不是在 Microsoft Teams 中按下连接按钮的那个人的账户，因此未连接任何内容。请使用您自己的工作账户登录后重试。",
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "您登录 Slack 时使用的不是在 Slack 中按下连接按钮的那个人的账户，因此未连接任何内容。请使用您自己的账户登录 Slack 后重试。",
   "Your {{workspace}} account is connected": "您的 {{workspace}} 账户已连接",
-  "Go back to {{workspace}} and press the button again.": "请返回 {{workspace}}，再按一次该按钮。"
+  "Go back to {{workspace}} and press the button again.": "请返回 {{workspace}}，再按一次该按钮。",
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime 无法在 {{workspace}} 中回复您。请在 OneUptime 中打开该记录查看其当前状态。"
 }

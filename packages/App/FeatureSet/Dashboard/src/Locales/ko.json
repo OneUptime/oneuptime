@@ -28139,5 +28139,6 @@
   "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.": "Microsoft Teams에서 연결 버튼을 누른 사람과 다른 사람으로 Microsoft에 로그인하여 아무것도 연결되지 않았습니다. 본인의 회사 계정으로 로그인한 후 다시 시도하세요.",
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "Slack에서 연결 버튼을 누른 사람과 다른 사람으로 Slack에 로그인하여 아무것도 연결되지 않았습니다. 본인 계정으로 Slack에 로그인한 후 다시 시도하세요.",
   "Your {{workspace}} account is connected": "{{workspace}} 계정이 연결되었습니다",
-  "Go back to {{workspace}} and press the button again.": "{{workspace}}(으)로 돌아가 버튼을 다시 누르세요."
+  "Go back to {{workspace}} and press the button again.": "{{workspace}}(으)로 돌아가 버튼을 다시 누르세요.",
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime이 {{workspace}}에서 답변하지 못했습니다. OneUptime에서 해당 항목을 열어 현재 상태를 확인하세요."
 }

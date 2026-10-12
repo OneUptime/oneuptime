@@ -131,7 +131,8 @@ export interface WorkspaceConnectRequestData {
   teams?: WorkspaceConnectRequestTeamsPlace | undefined;
 }
 
-export interface WorkspaceConnectRequestRecord extends WorkspaceConnectRequestData {
+export interface WorkspaceConnectRequestRecord
+  extends WorkspaceConnectRequestData {
   expiresAt: Date;
 }
 
@@ -378,7 +379,9 @@ export default class WorkspaceConnectRequest {
    * A stored request, read back: null for anything that is not one written
    * by create, or one past its expiry.
    */
-  private static parse(raw: string | null): WorkspaceConnectRequestRecord | null {
+  private static parse(
+    raw: string | null,
+  ): WorkspaceConnectRequestRecord | null {
     if (!raw) {
       return null;
     }
@@ -396,7 +399,9 @@ export default class WorkspaceConnectRequest {
       return null;
     }
 
-    const workspaceType: WorkspaceType = record["workspaceType"] as WorkspaceType;
+    const workspaceType: WorkspaceType = record[
+      "workspaceType"
+    ] as WorkspaceType;
     const projectId: unknown = record["projectId"];
     const workspaceUserId: unknown = record["workspaceUserId"];
     const purpose: unknown = record["purpose"];
@@ -488,10 +493,12 @@ export default class WorkspaceConnectRequest {
       return undefined;
     }
 
-    const kind: WorkspacePendingActionKind =
-      action["kind"] as WorkspacePendingActionKind;
-    const eventType: WorkspaceEventType =
-      action["eventType"] as WorkspaceEventType;
+    const kind: WorkspacePendingActionKind = action[
+      "kind"
+    ] as WorkspacePendingActionKind;
+    const eventType: WorkspaceEventType = action[
+      "eventType"
+    ] as WorkspaceEventType;
     const eventId: string | undefined = WorkspaceConnectRequest.asString(
       action["eventId"],
     );
@@ -525,13 +532,14 @@ export default class WorkspaceConnectRequest {
       return undefined;
     }
 
-    const kind: WorkspaceConnectRequestAgainKind =
-      again["kind"] as WorkspaceConnectRequestAgainKind;
+    const kind: WorkspaceConnectRequestAgainKind = again[
+      "kind"
+    ] as WorkspaceConnectRequestAgainKind;
 
     if (
-      !(Object.values(WorkspaceConnectRequestAgainKind) as Array<string>).includes(
-        kind,
-      )
+      !(
+        Object.values(WorkspaceConnectRequestAgainKind) as Array<string>
+      ).includes(kind)
     ) {
       return undefined;
     }

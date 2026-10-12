@@ -124,7 +124,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 ### 자신의 Slack 계정 연결
 
-버튼, 양식, 명령은 그것을 사용하는 Slack 계정에 연결된 OneUptime 사용자로서 동작합니다. 각자 **사용자 설정 > 워크스페이스 > Slack**을 열고 **Connect my account with Slack**을 선택합니다. 계정을 연결하지 않은 사람은 연결을 요청하는 다이렉트 메시지를 앱에서 받습니다.
+버튼, 양식, 명령은 그것을 사용하는 Slack 계정에 연결된 OneUptime 사용자로서 동작합니다. 각자 **사용자 설정 > 워크스페이스 > Slack**을 열고 **Connect my account with Slack**을 선택합니다. 계정을 연결하지 않은 사람은 누른 곳에서 **Connect Slack account** 버튼이 있는 답변을 받으며, 한 단계로 연결할 수 있습니다.
 :::
 
 ## 환경 변수
@@ -228,6 +228,7 @@ Slack이 돌려보냈는데 연결이 되지 않았다면, 시작한 Slack 페�
 | **"더 이상 이 프로젝트의 구성원이 아닙니다."** | 자신의 Slack 계정을 연결하려면 Slack이 돌려보낼 때 프로젝트 구성원이어야 합니다. |
 | **"이 프로젝트는 아직 Slack 워크스페이스에 연결되어 있지 않습니다."** | 먼저 **프로젝트 설정 > 워크스페이스 > Slack**에서 OneUptime을 Slack에 설치한 다음 자신의 계정을 연결하세요. |
 | **"이 프로젝트가 연결된 것과 다른 Slack 워크스페이스에 로그인했습니다."** | 프로젝트가 설치된 Slack 워크스페이스에 로그인한 상태에서 계정을 연결하세요. |
+| **"Slack에서 연결 버튼을 누른 사람과 다른 사람으로 Slack에 로그인하여 아무것도 연결되지 않았습니다."** | **Connect Slack account** 버튼은 그것을 누른 Slack 계정에 대해서만 작동합니다. 본인으로 Slack 에 로그인하거나, 버튼을 누른 사람에게 누르도록 요청하세요. |
 | **"연결이 취소되어 아무것도 변경되지 않았습니다."** | Slack에서 요청이 허용되지 않았습니다. 다시 시작해서 허용하세요. |
 | **"이 OneUptime 서버에는 Slack이 설정되어 있지 않습니다."** | `SLACK_APP_CLIENT_ID`와 `SLACK_APP_CLIENT_SECRET`을 설정하고([환경 변수](#환경-변수) 참고) OneUptime을 다시 시작하세요. |
 | **"OneUptime이 연결을 완료하지 못했습니다. 다시 시도하세요."** | Slack이 오류로 응답했거나, 마무리하는 동안 요청이나 쓰기가 실패했습니다. 어느 쪽인지는 OneUptime 서버 로그에 나옵니다. 다시 시도하고, 계속 발생하면 로그와 Slack 앱 설정을 확인하세요. |
@@ -243,7 +244,7 @@ OneUptime은 `SLACK_APP_SIGNING_SECRET`이 설정되어 있고 요청이 도달�
 :::
 
 :::details 앱이 내 Slack 계정이 OneUptime에 연결되지 않았다고 함
-버튼, 양식, 명령을 쓰려면 Slack 계정이 OneUptime 사용자에 연결되어 있어야 합니다. **사용자 설정 > 워크스페이스 > Slack**을 열고 **Connect my account with Slack**을 선택하세요. 프로젝트에서 제거되었다면 앱이 대신 그 사실을 알려 주며, Slack에서 하는 작업은 거부됩니다.
+버튼, 양식, 명령을 쓰려면 Slack 계정이 OneUptime 사용자에 연결되어 있어야 합니다. 앱의 답변에서 **Connect Slack account**를 누르거나, **사용자 설정 > 워크스페이스 > Slack**을 열고 **Connect my account with Slack**을 선택하세요. 프로젝트에서 제거되었다면 앱이 대신 그 사실을 알려 주며, Slack에서 하는 작업은 거부됩니다.
 :::
 
 :::details 스크린샷이 텍스트로 표시됨

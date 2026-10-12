@@ -1458,7 +1458,10 @@ describe("Slack buttons answered from the one read", (): void => {
       .mockResolvedValue(URL.fromString("https://oneuptime.test/alert/9"));
     const createSpy: AnySpy = stubCreate(AlertStateTimelineService);
     // Resolved by a monitor: no one's name to give, nor a moment.
-    stubLateAnswerReads({ timelineService: AlertStateTimelineService, rows: [] });
+    stubLateAnswerReads({
+      timelineService: AlertStateTimelineService,
+      rows: [],
+    });
 
     await SlackAlertActions.handleAlertAction(
       handlerArgs(SlackActionType.ResolveAlert, ObjectID.generate().toString()),

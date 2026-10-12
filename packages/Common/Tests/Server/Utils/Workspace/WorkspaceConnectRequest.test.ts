@@ -90,9 +90,7 @@ describe("WorkspaceConnectRequest.create", () => {
     const token: string = await slackAcknowledgeRequest();
 
     expect(token).toMatch(CONNECT_REQUEST_TOKEN_PATTERN);
-    expect(Array.from(store.keys())).toEqual([
-      `${NAMESPACE}-${sha256(token)}`,
-    ]);
+    expect(Array.from(store.keys())).toEqual([`${NAMESPACE}-${sha256(token)}`]);
 
     // Neither the key nor the value holds the token itself.
     for (const [key, entry] of store.entries()) {
@@ -246,7 +244,10 @@ describe("WorkspaceConnectRequest.peek and take", () => {
     // The record says when it ends, whatever the cache's own timer does.
     const record: { expiresAt: string } = JSON.parse(entry.value);
     record.expiresAt = new Date(Date.now() - 1000).toISOString();
-    store.set(key, { value: JSON.stringify(record), expiresAt: entry.expiresAt });
+    store.set(key, {
+      value: JSON.stringify(record),
+      expiresAt: entry.expiresAt,
+    });
 
     expect(await WorkspaceConnectRequest.peek(token)).toBeNull();
   });
@@ -273,7 +274,9 @@ describe("a stored press that is not what create writes reads as nothing", () =>
   }
 
   test("text that is not JSON", async () => {
-    expect(await WorkspaceConnectRequest.peek(await storeRaw("{nope"))).toBeNull();
+    expect(
+      await WorkspaceConnectRequest.peek(await storeRaw("{nope")),
+    ).toBeNull();
   });
 
   test("JSON that is not an object", async () => {
@@ -283,7 +286,10 @@ describe("a stored press that is not what create writes reads as nothing", () =>
   });
 
   test.each([
-    ["a workspace OneUptime does not answer presses in", { workspaceType: "Discord" }],
+    [
+      "a workspace OneUptime does not answer presses in",
+      { workspaceType: "Discord" },
+    ],
     ["no project", { projectId: "" }],
     ["no account that pressed", { workspaceUserId: "" }],
     ["no purpose", { purpose: "" }],

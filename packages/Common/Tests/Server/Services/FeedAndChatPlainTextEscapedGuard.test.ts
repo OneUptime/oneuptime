@@ -1075,7 +1075,10 @@ export function findUnescapedChatReplies(
         const answerArgument: ts.Expression | undefined =
           answerIndex === undefined ? undefined : node.arguments[answerIndex];
 
-        if (answerArgument && ts.isObjectLiteralExpression(unwrap(answerArgument))) {
+        if (
+          answerArgument &&
+          ts.isObjectLiteralExpression(unwrap(answerArgument))
+        ) {
           for (const property of (
             unwrap(answerArgument) as ts.ObjectLiteralExpression
           ).properties) {

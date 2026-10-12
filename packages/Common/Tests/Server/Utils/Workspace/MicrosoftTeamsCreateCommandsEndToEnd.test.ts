@@ -192,6 +192,17 @@ import { UnreadableReferenceException } from "../../../../Server/Utils/Database/
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
+import MicrosoftTeamsServiceUrl from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl";
+import MicrosoftTeamsAlertActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
+import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+  WorkspacePendingActionKind,
+} from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
+import UserService from "../../../../Server/Services/UserService";
+import User from "../../../../Models/DatabaseModels/User";
+import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
@@ -4853,4 +4864,317 @@ describe("card size sweep: whatever the project, the form Teams gets fits the 40
       });
     }
   }
+});
+
+/*
+ * CUSTOMER FEEDBACK #1, END TO END: A BUTTON ON A CARD IS ANSWERED WHERE IT
+ * WAS PRESSED, MENTIONING WHO PRESSED IT.
+ *
+ * Somebody added to an incident's channel, whose Microsoft Teams account
+ * was never connected to OneUptime, pressed Acknowledge on the incident's
+ * card: "nothing happens on the channel". The answer was a line of text
+ * naming nobody, with a link to a settings page and "then try again".
+ *
+ * Through the real botbuilder stack, the press - an Action.Submit, which
+ * Teams sends as a message replying to the card - is answered in the same
+ * conversation (the channel post's thread), with a card that mentions the
+ * person who pressed, asks them to connect their account to acknowledge
+ * the incident, and carries a Connect button that keeps the press, to
+ * finish once they are connected. A press that comes too late says who got
+ * there first, and when. Buttons of cards built from Slack's blocks, and
+ * maintenance buttons, are acted on (they were dead), and a button no
+ * handler knows is answered too.
+ */
+describe("a card's button, pressed in a channel (customer feedback #1)", () => {
+  // The incident's card, posted in the channel: its thread is the conversation.
+  const CARD_POST_ID: string = "1727611200000";
+  const THREAD_ID: string = `${CHANNEL_CONVERSATION_ID};messageid=${CARD_POST_ID}`;
+
+  // An Action.Submit on the card in the channel, as Teams delivers it.
+  function pressOnCard(value: JSONObject, label: string): JSONObject {
+    const activity: JSONObject = buildCardSubmitActivity({
+      id: nextActivityId(label),
+      replyToId: CARD_POST_ID,
+      value: value,
+      conversation: "channel",
+    });
+
+    (activity["conversation"] as JSONObject)["id"] = THREAD_ID;
+
+    return activity;
+  }
+
+  // The answer card a bubble is: its text after the mention, and its button.
+  function answerIn(call: ConnectorCall | undefined): {
+    text: string;
+    connectUrl: string | null;
+  } {
+    const card: JSONObject = cardOf(call);
+    const texts: Array<string> = getTextBlocks(card);
+
+    expect(texts).toHaveLength(1);
+    expect(texts[0]!.startsWith(`${SENDER_MENTION} `)).toBe(true);
+    expect(asObject(card["msteams"])["entities"]).toEqual([
+      {
+        type: "mention",
+        text: SENDER_MENTION,
+        mentioned: { id: SENDER["id"], name: SENDER["name"] },
+      },
+    ]);
+
+    return {
+      text: texts[0]!.substring(SENDER_MENTION.length + 1),
+      connectUrl: connectUrlOf(call),
+    };
+  }
+
+  test("Acknowledge from an account nobody connected: one answer in the card's thread, mentioning them, with a Connect button that keeps the press", async () => {
+    // The real account lookup runs, and finds no link.
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRestore();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+    // The fake Bot Connector stands in for Microsoft's.
+    jest.spyOn(MicrosoftTeamsServiceUrl, "isTrusted").mockReturnValue(true);
+    const acknowledge: SpyInstance<typeof WorkspaceMemberActions.acknowledge> =
+      jest.spyOn(WorkspaceMemberActions, "acknowledge");
+    const incidentId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-not-connected",
+        ),
+      ),
+    );
+
+    // Answered at once, and once: no redelivery, no second bubble.
+    expect(view.httpStatuses).toEqual([200]);
+    expect(view.refused).toEqual([]);
+    expect(
+      view.bubbles.map((call: ConnectorCall) => {
+        return [call.kind, call.conversationId];
+      }),
+    ).toEqual([["card", THREAD_ID]]);
+
+    // master: "To use OneUptime actions in Microsoft Teams, first connect ..."
+    const answer: { text: string; connectUrl: string | null } = answerIn(
+      view.bubbles[0],
+    );
+    expect(answer.text).toBe(
+      "🔗 **Connect your Microsoft Teams account to acknowledge this incident.** It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+    );
+    expectOneClickConnect(view.bubbles[0]);
+
+    // The press, kept for that Microsoft account, to finish and answer here.
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(answer.connectUrl!).searchParams.get("connect"),
+      );
+    expect(request).not.toBeNull();
+    expect(request!.workspaceUserId).toBe(SENDER_AAD_OBJECT_ID);
+    expect(request!.pendingAction!.kind).toBe(
+      WorkspacePendingActionKind.Acknowledge,
+    );
+    expect(request!.pendingAction!.eventId.toString()).toBe(incidentId);
+    expect(request!.teams).toEqual({
+      serviceUrl: connector.serviceUrl,
+      conversationId: THREAD_ID,
+      conversationType: "channel",
+      tenantId: TENANT_ID,
+      userTeamsId: SENDER["id"],
+      userName: SENDER["name"],
+    });
+
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("pressed twice: two answers in the thread, each with a Connect button of its own", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRestore();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+    const incidentId: string = ObjectID.generate().toString();
+
+    const first: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-twice",
+        ),
+      ),
+    );
+    const second: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-twice",
+        ),
+      ),
+    );
+
+    expect([...first.bubbles, ...second.bubbles]).toHaveLength(2);
+    for (const bubble of [...first.bubbles, ...second.bubbles]) {
+      expect(bubble.conversationId).toBe(THREAD_ID);
+    }
+    expect(connectUrlOf(first.bubbles[0])).not.toBe(
+      connectUrlOf(second.bubbles[0]),
+    );
+  });
+
+  test("Acknowledge on an incident somebody acknowledged already: who did it and when, in the thread, as news", async () => {
+    const states: Array<IncidentState> = [
+      { order: 1, isCreatedState: true },
+      { order: 2, isAcknowledgedState: true },
+      { order: 3, isResolvedState: true },
+    ].map((flags: Partial<IncidentState>): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state.id = ObjectID.generate();
+      state.projectId = projectId;
+      Object.assign(state, flags);
+      return state;
+    });
+    const simonId: ObjectID = ObjectID.generate();
+    const simon: User = new User();
+    simon.name = new Name("Simon Lee");
+
+    jest
+      .spyOn(WorkspaceMemberActions, "authorize")
+      .mockImplementation(async (data: { event: WorkspaceEvent }) => {
+        return {
+          type: data.event.type,
+          id: data.event.id,
+          projectId: projectId,
+          currentStateId: states[1]!.id!,
+          number: 2,
+          numberWithPrefix: "INC-2",
+        };
+      });
+    jest
+      .spyOn(IncidentStateService, "getAllIncidentStates")
+      .mockResolvedValue(states);
+    jest.spyOn(IncidentStateTimelineService, "findBy").mockResolvedValue([
+      {
+        incidentStateId: states[1]!.id!,
+        startsAt: new Date("2026-10-08T18:07:00Z"),
+        createdByUserId: simonId,
+      },
+    ] as never);
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(simon);
+    const acknowledge: SpyInstance<typeof WorkspaceMemberActions.acknowledge> =
+      jest.spyOn(WorkspaceMemberActions, "acknowledge");
+    const incidentId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-already",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(view.bubbles).toHaveLength(1);
+    // master: "Sorry, that action failed: Incident is already acknowledged."
+    expect(answerIn(view.bubbles[0])).toEqual({
+      text: `✅ **[Incident INC-2](${dashboardLink(`/incidents/${incidentId}`)})** was already acknowledged by **Simon Lee** at {{TIME(2026-10-08T18:07:00Z)}}.`,
+      connectUrl: null,
+    });
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("a button of a card built from Slack's blocks (AcknowledgeAlert) acknowledges the alert, as the Teams button does", async () => {
+    const handle: SpyInstance<
+      typeof MicrosoftTeamsAlertActions.handleBotAlertAction
+    > = jest
+      .spyOn(MicrosoftTeamsAlertActions, "handleBotAlertAction")
+      .mockResolvedValue(undefined);
+    const alertId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          { action: "AcknowledgeAlert", actionValue: alertId },
+          "slack-alias",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle.mock.calls[0]![0]).toMatchObject({
+      actionType: MicrosoftTeamsAlertActionType.AckAlert,
+      actionValue: alertId,
+    });
+  });
+
+  test("Mark as Ongoing on a maintenance event's card names the event it is on", async () => {
+    const handle: SpyInstance<
+      typeof MicrosoftTeamsScheduledMaintenanceActions.handleBotScheduledMaintenanceAction
+    > = jest
+      .spyOn(
+        MicrosoftTeamsScheduledMaintenanceActions,
+        "handleBotScheduledMaintenanceAction",
+      )
+      .mockResolvedValue(undefined);
+    const eventId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: "MarkScheduledMaintenanceAsOngoing",
+            actionValue: eventId,
+          },
+          "maintenance-button",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle.mock.calls[0]![0]).toBe(
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+    );
+    expect(handle.mock.calls[0]![2]).toMatchObject({
+      scheduledMaintenanceId: eventId,
+    });
+  });
+
+  test("a button no handler knows is answered in the thread, not met with silence", async () => {
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          { action: "SomeButtonOfAnOlderCard", actionValue: "x" },
+          "unknown-button",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(answerIn(view.bubbles[0])).toEqual({
+      text: "OneUptime could not tell what this button does. Please open the record in OneUptime instead.",
+      connectUrl: null,
+    });
+  });
 });

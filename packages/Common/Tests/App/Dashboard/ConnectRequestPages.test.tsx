@@ -1,0 +1,424 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import * as React from "react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * THE CONNECT BUTTON FROM SLACK OR MICROSOFT TEAMS, ON THE SETTINGS PAGE IT
+ * OPENS.
+ *
+ * Somebody whose chat account is not connected pressed a button in Slack or
+ * Microsoft Teams, and was answered there with a Connect button. It opens
+ * their own settings page for that chat with `?connect=` and the press's
+ * token. The page connects the account in one step: it starts the sign-in
+ * with the token on its own, saying meanwhile that it is connecting. When
+ * the sign-in comes back with `?pressed=`, the page says what became of the
+ * press - with, for Slack, a link back to the channel the press was in. A
+ * Connect button that can no longer be used says so, the page's own Connect
+ * button right below. Every value is taken off the address once read, and
+ * nothing the address carries is shown as itself.
+ */
+
+const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
+const TOKEN: string = `${"aZ09_-".repeat(7)}q`;
+const SLACK_AUTHORIZE: string =
+  "https://slack.com/openid/connect/authorize?state=s";
+const TEAMS_AUTHORIZE: string =
+  "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state=s";
+
+const query: Record<string, string | null> = {};
+const setQueryStringMock: MockFunction = getJestMockFunction();
+const navigateMock: MockFunction = getJestMockFunction();
+const apiGetMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Config", () => {
+  return {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    SlackAppClientId: "slack-client-id",
+    MicrosoftTeamsAppClientId: "11111111-2222-3333-4444-555555555555",
+  };
+});
+
+jest.mock("../../../UI/Utils/Navigation", () => {
+  return {
+    __esModule: true,
+    default: {
+      getQueryStringByName: (name: string): string | null => {
+        return query[name] ?? null;
+      },
+      setQueryString: (...args: Array<unknown>): void => {
+        setQueryStringMock(...args);
+      },
+      navigate: (...args: Array<unknown>): void => {
+        navigateMock(...args);
+      },
+      getLocation: () => {
+        return { pathname: "/" };
+      },
+      getCurrentRoute: () => {
+        return {
+          toString: () => {
+            return `/dashboard/${PROJECT_ID}/user-settings/slack-integration`;
+          },
+        };
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/Project", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCurrentProjectId: () => {
+        return {
+          toString: () => {
+            return PROJECT_ID;
+          },
+        };
+      },
+      getCurrentProject: () => {
+        return null;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/User", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUserId: () => {
+        return {
+          toString: () => {
+            return "user-id";
+          },
+        };
+      },
+      isMasterAdmin: (): boolean => {
+        return false;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      get: (...args: Array<unknown>) => {
+        return apiGetMock(...args);
+      },
+      getFriendlyMessage: (error: unknown) => {
+        return String(error);
+      },
+      getFriendlyErrorMessage: (error: unknown) => {
+        return String(error);
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCommonHeaders: () => {
+        return {};
+      },
+      deleteItem: async () => {
+        return undefined;
+      },
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
+      },
+    },
+  };
+});
+
+import MicrosoftTeamsIntegration from "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration";
+import SlackIntegration from "../../../../App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import URL from "../../../Types/API/URL";
+import { JSONObject } from "../../../Types/JSON";
+import { ConnectStartPage } from "../../../Types/Workspace/ConnectCallback";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+
+// Whether the project is connected to the chat, as the page reads it.
+let projectConnected: boolean = true;
+// What the sign-in start answers: its authorization address, or a 400.
+let signInAnswer: "start" | "gone" = "start";
+
+beforeEach(() => {
+  for (const name of Object.keys(query)) {
+    delete query[name];
+  }
+
+  projectConnected = true;
+  signInAnswer = "start";
+  setQueryStringMock.mockReset();
+  navigateMock.mockReset();
+
+  getListMock.mockReset();
+  getListMock.mockImplementation(async (options: unknown) => {
+    const modelName: string = (options as { modelType: { name: string } })
+      .modelType.name;
+    const workspaceType: unknown = (
+      options as { query: { workspaceType?: unknown } }
+    ).query.workspaceType;
+
+    const data: Array<unknown> =
+      modelName === "WorkspaceProjectAuthToken" && projectConnected
+        ? [
+            {
+              id: {
+                toString: () => {
+                  return "project-auth";
+                },
+              },
+              miscData:
+                workspaceType === WorkspaceType.MicrosoftTeams
+                  ? { adminConsentGranted: true }
+                  : { teamName: "Acme" },
+            },
+          ]
+        : [];
+
+    return { data: data, count: data.length, skip: 0, limit: 1 };
+  });
+
+  apiGetMock.mockReset();
+  apiGetMock.mockImplementation(async (options: unknown) => {
+    const url: string = (options as { url: URL }).url.toString();
+
+    if (url.includes("/sign-in-url")) {
+      if (signInAnswer === "gone") {
+        return new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "This Connect button has expired or was already used. Press the button in Slack again.",
+          },
+          {},
+        );
+      }
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          authorizationUrl: url.includes("/slack/")
+            ? SLACK_AUTHORIZE
+            : TEAMS_AUTHORIZE,
+        },
+        {},
+      );
+    }
+
+    // The Slack app manifest the page shows for connecting the project.
+    return new HTTPResponse<JSONObject>(200, {}, {});
+  });
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+async function renderSlack(): Promise<void> {
+  await act(async () => {
+    render(
+      <SlackIntegration
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+        startPage={ConnectStartPage.UserSettings}
+      />,
+    );
+  });
+}
+
+async function renderTeams(): Promise<void> {
+  await act(async () => {
+    render(
+      <MicrosoftTeamsIntegration
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+        startPage={ConnectStartPage.UserSettings}
+      />,
+    );
+  });
+}
+
+// The sign-in starts asked for, as addresses.
+function signInStarts(): Array<globalThis.URL> {
+  return apiGetMock.mock.calls
+    .map((call: Array<unknown>): string => {
+      return (call[0] as { url: URL }).url.toString();
+    })
+    .filter((url: string): boolean => {
+      return url.includes("/sign-in-url");
+    })
+    .map((url: string): globalThis.URL => {
+      return new globalThis.URL(url);
+    });
+}
+
+function navigatedTo(): Array<string> {
+  return navigateMock.mock.calls.map((call: Array<unknown>): string => {
+    return String(call[0]);
+  });
+}
+
+describe("the Slack page, opened from a Connect button in Slack", () => {
+  test("starts the sign-in on its own, carrying the press, and takes the browser to Slack", async () => {
+    query["connect"] = TOKEN;
+
+    await renderSlack();
+
+    const starts: Array<globalThis.URL> = signInStarts();
+    expect(starts).toHaveLength(1);
+    expect(starts[0]!.pathname.endsWith("/slack/sign-in-url")).toBe(true);
+    expect(starts[0]!.searchParams.get("connect")).toBe(TOKEN);
+    expect(starts[0]!.searchParams.get("from")).toBe("user-settings");
+    expect(navigatedTo()).toEqual([SLACK_AUTHORIZE]);
+    // Taken off the address: a reload does not start it again.
+    expect(setQueryStringMock).toHaveBeenCalledWith({ connect: null });
+  });
+
+  test("says it is connecting while the browser is on its way", async () => {
+    query["connect"] = TOKEN;
+    // The browser never leaves in a test: the page stays as it was left.
+    await renderSlack();
+
+    expect(screen.getByTestId("connect-request-connecting")).toHaveTextContent(
+      "Connecting your Slack account…",
+    );
+    expect(screen.getByTestId("connect-request-connecting")).toHaveTextContent(
+      "Taking you to Slack to confirm it's you.",
+    );
+  });
+
+  test("a Connect button that can no longer be used says so, and the page's own Connect button is right there", async () => {
+    query["connect"] = TOKEN;
+    signInAnswer = "gone";
+
+    await renderSlack();
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("connect-request-link-gone")).toHaveTextContent(
+      "This Connect button has expired",
+    );
+    expect(screen.getByTestId("connect-request-link-gone")).toHaveTextContent(
+      "Press the button in Slack again for a new one, or connect your account here.",
+    );
+    expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Connect my account with Slack" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a token that is not one starts nothing", async () => {
+    query["connect"] = "../../evil?x=1";
+
+    await renderSlack();
+
+    expect(signInStarts()).toEqual([]);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("in a project not connected to Slack, nothing starts: the page shows itself as usual", async () => {
+    query["connect"] = TOKEN;
+    projectConnected = false;
+
+    await renderSlack();
+
+    expect(signInStarts()).toEqual([]);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("back from the sign-in: what became of the press, and a link back to the channel it was in", async () => {
+    query["pressed"] = "answered";
+    query["slackChannel"] = "C0INC2";
+    query["slackTeam"] = "T0TEAM";
+
+    await renderSlack();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent("Your Slack account is connected");
+    expect(notice).toHaveTextContent(
+      "OneUptime finished what you pressed in Slack and answered you there.",
+    );
+    expect(screen.getByRole("link", { name: "Back to Slack" })).toHaveAttribute(
+      "href",
+      "https://slack.com/app_redirect?channel=C0INC2&team=T0TEAM",
+    );
+    expect(setQueryStringMock).toHaveBeenCalledWith({
+      pressed: null,
+      slackChannel: null,
+      slackTeam: null,
+    });
+  });
+
+  test("a press Slack took no answer for: the page says to look at the record", async () => {
+    query["pressed"] = "unanswered";
+
+    await renderSlack();
+
+    expect(screen.getByTestId("connect-request-notice")).toHaveTextContent(
+      "OneUptime could not answer you in Slack. Open the record in OneUptime to see where it stands.",
+    );
+    // No channel named: no way back to offer.
+    expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+  });
+
+  test("words in the address are never shown, and a channel that is not an id links nowhere", async () => {
+    query["pressed"] = "<img src=x onerror=alert(1)>Sign in again";
+    query["slackChannel"] = "C0INC2&team=T9EVIL";
+    query["slackTeam"] = "T0TEAM";
+
+    await renderSlack();
+
+    expect(screen.queryByTestId("connect-request-notice")).toBeNull();
+    expect(document.body.textContent).not.toContain("Sign in again");
+    expect(document.querySelector("img")).toBeNull();
+  });
+});
+
+describe("the Microsoft Teams page, opened from a Connect button in Teams", () => {
+  test("starts the Microsoft sign-in on its own, carrying the press", async () => {
+    query["connect"] = TOKEN;
+
+    await renderTeams();
+
+    const starts: Array<globalThis.URL> = signInStarts();
+    expect(starts).toHaveLength(1);
+    expect(starts[0]!.pathname.endsWith("/microsoft-teams/sign-in-url")).toBe(
+      true,
+    );
+    expect(starts[0]!.searchParams.get("connect")).toBe(TOKEN);
+    expect(navigatedTo()).toEqual([TEAMS_AUTHORIZE]);
+  });
+
+  test("back from the sign-in, told to press again: says so, with no Slack link", async () => {
+    query["pressed"] = "again";
+
+    await renderTeams();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent(
+      "Your Microsoft Teams account is connected",
+    );
+    expect(notice).toHaveTextContent(
+      "Go back to Microsoft Teams and press the button again.",
+    );
+    expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+  });
+});

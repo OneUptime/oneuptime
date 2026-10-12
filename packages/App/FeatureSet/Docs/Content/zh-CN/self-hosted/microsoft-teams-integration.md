@@ -385,6 +385,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 | **"您已不再是此项目的成员。"** | 要连接你自己的 Microsoft 账号，在 Microsoft 把你送回来时你必须是该项目的成员。 |
 | **"您登录的 Microsoft 365 组织与此连接所针对的组织不同。"** | 请使用授予了管理员许可的 Microsoft 365 组织（或项目所连接的组织）中的账号登录。 |
 | **"您的 Microsoft 365 组织还没有团队。"** | 在 Microsoft Teams 中创建一个团队，然后再次授予管理员许可。 |
+| **"您登录 Microsoft 时使用的不是在 Microsoft Teams 中按下连接按钮的那个人的账户，因此未连接任何内容。"** | **Connect Microsoft Teams account** 按钮只对按下它的 Microsoft 账户有效。请以您本人的身份登录 Microsoft，或请按下它的人来按。 |
 | **"连接已取消，因此未做任何更改。"** | 未在 Microsoft 中授予许可。请重新开始并接受它。 |
 | **"此 OneUptime 服务器未设置 Microsoft Teams。"** | 设置 Microsoft Teams 应用的客户端 ID 和密码（请参阅 [第 6 步](#第-6-步配置-oneuptime-环境变量)），然后重启 OneUptime。 |
 | **"OneUptime 无法完成连接。请重试。"** | Microsoft 返回了错误，或者在完成连接时某个请求或写入失败。OneUptime 的服务器日志会说明是哪一种。请重试；如果问题持续出现，请检查日志和应用注册的设置。 |

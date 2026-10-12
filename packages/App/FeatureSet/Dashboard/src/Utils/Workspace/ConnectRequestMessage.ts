@@ -47,6 +47,10 @@ export const PRESS_EXPIRED: string = translationKey(
   "The button you pressed in {{workspace}} expired before you connected. Go back to {{workspace}} and press it again.",
 );
 
+export const PRESS_NOT_ANSWERED: string = translationKey(
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.",
+);
+
 export const LINK_GONE_TITLE: string = translationKey(
   "This Connect button has expired",
 );
@@ -76,6 +80,7 @@ const OUTCOME_MESSAGES: Record<ConnectRequestOutcome, string> = {
   [ConnectRequestOutcome.Answered]: PRESS_ANSWERED,
   [ConnectRequestOutcome.PressAgain]: PRESS_AGAIN,
   [ConnectRequestOutcome.Expired]: PRESS_EXPIRED,
+  [ConnectRequestOutcome.NotAnswered]: PRESS_NOT_ANSWERED,
 };
 
 /*

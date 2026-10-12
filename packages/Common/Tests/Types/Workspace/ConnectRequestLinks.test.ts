@@ -47,11 +47,14 @@ describe("ConnectCallbackUtil.readConnectRequestToken", () => {
 });
 
 describe("ConnectCallbackUtil.readConnectRequestOutcome", () => {
-  test.each(Object.values(ConnectRequestOutcome))("knows %s", (outcome) => {
-    expect(ConnectCallbackUtil.readConnectRequestOutcome(outcome)).toBe(
-      outcome,
-    );
-  });
+  test.each(Object.values(ConnectRequestOutcome))(
+    "knows %s",
+    (outcome: ConnectRequestOutcome) => {
+      expect(ConnectCallbackUtil.readConnectRequestOutcome(outcome)).toBe(
+        outcome,
+      );
+    },
+  );
 
   test.each([null, undefined, "", "done", "ANSWERED", 1])(
     "reads %p as no outcome",

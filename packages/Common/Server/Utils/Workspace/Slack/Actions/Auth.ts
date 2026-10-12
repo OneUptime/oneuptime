@@ -210,12 +210,12 @@ export default class SlackAuthAction {
      * press's container (and on the message).
      */
     let slackThreadTs: string | undefined =
-      ((
-        (payload as JSONObject)?.["container"] as JSONObject | undefined
-      )?.["thread_ts"] as string | undefined) ||
-      ((
-        (payload as JSONObject)?.["message"] as JSONObject | undefined
-      )?.["thread_ts"] as string | undefined) ||
+      (((payload as JSONObject)?.["container"] as JSONObject | undefined)?.[
+        "thread_ts"
+      ] as string | undefined) ||
+      (((payload as JSONObject)?.["message"] as JSONObject | undefined)?.[
+        "thread_ts"
+      ] as string | undefined) ||
       undefined;
 
     const responseUrl: string | undefined =

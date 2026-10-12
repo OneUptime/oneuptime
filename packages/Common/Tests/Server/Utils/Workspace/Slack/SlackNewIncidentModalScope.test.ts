@@ -182,15 +182,6 @@ function handlerArgs(
   };
 }
 
-function directMessageTexts(): Array<string> {
-  return directMessageSpy.mock.calls.map(
-    (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>): string => {
-      const block: WorkspaceMessageBlock | undefined = call[0].messageBlocks[0];
-      return (block as WorkspacePayloadMarkdown).text;
-    },
-  );
-}
-
 // An answer only the person sees, in the channel they asked in.
 interface ChannelAnswer {
   channelId: string;

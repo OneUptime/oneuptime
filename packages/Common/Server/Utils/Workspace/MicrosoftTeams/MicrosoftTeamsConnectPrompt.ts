@@ -166,134 +166,135 @@ function formPresses(
   ];
 }
 
-const FORM_PRESSES: ReadonlyMap<string, FormPress> = new Map<
-  string,
-  FormPress
->([
-  ...formPresses(
-    WorkspaceEventType.Incident,
-    {
-      addNote: [
-        MicrosoftTeamsIncidentActionType.ViewAddIncidentNote,
-        MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
-        MicrosoftTeamsIncidentActionType.AddIncidentNote,
-      ],
-      changeState: [
-        MicrosoftTeamsIncidentActionType.ViewChangeIncidentState,
-        MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState,
-      ],
-      executeOnCallPolicy: [
-        MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,
-        MicrosoftTeamsIncidentActionType.SubmitExecuteIncidentOnCallPolicy,
-        MicrosoftTeamsIncidentActionType.ExecuteIncidentOnCallPolicy,
-      ],
-    },
-    "Change Incident State",
-  ),
-  ...formPresses(
-    WorkspaceEventType.Alert,
-    {
-      addNote: [
-        MicrosoftTeamsAlertActionType.ViewAddAlertNote,
-        MicrosoftTeamsAlertActionType.SubmitAlertNote,
-        MicrosoftTeamsAlertActionType.AddAlertNote,
-      ],
-      changeState: [
-        MicrosoftTeamsAlertActionType.ViewChangeAlertState,
-        MicrosoftTeamsAlertActionType.SubmitChangeAlertState,
-      ],
-      executeOnCallPolicy: [
-        MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy,
-        MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy,
-        MicrosoftTeamsAlertActionType.ExecuteAlertOnCallPolicy,
-      ],
-    },
-    "Change Alert State",
-  ),
-  ...formPresses(
-    WorkspaceEventType.IncidentEpisode,
-    {
-      addNote: [
-        MicrosoftTeamsIncidentEpisodeActionType.ViewAddIncidentEpisodeNote,
-        MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote,
-        MicrosoftTeamsIncidentEpisodeActionType.AddIncidentEpisodeNote,
-      ],
-      changeState: [
-        MicrosoftTeamsIncidentEpisodeActionType.ViewChangeIncidentEpisodeState,
-        MicrosoftTeamsIncidentEpisodeActionType.SubmitChangeIncidentEpisodeState,
-      ],
-      executeOnCallPolicy: [
-        MicrosoftTeamsIncidentEpisodeActionType.ViewExecuteIncidentEpisodeOnCallPolicy,
-        MicrosoftTeamsIncidentEpisodeActionType.SubmitExecuteIncidentEpisodeOnCallPolicy,
-        MicrosoftTeamsIncidentEpisodeActionType.ExecuteIncidentEpisodeOnCallPolicy,
-      ],
-    },
-    "Change Episode State",
-  ),
-  ...formPresses(
-    WorkspaceEventType.AlertEpisode,
-    {
-      addNote: [
-        MicrosoftTeamsAlertEpisodeActionType.ViewAddAlertEpisodeNote,
-        MicrosoftTeamsAlertEpisodeActionType.SubmitAlertEpisodeNote,
-        MicrosoftTeamsAlertEpisodeActionType.AddAlertEpisodeNote,
-      ],
-      changeState: [
-        MicrosoftTeamsAlertEpisodeActionType.ViewChangeAlertEpisodeState,
-        MicrosoftTeamsAlertEpisodeActionType.SubmitChangeAlertEpisodeState,
-      ],
-      executeOnCallPolicy: [
-        MicrosoftTeamsAlertEpisodeActionType.ViewExecuteAlertEpisodeOnCallPolicy,
-        MicrosoftTeamsAlertEpisodeActionType.SubmitExecuteAlertEpisodeOnCallPolicy,
-        MicrosoftTeamsAlertEpisodeActionType.ExecuteAlertEpisodeOnCallPolicy,
-      ],
-    },
-    "Change Episode State",
-  ),
-  ...formPresses(
-    WorkspaceEventType.ScheduledMaintenance,
-    {
-      addNote: [
-        MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
-        MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote,
-        MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote,
-      ],
-      changeState: [
-        MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
-        MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState,
-      ],
-      executeOnCallPolicy: [],
-    },
-    "Change State",
-  ),
-]);
+const FORM_PRESSES: ReadonlyMap<string, FormPress> = new Map<string, FormPress>(
+  [
+    ...formPresses(
+      WorkspaceEventType.Incident,
+      {
+        addNote: [
+          MicrosoftTeamsIncidentActionType.ViewAddIncidentNote,
+          MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+          MicrosoftTeamsIncidentActionType.AddIncidentNote,
+        ],
+        changeState: [
+          MicrosoftTeamsIncidentActionType.ViewChangeIncidentState,
+          MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState,
+        ],
+        executeOnCallPolicy: [
+          MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,
+          MicrosoftTeamsIncidentActionType.SubmitExecuteIncidentOnCallPolicy,
+          MicrosoftTeamsIncidentActionType.ExecuteIncidentOnCallPolicy,
+        ],
+      },
+      "Change Incident State",
+    ),
+    ...formPresses(
+      WorkspaceEventType.Alert,
+      {
+        addNote: [
+          MicrosoftTeamsAlertActionType.ViewAddAlertNote,
+          MicrosoftTeamsAlertActionType.SubmitAlertNote,
+          MicrosoftTeamsAlertActionType.AddAlertNote,
+        ],
+        changeState: [
+          MicrosoftTeamsAlertActionType.ViewChangeAlertState,
+          MicrosoftTeamsAlertActionType.SubmitChangeAlertState,
+        ],
+        executeOnCallPolicy: [
+          MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy,
+          MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy,
+          MicrosoftTeamsAlertActionType.ExecuteAlertOnCallPolicy,
+        ],
+      },
+      "Change Alert State",
+    ),
+    ...formPresses(
+      WorkspaceEventType.IncidentEpisode,
+      {
+        addNote: [
+          MicrosoftTeamsIncidentEpisodeActionType.ViewAddIncidentEpisodeNote,
+          MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote,
+          MicrosoftTeamsIncidentEpisodeActionType.AddIncidentEpisodeNote,
+        ],
+        changeState: [
+          MicrosoftTeamsIncidentEpisodeActionType.ViewChangeIncidentEpisodeState,
+          MicrosoftTeamsIncidentEpisodeActionType.SubmitChangeIncidentEpisodeState,
+        ],
+        executeOnCallPolicy: [
+          MicrosoftTeamsIncidentEpisodeActionType.ViewExecuteIncidentEpisodeOnCallPolicy,
+          MicrosoftTeamsIncidentEpisodeActionType.SubmitExecuteIncidentEpisodeOnCallPolicy,
+          MicrosoftTeamsIncidentEpisodeActionType.ExecuteIncidentEpisodeOnCallPolicy,
+        ],
+      },
+      "Change Episode State",
+    ),
+    ...formPresses(
+      WorkspaceEventType.AlertEpisode,
+      {
+        addNote: [
+          MicrosoftTeamsAlertEpisodeActionType.ViewAddAlertEpisodeNote,
+          MicrosoftTeamsAlertEpisodeActionType.SubmitAlertEpisodeNote,
+          MicrosoftTeamsAlertEpisodeActionType.AddAlertEpisodeNote,
+        ],
+        changeState: [
+          MicrosoftTeamsAlertEpisodeActionType.ViewChangeAlertEpisodeState,
+          MicrosoftTeamsAlertEpisodeActionType.SubmitChangeAlertEpisodeState,
+        ],
+        executeOnCallPolicy: [
+          MicrosoftTeamsAlertEpisodeActionType.ViewExecuteAlertEpisodeOnCallPolicy,
+          MicrosoftTeamsAlertEpisodeActionType.SubmitExecuteAlertEpisodeOnCallPolicy,
+          MicrosoftTeamsAlertEpisodeActionType.ExecuteAlertEpisodeOnCallPolicy,
+        ],
+      },
+      "Change Episode State",
+    ),
+    ...formPresses(
+      WorkspaceEventType.ScheduledMaintenance,
+      {
+        addNote: [
+          MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
+          MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote,
+          MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote,
+        ],
+        changeState: [
+          MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
+          MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState,
+        ],
+        executeOnCallPolicy: [],
+      },
+      "Change State",
+    ),
+  ],
+);
 
 // Creating a record: the bot command that opens its form.
-const CREATE_PRESSES: ReadonlyMap<string, { purpose: string; command: string }> =
-  new Map<string, { purpose: string; command: string }>([
-    [
-      MicrosoftTeamsIncidentActionType.NewIncident,
-      { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
-    ],
-    [
-      MicrosoftTeamsIncidentActionType.SubmitNewIncident,
-      { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
-    ],
-    [
-      MicrosoftTeamsScheduledMaintenanceActionType.NewScheduledMaintenance,
-      {
-        purpose: "create a scheduled maintenance event",
-        command: CREATE_MAINTENANCE_COMMAND,
-      },
-    ],
-    [
-      MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
-      {
-        purpose: "create a scheduled maintenance event",
-        command: CREATE_MAINTENANCE_COMMAND,
-      },
-    ],
-  ]);
+const CREATE_PRESSES: ReadonlyMap<
+  string,
+  { purpose: string; command: string }
+> = new Map<string, { purpose: string; command: string }>([
+  [
+    MicrosoftTeamsIncidentActionType.NewIncident,
+    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+  ],
+  [
+    MicrosoftTeamsIncidentActionType.SubmitNewIncident,
+    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+  ],
+  [
+    MicrosoftTeamsScheduledMaintenanceActionType.NewScheduledMaintenance,
+    {
+      purpose: "create a scheduled maintenance event",
+      command: CREATE_MAINTENANCE_COMMAND,
+    },
+  ],
+  [
+    MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
+    {
+      purpose: "create a scheduled maintenance event",
+      command: CREATE_MAINTENANCE_COMMAND,
+    },
+  ],
+]);
 
 export default class MicrosoftTeamsConnectPrompt {
   /*

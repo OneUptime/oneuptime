@@ -80,7 +80,9 @@ export default class SlackActionAnswer {
     "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.";
 
   // The place a request says it was made in; null without a token or a person.
-  public static getPlace(source: SlackAnswerPlaceSource): SlackAnswerPlace | null {
+  public static getPlace(
+    source: SlackAnswerPlaceSource,
+  ): SlackAnswerPlace | null {
     if (!source.projectAuthToken || !source.slackUserId) {
       return null;
     }

@@ -89,7 +89,12 @@ describe("SlackModalMetadata", () => {
 
   test("an envelope with values that are not text drops them", () => {
     const read: SlackModalMetadataValue = SlackModalMetadata.read(
-      JSON.stringify({ oneuptime: 1, value: 7, channelId: ["C0"], threadTs: 1 }),
+      JSON.stringify({
+        oneuptime: 1,
+        value: 7,
+        channelId: ["C0"],
+        threadTs: 1,
+      }),
     );
 
     expect(read).toEqual({ value: undefined, origin: {} });

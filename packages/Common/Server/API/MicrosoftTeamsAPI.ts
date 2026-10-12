@@ -171,15 +171,22 @@ export default class MicrosoftTeamsAPI {
         userId: data.userId,
       });
 
-    if (request.teams) {
-      await MicrosoftTeamsActionAnswer.sendToPlace({
-        place: request.teams,
-        answer: result.answer,
-      });
-    }
+    const isAnswered: boolean = request.teams
+      ? await MicrosoftTeamsActionAnswer.sendToPlace({
+          place: request.teams,
+          answer: result.answer,
+        })
+      : false;
 
     return {
-      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: result.outcome,
+      /*
+       * The page never says the answer is in Microsoft Teams when Teams
+       * took none: it says to look at the record instead.
+       */
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
+        result.outcome === ConnectRequestOutcome.Answered && !isAnswered
+          ? ConnectRequestOutcome.NotAnswered
+          : result.outcome,
     };
   }
 

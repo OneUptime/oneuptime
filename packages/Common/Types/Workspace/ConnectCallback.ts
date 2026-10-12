@@ -142,6 +142,11 @@ export enum ConnectRequestOutcome {
   PressAgain = "again",
   // The press waited too long: press it again.
   Expired = "expired",
+  /*
+   * Finished, or refused, but the chat took no answer (the app was removed
+   * from the conversation since): the record says where it stands.
+   */
+  NotAnswered = "unanswered",
 }
 
 /*
