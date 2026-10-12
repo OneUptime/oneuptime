@@ -20,6 +20,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Jede andere API oder Ihren eigenen Dienst aufzurufen     | [API](#api)                                                       |
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Je nach Wert den einen oder anderen Weg zu nehmen        | [Bedingungen](#conditions)                                        |
+| Je nach Wert einen von mehreren Wegen zu nehmen          | [Switch / Case](#switch-case)                                     |
 | Daten zwischen zwei Bausteinen umzuformen                | [JSON](#json) oder [Benutzerdefinierter Code](#custom-code)       |
 | Vor dem nächsten Baustein zu warten                      | [Sleep](#sleep)                                                   |
 | Einen anderen Workflow zu starten                        | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - **Einstellungen** sind das, was Sie ausfüllen. Mit **(Optional)** gekennzeichnete Einstellungen können leer bleiben. Seltener genutzte Einstellungen sind unter **Weitere Felder** eingeklappt.
-- **Ausgaben** sind die Punkte am unteren Rand. Die meisten Bausteine haben **Success** und **Error**; [Bedingungen](#conditions) hat **Yes** und **No**.
+- **Ausgaben** sind die Punkte am unteren Rand. Die meisten Bausteine haben **Success** und **Error**; [Bedingungen](#conditions) hat **Yes** und **No**, und [Switch / Case](#switch-case) hat eine für jeden seiner Fälle und dazu **Default**.
 - **Rückkehren** sind die Werte, die ein Baustein an spätere Bausteine weitergibt, etwa den **Response Body** einer API. Ein späterer Baustein liest einen mit `{{local.components.<block ID>.returnValues.<value ID>}}`; die Schaltfläche **{ }** in einer Einstellung fügt ihn für Sie ein. Siehe [Variablen](/docs/workflows/variables#komponentenausgaben-daten-aus-früheren-bausteinen).
 
 Ein Baustein, der **Error** nimmt, lässt die Ausführung nicht fehlschlagen: Die Ausführung folgt dem Pfad **Error** oder endet dort, wenn nichts damit verbunden ist. Eine leer gelassene Pflichteinstellung oder eine Einstellung, die nie funktionieren kann, stoppt die Ausführung dagegen mit einem Fehler.
@@ -240,7 +241,7 @@ Zwischen Text und JSON umwandeln oder zwei JSON-Objekte zusammenführen.
 
 ## Conditions
 
-Nach einem Vergleich verzweigen. Im Bereich **Komponente hinzufügen** heißt dieser Baustein **If / Else**, unter **Beliebt**.
+Nach einem Vergleich verzweigen. Im Bereich **Komponente hinzufügen** heißt dieser Baustein **If / Else**, unter **Beliebt**. Um zwischen mehr als zwei Wegen zu wählen, verwenden Sie [Switch / Case](#switch-case).
 
 Seine Einstellungen lesen sich wie ein Satz: **Wenn** *zu prüfender Wert* *Vergleich* *Vergleichswert*, weiter bei **Yes**, sonst bei **No**. Unter den Einstellungen wird die Bedingung in Worten wiedergegeben, sodass Sie sehen, dass sie sagt, was Sie meinen. Auf der Arbeitsfläche zeigt der Baustein seine Bedingung ebenfalls, zum Beispiel *If environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ Die Zahlenvergleiche vergleichen Zahlen und die Textvergleiche Text, daher brauc
 - **ist leer** wird erfüllt von gar nichts, leerem Text, einer leeren Liste oder einem leeren Objekt oder einem Wert, den der frühere Baustein nicht hatte, etwa einem Feld, das der Webhook nicht gesendet hat. `0` und `false` sind Werte, also nicht leer.
 
 **Yes** läuft, wenn die Bedingung erfüllt ist, und **No**, wenn nicht. Bausteine, die eingerichtet wurden, bevor die Einstellungen diese Namen hatten, laufen genau wie zuvor. Eine alte Wahl wird nicht mehr angeboten: einen Wert als **Null** oder **Undefined** zu vergleichen, was ignorierte, was der Wert enthielt. Ein Baustein, der sie noch verwendet, sagt das, wenn Sie ihn öffnen; wählen Sie **ist leer**, um auf einen fehlenden Wert zu prüfen.
+
+## Switch / Case
+
+Je nach Wert einen von mehreren Wegen nehmen. Im Bereich **Komponente hinzufügen** heißt dieser Baustein **Switch / Case**, unter **Beliebt**.
+
+Er vergleicht einen Wert der Reihe nach von oben mit jedem seiner Fälle und geht beim ersten passenden Fall weiter, oder bei **Default**, wenn keiner passt. Es läuft immer nur ein Weg: Ein Wert, der zu zwei Fällen passt, nimmt den ersten davon.
+
+| Einstellung        | Was sie tut |
+| ------------------ | ----------- |
+| **Value to check** | Der Wert, mit dem jeder Fall verglichen wird, meist aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`. |
+| **Cases**          | Ein Vergleich und ein Wert für jeden Weg, von oben geprüft. Drücken Sie **Fall hinzufügen** für einen weiteren, und ziehen Sie einen Fall an seinem Griff, um ihn zu verschieben. Ein Baustein enthält höchstens 25 Fälle. |
+
+Jeder Fall ist ein Ausgang auf der Arbeitsfläche, benannt nach seinem Wert: Ein Fall mit **is equal to** `production` ist der Ausgang *production*, und einer mit **ist größer als** `500` ist *is greater than 500*. **Default** ist immer der letzte Ausgang. Verbinden Sie jeden Ausgang mit dem, was als Nächstes laufen soll.
+
+Ein Fall passt genau dann, wenn ein [If / Else](#conditions) mit demselben Vergleich und Wert **Yes** nehmen würde: Die Vergleiche sind dieselben, und die Werte werden auf dieselbe Weise verglichen. **Compare as** ist unter den Fällen eingeklappt, mit einer Wahl für jeden Fall.
+
+Wenn Sie einen Fall entfernen, der eine Verbindung hat, zeigen die Einstellungen, zu welchen Bausteinen er führte, und **Wiederherstellen** holt den Fall zurück. Beim Speichern wird die Verbindung zusammen mit dem Fall entfernt. Die Prüfungen des Editors weisen auf einen Fall hin, mit dem nichts verbunden ist, und auf einen Fall, der nie genommen wird, weil ein Fall darüber dasselbe fragt.
+
+Eine Ausführung, die einen Ausgang nimmt, mit dem nichts verbunden ist, **Default** eingeschlossen, endet dort ohne Fehler. Der Reiter **Schritte** der Ausführung sagt, welcher Fall gepasst hat und warum, zum Beispiel *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

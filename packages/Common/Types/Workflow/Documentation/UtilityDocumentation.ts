@@ -99,6 +99,89 @@ export const getIfElseDocumentation: UtilityDocumentationFunction = (
   };
 };
 
+export const getSwitchDocumentation: UtilityDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  const sample: SampleValue | null = getSampleValue(context);
+
+  /*
+   * The settings are the value to check and the list of cases, each a
+   * comparison and a value; every case is an output on the canvas, named
+   * after it, beside Default. The comparisons are If / Else's, in its words.
+   */
+  return {
+    summary:
+      "Compares one value with each case in turn, then carries on down the first case that matches, or down **Default**.",
+    steps: [
+      "Pick the **Value to check** with { }, usually a value from an earlier step.",
+      "Under **Cases**, choose a comparison and a value for each way the workflow can go. They are checked from the top, and the first that matches wins.",
+      "Each case is an output on the canvas, named after its value. Connect each one, and **Default**, to what should run.",
+    ],
+    /*
+     * Real cases, not "the first value": what a value from an earlier step
+     * is sorted by, and that a value matching both takes the first.
+     */
+    examples: sample
+      ? [
+          {
+            title: "Go a different way for each value",
+            fields: [
+              { name: "Value to check", value: sample.reference },
+              {
+                name: "Cases",
+                value: "contains “error”, then contains “warning”",
+              },
+            ],
+            description: `When ${sample.description} contains error, the first case runs, even if it says warning too. When it contains only warning, the second runs. Anything else goes down **Default**.`,
+          },
+        ]
+      : [
+          {
+            title: "Sort a request's answers by status",
+            fields: [
+              {
+                name: "Value to check",
+                value:
+                  "{{local.components.api-get-1.returnValues.response-status}}",
+              },
+              {
+                name: "Cases",
+                value: "is less than 300, then is less than 500",
+              },
+            ],
+            description:
+              "When an API step called `api-get-1` was answered below 300 the first case runs, from 300 to 499 the second, and from 500 **Default**. The cases compare numbers.",
+          },
+        ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "Only the first case that matches runs. Put narrow cases first: is greater than 500 above is greater than 100. The other way round, 600 takes the 100 case, and the 500 case never runs.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "Removing a case removes the connection from its output too, once you save the step.",
+      },
+    ],
+    learnMore: [
+      {
+        title: "How the cases are compared",
+        paragraphs: [
+          "A case matches exactly when an **If / Else** with the same comparison and value would say Yes. Is equal to and is not equal to compare text unless **Compare as** says otherwise, and capital letters count: `Error` is not `error`.",
+          "The number comparisons, such as is less than, compare numbers. Is empty is met by nothing at all, blank text, an empty list or object, or a value the earlier step did not have.",
+        ],
+      },
+      {
+        title: "When no case matches",
+        paragraphs: [
+          "**Default** runs. Leave it unconnected to stop there: the run ends without an error. The run's Steps view says which case matched, or that none did.",
+        ],
+      },
+    ],
+    links: [docsLink("Switch / Case guide", WorkflowDocsPaths.switchCase)],
+  };
+};
+
 export const getLogDocumentation: UtilityDocumentationFunction = (
   context: ComponentDocumentationContext,
 ): ComponentDocumentation => {

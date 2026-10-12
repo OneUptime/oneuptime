@@ -40,6 +40,14 @@ export interface RunOptions {
    */
   getRemainingExecutionTimeInMs?: (() => number) | undefined;
   /**
+   * The step's settings as they are saved, before any {{...}} in them was
+   * resolved: what the canvas shows. A step that names something after its
+   * settings - a Switch / Case names its outputs after its cases - reads them
+   * here, so a run names it as the canvas does, and never by a resolved
+   * value, which can be a secret variable's.
+   */
+  configuredArguments?: JSONObject | undefined;
+  /**
    * Fire-and-forget trigger for another workflow in the same project.
    * Enqueues the target workflow with the given `returnValues` as its arguments
    * (the payload a Manual trigger in the child workflow will receive on its
@@ -51,6 +59,12 @@ export interface RunOptions {
 export interface RunReturnType {
   returnValues: JSONObject;
   executePort?: Port | undefined;
+  /**
+   * Why the step took executePort, in a sentence the run's Steps view shows
+   * under the output: which case a Switch / Case matched, and that the ones
+   * above it did not. The runner redacts it like everything else it keeps.
+   */
+  executePortReason?: string | undefined;
   /**
    * When set to a positive number of milliseconds, the workflow runner will
    * suspend execution AFTER this component (the components connected to

@@ -46,6 +46,7 @@ import {
   getLogDocumentation,
   getMergeJsonDocumentation,
   getSleepDocumentation,
+  getSwitchDocumentation,
   getTextToJsonDocumentation,
 } from "./UtilityDocumentation";
 
@@ -76,6 +77,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.ApiPatch]: getApiPatchDocumentation,
   [ComponentID.SendEmail]: getSendEmailDocumentation,
   [ComponentID.IfElse]: getIfElseDocumentation,
+  [ComponentID.Switch]: getSwitchDocumentation,
   [ComponentID.WorkflowRun]: getExecuteWorkflowDocumentation,
   [ComponentID.Sleep]: getSleepDocumentation,
   [ComponentID.AIGenerateText]: getAIGenerateTextDocumentation,

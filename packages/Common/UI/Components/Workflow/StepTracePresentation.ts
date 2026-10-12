@@ -13,6 +13,15 @@
  */
 
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import { SWITCH_ARGUMENT_IDS } from "../../../Types/Workflow/Components/Switch";
+import {
+  SwitchCase,
+  SwitchCasesReading,
+  describeSwitchCaseCondition,
+  getSwitchCaseComparison,
+  parseSwitchCases,
+} from "../../../Types/Workflow/Components/SwitchCases";
 import {
   WorkflowStepStatus,
   WorkflowStepTrace,
@@ -58,7 +67,17 @@ export interface StepOutcome {
   kind: StepOutcomeKind;
   /** The port's name as the canvas shows it ("No"), or null for no port. */
   portTitle: string | null;
+  /**
+   * The name was written from the step's settings - a Switch / Case case,
+   * named after its value - so it is shown as written, never translated.
+   */
+  isPortTitleFromSettings: boolean;
   portDescription: string | null;
+  /**
+   * Why the step took the port, when it said: which case a Switch / Case
+   * matched, and that the ones above it did not.
+   */
+  portReason: string | null;
   portTone: StepPortTone;
   nextSteps: Array<StepOutcomeNextStep>;
 }
@@ -137,7 +156,9 @@ export const getStepOutcome: GetStepOutcomeFunction = (
     return {
       kind: StepOutcomeKind.NoPort,
       portTitle: null,
+      isPortTitleFromSettings: false,
       portDescription: null,
+      portReason: null,
       portTone: StepPortTone.Normal,
       nextSteps: [],
     };
@@ -152,11 +173,22 @@ export const getStepOutcome: GetStepOutcomeFunction = (
     ? step.executedPortDescription
     : null;
 
+  const portReason: string | null = isText(step.executedPortReason)
+    ? step.executedPortReason
+    : null;
+
+  // Only a title the trace recorded can be the person's own words.
+  const isPortTitleFromSettings: boolean =
+    step.executedPortTitleIsFromSettings === true &&
+    isText(step.executedPortTitle);
+
   if (!Array.isArray(step.nextSteps)) {
     return {
       kind: StepOutcomeKind.PortOnly,
       portTitle: portTitle,
+      isPortTitleFromSettings: isPortTitleFromSettings,
       portDescription: portDescription,
+      portReason: portReason,
       portTone: portTone,
       nextSteps: [],
     };
@@ -188,7 +220,9 @@ export const getStepOutcome: GetStepOutcomeFunction = (
         ? StepOutcomeKind.LedTo
         : StepOutcomeKind.NothingConnected,
     portTitle: portTitle,
+    isPortTitleFromSettings: isPortTitleFromSettings,
     portDescription: portDescription,
+    portReason: portReason,
     portTone: portTone,
     nextSteps: nextSteps,
   };
@@ -349,6 +383,91 @@ const templateText: TemplateTextFunction = (
   }
 };
 
+type DescribeSwitchCasesFunction = (value: unknown) => string | null;
+
+// How much of an unknown comparison, or its value, a line quotes.
+const RECEIVED_CASE_TEXT_MAX_LENGTH: number = 60;
+
+type ShortenReceivedFunction = (text: string) => string;
+
+// Cut at a whole character, so an emoji is never split in two.
+const shortenReceived: ShortenReceivedFunction = (text: string): string => {
+  const characters: Array<string> = Array.from(text);
+
+  return characters.length > RECEIVED_CASE_TEXT_MAX_LENGTH
+    ? `${characters
+        .slice(0, RECEIVED_CASE_TEXT_MAX_LENGTH - 1)
+        .join("")
+        .trimEnd()}…`
+    : text;
+};
+
+type DescribeReceivedCaseFunction = (switchCase: SwitchCase) => string;
+
+/*
+ * One case as received. A comparison the step does not know is quoted as it
+ * was saved - "~= “staging”" - since that is what stopped the run; a case
+ * that does not say what it compares yet is "not set up".
+ */
+const describeReceivedCase: DescribeReceivedCaseFunction = (
+  switchCase: SwitchCase,
+): string => {
+  const condition: string | null = describeSwitchCaseCondition(switchCase);
+
+  if (condition) {
+    return condition;
+  }
+
+  const comparison: string = switchCase.comparison.trim();
+
+  if (!comparison || getSwitchCaseComparison(switchCase)) {
+    return "not set up";
+  }
+
+  const value: string = switchCase.value.trim();
+
+  return value
+    ? `${shortenReceived(comparison)} “${shortenReceived(value)}”`
+    : shortenReceived(comparison);
+};
+
+/**
+ * A Switch / Case's cases as a run received them, one line each in the words
+ * of the canvas and of the run's reason - "Case 2: is equal to “staging”" -
+ * rather than as the JSON of the list. Null when they are not a list of
+ * cases, which is then shown as it was.
+ */
+export const describeSwitchCasesForTrace: DescribeSwitchCasesFunction = (
+  value: unknown,
+): string | null => {
+  const reading: SwitchCasesReading = parseSwitchCases(value);
+
+  if (!reading.isReadable || reading.cases.length === 0) {
+    return null;
+  }
+
+  return reading.cases
+    .map((switchCase: SwitchCase, index: number): string => {
+      return `Case ${index + 1}: ${describeReceivedCase(switchCase)}`;
+    })
+    .join("\n");
+};
+
+type IsSwitchCasesFunction = (
+  step: WorkflowStepTraceEntry,
+  argumentId: string,
+) => boolean;
+
+const isSwitchCases: IsSwitchCasesFunction = (
+  step: WorkflowStepTraceEntry,
+  argumentId: string,
+): boolean => {
+  return (
+    step.metadataId === ComponentID.Switch &&
+    argumentId === SWITCH_ARGUMENT_IDS.cases
+  );
+};
+
 type GetReceivedRowsFunction = (
   step: WorkflowStepTraceEntry,
 ) => Array<StepValueRow>;
@@ -363,8 +482,26 @@ export const getReceivedRows: GetReceivedRowsFunction = (
 
   return orderedKeys(values, step.argumentNames).map(
     (id: string): StepValueRow => {
-      const value: TraceValueDisplay = formatTraceValue(values[id]);
-      const template: string | null = templateText(templates[id]);
+      /*
+       * A Switch / Case's cases read as the sentences the canvas and the
+       * run's reason use, as received and, when a case had a {{...}} in it,
+       * as configured.
+       */
+      const casesText: string | null = isSwitchCases(step, id)
+        ? describeSwitchCasesForTrace(values[id])
+        : null;
+      const configuredCasesText: string | null = isSwitchCases(step, id)
+        ? describeSwitchCasesForTrace(templates[id])
+        : null;
+
+      const value: TraceValueDisplay =
+        casesText !== null
+          ? { kind: TraceValueKind.Text, text: casesText, isBlock: true }
+          : formatTraceValue(values[id]);
+      const template: string | null =
+        configuredCasesText !== null
+          ? configuredCasesText
+          : templateText(templates[id]);
 
       const unresolvedReferences: Array<string> = [];
 
