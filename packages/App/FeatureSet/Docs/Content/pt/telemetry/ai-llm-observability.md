@@ -1,35 +1,60 @@
-# Observabilidade de IA / LLM com o OneUptime
+# Observabilidade de IA / LLM
 
-Leia cada conversa que sua IA teve, repita-a do jeito que aconteceu e seja avisado quando ela responder mal. Tudo roda sobre OpenTelemetry padrão, sem SDK proprietário: se seu aplicativo emite spans com as **convenções semânticas GenAI** do OpenTelemetry (`gen_ai.*`), o OneUptime os transforma em conversas, alertas, uso e custo.
+Leia cada conversa que sua IA teve, repita-a do jeito que aconteceu e seja avisado quando ela responder mal. O OneUptime constrói tudo isso a partir do OpenTelemetry padrão: se sua aplicação envia spans com as **convenções semânticas GenAI** (`gen_ai.*`), você obtém conversas, alertas, uso e custo, sem nenhum SDK proprietário.
 
-## O que você ganha
+:::cards
+- [Configure](#configure-em-cinco-passos): Cinco passos, do primeiro span às respostas sinalizadas.
+- [Repita uma conversa](#leia-e-repita-uma-conversa): Leia um chat como a pessoa o viu, no ritmo em que aconteceu.
+- [Receba alertas](#seja-avisado-quando-a-ia-responder-mal): Alertas prontos para respostas que falham, são recusadas, cortadas, sinalizadas ou lentas.
+- [Acompanhe o gasto](#veja-quem-gasta-o-quê): Custo por pessoa, equipe, modelo e aplicação, com orçamentos diários.
+:::
 
-Abra **IA / LLM** na barra de navegação, em Observabilidade:
+## Como funciona
 
-- **Conversas** — cada conversa que sua IA teve: o que as pessoas perguntaram, o que a IA respondeu, as ferramentas que usou e o que deu errado. Cinco números ficam acima da lista: conversas, respostas da IA, quantas precisam de atenção, custo e quanto tempo uma resposta costuma levar. Abra uma conversa para lê-la ou repeti-la.
-- **Chamadas** — cada chamada de LLM, embedding, agente e ferramenta, filtrável por serviço, provedor, modelo, operação, pessoa e equipe. Clique em uma chamada para abri-la no visualizador de traços.
-- **Uso** — as chamadas, os tokens e o custo de um período, e quem gasta o quê: funcionários, equipes, modelos, provedores e aplicativos classificados por gasto.
-- **Alertas** — alertas prontos para quando a IA responde mal, e seus monitores de IA / LLM.
-- **Orçamentos** — limites de custo diários, publicados como métricas para alertar.
-- **Preços** — seus próprios preços por modelo, para modelos que o catálogo embutido não conhece.
-- **Configuração** — os cinco passos abaixo, com o endpoint do seu projeto.
+A instrumentação GenAI da sua aplicação exporta cada chamada ao modelo como um span do OpenTelemetry. Quando o span chega, o OneUptime lê seus atributos `gen_ai.*`, verifica se a resposta tem problemas, calcula o preço da chamada e a arquiva na conversa a que pertence.
 
-No visualizador de traços, o span de cada chamada à IA também tem um painel **IA / LLM** com o modelo, a contagem de tokens, o custo, os parâmetros da requisição, e o prompt e a resposta.
+```mermaid title="Das chamadas de IA da sua aplicação ao OneUptime"
+flowchart TB
+    app["Instrumentação GenAI<br/>da sua aplicação"] -->|"Spans via OTLP"| ingest["Ingestão do OneUptime"]
+    ingest --> check["Verifica a resposta,<br/>calcula o custo"]
+    ingest --> group["Encontra a conversa<br/>da chamada"]
+    check --> tabs["Conversas, Chamadas,<br/>Uso, Alertas, Orçamentos"]
+    group --> tabs
+```
 
-## Passo 1 — Envie suas chamadas à IA
+Abra **Produtos → AI / LLM**, em **Observabilidade**. O produto tem sete abas:
 
-Crie uma chave de ingestão de telemetria: abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**. Seu aplicativo envia a chave como um cabeçalho OTLP. (Veja o [guia do OpenTelemetry](/docs/telemetry/open-telemetry) para capturas de tela.)
+| Aba | O que mostra |
+| --- | --- |
+| **Conversas** | Cada conversa que sua IA teve, primeiro as que precisam de atenção. Acima da lista: conversas, respostas da IA, quantas precisam de atenção, custo e o tempo de resposta típico. |
+| **Chamadas** | Cada chamada de modelo, embedding, agente e ferramenta. Filtre por serviço, provedor, modelo, operação, pessoa, equipe ou conversa; clique em uma chamada para abri-la no visualizador de traces. |
+| **Uso** | Chamadas, tokens e custo de um período, ordenados por funcionário, equipe, modelo, provedor ou aplicação. |
+| **Alertas** | Alertas prontos para quando a IA responde mal, e seus monitores de IA / LLM. |
+| **Orçamentos** | Limites de custo diários, publicados como métricas sobre as quais você pode alertar. |
+| **Preços** | Seus próprios preços para modelos que a lista de preços embutida não conhece. |
+| **Configuração** | Os cinco passos abaixo, com o endpoint do seu projeto. |
 
-Depois instrumente seu aplicativo com qualquer biblioteca GenAI do OpenTelemetry:
+No visualizador de traces, o span de cada chamada de IA também tem uma aba **LLM**: provedor, modelo, tokens, custo, parâmetros da requisição, e o prompt e a resposta.
 
-- **OpenLLMetry** (Traceloop) — OpenAI, Anthropic, Cohere, Bedrock, LangChain, LlamaIndex, CrewAI e mais.
-- **OpenInference** (Arize) — OpenAI, LangChain, LlamaIndex, DSPy e mais.
-- O **Vercel AI SDK**, ou as **instrumentações do OpenTelemetry** para OpenAI, Anthropic e Gemini.
+## Antes de começar
 
-Encaminha seu tráfego de LLM por um gateway como **LiteLLM** ou **Portkey**? Exporte os traços do gateway em vez de instrumentar cada aplicativo — veja [Observando gateways de IA](/docs/telemetry/ai-gateways). Procurando os assistentes de programação que seus engenheiros usam — Claude Code, Cursor, Codex, Gemini CLI, Copilot? Eles exportam o próprio OpenTelemetry e não precisam de nada de você: veja [Observabilidade de assistentes de programação com IA](/docs/telemetry/ai-coding-assistants).
+- Um projeto do OneUptime em que você possa criar uma chave de ingestão de telemetria.
+- Uma aplicação que chama um modelo, e uma instrumentação GenAI para a linguagem dela: **OpenLLMetry** (Traceloop), **OpenInference** (Arize), o **Vercel AI SDK**, ou as instrumentações do OpenTelemetry para OpenAI, Anthropic e Gemini.
 
-### Python (OpenLLMetry)
+> [!TIP]
+> O tráfego para os modelos que passa por um gateway como LiteLLM ou Portkey pode ser exportado pelo gateway em vez de por cada aplicação: veja [Gateways de IA](/docs/telemetry/ai-gateways). Para os assistentes de programação que seus engenheiros usam, veja [Assistentes de programação com IA](/docs/telemetry/ai-coding-assistants).
 
+## Configure em cinco passos
+
+O primeiro passo é tudo de que você precisa para ver chamadas. Cada passo seguinte mostra mais.
+
+:::steps
+### Envie suas chamadas de IA
+
+Crie uma chave de ingestão em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** (o [início rápido do OpenTelemetry](/docs/telemetry/open-telemetry#criar-uma-chave-de-ingestão) mostra como). Depois aponte sua instrumentação para o OneUptime:
+
+:::tabs
+@tab Python
 ```bash
 pip install traceloop-sdk opentelemetry-exporter-otlp
 ```
@@ -39,54 +64,49 @@ from traceloop.sdk import Traceloop
 
 Traceloop.init(
     app_name="my-ai-agent",
-    api_endpoint="https://oneuptime.com/otlp",   # or your self-hosted host + /otlp
+    api_endpoint="https://oneuptime.com/otlp",
     headers={"x-oneuptime-token": "YOUR_INGESTION_TOKEN"},
 )
-
-# Your normal OpenAI / Anthropic / LangChain calls are now traced automatically.
+# Your OpenAI, Anthropic and LangChain calls are now traced.
 ```
-
-### Node.js / TypeScript (OpenLLMetry)
-
+@tab Node.js
 ```bash
 npm install @traceloop/node-server-sdk
 ```
 
-```ts
+```typescript
 import * as traceloop from "@traceloop/node-server-sdk";
 
 traceloop.initialize({
   appName: "my-ai-agent",
-  baseUrl: "https://oneuptime.com/otlp", // or your self-hosted host + /otlp
+  baseUrl: "https://oneuptime.com/otlp",
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
-
-### Variáveis de ambiente simples do OpenTelemetry
-
-Se você instrumenta com um SDK nativo do OpenTelemetry, aponte o exportador OTLP para o OneUptime:
-
+@tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
+:::
 
-Hospeda o OneUptime por conta própria? Substitua `https://oneuptime.com/otlp` por `https://YOUR-ONEUPTIME-HOST/otlp`.
+Hospeda o OneUptime por conta própria? Use `https://YOUR-ONEUPTIME-HOST/otlp` em vez de `https://oneuptime.com/otlp`. Chame seu modelo uma vez, e a chamada aparece em **Chamadas**.
 
-## Passo 2 — Registre o que foi dito
+### Registre o que foi dito
 
-Uma conversa mostra o que as pessoas perguntaram e o que a IA respondeu quando sua instrumentação registra isso. O OpenLLMetry registra prompts e respostas, a menos que você desligue (`TRACELOOP_TRACE_CONTENT=false`). As instrumentações do OpenTelemetry só os registram quando você pede:
+Uma conversa mostra o que as pessoas perguntaram e o que a IA respondeu somente quando sua instrumentação registra isso. O OpenLLMetry registra prompts e respostas, a menos que você defina `TRACELOOP_TRACE_CONTENT=false`. As instrumentações do OpenTelemetry só os registram quando você pede:
 
 ```bash
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
-Sem eles, uma conversa ainda mostra seus tempos, seu custo e seus problemas, e informa que o conteúdo não foi registrado. Prompts podem conter dados sensíveis: veja [Privacidade e ocultação](#privacidade-e-ocultação) para mascará-los antes de serem armazenados.
+Instrumentações mais novas do OpenTelemetry aceitam `span_only`, `event_only` ou `span_and_event` em vez de `true`. Sem conteúdo registrado, uma conversa ainda mostra seus tempos, seu custo e seus problemas. Os prompts podem conter dados sensíveis: [Privacidade e ocultação](#privacidade-e-ocultação) mostra como mascará-los antes de serem armazenados.
 
-## Passo 3 — Agrupe as chamadas em conversas
+### Agrupe as chamadas em conversas
 
-Um aplicativo de chat faz uma chamada ao modelo por turno. Defina `gen_ai.conversation.id` — ou `session.id` — com o id do seu chat em cada chamada à IA, e cada chat aparece como uma única conversa, não importa quantas chamadas e traços tenha levado. Com o OpenLLMetry, defina-o uma vez por requisição como propriedade de associação:
+Um aplicativo de chat faz uma chamada ao modelo por turno. Defina `gen_ai.conversation.id` (ou `session.id`) com o id do seu chat em cada chamada de IA, e cada chat aparece como uma única conversa, não importa quantas chamadas e traces ele tenha levado. Com o OpenLLMetry, defina uma vez por requisição:
 
 ```python
 from traceloop.sdk import Traceloop
@@ -97,25 +117,25 @@ Traceloop.set_association_properties({
 })
 ```
 
-Chamadas sem id de conversa também aparecem, uma requisição (um traço) por vez.
+Com o Vercel AI SDK, passe o id do chat como `experimental_telemetry: { metadata: { sessionId } }`. Chamadas sem id de conversa continuam aparecendo, uma requisição (um trace) de cada vez.
 
-## Passo 4 — Informe quem perguntou
+### Informe quem perguntou
 
-Defina `user.id` ou `user.email` — a propriedade de associação acima define o e-mail — para ver com quem foi cada conversa, pesquisar a lista por pessoa e classificar o gasto por funcionário na aba Uso. [Atribuição a funcionários e equipes](#atribuição-a-funcionários-e-equipes) lista todas as chaves que o OneUptime lê.
+Defina `user.id` ou `user.email` em cada chamada de IA (a propriedade de associação acima define o e-mail). Cada conversa passa então a mostrar com quem foi, você pode buscar na lista por pessoa, e a aba **Uso** ordena o gasto por funcionário. [Atribuição a funcionários e equipes](/docs/telemetry/ai-coding-assistants#atribuição-a-funcionários-e-equipes) lista cada chave de identidade que o OneUptime lê.
 
-## Passo 5 — Sinalize respostas ruins
+### Sinalize respostas ruins
 
 O OneUptime verifica cada resposta assim que ela chega e marca o que deu errado:
 
-| Problema   | O que significa                                              | Detectado por                                                                                                                                                                  |
-| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Falhou     | A chamada terminou em erro, então nenhuma resposta chegou    | Status do span Error, `error.type`, ou um motivo de término `error`                                                                                                            |
-| Recusado   | A IA recusou, ou um filtro de segurança bloqueou             | Um motivo de término de recusa ou de segurança (`content_filter`, `refusal`, `SAFETY` e similares), uma recusa na resposta, ou uma resposta que começa com uma recusa padrão em inglês |
-| Cortado    | A resposta parou no limite de tokens                         | Um motivo de término `length`, `max_tokens` ou `MAX_TOKENS`                                                                                                                    |
-| Vazio      | A IA respondeu sem texto e sem chamada de ferramenta         | Conteúdo registrado que não contém nada, ou 0 tokens de saída                                                                                                                  |
-| Sinalizado | Uma avaliação enviada pelo seu aplicativo disse que a resposta era ruim | Um evento `gen_ai.evaluation.result`                                                                                                                                |
+| Problema | O que significa | Detectado por |
+| --- | --- | --- |
+| Com falha | A chamada terminou em erro, então nenhuma resposta chegou | O status do span Error, `error.type`, ou um motivo de término `error` |
+| Recusada | A IA se recusou, ou um filtro de segurança bloqueou a resposta | Um motivo de término de recusa ou de segurança (`content_filter`, `refusal`, `SAFETY` e similares), uma recusa na resposta, ou uma resposta que começa com uma recusa padrão em inglês |
+| Cortada | A resposta parou no limite de tokens | Um motivo de término `length`, `max_tokens` ou `MAX_TOKENS` |
+| Vazia | Nenhum texto e nenhuma chamada de ferramenta | Conteúdo registrado que não contém nada, ou 0 tokens de saída |
+| Sinalizada | Uma avaliação enviada pela sua aplicação disse que a resposta era ruim | Um evento `gen_ai.evaluation.result` |
 
-Os quatro primeiros não precisam de nada de você. Para sinalizar o resto — uma resposta que seu guardrail, seu eval ou seu próprio juiz LLM rejeita —, adicione um evento `gen_ai.evaluation.result` ao span da resposta, com `gen_ai.evaluation.score.label` definido como `fail`:
+As quatro primeiras não precisam de nada da sua parte. Para sinalizar uma resposta que seu guardrail, sua avaliação ou um botão de polegar para baixo rejeita, adicione um evento `gen_ai.evaluation.result` ao span da resposta, enquanto o span está aberto, com `gen_ai.evaluation.score.label` definido como `fail`:
 
 ```python
 from opentelemetry import trace
@@ -130,157 +150,180 @@ trace.get_current_span().add_event(
 )
 ```
 
-Rótulos como `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` e `hallucination` também contam como falha. O evento precisa estar no span da resposta que ele julga, enquanto esse span está aberto.
+Rótulos como `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` e `hallucination` também contam como falha. O OneUptime nunca envia suas conversas a outra IA para julgá-las: cada verificação lê apenas o que a própria chamada carrega.
+:::
 
-O OneUptime nunca envia suas conversas para outra IA julgá-las: cada verificação lê apenas o que a própria chamada traz.
+## Leia e repita uma conversa
 
-## Ler e repetir uma conversa
-
-Uma conversa abre inteira, do jeito que um aplicativo de chat mostra seu histórico: o que a pessoa disse à direita, as respostas da IA à esquerda com modelo, horário, tokens e custo, as chamadas de ferramentas entre elas, e o que deu errado marcado onde aconteceu. **Detalhes** abaixo de uma resposta mostra o motivo de término e as avaliações, com um link para a chamada em Traços.
+Uma conversa abre inteira, do jeito que um aplicativo de chat mostra o histórico: o que a pessoa disse à direita, as respostas da IA à esquerda com modelo, hora, tokens e custo, as chamadas de ferramentas no meio, e o que deu errado marcado onde aconteceu. **Detalhes** abaixo de uma resposta mostra por que ela parou, suas avaliações e um link para a chamada em Traços.
 
 A barra na parte de baixo repete a conversa do jeito que a pessoa a viveu:
 
-- **Repetir** a reproduz a partir da primeira mensagem no ritmo em que aconteceu, com "A IA está respondendo…" contando enquanto uma resposta está a caminho. Clique no horário de qualquer mensagem para repetir a partir dali.
-- **Pular esperas**, ligado por padrão, encurta silêncios maiores que 3 segundos. O botão de velocidade reproduz em 1×, 2×, 4× ou 8×.
-- **K** reproduz ou pausa, **J** ou **←** volta uma mensagem, e **L** ou **→** avança uma.
-- O endereço guarda a mensagem em que uma reprodução parou (`?step=`), então um link abre naquele momento.
+| Controle | O que faz |
+| --- | --- |
+| **Repetir** | Reproduz a conversa desde a primeira mensagem, no ritmo em que aconteceu. "A IA está respondendo…" conta o tempo enquanto uma resposta está a caminho. Clique na hora de qualquer mensagem para repetir a partir dali. |
+| **Pular esperas** | Ativado por padrão: encurta qualquer silêncio de mais de 3 segundos. |
+| `1x` | Muda a velocidade: 1x, 2x, 4x ou 8x. |
+| **K**, **J** ou **←**, **L** ou **→** | Reproduzir ou pausar, voltar uma mensagem, avançar uma mensagem. |
+
+O endereço da página guarda a mensagem em que uma repetição parou (`?step=`), então um link que você compartilha abre naquele momento.
 
 ## Seja avisado quando a IA responder mal
 
-A aba **Alertas** oferece os alertas que a maioria dos aplicativos de IA quer. Escolher um abre Criar monitor já preenchido, onde você pode mudar qualquer coisa antes de salvar:
+A aba **Alertas** lista os alertas que a maioria das aplicações de IA quer. Escolher um abre **Criar monitor** já preenchido, e você pode mudar qualquer coisa antes de salvar:
 
-| Alerta                       | Quando avisa você                                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| Respostas dão errado         | Mais de 5% das respostas em 15 minutos falham, são recusadas, cortadas, vazias ou sinalizadas      |
-| As chamadas à IA falham      | Mais de 10% das chamadas ao modelo em 5 minutos terminam em erro                                   |
-| A IA se recusa a responder   | Mais de 5% das respostas em 30 minutos são recusas                                                 |
-| Respostas cortadas           | 3 ou mais respostas em 30 minutos param no limite de tokens                                        |
-| Respostas sinalizadas        | Uma avaliação marca uma resposta como ruim                                                         |
-| Respostas lentas             | Mais de 10% das respostas em 15 minutos levam mais de 30 segundos                                  |
-| A IA para de responder       | A IA não dá nenhuma resposta por 30 minutos                                                        |
+| Alerta | Quando avisa você | Severidade |
+| --- | --- | --- |
+| As respostas dão errado | Mais de 5% das respostas em 15 minutos falham, são recusadas, cortadas, vazias ou sinalizadas | Warning |
+| As chamadas de IA falham | Mais de 10% das chamadas ao modelo em 5 minutos terminam em erro | Critical |
+| A IA se recusa a responder | Mais de 5% das respostas em 30 minutos são recusas | Warning |
+| As respostas são cortadas | 3 ou mais respostas em 30 minutos param no limite de tokens | Warning |
+| As respostas são sinalizadas | Uma avaliação marca uma resposta como ruim | Warning |
+| As respostas estão lentas | Mais de 10% das respostas em 15 minutos levam mais de 30 segundos | Warning |
+| A IA para de responder | A IA não dá nenhuma resposta por 30 minutos | Critical |
 
-Os alertas sobre uma proporção também esperam por pelo menos 3 respostas ruins, para que uma resposta ruim em duas não acorde ninguém.
+Os alertas sobre uma parcela das respostas também esperam por pelo menos 3 respostas ruins, então uma resposta ruim em duas não aciona ninguém. Um alerta Critical recebe a severidade de alerta mais alta do seu projeto e um alerta Warning a seguinte: High e Low em um projeto novo.
 
-Cada alerta é um monitor de **IA / LLM**. Suas configurações dizem o que conta como resposta ruim — os problemas acima, uma resposta mais lenta que um limite que você define, ou ambos —, quais aplicativos e qual modelo ele observa, e até onde cada verificação olha para trás. Abaixo delas, uma prévia mostra o que o monitor contaria agora mesmo. Seus critérios comparam três números: a **proporção de respostas ruins** (em %), o **número de respostas ruins** e o **número de respostas**. Um alerta pronto gera um alerta que se resolve sozinho e mostra o monitor como Degradado enquanto as respostas estão ruins; ative o incidente dele para acionar alguém.
+Cada alerta é um monitor de **IA / LLM**. As configurações dele dizem o que conta como resposta ruim (**Contar uma resposta como ruim quando ela**, **Ou leva mais de (segundos)**), até onde cada verificação olha para trás (**Janela de tempo**, 15 minutos por padrão), quais **Apps** ele observa e, em **Mais campos**, qual **Modelo**. Uma **Pré-visualização** mostra o que o monitor contaria agora. Seus critérios comparam três números: **Respostas ruins da IA (em %)**, **Respostas ruins da IA** e **Respostas da IA**.
 
-O gasto é vigiado pelos [orçamentos de custo diários](#orçamentos-de-custo-diários).
+Um alerta pronto dispara um alerta que se resolve sozinho, e mostra o monitor como **Degraded** enquanto as respostas estão ruins. O incidente dele vem preenchido, mas desativado: ative-o para acionar alguém.
 
-## Atributos que o OneUptime reconhece
+## Veja quem gasta o quê
 
-O OneUptime lê primeiro as convenções GenAI do OpenTelemetry e recorre às variantes do OpenLLMetry e do OpenInference para que as bibliotecas populares funcionem de imediato.
+A aba **Uso** mostra as chamadas, os tokens e o custo de um período (os últimos 7 dias, a menos que você escolha outro), e uma tabela dos 25 primeiros em uma de cinco divisões: **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço**. Chamadas que não citam ninguém são contadas em **Sem atribuição**, nunca descartadas.
 
-| O quê                                 | Atributo principal           | Também aceito                                                                                                                                                                                                                                                             |
-| ------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Provedor / sistema                    | `gen_ai.provider.name`       | `gen_ai.system` (obsoleto nas convenções, ainda muito emitido), `llm.system`, `llm.provider`                                                                                                                                                                             |
-| Operação                              | `gen_ai.operation.name`      | `llm.request.type`, `openinference.span.kind`                                                                                                                                                                                                                             |
-| Modelo solicitado                     | `gen_ai.request.model`       | `llm.model_name`, `llm.request.model`                                                                                                                                                                                                                                     |
-| Modelo da resposta                    | `gen_ai.response.model`      | `llm.response.model`                                                                                                                                                                                                                                                      |
-| Tokens de entrada                     | `gen_ai.usage.input_tokens`  | `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens`                                                                                                                                                                                         |
-| Tokens de saída                       | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens`                                                                                                                                                                             |
-| Total de tokens                       | `gen_ai.usage.total_tokens`  | `llm.token_count.total`, `llm.usage.total_tokens`; derivado de entrada + saída quando nenhum é informado                                                                                                                                                                  |
-| Custo (USD)                           | `gen_ai.usage.cost`          | `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost` (LiteLLM), `litellm.cost.total`                                                                                                                                      |
-| Nome do agente                        | `gen_ai.agent.name`          | `agent.name`                                                                                                                                                                                                                                                              |
-| Nome da ferramenta                    | `gen_ai.tool.name`           | `tool.name`                                                                                                                                                                                                                                                               |
-| Id de conversa / sessão               | `gen_ai.conversation.id`     | `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`                                                                                                                                                                                        |
-| Funcionário (quem fez a chamada)      | `user.id`                    | `enduser.id`, `litellm.metadata.user_api_key_user_id` e `metadata.user_api_key_user_id` (grafias do LiteLLM OTel v2 e v1 — ambas são lidas), `traceloop.association.properties.user_id`, `langfuse.user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
-| E-mail do funcionário                 | `user.email`                 | `traceloop.association.properties.user_email`, `enduser.email`                                                                                                                                                                                                            |
-| Equipe / centro de custo              | `team.id`                    | `team`, `cost_center`, `department`, `litellm.metadata.user_api_key_team_id` e `litellm.team.id` (LiteLLM OTel v2), `metadata.user_api_key_team_id` (LiteLLM OTel v1), `cursor.team.id`                                                                                   |
+Pessoas e equipes vêm dos atributos de identidade da chamada: veja [Atribuição a funcionários e equipes](/docs/telemetry/ai-coding-assistants#atribuição-a-funcionários-e-equipes).
 
-As subchaves de `traceloop.association.properties.*` são **fornecidas por quem chama**: o Traceloop define o prefixo, e seu código fornece o que vai abaixo dele. `gen_ai.usage.total_tokens` e `gen_ai.usage.cost` são chaves **de fato**, não convenções semânticas GenAI — as convenções não definem atributo de total de tokens nem de custo —, e o OneUptime as lê porque as instrumentações comuns as emitem. `gen_ai.system` é o antecessor obsoleto de `gen_ai.provider.name` nas próprias convenções; ambos são lidos.
+### Primeiro os spans, as métricas completam
 
-**As três linhas de identidade também são procuradas com um prefixo `resource.`.** A ingestão OTLP achata cada atributo de _recurso_ no mapa de atributos do span sob um prefixo `resource.`, então `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` chega como `resource.team.id`. O OneUptime procura primeiro na lista inteira sem prefixo, depois na lista inteira `resource.`, de modo que um atributo de span (que descreve uma chamada) vence um atributo de recurso (que descreve o processo todo). As demais linhas são procuradas só pela chave sem prefixo: são valores por chamada.
+Os spans GenAI carregam o modelo, os tokens e o custo de uma chamada, então, onde existem, respondem a tudo. Algumas ferramentas publicam métricas de tokens e de custo e nenhum span GenAI, como a maioria dos assistentes de programação. O OneUptime lê essas métricas apenas para um número que os spans não informaram, e nunca soma os dois: muitas instrumentações enviam ambos para a mesma chamada, e somá-los contaria cada dólar duas vezes.
 
-**O conteúdo de prompts e respostas** é lido do evento `gen_ai.client.inference.operation.details`; dos atributos de span `gen_ai.input.messages`, `gen_ai.output.messages` e `gen_ai.system_instructions`; dos eventos por papel **obsoletos** que instrumentações mais antigas ainda emitem (`gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.tool.message`, `gen_ai.assistant.message`, `gen_ai.choice`); dos atributos indexados (`gen_ai.prompt.N.content` e `gen_ai.completion.N.content`, e no OpenInference `llm.input_messages.N.message.content` e `llm.output_messages.N.message.content`); e dos arrays de mensagens JSON (`gen_ai.prompt`, `gen_ai.completion`, `input.value`, `output.value`).
-
-### Como o custo é calculado
-
-Se sua instrumentação informa um custo (`gen_ai.usage.cost`), o OneUptime o usa como está: o valor informado sempre vence. Quando nenhum custo é informado, o OneUptime calcula um **custo estimado na ingestão** a partir da contagem de tokens do span e de um catálogo embutido de preços de tabela de modelos comuns da OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova e Meta Llama. Os modelos são reconhecidos pelo prefixo do nome, então snapshots datados como `gpt-4o-2024-08-06` e ids decorados pelo fornecedor como `us.anthropic.claude-3-5-sonnet-20241022-v2:0` são resolvidos corretamente. Modelos desconhecidos ou personalizados nunca são adivinhados — o custo deles fica em `0` até você dar um preço a eles na aba **Preços**. As estimativas usam preços de tabela e não consideram descontos de cache ou de lote.
-
-Hospeda o OneUptime por conta própria? O catálogo fica em `packages/Common/Types/Telemetry/LlmCostCatalog.ts`.
-
-## Atribuição a funcionários e equipes
-
-"Qual dos nossos engenheiros gastou US$ 4 mil em Opus no mês passado" é uma pergunta sobre uma pessoa, e nenhum span de LLM a responde a menos que algo no span diga quem é. O OneUptime copia o ator humano para colunas consultáveis na ingestão, então você agrupa e filtra por uma coluna em vez de escrever buscas de atributos.
-
-As três linhas de identidade da tabela acima são todo o mecanismo; vence a primeira chave presente, na ordem listada. `user.id` vem primeiro porque é a chave canônica do OpenTelemetry para um ator humano e a que você deve padronizar se definir a identidade por conta própria. **Uma exceção: o Claude Code** emite `user.id` como um identificador anônimo aleatório guardado em `~/.claude.json`, não uma pessoa. Isso é inofensivo nos pontos de dados de métricas dele, cuja lista começa pelo e-mail, mas se você ativar o beta de traços do Claude Code, o `user.id` anônimo passa à frente de `user.email` nos spans: remova ou remapeie `user.id` em um processador do coletor para essa frota. `enduser.id` ainda é um atributo ativo das convenções semânticas e é aceito como alias equivalente. `cursor.user.id` vem por último porque é um inteiro opaco, restrito à equipe, que precisa da API de administração do Cursor para chegar a uma pessoa.
-
-A identidade só é lida em spans já reconhecidos como chamadas de LLM: `user.id`, `user.email` e `team.id` são chaves genéricas que spans de navegador e de backends comuns também carregam. Os **pontos de dados de métricas** carregam uma lista mais curta, que começa pelo e-mail — `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id`, com equipes de `team.id`, `team`, `cost_center`, `department` e `cursor.team.id`, cada um também procurado com o prefixo `resource.` —, porque as CLIs de agentes de programação que emitem métricas sem spans emitem `user.email` nativamente. Hoje nada lê a identidade dos **registros de log**.
-
-### Definindo a equipe e o centro de custo
-
-Nenhuma instrumentação emite `team.id`, `team`, `cost_center` ou `department`: sua organização os define, normalmente via `OTEL_RESOURCE_ATTRIBUTES` no processo:
-
-```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-123,department=engineering"
+```mermaid title="De onde vem um número da aba Uso"
+flowchart TB
+    spans{"Os spans GenAI<br/>informam?"}
+    spans -->|"Sim"| fromSpans["Mostrado<br/>pelos spans"]
+    spans -->|"Não"| metrics{"As métricas GenAI<br/>informam?"}
+    metrics -->|"Sim"| fromMetrics["Mostrado pelas métricas,<br/>marcado como<br/>das métricas GenAI"]
+    metrics -->|"Não"| nothing["Nada<br/>a mostrar"]
 ```
 
-Eles chegam ao OneUptime como `resource.team.id`, `resource.team`, `resource.cost_center` e `resource.department`, e os dois níveis são reconhecidos em spans e em pontos de dados de métricas, seja seu exportador deixando as chaves no bloco de recurso OTLP ou copiando-as para cada span (o Claude Code faz a segunda opção). Um `team.id` sem prefixo definido diretamente em um span continua vencendo.
+| Onde | O que recorre às métricas | Quando |
+| --- | --- | --- |
+| Tokens de entrada e de saída | Os dois totais | Os totais de tokens dos spans são ambos 0 |
+| Custo (USD) | O custo, com o custo em micro-USD do Codex convertido para USD | O total de custo dos spans é 0 |
+| Chamadas de LLM | Nada: apenas spans | — |
+| Tabelas **Funcionário**, **Equipe**, **Modelo** | Só o custo; as células de chamadas e tokens mostram `—` | Essa tabela não encontrou linhas de spans |
+| Tabelas **Provedor**, **Aplicação / Serviço** | Nada: apenas spans | — |
+| Conversas | Nada: as conversas são construídas a partir de spans | — |
 
-As grafias dos gateways chegam sem nenhuma configuração sua. O LiteLLM nomeia seus atributos de forma diferente nos seus dois modos de OpenTelemetry — o callback `otel` v1 padrão usa um prefixo `metadata.` simples (`metadata.user_api_key_user_id`, `metadata.user_api_key_user_email`, `metadata.user_api_key_team_id`), o modo v2 opcional (`LITELLM_OTEL_V2=true`) o namespace `litellm.` —, e **o OneUptime lê os dois**.
+Um número tirado das métricas é marcado como **das métricas GenAI**, porque não tem linhas correspondentes em **Chamadas**. Então, quando seus spans GenAI informam um número, a parcela de uma ferramenta que envia só métricas não aparece. Para ver o gasto dessa ferramenta separadamente, envie-a para um projeto só dela, onde não chegam spans GenAI.
 
-### As chaves de cliente são excluídas de propósito
+## Quanto custa uma chamada
 
-Um span de LLM pode carregar **duas** pessoas diferentes: o funcionário que fez a chamada e o **cliente** final para quem ela foi feita. Estas chaves carregam o cliente, e o OneUptime deliberadamente não lê **nenhuma** delas em uma coluna de identidade:
+Um custo informado pela sua instrumentação (`gen_ai.usage.cost`) é usado como está, mesmo quando é 0. Quando nenhum é informado, o OneUptime estima um quando o span chega, a partir das contagens de tokens e de uma lista de preços embutida para modelos comuns da OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova e Meta Llama. O preço do modelo servido é buscado primeiro, depois o do modelo solicitado.
 
-- `gen_ai.user` e `llm.user` — como as instrumentações repetem o parâmetro de requisição `user` da OpenAI, que a OpenAI documenta como "a stable identifier for your end-users" (agora obsoleto em favor de `safety_identifier` e `prompt_cache_key`).
-- `litellm.metadata.user_api_key_end_user_id`, `metadata.user_api_key_end_user_id` e `litellm.end_user.id` — o id explícito de usuário final do LiteLLM nas três grafias, distinto do id do dono da chave, que **é** o funcionário e **é** lido.
+Os modelos são casados pelo prefixo de nome mais longo, então ids com data ou decorados pelo fornecedor, como `gpt-4o-2024-08-06` e `us.anthropic.claude-sonnet-4-5-20250929-v1:0`, encontram o preço da sua família. Um modelo que a lista não conhece, inclusive um lançamento novo, nunca é adivinhado: seu custo fica em 0 até você definir um preço. As estimativas usam preços de tabela, sem descontos de cache ou de lote.
 
-O motivo é a exatidão do rateio de custos: leia um id de cliente na coluna de funcionário e um bot de suporte que atende 40.000 clientes cria 40.000 "funcionários" fantasmas, enquanto o engenheiro dono do gasto parece não ter gastado nada. Esses atributos ficam no mapa de atributos bruto, onde você pode consultá-los diretamente.
-
-### As colunas de identidade são limpas
-
-A coluna de e-mail do funcionário guarda dados pessoais reais. Suas **Regras de mascaramento** de telemetria no escopo **Atributos** a cobrem exatamente como cobrem o atributo de onde ela foi lida, então uma regra de ocultação de e-mails também se aplica à coluna. Configure regras de mascaramento e filtros de descarte em **Traços → Configurações**.
-
-## Spans e métricas são um recurso alternativo, não uma soma
-
-**Os spans GenAI são a fonte oficial. O fluxo de métricas só é consultado quando o fluxo de spans não informou nada, e os dois nunca são somados.** Um span carrega modelo, tokens e custo em uma linha, então onde há spans, eles respondem a qualquer pergunta. Onde não há — as CLIs de agentes de programação publicam _métricas_ de tokens e custo e nenhum span GenAI —, o fluxo de métricas assume. Eles não são somados porque muitas instrumentações emitem os dois sinais para a mesma chamada (o OpenLLMetry é o caso comum), e somá-los contaria cada dólar duas vezes.
-
-A consequência a planejar: **assim que seus spans GenAI informam um valor diferente de zero, a contribuição de uma fonte só de métricas para esse valor não aparece.** O recurso alternativo é por valor e por detalhamento, não por emissor:
-
-| Onde                                          | O que recorre às métricas                                    | Quando                                        |
-| --------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------- |
-| Uso → Tokens de entrada / Tokens de saída     | Totais de tokens de entrada e de saída                       | As duas somas de tokens dos spans são 0       |
-| Uso → Custo (USD)                             | Custo, em USD e micro-USD, escalado e somado                 | A soma de custo dos spans é 0                 |
-| Uso → Chamadas de LLM                         | Nada — só spans                                              | —                                             |
-| Uso → Funcionário, Equipe, Modelo             | Só o custo. As colunas de chamadas e tokens mostram `—`      | Esse detalhamento não retornou linhas de span |
-| Uso → Provedor, Aplicação / Serviço           | Nada — só spans                                              | —                                             |
-| Conversas                                     | Nada — as conversas são montadas a partir de spans           | —                                             |
-
-Provedor e Aplicação / Serviço não têm recurso às métricas porque os contadores dos agentes de programação não carregam nenhum atributo de provedor GenAI e não estão ligados a nenhum serviço de telemetria do OneUptime. Sempre que um valor vem de métricas, a página o rotula **das métricas GenAI**, porque um valor vindo de métricas não tem linhas correspondentes na lista Chamadas.
-
-**Se você precisa que o gasto de uma ferramenta só de métricas apareça separado, dê a ela um projeto próprio**, para que seu fluxo de spans fique realmente vazio e o recurso alternativo entre em ação. O mesmo vale para orçamentos: defina um orçamento por serviço em vez de misturar serviços que emitem spans com serviços só de métricas.
-
-## Dashboards e alertas de métricas
-
-As métricas GenAI chegam como métricas comuns do OpenTelemetry, então você pode criar **dashboards** com gráficos de `gen_ai.client.token.usage`, `gen_ai.client.operation.duration` e o resto, e criar **monitores de métricas** sobre elas — por exemplo quando o p95 de `gen_ai.client.operation.duration` passa de um limite, agrupado por modelo. Veja [Monitor de métricas](/docs/monitor/metrics-monitor).
+Para definir você mesmo o preço de um modelo (uma tarifa negociada, um modelo com fine-tuning ou um modelo que você hospeda), adicione-o na aba **Preços**, em **Preços personalizados de LLM**: um **Prefixo do modelo**, um **Preço de entrada (USD por 1M de tokens)** e um **Preço de saída (USD por 1M de tokens)**. Vence o prefixo correspondente mais longo entre os seus preços e a lista embutida; em caso de empate, vence o seu preço. Um preço se aplica às chamadas que chegam cerca de um minuto depois de você salvá-lo; as chamadas já armazenadas mantêm o custo.
 
 ## Orçamentos de custo diários
 
-A aba **Orçamentos** define limites diários em USD, avaliados sobre o dia UTC. A cada 15 minutos um worker em segundo plano soma o custo dos spans de LLM do dia (informado ou calculado), registra-o no orçamento e publica duas métricas do tipo gauge:
+Um orçamento acompanha o gasto de um dia, em USD, ao longo do dia UTC. A cada 15 minutos, o OneUptime soma o gasto de IA do dia (dos spans, ou das métricas de custo GenAI quando nenhum span informou gasto), mostra-o no orçamento e publica duas métricas:
 
-| Métrica                             | Significado                                   |
-| ----------------------------------- | --------------------------------------------- |
-| `oneuptime.llm.budget.spend.usd`    | O gasto do dia até agora, em USD              |
-| `oneuptime.llm.budget.percent.used` | O gasto como porcentagem do limite diário     |
+| Métrica | O que é |
+| --- | --- |
+| `oneuptime.llm.budget.spend.usd` | O gasto do dia até agora, em USD |
+| `oneuptime.llm.budget.percent.used` | O gasto como porcentagem do limite diário |
 
-Ambas carregam os atributos `oneuptime.llm.budget.id` e `oneuptime.llm.budget.name`, além do escopo de serviço, provedor e modelo do orçamento quando definido. Filtre os monitores por **`oneuptime.llm.budget.id`**, que é estável; o nome muda quando você renomeia o orçamento.
+Ambas carregam `oneuptime.llm.budget.id` e `oneuptime.llm.budget.name`, e o escopo do orçamento quando ele tem um.
 
-**Para alertar, use um [Monitor de métricas](/docs/monitor/metrics-monitor) sobre essas métricas.** Para o padrão clássico de 80% / 100%, crie um monitor sobre `oneuptime.llm.budget.percent.used`, filtre-o por `oneuptime.llm.budget.id` e adicione dois critérios: `>= 80` criando um alerta de aviso e `>= 100` criando um crítico. **Defina a janela de tempo móvel do monitor como 30 minutos**: um orçamento publica um ponto a cada 15 minutos, então a janela padrão de 1 minuto encontraria uma série vazia entre duas varreduras.
+:::steps
+### Crie o orçamento
 
-Os orçamentos podem ser restritos a um serviço de telemetria, a um provedor de LLM ou a um modelo exato, ou valer para o projeto todo, e vários podem coexistir. Um monitor de orçamento também pode chamar um Workflow que pare um agente descontrolado — veja [Disjuntores para agentes de IA descontrolados](/docs/telemetry/ai-agent-circuit-breaker).
+Na aba **Orçamentos**, clique em **Criar: LLM Cost Budget**. Dê a ele um nome e um **Orçamento diário (USD)**, e deixe o escopo vazio para o projeto inteiro, ou escolha um **Serviço (opcional)**, um **Provedor de LLM (opcional)** ou um **Modelo de LLM (opcional)**. Vários orçamentos podem acompanhar escopos diferentes.
+
+### Alerte sobre ele
+
+Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado por `oneuptime.llm.budget.id` (o nome muda quando você renomeia o orçamento). Adicione um critério `>= 80` que dispara um aviso e outro `>= 100` que dispara um alerta crítico.
+
+### Amplie a janela
+
+Defina a janela móvel do monitor como 30 minutos. Um orçamento publica um ponto a cada 15 minutos, então a janela padrão de 1 minuto não encontraria nada entre dois pontos.
+:::
+
+Um alerta de orçamento também pode executar um workflow que interrompe um agente descontrolado: veja [Disjuntores para agentes de IA](/docs/telemetry/ai-agent-circuit-breaker).
+
+## Dashboards e alertas de métricas
+
+Métricas GenAI como `gen_ai.client.token.usage` e `gen_ai.client.operation.duration` chegam como métricas comuns do OpenTelemetry. Mostre-as em um [dashboard](/docs/dashboards/index), ou alerte sobre elas com um [monitor de métricas](/docs/monitor/metrics-monitor), por exemplo quando o p95 de `gen_ai.client.operation.duration` passa de um limite, agrupado por modelo.
 
 ## Privacidade e ocultação
 
-Prompts e respostas podem conter dados sensíveis. O OneUptime aplica suas **Regras de mascaramento** e **Filtros de descarte** de telemetria aos spans de LLM como a qualquer outro traço, então você pode mascarar atributos ou descartar spans antes de serem armazenados; configure-os em **Traços → Configurações**. A coluna de e-mail do funcionário é coberta pelas mesmas regras — veja [As colunas de identidade são limpas](#as-colunas-de-identidade-são-limpas).
+As chamadas de IA são armazenadas como spans de trace, então as **Regras de mascaramento** e os **Filtros de descarte** dos traces se aplicam a elas: mascare um atributo, ou descarte um span, antes que ele seja armazenado. Você encontra os dois em **Traços → Configurações**. A coluna de e-mail do funcionário é mascarada junto com o atributo de onde foi lida, então uma regra que mascara e-mails também a cobre.
 
-As conversas são lidas com a mesma permissão que os traços: quem pode ler os traços do projeto pode ler suas conversas, e mais ninguém.
+As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém.
 
-## Relacionado
+## Atributos que o OneUptime lê
 
-- [Observabilidade de assistentes de programação com IA](/docs/telemetry/ai-coding-assistants) — a matriz de suporte para Claude Code, Cursor, Codex, Gemini CLI, Copilot, Cline e os demais, e como o gasto por funcionário funciona entre eles.
-- [Monitorando o Claude Code](/docs/telemetry/claude-code)
-- [Monitorando o Cursor](/docs/telemetry/cursor)
-- [Monitorando o OpenAI Codex CLI](/docs/telemetry/openai-codex)
-- [Monitorando o Gemini CLI e o GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot)
-- [Observando gateways de IA (LiteLLM e Portkey)](/docs/telemetry/ai-gateways)
-- [Disjuntores para agentes de IA descontrolados](/docs/telemetry/ai-agent-circuit-breaker)
+O OneUptime lê as convenções GenAI do OpenTelemetry, e as grafias que o OpenLLMetry, o OpenInference, o Vercel AI SDK e o LiteLLM usam, então as bibliotecas comuns funcionam como estão. Para cada valor, vence a primeira chave que o span carrega:
+
+| Valor | Chaves, na ordem em que são testadas |
+| --- | --- |
+| Provedor | `gen_ai.system`, `gen_ai.provider.name`, `llm.system`, `llm.provider` |
+| Operação | `gen_ai.operation.name`, `llm.request.type`, `openinference.span.kind` |
+| Modelo solicitado | `gen_ai.request.model`, `llm.model_name`, `llm.request.model` |
+| Modelo servido | `gen_ai.response.model`, `llm.response.model` |
+| Tokens de entrada | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
+| Tokens de saída | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
+| Total de tokens | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| Custo (USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
+| Conversa | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
+| Agente | `gen_ai.agent.name`, `agent.name` |
+| Ferramenta | `gen_ai.tool.name`, `tool.name`, `ai.toolCall.name` |
+| Motivo de término | `gen_ai.response.finish_reasons`, `gen_ai.response.finish_reason`, `llm.response.finish_reason`, `ai.response.finishReason` |
+| Erro | `error.type` |
+
+Um span conta como chamada de IA quando carrega qualquer um desses valores, ou qualquer atributo que comece com `gen_ai.`, `llm.` ou `traceloop.`. O total de tokens é entrada mais saída quando nenhum total é informado. As chaves `gen_ai.usage.total_tokens` e `gen_ai.usage.cost` não fazem parte das convenções, que não definem nenhuma das duas; o OneUptime as lê porque instrumentações comuns as enviam.
+
+As chaves de identidade (quem fez a chamada, e a equipe dessa pessoa) estão listadas em [Atribuição a funcionários e equipes](/docs/telemetry/ai-coding-assistants#atribuição-a-funcionários-e-equipes).
+
+### De onde os prompts e as respostas são lidos
+
+A visualização da conversa lê as mensagens de uma chamada, nesta ordem, de:
+
+- o evento `gen_ai.client.inference.operation.details`;
+- os atributos `gen_ai.input.messages`, `gen_ai.output.messages` e `gen_ai.system_instructions`;
+- os eventos antigos por papel: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` e `gen_ai.choice`;
+- os atributos indexados: `gen_ai.prompt.N.content` e `gen_ai.completion.N.content` do OpenLLMetry, `llm.input_messages.N.message.content` e `llm.output_messages.N.message.content` do OpenInference;
+- os arrays de mensagens em `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` e `output.value`.
+
+## Solução de problemas
+
+:::details As chamadas chegam, mas nenhuma conversa mostra texto
+Sua instrumentação não está registrando o conteúdo. Ative-o como mostra [Registre o que foi dito](#registre-o-que-foi-dito); as chamadas feitas antes disso ficam sem texto.
+:::
+
+:::details Cada chamada de um chat aparece como uma conversa separada
+As chamadas não carregam um id de conversa. Defina `gen_ai.conversation.id` ou `session.id` em cada chamada do chat, como mostra [Agrupe as chamadas em conversas](#agrupe-as-chamadas-em-conversas).
+:::
+
+:::details As chamadas mostram tokens, mas custam US$ 0
+O modelo não está na lista de preços embutida, ou o span não cita nenhum modelo. Adicione os preços do modelo na aba **Preços**; as chamadas que chegarem depois terão preço.
+:::
+
+:::details A aba Uso diz das métricas GenAI e mostra `—` em chamadas e tokens
+Os números vêm de uma ferramenta que envia métricas e nenhum span GenAI, como um assistente de programação. Uma métrica carrega o custo, mas nenhum detalhe por chamada, então essas células ficam vazias. Veja [Primeiro os spans, as métricas completam](#primeiro-os-spans-as-métricas-completam).
+:::
+
+:::details Um monitor de orçamento alterna entre dois estados
+A janela móvel do monitor é menor que 15 minutos, então às vezes ela não encontra nenhum ponto. Defina-a como 30 minutos.
+:::
+
+## Próximos passos
+
+:::cards
+- [Assistentes de programação com IA](/docs/telemetry/ai-coding-assistants): Gasto por engenheiro para Claude Code, Cursor, Codex, Gemini CLI e Copilot.
+- [Gateways de IA](/docs/telemetry/ai-gateways): Faça o trace das chamadas a modelos de todas as aplicações a partir de um único gateway LiteLLM ou Portkey.
+- [Disjuntores para agentes de IA](/docs/telemetry/ai-agent-circuit-breaker): Pare um agente descontrolado quando um alerta de orçamento disparar.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Endpoints, chaves de ingestão e limites para cada sinal.
+:::
