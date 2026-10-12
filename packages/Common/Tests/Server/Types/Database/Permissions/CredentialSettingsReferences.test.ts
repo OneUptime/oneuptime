@@ -29,6 +29,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
+import { escapeRegExp } from "../../../../../Utils/RegExpEscape";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
@@ -214,16 +215,15 @@ const referenceOf: (
   );
 };
 
-// What a refusal names: the field's title and the record.
+// What a refusal names: the field's title and the record, each as written.
 const refusedFor: (title: string, id: string) => RegExp = (
   title: string,
   id: string,
 ): RegExp => {
   return new RegExp(
-    `references records that are not in this project: ${title.replace(
-      /[/]/g,
-      "\\/",
-    )} "${id}"`,
+    `references records that are not in this project: ${escapeRegExp(
+      title,
+    )} "${escapeRegExp(id)}"`,
   );
 };
 

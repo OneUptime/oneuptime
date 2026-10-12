@@ -288,7 +288,7 @@ Se você precisa disso, execute o agente em vez do push e remova o servidor de m
 Para iniciar o agente junto com a máquina e reiniciá-lo quando falhar, instale a unidade do systemd dele. Ela supõe que o agente fica em `/opt/oneuptime-proxmox-agent`, onde o script de instalação o coloca:
 
 ```bash
-sudo cp systemd/oneuptime-proxmox-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```

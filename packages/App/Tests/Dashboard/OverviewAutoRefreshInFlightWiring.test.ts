@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Issue #4105 follow-up: an auto-refresh tick must never supersede a load
@@ -74,10 +75,6 @@ function between(source: string, from: string, to: string): string {
   }
 
   return source.slice(start, end);
-}
-
-function escapeForRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 interface GuardedPage {
@@ -208,7 +205,7 @@ describe.each(GUARDED_PAGES)(
        */
       expect(source).toMatch(
         new RegExp(
-          `\\} finally \\{ if \\(!isStale\\(\\)\\) \\{ [^}]*${escapeForRegExp(
+          `\\} finally \\{ if \\(!isStale\\(\\)\\) \\{ [^}]*${escapeRegExp(
             `${inFlight}.current = false;`,
           )} \\} \\}`,
         ),

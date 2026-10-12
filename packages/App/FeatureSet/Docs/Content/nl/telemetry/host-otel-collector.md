@@ -801,7 +801,7 @@ Niets op de machine meldt een firmwareversie die als upgrade beschikbaar is, dus
 
 #### Controleren of het werkte
 
-Open het item van de host onder **Producten → Inventory** en bekijk de kaart **Assetgegevens**. Waarden verschijnen binnen een paar minuten na de volgende batch; een detail dat de collector niet heeft gemeld, wordt als onbekend getoond, met een link terug naar deze sectie. Omdat ze gestempeld zijn en niet gedetecteerd, werken ze zichzelf niet bij: stempel ze opnieuw na een moederbordwissel, een firmware-update of een herinstallatie.
+Open het item van de host onder **Producten → Inventaris** en bekijk de kaart **Assetgegevens**. Waarden verschijnen binnen een paar minuten na de volgende batch; een detail dat de collector niet heeft gemeld, wordt als onbekend getoond, met een link terug naar deze sectie. Omdat ze gestempeld zijn en niet gedetecteerd, werken ze zichzelf niet bij: stempel ze opnieuw na een moederbordwissel, een firmware-update of een herinstallatie.
 
 ## Andere manieren om de collector te draaien
 

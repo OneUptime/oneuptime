@@ -6,6 +6,7 @@ import path from "path";
 import {
   CODE_SCANNING_CONFIG_FILE,
   CODE_SCANNING_FIXES,
+  CODE_SCANNING_GUARD_OPTIONS,
   CODE_SCANNING_IGNORED_PATHS,
   CodeScanningFinding,
   PACKAGES_WITH_COMMON,
@@ -244,17 +245,9 @@ const FIXED_ALERTS: Array<FixedAlert> = [
   },
 ];
 
-const OPTIONS: {
-  regExpEscapeFile: string;
-  reachesSharedHelpers: (file: string) => boolean;
-} = {
-  regExpEscapeFile: SHARED_REGEXP_ESCAPE_FILE,
-  reachesSharedHelpers: reachesCommon,
-};
-
-// What a file holds that the guard reports.
+// What a file holds that the guard reports, read as every guard reads.
 function problemsIn(file: string, text: string): Array<CodeScanningFinding> {
-  return findCodeScanningProblems(file, text, OPTIONS);
+  return findCodeScanningProblems(file, text, CODE_SCANNING_GUARD_OPTIONS);
 }
 
 function rulesAndMessages(

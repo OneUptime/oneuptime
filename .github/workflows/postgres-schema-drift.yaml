@@ -538,8 +538,11 @@ jobs:
       # back from the decimal and color columns in their order, as the
       # recommended set; the 0% rule at the bottom is accepted (the
       # required-column check read 0 as missing); a page created without
-      # asking gets none; deleting the page takes its rules with it; and when
-      # one rule cannot be made, the ones made before it are removed.
+      # asking gets none; deleting the page takes its rules with it; when
+      # one rule cannot be made, the ones made before it are removed; and a
+      # rule's uptime percent, which Postgres hands back as text, reads back
+      # as the number it was written as and is answered as a JSON number
+      # (#4719: the Terraform provider read the text as null).
       - name: Test status page recommended bar color rules on migrated Postgres
         working-directory: packages/Common
         env:

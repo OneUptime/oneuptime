@@ -37,7 +37,7 @@ O Azure SQL Database e o Azure SQL Managed Instance se conectam como **Microsoft
 
 Mecanismos compatíveis com PostgreSQL e MySQL que falam o mesmo protocolo de rede costumam funcionar, mas podem expor menos views de estatísticas; nesse caso, as métricas afetadas são informadas como indisponíveis em vez de coletadas. Só os três mecanismos acima são testados oficialmente.
 
-Cada banco de dados que seus aplicativos, clusters e hosts usam — esses três mecanismos e muitos outros — também tem uma página própria com as métricas do mecanismo, os logs e os serviços que o chamam: veja [Bancos de dados](/docs/telemetry/databases). Quando o host e a porta a que um monitor Database Health se conecta são um dos endpoints de um banco de dados, os alertas e incidentes do monitor também aparecem na página desse banco de dados (veja [Alertas em um banco de dados](/docs/telemetry/databases#alerts-on-a-database)).
+Cada banco de dados que seus aplicativos, clusters e hosts usam — esses três mecanismos e muitos outros — também tem uma página própria com as métricas do mecanismo, os logs e os serviços que o chamam: veja [Bancos de dados](/docs/telemetry/databases). Quando o host e a porta a que um monitor Database Health se conecta são um dos endpoints de um banco de dados, os alertas e incidentes do monitor também aparecem na página desse banco de dados (veja [Alertas em um banco de dados](/docs/telemetry/databases#alertas-sobre-um-banco-de-dados)).
 
 ## Como funciona
 

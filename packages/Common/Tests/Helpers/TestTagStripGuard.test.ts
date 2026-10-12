@@ -489,6 +489,10 @@ describe("isTestCode", () => {
     "packages/App/node_modules/some-package/Tests/index.test.js",
     "packages/Common/build/dist/Tests/Helpers/HtmlText.js",
     ".claude/worktrees/other/packages/Common/Tests/Some.test.ts",
+    // Reports a local run leaves behind, which git ignores.
+    "packages/Common/coverage/lcov-report/Tests/Helpers/prettify.js",
+    "packages/E2E/playwright-report/trace/sw.bundle.js",
+    "packages/E2E/test-results/Some-spec/fixture.js",
   ])("leaves %s", (file: string) => {
     expect(isTestCode(file)).toBe(false);
   });

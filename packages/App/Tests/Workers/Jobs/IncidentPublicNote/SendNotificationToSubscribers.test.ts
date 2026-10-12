@@ -2411,9 +2411,13 @@ describe("IncidentPublicNote subscriber notifications, with a status page scope"
   let pages: Array<StatusPage> = [];
   let subscribers: Array<StatusPageSubscriber> = [];
 
-  const DEFAULT_SUBJECT_PREFIX: Record<string, string> = {
-    [CREATED_JOB]: "[Update Incident] ",
-    [UPDATED_JOB]: "[Incident Note Updated] ",
+  /*
+   * The default subject's prefix as the feed item's Markdown writes it: its
+   * brackets escaped, so the subject reads as written and links nothing.
+   */
+  const DEFAULT_SUBJECT_PREFIX_IN_MARKDOWN: Record<string, string> = {
+    [CREATED_JOB]: "\\[Update Incident\\] ",
+    [UPDATED_JOB]: "\\[Incident Note Updated\\] ",
   };
 
   function emailsSentTo(): Array<string> {
@@ -2549,10 +2553,7 @@ describe("IncidentPublicNote subscriber notifications, with a status page scope"
 
       await runJob(trigger.job);
 
-      const subject: string =
-        `${DEFAULT_SUBJECT_PREFIX[trigger.job]}${INCIDENT_TITLE}`
-          .replace("[", "\\[")
-          .replace("]", "\\]");
+      const subject: string = `${DEFAULT_SUBJECT_PREFIX_IN_MARKDOWN[trigger.job]}${INCIDENT_TITLE}`;
 
       expect(feedItems()).toHaveLength(1);
       expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);

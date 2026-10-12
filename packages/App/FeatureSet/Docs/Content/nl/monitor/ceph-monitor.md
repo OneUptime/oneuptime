@@ -241,7 +241,7 @@ Een monitor die je niet vanuit een sjabloon bouwt, begint met twee criteria:
 Deze standaarden passen bij weinig Ceph-metrics: `ceph_health_status` is 0 als het cluster gezond is. Kies een sjabloon of stel je eigen criteria in.
 
 > [!IMPORTANT]
-> Stilte komt met geen van beide criteria overeen: een cluster dat geen gegevens meer stuurt, laat de monitor zoals hij was. Om te horen wanneer er geen gegevens meer komen, zet je **Als geen gegevens** in een criterium op **Trigger**.
+> Stilte komt met geen van beide criteria overeen: een cluster dat geen gegevens meer stuurt, laat de monitor zoals hij was. Om te horen wanneer er geen gegevens meer komen, zet je **Als geen gegevens** in een criterium op **Trigger**. Tijd waarin OneUptime zelf niet ontving, geldt nooit als ontbrekende gegevens: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
 ## Problemen oplossen
 

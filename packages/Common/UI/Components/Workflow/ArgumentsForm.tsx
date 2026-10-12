@@ -11,6 +11,8 @@ import {
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
 import ConditionEditor from "./Condition/ConditionEditor";
+import SwitchEditor from "./Switch/SwitchEditor";
+import { OutputConnections } from "./Switch/SwitchModel";
 import CronScheduleField from "./CronScheduleField";
 import ModelColumnEditor, {
   ModelColumnEditorMode,
@@ -95,6 +97,11 @@ export interface ComponentProps {
    * Webhook that nothing has called yet offers a test request to copy.
    */
   webhookUrl?: string | undefined;
+  /*
+   * The steps each of this step's outputs leads to on the canvas, by output
+   * id. A Switch / Case says where each case's output leads.
+   */
+  outputConnections?: OutputConnections | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -677,6 +684,60 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return baseField;
   };
 
+  type OnArgumentsPatchFunction = (patch: JSONObject) => void;
+
+  // A patch of the step's settings, merged into the latest ones.
+  const onArgumentsPatch: OnArgumentsPatchFunction = (
+    patch: JSONObject,
+  ): void => {
+    setComponent((current: NodeDataProp) => {
+      return {
+        ...current,
+        arguments: {
+          ...((current.arguments as JSONObject) || {}),
+          ...patch,
+        },
+      };
+    });
+  };
+
+  type OnEditorValidationChangeFunction = (hasError: boolean) => void;
+
+  const onEditorValidationChange: OnEditorValidationChangeFunction = (
+    hasError: boolean,
+  ): void => {
+    setHasFormValidationErrors((current: Dictionary<boolean>) => {
+      return current["arguments"] === hasError
+        ? current
+        : { ...current, arguments: hasError };
+    });
+  };
+
+  /*
+   * Switch / Case is set up as a value and a list of cases, each case an
+   * output of the step (Switch/SwitchEditor), not as a form. It reports
+   * whether the step can be saved the way the form below does.
+   */
+  if (component.metadata.id === ComponentID.Switch) {
+    return (
+      <ValuePickerProvider
+        workflowId={props.workflowId}
+        component={component}
+        graphComponents={props.graphComponents}
+        valueSources={props.valueSources}
+        sources={props.valueSuggestionSources}
+        webhookUrl={props.webhookUrl}
+      >
+        <SwitchEditor
+          arguments={component.arguments}
+          connections={props.outputConnections}
+          onChange={onArgumentsPatch}
+          onValidationChange={onEditorValidationChange}
+        />
+      </ValuePickerProvider>
+    );
+  }
+
   /*
    * If / Else is set up as the sentence its settings make, not as a form of
    * five fields (Condition/ConditionEditor). It edits the same stored
@@ -695,24 +756,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       >
         <ConditionEditor
           arguments={component.arguments}
-          onChange={(patch: JSONObject) => {
-            setComponent((current: NodeDataProp) => {
-              return {
-                ...current,
-                arguments: {
-                  ...((current.arguments as JSONObject) || {}),
-                  ...patch,
-                },
-              };
-            });
-          }}
-          onValidationChange={(hasError: boolean) => {
-            setHasFormValidationErrors((current: Dictionary<boolean>) => {
-              return current["arguments"] === hasError
-                ? current
-                : { ...current, arguments: hasError };
-            });
-          }}
+          onChange={onArgumentsPatch}
+          onValidationChange={onEditorValidationChange}
         />
       </ValuePickerProvider>
     );

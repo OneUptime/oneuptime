@@ -179,9 +179,14 @@ describe("incoming email security", () => {
     );
   });
 
+  /*
+   * Off pauses the trigger - incoming email with the rest - and not a person
+   * testing the workflow from its Builder ("Why do I have to enable a
+   * workflow in order to test run it?").
+   */
   test("turning a workflow off is said to stop incoming email too", () => {
     expect(configuration).toContain(
-      "webhook calls, incoming email, scheduled times, and OneUptime events are all ignored",
+      "When it's off, its trigger is paused — webhook calls, incoming email, scheduled times, OneUptime events and other workflows' **Execute Workflow** steps don't start it.",
     );
   });
 });

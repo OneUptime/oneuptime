@@ -733,6 +733,100 @@ describe("someone who may not see the key", () => {
   });
 });
 
+describe("while the workflow is off", () => {
+  /*
+   * Off pauses the workflow's trigger: its URL refuses every request - the
+   * Try it request included - until the workflow is turned on, while Run
+   * Workflow still tests it ("Why do I have to enable a workflow in order to
+   * test run it?"). The panel says so above the URL, before anyone copies it
+   * or tries it, and names Run Workflow as the toolbar does.
+   */
+  test("says above the URL that requests to it are refused, and that Run Workflow still tests it", () => {
+    renderPanel({ isWorkflowOff: true });
+
+    const note: HTMLElement = screen.getByTestId(
+      "webhook-trigger-workflow-off",
+    );
+
+    expect(note).toHaveAttribute("role", "note");
+    expect(note.textContent).toBe(
+      "While this workflow is off, requests to this URL are refused. You can still test it with Run Workflow.",
+    );
+    expect(within(note).getByText("Run Workflow").tagName).toBe("STRONG");
+    expect(
+      note.compareDocumentPosition(urlBox()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      note.compareDocumentPosition(curl()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("adds nothing to press: Copy URL is still the first control", () => {
+    renderPanel({ isWorkflowOff: true, onResetUrl: getJestMockFunction() });
+
+    const note: HTMLElement = screen.getByTestId(
+      "webhook-trigger-workflow-off",
+    );
+
+    expect(within(note).queryAllByRole("button")).toHaveLength(0);
+    expect(within(note).queryAllByRole("link")).toHaveLength(0);
+    expect(screen.getAllByRole("button")[0]!).toHaveAccessibleName(
+      "Copy the webhook URL",
+    );
+  });
+
+  test("its icon is decoration, and no div sits inside its paragraph", () => {
+    renderPanel({ isWorkflowOff: true });
+
+    const note: HTMLElement = screen.getByTestId(
+      "webhook-trigger-workflow-off",
+    );
+
+    expect(note.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+    expect(note.querySelector("p div")).toBeNull();
+  });
+
+  test.each([false, undefined])(
+    "says nothing of the kind while the workflow is on (isWorkflowOff %p)",
+    (isWorkflowOff: boolean | undefined) => {
+      renderPanel({ isWorkflowOff: isWorkflowOff });
+
+      expect(
+        screen.queryByTestId("webhook-trigger-workflow-off"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("workflow-component-section-webhook-url"),
+      ).not.toHaveTextContent("refused");
+    },
+  );
+
+  test("is not said to someone who may not see the URL: there is nothing to call", () => {
+    renderPanel({ isWorkflowOff: true, canSeeUrl: false, webhookUrl: null });
+
+    expect(
+      screen.queryByTestId("webhook-trigger-workflow-off"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("is not said while the workflow has no URL yet", () => {
+    renderPanel({
+      isWorkflowOff: true,
+      webhookUrl: null,
+      onResetUrl: getJestMockFunction(),
+    });
+
+    expect(
+      screen.queryByTestId("webhook-trigger-workflow-off"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the sentence is the panel's copy, with the button as a slot", () => {
+    expect(WebhookTriggerPanelCopy.workflowOff).toBe(
+      "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.",
+    );
+  });
+});
+
 describe("in another language", () => {
   // The dashboard's own German file, so this also proves the keys line up.
   const german: i18n = createInstance();
@@ -828,6 +922,29 @@ describe("in another language", () => {
 
     expect(screen.getByTestId("webhook-trigger-url-hidden")).toHaveTextContent(
       "Die Webhook-URL enthält den geheimen Schlüssel dieses Arbeitsablaufs.",
+    );
+  });
+
+  test("the note while the workflow is off, with the button named as the German toolbar names it", () => {
+    render(
+      <WebhookTriggerPanel
+        webhookUrl={WEBHOOK_URL}
+        webhookUrlPrefix={PREFIX}
+        canSeeUrl={true}
+        isWorkflowOff={true}
+      />,
+      { wrapper: GermanWrapper },
+    );
+
+    const note: HTMLElement = screen.getByTestId(
+      "webhook-trigger-workflow-off",
+    );
+
+    expect(note.textContent).toBe(
+      "Solange dieser Arbeitsablauf ausgeschaltet ist, werden Anfragen an diese URL abgelehnt. Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
+    );
+    expect(within(note).getByText("Arbeitsablauf ausführen").tagName).toBe(
+      "STRONG",
     );
   });
 });

@@ -706,8 +706,12 @@ RunCron(
               displayColor: Blue500,
               feedInfoInMarkdown:
                 mdText`📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
+              /*
+               * The feed only: a side effect of the state change the
+               * channel was told of already.
+               */
               workspaceNotification: {
-                sendWorkspaceNotification: true,
+                sendWorkspaceNotification: false,
               },
             },
           );

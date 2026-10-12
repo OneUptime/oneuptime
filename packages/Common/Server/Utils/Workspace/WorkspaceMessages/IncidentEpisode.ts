@@ -1,10 +1,10 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
-import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackIncidentEpisodeMessages from "../Slack/Messages/IncidentEpisode";
@@ -18,9 +18,7 @@ export default class IncidentEpisodeWorkspaceMessages {
     episodeNumber: number;
     episodeNumberWithPrefix?: string;
     isPrivate?: boolean;
-  }): Promise<{
-    channelsCreated: NotificationRuleWorkspaceChannel[];
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       // we will notify the workspace about the incident episode creation with the bot token which is in WorkspaceProjectAuth Table.
       return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(

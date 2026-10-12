@@ -127,4 +127,11 @@ export default interface WorkspaceMessagePayload {
   workspaceType: WorkspaceType;
   teamId?: string | undefined; // Team ID for Microsoft Teams
   chatIds?: Array<string> | undefined; // Microsoft Teams chat ids (group / personal chats) to send message to.
+  /*
+   * What a notification, a message preview or a screen reader shows of the
+   * message: one line of plain text - Slack's top-level `text`, a Microsoft
+   * Teams card's `summary`. Without it Slack has nothing to show in a push
+   * notification, and Teams says only that a card was sent.
+   */
+  text?: string | undefined;
 }

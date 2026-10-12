@@ -89,6 +89,8 @@ Creating a rule walks four steps:
 
 A channel the rule creates is named from **New Microsoft Teams Channel Name** followed by the record's number, such as `oneuptime-incident-42`, and only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
 
+Channels and chats stay readable: each event is posted once, and a record's first state is in the card that announces the record, not in a card of its own. An on-call policy run is one card that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new card is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
+
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
 
 ## Testing a rule

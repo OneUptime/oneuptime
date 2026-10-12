@@ -76,6 +76,7 @@ I passaggi non riusciti, i passaggi con un avviso e l'unico passaggio di un'esec
 
 Alcune esecuzioni si leggono in modo diverso:
 
+- **Un'esecuzione di prova.** Un'esecuzione che qualcuno ha avviato con **Esegui flusso di lavoro** o **Run just this step** mentre il workflow era disattivato dice **Esecuzione di prova** in cima, con chi l'ha avviata, ed entrambi gli elenchi delle esecuzioni la contrassegnano come **Esecuzione di prova** accanto al suo stato. I suoi blocchi sono stati eseguiti davvero; solo il trigger del workflow era in pausa. Filtra per **Esecuzione di prova** per elencare solo le esecuzioni di prova, o solo le altre.
 - **Una prova di un solo passaggio.** Un'esecuzione avviata con **Run just this step** dice **Only this step ran** in cima. I passaggi precedenti non sono stati eseguiti, quindi i valori che legge da essi mancano (aspettati un avviso **Did not resolve** per quelli), e i passaggi successivi dicono **(not run in this test)**. Usa **Esegui flusso di lavoro** per provare tutto il percorso.
 - **Un'esecuzione fermata tra due passaggi.** Se l'esecuzione si è fermata per un motivo che nessun passaggio spiega — ha esaurito il tempo tra due passaggi, o è fallita prima del primo passaggio —, il percorso termina con **The run stopped here** e il motivo.
 - **Un'esecuzione in pausa.** Un'esecuzione che attende su un blocco **Sleep** termina con **Sleeping** e l'ora in cui riprenderà da sola; i passaggi dopo lo Sleep dicono **(not run yet)**.
@@ -106,7 +107,7 @@ Un download non contiene nulla che tu non possa già leggere nell'esecuzione. I 
 ## Risoluzione dei problemi
 
 :::details Il mio workflow non è partito
-1. Assicurati che il workflow sia **Abilitato**: l'interruttore si trova in cima al suo **Costruttore**, che lo segnala sopra la tela quando il workflow è disattivato. I nuovi workflow partono disabilitati, e un workflow disabilitato rifiuta ogni esecuzione, comprese quelle manuali. Una chiamata webhook verso di esso riceve HTTP 400 con un messaggio che spiega come attivarlo.
+1. Assicurati che il workflow sia **Abilitato**: l'interruttore si trova in cima al suo **Costruttore**, che lo segnala sopra la tela quando il workflow è disattivato. I nuovi workflow partono disabilitati, e mentre un workflow è disattivato il suo trigger non lo avvia: lo fanno solo **Esegui flusso di lavoro** e **Run just this step**, come esecuzioni di prova. Una chiamata webhook verso di esso riceve HTTP 400 con un messaggio che spiega come attivarlo.
 2. Per un trigger di evento OneUptime, verifica che l'evento sia davvero avvenuto: apri il record e controlla la sua cronologia. Un trigger **On Update** con **Listen on** scatta solo quando cambia uno di quei campi.
 3. Per un trigger webhook, verifica che l'altro sistema invii all'URL giusto. La maggior parte degli strumenti registra quando invia un webhook: controlla lì.
 4. Per un trigger pianificato, verifica che l'espressione cron corrisponda all'ora che ti aspetti. Le pianificazioni girano in UTC.

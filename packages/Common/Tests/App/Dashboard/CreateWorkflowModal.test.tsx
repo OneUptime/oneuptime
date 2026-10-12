@@ -595,17 +595,26 @@ describe("CreateWorkflowModal variable input types", () => {
 });
 
 describe("CreateWorkflowModal's dialog", () => {
-  test("is called Create a workflow, and says workflows are created switched off", () => {
+  /*
+   * Off pauses a workflow's trigger, not a test from the Builder ("Why do I
+   * have to enable a workflow in order to test run it?"), so the note says
+   * the trigger waits for the switch - not that nothing runs at all, which
+   * Run Workflow now does while a workflow is off.
+   */
+  test("is called Create a workflow, and says workflows are created switched off, their trigger paused", () => {
     renderModal();
 
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Create a workflow",
     );
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "Workflows are created switched off, so nothing runs until you turn them on.",
+      "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
     );
     expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      "Workflows are created switched off, so nothing runs until you turn them on.",
+      "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
+    );
+    expect(screen.getByTestId("modal-description")).not.toHaveTextContent(
+      "nothing runs",
     );
   });
 
@@ -1307,7 +1316,7 @@ describe("CreateWorkflowModal in German", () => {
     );
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
       de(
-        "Workflows are created switched off, so nothing runs until you turn them on.",
+        "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
       ),
     );
     expect(screen.getByTestId("workflow-start-from-scratch")).toHaveTextContent(

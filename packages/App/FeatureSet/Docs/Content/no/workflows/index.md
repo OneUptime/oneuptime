@@ -93,8 +93,8 @@ Hver arbeidsflyt blir til på samme måte:
 1. **Opprett** — velg et utgangspunkt, og gi deretter arbeidsflyten et navn. Se [Opprette en arbeidsflyt](/docs/workflows/authoring).
 2. **Velg en trigger** — manuell, planlagt, webhook, innkommende e-post eller en begivenhet fra OneUptime. Se [Triggere](/docs/workflows/triggers).
 3. **Legg til komponenter** — sett handlinger på lerretet, og koble dem sammen. Se [Komponenter](/docs/workflows/components).
-4. **Slå den på** — slå på **Aktivert** øverst i **Bygger**. En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, heller ikke manuelt.
-5. **Test** — klikk på **Kjør arbeidsflyt** i **Bygger**, og følg kjøringen mens den skjer.
+4. **Test** — klikk på **Kjør arbeidsflyt** i **Bygger**, og følg kjøringen mens den skjer. Det virker mens arbeidsflyten fortsatt er slått av: det er en **Testkjøring**.
+5. **Slå den på** — slå på **Aktivert** øverst i **Bygger** når den er klar. Fra da av starter triggeren den.
 :::
 
 Eksempelet nedenfor følger disse trinnene for en ekte arbeidsflyt.
@@ -156,15 +156,15 @@ Klikk på **Legg til komponent**, og klikk deretter på **Logg**. Koble API-blok
 
 En forespørsel som mislykkes — en URL som ikke kan nås, eller et svar som ikke er 2xx — tar nå denne veien, og kjøringens logg sier hvorfor.
 
+### Test den
+
+Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en hendelse i dette prosjektet, klikk på **Run Workflow Manually**, og bekreft med **Run**. Arbeidsflyten er fortsatt slått av, så dette er en **Testkjøring**, og forespørselen blir virkelig sendt.
+
+Et panel **Arbeidsflytkjøring** åpnes og følger kjøringen. Åpne trinnet **API Post (JSON)** for å se bodyen det sendte, og svaret det fikk.
+
 ### Slå den på
 
 Slå på **Aktivert** øverst i **Bygger**.
-
-### Test den
-
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en hendelse i dette prosjektet, klikk på **Run Workflow Manually**, og bekreft med **Run**.
-
-Et panel **Arbeidsflytkjøring** åpnes og følger kjøringen. Åpne trinnet **API Post (JSON)** for å se bodyen det sendte, og svaret det fikk.
 :::
 
 Fra nå av starter hver ny hendelse i prosjektet en kjøring. Du finner dem alle under arbeidsflytens [Kjøringer](/docs/workflows/runs-and-logs).

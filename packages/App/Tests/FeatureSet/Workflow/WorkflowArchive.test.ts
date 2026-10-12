@@ -169,6 +169,31 @@ describe("QueueWorkflow refuses to start a run of an archived workflow", () => {
     ).rejects.toThrow(new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE));
   });
 
+  /*
+   * A person may test a workflow that is off from its Builder, but not one
+   * that is archived: archived never runs, a test run included, and the
+   * reason given is the archive.
+   */
+  test.each([true, false])(
+    "a person's test run of an archived workflow is refused too (enabled %s)",
+    async (isEnabled: boolean) => {
+      prepare(workflowRow({ isEnabled: isEnabled, isArchived: true }));
+
+      await expect(
+        QueueWorkflow.addWorkflowToQueue({
+          workflowId: WORKFLOW_ID,
+          returnValues: {},
+          startedByUserId: new ObjectID("7a000000-0000-4000-8000-000000000009"),
+        }),
+      ).rejects.toThrow(
+        new BadDataException(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE),
+      );
+
+      expect(createLog.mock.calls).toHaveLength(0);
+      expect(addJob.mock.calls).toHaveLength(0);
+    },
+  );
+
   test("an unarchived, enabled workflow is queued again", async () => {
     prepare(workflowRow({ isEnabled: true, isArchived: false }));
 

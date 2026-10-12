@@ -5,6 +5,7 @@ import {
   SLO_MONITORS_MANAGED_BY_RULES_MESSAGE,
   SLO_RULE_ATTACHED_MONITOR_REMOVAL_MESSAGE,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/SloMonitorSource";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Source wiring of the SLO Monitors and Monitor Rules pages. App has no React,
@@ -154,7 +155,7 @@ describe("SLO Monitor Rules page", () => {
     expect(pickedCriteria.length).toBeGreaterThan(0);
 
     for (const title of pickedCriteria) {
-      const escapedTitle: string = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedTitle: string = escapeRegExp(title);
 
       const matchCriteriaFieldPattern: RegExp = new RegExp(
         `field: \\{ \\w+: true \\}, title: "${escapedTitle}", stepId: "match-criteria"`,

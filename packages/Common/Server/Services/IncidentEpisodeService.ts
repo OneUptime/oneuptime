@@ -51,7 +51,13 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -517,6 +523,13 @@ export class Service extends ProjectReferencesService<Model> {
       onCreate.carryForward,
     );
 
+    /*
+     * Who could not be added to the episode's new Slack channels: set by the
+     * workspace step, told in those channels right after the episode's
+     * created message (ChannelMembersNotAddedNotice).
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
     // Create initial state timeline entry
     Promise.resolve()
       .then(async () => {
@@ -550,7 +563,8 @@ export class Service extends ProjectReferencesService<Model> {
             createdItem.id &&
             StartingStageUtil.isOngoing(startingStage)
           ) {
-            await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
+            membersNotAddedToNewChannels =
+              await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
           logger.error(
@@ -598,6 +612,13 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+      })
+      .then(async () => {
+        // Under the episode's created message: who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
       })
       .then(async () => {
         // Apply owner rules: add matched owner users/teams to the episode.
@@ -680,10 +701,15 @@ export class Service extends ProjectReferencesService<Model> {
     return createdItem;
   }
 
+  /*
+   * Creates the episode's own channels and adds its people to them. Hands
+   * back who could not be added, for the channels to be told after the
+   * episode's created message.
+   */
   @CaptureSpan()
   private async handleEpisodeWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -691,9 +717,7 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await IncidentEpisodeWorkspaceMessages.createChannelsAndInviteUsersToChannels(
           {
             projectId: createdItem.projectId,
@@ -720,6 +744,8 @@ export class Service extends ProjectReferencesService<Model> {
           },
         });
       }
+
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -756,6 +782,48 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (episode.isManuallyCreated) {
       feedInfoInMarkdown += `This episode was manually created.\n\n`;
+    }
+
+    /*
+     * The episode's state and severity, as an incident's created entry
+     * names them: its first state is not posted to Slack and Microsoft
+     * Teams on its own (WorkspaceStateChangePosting), so this is where a
+     * channel reads it. Names are plain text. A read that fails leaves
+     * them out: the created entry still goes out.
+     */
+    let episodeWithState: Model | null = null;
+
+    try {
+      episodeWithState = await this.findOneById({
+        id: episode.id,
+        select: {
+          currentIncidentState: {
+            name: true,
+          },
+          incidentSeverity: {
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Reading the state of a new incident episode for its created entry failed: ${error}`,
+        {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    if (episodeWithState?.currentIncidentState?.name) {
+      feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentIncidentState.name} \n\n`;
+    }
+
+    if (episodeWithState?.incidentSeverity?.name) {
+      feedInfoInMarkdown += mdText`⚠️ **Severity**: ${episodeWithState.incidentSeverity.name} \n\n`;
     }
 
     const episodeCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =

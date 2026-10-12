@@ -3,8 +3,8 @@ import fs from "fs";
 import path from "path";
 import {
   CODE_SCANNING_FIXES,
+  CODE_SCANNING_GUARD_OPTIONS,
   CodeScanningFinding,
-  SHARED_REGEXP_ESCAPE_FILE,
   findCodeScanningProblems,
   listProductFiles,
   reachesCommon,
@@ -59,10 +59,7 @@ describe("ee/'s product code writes nothing code scanning reports", () => {
       for (const finding of findCodeScanningProblems(
         file,
         fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
-        {
-          regExpEscapeFile: SHARED_REGEXP_ESCAPE_FILE,
-          reachesSharedHelpers: reachesCommon,
-        },
+        CODE_SCANNING_GUARD_OPTIONS,
       )) {
         findings.push(reportedAs(finding));
       }
@@ -76,10 +73,7 @@ describe("ee/'s product code writes nothing code scanning reports", () => {
       findCodeScanningProblems(
         "ee/Server/Example.ts",
         'export const cell = (text: string): string => { return text.replace(/\\|/g, "\\\\|"); };',
-        {
-          regExpEscapeFile: SHARED_REGEXP_ESCAPE_FILE,
-          reachesSharedHelpers: reachesCommon,
-        },
+        CODE_SCANNING_GUARD_OPTIONS,
       ).map((finding: CodeScanningFinding): string => {
         return finding.message;
       }),

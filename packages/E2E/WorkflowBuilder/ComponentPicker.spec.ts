@@ -120,10 +120,15 @@ test.describe("Workflow builder: the Add Component picker", () => {
     page: Page;
   }) => {
     const panel: Locator = await openComponentPicker(page);
+    const popular: Locator = panel
+      .getByRole("region", { name: "Popular" })
+      .getByRole("button");
 
-    await expect(
-      panel.getByRole("region", { name: "Popular" }).getByRole("button"),
-    ).toHaveCount(10);
+    await expect(popular).toHaveCount(11);
+    // Switch / Case sits beside If / Else: one value, several ways to go.
+    await expect(popular.nth(0)).toHaveText(/^Log/);
+    await expect(popular.nth(1)).toHaveText(/^If \/ Else/);
+    await expect(popular.nth(2)).toHaveText(/^Switch \/ Case/);
     await expect(
       panel.getByRole("button", { name: "Log", exact: true }),
     ).toBeVisible();

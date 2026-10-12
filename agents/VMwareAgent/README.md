@@ -257,7 +257,7 @@ Secrets `govc` prints (guestinfo values such as cloud-init user data, session id
    ONEUPTIME_AI_PROTECTED_TARGETS=monitoring-vm-01
    ```
 
-3. On the vCenter's **AI → AI agent** page in OneUptime, choose how fixes are applied (*Ask for approval*, *Automatic* or *Bypass approval*).
+3. Fixes then wait for a person to approve each one (`ask-for-approval`, the default once writes are allowed). For another mode, set `ONEUPTIME_AI_FIXES` in the same `.env` (`automatic` or `bypass-approval`; `off` keeps the agent read-only) and run `docker compose up -d` again. The vCenter's **AI → AI agent** page shows the mode, read-only.
 
 Without `ONEUPTIME_AI_VCENTER_USERNAME` the agent uses `VCENTER_USERNAME` for everything; with the collector's Read-Only user, vCenter itself then refuses every fix (and the agent's message lists the privileges the role needs). `install.sh` asks about fixes on a fresh install and writes these settings for you.
 
@@ -301,7 +301,7 @@ docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo cp systemd/oneuptime-vmware-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```

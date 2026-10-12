@@ -25,6 +25,8 @@ const FILES: Array<string> = [
   "Components/Workflow/ComponentPrimaryPanel.tsx",
   "Components/Workflow/WebhookTriggerPanel.tsx",
   "Components/Workflow/IncomingEmailTriggerPanel.tsx",
+  // Both panels' note while the workflow is off.
+  "Components/Workflow/WorkflowOffTriggerNote.tsx",
   "Components/Workflow/ManualTriggerPanel.tsx",
   "Components/Workflow/ComponentReturnValueViewer.tsx",
   "Components/Workflow/ComponentPortViewer.tsx",
@@ -34,6 +36,13 @@ const FILES: Array<string> = [
   // If / Else's condition, its Compare as switch, notes and Yes / No summary.
   "Components/Workflow/Condition/ConditionEditor.tsx",
   "Components/Workflow/Condition/ConditionModel.ts",
+  /*
+   * Switch / Case's cases: the rows, their grips and connections, Compare
+   * as, Default and the note about the cases taken out.
+   */
+  "Components/Workflow/Switch/SwitchEditor.tsx",
+  "Components/Workflow/Switch/SwitchModel.ts",
+  "Components/Table/DragHandle.tsx",
 ];
 
 /*

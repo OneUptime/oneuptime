@@ -21,6 +21,7 @@ import {
 } from "../CustomFieldsColumn";
 import { DatabaseOperation, getDatabaseOperation } from "../DatabaseOperation";
 import { componentReturnValueReference } from "../TemplateSyntax";
+import { WORKFLOW_TEST_WHILE_OFF_HELP } from "../WorkflowEnabled";
 import ComponentDocumentation, {
   ComponentDocumentationExample,
   ComponentDocumentationLink,
@@ -626,7 +627,7 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
       {
         title: "Testing it",
         paragraphs: [
-          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been ${event}.`,
+          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been ${event}. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],
@@ -660,7 +661,7 @@ const onDelete: BuildFunction = (
       {
         title: "Testing it",
         paragraphs: [
-          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been deleted.`,
+          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been deleted. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],

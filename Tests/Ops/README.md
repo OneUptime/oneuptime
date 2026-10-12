@@ -365,9 +365,10 @@ The VMware agent also installs without Docker: the `otelcol-contrib` release
 the agent pins, run by systemd with
 `agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service`. The suite
 lifts the install, settings, start, upgrade and uninstall commands out of the
-docs page (`telemetry/vmware.md`) and runs them for real, with the install's
-`/opt` and `/etc/systemd/system` moved under a scratch root and `sudo`,
-`sudoedit`, `systemctl`, `curl` and `uname` replaced by recording stubs. It
+docs page's systemd tabs (`telemetry/vmware.md`) and runs them for real, with
+the install's `/opt` and `/etc/systemd/system` moved under a scratch root and
+`sudo`, `sudoedit`, `systemctl`, `curl` and `uname` replaced by recording
+stubs. It
 pins that the release the agent pins is downloaded for the machine's
 architecture (`x86_64` → `amd64`, `aarch64` → `arm64`) and that a release it
 cannot download stops the install before anything is installed; that every
@@ -804,6 +805,28 @@ boots (each file's services merged over the last, those behind a profile left
 out) plus the e2e overlay: a job that started before one of its images was
 pushed would not fail, it would test the previous push's image.
 
+Nothing writes the GitHub release once release.yml has published it: every
+job with a step that creates, fills or edits the release
+(`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
+create|upload|edit`) must be one `finalize-github-release` waits for. The app
+jobs were not, and 14.0.46 shipped without its Android APK: the APK finished
+after the publish, and GitHub refused the upload. The app jobs are waited for
+but not required, so the suite reads the publish job's `if` the way Actions
+does (an `if` with no status function is `success() && if`). The release
+publishes after an app build fails, and not when a job it requires did not
+succeed, when the run was cancelled, or off `release`.
+
+release.yml calls terraform-provider-e2e.yml as the release's gate, and a
+called workflow reads the caller's `github.workflow` and `github.ref`, so its
+concurrency group used to be one group for every release run: a newer release
+run, or a re-run of an older one, cancelled the suite of the release in flight.
+release.yml now passes its run id as the `release_run_id` input, which the
+group reads first. The suite checks that the call passes only inputs the
+workflow declares (GitHub refuses to start a run that passes any other), and
+works the group out, with `Utils/WorkflowExpression.js`, for two release runs
+(different groups), two pushes to master and two pushes to one pull request
+(one group each, so the newest still supersedes).
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather
@@ -957,6 +980,11 @@ continuations joined), the flags of its `build_docker_images.sh` and
 `merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
 bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
+
+`Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
+one run, for the suites that work out a concurrency group: context paths and
+`||` only (a missing path reads as null, as on GitHub). It throws on anything
+else rather than misread it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

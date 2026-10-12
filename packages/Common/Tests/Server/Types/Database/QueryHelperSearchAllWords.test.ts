@@ -1,5 +1,6 @@
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import { describe, expect, it } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * QueryHelper.searchAllWords backs POST /network-site/search, the dropdown
@@ -106,13 +107,13 @@ const ilike: IlikeFunction = (value: string, pattern: string): boolean => {
     const char: string = pattern[i] as string;
     if (char === "\\" && i + 1 < pattern.length) {
       i++;
-      source += (pattern[i] as string).replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+      source += escapeRegExp(pattern[i] as string);
     } else if (char === "%") {
       source += "[\\s\\S]*";
     } else if (char === "_") {
       source += "[\\s\\S]";
     } else {
-      source += char.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+      source += escapeRegExp(char);
     }
   }
   return new RegExp(`^${source}$`, "iu").test(value);

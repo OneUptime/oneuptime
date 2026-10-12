@@ -9,6 +9,7 @@ import {
   CEPH_METRIC_DESCRIPTIONS,
   CephMetric,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/CephMetricDescriptions";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Source-level pins for the (i) tooltips on the IoT and Ceph pages: every
@@ -45,12 +46,6 @@ const RATE_CHART: RegExp = /<CephRateChart\b/g;
 const INFO_TOOLTIP: RegExp = /<InfoTooltip\b/g;
 const LINK_BLOCK: RegExp = /<(Link|AppLink|a)\b[^>]*>[\s\S]*?<\/\1>/g;
 const BUTTON_BLOCK: RegExp = /<button\b[^>]*>[\s\S]*?<\/button>/g;
-const REGEXP_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEXP_SPECIAL, "\\$&");
-}
-
 function readSource(relativePath: string): string {
   return fs.readFileSync(
     path.join(DASHBOARD_SRC, ...relativePath.split("/")),

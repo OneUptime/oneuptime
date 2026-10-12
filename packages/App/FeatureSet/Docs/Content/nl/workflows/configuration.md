@@ -3,7 +3,7 @@
 Wat je moet weten voordat je een workflow op echt verkeer loslaat: hoe je hem veilig inschakelt, wie wat mag doen, hoe geheimen en URL's privé blijven, wat de stappen van een workflow mogen wijzigen en binnen welke limieten elke uitvoering werkt.
 
 :::cards
-- [Live gaan](#een-workflow-aan-of-uitzetten): Test met Workflow uitvoeren en laat de workflow daarna aan staan.
+- [Live gaan](#een-workflow-aan-of-uitzetten): Test met Workflow uitvoeren terwijl hij uit staat, en zet hem daarna aan.
 - [Machtigingen](#machtigingen): De workflowrollen, en de losse machtigingen erachter.
 - [Wat stappen mogen](#wat-workflowstappen-mogen): Stappen handelen als Project Admin van het project van de workflow.
 - [Limieten](#planlimieten): Uitvoeringen per abonnement, de duur van een uitvoering en aanroepen tussen workflows.
@@ -11,18 +11,18 @@ Wat je moet weten voordat je een workflow op echt verkeer loslaat: hoe je hem ve
 
 ## Een workflow aan- of uitzetten
 
-Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan de **Bouwer** en op de pagina **Overzicht**. Staat hij uit, dan draait de workflow niet — webhook-aanroepen, binnenkomende e-mail, geplande tijden en OneUptime-gebeurtenissen worden allemaal genegeerd, net als **Workflow uitvoeren** en **Run just this step**. Nieuwe workflows beginnen uitgeschakeld.
+Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan de **Bouwer** en op de pagina **Overzicht**. Staat hij uit, dan is zijn trigger gepauzeerd — webhook-aanroepen, binnenkomende e-mail, geplande tijden, OneUptime-gebeurtenissen en de **Execute Workflow**-stappen van andere workflows starten hem niet. **Workflow uitvoeren** en **Run just this step** wel: een uitvoering die je zelf start terwijl de workflow uit staat, is een **Testrun**. Nieuwe workflows beginnen uitgeschakeld.
 
 Gebruik deze schakelaar als je «klaar voor gebruik»-sein:
 
 :::steps
 1. Bouw de workflow.
-2. Klik op **Workflow uitvoeren** in de **Bouwer** met realistische waarden. Een uitgeschakelde workflow kan zelfs handmatig niet draaien, dus de Bouwer vraagt eerst om hem in te schakelen: klik op **Inschakelen en uitvoeren**.
+2. Klik op **Workflow uitvoeren** in de **Bouwer** met realistische waarden, terwijl de workflow nog uit staat. De uitvoering is een **Testrun**: elk blok draait echt, dus richt het eerst op een testkanaal of een testrecord.
 3. Open de uitvoering en controleer of elk blok ging waar je verwachtte. Zie [Uitvoeringen](/docs/workflows/runs-and-logs).
-4. Laat **Ingeschakeld** aan staan als hij klaar is. Is hij dat niet, zet hem dan uit tot hij klaar is: zolang hij aan staat, gaat zijn trigger af bij echte gebeurtenissen.
+4. Zet **Ingeschakeld** aan als hij klaar is: vanaf dan gaat zijn trigger af bij echte gebeurtenissen.
 :::
 
-Een workflow uitzetten voorkomt dat er nieuwe uitvoeringen starten. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd.
+Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door.
 
 ## Een workflow archiveren
 
@@ -85,7 +85,7 @@ Het bestand bevat de naam, de beschrijving, de inschakelstatus en de graaf van d
 - **Globale variabelen.** Een blok dat `{{global.variables.MY_SECRET}}` leest, houdt die verwijzing, maar de waarde staat niet in het bestand. Maak de variabelen aan in het doelproject voordat je de geïmporteerde workflow uitvoert.
 - **Eigenaren en labels.** De label- en eigenaarsregels van je project worden op de geïmporteerde workflow toegepast, net alsof je hem met de hand had gemaakt.
 
-Een geïmporteerde workflow wordt altijd **uitgeschakeld** aangemaakt, ook als hij ingeschakeld was waar hij vandaan kwam — zijn graaf kan verwijzen naar monitoren, bereikbaarheidsbeleid of andere workflows die in het doelproject niet bestaan. Bekijk hem, schakel hem in, test hem met **Workflow uitvoeren** en laat hem daarna aan staan. Een workflow dupliceren werkt hetzelfde, zodat een kopie nooit naast het origineel gaat afgaan voordat je hem hebt bewerkt.
+Een geïmporteerde workflow wordt altijd **uitgeschakeld** aangemaakt, ook als hij ingeschakeld was waar hij vandaan kwam — zijn graaf kan verwijzen naar monitoren, bereikbaarheidsbeleid of andere workflows die in het doelproject niet bestaan. Bekijk hem, test hem met **Workflow uitvoeren** en zet hem daarna aan. Een workflow dupliceren werkt hetzelfde, zodat een kopie nooit naast het origineel gaat afgaan voordat je hem hebt bewerkt.
 
 Omdat de graaf ongewijzigd meereist, reist alles wat rechtstreeks in een blok is getypt mee. Dat is de praktische reden om inloggegevens in geheime variabelen te bewaren: wie een workflow met een hardgecodeerd token exporteert, geeft dat token aan iedereen die het bestand krijgt.
 

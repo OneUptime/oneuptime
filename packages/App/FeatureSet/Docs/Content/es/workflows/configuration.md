@@ -3,7 +3,7 @@
 Lo que debes saber antes de poner un flujo de trabajo frente a tráfico real: cómo activarlo con seguridad, quién puede hacer qué, cómo se mantienen privados los secretos y las URL, qué pueden cambiar los pasos de un flujo de trabajo y los límites dentro de los que trabaja cada ejecución.
 
 :::cards
-- [Pasar a producción](#activar-o-desactivar-un-flujo-de-trabajo): Prueba con Ejecutar flujo de trabajo y después deja el flujo de trabajo activado.
+- [Pasar a producción](#activar-o-desactivar-un-flujo-de-trabajo): Prueba con Ejecutar flujo de trabajo mientras está desactivado y después actívalo.
 - [Permisos](#permisos): Los roles de flujo de trabajo y los permisos individuales que hay detrás.
 - [Qué pueden hacer los pasos](#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo): Los pasos actúan como Project Admin del proyecto del flujo de trabajo.
 - [Límites](#límites-del-plan): Ejecuciones por plan, duración de una ejecución y llamadas entre flujos de trabajo.
@@ -11,18 +11,18 @@ Lo que debes saber antes de poner un flujo de trabajo frente a tráfico real: c�
 
 ## Activar o desactivar un flujo de trabajo
 
-Cada flujo de trabajo tiene un interruptor **Habilitado** en la parte superior de su **Constructor** y en su página **Vista general**. Cuando está desactivado, el flujo de trabajo no se ejecuta: las llamadas de webhook, el correo entrante, las horas programadas y los eventos de OneUptime se ignoran, igual que **Ejecutar flujo de trabajo** y **Ejecutar solo este paso**. Los flujos de trabajo nuevos empiezan deshabilitados.
+Cada flujo de trabajo tiene un interruptor **Habilitado** en la parte superior de su **Constructor** y en su página **Vista general**. Cuando está desactivado, su disparador queda en pausa: las llamadas de webhook, el correo entrante, las horas programadas, los eventos de OneUptime y los pasos **Execute Workflow** de otros flujos de trabajo no lo inician. **Ejecutar flujo de trabajo** y **Ejecutar solo este paso** sí: una ejecución que inicias tú mismo mientras el flujo de trabajo está desactivado es una **Ejecución de prueba**. Los flujos de trabajo nuevos empiezan deshabilitados.
 
 Usa este interruptor como tu señal de «listo para salir»:
 
 :::steps
 1. Construye el flujo de trabajo.
-2. Haz clic en **Ejecutar flujo de trabajo** en el **Constructor** con valores realistas. Un flujo de trabajo deshabilitado no puede ejecutarse ni siquiera a mano, así que el Constructor pide activarlo primero: haz clic en **Activar y ejecutar**.
+2. Haz clic en **Ejecutar flujo de trabajo** en el **Constructor** con valores realistas, mientras el flujo de trabajo sigue desactivado. La ejecución es una **Ejecución de prueba**: cada bloque se ejecuta de verdad, así que apúntalo primero a un canal de prueba o a un registro de prueba.
 3. Abre la ejecución y comprueba que cada bloque fue adonde esperabas. Consulta [Ejecuciones](/docs/workflows/runs-and-logs).
-4. Deja **Habilitado** activado si está listo. Si no lo está, desactívalo hasta que lo esté: mientras está activado, su disparador salta con eventos reales.
+4. Activa **Habilitado** cuando esté listo: a partir de entonces, su disparador salta con eventos reales.
 :::
 
-Desactivar un flujo de trabajo impide que empiecen ejecuciones nuevas. Una ejecución que ya está en curso termina, pero una ejecución que espera en un bloque **Sleep** se cancela al despertar.
+Desactivar un flujo de trabajo impide que su disparador inicie ejecuciones nuevas. Una ejecución que ya está en curso termina, pero una ejecución que inició su disparador y que espera en un bloque **Sleep** se cancela al despertar. Las ejecuciones de prueba continúan.
 
 ## Archivar un flujo de trabajo
 
@@ -85,7 +85,7 @@ El archivo contiene el nombre del flujo de trabajo, su descripción, su estado d
 - **Las variables globales.** Un bloque que lee `{{global.variables.MY_SECRET}}` conserva esa referencia, pero el valor no está en el archivo. Crea las variables en el proyecto de destino antes de ejecutar el flujo de trabajo importado.
 - **Los propietarios y las etiquetas.** Las reglas de etiquetas y de propietarios de tu proyecto se aplican al flujo de trabajo importado, igual que si lo hubieras creado a mano.
 
-Un flujo de trabajo importado siempre se crea **deshabilitado**, aunque estuviera habilitado donde se exportó: su grafo puede apuntar a monitores, políticas de guardia u otros flujos de trabajo que no existen en el proyecto de destino. Revísalo, actívalo, pruébalo con **Ejecutar flujo de trabajo** y después déjalo activado. Duplicar un flujo de trabajo se comporta igual, así que una copia nunca empieza a saltar junto al original antes de que la hayas editado.
+Un flujo de trabajo importado siempre se crea **deshabilitado**, aunque estuviera habilitado donde se exportó: su grafo puede apuntar a monitores, políticas de guardia u otros flujos de trabajo que no existen en el proyecto de destino. Revísalo, pruébalo con **Ejecutar flujo de trabajo** y después actívalo. Duplicar un flujo de trabajo se comporta igual, así que una copia nunca empieza a saltar junto al original antes de que la hayas editado.
 
 Como el grafo viaja tal cual, todo lo que se escribió directamente en un bloque viaja con él. Esa es la razón práctica para guardar las credenciales en variables secretas: exportar un flujo de trabajo con un token escrito a mano entrega ese token a quien reciba el archivo.
 

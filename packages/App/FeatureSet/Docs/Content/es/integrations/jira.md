@@ -104,7 +104,7 @@ Si tu organización usa la gestión centralizada de usuarios de Atlassian, hay u
 
 La descripción parece pesada porque la API v3 de Jira Cloud recibe el texto enriquecido como **Atlassian Document Format** — un árbol de documento, no una cadena. La estructura anterior es el documento válido mínimo: un párrafo que contiene un nodo de texto. Lo mismo aplica a `environment` y a cualquier campo personalizado de texto multilínea; los campos personalizados de texto de una sola línea siguen aceptando una cadena simple.
 
-Ahora enciende el workflow desde **Vista General → Editar flujo de trabajo → Habilitado**, declara un incidente de prueba y abre **Registros → Ejecuciones**. El bloque `create-issue` debería mostrar un `201` y un cuerpo que contiene el `id`, la `key` y el `self` del nuevo issue. Los cambios en el lienzo se guardan solos — no hay botón de guardar, y un workflow deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
+Ahora enciende el workflow desde **Vista General → Editar flujo de trabajo → Habilitado**, declara un incidente de prueba y abre **Registros → Ejecuciones**. El bloque `create-issue` debería mostrar un `201` y un cuerpo que contiene el `id`, la `key` y el `self` del nuevo issue. Los cambios en el lienzo se guardan solos — no hay botón de guardar, y mientras el workflow está desactivado, un incidente nuevo no lo inicia.
 
 La key del nuevo issue está disponible para cualquier bloque posterior a este:
 

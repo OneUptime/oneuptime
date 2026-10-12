@@ -93,8 +93,8 @@ Elke workflow komt op dezelfde manier tot stand:
 1. **Maken** — kies een startpunt en geef je workflow daarna een naam. Zie [Een workflow maken](/docs/workflows/authoring).
 2. **Een trigger kiezen** — handmatig, volgens schema, webhook, binnenkomende e-mail of een gebeurtenis uit OneUptime. Zie [Triggers](/docs/workflows/triggers).
 3. **Componenten toevoegen** — zet acties op het canvas en verbind ze. Zie [Componenten](/docs/workflows/components).
-4. **Inschakelen** — zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet handmatig.
-5. **Testen** — klik op **Workflow uitvoeren** in de **Bouwer** en volg de uitvoering terwijl die gebeurt.
+4. **Testen** — klik op **Workflow uitvoeren** in de **Bouwer** en volg de uitvoering terwijl die gebeurt. Dat kan ook terwijl de workflow nog uit staat: het is een **Testrun**.
+5. **Inschakelen** — zet **Ingeschakeld** aan bovenaan de **Bouwer** als hij klaar is. Vanaf dan start zijn trigger hem.
 :::
 
 Het voorbeeld hieronder doorloopt deze stappen voor een echte workflow.
@@ -156,15 +156,15 @@ Klik op **Component toevoegen** en daarna op **Logboek**. Sluit het punt **Error
 
 Een verzoek dat mislukt — een onbereikbare URL of een antwoord dat geen 2xx is — volgt nu dit pad, en het logboek van de uitvoering zegt waarom.
 
+### Testen
+
+Klik op **Workflow uitvoeren**, vul de **Incident-ID** in van een incident in dit project, klik op **Run Workflow Manually** en bevestig met **Run**. De workflow staat nog uit, dus dit is een **Testrun**, en het verzoek wordt echt verstuurd.
+
+Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API Post (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
+
 ### Inschakelen
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**.
-
-### Testen
-
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** in van een incident in dit project, klik op **Run Workflow Manually** en bevestig met **Run**.
-
-Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API Post (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
 :::
 
 Vanaf nu start elk nieuw incident in het project een uitvoering. Je vindt ze allemaal onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow.
