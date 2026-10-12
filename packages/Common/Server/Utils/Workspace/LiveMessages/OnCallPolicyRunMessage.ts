@@ -194,17 +194,23 @@ export default class OnCallPolicyRunMessage {
    */
   @CaptureSpan()
   public static async syncRun(executionLogId: ObjectID): Promise<void> {
-    const reading: OnCallPolicyRunReading | null =
-      await this.readRun(executionLogId);
-
-    if (!reading || !reading.hasStarted) {
-      return;
-    }
-
     const messageKey: string =
       WorkspaceLiveMessageKey.forOnCallPolicyRun(executionLogId);
 
+    /*
+     * The run is read under the same hold as its message is written: two
+     * workers handling two steps of one run would otherwise each read the
+     * run, and the one that read it first could write that older state over
+     * the newer edit - for good, if no later change came to correct it.
+     */
     await WorkspaceLiveMessages.withLock(messageKey, async () => {
+      const reading: OnCallPolicyRunReading | null =
+        await this.readRun(executionLogId);
+
+      if (!reading || !reading.hasStarted) {
+        return;
+      }
+
       const markdownBlock: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
         text: OnCallPolicyRunMessageView.getMarkdown(reading.run),

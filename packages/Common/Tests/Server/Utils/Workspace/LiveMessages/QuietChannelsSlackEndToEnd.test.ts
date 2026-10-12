@@ -53,6 +53,8 @@ interface SlackRequest {
   method: string;
   channel: string;
   ts: string;
+  // Set when a message is posted as a reply in another message's thread.
+  threadTs: string;
   text: string;
   blocks: Array<JSONObject>;
 }
@@ -111,6 +113,7 @@ class FakeSlack {
         method: method,
         channel: String(body["channel"] || ""),
         ts: ts,
+        threadTs: String(body["thread_ts"] || ""),
         text: FakeSlack.textOf(blocks),
         blocks: blocks,
       });
@@ -251,10 +254,25 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       expect.stringContaining("State"),
     ]);
 
-    // Every message went to the incident's channel.
+    // Every message went to the incident's channel, as a message of its own.
     for (const post of posts) {
       expect(post.channel).toBe(SLACK_INCIDENT_CHANNEL);
+      expect(post.threadTs).toBe("");
     }
+
+    // Nothing but posts and edits of the run's message reached Slack's chat API.
+    expect(
+      slack.requests
+        .filter((request: SlackRequest): boolean => {
+          return request.method.startsWith("chat.");
+        })
+        .every((request: SlackRequest): boolean => {
+          return (
+            request.method === "chat.postMessage" ||
+            (request.method === "chat.update" && request.ts === posts[2]!.ts)
+          );
+        }),
+    ).toBe(true);
 
     // 1. The incident - the channel opens on it: its state, severity, buttons.
     expect(posts[0]!.text).toContain("Incident State");
@@ -323,6 +341,86 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       },
     );
     expect(kept).toHaveLength(1);
+  });
+
+  test("after each step of the screenshots' run, its one message says exactly where the run is", async () => {
+    // What the run's message says now: its last edit, else its post.
+    const runMessage: () => string = (): string => {
+      const updates: Array<SlackRequest> = slack.updates();
+
+      if (updates.length > 0) {
+        return updates[updates.length - 1]!.text;
+      }
+
+      return slack.posts().find((post: SlackRequest): boolean => {
+        return headline(post).includes("is paging for");
+      })!.text;
+    };
+
+    // Rule "fhirst" paged Nitin.
+    await declareIncidentAndPage();
+    let message: string = runMessage();
+    expect(message).toContain("is paging for");
+    expect(message).toContain(
+      "Escalation rule 1 of 3 (fhirst)*\u200b · repeats once if nobody acknowledges",
+    );
+    expect(message).toContain("Nitin*\u200b: paged once · by SMS, email");
+    expect(message).toContain(
+      "If nobody acknowledges within 6 minutes, escalation rule 2 of 3 (second) is next.",
+    );
+    expect(message).not.toContain("Not paged");
+
+    // Rule "second" paged NB User 3, and Nitin again.
+    await world.escalate();
+    message = runMessage();
+    expect(message).toContain("Escalation rule 2 of 3 (second)");
+    expect(message).toContain("Nitin*\u200b: paged twice · by SMS, email");
+    expect(message).toContain("NB User 3*\u200b: paged once · by SMS, email");
+    expect(message).toContain(
+      "If nobody acknowledges within 7 minutes, escalation rule 3 of 3 (third) is next.",
+    );
+
+    // Rule "third" reached nobody: NB User 2 left the project.
+    await world.escalate();
+    message = runMessage();
+    expect(message).toContain("Escalation rule 3 of 3 (third)");
+    expect(message).toContain("Not paged");
+    expect(message).toContain("NB User 2*\u200b: not a member of this project");
+    expect(message).toContain(
+      "If nobody acknowledges within 7 minutes, the policy starts again from escalation rule 1.",
+    );
+
+    // Nobody acknowledged: the policy repeats from rule "fhirst".
+    await world.escalate();
+    message = runMessage();
+    expect(message).toContain("Escalation rule 1 of 3 (fhirst)*\u200b · repeat 1 of 1");
+    expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS, email");
+
+    // Nitin acknowledged.
+    await world.acknowledge(NITIN);
+    message = runMessage();
+    expect(headline({ text: message } as SlackRequest)).toContain(
+      "acknowledged",
+    );
+    expect(message).toContain("stopped paging");
+    expect(message).toContain(
+      "Nitin*\u200b: acknowledged ✅ · paged 3 times · by SMS, email",
+    );
+    expect(message).not.toContain("If nobody acknowledges");
+    expect(message).toContain("See every step in OneUptime");
+
+    // All of it in the one message, posted once; the alarm is the only other post naming the policy.
+    expect(
+      slack
+        .posts()
+        .filter((post: SlackRequest): boolean => {
+          return headline(post).includes("PolicyX");
+        })
+        .map(headline),
+    ).toEqual([
+      expect.stringContaining("is paging for"),
+      expect.stringContaining("Nobody was paged for"),
+    ]);
   });
 
   test("while the run escalates, the message says where it is and what is next", async () => {
