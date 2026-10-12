@@ -224,6 +224,40 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     );
   });
 
+  test("a rule tried again because nobody was on call yet says so, and when - not that the next rule is coming", () => {
+    const retrying: string = progressOf(
+      OnCallPolicyRunMessageView.getMarkdown(
+        run({
+          currentRule: { order: 1, name: "fhirst" },
+          nextRule: { order: 2, name: "second" },
+          escalateAfterInMinutes: 1,
+          nextStepAt: new Date("2026-10-08T17:16:00.000Z"),
+          retryingCurrentRule: true,
+        }),
+      ),
+    );
+
+    expect(retrying).toBe(
+      "**Escalation rule 1 of 3 (fhirst)**: nobody is on call yet, trying again by {{TIME(2026-10-08T17:16:00Z)}}.",
+    );
+    expect(retrying).not.toContain("is next");
+
+    expect(
+      progressOf(
+        OnCallPolicyRunMessageView.getMarkdown(
+          run({
+            currentRule: { order: 1, name: "fhirst" },
+            escalateAfterInMinutes: 1,
+            repeatNumber: 1,
+            retryingCurrentRule: true,
+          }),
+        ),
+      ),
+    ).toBe(
+      "**Escalation rule 1 of 3 (fhirst)**, repeat 1 of 2: nobody is on call yet, trying again within 1 minute.",
+    );
+  });
+
   test("before its first rule has started, the run says it is starting, and nothing is promised", () => {
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
       run({
@@ -454,12 +488,33 @@ describe("OnCallPolicyRunMessageView.getMarkdown - how a run ended", () => {
       headline({
         outcome: OnCallPolicyRunOutcome.Failed,
         outcomeDetail: "No Escalation Rules in Policy.",
+        paged: [],
       }),
     ).toBe(
       `❌ ${POLICY} could not page anyone for ${RECORD}: No Escalation Rules in Policy.`,
     );
-    expect(headline({ outcome: OnCallPolicyRunOutcome.Failed })).toBe(
-      `❌ ${POLICY} could not page anyone for ${RECORD}`,
+    expect(
+      headline({ outcome: OnCallPolicyRunOutcome.Failed, paged: [] }),
+    ).toBe(`❌ ${POLICY} could not page anyone for ${RECORD}`);
+  });
+
+  test("REGRESSION: a run that went wrong after paging people says it stopped - not that it could not page anyone", () => {
+    const failed: OnCallPolicyRun = run({
+      outcome: OnCallPolicyRunOutcome.Failed,
+      outcomeDetail: "Policy Execution timed out.",
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(failed);
+
+    expect(markdown.split("\n\n")[0]).toBe(
+      `❌ ${POLICY} stopped paging for ${RECORD}: Policy Execution timed out.`,
+    );
+    expect(markdown).not.toContain("could not page anyone");
+    // Who it paged before it stopped is still listed.
+    expect(markdown).toContain("- **Nitin**: paged 3 times");
+
+    expect(OnCallPolicyRunMessageView.getPlainText(failed)).toBe(
+      "PolicyX stopped paging for Incident INC-8",
     );
   });
 });
@@ -591,6 +646,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
         run({
           outcome: OnCallPolicyRunOutcome.Failed,
           outcomeDetail: "No Escalation Rules in Policy.",
+          paged: [],
         }),
       ),
     ).toEqual([
@@ -606,6 +662,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
         run({
           outcome: OnCallPolicyRunOutcome.Failed,
           outcomeDetail: "Error occurred while executing the on-call policy",
+          paged: [],
         }),
       )[0]!.markdown,
     ).toBe(
@@ -614,11 +671,27 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
 
     expect(
       OnCallPolicyRunMessageView.getAlarms(
-        run({ outcome: OnCallPolicyRunOutcome.Failed }),
+        run({ outcome: OnCallPolicyRunOutcome.Failed, paged: [] }),
       )[0]!.markdown,
     ).toBe(
       `❌ ${POLICY} could not page anyone for ${RECORD}. Page someone yourself.`,
     );
+
+    // Gone wrong after some rules paged people: it stopped before anyone acknowledged.
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          outcome: OnCallPolicyRunOutcome.Failed,
+          outcomeDetail: "Policy Execution timed out.",
+        }),
+      ),
+    ).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_OUTCOME,
+        markdown: `❌ ${POLICY} stopped paging for ${RECORD} before anyone acknowledged: Policy Execution timed out. Page someone yourself.`,
+        text: "PolicyX stopped paging for Incident INC-8 before anyone acknowledged",
+      },
+    ]);
 
     expect(
       OnCallPolicyRunMessageView.getAlarms(
@@ -732,7 +805,7 @@ describe("OnCallPolicyRunMessageView.getPlainText - what a notification shows", 
     ).toBe("PolicyX could not reach anyone for Incident INC-8");
     expect(
       OnCallPolicyRunMessageView.getPlainText(
-        run({ outcome: OnCallPolicyRunOutcome.Failed }),
+        run({ outcome: OnCallPolicyRunOutcome.Failed, paged: [] }),
       ),
     ).toBe("PolicyX could not page anyone for Incident INC-8");
   });

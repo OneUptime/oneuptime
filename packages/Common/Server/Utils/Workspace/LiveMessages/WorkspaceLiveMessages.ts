@@ -305,10 +305,13 @@ export default class WorkspaceLiveMessages {
 
   /*
    * Edits a kept message to say `messageBlocks`. Nothing is sent when it says
-   * that already (its content hash); `messageData` is saved either way. A
-   * message somebody deleted is posted again in the same place, as the
-   * workspace tells it (isMessageGoneError); any other refusal is logged and
-   * left for the next change to try again.
+   * that already (its content hash). A message somebody deleted is posted
+   * again in the same place, as the workspace tells it (isMessageGoneError);
+   * any other refusal is logged and left for the next change to try again.
+   *
+   * `messageData` is saved whatever came of the edit: it remembers what was
+   * done beside the message - an alarm the run has raised - and forgetting
+   * it because the edit was refused would do that again on every change.
    */
   @CaptureSpan()
   public static async updateKept(data: {
@@ -352,6 +355,11 @@ export default class WorkspaceLiveMessages {
         `${workspaceType} is no longer connected: a kept message was not updated.`,
         logAttributes,
       );
+      await this.rememberOnly(
+        keptMessage,
+        data.messageData,
+        messageDataChanged,
+      );
       return WorkspaceLiveMessageEdit.Failed;
     }
 
@@ -379,6 +387,11 @@ export default class WorkspaceLiveMessages {
         logger.error(
           `Could not update a ${workspaceType} message in place: ${WorkspaceBase.getSendErrorMessage(err)}`,
           logAttributes,
+        );
+        await this.rememberOnly(
+          keptMessage,
+          data.messageData,
+          messageDataChanged,
         );
         return WorkspaceLiveMessageEdit.Failed;
       }
@@ -408,6 +421,11 @@ export default class WorkspaceLiveMessages {
       const thread: WorkspaceThread | undefined = responses[0]?.threads[0];
 
       if (!thread) {
+        await this.rememberOnly(
+          keptMessage,
+          data.messageData,
+          messageDataChanged,
+        );
         return WorkspaceLiveMessageEdit.Failed;
       }
 
@@ -450,6 +468,33 @@ export default class WorkspaceLiveMessages {
         );
       },
     );
+  }
+
+  /*
+   * Saves what a message remembers - and only that - when its edit did not
+   * go through: the next change still finds the message saying what it
+   * said, and edits it.
+   */
+  private static async rememberOnly(
+    keptMessage: WorkspaceLiveMessage,
+    messageData: WorkspaceLiveMessageData | undefined,
+    messageDataChanged: boolean,
+  ): Promise<void> {
+    if (!messageData || !messageDataChanged) {
+      return;
+    }
+
+    try {
+      await this.saveKept(keptMessage, { messageData: messageData });
+    } catch (err) {
+      logger.error(
+        `Could not remember what a workspace message raised: ${WorkspaceBase.getSendErrorMessage(err)}`,
+        {
+          projectId: keptMessage.projectId?.toString(),
+          channelId: keptMessage.channelId,
+        } as LogAttributes,
+      );
+    }
   }
 
   private static async saveKept(

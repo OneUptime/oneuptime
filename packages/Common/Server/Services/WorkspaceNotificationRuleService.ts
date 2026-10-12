@@ -256,6 +256,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           projectId: data.projectId,
           notificationRules: [rule],
           userIds: [data.testByUserId],
+          // A test says when the tester could not be invited.
+          throwOnInviteError: true,
         });
       } catch (err) {
         throw new BadDataException(
@@ -2109,6 +2111,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
+    /*
+     * Throw what the workspace answered when it refuses an invite, rather
+     * than log it and go on: a rule's test reports it to the person testing.
+     */
+    throwOnInviteError?: boolean | undefined;
   }): Promise<void> {
     // if no rules then return.
     if (data.notificationRules.length === 0) {
@@ -2290,6 +2297,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.error(err, {
           projectId: data.projectId?.toString(),
         } as LogAttributes);
+
+        if (data.throwOnInviteError) {
+          throw err;
+        }
       }
 
       /*

@@ -9,6 +9,7 @@ import {
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
@@ -506,6 +507,58 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
 
     const last: string = slack.updates()[slack.updates().length - 1]!.text;
     expect(last).toContain("nobody acknowledged");
+  });
+
+  /*
+   * A run's message is brought up to date after the run ends too - a page's
+   * delivery finishing late. It used to read why the run ended from the
+   * incident as it was then, so an incident acknowledged after the policy
+   * gave up rewrote "nobody acknowledged" as "moved to Acknowledged, so the
+   * policy stopped paging". Why it ended is in the run's own status message.
+   */
+  test("REGRESSION: a run that went through every rule still says so when the incident is acknowledged afterwards", async () => {
+    await declareIncidentAndPage();
+    await escalateThroughTheScreenshots();
+    await world.escalate();
+    await world.escalate();
+    await world.escalate();
+
+    const postsBefore: number = slack.posts().length;
+    const updatesBefore: number = slack.updates().length;
+
+    // Somebody acknowledges the incident in OneUptime; a late delivery refreshes the run.
+    world.recordAcknowledged = true;
+    world.recordStateName = "Acknowledged";
+    OnCallPolicyRunMessage.refresh(world.run!.id!);
+    await world.settle();
+
+    // Nothing to change: no edit, no new message.
+    expect(slack.updates()).toHaveLength(updatesBefore);
+    expect(slack.posts()).toHaveLength(postsBefore);
+
+    const last: string = slack.updates()[slack.updates().length - 1]!.text;
+    expect(last).toContain("went through every escalation rule");
+    expect(last).not.toContain("moved to");
+  });
+
+  test("the incident acknowledged in OneUptime while the run escalates: the run's message says so, and no alarm is raised", async () => {
+    await declareIncidentAndPage();
+    await world.escalate();
+
+    const postsBefore: number = slack.posts().length;
+
+    await world.recordHandledElsewhere("Acknowledged");
+
+    const last: SlackRequest = slack.updates()[slack.updates().length - 1]!;
+
+    expect(headline(last)).toContain("moved to");
+    expect(headline(last)).toContain("Acknowledged*\u200b, so");
+    expect(headline(last)).toContain("stopped paging");
+    expect(last.notification).toBe(
+      "Incident INC-8 moved to Acknowledged, so PolicyX stopped paging",
+    );
+    // Somebody is on it: nothing new is posted.
+    expect(slack.posts()).toHaveLength(postsBefore);
   });
 });
 

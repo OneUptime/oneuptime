@@ -26,6 +26,25 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * A message Microsoft Teams posted without telling its id is kept with an
+   * empty one (WorkspaceLiveMessages.postAndKeep): it cannot be edited, but
+   * keeping it is what stops it being posted again on every change. The
+   * required-column check reads "" as missing, so the row was refused, and
+   * an on-call run's card was posted anew at every step. An empty message id
+   * is a value of it; anything else is read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (column === "messageId" && typeof value === "string") {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
   // Every message of a project kept for one key, in every channel it is in.
   @CaptureSpan()
   public async findByMessageKey(data: {

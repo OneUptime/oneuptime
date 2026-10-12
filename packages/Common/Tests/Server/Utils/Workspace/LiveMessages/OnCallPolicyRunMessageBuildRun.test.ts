@@ -151,6 +151,8 @@ function executionLog(options: {
   ruleOrder?: number | undefined;
   // When the run started the rule it is on.
   ruleStartedAt?: Date | undefined;
+  // How often the rule was tried again because nobody was on call yet.
+  scheduleGapRetryCount?: number | undefined;
   executeNextInMinutes?: number | undefined;
   repeatCount?: number | undefined;
   repeatsAllowed?: number | undefined;
@@ -175,6 +177,10 @@ function executionLog(options: {
 
   if (options.ruleStartedAt) {
     model.lastEscalationRuleExecutedAt = options.ruleStartedAt;
+  }
+
+  if (options.scheduleGapRetryCount !== undefined) {
+    model.scheduleGapRetryCount = options.scheduleGapRetryCount;
   }
 
   model.onCallPolicyExecutionRepeatCount = options.repeatCount ?? 1;
@@ -487,6 +493,216 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
     expect(built.firstRuleThatReachedNobody?.rule).toEqual({
       order: 2,
       name: "second",
+    });
+  });
+
+  /*
+   * A rule whose people were all skipped or could not be paged - each opted
+   * out, left the project, or has no way to be reached - reached nobody, as
+   * surely as a rule with nobody in it. The engine wrote no "no users in
+   * this rule" step for it, because it did find people to page.
+   */
+  test("REGRESSION: a rule whose every page was skipped reached nobody: the alarm names it and why", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+          statusMessage:
+            "You have opted out of notifications for Sev4 incidents.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NB_USER_2,
+          userName: "NB User 2",
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: [
+        "Nitin: has opted out of notifications for Sev4 incidents",
+        "NB User 2: not a member of this project",
+      ],
+    });
+    // The people say why: no "nobody to page" line on top.
+    expect(built.notPaged).toHaveLength(2);
+  });
+
+  test("a rule whose every page failed reached nobody too; the alarm says why in a word", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1 }),
+      timeline: [
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.Error,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+          statusMessage:
+            "Nitin has no verified notification method, so this page could not be delivered.",
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["Nitin: could not be paged"],
+    });
+  });
+
+  test("a rule that reached one of its people, or is still paging them, did reach somebody", () => {
+    for (const reachedStatus of [
+      SENT,
+      OnCallDutyExecutionLogTimelineStatus.Executing,
+      OnCallDutyExecutionLogTimelineStatus.Started,
+      OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+    ]) {
+      const built: OnCallPolicyRun = build({
+        log: executionLog({ ruleId: RULE_1 }),
+        timeline: [
+          step({
+            status: SKIPPED,
+            ruleId: RULE_1,
+            userId: NB_USER_2,
+            userName: "NB User 2",
+            statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+          }),
+          step({
+            status: reachedStatus,
+            ruleId: RULE_1,
+            userId: NITIN,
+            userName: "Nitin",
+          }),
+        ],
+      });
+
+      expect(built.firstRuleThatReachedNobody).toBeUndefined();
+    }
+  });
+
+  test("somebody the rule paged already through another of its targets counts as reached", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+          statusMessage:
+            "Skipped because notification sent to this user already.",
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toBeUndefined();
+    expect(built.notPaged).toEqual([]);
+  });
+
+  test("REGRESSION: the first rule that reached nobody is the first the run came to, however it reached nobody", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_3 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+          statusMessage:
+            "You have opted out of notifications for Sev4 incidents.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_3,
+          statusMessage: "Skipped because no users in this rule.",
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody?.rule).toEqual({
+      order: 1,
+      name: "fhirst",
+    });
+  });
+
+  /*
+   * Nobody was on call in a rule's schedules yet: OneUptime tries the rule
+   * again each minute, a few times, before it moves on (it rewinds the run
+   * to the rule before, and counts the tries). Raising "paged nobody - page
+   * someone or fix the policy" at the first try told a channel to act on a
+   * gap of a minute, while the rule was about to page somebody.
+   */
+  test("REGRESSION: a rule tried again because nobody was on call yet raises no alarm, and says it is tried again", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 0,
+        scheduleGapRetryCount: 1,
+        executeNextInMinutes: 1,
+        ruleStartedAt: new Date("2026-10-08T17:15:00.000Z"),
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          scheduleId: PRIMARY_COVER,
+          scheduleName: "Primary cover",
+          statusMessage:
+            "Skipped because no active users are found in this schedule.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: "Skipped because no users in this rule.",
+        }),
+      ],
+    });
+
+    expect(built.retryingCurrentRule).toBe(true);
+    expect(built.currentRule).toEqual({ order: 1, name: "fhirst" });
+    expect(built.firstRuleThatReachedNobody).toBeUndefined();
+    expect(built.nextStepAt).toEqual(new Date("2026-10-08T17:16:00.000Z"));
+    // Who was not on call is still said.
+    expect(built.notPaged).toEqual([
+      { scheduleName: "Primary cover", reason: "nobody was on call" },
+    ]);
+  });
+
+  test("once the tries are over, the rule reached nobody: the alarm is raised then", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 1,
+        scheduleGapRetryCount: 0,
+        executeNextInMinutes: 5,
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          scheduleId: PRIMARY_COVER,
+          scheduleName: "Primary cover",
+          statusMessage:
+            "Skipped because no active users are found in this schedule.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: "Skipped because no users in this rule.",
+        }),
+      ],
+    });
+
+    expect(built.retryingCurrentRule).toBe(false);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["nobody was on call in schedule Primary cover"],
     });
   });
 

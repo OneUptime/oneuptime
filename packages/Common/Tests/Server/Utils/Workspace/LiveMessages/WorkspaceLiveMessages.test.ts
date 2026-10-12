@@ -434,6 +434,62 @@ describe("WorkspaceLiveMessages.postAndKeep", () => {
   });
 });
 
+/*
+ * Microsoft Teams can answer a send without the new message's id. Such a
+ * message is kept with an empty id - never edited, but never posted again
+ * either. The required-column check read "" as missing and refused the row,
+ * so it was never kept: an on-call run's card was posted anew at every step.
+ * The in-memory store above skips that check, so it is run here for real.
+ */
+describe("WorkspaceLiveMessageService - a message kept without an id", () => {
+  function row(messageId: string | undefined): WorkspaceLiveMessage {
+    const model: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+    model.projectId = PROJECT_ID;
+    model.workspaceType = WorkspaceType.MicrosoftTeams;
+    model.messageKey = KEY;
+    model.destinationType = WorkspaceLiveMessageDestinationType.Channel;
+    model.channelId = "19:inc8@thread.tacv2";
+
+    if (messageId !== undefined) {
+      model.messageId = messageId;
+    }
+
+    return model;
+  }
+
+  function checkRequired(model: WorkspaceLiveMessage): void {
+    (
+      WorkspaceLiveMessageService as unknown as {
+        checkRequiredFields: (data: WorkspaceLiveMessage) => unknown;
+      }
+    ).checkRequiredFields(model);
+  }
+
+  test("REGRESSION: an empty message id is a value: the row is kept", () => {
+    expect(() => {
+      return checkRequired(row(""));
+    }).not.toThrow();
+    expect(() => {
+      return checkRequired(row("1:1760000000000"));
+    }).not.toThrow();
+  });
+
+  test("a message id that is not there at all is still required", () => {
+    expect(() => {
+      return checkRequired(row(undefined));
+    }).toThrow("messageId is required");
+  });
+
+  test("every other required column is checked as before", () => {
+    const model: WorkspaceLiveMessage = row("");
+    model.channelId = "";
+
+    expect(() => {
+      return checkRequired(model);
+    }).toThrow("channelId is required");
+  });
+});
+
 describe("WorkspaceLiveMessages.postEverywhere", () => {
   test("posts in every place a message about the record goes, in every workspace the project is connected to", async () => {
     jest
@@ -768,9 +824,34 @@ describe("WorkspaceLiveMessages.updateKept", () => {
     );
   });
 
-  test("any other refusal is left for the next change: nothing posted, nothing remembered", async () => {
+  test("any other refusal is left for the next change: nothing posted, and the message still reads as unedited", async () => {
     slackUpdate.mockRejectedValue(
       new BadRequestException("Error from Slack is_archived"),
+    );
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
+
+    expect(postSpy).not.toHaveBeenCalled();
+    // So the next change edits it again.
+    expect(store.rows[0]!.contentHash).toBe(
+      WorkspaceLiveMessages.getContentHash([markdown("first")]),
+    );
+  });
+
+  /*
+   * What a message remembers is what was done beside it - an alarm the run
+   * raised. The run posts the alarm, then edits its message with the alarm
+   * remembered: a refused edit forgot it, and the alarm was posted again on
+   * every change after, for as long as the edits were refused.
+   */
+  test("REGRESSION: a refused edit still remembers what the message raised", async () => {
+    slackUpdate.mockRejectedValue(
+      new BadRequestException("Error from Slack ratelimited"),
     );
 
     await expect(
@@ -781,11 +862,28 @@ describe("WorkspaceLiveMessages.updateKept", () => {
       }),
     ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
 
-    expect(postSpy).not.toHaveBeenCalled();
+    expect(store.rows[0]!.messageData).toEqual({ alarms: ["outcome"] });
     expect(store.rows[0]!.contentHash).toBe(
       WorkspaceLiveMessages.getContentHash([markdown("first")]),
     );
-    expect(store.rows[0]!.messageData).toEqual({ alarms: [] });
+  });
+
+  test("a deleted message that cannot be posted again still remembers what it raised", async () => {
+    slackUpdate.mockRejectedValue(
+      new BadRequestException("Error from Slack message_not_found"),
+    );
+    answerPost([]);
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+        messageData: { alarms: ["outcome"] },
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
+
+    expect(store.rows[0]!.messageData).toEqual({ alarms: ["outcome"] });
+    expect(store.rows[0]!.messageId).toBe("1700000000.000100");
   });
 
   test("a workspace that was disconnected is not edited", async () => {
@@ -797,10 +895,13 @@ describe("WorkspaceLiveMessages.updateKept", () => {
       WorkspaceLiveMessages.updateKept({
         keptMessage: kept,
         messageBlocks: [markdown("second")],
+        messageData: { alarms: ["outcome"] },
       }),
     ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
 
     expect(slackUpdate).not.toHaveBeenCalled();
+    // What the message raised is remembered all the same.
+    expect(store.rows[0]!.messageData).toEqual({ alarms: ["outcome"] });
   });
 
   test("a message kept without an id cannot be edited, and is not posted again", async () => {

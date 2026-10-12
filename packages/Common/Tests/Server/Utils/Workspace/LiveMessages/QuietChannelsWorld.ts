@@ -64,6 +64,10 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  getOnCallPolicyRunRecordHandledMessage,
+  ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+} from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
@@ -1060,11 +1064,32 @@ export default class QuietChannelsWorld {
         id: this.run!.id!,
         data: {
           status: OnCallDutyPolicyStatus.Completed,
-          statusMessage: "Execution completed.",
+          statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
         },
         props: { isRoot: true },
       });
     }
+
+    await this.settle();
+  }
+
+  /*
+   * The record is acknowledged or resolved some other way - in OneUptime, by
+   * a button in the channel: the worker's next tick finds it so and ends
+   * the run, as OnCallDutyPolicyExecutionLog:ExecutePendingExecutions does.
+   */
+  public async recordHandledElsewhere(stateName: string): Promise<void> {
+    this.recordAcknowledged = true;
+    this.recordStateName = stateName;
+
+    await OnCallDutyPolicyExecutionLogService.updateOneById({
+      id: this.run!.id!,
+      data: {
+        status: OnCallDutyPolicyStatus.Completed,
+        statusMessage: getOnCallPolicyRunRecordHandledMessage(this.runFor),
+      },
+      props: { isRoot: true },
+    });
 
     await this.settle();
   }

@@ -187,6 +187,30 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
     expect(noticeSpy).toHaveBeenCalledTimes(1);
     expect(inviteLogSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * A rule's test invites the person testing to the channel it creates, and
+   * says so when the workspace refuses: "Cannot invite users to the channel.
+   * Error from Slack missing_scope". Once invite refusals were only logged
+   * here, the test reported success with the tester never added.
+   */
+  test("REGRESSION: asked to, it throws what the workspace answered when it refuses an invite", async () => {
+    invite.mockRejectedValueOnce(new Error("Error from Slack missing_scope"));
+
+    await expect(
+      WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+        {
+          projectId: PROJECT_ID,
+          notificationRules: [rule(RULE_ID, WorkspaceType.Slack)],
+          workspaceChannels: [RULE_CHANNEL],
+          userIds: [CONNECTED],
+          throwOnInviteError: true,
+        },
+      ),
+    ).rejects.toThrow("Error from Slack missing_scope");
+
+    expect(inviteLogSpy).not.toHaveBeenCalled();
+  });
 });
 
 /*

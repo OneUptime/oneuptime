@@ -127,6 +127,11 @@ export interface OnCallPolicyRun {
    * started: the moment the next step names ("by 5:28 PM").
    */
   nextStepAt?: Date | undefined;
+  /*
+   * Nobody was on call in the current rule's schedules yet, and the run
+   * tries the rule again in a minute rather than moving on.
+   */
+  retryingCurrentRule?: boolean | undefined;
   // Which pass this is (0 is the first), and how many repeats the policy allows.
   repeatNumber: number;
   repeatsAllowed: number;
@@ -192,11 +197,7 @@ export default class OnCallPolicyRunMessageView {
       mdText`[See every step in ${ProductBrandingText.getProductName()}](${run.runUrl})`,
     );
 
-    return parts
-      .map((part: MarkdownText): string => {
-        return part.toString();
-      })
-      .join("\n\n");
+    return FeedMarkdown.join(parts, "\n\n").toString();
   }
 
   /*
@@ -221,7 +222,9 @@ export default class OnCallPolicyRunMessageView {
         return `${run.policyName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
       default:
-        return `${run.policyName} could not page anyone for ${run.recordLabel}`;
+        return run.paged.length > 0
+          ? `${run.policyName} stopped paging for ${run.recordLabel}`
+          : `${run.policyName} could not page anyone for ${run.recordLabel}`;
     }
   }
 
@@ -277,12 +280,25 @@ export default class OnCallPolicyRunMessageView {
         });
         break;
       case OnCallPolicyRunOutcome.Failed:
-        alarms.push({
-          key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown:
-            mdText`❌ ${policy} could not page anyone for ${record}${this.getFailureDetail(run)} Page someone yourself.`.toString(),
-          text: `${run.policyName} could not page anyone for ${run.recordLabel}`,
-        });
+        /*
+         * It went wrong part way, after some rules had paged people - or
+         * before anybody was paged at all.
+         */
+        alarms.push(
+          run.paged.length > 0
+            ? {
+                key: ON_CALL_RUN_ALARM_OUTCOME,
+                markdown:
+                  mdText`❌ ${policy} stopped paging for ${record} before anyone acknowledged${this.getFailureDetail(run)} Page someone yourself.`.toString(),
+                text: `${run.policyName} stopped paging for ${run.recordLabel} before anyone acknowledged`,
+              }
+            : {
+                key: ON_CALL_RUN_ALARM_OUTCOME,
+                markdown:
+                  mdText`❌ ${policy} could not page anyone for ${record}${this.getFailureDetail(run)} Page someone yourself.`.toString(),
+                text: `${run.policyName} could not page anyone for ${run.recordLabel}`,
+              },
+        );
         break;
       case OnCallPolicyRunOutcome.PolicyArchived:
         alarms.push({
@@ -323,10 +339,17 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.NobodyReached:
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:
-      default:
+      default: {
+        // Some rules may have paged people before it went wrong.
+        const what: MarkdownText =
+          run.paged.length > 0
+            ? mdText`stopped paging for`
+            : mdText`could not page anyone for`;
+
         return run.outcomeDetail
-          ? mdText`❌ ${policy} could not page anyone for ${record}: ${run.outcomeDetail}`
-          : mdText`❌ ${policy} could not page anyone for ${record}`;
+          ? mdText`❌ ${policy} ${what} ${record}: ${run.outcomeDetail}`
+          : mdText`❌ ${policy} ${what} ${record}`;
+      }
     }
   }
 
@@ -352,6 +375,11 @@ export default class OnCallPolicyRunMessageView {
         run.repeatsAllowed >= run.repeatNumber
           ? mdText`, repeat ${run.repeatNumber} of ${run.repeatsAllowed}`
           : mdText`, repeat ${run.repeatNumber}`;
+    }
+
+    // Nobody was on call in its schedules yet: the rule is tried again soon.
+    if (run.retryingCurrentRule) {
+      return mdText`${where}${repeat}: nobody is on call yet, trying again ${this.getWhen(run)}.`;
     }
 
     return mdText`${where}${repeat}: ${this.getNextStep(run)}`;

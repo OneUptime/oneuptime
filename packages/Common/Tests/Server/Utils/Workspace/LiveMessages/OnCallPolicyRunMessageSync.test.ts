@@ -23,6 +23,7 @@ import {
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceUtil from "../../../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
+import BadRequestException from "../../../../../Types/Exception/BadRequestException";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceMessagePayload, {
@@ -317,6 +318,41 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     );
     expect(sent[2]!.text).toContain("Escalation rule 2 of 2 (second)");
     expect(sent[2]!.notification).toBe("PolicyX is paging for Incident INC-8");
+    expect(store.rows[0]!.messageData).toEqual({
+      alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
+    });
+  });
+
+  /*
+   * The run posts an alarm, then edits its message with the alarm
+   * remembered. When the workspace refused that edit - rate limited, a
+   * Teams 403 - the alarm was forgotten with it, and posted again on every
+   * change after: the noise this message exists to end.
+   */
+  test("REGRESSION: an alarm posted while the run's edits are refused is not posted again on every change", async () => {
+    readSpy.mockResolvedValue(reading());
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    jest
+      .spyOn(SlackUtil, "updateMessage")
+      .mockRejectedValue(
+        new BadRequestException("Error from Slack ratelimited"),
+      );
+
+    readSpy.mockResolvedValue(reading(RULE_2_REACHED_NOBODY));
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    // More changes come while Slack still refuses the edits.
+    readSpy.mockResolvedValue(
+      reading({
+        ...RULE_2_REACHED_NOBODY,
+        paged: [{ ...run().paged[0]!, timesPaged: 2 }],
+      }),
+    );
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    expect(alarmSpy).toHaveBeenCalledTimes(1);
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
     });
