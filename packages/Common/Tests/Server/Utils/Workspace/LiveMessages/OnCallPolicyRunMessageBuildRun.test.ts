@@ -224,6 +224,19 @@ function build(data: {
 
 const SENT: OnCallDutyExecutionLogTimelineStatus =
   OnCallDutyExecutionLogTimelineStatus.NotificationSent;
+
+/*
+ * The first step of the rule the run has moved on to: the engine writes a
+ * rule's steps as soon as it starts it.
+ */
+function movedOnTo(ruleId: ObjectID): OnCallDutyPolicyExecutionLogTimeline {
+  return step({
+    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    ruleId: ruleId,
+    userId: NB_USER_3,
+    userName: "NB User 3",
+  });
+}
 const SKIPPED: OnCallDutyExecutionLogTimelineStatus =
   OnCallDutyExecutionLogTimelineStatus.Skipped;
 
@@ -442,6 +455,7 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
           ruleId: RULE_2,
           statusMessage: "Skipped because no users in this rule.",
         }),
+        movedOnTo(RULE_3),
       ],
     });
 
@@ -529,6 +543,7 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
           userName: "NB User 2",
           statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
         }),
+        movedOnTo(RULE_2),
       ],
     });
 
@@ -648,6 +663,7 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
           statusMessage:
             "Skipped because notification sent to this user already.",
         }),
+        movedOnTo(RULE_2),
       ],
     });
 
@@ -739,20 +755,30 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
         .firstRuleThatReachedNobody,
     ).toBeUndefined();
 
-    for (const log of [
-      executionLog({ ruleId: RULE_2 }),
-      executionLog({
-        ruleId: RULE_1,
-        status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
-      }),
-    ]) {
-      expect(
-        build({ log: log, timeline: gapSteps() }).firstRuleThatReachedNobody,
-      ).toEqual({
-        rule: { order: 1, name: "fhirst" },
-        reasons: ["nobody was on call in schedule Primary cover"],
-      });
-    }
+    // Moved on to rule 2.
+    expect(
+      build({
+        log: executionLog({ ruleId: RULE_2 }),
+        timeline: [...gapSteps(), movedOnTo(RULE_2)],
+      }).firstRuleThatReachedNobody,
+    ).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["nobody was on call in schedule Primary cover"],
+    });
+
+    // Ended.
+    expect(
+      build({
+        log: executionLog({
+          ruleId: RULE_1,
+          status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+        }),
+        timeline: gapSteps(),
+      }).firstRuleThatReachedNobody,
+    ).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["nobody was on call in schedule Primary cover"],
+    });
   });
 
   test("REGRESSION: the first rule that reached nobody is the first the run came to, however it reached nobody", () => {
@@ -876,6 +902,7 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
           ruleId: RULE_1,
           statusMessage: "Skipped because no users in this rule.",
         }),
+        movedOnTo(RULE_2),
       ],
     });
 
@@ -884,6 +911,67 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
       rule: { order: 1, name: "fhirst" },
       reasons: ["nobody was on call in schedule Primary cover"],
     });
+  });
+
+  /*
+   * The run's log is read before its steps. A sync that read the log just
+   * before the run moved on to rule 2 sees rule 2's first step - a person
+   * skipped - while the log still says rule 1, and took rule 2 for finished:
+   * "paged nobody at escalation rule 2" while its next person was about to
+   * be paged.
+   */
+  test("REGRESSION: the rule of the newest step is the rule the run is on, whatever an older read of the log says", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1 }),
+      timeline: [
+        step({
+          status: SENT,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_2,
+          userId: NB_USER_2,
+          userName: "NB User 2",
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toBeUndefined();
+  });
+
+  test("REGRESSION: a rule whose first try found nobody on call, and whose next try paged somebody, did reach somebody", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_2 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          scheduleId: PRIMARY_COVER,
+          scheduleName: "Primary cover",
+          statusMessage:
+            "Skipped because no active users are found in this schedule.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: "Skipped because no users in this rule.",
+        }),
+        // A minute later Nitin is on call, and the rule pages him.
+        step({
+          status: SENT,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+        }),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toBeUndefined();
   });
 
   test("a page that failed names the person and why", () => {

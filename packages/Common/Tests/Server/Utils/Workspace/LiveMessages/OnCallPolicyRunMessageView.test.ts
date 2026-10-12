@@ -725,6 +725,49 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
     ).toEqual([]);
   });
 
+  test("REGRESSION: a rule that reached nobody is not said once somebody is on the record", () => {
+    const reachedNobody: Partial<OnCallPolicyRun> = {
+      firstRuleThatReachedNobody: {
+        rule: { order: 1, name: "fhirst" },
+        reasons: ["Nitin: has opted out of notifications for Sev4 incidents"],
+      },
+    };
+
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          ...reachedNobody,
+          outcome: OnCallPolicyRunOutcome.Acknowledged,
+          acknowledgedByName: "Carol",
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          ...reachedNobody,
+          outcome: OnCallPolicyRunOutcome.RecordHandled,
+          outcomeDetail: "Acknowledged",
+        }),
+      ),
+    ).toEqual([]);
+
+    // While nobody is on it, it is said - also at an ending that leaves nobody on it.
+    expect(
+      alarmKeys(
+        OnCallPolicyRunMessageView.getAlarms(
+          run({
+            ...reachedNobody,
+            outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+          }),
+        ),
+      ),
+    ).toEqual([
+      ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
+      ON_CALL_RUN_ALARM_OUTCOME,
+    ]);
+  });
+
   test("a rule that reached nobody and an ending raise one alarm each, never more", () => {
     expect(
       alarmKeys(

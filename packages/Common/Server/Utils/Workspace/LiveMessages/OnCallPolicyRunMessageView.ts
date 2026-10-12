@@ -242,7 +242,16 @@ export default class OnCallPolicyRunMessageView {
     const record: MarkdownText = mdText`**[${run.recordLabel}](${run.recordUrl})**`;
     const policy: MarkdownText = mdText`**[${run.policyName}](${run.policyUrl})**`;
 
-    if (run.firstRuleThatReachedNobody) {
+    /*
+     * A rule that reached nobody is said only while nobody is on the record:
+     * once somebody acknowledged, or the record was handled, there is
+     * nobody left to page.
+     */
+    const isSomebodyOnIt: boolean =
+      run.outcome === OnCallPolicyRunOutcome.Acknowledged ||
+      run.outcome === OnCallPolicyRunOutcome.RecordHandled;
+
+    if (run.firstRuleThatReachedNobody && !isSomebodyOnIt) {
       const reasons: Array<string> = run.firstRuleThatReachedNobody.reasons;
       const rule: string = this.getRuleLabel(
         run.firstRuleThatReachedNobody.rule,

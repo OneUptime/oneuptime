@@ -934,6 +934,11 @@ export default class OnCallPolicyRunMessage {
      */
     const rulesThatReachedNobody: Array<OnCallDutyPolicyEscalationRule> = [];
 
+    const latestStepRuleId: string | undefined =
+      data.timeline[
+        data.timeline.length - 1
+      ]?.onCallDutyPolicyEscalationRuleId?.toString();
+
     for (const [ruleId, steps] of stepsByRuleId.entries()) {
       const rule: OnCallDutyPolicyEscalationRule | undefined = ruleById(
         new ObjectID(ruleId),
@@ -943,16 +948,26 @@ export default class OnCallPolicyRunMessage {
         continue;
       }
 
+      /*
+       * No page of it reached anybody - in any try: a rule whose first try
+       * found nobody on call, and whose next try paged somebody, did reach
+       * somebody.
+       */
       const reachedNobody: boolean =
-        steps.nobodyInIt || (steps.pages > 0 && steps.reached === 0);
+        steps.reached === 0 && (steps.nobodyInIt || steps.pages > 0);
 
+      /*
+       * The rule the run is on - as its log says, or as its newest step
+       * says: the log is read before the steps, so a sync that read it just
+       * before the run moved on sees the next rule's first steps under the
+       * rule before.
+       */
       const isCurrentRule: boolean =
-        rule.id?.toString() === currentRuleModel?.id?.toString();
+        rule.id?.toString() === currentRuleModel?.id?.toString() ||
+        rule.id?.toString() === latestStepRuleId;
 
       const isFinished: boolean =
-        isRunOver ||
-        !isCurrentRule ||
-        (steps.nobodyInIt && !steps.scheduleGap && !isRetryingCurrentRule);
+        isRunOver || !isCurrentRule || (steps.nobodyInIt && !steps.scheduleGap);
 
       if (reachedNobody && isFinished) {
         rulesThatReachedNobody.push(rule);
