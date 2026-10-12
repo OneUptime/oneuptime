@@ -589,11 +589,16 @@ describe("how a search ranks what it finds", () => {
 
     expect(template("scheduled-email-digest").name).toMatch(/^Send /);
     expect(template("subscriber-added-forward").name).toMatch(/^Send /);
+    expect(template("incident-severity-slack").name).toMatch(/^Send /);
     expect(template("webhook-to-slack").name).toMatch(/ send /);
-    expect(results.slice(0, 2).sort()).toEqual(
-      ["scheduled-email-digest", "subscriber-added-forward"].sort(),
+    expect(results.slice(0, 3).sort()).toEqual(
+      [
+        "incident-severity-slack",
+        "scheduled-email-digest",
+        "subscriber-added-forward",
+      ].sort(),
     );
-    expect(results.indexOf("webhook-to-slack")).toBeGreaterThan(1);
+    expect(results.indexOf("webhook-to-slack")).toBeGreaterThan(2);
     expect(
       getWorkflowTemplateSearchScore(template("scheduled-email-digest"), [
         "send",

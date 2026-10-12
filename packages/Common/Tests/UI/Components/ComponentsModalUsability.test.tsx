@@ -288,9 +288,7 @@ describe("the browse views from the keyboard", () => {
     expect(screen.getByRole("button", { name: "If / Else" })).toHaveFocus();
 
     await user.keyboard("{ArrowRight}");
-    expect(
-      screen.getByRole("button", { name: "API Post (JSON)" }),
-    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Switch / Case" })).toHaveFocus();
 
     await user.keyboard("{ArrowLeft}{ArrowUp}");
     expect(screen.getByRole("button", { name: "Log" })).toHaveFocus();
