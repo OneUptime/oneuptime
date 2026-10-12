@@ -93,8 +93,8 @@ Hvert workflow bliver til på samme måde:
 1. **Opret** — vælg et udgangspunkt, og giv så dit workflow et navn. Se [Opret et workflow](/docs/workflows/authoring).
 2. **Vælg en trigger** — manuel, planlagt, webhook, indgående e-mail eller en begivenhed fra OneUptime. Se [Triggere](/docs/workflows/triggers).
 3. **Tilføj komponenter** — sæt handlinger på lærredet, og forbind dem. Se [Komponenter](/docs/workflows/components).
-4. **Slå det til** — slå **Aktiveret** til øverst i **Bygger**. Et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
-5. **Test** — klik på **Kør arbejdsgang** i **Bygger**, og følg kørslen, mens den sker.
+4. **Test** — klik på **Kør arbejdsgang** i **Bygger**, og følg kørslen, mens den sker. Det virker, mens workflowet stadig er slået fra: det er en **Testkørsel**.
+5. **Slå det til** — slå **Aktiveret** til øverst i **Bygger**, når det er klar. Fra da af starter dets trigger det.
 :::
 
 Eksemplet nedenfor følger disse trin for et rigtigt workflow.
@@ -156,15 +156,15 @@ Klik på **Tilføj komponent**, og klik så på **Log**. Forbind API-blokkens pu
 
 En forespørgsel, der mislykkes — en URL, der ikke kan nås, eller et svar, der ikke er 2xx — tager nu denne vej, og kørslens log siger hvorfor.
 
+### Test det
+
+Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en hændelse i dette projekt, klik på **Run Workflow Manually**, og bekræft med **Run**. Workflowet er stadig slået fra, så dette er en **Testkørsel**, og forespørgslen bliver virkelig sendt.
+
+Et panel **Arbejdsgangskørsel** åbner og følger kørslen. Åbn trinnet **API Post (JSON)** for at se den body, det sendte, og det svar, det fik.
+
 ### Slå det til
 
 Slå **Aktiveret** til øverst i **Bygger**.
-
-### Test det
-
-Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en hændelse i dette projekt, klik på **Run Workflow Manually**, og bekræft med **Run**.
-
-Et panel **Arbejdsgangskørsel** åbner og følger kørslen. Åbn trinnet **API Post (JSON)** for at se den body, det sendte, og det svar, det fik.
 :::
 
 Fra nu af starter hver ny hændelse i projektet en kørsel. Du finder dem alle under workflowets [Kørsler](/docs/workflows/runs-and-logs).

@@ -87,6 +87,12 @@ export interface ComponentProps {
    * whether or not this dialog is then saved.
    */
   onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
+  /*
+   * The workflow is turned off (and not archived): its trigger is paused, so
+   * the Webhook's URL refuses requests and the Incoming Email address ignores
+   * email. Their panels say so. See ComponentPrimaryPanel.
+   */
+  isWorkflowOff?: boolean | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -179,6 +185,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     incomingEmailSecretKey: props.incomingEmailSecretKey,
     canSeeIncomingEmailSecretKey: props.canSeeIncomingEmailSecretKey,
     onResetIncomingEmailSecretKey: props.onResetIncomingEmailSecretKey,
+    isWorkflowOff: props.isWorkflowOff,
   });
 
   /*

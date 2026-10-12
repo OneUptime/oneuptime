@@ -93,8 +93,8 @@ Tout workflow se construit de la même façon :
 1. **Créer** — choisissez un point de départ, puis donnez un nom à votre workflow. Voir [Créer un workflow](/docs/workflows/authoring).
 2. **Choisir un déclencheur** — manuel, planifié, webhook, e-mail entrant ou événement OneUptime. Voir [Déclencheurs](/docs/workflows/triggers).
 3. **Ajouter des composants** — posez des actions sur le canevas et reliez-les. Voir [Composants](/docs/workflows/components).
-4. **L'activer** — basculez **Activé** en haut du **Constructeur**. Un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
-5. **Tester** — cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et suivez l'exécution en direct.
+4. **Tester** — cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et suivez l'exécution en direct. Cela fonctionne même tant que le workflow est désactivé : c'est une **Exécution de test**.
+5. **L'activer** — basculez **Activé** en haut du **Constructeur** quand il est prêt. À partir de là, son déclencheur le lance.
 :::
 
 L'exemple ci-dessous suit ces étapes pour un vrai workflow.
@@ -156,15 +156,15 @@ Cliquez sur **Ajouter un composant**, puis sur **Journal**. Reliez-y le point **
 
 Une requête qui échoue — une URL injoignable, ou une réponse qui n'est pas en 2xx — prend désormais ce chemin, et le journal de l'exécution dit pourquoi.
 
+### Le tester
+
+Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de ce projet, cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Le workflow est toujours désactivé : c'est donc une **Exécution de test**, et la requête est vraiment envoyée.
+
+Un panneau **Exécution du flux de travail** s'ouvre et suit l'exécution. Ouvrez l'étape **API Post (JSON)** pour voir le corps qu'elle a envoyé et la réponse qu'elle a reçue.
+
 ### L'activer
 
 Basculez **Activé** en haut du **Constructeur**.
-
-### Le tester
-
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de ce projet, cliquez sur **Run Workflow Manually** et confirmez avec **Run**.
-
-Un panneau **Exécution du flux de travail** s'ouvre et suit l'exécution. Ouvrez l'étape **API Post (JSON)** pour voir le corps qu'elle a envoyé et la réponse qu'elle a reçue.
 :::
 
 Désormais, chaque nouvel incident du projet lance une exécution. Vous les retrouvez toutes dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow.

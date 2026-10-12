@@ -11,7 +11,7 @@ Scegli come iniziare:
 
 Fai clic su un modello per vedere cosa fa: il suo trigger, i blocchi che lo compongono e le impostazioni che ti chiederà. Poi fai clic su **Usa questo modello**, oppure fai doppio clic sul modello. Nella casella di ricerca, i tasti freccia scelgono un modello e **Enter** lo usa. `/` ti riporta alla casella di ricerca.
 
-I workflow vengono creati disattivati, quindi non parte nulla finché non li attivi. Un nuovo workflow si apre nel **Costruttore**, la tela su cui lo progetti.
+I workflow vengono creati disattivati, quindi il loro trigger non li avvia finché non li attivi. Un nuovo workflow si apre nel **Costruttore**, la tela su cui lo progetti.
 
 ## La tela
 
@@ -130,9 +130,8 @@ Il modo più rapido per prendere confidenza con la tela è un workflow di due bl
 1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manual** nel pannello **Add Trigger**.
 2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popular**. Il nuovo blocco compare sotto il trigger. Collega il punto **Execute** del trigger al punto di ingresso del blocco Log, più in basso.
 3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Value**. Fai clic su **{ }**, poi su **JSON** sotto **Manual**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
-4. Attiva **Abilitato**, in cima al Costruttore. Un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano; se salti questo passaggio, **Esegui flusso di lavoro** ti chiede prima di attivarlo.
-5. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Run Workflow Manually** e conferma con **Run**.
-6. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. Il registro mostra `Value:` seguito da `Hello from { "name": "Ada" }`.
+4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Run Workflow Manually** e conferma con **Run**. Il workflow è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.
+5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il registro mostra `Value:` seguito da `Hello from { "name": "Ada" }`.
 :::
 
 Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il registro — è il modo in cui costruirai ogni workflow.
@@ -142,22 +141,22 @@ Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il regist
 
 ## Attivarlo
 
-I nuovi workflow partono disabilitati, come ogni workflow che duplichi o importi. Finché un workflow è disattivato, il Costruttore lo segnala sopra la tela, con un pulsante **Attiva flusso di lavoro**.
+I nuovi workflow partono disabilitati, come ogni workflow che duplichi o importi. Da disattivato, il trigger del workflow è in pausa, quindi niente lo avvia da solo, ma puoi comunque provarlo. Finché un workflow è disattivato, il Costruttore lo segnala sopra la tela, con un pulsante **Attiva flusso di lavoro**.
 
 L'interruttore **Abilitato** si trova in cima al **Costruttore**, accanto a **Aggiungi componente** e **Esegui flusso di lavoro**. Si trova anche nella pagina **Panoramica** del workflow, la cui scheda **Dettagli del flusso di lavoro** mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**: fai clic su **Modifica flusso di lavoro** e apri **Altri campi**. Solo le persone che possono modificare il workflow possono attivarlo o disattivarlo; gli altri vedono l'interruttore in grigio.
 
-Un workflow disabilitato non può essere eseguito in alcun modo, comunque venga avviato:
+Mentre un workflow è disattivato, ciò che lo avvia decide se viene eseguito:
 
 | Avviato da                                                 | Mentre il workflow è disattivato                                                                                                                                                          |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Il suo trigger: una pianificazione, un evento di OneUptime o un'email | Ignorato.                                                                                                                                                                      |
-| **Esegui flusso di lavoro** o **Run just this step**        | Il Costruttore chiede invece **Attivare questo flusso di lavoro?**. **Attiva ed esegui** (o **Attiva ed esegui il passaggio**) attiva il workflow e poi esegue ciò che hai chiesto, con i valori che hai fornito. |
-| Una chiamata al suo URL di webhook                         | Rifiutata con HTTP 400 e "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
-| Il blocco **Execute Workflow** di un altro workflow         | Quel blocco prende il suo percorso **Error**, e l'errore nomina il workflow che ha chiamato.                                                                                              |
+| **Esegui flusso di lavoro** o **Run just this step**        | Viene eseguito, come **Esecuzione di prova**. I suoi blocchi vengono eseguiti davvero: un messaggio viene davvero inviato e un record viene davvero modificato. L'esecuzione è contrassegnata come **Esecuzione di prova** negli elenchi delle esecuzioni e in cima all'esecuzione, con chi l'ha avviata. |
+| Una chiamata al suo URL di webhook                         | Rifiutata con HTTP 400 e "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
+| Il blocco **Execute Workflow** di un altro workflow         | Quel blocco prende il suo percorso **Error**, e l'errore nomina il workflow che ha chiamato. Vale anche in un'esecuzione di prova: un workflow che chiama deve essere attivo. |
 
-L'ordine è quindi: costruiscilo, provalo con **Esegui flusso di lavoro**, leggi il registro dell'esecuzione e disattiva di nuovo **Abilitato** se non vuoi ancora che il suo trigger scatti. Per provare un singolo blocco senza eseguire tutto, usa **Run just this step** nelle impostazioni di quel blocco.
+L'ordine è quindi: costruiscilo, provalo con **Esegui flusso di lavoro** finché è ancora disattivato, leggi il registro dell'esecuzione e attiva **Abilitato** quando vuoi che il suo trigger scatti. Per provare un singolo blocco senza eseguire tutto, usa **Run just this step** nelle impostazioni di quel blocco.
 
-Per mettere in pausa un workflow senza eliminarlo, disattiva **Abilitato**. Non parte nessuna nuova esecuzione. Un'esecuzione già in corso termina, ma una ferma su un blocco **Sleep** viene annullata al risveglio e registrata come errore.
+Per mettere in pausa un workflow senza eliminarlo, disattiva **Abilitato**. Il suo trigger smette di avviare esecuzioni. Un'esecuzione già in corso termina, ma una avviata dal suo trigger e ferma su un blocco **Sleep** viene annullata al risveglio e registrata come errore. Un'esecuzione di prova continua.
 
 ## Mettere in ordine
 

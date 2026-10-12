@@ -196,9 +196,15 @@ describe("docs for the Create a workflow dialog", () => {
     expect(opening).toContain(
       "its trigger, the blocks it is made of, and the settings it will ask for",
     );
+    /*
+     * Off pauses the trigger, not a test from the Builder ("Why do I have to
+     * enable a workflow in order to test run it?"), so the page says what the
+     * dialog says.
+     */
     expect(opening).toContain(
-      "Workflows are created switched off, so nothing runs until you turn them on.",
+      "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
     );
+    expect(opening).not.toContain("nothing runs until you turn them on");
     // Creating a workflow goes straight to its builder.
     expect(opening).toContain("A new workflow opens in the **Builder**");
 

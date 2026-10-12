@@ -3,7 +3,7 @@
 Det skal du vide, før du retter et workflow mod rigtig trafik: hvordan du slår det sikkert til, hvem der må hvad, hvordan hemmeligheder og URL'er forbliver private, hvad et workflows trin må ændre, og de grænser, hver kørsel arbejder inden for.
 
 :::cards
-- [Gå live](#sådan-tænder-og-slukker-du-et-workflow): Test med Kør arbejdsgang, og lad så workflowet være slået til.
+- [Gå live](#sådan-tænder-og-slukker-du-et-workflow): Test med Kør arbejdsgang, mens det er slået fra, og slå det så til.
 - [Tilladelser](#tilladelser): Workflow-rollerne og de enkelte tilladelser bag dem.
 - [Hvad trin må](#hvad-workflow-trin-må-gøre): Trin handler som Project Admin i workflowets projekt.
 - [Grænser](#plangrænser): Kørsler pr. plan, kørselstid og kald mellem workflows.
@@ -11,18 +11,18 @@ Det skal du vide, før du retter et workflow mod rigtig trafik: hvordan du slår
 
 ## Sådan tænder og slukker du et workflow
 
-Hvert workflow har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på sin side **Oversigt**. Når den er slået fra, kører workflowet ikke — webhook-kald, indgående e-mail, planlagte tidspunkter og OneUptime-begivenheder ignoreres alle, og det samme gør **Kør arbejdsgang** og **Run just this step**. Nye workflows starter deaktiveret.
+Hvert workflow har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på sin side **Oversigt**. Når den er slået fra, er dets trigger sat på pause — webhook-kald, indgående e-mail, planlagte tidspunkter, OneUptime-begivenheder og andre workflows' **Execute Workflow**-trin starter det ikke. **Kør arbejdsgang** og **Run just this step** gør: en kørsel, du selv starter, mens workflowet er slået fra, er en **Testkørsel**. Nye workflows starter deaktiveret.
 
 Brug kontakten som din «klar til brug»-port:
 
 :::steps
 1. Byg workflowet.
-2. Klik på **Kør arbejdsgang** i **Bygger** med realistiske værdier. Et deaktiveret workflow kan ikke køre, heller ikke manuelt, så Bygger beder dig først slå det til: klik på **Slå til og kør**.
+2. Klik på **Kør arbejdsgang** i **Bygger** med realistiske værdier, mens workflowet stadig er slået fra. Kørslen er en **Testkørsel**: hver blok kører for alvor, så peg den først mod en testkanal eller en testpost.
 3. Åbn kørslen, og tjek, at hver blok gik derhen, du forventede. Se [Kørsler](/docs/workflows/runs-and-logs).
-4. Lad **Aktiveret** være slået til, hvis det er klar. Er det ikke, så slå det fra, indtil det er: mens det er slået til, udløses dets trigger ved rigtige begivenheder.
+4. Slå **Aktiveret** til, når det er klar: fra da af udløses dets trigger ved rigtige begivenheder.
 :::
 
-At slå et workflow fra forhindrer nye kørsler i at starte. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, der venter ved en **Sleep**-blok, annulleres, når den vågner.
+At slå et workflow fra forhindrer dets trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter.
 
 ## Arkivér et workflow
 
@@ -85,7 +85,7 @@ Filen indeholder workflowets navn, beskrivelse, aktiveringstilstand og graf. Den
 - **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder referencen, men værdien er ikke i filen. Opret variablerne i modtagerprojektet, før du kører det importerede workflow.
 - **Ejere og etiketter.** Dit projekts egne etiket- og ejerregler kører mod det importerede workflow, præcis som hvis du havde oprettet det manuelt.
 
-Et importeret workflow oprettes altid **deaktiveret**, også hvis det var aktiveret dér, hvor det blev eksporteret fra — dets graf kan pege på monitorer, vagtpolitikker eller andre workflows, der ikke findes i modtagerprojektet. Gennemgå det, aktivér det, test det med **Kør arbejdsgang**, og lad det så være slået til. Dublering af et workflow opfører sig på samme måde, så en kopi aldrig begynder at køre side om side med originalen, før du har redigeret den.
+Et importeret workflow oprettes altid **deaktiveret**, også hvis det var aktiveret dér, hvor det blev eksporteret fra — dets graf kan pege på monitorer, vagtpolitikker eller andre workflows, der ikke findes i modtagerprojektet. Gennemgå det, test det med **Kør arbejdsgang**, og slå det så til. Dublering af et workflow opfører sig på samme måde, så en kopi aldrig begynder at køre side om side med originalen, før du har redigeret den.
 
 Fordi grafen rejser ordret med, følger alt, hvad der er skrevet direkte ind i en blok, også med. Det er den praktiske grund til at holde loginoplysninger i hemmelige variabler: eksporterer du et workflow med et hårdkodet token, giver du det token til den, der modtager filen.
 

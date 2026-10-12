@@ -11,7 +11,7 @@ Vælg, hvordan du vil begynde:
 
 Klik på en skabelon for at se, hvad den gør: dens trigger, de blokke, den består af, og de indstillinger, den vil spørge om. Klik derefter på **Brug denne skabelon**, eller dobbeltklik på skabelonen. I søgefeltet vælger piletasterne en skabelon, og **Enter** bruger den. `/` fører dig tilbage til søgefeltet.
 
-Workflows oprettes slået fra, så intet kører, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
+Workflows oprettes slået fra, så deres trigger ikke starter dem, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
 
 ## Lærredet
 
@@ -130,9 +130,8 @@ Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke
 1. Klik på den stiplede pladsholderblok, og klik så på **Manual** i panelet **Add Trigger**.
 2. Klik på **Tilføj komponent**, og klik så på **Log** under **Popular**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
 3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Value**. Klik på **{ }**, og klik så på **JSON** under **Manual**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
-4. Slå **Aktiveret** til øverst i Bygger. Et deaktiveret workflow kan slet ikke køres, heller ikke manuelt; springer du dette over, beder **Kør arbejdsgang** om at slå det til først.
-5. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Run Workflow Manually** og bekræfter med **Run**.
-6. Et panel **Arbejdsgangskørsel** åbner af sig selv og følger kørslen. Loggen viser `Value:` efterfulgt af `Hello from { "name": "Ada" }`.
+4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Run Workflow Manually** og bekræfter med **Run**. Workflowet er stadig slået fra, og det behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.
+5. Et panel **Arbejdsgangskørsel** åbner af sig selv og følger kørslen. Øverst står der **Testkørsel**, og loggen viser `Value:` efterfulgt af `Hello from { "name": "Ada" }`.
 :::
 
 Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du bygger hvert workflow.
@@ -142,22 +141,22 @@ Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du
 
 ## Slå det til
 
-Nye workflows starter deaktiveret, og det samme gør ethvert workflow, du duplikerer eller importerer. Mens et workflow er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
+Nye workflows starter deaktiveret, og det samme gør ethvert workflow, du duplikerer eller importerer. Slået fra er workflowets trigger sat på pause, så intet starter det af sig selv, men du kan stadig teste det. Mens et workflow er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
 
 Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på workflowets side **Oversigt**, hvis kort **Arbejdsgangsdetaljer** viser den aktuelle tilstand som en grøn pille **Aktiveret** eller en rød pille **Deaktiveret**: klik på **Rediger arbejdsgang**, og åbn **Flere felter**. Kun personer, der må redigere workflowet, kan slå det til eller fra; alle andre ser kontakten nedtonet.
 
-Et deaktiveret workflow kan slet ikke køre, uanset hvordan det startes:
+Mens et workflow er slået fra, afgør det, der starter det, om det kører:
 
 | Startet af                                                 | Mens workflowet er slået fra                                                                                                                                                              |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dets trigger: en tidsplan, en OneUptime-begivenhed eller en e-mail | Ignoreret.                                                                                                                                                                       |
-| **Kør arbejdsgang** eller **Run just this step**            | Bygger spørger i stedet **Slå denne arbejdsgang til?**. **Slå til og kør** (eller **Slå til og kør trin**) slår workflowet til og kører derefter det, du bad om, med de værdier, du gav. |
-| Et kald til dets webhook-URL                               | Afvist med HTTP 400 og "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
-| Et andet workflows **Execute Workflow**-blok                | Den blok tager sin vej **Error**, og fejlen nævner det workflow, den kaldte.                                                                                                              |
+| **Kør arbejdsgang** eller **Run just this step**            | Kører, som **Testkørsel**. Dets blokke kører for alvor: en besked bliver virkelig sendt, og en post bliver virkelig ændret. Kørslen er markeret som **Testkørsel** i listerne over kørsler og øverst i kørslen, med hvem der startede den. |
+| Et kald til dets webhook-URL                               | Afvist med HTTP 400 og "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
+| Et andet workflows **Execute Workflow**-blok                | Den blok tager sin vej **Error**, og fejlen nævner det workflow, den kaldte. Det gælder også i en testkørsel: et workflow, den kalder, skal være slået til. |
 
-Rækkefølgen er altså: byg det, test det med **Kør arbejdsgang**, læs kørslens log, og slå **Aktiveret** fra igen, hvis du ikke er klar til, at dets trigger udløses. For at teste en enkelt blok uden at køre det hele bruger du **Run just this step** i den bloks indstillinger.
+Rækkefølgen er altså: byg det, test det med **Kør arbejdsgang**, mens det stadig er slået fra, læs kørslens log, og slå **Aktiveret** til, når du er klar til, at dets trigger udløses. For at teste en enkelt blok uden at køre det hele bruger du **Run just this step** i den bloks indstillinger.
 
-For at sætte et workflow på pause uden at slette det slår du **Aktiveret** fra. Der starter ingen nye kørsler. En kørsel, der er i gang, gør sig færdig, men en, der holder ved en **Sleep**-blok, annulleres, når den vågner, og registreres som en fejl.
+For at sætte et workflow på pause uden at slette det slår du **Aktiveret** fra. Dets trigger holder op med at starte kørsler. En kørsel, der er i gang, gør sig færdig, men en, som dets trigger startede, og som holder ved en **Sleep**-blok, annulleres, når den vågner, og registreres som en fejl. En testkørsel fortsætter.
 
 ## Ryd op
 
