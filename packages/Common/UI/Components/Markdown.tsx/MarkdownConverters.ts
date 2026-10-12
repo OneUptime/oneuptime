@@ -315,12 +315,19 @@ const splitTableRow: (line: string) => Array<string> = (
  * A cell's text as tableToMarkdown writes it, for splitTableRow to read
  * back. A "|" gets a backslash, and so does each backslash right before it:
  * "a|b" is written "a\|b" and "C:\|D:" is written "C:\\\|D:". splitTableRow
- * takes those escapes out again, and a GFM reader - the dashboard's,
- * GitHub's - shows the cell as typed: every "|" stays in its cell, and each
- * escaped backslash reads as one. A line break becomes a space, as a row is
- * one line. A backslash that ends the text is left as it is: the row writer
- * puts a space after every cell, so it cannot escape the "|" that ends it.
- * One pass over the text.
+ * takes those escapes out again, so the editor shows the cell as typed, and
+ * a GFM reader - the dashboard's, GitHub's - keeps every "|" in its cell and
+ * shows text as typed too: each escaped backslash reads as one. In a code
+ * span GFM keeps backslashes as they are, so code holding "\|" shows one
+ * backslash more there (none of the spellings that keep the "|" in its cell
+ * shows it as typed in every reader). A line break becomes a space, as a
+ * row is one line. A backslash that ends the text is left as it is: the row
+ * writer puts a space after every cell, so it cannot escape the "|" that
+ * ends it. One pass over the text.
+ *
+ * Not markdownTableCell, which every other table writer places Markdown
+ * with: the editor's cell text is what its visual mode shows, backslashes
+ * as typed, not Markdown whose escapes already mean something.
  */
 const tableCellMarkdown: (text: string) => string = (text: string): string => {
   let written: string = "";
@@ -805,16 +812,6 @@ const renderMarkdownBlocks: (md: string, depth: number) => string = (
   return out;
 };
 
-/*
- * The same whitespace as /\s+$/ takes off, in linear time: the pattern tried
- * every start in a long run of spaces that something else follows - the
- * padding a long cell gives the cells of its column - so a table with a long
- * cell took time in the square of its length to save.
- */
-const trimEnd: (s: string) => string = (s: string): string => {
-  return s.trimEnd();
-};
-
 const collapseBlankLines: (s: string) => string = (s: string): string => {
   return s.replace(/\n{3,}/g, "\n\n");
 };
@@ -1196,7 +1193,13 @@ const serializeNode: (node: Node) => string = (node: Node): string => {
  */
 export const domToMarkdown: (root: Node) => string = (root: Node): string => {
   const raw: string = serializeChildren(root);
-  return collapseBlankLines(trimEnd(raw)).replace(/^\n+/, "");
+  /*
+   * String.prototype.trimEnd, not /\s+$/: the pattern tried every start in a
+   * long run of spaces that something else follows - the padding a long
+   * cell gives its column - so a table with a long cell took time in the
+   * square of its length to save.
+   */
+  return collapseBlankLines(raw.trimEnd()).replace(/^\n+/, "");
 };
 
 export const htmlToMarkdown: (html: string) => string = (

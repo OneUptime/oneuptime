@@ -17,7 +17,9 @@ import { JSONObject } from "Common/Types/JSON";
  * asks, and reads the header with the shared Link header reader
  * (Common/Utils/LinkHeader): the link is found by its relation in any order,
  * and an answer with no header or no last link leaves the count as it was
- * instead of throwing. The about page shows the count the job keeps.
+ * instead of throwing. The about page never showed the count (nor the
+ * repository details it also asked for), so it now asks GitHub only for
+ * the contributors it shows.
  */
 
 type RunFunction = () => Promise<void>;
@@ -185,13 +187,24 @@ describe("one reading of the header", () => {
     expect(source.includes('.split(",")')).toBe(false);
   });
 
-  it("the about page shows the job's count, and asks GitHub for no commit listing", () => {
+  it("the about page asks GitHub for its contributors only: no commit listing, no Link header", () => {
     const route: string = aboutRoute();
 
-    expect(route.includes("commits: getGitHubCommitsCount()")).toBe(true);
+    expect(route.split("https://api.github.com/").length - 1).toBe(1);
+    expect(route.includes("/contributors?page=")).toBe(true);
     expect(route.includes("/commits?")).toBe(false);
     expect(route.includes('headers["link"]')).toBe(false);
     // Nothing else in the routes reads a Link header either.
     expect(sourceOf("Routes.ts").includes('headers["link"]')).toBe(false);
+  });
+
+  it("the about view shows nothing of GitHub's but its contributors", () => {
+    const view: string = sourceOf("Views/about.ejs");
+
+    // What the route stopped passing was never read by the view.
+    expect(view.includes("basicInfo")).toBe(false);
+    expect(view.includes("<%= commits")).toBe(false);
+    expect(view.includes("<%- commits")).toBe(false);
+    expect(view.includes("contributors")).toBe(true);
   });
 });

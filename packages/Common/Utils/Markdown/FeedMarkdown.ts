@@ -55,8 +55,9 @@ import type ObjectID from "../../Types/ObjectID";
  *     mentions and line breaks as above. "#", "-", "+" and ">" only start
  *     blocks, which a link's text never does, so "INC-7" is left as typed.
  *   - As a link's address: characters that would end the address are
- *     percent-encoded ("|" too, which ends a table cell), and only a web,
- *     mailto or relative address is kept.
+ *     percent-encoded, and only a web, mailto or relative address is kept;
+ *     in a table row each "|" gets a backslash too (markdownTableCell),
+ *     which a table reader takes out again, so the address stays as given.
  *   - Inside a code span: the span is written again around the value with
  *     markdownCodeSpan, so a backtick in the value cannot close it, and in a
  *     table row it is placed in its cell (markdownTableCell).
@@ -199,7 +200,10 @@ interface PlacedValue {
   place: ValuePlace;
   // Sentence: the value starts a line, after any list or quote markers.
   startsLine: boolean;
-  // Sentence: the value sits in a table row, where "|" ends a cell.
+  /*
+   * Sentence and link address: the value sits in a table row, where "|"
+   * ends a cell.
+   */
   inTableRow: boolean;
 }
 
@@ -729,6 +733,7 @@ const readTemplate: ReadTemplateFunction = (
 
       if (ranges.linkAddresses.some(inRange)) {
         placed.place = ValuePlace.LinkAddress;
+        placed.inTableRow = inTableRow;
         continue;
       }
 
@@ -928,10 +933,7 @@ const escapeLinkTextValue: EscapeLinkTextValueFunction = (
     .replace(CHARACTER_REFERENCE_AMPERSAND_PATTERN, "\\&");
 };
 
-/*
- * What would end or break a link's address, percent-encoded - "|" too,
- * which ends a table cell even inside a link.
- */
+// What would end or break a link's address, percent-encoded.
 const LINK_ADDRESS_ENCODINGS: Record<string, string> = {
   " ": "%20",
   "(": "%28",
@@ -942,10 +944,9 @@ const LINK_ADDRESS_ENCODINGS: Record<string, string> = {
   "`": "%60",
   '"': "%22",
   "'": "%27",
-  "|": "%7C",
 };
 
-const LINK_ADDRESS_UNSAFE_PATTERN: RegExp = /[\s()<>\\`"'|\p{Cc}]/gu;
+const LINK_ADDRESS_UNSAFE_PATTERN: RegExp = /[\s()<>\\`"'\p{Cc}]/gu;
 
 // A scheme: letters, then letters, digits, "+", "." or "-", then ":".
 const LINK_ADDRESS_SCHEME_PATTERN: RegExp = /^([A-Za-z][A-Za-z0-9+.-]*):/;
@@ -1042,7 +1043,15 @@ const renderValue: RenderValueFunction = (
   placed: PlacedValue,
 ): string => {
   if (placed.place === ValuePlace.LinkAddress) {
-    return encodeLinkAddress(toText(value));
+    const address: string = encodeLinkAddress(toText(value));
+
+    /*
+     * In a table row a "|" ends the cell even inside a link: each one gets
+     * the backslash a table reader takes out again (the address holds no
+     * backslash, encodeLinkAddress percent-encodes them), so the link stays
+     * in its cell and its address as given.
+     */
+    return placed.inTableRow ? markdownTableCell(address) : address;
   }
 
   if (placed.place === ValuePlace.FenceLine) {
@@ -1125,7 +1134,10 @@ const renderRun: RenderRunFunction = (data: {
     /*
      * In a table row a "|" ends the cell even inside a code span, so the
      * span is placed in its cell too: each "|" in it gets the backslash
-     * that keeps it there, and a table reader shows it without it.
+     * that keeps it there, and a table reader shows it without it. (A
+     * backslash right before a "|" is that "|"'s escape in a table, code or
+     * not, so code holding "\|" shows "|" there: no spelling shows "\|" in
+     * code in every table reader, and the row keeps its cells.)
      */
     return data.run.inTableRow ? markdownTableCell(span) : span;
   }

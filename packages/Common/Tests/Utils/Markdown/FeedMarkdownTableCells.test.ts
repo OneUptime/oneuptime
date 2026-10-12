@@ -153,12 +153,12 @@ describe("mdText - a code span or a link address in a table row stays in its cel
     expect(mdText`Rule ${"x"}: \`${"a|b"}\``.toString()).toBe("Rule x: `a|b`");
   });
 
-  test("a pipe in a link address is percent-encoded, in a table row and out of one", () => {
+  test("a pipe in a link address gets a backslash in a table row, and is left as it is out of one", () => {
     expect(linkRow("https://oneuptime.example/q?x=a|b")).toBe(
-      "| Page | Value |\n| --- | --- |\n| [open](https://oneuptime.example/q?x=a%7Cb) | z |",
+      "| Page | Value |\n| --- | --- |\n| [open](https://oneuptime.example/q?x=a\\|b) | z |",
     );
     expect(mdText`[Open](${"https://oneuptime.example/a|b"})`.toString()).toBe(
-      "[Open](https://oneuptime.example/a%7Cb)",
+      "[Open](https://oneuptime.example/a|b)",
     );
   });
 
@@ -219,9 +219,10 @@ describe("mdText - a code span or a link address in a table row stays in its cel
           )?.[1] || "",
         );
 
-        expect([address, href]).toEqual([
+        // The address as given; a reader may write its "|" as %7C.
+        expect([address, href.split("%7C").join("|")]).toEqual([
           address,
-          address.split("|").join("%7C"),
+          address,
         ]);
       }
     });

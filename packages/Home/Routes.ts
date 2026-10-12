@@ -558,7 +558,6 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     let gitHubContributors: Array<JSONObject> = [];
-    let gitHubBasicInfo: JSONObject | null = null;
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
@@ -590,29 +589,17 @@ const HomeFeatureSet: FeatureSet = {
         gitHubContributors = [...contributors];
       }
 
-      if (!gitHubBasicInfo) {
-        const basicInfo: HTTPResponse<JSONObject> = await API.get({
-          url: URL.fromString(
-            "https://api.github.com/repos/oneuptime/oneuptime",
-          ),
-        });
-
-        gitHubBasicInfo = basicInfo.data as JSONObject;
-      }
-
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/about",
         res.locals["homeUrl"] as string,
       );
       res.render(`${ViewsPath}/about`, {
-        contributors: gitHubContributors,
-        basicInfo: gitHubBasicInfo,
         /*
-         * The commit count the hourly job keeps (FetchGitHubStats), read from
-         * GitHub's Link header there: the page does not ask GitHub for it on
-         * every visit.
+         * Only the contributors: the page shows nothing else of GitHub's (the
+         * commit count it used to ask GitHub for on every visit, and the
+         * repository's details, were never on it).
          */
-        commits: getGitHubCommitsCount().toLocaleString(),
+        contributors: gitHubContributors,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
       });

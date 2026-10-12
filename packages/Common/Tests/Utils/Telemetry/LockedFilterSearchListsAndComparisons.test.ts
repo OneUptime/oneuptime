@@ -22,7 +22,9 @@ import {
   buildSearchTokenComparison,
   buildSearchTokenGlob,
   buildSearchTokenValue,
+  compileAttributeChipValues,
   parseSearchQuery,
+  queryValueToChipValues,
   searchTokenListEntry,
 } from "../../../Types/Telemetry/TelemetrySearchQuery";
 import { buildSearchTokenForOperatorValue } from "../../../Utils/Telemetry/LockedFilterSearch";
@@ -52,6 +54,8 @@ import { generatedTexts } from "../../Helpers/GeneratedTexts";
 
 const KEY: string = "k8s.ns";
 const AFTER: string = "severity:error";
+// The value grammar's numbers, which a compiled query holds as numbers.
+const NUMERIC: RegExp = /^-?\d+(\.\d+)?$/;
 
 // A stored comparison, as a locked filter holds one.
 type Comparison =
@@ -620,6 +624,90 @@ describe("a locked filter's comparison, pasted with another filter after it", ()
         expect([number, compiledFor(filter)]).toEqual([
           number,
           [compiledClass, number],
+        ]);
+      }
+    }
+  });
+});
+
+describe("a saved view's comparison, read back as a chip", () => {
+  // What a compiled chip is, as its class and wire value.
+  function chipMeaning(chips: Array<string>): [string, unknown] {
+    const compiled: unknown = compileAttributeChipValues(chips);
+
+    return [
+      (compiled as { constructor: { name: string } }).constructor.name,
+      (compiled as { toJSON: () => JSONObject }).toJSON()["value"],
+    ];
+  }
+
+  test.each([
+    ["a whole number", new GreaterThan(10), [">10"], ["GreaterThan", 10]],
+    [
+      "a negative decimal",
+      new LessThanOrEqual(-2.5),
+      ["<=-2.5"],
+      ["LessThanOrEqual", -2.5],
+    ],
+    [
+      "a text starting with an equals sign",
+      new GreaterThan("=5"),
+      ['>"=5"'],
+      ["GreaterThan", "=5"],
+    ],
+    [
+      "a text with a space",
+      new LessThan("a b"),
+      ['<"a b"'],
+      ["LessThan", "a b"],
+    ],
+    [
+      "a text with a quote, written as it always was",
+      new GreaterThanOrEqual('a"b'),
+      ['>=a"b'],
+      ["GreaterThanOrEqual", 'a"b'],
+    ],
+  ] as Array<[string, Comparison, Array<string>, [string, unknown]]>)(
+    "%s",
+    (
+      _name: string,
+      value: Comparison,
+      chips: Array<string>,
+      meaning: [string, unknown],
+    ) => {
+      expect(queryValueToChipValues(value)).toEqual(chips);
+      expect(chipMeaning(chips)).toEqual(meaning);
+    },
+  );
+
+  test("every generated comparison comes back as a chip that means it", () => {
+    const literals: Array<string> = generatedTexts(
+      4000,
+      9393,
+      ["5", "-", ".", "=", ":", "a", " ", "(", ")", "*", "~", "!"],
+      8,
+    ).filter((literal: string): boolean => {
+      return literal.trim().length > 0;
+    });
+
+    for (const literal of literals) {
+      // The chip's value as the compiled query holds it: numbers as numbers.
+      const expected: number | string = NUMERIC.test(literal.trim())
+        ? Number(literal.trim())
+        : literal;
+
+      for (const [value, compiledClass] of [
+        [new GreaterThan(literal), "GreaterThan"],
+        [new GreaterThanOrEqual(literal), "GreaterThanOrEqual"],
+        [new LessThan(literal), "LessThan"],
+        [new LessThanOrEqual(literal), "LessThanOrEqual"],
+      ] as Array<[Comparison, string]>) {
+        const chips: Array<string> = queryValueToChipValues(value);
+
+        expect([literal, compiledClass, chipMeaning(chips)]).toEqual([
+          literal,
+          compiledClass,
+          [compiledClass, expected],
         ]);
       }
     }

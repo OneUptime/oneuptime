@@ -1050,6 +1050,28 @@ export const describeSearchValue: DescribeSearchValueFunction = (
 
 type QueryValueToChipValuesFunction = (value: unknown) => Array<string>;
 
+type ComparisonChipFunction = (
+  operator: SearchTokenComparisonOperator,
+  value: unknown,
+) => string;
+
+/*
+ * A stored comparison as a chip: written as the grammar reads it back
+ * (buildSearchTokenComparison), so "=5" after ">" stays "greater than =5"
+ * instead of reading as ">=". A value that has no such spelling - one with
+ * a quote or a backslash - is written as it always was.
+ */
+const comparisonChip: ComparisonChipFunction = (
+  operator: SearchTokenComparisonOperator,
+  value: unknown,
+): string => {
+  const literal: string = String(value ?? "");
+
+  return (
+    buildSearchTokenComparison(operator, literal) || `${operator}${literal}`
+  );
+};
+
 /**
  * The inverse of {@link compileAttributeChipValues}: turn a stored attribute
  * predicate back into the chip values that would produce it.
@@ -1132,19 +1154,19 @@ export const queryValueToChipValues: QueryValueToChipValuesFunction = (
   }
 
   if (value instanceof GreaterThanOrEqual) {
-    return [`>=${String(value.value ?? "")}`];
+    return [comparisonChip(">=", value.value)];
   }
 
   if (value instanceof GreaterThan) {
-    return [`>${String(value.value ?? "")}`];
+    return [comparisonChip(">", value.value)];
   }
 
   if (value instanceof LessThanOrEqual) {
-    return [`<=${String(value.value ?? "")}`];
+    return [comparisonChip("<=", value.value)];
   }
 
   if (value instanceof LessThan) {
-    return [`<${String(value.value ?? "")}`];
+    return [comparisonChip("<", value.value)];
   }
 
   /*
