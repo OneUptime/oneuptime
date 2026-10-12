@@ -639,13 +639,6 @@ export default class NetworkDeviceWalkUtil {
   }
 
   /*
-   * The device's effective tables, resolved the same way the poll hand-out
-   * resolved them (template first, device-specific merged over it by key).
-   * Resolved again here rather than echoed back by the probe: the probe
-   * only ever sees column OIDs, and names and value labels have no reason
-   * to cross the wire twice per poll.
-   */
-  /*
    * Whether a device has, or may have, SNMP tables to walk: tables of its
    * own, or an OID Collection Template that may hold some. Read off the row
    * alone, without the template.
@@ -656,6 +649,13 @@ export default class NetworkDeviceWalkUtil {
     );
   }
 
+  /*
+   * The device's effective tables, resolved the same way the poll hand-out
+   * resolved them (template first, device-specific merged over it by key).
+   * Resolved again here rather than echoed back by the probe: the probe
+   * only ever sees column OIDs, and names and value labels have no reason
+   * to cross the wire twice per poll.
+   */
   public static async resolveTableDefinitions(
     device: NetworkDevice,
   ): Promise<Array<SnmpTableDefinition>> {
