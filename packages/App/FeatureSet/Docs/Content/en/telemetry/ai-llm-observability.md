@@ -1,35 +1,64 @@
-# AI / LLM Observability with OneUptime
+# AI / LLM Observability
 
-Read every conversation your AI had, replay it the way it happened, and get told when it answers badly. It all runs on standard OpenTelemetry, with no proprietary SDK: if your app emits spans with the OpenTelemetry **GenAI semantic conventions** (`gen_ai.*`), OneUptime turns them into conversations, alerts, usage and cost.
+Read every conversation your AI had, replay it the way it happened, and get told when it answers badly. OneUptime builds all of it from standard OpenTelemetry: if your app sends spans with the **GenAI semantic conventions** (`gen_ai.*`), you get conversations, alerts, usage and cost, with no proprietary SDK.
 
-## What you get
+:::cards
+- [Set it up](#set-it-up-in-five-steps): Five steps, from the first span to flagged answers.
+- [Replay a conversation](#read-and-replay-a-conversation): Read a chat as the person saw it, at the pace it happened.
+- [Get alerted](#get-told-when-the-ai-answers-badly): Ready-made alerts for answers that fail, get refused, cut off, flagged or slow.
+- [Watch the spend](#see-who-spends-what): Cost by person, team, model and app, with daily budgets.
+:::
 
-Open **AI / LLM** in the navigation bar, under Observability:
+## How it works
 
-- **Conversations** — every conversation your AI had: what people asked, what the AI answered, the tools it used and what went wrong. Five numbers sit above the list: conversations, AI answers, how many need attention, cost, and how long an answer typically takes. Open a conversation to read it or replay it.
-- **Calls** — every LLM, embedding, agent and tool call, filterable by service, provider, model, operation, person and team. Click a call to open it in the trace viewer.
-- **Usage** — the calls, tokens and cost of a time range, and who spends what: employees, teams, models, providers and apps ranked by spend.
-- **Alerts** — ready-made alerts for when the AI answers badly, and your AI / LLM monitors.
-- **Budgets** — daily cost limits, published as metrics to alert on.
-- **Pricing** — your own per-model prices, for models the built-in catalog does not know.
-- **Setup** — the five steps below, with your project's endpoint.
+Your app's GenAI instrumentation exports each call to the model as an OpenTelemetry span. As the span arrives, OneUptime reads its `gen_ai.*` attributes, checks the answer for problems, prices the call and files it under its conversation.
 
-In the trace viewer, each AI call's span also has an **AI / LLM** panel with the model, token counts, cost, request parameters, and the prompt and completion.
+```mermaid title="From your app's AI calls to OneUptime"
+flowchart TB
+    subgraph app["Your app"]
+        direction LR
+        code["Your code"] --> sdk["GenAI<br/>instrumentation"]
+    end
+    sdk -->|"OTLP + ingestion key"| ingest["OneUptime ingest"]
+    ingest --> checks["Checks the answer,<br/>prices the call"]
+    checks --> conversations["Conversations<br/>and Calls"]
+    checks --> usage["Usage<br/>and Budgets"]
+    checks --> alerts["Alerts"]
+```
 
-## Step 1 — Send your AI calls
+Open **Products → AI / LLM**, under **Observability**. The product has seven tabs:
 
-Create a telemetry ingestion key: open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. Your app passes the key as an OTLP header. (See the [OpenTelemetry guide](/docs/telemetry/open-telemetry) for screenshots.)
+| Tab | What it shows |
+| --- | --- |
+| **Conversations** | Every conversation your AI had, the ones that need attention first. Above the list: conversations, AI answers, how many need attention, cost and the typical answer time. |
+| **Calls** | Every model, embedding, agent and tool call. Filter by service, provider, model, operation, person, team or conversation; click a call to open it in the trace viewer. |
+| **Usage** | Calls, tokens and cost for a time range, ranked by employee, team, model, provider or app. |
+| **Alerts** | Ready-made alerts for when the AI answers badly, and your AI / LLM monitors. |
+| **Budgets** | Daily cost limits, published as metrics you can alert on. |
+| **Pricing** | Your own prices for models the built-in price list does not know. |
+| **Setup** | The five steps below, with your project's endpoint. |
 
-Then instrument your app with any OpenTelemetry GenAI library:
+In the trace viewer, the span of each AI call also has an **LLM** tab: provider, model, tokens, cost, request parameters, and the prompt and the answer.
 
-- **OpenLLMetry** (Traceloop) — OpenAI, Anthropic, Cohere, Bedrock, LangChain, LlamaIndex, CrewAI and more.
-- **OpenInference** (Arize) — OpenAI, LangChain, LlamaIndex, DSPy and more.
-- The **Vercel AI SDK**, or the **OpenTelemetry instrumentations** for OpenAI, Anthropic and Gemini.
+## Before you begin
 
-Routing your LLM traffic through a gateway like **LiteLLM** or **Portkey**? Export traces from the gateway instead of instrumenting every app — see [Observing AI Gateways](/docs/telemetry/ai-gateways). Looking for the coding assistants your engineers run — Claude Code, Cursor, Codex, Gemini CLI, Copilot? They export their own OpenTelemetry and need nothing from you: see [AI Coding Assistant Observability](/docs/telemetry/ai-coding-assistants).
+- A OneUptime project where you can create a telemetry ingestion key.
+- An app that calls a model, and a GenAI instrumentation for its language: **OpenLLMetry** (Traceloop), **OpenInference** (Arize), the **Vercel AI SDK**, or the OpenTelemetry instrumentations for OpenAI, Anthropic and Gemini.
 
-### Python (OpenLLMetry)
+> [!TIP]
+> Model traffic that goes through a gateway such as LiteLLM or Portkey can be exported from the gateway instead of from every app: see [AI Gateways](/docs/telemetry/ai-gateways). For the coding assistants your engineers run, see [AI Coding Assistants](/docs/telemetry/ai-coding-assistants).
 
+## Set it up in five steps
+
+The first step is all you need to see calls. Each step after it shows more.
+
+:::steps
+### Send your AI calls
+
+Create an ingestion key under **Project Settings → Telemetry & APM → Ingestion Keys** (the [OpenTelemetry quickstart](/docs/telemetry/open-telemetry#create-an-ingestion-key) walks through it). Then point your instrumentation at OneUptime:
+
+:::tabs
+@tab Python
 ```bash
 pip install traceloop-sdk opentelemetry-exporter-otlp
 ```
@@ -39,54 +68,49 @@ from traceloop.sdk import Traceloop
 
 Traceloop.init(
     app_name="my-ai-agent",
-    api_endpoint="https://oneuptime.com/otlp",   # or your self-hosted host + /otlp
+    api_endpoint="https://oneuptime.com/otlp",
     headers={"x-oneuptime-token": "YOUR_INGESTION_TOKEN"},
 )
-
-# Your normal OpenAI / Anthropic / LangChain calls are now traced automatically.
+# Your OpenAI, Anthropic and LangChain calls are now traced.
 ```
-
-### Node.js / TypeScript (OpenLLMetry)
-
+@tab Node.js
 ```bash
 npm install @traceloop/node-server-sdk
 ```
 
-```ts
+```typescript
 import * as traceloop from "@traceloop/node-server-sdk";
 
 traceloop.initialize({
   appName: "my-ai-agent",
-  baseUrl: "https://oneuptime.com/otlp", // or your self-hosted host + /otlp
+  baseUrl: "https://oneuptime.com/otlp",
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
-
-### Plain OpenTelemetry environment variables
-
-If you instrument with a native OpenTelemetry SDK, point the OTLP exporter at OneUptime:
-
+@tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
+:::
 
-Self-hosting OneUptime? Replace `https://oneuptime.com/otlp` with `https://YOUR-ONEUPTIME-HOST/otlp`.
+Self-hosting OneUptime? Use `https://YOUR-ONEUPTIME-HOST/otlp` instead of `https://oneuptime.com/otlp`. Call your model once, and the call shows under **Calls**.
 
-## Step 2 — Record what was said
+### Record what was said
 
-A conversation shows what people asked and what the AI answered when your instrumentation records them. OpenLLMetry records prompts and completions unless you turn it off (`TRACELOOP_TRACE_CONTENT=false`). The OpenTelemetry instrumentations record them only when you ask:
+A conversation shows what people asked and what the AI answered only when your instrumentation records it. OpenLLMetry records prompts and answers unless you set `TRACELOOP_TRACE_CONTENT=false`. The OpenTelemetry instrumentations record them only when you ask:
 
 ```bash
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
-Without them, a conversation still shows its timing, cost and problems, and says that its content was not recorded. Prompts can carry sensitive data: see [Privacy and redaction](#privacy-and-redaction) to mask it before it is stored.
+Newer OpenTelemetry instrumentations take `span_only`, `event_only` or `span_and_event` instead of `true`. Without recorded content, a conversation still shows its timing, cost and problems. Prompts can carry sensitive data: [Privacy and redaction](#privacy-and-redaction) shows how to mask it before it is stored.
 
-## Step 3 — Group calls into conversations
+### Group calls into conversations
 
-A chat app makes one model call per turn. Set `gen_ai.conversation.id` — or `session.id` — to your chat's id on every AI call, and each chat shows as one conversation, however many calls and traces it took. With OpenLLMetry, set it once per request as an association property:
+A chat app makes one model call per turn. Set `gen_ai.conversation.id` (or `session.id`) to your chat's id on every AI call, and each chat shows as one conversation, however many calls and traces it took. With OpenLLMetry, set it once per request:
 
 ```python
 from traceloop.sdk import Traceloop
@@ -97,25 +121,25 @@ Traceloop.set_association_properties({
 })
 ```
 
-Calls without a conversation id still show, one request (one trace) at a time.
+With the Vercel AI SDK, pass the chat's id as `experimental_telemetry: { metadata: { sessionId } }`. Calls without a conversation id still show, one request (one trace) at a time.
 
-## Step 4 — Say who asked
+### Say who asked
 
-Set `user.id` or `user.email` — the association property above sets the email — to see who each conversation was with, to search the list by person, and to rank spend by employee on the Usage tab. [Employee and team attribution](#employee-and-team-attribution) lists every key OneUptime reads.
+Set `user.id` or `user.email` on every AI call (the association property above sets the email). Each conversation then shows who it was with, you can search the list by person, and the **Usage** tab ranks spend by employee. [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution) lists every identity key OneUptime reads.
 
-## Step 5 — Flag bad answers
+### Flag bad answers
 
 OneUptime checks every answer as it arrives and marks what went wrong with it:
 
-| Problem | What it means                                         | Found from                                                                                                                                                         |
-| ------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Failed  | The call ended in an error, so no answer arrived      | Span status Error, `error.type`, or a finish reason of `error`                                                                                                     |
-| Refused | The AI declined, or a safety filter blocked it        | A refusal or safety finish reason (`content_filter`, `refusal`, `SAFETY` and the like), a refusal in the answer, or an answer that opens with a stock English refusal |
-| Cut off | The answer stopped at the token limit                 | A finish reason of `length`, `max_tokens` or `MAX_TOKENS`                                                                                                          |
-| Empty   | The AI answered with no text and no tool call         | Recorded content that holds nothing, or 0 output tokens                                                                                                            |
-| Flagged | An evaluation your app sent said the answer was bad   | A `gen_ai.evaluation.result` event                                                                                                                                 |
+| Problem | What it means | Found from |
+| --- | --- | --- |
+| Failed | The call ended in an error, so no answer arrived | Span status Error, `error.type`, or a finish reason of `error` |
+| Refused | The AI declined, or a safety filter blocked the answer | A refusal or safety finish reason (`content_filter`, `refusal`, `SAFETY` and the like), a refusal in the answer, or an answer that opens with a stock English refusal |
+| Cut off | The answer stopped at the token limit | A finish reason of `length`, `max_tokens` or `MAX_TOKENS` |
+| Empty | No text and no tool call | Recorded content that holds nothing, or 0 output tokens |
+| Flagged | An evaluation your app sent said the answer was bad | A `gen_ai.evaluation.result` event |
 
-The first four need nothing from you. To flag the rest — an answer your guardrail, your eval or your own LLM judge rejects — add a `gen_ai.evaluation.result` event to the answer's span, with `gen_ai.evaluation.score.label` set to `fail`:
+The first four need nothing from you. To flag an answer your guardrail, your eval or a thumbs-down button rejects, add a `gen_ai.evaluation.result` event to the answer's span, while the span is open, with `gen_ai.evaluation.score.label` set to `fail`:
 
 ```python
 from opentelemetry import trace
@@ -130,157 +154,180 @@ trace.get_current_span().add_event(
 )
 ```
 
-Labels such as `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` and `hallucination` count as failing too. The event has to be on the span of the answer it judges, while that span is open.
-
-OneUptime never sends your conversations to another AI to judge them: every check reads only what the call itself carries.
+Labels such as `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` and `hallucination` count as failing too. OneUptime never sends your conversations to another AI to judge them: every check reads only what the call itself carries.
+:::
 
 ## Read and replay a conversation
 
-A conversation opens whole, the way a chat app shows its history: what the person said on the right, the AI's answers on the left with their model, time, tokens and cost, tool calls between them, and what went wrong marked where it happened. **Details** under an answer shows its finish reason and evaluations, with a link to the call in Traces.
+A conversation opens whole, the way a chat app shows its history: what the person said on the right, the AI's answers on the left with their model, time, tokens and cost, tool calls in between, and what went wrong marked where it happened. **Details** under an answer shows why it stopped, its evaluations, and a link to the call in Traces.
 
 The bar at the bottom replays the conversation the way the person lived it:
 
-- **Replay** plays it from the first message at the pace it happened, with "AI is answering…" counting up while an answer is on its way. Click the time of any message to replay from there.
-- **Skip waiting**, on by default, shortens silences longer than 3 seconds. The speed button plays at 1×, 2×, 4× or 8×.
-- **K** plays or pauses, **J** or **←** goes back a message, and **L** or **→** goes forward.
-- The address keeps the message a replay stopped at (`?step=`), so a link opens on that moment.
+| Control | What it does |
+| --- | --- |
+| **Replay** | Plays the conversation from the first message, at the pace it happened. "AI is answering…" counts up while an answer is on its way. Click the time of any message to replay from there. |
+| **Skip waiting** | On by default: shortens any silence longer than 3 seconds. |
+| `1x` | Changes the speed: 1x, 2x, 4x or 8x. |
+| **K**, **J** or **←**, **L** or **→** | Play or pause, go back a message, go forward a message. |
+
+The page's address keeps the message a replay stopped at (`?step=`), so a link you share opens on that moment.
 
 ## Get told when the AI answers badly
 
-The **Alerts** tab offers the alerts most AI apps want. Picking one opens Create Monitor filled in, where you can change anything before you save:
+The **Alerts** tab lists the alerts most AI apps want. Picking one opens **Create Monitor** filled in, and you can change anything before you save:
 
-| Alert                    | When it tells you                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------- |
-| Answers go wrong         | More than 5% of answers in 15 minutes fail, are refused, cut off, empty or flagged          |
-| AI calls fail            | More than 10% of the calls to the model in 5 minutes end in an error                        |
-| The AI refuses to answer | More than 5% of answers in 30 minutes are refusals                                          |
-| Answers are cut off      | 3 or more answers in 30 minutes stop at the token limit                                     |
-| Answers are flagged      | An evaluation marks an answer as bad                                                        |
-| Answers are slow         | More than 10% of answers in 15 minutes take longer than 30 seconds                          |
-| The AI stops answering   | The AI gives no answers for 30 minutes                                                      |
+| Alert | When it tells you | Severity |
+| --- | --- | --- |
+| Answers go wrong | More than 5% of answers in 15 minutes fail, are refused, cut off, empty or flagged | Warning |
+| AI calls fail | More than 10% of the calls to the model in 5 minutes end in an error | Critical |
+| The AI refuses to answer | More than 5% of answers in 30 minutes are refusals | Warning |
+| Answers are cut off | 3 or more answers in 30 minutes stop at the token limit | Warning |
+| Answers are flagged | An evaluation marks an answer as bad | Warning |
+| Answers are slow | More than 10% of answers in 15 minutes take longer than 30 seconds | Warning |
+| The AI stops answering | The AI gives no answers for 30 minutes | Critical |
 
-The alerts on a share also wait for at least 3 bad answers, so one bad answer out of two pages nobody.
+The alerts on a share of answers also wait for at least 3 bad answers, so one bad answer out of two pages nobody.
 
-Each alert is an **AI / LLM monitor**. Its settings say what counts as a bad answer — the problems above, an answer slower than a limit you set, or both — which apps and which model it watches, and how far back each check looks. Under them, a preview shows what the monitor would count right now. Its criteria compare three numbers: the **share of bad answers** (in %), the **number of bad answers** and the **number of answers**. A ready-made alert raises an alert that resolves itself and shows the monitor as Degraded while answers are bad; switch its incident on to page someone instead.
+Each alert is an **AI / LLM** monitor. Its settings say what counts as a bad answer (**Count an answer as bad when it**, **Or takes longer than (seconds)**), how far back each check looks (**Time window**, 15 minutes by default), which **Apps** it watches and, under **More fields**, which **Model**. A **Preview** shows what the monitor would count right now. Its criteria compare three numbers: **Bad AI Answers (in %)**, **Bad AI Answers** and **AI Answers**.
 
-Spend is watched by [daily cost budgets](#daily-cost-budgets).
+A ready-made alert raises an alert that resolves itself, and shows the monitor as **Degraded** while answers are bad. Its incident is filled in but switched off: switch it on to page someone instead.
 
-## Attributes OneUptime recognizes
+## See who spends what
 
-OneUptime reads the OpenTelemetry GenAI conventions first, and falls back to the OpenLLMetry and OpenInference variants so popular libraries work out of the box.
+The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped.
 
-| What                        | Primary attribute            | Also accepted                                                                                                                                                                                                                                                      |
-| --------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Provider / system           | `gen_ai.provider.name`       | `gen_ai.system` (deprecated in the conventions, still widely emitted), `llm.system`, `llm.provider`                                                                                                                                                                |
-| Operation                   | `gen_ai.operation.name`      | `llm.request.type`, `openinference.span.kind`                                                                                                                                                                                                                      |
-| Requested model             | `gen_ai.request.model`       | `llm.model_name`, `llm.request.model`                                                                                                                                                                                                                              |
-| Response model              | `gen_ai.response.model`      | `llm.response.model`                                                                                                                                                                                                                                               |
-| Input tokens                | `gen_ai.usage.input_tokens`  | `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens`                                                                                                                                                                                  |
-| Output tokens               | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens`                                                                                                                                                                      |
-| Total tokens                | `gen_ai.usage.total_tokens`  | `llm.token_count.total`, `llm.usage.total_tokens`; derived from input + output when none is reported                                                                                                                                                               |
-| Cost (USD)                  | `gen_ai.usage.cost`          | `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost` (LiteLLM), `litellm.cost.total`                                                                                                                               |
-| Agent name                  | `gen_ai.agent.name`          | `agent.name`                                                                                                                                                                                                                                                       |
-| Tool name                   | `gen_ai.tool.name`           | `tool.name`                                                                                                                                                                                                                                                        |
-| Conversation / session id   | `gen_ai.conversation.id`     | `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`                                                                                                                                                                                 |
-| Employee (who ran the call) | `user.id`                    | `enduser.id`, `litellm.metadata.user_api_key_user_id` and `metadata.user_api_key_user_id` (LiteLLM OTel v2 and v1 spellings — both read), `traceloop.association.properties.user_id`, `langfuse.user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
-| Employee email              | `user.email`                 | `traceloop.association.properties.user_email`, `enduser.email`                                                                                                                                                                                                     |
-| Team / cost centre          | `team.id`                    | `team`, `cost_center`, `department`, `litellm.metadata.user_api_key_team_id` and `litellm.team.id` (LiteLLM OTel v2), `metadata.user_api_key_team_id` (LiteLLM OTel v1), `cursor.team.id`                                                                          |
+People and teams come from identity attributes on the call: see [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
-The `traceloop.association.properties.*` sub-keys are **caller-supplied**: Traceloop defines the prefix, and your code supplies what goes under it. `gen_ai.usage.total_tokens` and `gen_ai.usage.cost` are **de-facto** keys, not GenAI semantic conventions — the conventions define no total-token attribute and no cost attribute — and OneUptime reads them because the common instrumentations emit them. `gen_ai.system` is the conventions' own deprecated predecessor to `gen_ai.provider.name`; both are read.
+### Spans come first, metrics fill in
 
-**The three identity rows are also matched with a `resource.` prefix.** OTLP ingest flattens every _resource_ attribute into the span's attribute map under a `resource.` prefix, so `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` arrives as `resource.team.id`. OneUptime looks for the whole bare list first, then the whole `resource.` list, so a span attribute (which describes one call) beats a resource attribute (which describes the whole process). The other rows are matched on the bare key only: they are per-call values.
+GenAI spans carry the model, tokens and cost of one call, so where they exist they answer everything. Some tools publish token and cost metrics and no GenAI spans, such as most coding assistants. OneUptime reads those metrics only for a figure the spans reported nothing for, and never adds the two together: many instrumentations send both for the same call, and adding them would count every dollar twice.
 
-**Prompt and completion content** is read from the `gen_ai.client.inference.operation.details` event; from the `gen_ai.input.messages`, `gen_ai.output.messages` and `gen_ai.system_instructions` span attributes; from the **deprecated** per-role events older instrumentations still emit (`gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.tool.message`, `gen_ai.assistant.message`, `gen_ai.choice`); from the indexed attributes (`gen_ai.prompt.N.content` and `gen_ai.completion.N.content`, OpenInference's `llm.input_messages.N.message.content` and `llm.output_messages.N.message.content`); and from the JSON message arrays (`gen_ai.prompt`, `gen_ai.completion`, `input.value`, `output.value`).
-
-### How cost is calculated
-
-If your instrumentation reports a cost (`gen_ai.usage.cost`), OneUptime uses it as-is: the reported value always wins. When no cost is reported, OneUptime computes an **estimated cost at ingest** from the span's token counts and a built-in list-price catalog of common models from OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova and Meta Llama. Models are matched by name prefix, so dated snapshots like `gpt-4o-2024-08-06` and vendor-decorated ids like `us.anthropic.claude-3-5-sonnet-20241022-v2:0` resolve correctly. Unknown or custom models are never guessed — their cost stays `0` until you give them a price on the **Pricing** tab. Estimates use list prices and do not account for cache or batch discounts.
-
-Self-hosting OneUptime? The catalog lives in `packages/Common/Types/Telemetry/LlmCostCatalog.ts`.
-
-## Employee and team attribution
-
-"Which of our engineers spent $4k on Opus last month" is a question about a person, and no LLM span answers it unless something on the span names one. OneUptime copies the human actor into queryable columns at ingest, so you group and filter on a column instead of writing attribute lookups.
-
-The three identity rows in the table above are the whole mechanism; the first key present wins, in the order listed. `user.id` leads because it is the canonical OpenTelemetry key for a human actor and the one to standardize on if you set identity yourself. **One exception: Claude Code** emits `user.id` as a random anonymous identifier kept in `~/.claude.json`, not a person. That is harmless on its metric datapoints, whose list is email-first, but if you enable Claude Code's traces beta, the anonymous `user.id` outranks `user.email` on the spans: drop or remap `user.id` in a collector processor for that fleet. `enduser.id` is still an active semantic-convention attribute and is accepted as an equal alias. `cursor.user.id` sorts last because it is an opaque, team-scoped integer that needs Cursor's admin API to resolve to a person.
-
-Identity is read only on spans already recognized as LLM calls: `user.id`, `user.email` and `team.id` are generic keys that browser and ordinary backend spans carry too. **Metric datapoints** carry a shorter, email-first list — `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id`, with teams from `team.id`, `team`, `cost_center`, `department` and `cursor.team.id`, each also matched with the `resource.` prefix — because the coding-agent CLIs that emit metrics without spans emit `user.email` natively. Nothing reads identity off **log records** today.
-
-### Setting the team and cost centre
-
-No instrumentation emits `team.id`, `team`, `cost_center` or `department`: your organization sets them, conventionally through `OTEL_RESOURCE_ATTRIBUTES` on the process:
-
-```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-123,department=engineering"
+```mermaid title="Where a figure on the Usage tab comes from"
+flowchart TB
+    spans{"Do GenAI spans in the<br/>range report it?"}
+    spans -->|"Yes"| fromSpans["Shown from spans"]
+    spans -->|"No"| metrics{"Do GenAI metrics<br/>report it?"}
+    metrics -->|"Yes"| fromMetrics["Shown from metrics,<br/>marked from GenAI metrics"]
+    metrics -->|"No"| nothing["Nothing to show"]
 ```
 
-They reach OneUptime as `resource.team.id`, `resource.team`, `resource.cost_center` and `resource.department`, and both tiers are recognized on spans and on metric datapoints, whether your exporter leaves the keys in the OTLP resource block or copies them onto each span (Claude Code does the latter). A bare `team.id` set directly on a span still wins.
+| Where | What falls back to metrics | When |
+| --- | --- | --- |
+| Input and output tokens | Both totals | The spans' token totals are both 0 |
+| Cost (USD) | The cost, with Codex's micro-USD cost scaled to USD | The spans' cost total is 0 |
+| LLM calls | Nothing: spans only | — |
+| **Employee**, **Team**, **Model** tables | Cost only; the calls and token cells show `—` | That table found no span rows |
+| **Provider**, **Application / Service** tables | Nothing: spans only | — |
+| Conversations | Nothing: conversations are built from spans | — |
 
-The gateway spellings arrive with no configuration from you. LiteLLM names its attributes differently in its two OpenTelemetry modes — the default v1 `otel` callback uses a bare `metadata.` prefix (`metadata.user_api_key_user_id`, `metadata.user_api_key_user_email`, `metadata.user_api_key_team_id`), the opt-in v2 mode (`LITELLM_OTEL_V2=true`) the `litellm.` namespace — and **OneUptime reads both**.
+A figure taken from metrics is marked **from GenAI metrics**, because it has no matching rows in **Calls**. So once your GenAI spans report a figure, a metrics-only tool's share of it does not show. To see such a tool's spend on its own, send it to a project of its own, where no GenAI spans arrive.
 
-### The customer keys are excluded on purpose
+## What a call costs
 
-An LLM span can carry **two** different people: the employee who made the call, and the downstream **customer** it was made for. These keys carry the customer, and OneUptime deliberately reads **none** of them into an identity column:
+A cost your instrumentation reports (`gen_ai.usage.cost`) is used as it is, even when it is 0. When none is reported, OneUptime estimates one as the span arrives, from its token counts and a built-in list of prices for common OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova and Meta Llama models. The served model is priced first, then the requested model.
 
-- `gen_ai.user` and `llm.user` — how instrumentations echo OpenAI's `user` request parameter, which OpenAI documents as "a stable identifier for your end-users" (now deprecated in favour of `safety_identifier` and `prompt_cache_key`).
-- `litellm.metadata.user_api_key_end_user_id`, `metadata.user_api_key_end_user_id` and `litellm.end_user.id` — LiteLLM's explicit end-user id in all three spellings, distinct from the key-owner id, which **is** the employee and **is** read.
+Models are matched by the longest name prefix, so dated and vendor-decorated ids such as `gpt-4o-2024-08-06` and `us.anthropic.claude-sonnet-4-5-20250929-v1:0` find their family's price. A model the list does not know, a new release included, is never guessed: its cost stays 0 until you price it. Estimates use list prices, without cache or batch discounts.
 
-The reason is chargeback correctness: read a customer id into the employee column and a support bot serving 40,000 customers creates 40,000 phantom "employees", while the engineer who owns the spend appears to have spent nothing. These attributes stay in the raw attributes map, where you can query them directly.
-
-### Identity columns are scrubbed
-
-The employee email column holds real personal data. Your telemetry **scrub rules** under the **Attributes** scope cover it exactly as they cover the attribute it was read from, so an email-redaction rule applies to the column too. Configure scrub rules and drop filters under **Traces → Settings**.
-
-## Spans and metrics are a fallback, not a sum
-
-**GenAI spans are authoritative. The metric stream is consulted only when the span stream reported nothing, and the two are never added together.** A span carries model, tokens and cost on one row, so where spans exist they answer every question. Where they do not — the coding-agent CLIs publish token and cost _metrics_ and no GenAI spans — the metric stream stands in. They are not summed because many instrumentations emit both signals for the same call (OpenLLMetry is the common case), and adding them would count every dollar twice.
-
-The consequence to plan around: **once your GenAI spans report a non-zero figure, a metrics-only source's contribution to that figure does not appear.** The fallback is per figure and per breakdown, not per emitter:
-
-| Where                                   | What falls back to metrics                       | When                                 |
-| --------------------------------------- | ------------------------------------------------ | ------------------------------------ |
-| Usage → Input / Output tokens           | Input and output token totals                    | Both span token sums are 0           |
-| Usage → Cost (USD)                      | Cost, in USD and micro-USD, scaled and added     | The span cost sum is 0               |
-| Usage → LLM calls                       | Nothing — span-only                              | —                                    |
-| Usage → Employee, Team, Model           | Cost only. Calls and token columns render as `—` | That breakdown returned no span rows |
-| Usage → Provider, Application / Service | Nothing — span-only                              | —                                    |
-| Conversations                           | Nothing — conversations are built from spans     | —                                    |
-
-Provider and Application / Service have no metric fallback because the coding-agent counters carry no GenAI provider attribute and are not attached to a OneUptime telemetry service. Wherever a figure came from metrics, the page labels it **from GenAI metrics**, because a metric-sourced figure has no matching rows in the Calls list.
-
-**If you need a metrics-only tool's spend to stand on its own, give it its own project**, so its span stream is genuinely empty and the fallback engages. The same applies to budgets: scope one budget per service rather than mixing span-emitting and metrics-only services.
-
-## Dashboards and metric alerts
-
-GenAI metrics arrive as ordinary OpenTelemetry metrics, so you can build **dashboards** charting `gen_ai.client.token.usage`, `gen_ai.client.operation.duration` and the rest, and create **metric monitors** on them — for example when the p95 of `gen_ai.client.operation.duration` crosses a threshold, grouped by model. See [Metrics Monitor](/docs/monitor/metrics-monitor).
+To price a model yourself (a negotiated rate, a fine-tune or a model you host), add it on the **Pricing** tab, in **Custom LLM Pricing**: a **Model Prefix**, an **Input Price (USD per 1M tokens)** and an **Output Price (USD per 1M tokens)**. The longest matching prefix wins across your prices and the built-in list; your price wins a tie. A price applies to calls that arrive about a minute after you save it; calls already stored keep their cost.
 
 ## Daily cost budgets
 
-The **Budgets** tab sets daily USD limits, evaluated over the UTC day. Every 15 minutes a background worker sums the day's LLM span cost (reported or computed), records it on the budget, and publishes two gauge metrics:
+A budget tracks one day's spend, in USD, over the UTC day. Every 15 minutes OneUptime adds up the day's AI spend (from spans, or from GenAI cost metrics when no span reported any), shows it on the budget, and publishes two metrics:
 
-| Metric                              | Meaning                               |
-| ----------------------------------- | ------------------------------------- |
-| `oneuptime.llm.budget.spend.usd`    | The day's spend so far, in USD        |
-| `oneuptime.llm.budget.percent.used` | Spend as a percent of the daily limit |
+| Metric | What it is |
+| --- | --- |
+| `oneuptime.llm.budget.spend.usd` | The day's spend so far, in USD |
+| `oneuptime.llm.budget.percent.used` | The spend as a percent of the daily limit |
 
-Both carry `oneuptime.llm.budget.id` and `oneuptime.llm.budget.name` attributes, plus the budget's service, provider and model scope when set. Filter monitors by **`oneuptime.llm.budget.id`**, which is stable; the name changes when you rename the budget.
+Both carry `oneuptime.llm.budget.id` and `oneuptime.llm.budget.name`, and the budget's scope when it has one.
 
-**Alerting is a [Metrics Monitor](/docs/monitor/metrics-monitor) on those metrics.** For the classic 80% / 100% pattern, create a monitor on `oneuptime.llm.budget.percent.used`, filter it by `oneuptime.llm.budget.id`, and add two criteria: `>= 80` creating a warning alert and `>= 100` creating a critical one. **Set the monitor's rolling time to 30 minutes**: a budget publishes one point every 15 minutes, so the 1-minute default window would find an empty series between sweeps.
+:::steps
+### Create the budget
 
-Budgets can be scoped to a telemetry service, an LLM provider or an exact model, or left project-wide, and several can coexist. A budget monitor can also call a Workflow that stops a runaway agent — see [Circuit-Breaking Runaway AI Agents](/docs/telemetry/ai-agent-circuit-breaker).
+On the **Budgets** tab, click **Create LLM Cost Budget**. Give it a name and a **Daily Budget (USD)**, and leave the scope empty for the whole project, or pick a **Service (optional)**, an **LLM Provider (optional)** or an **LLM Model (optional)**. Several budgets can watch different scopes.
+
+### Alert on it
+
+Create a [Metrics Monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`, filtered by `oneuptime.llm.budget.id` (the name changes when you rename the budget). Add a criterion `>= 80` that raises a warning and one `>= 100` that raises a critical alert.
+
+### Widen the window
+
+Set the monitor's rolling window to 30 minutes. A budget publishes one point every 15 minutes, so the default 1-minute window would find nothing between two points.
+:::
+
+A budget alert can also run a workflow that stops a runaway agent: see [AI Agent Circuit Breakers](/docs/telemetry/ai-agent-circuit-breaker).
+
+## Dashboards and metric alerts
+
+GenAI metrics such as `gen_ai.client.token.usage` and `gen_ai.client.operation.duration` arrive as ordinary OpenTelemetry metrics. Chart them on a [dashboard](/docs/dashboards/index), or alert on them with a [Metrics Monitor](/docs/monitor/metrics-monitor), for example when the p95 of `gen_ai.client.operation.duration` crosses a threshold, grouped by model.
 
 ## Privacy and redaction
 
-Prompts and completions can contain sensitive data. OneUptime applies your telemetry **scrub rules** and **drop filters** to LLM spans like any other trace, so you can mask attributes or drop spans before they are stored; configure them under **Traces → Settings**. The employee-email column is covered by the same rules — see [Identity columns are scrubbed](#identity-columns-are-scrubbed).
+AI calls are stored as trace spans, so the traces' **Scrub Rules** and **Drop Filters** apply to them: mask an attribute, or drop a span, before it is stored. Find both under **Traces → Settings**. The employee email column is scrubbed with the attribute it was read from, so a rule that masks emails covers it too.
 
-Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and no one else.
+Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else.
 
-## Related
+## Attributes OneUptime reads
 
-- [AI Coding Assistant Observability](/docs/telemetry/ai-coding-assistants) — the support matrix for Claude Code, Cursor, Codex, Gemini CLI, Copilot, Cline and the rest, and how per-employee spend works across them.
-- [Monitoring Claude Code](/docs/telemetry/claude-code)
-- [Monitoring Cursor](/docs/telemetry/cursor)
-- [Monitoring OpenAI Codex CLI](/docs/telemetry/openai-codex)
-- [Monitoring Gemini CLI and GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot)
-- [Observing AI Gateways (LiteLLM & Portkey)](/docs/telemetry/ai-gateways)
-- [Circuit-Breaking Runaway AI Agents](/docs/telemetry/ai-agent-circuit-breaker)
+OneUptime reads the OpenTelemetry GenAI conventions, and the spellings OpenLLMetry, OpenInference, the Vercel AI SDK and LiteLLM use, so the common libraries work as they are. For each value, the first key a span carries wins:
+
+| Value | Keys, in the order they are tried |
+| --- | --- |
+| Provider | `gen_ai.system`, `gen_ai.provider.name`, `llm.system`, `llm.provider` |
+| Operation | `gen_ai.operation.name`, `llm.request.type`, `openinference.span.kind` |
+| Requested model | `gen_ai.request.model`, `llm.model_name`, `llm.request.model` |
+| Served model | `gen_ai.response.model`, `llm.response.model` |
+| Input tokens | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
+| Output tokens | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
+| Total tokens | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| Cost (USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
+| Conversation | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
+| Agent | `gen_ai.agent.name`, `agent.name` |
+| Tool | `gen_ai.tool.name`, `tool.name`, `ai.toolCall.name` |
+| Finish reason | `gen_ai.response.finish_reasons`, `gen_ai.response.finish_reason`, `llm.response.finish_reason`, `ai.response.finishReason` |
+| Error | `error.type` |
+
+A span counts as an AI call when it carries any of these values, or any attribute that starts with `gen_ai.`, `llm.` or `traceloop.`. Total tokens are input plus output when no total is reported. The `gen_ai.usage.total_tokens` and `gen_ai.usage.cost` keys are not part of the conventions, which define neither; OneUptime reads them because common instrumentations send them.
+
+The identity keys (who made the call, and their team) are listed under [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
+
+### Where prompts and answers are read from
+
+The conversation view reads a call's messages from, in this order:
+
+- the `gen_ai.client.inference.operation.details` event;
+- the `gen_ai.input.messages`, `gen_ai.output.messages` and `gen_ai.system_instructions` attributes;
+- the older per-role events: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` and `gen_ai.choice`;
+- the indexed attributes: OpenLLMetry's `gen_ai.prompt.N.content` and `gen_ai.completion.N.content`, OpenInference's `llm.input_messages.N.message.content` and `llm.output_messages.N.message.content`;
+- the message arrays in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` and `output.value`.
+
+## Troubleshooting
+
+:::details Calls arrive, but no conversations show any text
+Your instrumentation is not recording content. Turn it on as [Record what was said](#record-what-was-said) shows; calls made before that stay without text.
+:::
+
+:::details Every call of a chat shows as its own conversation
+The calls carry no conversation id. Set `gen_ai.conversation.id` or `session.id` on every call of the chat, as [Group calls into conversations](#group-calls-into-conversations) shows.
+:::
+
+:::details Calls show tokens but cost $0
+The model is not in the built-in price list, or the span names no model. Add the model's prices on the **Pricing** tab; calls that arrive after that are priced.
+:::
+
+:::details The Usage tab says from GenAI metrics and shows `—` for calls and tokens
+The figures come from a tool that sends metrics and no GenAI spans, such as a coding assistant. A metric carries cost but no per-call detail, so those cells stay empty. See [Spans come first, metrics fill in](#spans-come-first-metrics-fill-in).
+:::
+
+:::details A budget monitor flaps between two states
+The monitor's rolling window is shorter than 15 minutes, so it sometimes finds no point. Set it to 30 minutes.
+:::
+
+## Next steps
+
+:::cards
+- [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Spend by engineer for Claude Code, Cursor, Codex, Gemini CLI and Copilot.
+- [AI Gateways](/docs/telemetry/ai-gateways): Trace every app's model calls from one LiteLLM or Portkey gateway.
+- [AI Agent Circuit Breakers](/docs/telemetry/ai-agent-circuit-breaker): Stop a runaway agent when a budget alert fires.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Endpoints, ingestion keys and limits for every signal.
+:::

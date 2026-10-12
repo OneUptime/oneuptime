@@ -1,31 +1,49 @@
-# Monitoring Claude Code with OneUptime
+# Claude Code
 
-Claude Code is a first-class OTLP client. It speaks `http/protobuf`, `http/json` and `grpc`, supports per-signal endpoints, and sends arbitrary headers — so it exports straight to OneUptime with no collector, no gateway and no connector in between. Setup is a block of environment variables.
+Claude Code exports OpenTelemetry metrics and events itself, straight to OneUptime: no collector and no gateway in between. Turn it on with a few environment variables, or for a whole fleet with one managed settings file, and see cost, tokens, sessions, commits and accepted edits per developer.
 
-## What you get
+:::cards
+- [Set up one machine](#set-up-one-machine): Six environment variables and a restart.
+- [Roll out to the fleet](#roll-out-to-the-fleet): One managed settings file on every machine.
+- [Attribute spend to people](#attribute-usage-to-people-and-teams): Who is signed in, and when you must set the identity yourself.
+- [Troubleshooting](#troubleshooting): What to check when nothing arrives.
+:::
 
-Once the export is on, every developer's Claude Code usage lands in OneUptime as ordinary OpenTelemetry metrics and logs:
+## How it works
 
-- **Cost and tokens per developer** — `claude_code.cost.usage` (USD) and `claude_code.token.usage` (tokens), broken down by model, by `query_source` (main agent vs. subagent), and by the agent/skill/plugin/MCP server that ran the call.
-- **Sessions** — `claude_code.session.count`, split by how the session started.
-- **Output** — `claude_code.commit.count`, `claude_code.pull_request.count`, and `claude_code.lines_of_code.count` split into `added` / `removed`.
-- **Tool acceptance rate** — `claude_code.code_edit_tool.decision` carries `decision=accept|reject`, so acceptance rate is `accept / (accept + reject)`, sliceable by language and by which tool was used.
-- **Active time** — `claude_code.active_time.total`, split into `user` (keyboard interaction) and `cli` (tool execution and model responses).
-- **Events** — prompts, tool results, API requests, API errors, permission-mode changes and MCP server connections, as OTLP log records.
+```mermaid title="From Claude Code to OneUptime"
+flowchart TB
+    subgraph machine["Each developer machine"]
+        direction LR
+        settings["Environment or<br/>managed settings"] --> cc["Claude Code"]
+    end
+    cc -->|"Metrics, every 60 s"| ingest["OneUptime"]
+    cc -->|"Events, every 5 s"| ingest
+    ingest --> usage["Usage: cost by employee,<br/>team and model"]
+    ingest --> explorers["Metrics and<br/>Logs explorers"]
+```
 
-Claude Code puts `user.email` on every metric datapoint and every event record, and OneUptime reads it as the employee on the metric datapoints — which is where the cost and token figures live. (Identity on log records is not read for attribution today, so the event stream is searchable but not yet joined to spend.) See [Attributing usage to employees and teams](#attributing-usage-to-employees-and-teams) for the caveats.
+Claude Code sends:
 
-## Before you start
+- **Cost and tokens**: `claude_code.cost.usage` (USD) and `claude_code.token.usage`, by model, by main agent or subagent, and by the agent, skill, plugin or MCP server that made the call.
+- **Activity**: sessions, commits, pull requests, lines of code added and removed, and active time.
+- **Edit decisions**: `claude_code.code_edit_tool.decision` counts accepted and rejected edits, so the acceptance rate is `accept / (accept + reject)`, by language and by tool.
+- **Events**: prompts, tool results, API requests and errors, permission-mode changes and MCP server connections, as OTLP log records.
 
-1. Create a telemetry ingestion token in OneUptime: **Project Settings → Telemetry & APM → Ingestion Keys → Create Ingestion Key**.
-2. Note your OTLP endpoint: `https://oneuptime.com/otlp`, or `https://YOUR-ONEUPTIME-HOST/otlp` if you self-host.
-3. The token travels as the `x-oneuptime-token` header on every export.
+Every metric data point and event carries `user.email` when the developer is signed in with a Claude account, and OneUptime reads it as the employee on the metrics, where the cost and tokens are.
 
-Use one ingestion key for the whole Claude Code fleet. It ends up on every developer machine, so treat it as a shared write-only credential and rotate it the way you would any other.
+## Before you begin
 
-## Quick start for one developer
+1. Create a telemetry ingestion key under **Project Settings → Telemetry & APM → Ingestion Keys**.
+2. Your OTLP endpoint is `https://oneuptime.com/otlp`, or `https://YOUR-ONEUPTIME-HOST/otlp` if you host OneUptime yourself.
+3. Use one key for the whole fleet. It ends up on every developer machine, so treat it as a shared credential that can only send data, and rotate it like any other.
 
-Export these in your shell (or your `.zshrc` / `.bashrc`) and restart Claude Code:
+## Set up one machine
+
+:::steps
+### Export the variables
+
+Add these to your shell profile (`.zshrc` or `.bashrc`), or export them in the terminal you start Claude Code from:
 
 ```bash
 export CLAUDE_CODE_ENABLE_TELEMETRY=1
@@ -36,20 +54,30 @@ export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 
-What each one does:
+| Variable | What it does |
+| --- | --- |
+| `CLAUDE_CODE_ENABLE_TELEMETRY` | The main switch: nothing is exported without it. |
+| `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` | `otlp` sends to OneUptime. `otlp,console` also prints what is sent, handy while you set up. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf`; `http/json` and `grpc` work too. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | The base URL. Claude Code adds `/v1/metrics` and `/v1/logs` itself. |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Comma-separated `key=value` pairs; here, your ingestion key. |
 
-- `CLAUDE_CODE_ENABLE_TELEMETRY=1` is the master switch. Nothing is exported without it.
-- `OTEL_METRICS_EXPORTER` and `OTEL_LOGS_EXPORTER` accept `console`, `otlp`, `none` (metrics also accept `prometheus`), and take a comma-separated list — `otlp,console` exports and prints at the same time, which is handy while you are setting this up.
-- `OTEL_EXPORTER_OTLP_ENDPOINT` is the **base** URL — Anthropic's examples use a bare origin here and full per-signal paths on the per-signal variables, matching the OpenTelemetry exporter spec, where the base URL has `/v1/metrics` and `/v1/logs` appended. Only use `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` / `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` if you need to split signals, and give those the full path (`https://oneuptime.com/otlp/v1/metrics`, `.../v1/logs`).
-- `OTEL_EXPORTER_OTLP_HEADERS` takes comma-separated `key=value` pairs, so extra headers are `key1=val1,key2=val2`.
+### Restart Claude Code
 
-Metrics flush every 60 seconds by default and logs every 5 seconds, so give it a minute before you go looking.
+The variables are read when Claude Code starts. Metrics are sent every 60 seconds and events every 5 seconds, so use Claude Code for a minute before you look.
 
-## Fleet rollout with managed settings
+### Check that data arrives
 
-For an organization, ship the same variables as a managed settings file. Managed settings use the same JSON shape as `settings.json`, with the variables under an `env` block:
+Open **Metrics** and look for `claude_code.token.usage`, then open **Products → AI / LLM** and go to **Usage**: your cost shows under your email, marked **from GenAI metrics**.
+:::
 
-```json
+To send metrics and events to different places, set `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` and `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` instead, with the full path (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
+
+## Roll out to the fleet
+
+For an organization, ship the same variables in a managed settings file. It has the shape of `settings.json`, with the variables in an `env` block:
+
+```json title="managed-settings.json"
 {
   "env": {
     "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
@@ -58,228 +86,190 @@ For an organization, ship the same variables as a managed settings file. Managed
     "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "https://oneuptime.com/otlp",
     "OTEL_EXPORTER_OTLP_HEADERS": "x-oneuptime-token=YOUR_INGESTION_TOKEN",
-    "OTEL_RESOURCE_ATTRIBUTES": "team.id=platform,cost_center=eng-123,department=engineering"
+    "OTEL_RESOURCE_ATTRIBUTES": "team.id=platform,cost_center=eng-123"
   }
 }
 ```
 
-Drop it at the managed-settings path for the platform:
+:::steps
+### Put the file where Claude Code reads it
 
-| Platform      | Path                                                            |
-| ------------- | --------------------------------------------------------------- |
-| macOS         | `/Library/Application Support/ClaudeCode/managed-settings.json` |
-| Linux and WSL | `/etc/claude-code/managed-settings.json`                        |
-| Windows       | `C:\Program Files\ClaudeCode\managed-settings.json`             |
+| Platform | Path |
+| --- | --- |
+| macOS | `/Library/Application Support/ClaudeCode/managed-settings.json` |
+| Linux and WSL | `/etc/claude-code/managed-settings.json` |
+| Windows | `C:\Program Files\ClaudeCode\managed-settings.json` |
 
-On Windows, the legacy `C:\ProgramData\ClaudeCode\managed-settings.json` path is **not** read any more. Do not put the file there.
+Claude Code no longer reads the old Windows path `C:\ProgramData\ClaudeCode\managed-settings.json`. If you already ship a managed settings file, add a drop-in instead, such as `managed-settings.d/10-telemetry.json` next to it: Claude Code merges `managed-settings.json` first, then every `*.json` file in `managed-settings.d/` in alphabetical order.
 
-**Use a drop-in instead of the main file if you already have a policy.** A `managed-settings.d/` directory next to the main file merges `*.json` in alphabetical order, so a telemetry-only `10-telemetry.json` ships cleanly without touching an existing security policy file. Since v2.1.223 the `env` block is merged **per variable** across admin sources — but the telemetry variables are the exception you have to plan around. The `OTEL_EXPORTER_OTLP_*` exporter keys, the `OTEL_LOG_*` content-capture toggles, `OTEL_LOGS_EXPORTER` and the beta tracing variables move as a **single unit**: they all come from the highest-ranked admin source that sets any one of them, so an exporter endpoint from one source can never pair with credentials from another. A telemetry drop-in in `managed-settings.d/` therefore contributes nothing at all if a higher-ranked source (server-managed settings, or an MDM/registry policy) already sets any `OTEL_EXPORTER_OTLP_*`, `OTEL_LOG_*` or `OTEL_LOGS_EXPORTER` variable — or delivers `otelHeadersHelper`. `OTEL_METRICS_EXPORTER` and `OTEL_TRACES_EXPORTER` do merge per key. Drop-in files inside the file source still merge key by key with each other.
+### Check one machine
 
-Other delivery mechanisms for the same JSON, if your fleet is managed that way:
+Run `/status` in Claude Code. The `Setting sources` line should read `Enterprise managed settings (file)`, or `(drop-ins)` or `(file + drop-ins)` for a drop-in. A different source in brackets means a higher-ranked source won, and yours was not used.
 
-- Server-managed settings from the claude.ai admin console — fetched at startup and polled hourly.
-- A macOS configuration profile in the `com.anthropic.claudecode` managed-preferences domain.
-- Windows registry: a `Settings` `REG_SZ` value under `HKLM\SOFTWARE\Policies\ClaudeCode`, with an `HKCU` fallback.
+### Watch the fleet arrive
 
-Precedence, highest first: server-managed → MDM/OS policy → managed-settings files (`managed-settings.json` plus `managed-settings.d/*.json`) → `HKCU`. These sources do **not** merge with each other: Claude Code uses the first one that delivers at least one policy key and ignores the rest entirely, with no warning. `env` is one of the few keys read across sources — subject to the telemetry-unit caveat above.
+On the **Usage** tab, each developer shows up as a row once they have used Claude Code with the new settings.
+:::
 
-One gotcha worth planning around: when a **server-managed** change touches certain `env` variables, the developer has to accept a security-approval dialog in an interactive session before it takes effect. Not every variable triggers it — Anthropic applies feature toggles, model settings, UI options and numeric limits without a prompt — but a non-empty `OTEL_EXPORTER_OTLP_ENDPOINT` always does, so a server-managed telemetry rollout always needs the dialog. File-based managed settings and MDM policies do not have that step.
+The same JSON can also come from server-managed settings in the claude.ai admin console (fetched at startup and every hour), a macOS configuration profile in the `com.anthropic.claudecode` domain, or a `Settings` value under `HKLM\SOFTWARE\Policies\ClaudeCode` on Windows.
 
-**Verify on a developer machine.** Run `/status` in Claude Code and look at the `Setting sources` line — it should read `Enterprise managed settings` followed by the source in parentheses: `(file)` for `managed-settings.json`, `(drop-ins)` or `(file + drop-ins)` if you used `managed-settings.d/`, `(remote)` for server-managed, `(plist)` / `(HKLM)` for an MDM or OS policy, `(HKCU)` for the registry fallback. That confirms the file was found and parsed, before you go hunting for missing data in OneUptime. If the line names a source other than the one you deployed, a higher-priority source won and yours was ignored.
+:::details Which managed source wins, and how the telemetry variables combine
+By default, Claude Code uses the highest-ranked source that sets any policy key, and ignores the others: server-managed settings, then an MDM or OS policy, then the managed settings files, then the per-user `HKCU` registry value. The `env` block is the exception: since version 2.1.223 it merges variable by variable across the admin sources.
 
-**Rotating credentials.** If you cannot bake a long-lived token into the file, set `"otelHeadersHelper": "/path/to/generate-otel-headers.sh"` in `.claude/settings.json`. The script must print a flat JSON object of string key/values, for example `{"x-oneuptime-token":"..."}`. It runs at startup and then every `CLAUDE_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS` milliseconds (default `1740000`, 29 minutes). Failures show up in `/status`, in the `--debug` log, and on stderr under `-p`.
+The telemetry variables don't: the `OTEL_EXPORTER_OTLP_*` variables, the `OTEL_LOG_*` content switches, `OTEL_LOGS_EXPORTER` and the beta tracing variables come together from the highest-ranked source that sets any of them, so an endpoint from one source never pairs with credentials from another. If a higher-ranked source sets any of them, a telemetry drop-in contributes nothing.
 
-## Attributing usage to employees and teams
+Server-managed settings need one more step: a non-empty `OTEL_EXPORTER_OTLP_ENDPOINT` is applied only after each developer accepts a security approval dialog in an interactive session, and changes to the exporter settings apply at the next launch. Files and MDM policies have no dialog.
+:::
 
-OneUptime denormalizes the human actor out of the telemetry into queryable columns, so you can rank people and teams by spend without writing attribute filters by hand.
+:::details Rotating the ingestion key without editing every machine
+Instead of a fixed header, set `"otelHeadersHelper": "/path/to/generate-otel-headers.sh"` in the settings. The script prints a flat JSON object of headers, such as `{"x-oneuptime-token":"..."}`. Claude Code runs it at startup and again every `CLAUDE_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS` milliseconds (`1740000` by default, 29 minutes). Failures show in `/status`.
+:::
 
-**The employee key is `user.email`.** Claude Code documents it as "user email address (when authenticated via OAuth)" and "always included when available", and there is no environment variable to suppress it — unlike `session.id`, `app.version`, `app.entrypoint` and the account ids, which all have toggles. So under claude.ai / Console SSO login it arrives by default on both metric datapoints and event records, and OneUptime picks it up with no configuration.
+## Attribute usage to people and teams
 
-**Be aware of the auth caveat.** The wording "when authenticated via OAuth" implies `user.email` is **absent** when the CLI authenticates with a raw `ANTHROPIC_API_KEY`, or through Amazon Bedrock or Google Vertex. Anthropic's documentation does not state this outright, so verify it against your own fleet rather than assuming. If your developers use API-key, Bedrock or Vertex auth and the email is missing, your options are:
+**The employee is `user.email`.** Claude Code sends it when the developer is signed in with a Claude account, and there is no variable to turn it off. OneUptime reads it from every cost and token data point with no setup.
 
-- Fall back to `user.account_uuid` (and `user.account_id`), which are gated by `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` — default `true`. These are stable per account but are opaque UUIDs, so you will need your own mapping from UUID to person.
-- Set the identity yourself in `OTEL_RESOURCE_ATTRIBUTES` on each machine, if your provisioning already knows who is at the keyboard.
-
-**Do not use `user.id` as the employee key on a normal install.** By default it is a random anonymous identifier persisted in `~/.claude.json`: per-install, not per-person, and it resets if the file is cleared. (OneUptime reads `user.id` as an employee id for general OpenTelemetry GenAI traffic, where it is the canonical actor attribute — Claude Code is the exception, which is why `user.email` takes priority.)
-
-**There is one exception: a Claude apps gateway.** When Claude Code is signed in to a self-hosted Claude apps gateway, the CLI stamps exports with the authenticated identity from the gateway session — `user.id` is the IdP subject rather than an anonymous installation identifier, `user.email` is the signed-in email, `user.groups` carries IdP group membership as a comma-separated string, and every export also carries `identity.source=gateway-oidc`. That makes a gateway the supported way to get a real `user.email` onto a Bedrock, Vertex or API-key fleet. Note that on gateway sessions the gateway identity is applied last, so `user.*` and `identity.*` keys you set through `OTEL_RESOURCE_ATTRIBUTES` are ignored.
-
-**Teams and cost centres** come from resource attributes. Set them per machine, per team, or per managed-settings profile:
+**Other sign-ins send no email.** With an API key, or with Claude on Amazon Bedrock, Google Cloud or Microsoft Foundry, there is no Claude account in the session, and Claude Code sends only `user.id` and `session.id`. Set the identity yourself, per machine, in the managed settings or a launch wrapper:
 
 ```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-123,department=engineering"
+export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 ```
 
-**`OTEL_RESOURCE_ATTRIBUTES` values cannot contain spaces.** Anthropic documents this as a hard formatting rule: `team=Platform Engineering` is invalid. Use underscores, camelCase, or percent-encoding (`team=John%27s%20Team`) instead. Quoting does not escape a space — `org.name="My Company"` produces the literal value `"My Company"`, quotes included.
+**`user.id` is not a person.** It is a random id Claude Code writes to `~/.claude.json` on first run: one per install, and a new one if the file is deleted. Without an email, each install shows as its own row. One exception: a session signed in to a Claude apps gateway sends the signed-in identity (`user.id` is the identity provider's subject, `user.email` the email) and ignores `user.*` keys you set yourself.
 
-OneUptime rolls up on `team.id`, `team`, `cost_center` and `department`, and recognizes each of them in both spellings — the bare key, and the `resource.`-prefixed key that OTLP ingest produces for a resource attribute. That matters here because Claude Code gives you both: it copies every `OTEL_RESOURCE_ATTRIBUTES` key onto every metric datapoint and event record by default (`OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES`, default `true`), and the keys are in the OTLP resource block regardless. Setting the toggle to `false` still leaves the team rollup working, through the resource-block spelling. Custom keys can never override the built-ins — on a collision, the built-in value wins.
+**Teams and cost centres** come from `OTEL_RESOURCE_ATTRIBUTES`: OneUptime reads `team.id`, `team`, `cost_center` and `department`. Values cannot contain spaces, and quotes do not escape them: write `team=Platform_Engineering`, or percent-encode, as in `team=Platform%20Engineering`. Claude Code copies these keys onto every data point (`OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES`, on by default), and OneUptime reads them either way. A key you set never overrides one Claude Code sets itself.
 
-`organization.id` is included when available and is a useful tenant key if you ingest more than one Anthropic organization into the same project.
+## What OneUptime shows
 
-## Metrics reference
+On **Products → AI / LLM → Usage**, `claude_code.cost.usage` feeds the **Employee**, **Team** and **Model** tables, and `claude_code.token.usage` the token totals. Two rules decide what you see:
 
-Every metric is a counter. All of them carry the standard attributes below **in addition** to the per-metric ones.
+- **The metrics fill in for spans; they are never added to them.** If the same project gets GenAI spans with cost from your own apps, Claude Code's spend does not show. Send Claude Code to a project of its own. See [Spans come first, metrics fill in](/docs/telemetry/ai-llm-observability#spans-come-first-metrics-fill-in).
+- **A row from metrics carries cost only.** Its calls and token cells show `—`, and the **Provider** and **Application / Service** tables stay empty: the metrics name no provider and belong to no OneUptime service.
 
-| Metric                                | Unit   | Key attributes                                                                                                                                                                                                                                                                                 |
-| ------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude_code.session.count`           | none   | `start_type` = `fresh` \| `resume` \| `continue` \| `agents_view`                                                                                                                                                                                                                              |
-| `claude_code.lines_of_code.count`     | none   | `type` = `added` \| `removed`; `model`                                                                                                                                                                                                                                                         |
-| `claude_code.commit.count`            | none   | standard attributes only                                                                                                                                                                                                                                                                       |
-| `claude_code.pull_request.count`      | none   | standard attributes only                                                                                                                                                                                                                                                                       |
-| `claude_code.cost.usage`              | USD    | `model`; `query_source` = `main` \| `subagent` \| `auxiliary`; `speed` = `fast` (absent otherwise); `effort` = `low` \| `medium` \| `high` \| `xhigh` \| `max`; `agent.name`, `skill.name`, `plugin.name`, `marketplace.name`, `mcp_server.name`, `mcp_tool.name` (absent when not applicable) |
-| `claude_code.token.usage`             | tokens | `type` = `input` \| `output` \| `cacheRead` \| `cacheCreation`; plus `model`, `query_source`, `speed`, `effort` and the same agent/skill/plugin/MCP attribution keys                                                                                                                           |
-| `claude_code.code_edit_tool.decision` | none   | `tool_name` = `Edit` \| `Write` \| `NotebookEdit`; `decision` = `accept` \| `reject`; `source` = `config` \| `hook` \| `user_permanent` \| `user_temporary` \| `user_abort` \| `user_reject`; `language` (for example `TypeScript`, `Python`, `Markdown`, `unknown`)                           |
-| `claude_code.active_time.total`       | s      | `type` = `user` (keyboard interaction) \| `cli` (tool execution and model responses)                                                                                                                                                                                                           |
+Everything else, such as acceptance rate, lines of code, commits and pull requests per developer, or spend by `query_source`, you chart on a [dashboard](/docs/dashboards/index) from the metrics below, and alert on with a [Metrics Monitor](/docs/monitor/metrics-monitor).
 
-Two details that bite:
+## Metrics
 
-- The cache token types are **camelCase**: the literal strings are `cacheRead` and `cacheCreation`, not `cache_read` / `cache_creation`. Do not snake_case-normalize them in a dashboard filter, and do not assume they match the vocabulary Anthropic's Admin API uses.
-- `claude_code.active_time.total` is documented with unit `s`. Whether the value is fractional seconds is not documented — check a sample of your own data before you report it as a precise figure.
-- Only three metrics carry an OpenTelemetry unit string at all: `claude_code.cost.usage` (`USD`), `claude_code.token.usage` (`tokens`) and `claude_code.active_time.total` (`s`). The five count metrics carry none. And when `prometheus` is the only exporter listed in `OTEL_METRICS_EXPORTER`, Claude Code omits even those three units.
+Every metric is a counter, and carries the standard attributes as well as its own.
 
-**Standard attributes on every metric and event:** `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email`, `terminal.type`, plus your `OTEL_RESOURCE_ATTRIBUTES` keys. Several of those are gated — see [Cardinality and cost control](#cardinality-and-cost-control).
+| Metric | Unit | Its own attributes |
+| --- | --- | --- |
+| `claude_code.session.count` | none | `start_type`: `fresh`, `resume`, `continue`, `agents_view` |
+| `claude_code.lines_of_code.count` | none | `type`: `added`, `removed`; `model` |
+| `claude_code.commit.count` | none | none |
+| `claude_code.pull_request.count` | none | none |
+| `claude_code.cost.usage` | USD | `model`; `query_source`: `main`, `subagent`, `auxiliary`; `speed`: `fast`, `normal`; `effort`; `agent.name`, `skill.name`, `plugin.name`, `marketplace.name`, `mcp_server.name`, `mcp_tool.name` |
+| `claude_code.token.usage` | tokens | `type`: `input`, `output`, `cacheRead`, `cacheCreation`; and the same attributes as `claude_code.cost.usage` |
+| `claude_code.code_edit_tool.decision` | none | `tool_name`: `Edit`, `Write`, `NotebookEdit`; `decision`: `accept`, `reject`; `source`; `language` |
+| `claude_code.active_time.total` | s | `type`: `user` (at the keyboard), `cli` (tools and model responses) |
 
-On `claude_code.cost.usage` and `claude_code.token.usage`, third-party and user-defined agent, skill, plugin, MCP server and MCP tool names are **redacted** to generic values like `custom` / `third-party` — unconditionally. `OTEL_LOG_TOOL_DETAILS` is documented as affecting tool events, `user_prompt` command names and trace span attributes, not these metric attribution attributes, so turning it on does not un-redact a cost breakdown. Built-in, bundled, user-defined (for skills) and official-marketplace names appear verbatim; `marketplace.name` is only emitted at all for official-marketplace plugins.
+The standard attributes are `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` and `terminal.type`, plus your `OTEL_RESOURCE_ATTRIBUTES`. Some of them can be turned off: see [Keep metric volume down](#keep-metric-volume-down).
 
-## Events (OTLP logs) reference
+- The cache token types are camelCase: `cacheRead` and `cacheCreation`. OneUptime's token totals count only `input` and `output`.
+- On the cost and token metrics, the names of your own agents and MCP servers, and of third-party plugins and skills, read `custom` or `third-party` unless `OTEL_LOG_TOOL_DETAILS=1` is set (Claude Code 2.1.273 or later).
 
-Events arrive as OTLP log records. Every record also carries `event.name` (the bare name without the `claude_code.` prefix), `event.timestamp` (ISO 8601) and `event.sequence` (a monotonic counter). Records additionally carry `prompt.id`, `message.uuid`, `workspace.host_paths`, `workflow.run_id`, `workflow.name` and `client_request_id` for correlation, and — **in Agent SDK and non-interactive `-p` sessions only** — pick up `trace_id` / `span_id` from an inbound `TRACEPARENT` even when no traces exporter is configured. Interactive sessions deliberately ignore an inbound `TRACEPARENT`, to avoid inheriting ambient values from CI or container environments, so records from a developer's terminal session carry no inherited trace context.
+## Events
 
-| Event                                 | What it records                                                                                                                                                                                                |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude_code.user_prompt`             | `prompt_length`, `command_name`, `command_source`; `prompt` text is redacted unless you opt in                                                                                                                 |
-| `claude_code.assistant_response`      | `response_length`, `model`, `request_id`, `query_source`; `response` text is redacted unless you opt in                                                                                                        |
-| `claude_code.tool_result`             | `tool_name`, `tool_use_id`, `success`, `duration_ms`, `error_type`, `decision_type`, `decision_source`, input/result sizes                                                                                     |
-| `claude_code.api_request`             | `model`, `cost_usd`, `cost_usd_micros`, `duration_ms`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_creation_tokens`, `request_id`, `speed`, `effort`                                          |
-| `claude_code.api_error`               | `model`, `error`, `status_code`, `duration_ms`, `attempt`, `request_id`                                                                                                                                        |
-| `claude_code.api_refusal`             | `model`, `request_id`, `query_source`, `attempt`, `server_fallback_hop`, `has_category`, `has_explanation`                                                                                                     |
-| `claude_code.api_request_body`        | Raw request body — only emitted when you turn raw bodies on                                                                                                                                                    |
-| `claude_code.api_response_body`       | Raw response body — only emitted when you turn raw bodies on                                                                                                                                                   |
-| `claude_code.tool_decision`           | `tool_name`, `tool_use_id`, `decision`, `tool_source`, `source`                                                                                                                                                |
-| `claude_code.permission_mode_changed` | `from_mode`, `to_mode` (`default`, `plan`, `acceptEdits`, `auto`, `bypassPermissions`), `trigger`                                                                                                              |
-| `claude_code.auth`                    | `action` (`login` / `logout`), `success`, `auth_method`, `error_category`, `status_code`                                                                                                                       |
-| `claude_code.mcp_server_connection`   | `status`, `transport_type` (`stdio` / `sse` / `http`), `server_scope`, `duration_ms`, `error_code`, `is_plugin`, `plugin.name`; `server_name` and the full `error` message only when `OTEL_LOG_TOOL_DETAILS=1` |
-| `claude_code.internal_error`          | `error_name`, `error_code`                                                                                                                                                                                     |
-| `claude_code.plugin_installed`        | `plugin.name`, `plugin.version`, `marketplace.name`, `install.trigger`                                                                                                                                         |
-| `claude_code.plugin_loaded`           | `plugin.name`, `marketplace.name`, `marketplace.is_official`, `plugin_id_hash` — `plugin.version` is on `plugin_installed`, not here                                                                           |
+Events arrive as OTLP log records, each with `event.name`, `event.timestamp` and `event.sequence`. The ones you will use most:
 
-`claude_code.api_request` carries both `cost_usd` and `cost_usd_micros`. Anthropic documents `cost_usd` only as "estimated cost in USD" without typing it, and types `cost_usd_micros` explicitly as an integer in millionths of a USD. Use the integer when you need per-request cost you can add up without rounding drift.
+| Event | What it records |
+| --- | --- |
+| `claude_code.user_prompt` | A prompt: its length and command; the text only if you turn it on |
+| `claude_code.api_request` | A model request: `model`, `cost_usd`, `cost_usd_micros`, `duration_ms`, `input_tokens`, `output_tokens`, cache tokens |
+| `claude_code.api_error` | A request that failed after its retries: `model`, `error`, `status_code`, `attempt` |
+| `claude_code.tool_result` | A tool run: `tool_name`, `success`, `duration_ms`, and the decision that allowed it |
+| `claude_code.tool_decision` | Whether a tool was allowed, and by what |
+| `claude_code.mcp_server_connection` | An MCP server connecting or failing |
 
-## Cardinality and cost control
+Claude Code sends many more, such as refusals, permission-mode changes and plugin, hook and skill events: Anthropic's [monitoring reference](https://code.claude.com/docs/en/monitoring-usage) lists them all. In `cost_usd_micros`, cost is a whole number of millionths of a USD, which adds up without rounding drift.
 
-Claude Code puts `session.id` on every metric datapoint by default, and session ids are unbounded. On a fleet of any size that single attribute is the biggest driver of metric storage cost — a hundred developers running ten sessions a day is a thousand new series per day, per metric, forever.
+## Keep metric volume down
 
-**Turn it off for fleet-wide rollouts.** You lose nothing for cost and usage reporting. The variable is named and documented as a _metrics_ cardinality control, but Anthropic's attribute table covers metrics and events together and does not say outright whether event records keep `session.id` when it is off — check a sample of your own events before you rely on per-session correlation in the event stream.
+Claude Code puts `session.id` on every data point by default, and every session is a new series. Across a fleet that one attribute drives metric volume, and cost reporting doesn't need it:
 
 ```bash
 export OTEL_METRICS_INCLUDE_SESSION_ID=false
 ```
 
-The full set of identity toggles, with their defaults:
+| Variable | Default | Adds |
+| --- | --- | --- |
+| `OTEL_METRICS_INCLUDE_SESSION_ID` | `true` | `session.id`, a new value every session |
+| `OTEL_METRICS_INCLUDE_VERSION` | `false` | `app.version` |
+| `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` | `true` | `user.account_uuid` and `user.account_id` |
+| `OTEL_METRICS_INCLUDE_ENTRYPOINT` | `false` | `app.entrypoint` |
+| `OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES` | `true` | Your `OTEL_RESOURCE_ATTRIBUTES` keys |
+| `OTEL_METRICS_INCLUDE_REPOSITORY` | `false` | The repository's `vcs.*` attributes |
 
-| Variable                                   | Default | Effect                                                                        |
-| ------------------------------------------ | ------- | ----------------------------------------------------------------------------- |
-| `OTEL_METRICS_INCLUDE_SESSION_ID`          | `true`  | Adds `session.id` — unbounded cardinality                                     |
-| `OTEL_METRICS_INCLUDE_VERSION`             | `false` | Adds `app.version`                                                            |
-| `OTEL_METRICS_INCLUDE_ACCOUNT_UUID`        | `true`  | Adds both `user.account_uuid` and `user.account_id`                           |
-| `OTEL_METRICS_INCLUDE_ENTRYPOINT`          | `false` | Adds `app.entrypoint` (`cli`, `sdk-cli`, `sdk-ts`, `sdk-py`, `claude-vscode`) |
-| `OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES` | `true`  | Copies `OTEL_RESOURCE_ATTRIBUTES` keys onto every datapoint                   |
+`user.email`, `user.id`, `organization.id` and `terminal.type` have no switch. Events are the busier signal: each active developer flushes every 5 seconds (`OTEL_LOGS_EXPORT_INTERVAL`, in milliseconds). Raise it to send fewer, larger batches, or set `OTEL_LOGS_EXPORTER=none` if you only need cost and usage, which all live in the metrics.
 
-There is no toggle for `user.email`, `user.id`, `organization.id` or `terminal.type` — they are always included when available.
+## Prompt and tool content are off by default
 
-**Export intervals** default to 60000 ms for metrics (`OTEL_METRIC_EXPORT_INTERVAL`), 5000 ms for logs (`OTEL_LOGS_EXPORT_INTERVAL`) and 5000 ms for traces (`OTEL_TRACES_EXPORT_INTERVAL`). Logs are the noisy signal: a 5-second flush per active developer seat is what you should size ingest for. Raising `OTEL_LOGS_EXPORT_INTERVAL` batches more per request and reduces request volume, at the cost of a longer delay before events show up.
+Claude Code does not export prompts, answers, tool arguments or tool output unless you turn each one on:
 
-If you only want cost and usage reporting and not the event stream, set `OTEL_LOGS_EXPORTER=none` and keep metrics on. Cost, tokens, sessions, commits, PRs, lines of code, tool decisions and active time all live in metrics.
+| Variable | Default | What `1` turns on |
+| --- | --- | --- |
+| `OTEL_LOG_USER_PROMPTS` | off | Prompt text |
+| `OTEL_LOG_ASSISTANT_RESPONSES` | off | Answer text; when unset, it follows `OTEL_LOG_USER_PROMPTS` |
+| `OTEL_LOG_TOOL_DETAILS` | off | Tool parameters, Bash commands, and the real names of agents, plugins, skills and MCP servers |
+| `OTEL_LOG_TOOL_CONTENT` | off | Tool input and output, on trace spans only |
+| `OTEL_LOG_RAW_API_BODIES` | off | Full API request and response bodies (`file:<dir>` writes them to disk instead) |
 
-## Privacy: prompt and tool content are off by default
+We recommend leaving them off: the metrics and the redacted events already answer who spent what, on which model, with what acceptance rate. Content capture moves prompts, source code and tool output into a telemetry store with different access controls than your repositories. If you turn it on for an investigation, `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH` (`61440` by default) limits how much travels per record, and the traces' **Scrub Rules** and **Drop Filters** under **Traces → Settings** mask or drop it before it is stored.
 
-Claude Code does **not** export prompt text, assistant responses, tool arguments or tool output unless you explicitly turn each one on. Everything in this table is off by default:
+## Metrics arrive as deltas
 
-| Variable                       | Default | What `1` turns on                                                                                                            |
-| ------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `OTEL_LOG_USER_PROMPTS`        | off     | Raw prompt text on `claude_code.user_prompt`                                                                                 |
-| `OTEL_LOG_ASSISTANT_RESPONSES` | off     | Raw response text; falls back to `OTEL_LOG_USER_PROMPTS` when unset, and `0` keeps it redacted                               |
-| `OTEL_LOG_TOOL_DETAILS`        | off     | Tool parameters and arguments, and un-redacts third-party plugin/skill/MCP names                                             |
-| `OTEL_LOG_TOOL_CONTENT`        | off     | Tool input and output content in span events — requires the traces beta, so it does nothing on a metrics-and-logs-only setup |
-| `OTEL_LOG_RAW_API_BODIES`      | off     | Full request/response bodies inline, or `file:<dir>` to write them to disk                                                   |
-
-**OneUptime does not recommend turning these on.** The metrics and the redacted events already answer the questions this page is about — who spent what, on which model, with what acceptance rate. Turning on content capture moves your developers' prompts, your source code and your tool output into a telemetry store, where they are subject to a different set of access controls than your repository. `CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH` (default `61440`, 60 KB in UTF-16 code units) caps how much of it travels per record, which limits volume but does not limit sensitivity.
-
-If you do enable content capture for a specific investigation, apply OneUptime's telemetry **scrub rules** and **drop filters** under **Traces → Settings** to redact or drop attributes before they are stored, and turn it back off when the investigation ends.
-
-## Metrics arrive as delta sums
-
-Claude Code sets `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` to `delta` by default, not `cumulative`. Each datapoint is the increment since the previous export, not a running total.
-
-This matters when you build charts and monitors: **sum the datapoints over the window**. Do not apply a rate-of-change or counter-reset function as you would to a cumulative monotonic counter — the numbers come out wrong rather than obviously broken, which is the worst kind of wrong.
-
-If your organization has standardized on cumulative temporality across every exporter, you can pin it:
+Claude Code sends delta metrics by default: each data point is the increase since the last export, not a running total. When you chart or alert on them, add the data points up over the window, and don't apply a rate or counter-reset function as you would to a cumulative counter: the numbers come out wrong without looking broken.
 
 ```bash
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Delta is the default and most fleets should leave it alone. Just be consistent — do not mix the two across the same fleet, or your rollups will double-count.
+Pin `cumulative` only if every exporter in your organization uses it, and don't mix the two across a fleet.
 
-## What OneUptime shows you
+## Traces (beta)
 
-Open **AI / LLM** in the navigation bar (under Observability). The **Usage** tab ranks employees, teams, models, providers and services by spend, and Claude Code's `claude_code.cost.usage` feeds the employee, team and model breakdowns directly — no mapping step, no separate coding-agent section. `claude_code.token.usage` feeds the Usage tab's token totals the same way.
-
-Read the next two paragraphs before you build a report on this, because both are load-bearing.
-
-**Metrics are a fallback for spans, never an addition.** GenAI spans are authoritative, and the metric stream is consulted only when the span stream reported nothing — the two are never summed, because an emitter producing both signals would otherwise have every dollar counted twice. So in a project where your own instrumented applications already produce GenAI spans with cost on them, **Claude Code's metric-sourced spend does not appear**. If you want the fleet's spend visible on its own, export it into its own OneUptime project with its own ingestion key, so the span stream there is empty and the fallback engages. (Turning on the [traces beta](#optional-traces-beta) changes the picture too: those spans are real GenAI spans, and once they exist they are what the page reads.)
-
-**A metric-sourced row carries cost only.** In the Usage table, the Calls and token columns render as `—` for metric-sourced rows — the spend counter has no per-call detail, and an em dash is honest where a `0` would claim the developer made no calls. Figures sourced from metrics are labelled **from GenAI metrics** on screen. The Provider and Application / Service breakdowns have no metric fallback at all: `claude_code.*` counters carry no `gen_ai.system` and are not attached to a OneUptime telemetry service.
-
-From there:
-
-- Sort by employee to see per-developer spend, and by team or cost centre for chargeback, using the `team.id` / `cost_center` resource attributes you set during rollout. Both breakdowns work off metrics; the employee grouping matches `user.email` first and falls back through `user.account_uuid` / `user.account_id`, so an API-key-auth fleet with no email still lands on its own rows rather than collapsing into one Unattributed bucket.
-- Break spend down by model — the `model` attribute on `claude_code.cost.usage` is read for the Model breakdown. `query_source` (main agent versus subagents) is not one of the Usage tab's dimensions; chart it on a dashboard instead.
-- Build **dashboards** on any of the eight metrics — acceptance rate, lines of code, commits and PRs per developer, active time.
-- Create **metric monitors** to alert on a spend or token threshold. See [Metrics Monitor](/docs/monitor/metrics-monitor).
-
-For the wider picture — LLM calls from your own applications, prompts and completions, daily cost budgets — see [AI / LLM Observability](/docs/telemetry/ai-llm-observability).
-
-## Optional: traces beta
-
-Everything above is metrics and logs, which is the supported path and the one to roll out. Claude Code also has a **beta** traces exporter that produces real waterfalls for an agent run. It is optional, it is marked beta by Anthropic, and it can change.
+Claude Code also has a beta traces exporter, which draws each interaction as a span tree: `claude_code.interaction`, with `claude_code.llm_request` and `claude_code.tool` beneath it.
 
 ```bash
 export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-(`ENABLE_ENHANCED_TELEMETRY_BETA` is an accepted alias for the first variable.)
+> [!WARNING]
+> Keep the traces beta out of the project you use for spend. Its model spans carry `gen_ai.system` and `gen_ai.request.model`, so OneUptime lists them under **Calls**, but their tokens are in `input_tokens` and `output_tokens`, not the `gen_ai.usage.*` keys, so they arrive with no tokens and no cost. Once they exist, they are the rows the **Employee**, **Team** and **Model** tables show, at $0, in place of the metrics' spend.
 
-Span names are `claude_code.interaction` at the top, with `claude_code.llm_request` and `claude_code.tool` beneath it, and `claude_code.tool.blocked_on_user` / `claude_code.tool.execution` under the tool span. `claude_code.hook` is **not** emitted by the two variables above: it needs _detailed_ beta tracing (`ENABLE_BETA_TRACING_DETAILED=1` plus `BETA_TRACING_ENDPOINT`), and in interactive CLI sessions your organization must be allowlisted for it — Agent SDK and non-interactive `-p` sessions are not gated. The LLM spans carry GenAI semantic convention keys — `gen_ai.system` (always `anthropic`), `gen_ai.request.model`, `gen_ai.response.id`, `gen_ai.response.finish_reasons` — alongside `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_creation_tokens`, `ttft_ms`, `duration_ms`, `stop_reason` and `llm_request.context`. (`gen_ai.tool.call.id` sits on the `claude_code.tool` and `claude_code.tool.execution` spans, mirroring `tool_use_id` — not on the LLM span.) Because they use the standard GenAI keys, OneUptime classifies them as LLM calls the same way it classifies spans from any other [GenAI instrumentation](/docs/telemetry/ai-llm-observability).
-
-By default the W3C `traceparent` header is sent on model and HTTP MCP requests only when `ANTHROPIC_BASE_URL` is unset or points at the Anthropic API, since some proxies reject unrecognized headers. `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1` forwards it through a custom `ANTHROPIC_BASE_URL` proxy. Bash and PowerShell subprocesses inherit `TRACEPARENT` automatically, so a build script that is itself instrumented joins the same trace — but that inheritance is governed by the same switch, so behind a custom proxy the subprocesses only get `TRACEPARENT` once you set `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1` too.
+In Agent SDK and non-interactive `-p` sessions, Claude Code picks up an incoming `TRACEPARENT`, so its spans join the caller's trace; interactive sessions ignore it. It sends the `traceparent` header to the model only when `ANTHROPIC_BASE_URL` is unset or the Anthropic API; behind your own proxy, set `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`.
 
 ## Troubleshooting
 
-**Nothing arrives at all.** Confirm the master switch: `CLAUDE_CODE_ENABLE_TELEMETRY=1`. Without it, none of the other variables do anything.
+:::details Nothing arrives at all
+Check `CLAUDE_CODE_ENABLE_TELEMETRY=1` first: without it, no other variable does anything. Then add `console` to the exporters (`OTEL_METRICS_EXPORTER=otlp,console`) and watch the terminal: if data points print, Claude Code is fine and the problem is the endpoint, the key or the network.
+:::
 
-**Confirm Claude Code is producing data before you blame the network.** Add `console` to the exporter list and watch stdout:
+:::details The managed settings file seems to be ignored
+Run `/status` and read the `Setting sources` line. No managed source listed means the file is at the wrong path, is not valid JSON, or cannot be read by the developer's account. Another source listed means it won, and yours was not used. Settings from server-managed settings also wait for the developer to accept the approval dialog in an interactive session.
+:::
 
-```bash
-export OTEL_METRICS_EXPORTER=otlp,console
-export OTEL_LOGS_EXPORTER=otlp,console
-```
+:::details Spend shows as Unattributed, or as one row per install
+Those developers are not signed in with a Claude account: they use an API key, Amazon Bedrock, Google Cloud or Microsoft Foundry. Set `user.email` in `OTEL_RESOURCE_ATTRIBUTES` for them, as [Attribute usage to people and teams](#attribute-usage-to-people-and-teams) shows.
+:::
 
-If datapoints print, the instrumentation is fine and the problem is the endpoint, the token, or something between you and OneUptime.
+:::details The team or cost centre is missing
+Check that `OTEL_RESOURCE_ATTRIBUTES` is set on the machine, holds no spaces, and doesn't reuse a key Claude Code sets itself: Claude Code's value wins.
+:::
 
-**Check what settings Claude Code actually loaded.** Run `/status`. The `Setting sources` line tells you which managed source was picked up — `Enterprise managed settings (file)`, `(drop-ins)`, `(file + drop-ins)`, `(remote)`, `(plist)`, `(HKLM)` or `(HKCU)`. If nothing is listed, the file is at the wrong path, is not valid JSON, or is not readable by the developer's user account. If a different source is named, that source won outright and yours was ignored.
+:::details The numbers look too small or too large
+Claude Code sends deltas: add the data points up over the window, as [Metrics arrive as deltas](#metrics-arrive-as-deltas) explains. And wait a full minute: metrics are sent every 60 seconds.
+:::
 
-**Managed settings look right but the env block is ignored.** If the change came from **server-managed** settings rather than a file, the developer has to accept a security-approval dialog in an interactive session first — a non-empty `OTEL_EXPORTER_OTLP_ENDPOINT` always triggers it. Ask them to open Claude Code interactively once. If the settings came from a file, check that no higher-priority managed source (server-managed, MDM/OS policy) is winning outright — see [Fleet rollout with managed settings](#fleet-rollout-with-managed-settings).
+:::details The key is rejected
+OneUptime refuses a wrong `x-oneuptime-token`. Copy the key again from **Project Settings → Telemetry & APM → Ingestion Keys**, and check that the header reads `x-oneuptime-token=YOUR_INGESTION_TOKEN` with no spaces around the `=`.
+:::
 
-**Data is there but shows as unattributed.** `user.email` is only documented as present under OAuth authentication. Check whether those developers authenticate with `ANTHROPIC_API_KEY`, Bedrock or Vertex — see [Attributing usage to employees and teams](#attributing-usage-to-employees-and-teams).
+## Next steps
 
-**Team or cost centre is missing.** Confirm `OTEL_RESOURCE_ATTRIBUTES` is set on the machine, and that `OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES` has not been set to `false` — at `false`, your keys stay in the OTLP resource block and are not copied onto the datapoints. Also check for a collision with a built-in key: built-ins always win.
-
-**Metrics land but the numbers look too small or too large.** Check that your chart sums the datapoints rather than treating them as a cumulative counter — see [Metrics arrive as delta sums](#metrics-arrive-as-delta-sums).
-
-**Wait a full interval before you conclude anything.** Metrics flush every 60 seconds by default. A test that runs for 10 seconds and then checks OneUptime will find nothing.
-
-**Endpoint spelling.** `OTEL_EXPORTER_OTLP_ENDPOINT` takes the base URL (`https://oneuptime.com/otlp`) and Claude Code appends `/v1/metrics` and `/v1/logs` itself. The per-signal variables (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) want the full path instead, and they override the general one.
-
-**Token rejected.** A wrong `x-oneuptime-token` is rejected at ingest. Re-copy it from **Project Settings → Telemetry & APM → Ingestion Keys**, and check the header string is `x-oneuptime-token=YOUR_INGESTION_TOKEN` with no spaces around the `=`.
+:::cards
+- [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): How spend is attributed across every coding assistant.
+- [AI / LLM Observability](/docs/telemetry/ai-llm-observability): Conversations, alerts, cost and budgets for your own AI calls.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on spend or tokens per developer.
+:::
