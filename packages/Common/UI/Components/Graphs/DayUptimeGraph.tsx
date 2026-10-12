@@ -1,5 +1,6 @@
 import Tooltip from "../Tooltip/Tooltip";
 import UptimeBarTooltip, { StatusDuration } from "./UptimeBarTooltip";
+import "./DayUptimeGraph.css";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -10,6 +11,7 @@ import DayUptimeGraphUtil, {
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
+import { getBarColorForUptimePercent } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -74,6 +76,14 @@ export interface DayReading {
  * to a colour-blind reader.
  */
 export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
+
+/*
+ * The hatch, drawn over that grey by DayUptimeGraph.css. The grey alone is as
+ * light as a green bar, and to someone with red-green colour blindness that
+ * green is grey too (Utils/ColorVision) - so a day nobody measured looked
+ * like a good one to them. A legend's no-data swatch takes the same class.
+ */
+export const NO_DATA_BAR_CLASS_NAME: string = "uptime-bar-no-data";
 
 export interface ComponentProps {
   startDate: Date;
@@ -507,12 +517,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      * outranks operator rules on purpose.
      */
     if (hasDataForTheDay) {
-      for (const rules of props.barColorRules || []) {
-        if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
-          color = rules.barColor;
-          break;
-        }
-      }
+      color =
+        getBarColorForUptimePercent(
+          props.barColorRules || [],
+          uptimePercentForTheDay,
+        ) || color;
     }
 
     if (todaysEvents.length >= 1) {
@@ -647,7 +656,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
            */
           className={`${className} relative block p-0 border-0 appearance-none focus:outline-none focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600${
             isClickable ? " cursor-pointer hover:opacity-80" : ""
-          }`}
+          }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}`}
+          data-has-data={hasDataForTheDay ? "true" : "false"}
           style={{
             backgroundColor: color.toString(),
           }}

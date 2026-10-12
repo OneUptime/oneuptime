@@ -53,6 +53,16 @@ export const Green600: Color = Color.fromString("#16a34a");
 export const Teal600: Color = Color.fromString("#0d9488");
 export const Sky600: Color = Color.fromString("#0284c7");
 
+/*
+ * Lighter and darker tailwindcss shades, for a scale that has to hold its
+ * steps apart by lightness as well as by hue: the uptime history's
+ * recommended bar colors (Utils/StatusPage/HistoryChartBarColors), which
+ * people with red-green color blindness tell apart by lightness alone.
+ */
+export const Yellow300: Color = Color.fromString("#fde047");
+export const Orange700: Color = Color.fromString("#c2410c");
+export const Red900: Color = Color.fromString("#7f1d1d");
+
 export const BrightColors: Color[] = [
   Black,
   Indigo500,
