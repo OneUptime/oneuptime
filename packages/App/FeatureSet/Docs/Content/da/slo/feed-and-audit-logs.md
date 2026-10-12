@@ -67,7 +67,7 @@ To ting er udeladt:
 
 ### Slå auditlogs til
 
-Auditlogs er en Enterprise-funktion: de kræver **Enterprise**-abonnementet på OneUptime Cloud eller Enterprise Edition på en selvhostet installation. På andre abonnementer forklarer SLO'ets side **Auditlogs**, hvordan du får den. På en selvhostet installation holder auditloggen op med at registrere uden en gyldig licens (efter prøveperioden på 14 dage, eller 30 dage efter at en licens udløber), og den fortsætter, så snart en licens aktiveres (se [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Siderne **Auditlogs** siger det, når der ikke registreres.
+Auditlogs er en Enterprise-funktion: de kræver **Enterprise**-abonnementet på OneUptime Cloud eller Enterprise Edition på en selvhostet installation. På andre abonnementer forklarer SLO'ets side **Auditlogs**, hvordan du får den. På en selvhostet installation holder auditloggen op med at registrere uden en gyldig licens (efter prøveperioden på 14 dage, eller 30 dage efter at en licens udløber), og den fortsætter, så snart en licens aktiveres (se [When a license expires or is missing](/docs/self-hosted/enterprise#når-en-licens-udløber-eller-mangler)). Siderne **Auditlogs** siger det, når der ikke registreres.
 
 Auditlogs er også slået fra som standard i hvert projekt. Sådan slår du dem til:
 

@@ -67,7 +67,7 @@ SLO 的 **稽核日誌** 頁面會列出對以下內容所做的變更：
 
 ### 開啟稽核日誌
 
-稽核日誌是 Enterprise 功能：需要 OneUptime Cloud 上的 **Enterprise** 方案，或自行託管安裝上的 Enterprise Edition。在其他方案上，SLO 的 **稽核日誌** 頁面會說明如何取得。在自行託管的安裝上，沒有有效授權時稽核日誌會停止記錄（14 天試用期結束後，或授權過期 30 天後），一旦啟用授權就會恢復（請參閱 [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)）。**稽核日誌** 頁面會在未記錄時予以提示。
+稽核日誌是 Enterprise 功能：需要 OneUptime Cloud 上的 **Enterprise** 方案，或自行託管安裝上的 Enterprise Edition。在其他方案上，SLO 的 **稽核日誌** 頁面會說明如何取得。在自行託管的安裝上，沒有有效授權時稽核日誌會停止記錄（14 天試用期結束後，或授權過期 30 天後），一旦啟用授權就會恢復（請參閱 [When a license expires or is missing](/docs/self-hosted/enterprise#授權到期或缺少時)）。**稽核日誌** 頁面會在未記錄時予以提示。
 
 稽核日誌在每個專案中預設也是關閉的。要開啟它們：
 

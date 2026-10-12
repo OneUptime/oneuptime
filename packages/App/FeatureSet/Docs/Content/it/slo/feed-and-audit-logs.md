@@ -67,7 +67,7 @@ Restano fuori due cose:
 
 ### Attivare i registri di audit
 
-I registri di audit sono una funzione Enterprise: richiedono il piano **Enterprise** su OneUptime Cloud, o la Enterprise Edition su un'installazione self-hosted. Negli altri piani, la pagina **Registri di audit** dello SLO spiega come ottenerla. Su un'installazione self-hosted, la registrazione di audit smette di registrare senza una licenza valida (dopo la prova di 14 giorni, o 30 giorni dopo la scadenza di una licenza), e riprende appena una licenza viene attivata (vedi [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Le pagine **Registri di audit** indicano quando non sta registrando.
+I registri di audit sono una funzione Enterprise: richiedono il piano **Enterprise** su OneUptime Cloud, o la Enterprise Edition su un'installazione self-hosted. Negli altri piani, la pagina **Registri di audit** dello SLO spiega come ottenerla. Su un'installazione self-hosted, la registrazione di audit smette di registrare senza una licenza valida (dopo la prova di 14 giorni, o 30 giorni dopo la scadenza di una licenza), e riprende appena una licenza viene attivata (vedi [When a license expires or is missing](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca)). Le pagine **Registri di audit** indicano quando non sta registrando.
 
 I registri di audit sono anche disattivati per impostazione predefinita in ogni progetto. Per attivarli:
 

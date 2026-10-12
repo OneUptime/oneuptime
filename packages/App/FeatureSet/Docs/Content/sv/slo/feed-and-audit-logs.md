@@ -67,7 +67,7 @@ Två saker utelämnas:
 
 ### Slå på granskningsloggar
 
-Granskningsloggar är en Enterprise-funktion: de kräver **Enterprise**-abonnemanget på OneUptime Cloud, eller Enterprise Edition på en egenhostad installation. På andra abonnemang förklarar SLO:ets sida **Granskningsloggar** hur du skaffar den. På en egenhostad installation slutar granskningsloggen registrera utan en giltig licens (efter provperioden på 14 dagar, eller 30 dagar efter att en licens löper ut), och den fortsätter så snart en licens aktiveras (se [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Sidorna **Granskningsloggar** talar om när den inte registrerar.
+Granskningsloggar är en Enterprise-funktion: de kräver **Enterprise**-abonnemanget på OneUptime Cloud, eller Enterprise Edition på en egenhostad installation. På andra abonnemang förklarar SLO:ets sida **Granskningsloggar** hur du skaffar den. På en egenhostad installation slutar granskningsloggen registrera utan en giltig licens (efter provperioden på 14 dagar, eller 30 dagar efter att en licens löper ut), och den fortsätter så snart en licens aktiveras (se [When a license expires or is missing](/docs/self-hosted/enterprise#när-en-licens-löper-ut-eller-saknas)). Sidorna **Granskningsloggar** talar om när den inte registrerar.
 
 Granskningsloggar är också avstängda som standard i varje projekt. Så här slår du på dem:
 

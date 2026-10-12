@@ -67,7 +67,7 @@ Twee dingen blijven erbuiten:
 
 ### Auditlogboeken aanzetten
 
-Auditlogboeken zijn een Enterprise-functie: ze vereisen het **Enterprise**-abonnement op OneUptime Cloud, of de Enterprise Edition op een zelfgehoste installatie. Bij andere abonnementen legt de pagina **Auditlogboeken** van de SLO uit hoe u die krijgt. Op een zelfgehoste installatie stopt het auditlogboek met vastleggen zonder geldige licentie (na de proefperiode van 14 dagen, of 30 dagen nadat een licentie verloopt), en gaat het verder zodra een licentie wordt geactiveerd (zie [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). De pagina's **Auditlogboeken** zeggen het als er niet wordt vastgelegd.
+Auditlogboeken zijn een Enterprise-functie: ze vereisen het **Enterprise**-abonnement op OneUptime Cloud, of de Enterprise Edition op een zelfgehoste installatie. Bij andere abonnementen legt de pagina **Auditlogboeken** van de SLO uit hoe u die krijgt. Op een zelfgehoste installatie stopt het auditlogboek met vastleggen zonder geldige licentie (na de proefperiode van 14 dagen, of 30 dagen nadat een licentie verloopt), en gaat het verder zodra een licentie wordt geactiveerd (zie [When a license expires or is missing](/docs/self-hosted/enterprise#als-een-licentie-verloopt-of-ontbreekt)). De pagina's **Auditlogboeken** zeggen het als er niet wordt vastgelegd.
 
 Auditlogboeken staan ook in elk project standaard uit. Om ze aan te zetten:
 
