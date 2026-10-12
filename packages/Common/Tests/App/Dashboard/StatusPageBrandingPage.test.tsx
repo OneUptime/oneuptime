@@ -586,6 +586,7 @@ describe("the cards under Advanced", () => {
       title?: string;
       type?: FieldType;
       getElement?: (rule: StatusPageHistoryChartBarColorRule) => ReactElement;
+      getExportValue?: (rule: StatusPageHistoryChartBarColorRule) => string;
     };
 
     const columns: Array<RuleColumn> = propsOf(
@@ -624,8 +625,12 @@ describe("the cards under Advanced", () => {
       rule.barColor = new Color("#fde047");
 
       const { container } = render(columns[0]!.getElement!(rule));
+      const shown: string = container.textContent || "";
 
-      return container.textContent || "";
+      // Export CSV writes what the table shows.
+      expect(columns[0]!.getExportValue!(rule)).toBe(shown);
+
+      return shown;
     };
 
     expect([100, 99.999, 100 * (1 - 1 / 1440), 99.65, 0].map(cell)).toEqual([

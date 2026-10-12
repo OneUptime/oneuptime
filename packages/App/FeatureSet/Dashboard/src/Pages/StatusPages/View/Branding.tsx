@@ -773,12 +773,18 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               /*
                * As the preview below names the rule: 99.9306%, not the
                * 99.93055555555556 a Terraform configuration's
-               * 100 * (1 - 1 / 1440) is kept as. Edit shows every digit.
+               * 100 * (1 - 1 / 1440) is kept as. Edit shows every digit,
+               * and Export CSV writes what the table shows.
                */
               getElement: (
                 rule: StatusPageHistoryChartBarColorRule,
               ): ReactElement => {
                 return <span>{formatRuleUptimePercent(rule)}</span>;
+              },
+              getExportValue: (
+                rule: StatusPageHistoryChartBarColorRule,
+              ): string => {
+                return formatRuleUptimePercent(rule);
               },
             },
             {

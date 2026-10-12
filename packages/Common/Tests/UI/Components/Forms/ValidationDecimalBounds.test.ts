@@ -33,6 +33,7 @@ function errorFor(value: number | string): string | undefined {
   const errors: Dictionary<string> = Validation.validate<RuleEntity>({
     formFields: [UPTIME_FIELD],
     values: { uptimePercentGreaterThanOrEqualTo: value },
+    onValidate: undefined,
   });
 
   return errors["uptimePercentGreaterThanOrEqualTo"];
