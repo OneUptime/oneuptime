@@ -144,15 +144,16 @@ const SOURCES: Record<string, string> = {
   llmSpan: "packages/Common/Server/Utils/Telemetry/LlmSpan.ts",
   budgetEvaluator:
     "packages/Common/Server/Utils/Telemetry/LlmCostBudgetEvaluator.ts",
-  budgetJob: "packages/App/FeatureSet/Workers/Jobs/Llm/EvaluateLlmCostBudgets.ts",
-  priceLoader: "packages/App/FeatureSet/Telemetry/Services/LlmModelPriceService.ts",
+  budgetJob:
+    "packages/App/FeatureSet/Workers/Jobs/Llm/EvaluateLlmCostBudgets.ts",
+  priceLoader:
+    "packages/App/FeatureSet/Telemetry/Services/LlmModelPriceService.ts",
   priceCatalog: "packages/Common/Types/Telemetry/LlmCostCatalog.ts",
   telemetryApi: "packages/Common/Server/API/TelemetryAPI.ts",
   projectService: "packages/Common/Server/Services/ProjectService.ts",
   homeAiPage: "packages/Home/Views/ai-observability.ejs",
 };
 
-const TABLE_ROW: RegExp = /^\|/;
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
@@ -176,20 +177,22 @@ const METRIC_FALLBACK_DIMENSION: RegExp =
 // A breakdown of the Usage tab that says why the metrics cannot fill it.
 const NO_METRIC_SIGNAL_NOTE: RegExp = /noMetricSignalNote: translationKey\(/g;
 // Where a Dashboard path on these pages starts: a menu the product has.
-const PATH_START: RegExp = /^(?:Products|Project Settings|Traces|Team Settings)$/;
+const PATH_START: RegExp =
+  /^(?:Products|Project Settings|Traces|Team Settings)$/;
 
 function source(name: string): string {
-  return fs.readFileSync(
-    path.join(REPO_DIR, SOURCES[name] as string),
-    "utf8",
-  );
+  return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
 }
 
 function englishPage(page: string): string {
   return readPage("en", page);
 }
 
-function allMatches(text: string, pattern: RegExp, group: number): Array<string> {
+function allMatches(
+  text: string,
+  pattern: RegExp,
+  group: number,
+): Array<string> {
   return Array.from(text.matchAll(pattern)).map(
     (match: RegExpMatchArray): string => {
       return match[group] as string;
@@ -256,10 +259,6 @@ function numbersIn(text: string): Array<number> {
   return allMatches(text, NUMBER, 0).map((value: string): number => {
     return Number(value);
   });
-}
-
-function template(id: LlmMonitorTemplateId): LlmMonitorTemplate {
-  return LlmMonitorTemplates.get(id) as LlmMonitorTemplate;
 }
 
 function filterValue(
@@ -517,9 +516,9 @@ describe("the AI / LLM Observability page", () => {
     expect(
       LlmAnswerIssueUtil.getIssues({ ...base, finishReasons: ["error"] }),
     ).toContain(LlmAnswerIssue.Failed);
-    expect(LlmAnswerIssueUtil.getIssues({ ...base, outputTokens: 0 })).toEqual(
-      [LlmAnswerIssue.Empty],
-    );
+    expect(LlmAnswerIssueUtil.getIssues({ ...base, outputTokens: 0 })).toEqual([
+      LlmAnswerIssue.Empty,
+    ]);
     expect(
       LlmAnswerIssueUtil.getIssues({
         ...base,
@@ -576,7 +575,9 @@ describe("the AI / LLM Observability page", () => {
     expect(step).toContain('translator.translateText("Details")');
     expect(step).toContain('translator.translateText("Stopped because")');
     expect(step).toContain('translator.translateText("Evaluations")');
-    expect(step).toContain('translator.translateText("Open this call in Traces")');
+    expect(step).toContain(
+      'translator.translateText("Open this call in Traces")',
+    );
     expect(page).toContain(
       "**Details** under an answer shows why it stopped, its evaluations, and a link to the call in Traces.",
     );
@@ -740,7 +741,9 @@ describe("the AI / LLM Observability page", () => {
     expect(source("monitorData")).toContain(
       "unhealthyMonitorStatusId: degraded?.id || offline?.id || null,",
     );
-    expect(source("projectService")).toContain('degradedStatus.name = "Degraded";');
+    expect(source("projectService")).toContain(
+      'degradedStatus.name = "Degraded";',
+    );
     expect(page).toContain(
       "A ready-made alert raises an alert that resolves itself, and shows the monitor as **Degraded** while answers are bad. Its incident is filled in but switched off: switch it on to page someone instead.",
     );
@@ -788,10 +791,12 @@ describe("the AI / LLM Observability page", () => {
     expect(rowNamed(rows, "Cost (USD)")[2]).toBe("The spans' cost total is 0");
 
     // A breakdown falls back only when it found no span rows, and only three can.
-    expect(usage).toContain("if (metricAttributeKeys && allRows.length === 0) {");
-    expect(
-      rowNamed(rows, "**Employee**, **Team**, **Model** tables")[2],
-    ).toBe("That table found no span rows");
+    expect(usage).toContain(
+      "if (metricAttributeKeys && allRows.length === 0) {",
+    );
+    expect(rowNamed(rows, "**Employee**, **Team**, **Model** tables")[2]).toBe(
+      "That table found no span rows",
+    );
     expect(usage.match(METRIC_FALLBACK_DIMENSION)).toHaveLength(3);
     expect(usage.match(NO_METRIC_SIGNAL_NOTE)).toHaveLength(2);
     expect(
@@ -879,9 +884,7 @@ describe("the AI / LLM Observability page", () => {
       expect(page).toContain(`**${label}**`);
     }
 
-    expect(pricing).toContain(
-      "your entry beats the built-in one on ties",
-    );
+    expect(pricing).toContain("your entry beats the built-in one on ties");
     expect(page).toContain(
       "The longest matching prefix wins across your prices and the built-in list; your price wins a tie.",
     );
@@ -974,7 +977,9 @@ describe("the AI / LLM Observability page", () => {
           ? "LLM_CONVERSATIONS_ROUTE"
           : "LLM_CONVERSATION_ROUTE";
 
-      expect(api).toContain(`router.post(\n  ${name},\n  ...requireTraceReadAccess,`);
+      expect(api).toContain(
+        `router.post(\n  ${name},\n  ...requireTraceReadAccess,`,
+      );
     }
 
     expect(page).toContain(
@@ -983,7 +988,10 @@ describe("the AI / LLM Observability page", () => {
   });
 
   it("lists every attribute ingest reads, in the order it tries them", () => {
-    const rows: Array<Array<string>> = rowsOf(page, "Attributes OneUptime reads");
+    const rows: Array<Array<string>> = rowsOf(
+      page,
+      "Attributes OneUptime reads",
+    );
     const expected: Record<string, Array<string>> = {
       Provider: LlmSystemAttributeKeys,
       Operation: LlmOperationAttributeKeys,
@@ -1022,7 +1030,11 @@ describe("the AI / LLM Observability page", () => {
       },
     ).join(", ");
 
-    expect(LlmAttributeNamespacePrefixes).toEqual(["gen_ai.", "llm.", "traceloop."]);
+    expect(LlmAttributeNamespacePrefixes).toEqual([
+      "gen_ai.",
+      "llm.",
+      "traceloop.",
+    ]);
     expect(reference).toContain(
       "or any attribute that starts with `gen_ai.`, `llm.` or `traceloop.`",
     );
@@ -1033,7 +1045,10 @@ describe("the AI / LLM Observability page", () => {
   });
 
   it("lists where prompts and answers are read from, the conventions' event and attributes first", () => {
-    const sources: string = section(page, "Where prompts and answers are read from");
+    const sources: string = section(
+      page,
+      "Where prompts and answers are read from",
+    );
     const named: Array<string> = codeSpans(sources);
 
     for (const key of [
@@ -1086,9 +1101,9 @@ describe("the AI Coding Assistants page", () => {
     expect(codeSpans(rowNamed(rows, "Employee email")[1] as string)).toEqual(
       LlmUserEmailBaseAttributeKeys,
     );
-    expect(codeSpans(rowNamed(rows, "Team / cost centre")[1] as string)).toEqual(
-      LlmTeamBaseAttributeKeys,
-    );
+    expect(
+      codeSpans(rowNamed(rows, "Team / cost centre")[1] as string),
+    ).toEqual(LlmTeamBaseAttributeKeys);
   });
 
   it("lists the metric identity and model keys, email first", () => {
@@ -1102,9 +1117,9 @@ describe("the AI Coding Assistants page", () => {
     expect(codeSpans(rowNamed(rows, "Employee")[1] as string)).toEqual(
       LlmMetricUserBaseAttributeKeys,
     );
-    expect(codeSpans(rowNamed(rows, "Team / cost centre")[1] as string)).toEqual(
-      LlmMetricTeamBaseAttributeKeys,
-    );
+    expect(
+      codeSpans(rowNamed(rows, "Team / cost centre")[1] as string),
+    ).toEqual(LlmMetricTeamBaseAttributeKeys);
     expect(codeSpans(rowNamed(rows, "Model")[1] as string)).toEqual(
       LlmMetricModelBaseAttributeKeys,
     );
@@ -1119,7 +1134,9 @@ describe("the AI Coding Assistants page", () => {
         return `resource.${key}`;
       }),
     ]);
-    expect(LlmUserEmailAttributeKeys.slice(LlmUserEmailBaseAttributeKeys.length)).toEqual(
+    expect(
+      LlmUserEmailAttributeKeys.slice(LlmUserEmailBaseAttributeKeys.length),
+    ).toEqual(
       LlmUserEmailBaseAttributeKeys.map((key: string): string => {
         return `resource.${key}`;
       }),
@@ -1154,18 +1171,18 @@ describe("the AI Coding Assistants page", () => {
       "What is deliberately not treated as the employee",
     );
 
-    expect(codeSpans(excluded).filter((key: string): boolean => {
-      return LlmEndUserBaseAttributeKeys.includes(key);
-    })).toEqual(LlmEndUserBaseAttributeKeys);
+    expect(
+      codeSpans(excluded).filter((key: string): boolean => {
+        return LlmEndUserBaseAttributeKeys.includes(key);
+      }),
+    ).toEqual(LlmEndUserBaseAttributeKeys);
 
     for (const key of LlmEndUserBaseAttributeKeys) {
       expect(LlmUserIdAttributeKeys).not.toContain(key);
       expect(LlmUserEmailAttributeKeys).not.toContain(key);
     }
 
-    expect(source("llmSpanPanel")).toContain(
-      'label: "End user (customer)"',
-    );
+    expect(source("llmSpanPanel")).toContain('label: "End user (customer)"');
   });
 
   it("lists the coding assistants' metrics ingest reads, and their units", () => {
@@ -1204,7 +1221,10 @@ describe("the AI Coding Assistants page", () => {
   });
 
   it("names the other token and cost metrics ingest reads, and leaves Gemini CLI's own out", () => {
-    const metrics: string = section(page, "Coding-assistant metrics OneUptime reads");
+    const metrics: string = section(
+      page,
+      "Coding-assistant metrics OneUptime reads",
+    );
     const named: Array<string> = codeSpans(metrics);
 
     for (const metric of [...LlmTokenUsageMetricNames, ...LlmCostMetricNames]) {
@@ -1221,7 +1241,10 @@ describe("the AI Coding Assistants page", () => {
   });
 
   it("counts only input and output tokens, read from the token type keys it names", () => {
-    const metrics: string = section(page, "Coding-assistant metrics OneUptime reads");
+    const metrics: string = section(
+      page,
+      "Coding-assistant metrics OneUptime reads",
+    );
 
     expect(metrics).toContain(
       "The token type is read from `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` or `token_type`",
@@ -1394,7 +1417,9 @@ describe("the Cursor page", () => {
   it("leaves Cursor's cache token types out of the totals", () => {
     expect(getLlmTokenDirection("cache_read")).toBeNull();
     expect(getLlmTokenDirection("cache_creation")).toBeNull();
-    expect(page).toContain("(its `input` and `output` types; cache tokens are left out)");
+    expect(page).toContain(
+      "(its `input` and `output` types; cache tokens are left out)",
+    );
   });
 });
 

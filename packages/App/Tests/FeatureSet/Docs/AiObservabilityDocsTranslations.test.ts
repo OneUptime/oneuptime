@@ -173,7 +173,12 @@ const NAMES: Record<string, Array<string>> = {
     "Claude Code",
     "Cursor",
   ],
-  [CODEX]: ["OpenTelemetry", "OpenLLMetry", "OpenInference", "OpenAI Agents SDK"],
+  [CODEX]: [
+    "OpenTelemetry",
+    "OpenLLMetry",
+    "OpenInference",
+    "OpenAI Agents SDK",
+  ],
 };
 
 // Labels and paths of Cursor's own dashboard, which is in English.
@@ -314,12 +319,18 @@ function englishPage(page: string): string {
   return readPage("en", page);
 }
 
-function listed(lists: Record<string, Array<string>>, page: string): Array<string> {
+function listed(
+  lists: Record<string, Array<string>>,
+  page: string,
+): Array<string> {
   return lists[page] || [];
 }
 
 // A value of a locale file by its dotted key, or null.
-function nestedValue(locale: Record<string, unknown>, key: string): string | null {
+function nestedValue(
+  locale: Record<string, unknown>,
+  key: string,
+): string | null {
   let value: unknown = locale;
 
   for (const part of key.split(".")) {
@@ -444,11 +455,9 @@ function englishBoldDrawings(
     ...listed(MENU_ITEMS, page).map((item: string): [string, string] => {
       return [`**${item}**`, `**${drawnMenuItem(language, item)}**`];
     }),
-    ...dashboardPaths(page).map(
-      (segments: Array<string>): [string, string] => {
-        return [drawnPath("en", segments), drawnPath(language, segments)];
-      },
-    ),
+    ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
+      return [drawnPath("en", segments), drawnPath(language, segments)];
+    }),
   ];
 }
 
@@ -835,9 +844,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         ...(language === "fa"
           ? dashboardPaths(entry.page).flatMap(
               (segments: Array<string>): Array<string> => {
-                return segments.map((_segment: string, index: number): string => {
-                  return `**${drawnSegment(language, segments, index)}**`;
-                });
+                return segments.map(
+                  (_segment: string, index: number): string => {
+                    return `**${drawnSegment(language, segments, index)}**`;
+                  },
+                );
               },
             )
           : []),
