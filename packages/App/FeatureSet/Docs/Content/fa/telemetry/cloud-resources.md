@@ -15,9 +15,9 @@
 flowchart TB
     subgraph cloud["حساب ابری شما"]
         direction LR
-        res["VMها، باکت‌ها،<br/>متعادل‌کننده‌های بار،<br/>پایگاه‌های داده"] --> mon["Azure Monitor،<br/>CloudWatch یا<br/>Cloud Monitoring"]
+        res["باکت‌ها، VMها،<br/>متعادل‌کننده‌های بار،<br/>پایگاه‌های داده"] --> mon["Azure Monitor،<br/>CloudWatch<br/>یا Cloud Monitoring"]
     end
-    mon -->|"API فقط‌خواندنی"| col["OpenTelemetry Collector<br/>که خودتان اجرا می‌کنید"]
+    mon -->|"رابط API فقط‌خواندنی"| col["OpenTelemetry Collector<br/>که خودتان اجرا می‌کنید"]
     col -->|"متریک‌های OTLP"| ou["OneUptime"]
     ou --> cr["منابع ابری<br/>یکی برای هر منبع"]
     ou --> metrics["متریک‌ها"]

@@ -14,9 +14,9 @@
 ```mermaid title="یک سرویس Cloud Run، دو نما در OneUptime"
 flowchart TB
     subgraph instance["نمونهٔ Cloud Run"]
-        app["برنامهٔ شما"] -->|"OTLP به<br/>localhost:4318"| col["otel-collector<br/>(اختیاری)"]
+        app["برنامهٔ شما"] -->|"ارسال OTLP به<br/>localhost:4318"| col["otel-collector<br/>(اختیاری)"]
     end
-    col -->|"OTLP روی HTTPS، با توکن<br/>از Secret Manager"| ou["OneUptime"]
+    col -->|"ارسال OTLP روی HTTPS،<br/>با توکن از Secret Manager"| ou["OneUptime"]
     ou -->|"cloud.platform"| env["محیط ابری<br/>پروژه و منطقه"]
     ou -->|"faas.name"| fn["توابع بدون سرور<br/>یکی برای هر سرویس"]
 ```

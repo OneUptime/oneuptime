@@ -14,10 +14,10 @@
 ```mermaid title="یک وظیفهٔ ECS با کالکتور sidecar"
 flowchart TB
     subgraph task["وظیفهٔ ECS"]
-        app["برنامهٔ شما"] -->|"OTLP به<br/>localhost:4318"| col["otel-collector<br/>sidecar"]
-        meta["نقطهٔ پایانی<br/>فرادادهٔ وظیفه"] -->|"شناسهٔ وظیفه،<br/>CPU، حافظه"| col
+        app["برنامهٔ شما"] -->|"ارسال OTLP به<br/>localhost:4318"| col["otel-collector<br/>sidecar"]
+        meta["نقطهٔ پایانی<br/>فرادادهٔ وظیفه"] -->|"شناسهٔ وظیفه،<br/>مصرف CPU و حافظه"| col
     end
-    col -->|"OTLP روی HTTPS، با توکن<br/>از Secrets Manager"| ou["OneUptime"]
+    col -->|"ارسال OTLP روی HTTPS،<br/>با توکن از Secrets Manager"| ou["OneUptime"]
     ou --> env["محیط ابری<br/>AWS ECS · us-east-1"]
     ou --> inst["نمونه‌ها<br/>یک ردیف برای هر وظیفه"]
 ```
