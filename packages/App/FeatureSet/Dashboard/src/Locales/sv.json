@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "Använd ett arbetsflödes egen webhook-URL för att koppla ihop två andra system.",
   "This workflow is off": "Det här arbetsflödet är avstängt",
   "Turn on workflow": "Slå på arbetsflödet",
-  "Only people who can edit this workflow can turn it on.": "Bara personer som kan redigera det här arbetsflödet kan slå på det.",
   "On Match": "Vid träff",
   "Evaluation": "Utvärdering",
   "AI Commands": "AI-kommandon",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Det här arbetsflödet är avstängt, så det här är en testkörning. Varje steg körs på riktigt: allt det skickar, skriver eller tar bort händer faktiskt.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbetsflöden skapas avstängda, så deras utlösare startar dem inte förrän du slår på dem.",
   "Its trigger is paused until you turn it on.": "Dess utlösare är pausad tills du slår på det.",
-  "You can still test it with Run Workflow.": "Du kan ändå testa det med \"Kör arbetsflöde\"."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "Dess utlösare är pausad tills någon som kan redigera det här arbetsflödet slår på det.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Dess utlösare är pausad tills någon som kan redigera det här arbetsflödet slår på det. Du kan ändå testa det med \"{{button}}\".",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Dess utlösare är pausad tills du slår på det. Du kan ändå testa det med \"{{button}}\"."
 }

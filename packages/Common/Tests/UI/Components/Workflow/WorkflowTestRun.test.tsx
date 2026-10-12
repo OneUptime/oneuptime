@@ -77,8 +77,13 @@ import WorkflowStatus from "../../../../Types/Workflow/WorkflowStatus";
  * it shows one:
  *
  *   - the Run Workflow panel, before anything runs, while the workflow is off;
- *   - the run itself, at the top, with who started it;
- *   - both run lists, beside the run's status.
+ *   - the run itself, on a line under its status, with who started it;
+ *   - both run lists, beside the run's status, as a pill of the status's size.
+ *
+ * The marks in the run and in the lists are the same neutral pill, so a
+ * person who has seen one recognises the other. Only the Run Workflow panel's
+ * note is a blue box: it is read before the run, and says every step runs for
+ * real.
  */
 
 const TRIGGER: NodeDataProp = ((): NodeDataProp => {
@@ -140,7 +145,7 @@ describe("who started a test run, in a sentence", () => {
   });
 });
 
-describe("the note at the top of a test run", () => {
+describe("the line in a test run", () => {
   test("says it is a test run, and who started it", () => {
     render(<WorkflowTestRunNote startedBy="Ada Lovelace" />);
 
@@ -153,16 +158,68 @@ describe("the note at the top of a test run", () => {
     ).toHaveTextContent("Started by Ada Lovelace while this workflow was off.");
   });
 
+  test("is the run lists' pill, with who started it written out, not a box", () => {
+    render(<WorkflowTestRunNote startedBy="Ada Lovelace" />);
+
+    const note: HTMLElement = screen.getByTestId("workflow-run-test-run-note");
+    const pill: HTMLElement = within(note).getByTestId("pill");
+
+    expect(pill).toHaveTextContent(/^Test run$/);
+    expect(pill.querySelector("svg")).not.toBeNull();
+    // A quiet line of context: no coloured box around it.
+    expect(note.className).not.toMatch(/\bbg-/);
+    expect(note.className).not.toMatch(/\bborder\b/);
+    // Written out, so it needs no hover - and says it once.
+    expect(note.querySelector("[title]")).toBeNull();
+    expect(
+      within(note).getAllByText(
+        "Started by Ada Lovelace while this workflow was off.",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("its pill is the run lists' pill, drawn the same", () => {
+    render(
+      <div>
+        <div data-testid="in-the-run">
+          <WorkflowTestRunNote startedBy="Ada Lovelace" />
+        </div>
+        <div data-testid="in-a-list">
+          <WorkflowTestRunPill startedBy="Ada Lovelace" />
+        </div>
+      </div>,
+    );
+
+    const inTheRun: HTMLElement = within(
+      screen.getByTestId("in-the-run"),
+    ).getByTestId("pill");
+    const inAList: HTMLElement = within(
+      screen.getByTestId("in-a-list"),
+    ).getByTestId("pill");
+
+    expect(inTheRun.className).toBe(inAList.className);
+    expect(inTheRun.getAttribute("style")).toBe(inAList.getAttribute("style"));
+    expect(inTheRun.textContent).toBe(inAList.textContent);
+  });
+
+  test("the sentence flows beside the pill and wraps under it, in one block", () => {
+    render(<WorkflowTestRunNote startedBy="Ada Lovelace" />);
+
+    const note: HTMLElement = screen.getByTestId("workflow-run-test-run-note");
+
+    // A flex row would drop the whole sentence under the pill on a phone.
+    expect(note.className).not.toMatch(/\bflex\b/);
+    expect(note.tagName).toBe("DIV");
+    // Icon draws a div; a div inside a <p> is invalid markup.
+    expect(note.querySelector("p div")).toBeNull();
+  });
+
   test("its icon is decoration", () => {
     render(<WorkflowTestRunNote startedBy="Ada Lovelace" />);
 
     const note: HTMLElement = screen.getByTestId("workflow-run-test-run-note");
 
-    expect(note.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
-    // Icon draws a div; a div inside a <p> is invalid markup.
-    for (const paragraph of Array.from(note.querySelectorAll("p"))) {
-      expect(paragraph.querySelector("div")).toBeNull();
-    }
+    expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
   });
 });
 
@@ -289,6 +346,36 @@ describe("the run lists' mark", () => {
     ).toEqual(["Executed", "Test run"]);
   });
 
+  test.each([
+    WorkflowStatus.Success,
+    WorkflowStatus.Error,
+    WorkflowStatus.Running,
+    WorkflowStatus.WorkflowCountExceeded,
+  ])(
+    "is the same size as the status it sits beside (%s)",
+    (status: WorkflowStatus) => {
+      /*
+       * It used to be drawn at the small size, a 10px pill beside a 13px
+       * status: it read as a footnote, and was hard to read at all.
+       */
+      render(
+        <WorkflowStatusElement
+          status={status}
+          isTestRun={true}
+          testRunStartedBy="Ada Lovelace"
+        />,
+      );
+
+      const [statusPill, testRunPill] = screen.getAllByTestId("pill") as [
+        HTMLElement,
+        HTMLElement,
+      ];
+
+      expect(testRunPill.style.fontSize).toBe(statusPill.style.fontSize);
+      expect(testRunPill.style.fontSize).toBe("13px");
+    },
+  );
+
   test.each([false, undefined])(
     "is not drawn for any other run (isTestRun %p)",
     (isTestRun: boolean | undefined) => {
@@ -311,6 +398,37 @@ describe("the run lists' mark", () => {
 });
 
 describe("the run, opened", () => {
+  test("a test run says so under its status, and above its tabs", () => {
+    render(
+      <WorkflowLogModal
+        logs="10:00:00: Test run, started by Ada Lovelace while this workflow is turned off."
+        stepTrace={{ steps: [] }}
+        run={{
+          runId: "0193c0de-1111-4aaa-8bbb-000000000001",
+          status: WorkflowStatus.Success,
+          isTestRun: true,
+          startedBy: "Ada Lovelace",
+        }}
+        statusMessage="Run finished successfully."
+        onClose={jest.fn()}
+      />,
+    );
+
+    const status: HTMLElement = screen.getByTestId("workflow-run-status-row");
+    const note: HTMLElement = screen.getByTestId("workflow-run-test-run-note");
+
+    // Whether the run worked is read first; that it was a test, second.
+    expect(
+      status.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      note.compareDocumentPosition(screen.getByRole("tablist")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Spaced from the status line above it.
+    expect(note.parentElement!.className).toMatch(/\bmt-2\b/);
+  });
+
   test("a test run says so above its tabs, with who started it", () => {
     render(
       <WorkflowLogModal
@@ -335,6 +453,8 @@ describe("the run, opened", () => {
       note.compareDocumentPosition(screen.getByRole("tablist")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // With no status line above it (the run lists' View Logs), it leads.
+    expect(note.parentElement!.className).not.toMatch(/\bmt-2\b/);
   });
 
   test("a run that is no test run says nothing of the kind", () => {

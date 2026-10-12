@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "किसी वर्कफ़्लो के अपने वेबहुक URL से दो दूसरे सिस्टम को आपस में जोड़ें।",
   "This workflow is off": "यह वर्कफ़्लो बंद है",
   "Turn on workflow": "वर्कफ़्लो चालू करें",
-  "Only people who can edit this workflow can turn it on.": "केवल वे लोग इसे चालू कर सकते हैं जो इस वर्कफ़्लो को संपादित कर सकते हैं।",
   "On Match": "मिलान होने पर",
   "Evaluation": "मूल्यांकन",
   "AI Commands": "AI कमांड",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "यह वर्कफ़्लो बंद है, इसलिए यह एक टेस्ट रन है। हर चरण सच में चलता है: वह जो कुछ भेजता, लिखता या हटाता है, वह सच में होता है।",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "वर्कफ़्लो बंद अवस्था में बनाए जाते हैं, इसलिए जब तक आप उन्हें चालू नहीं करते, उनका ट्रिगर उन्हें शुरू नहीं करता।",
   "Its trigger is paused until you turn it on.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है।",
-  "You can still test it with Run Workflow.": "फिर भी आप \"वर्कफ़्लो चलाएं\" से इसे टेस्ट कर सकते हैं।"
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "जब तक इस वर्कफ़्लो को संपादित कर सकने वाला कोई व्यक्ति इसे चालू नहीं करता, इसका ट्रिगर रुका रहता है।",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "जब तक इस वर्कफ़्लो को संपादित कर सकने वाला कोई व्यक्ति इसे चालू नहीं करता, इसका ट्रिगर रुका रहता है। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।"
 }

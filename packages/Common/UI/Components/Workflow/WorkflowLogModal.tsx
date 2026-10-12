@@ -17,8 +17,10 @@
  * the same data the tabs draw (see WorkflowRunExportActions).
  *
  * A test run - one a person started from the Builder while the workflow was
- * turned off - says so above everything else, with who started it, so it is
- * never read as a run its trigger started (WorkflowTestRun).
+ * turned off - says so on a line under the run's status, with who started
+ * it, so it is never read as a run its trigger started (WorkflowTestRun). The
+ * status stays the first thing read: whether the run worked is what the
+ * window is opened for.
  */
 
 import { ButtonStyleType } from "../Button/Button";
@@ -164,14 +166,6 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
       closeButtonStyleType={ButtonStyleType.NORMAL}
     >
       <div>
-        {props.run?.isTestRun ? (
-          <div className="mb-3">
-            <WorkflowTestRunNote startedBy={props.run.startedBy} />
-          </div>
-        ) : (
-          <></>
-        )}
-
         {(props.statusMessage || props.toolbar) && (
           <div
             className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
@@ -207,6 +201,14 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
               </div>
             )}
           </div>
+        )}
+
+        {props.run?.isTestRun ? (
+          <div className={props.statusMessage || props.toolbar ? "mt-2" : ""}>
+            <WorkflowTestRunNote startedBy={props.run.startedBy} />
+          </div>
+        ) : (
+          <></>
         )}
 
         <Tabs

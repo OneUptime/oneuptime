@@ -35,6 +35,11 @@ import path from "path";
  * "Why do I have to enable a workflow in order to test run it?" - the
  * sentences of the dialog that asked to turn the workflow on first are gone
  * from every file, along with the dialog.
+ *
+ * The notice says what off means in one sentence per reader, never two
+ * sentences joined with a space: Japanese and Chinese put none after a full
+ * stop. Its Run Workflow is a {{button}} slot, drawn with the toolbar's own
+ * label, so no language can point at a button that is called something else.
  */
 
 const LOCALES_DIR: string = path.join(
@@ -109,6 +114,21 @@ const RETIRED_STRINGS: Array<string> = [
   "Turn on and run",
   "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.",
   "Workflows are created switched off, so nothing runs until you turn them on.",
+  /*
+   * The notice's second sentence and its line about who can turn it on, from
+   * before each case was one whole sentence.
+   */
+  "You can still test it with Run Workflow.",
+  "Only people who can edit this workflow can turn it on.",
+];
+
+// A full stop Japanese and Chinese end a sentence with, then a space.
+const SPACE_AFTER_FULL_STOP: RegExp = /[。．]\s/;
+
+// The notice's sentences that offer Run Workflow, as a {{button}} slot.
+const CAN_TEST_SENTENCES: Array<string> = [
+  WorkflowEnabledCopy.noticeBodyCanTest,
+  WorkflowEnabledCopy.noticeBodyForOthersCanTest,
 ];
 
 const PLACEHOLDER: RegExp = /\{\{\s*([\w.]+)\s*\}\}/g;
@@ -128,7 +148,9 @@ describe("the turned-off workflow's and the test run's words in every dashboard 
       expect.arrayContaining([
         "Turn on workflow",
         "Its trigger is paused until you turn it on.",
-        "You can still test it with Run Workflow.",
+        "Its trigger is paused until you turn it on. You can still test it with {{button}}.",
+        "Its trigger is paused until someone who can edit this workflow turns it on.",
+        "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.",
         "Test run",
         "Started by {{person}} while this workflow was off.",
         "Started by hand while this workflow was off.",
@@ -198,20 +220,73 @@ describe("the turned-off workflow's and the test run's words in every dashboard 
   );
 
   test.each(["en", ...OTHER_LOCALES])(
-    "%s names Run Workflow as that language's button says it",
+    "%s leaves the Run Workflow button's name to the button",
     (locale: string) => {
       /*
        * "You can still test it with Run Workflow." The button's label is
-       * translated too, so the sentence has to use the same words, or it
-       * points at a button nobody can find.
+       * translated too, and the sentence has to name it as the toolbar
+       * does, or it points at a button nobody can find. So the sentence has
+       * a {{button}} slot, once, filled with the label itself - and does not
+       * spell the label out a second time.
        */
       const translations: Record<string, string> = readLocale(locale);
       const button: string = translations["Run Workflow"] || "";
 
       expect(button.length).toBeGreaterThan(0);
-      expect(translations[WorkflowEnabledCopy.noticeCanTest] || "").toContain(
-        button,
-      );
+
+      for (const text of CAN_TEST_SENTENCES) {
+        const translated: string = translations[text] || "";
+
+        expect({
+          locale,
+          text,
+          slots: translated.split("{{button}}").length,
+        }).toEqual({ locale, text, slots: 2 });
+        expect({
+          locale,
+          text,
+          spellsItOut: translated.includes(button),
+        }).toEqual({ locale, text, spellsItOut: false });
+      }
+    },
+  );
+
+  test.each(["en", ...OTHER_LOCALES])(
+    "%s says each case of the notice in its own words, not two keys joined",
+    (locale: string) => {
+      /*
+       * Each case's sentence is translated whole, so a language that puts no
+       * space after a full stop is not handed one, and the two cases that
+       * name who can turn the workflow on say it in one sentence.
+       */
+      const translations: Record<string, string> = readLocale(locale);
+      const paused: string = translations[WorkflowEnabledCopy.noticeBody] || "";
+      const pausedForOthers: string =
+        translations[WorkflowEnabledCopy.noticeBodyForOthers] || "";
+
+      expect(paused.length).toBeGreaterThan(0);
+      expect(pausedForOthers.length).toBeGreaterThan(0);
+      expect(pausedForOthers).not.toBe(paused);
+      expect(
+        (translations[WorkflowEnabledCopy.noticeBodyCanTest] || "").startsWith(
+          paused,
+        ),
+      ).toBe(true);
+      expect(
+        (
+          translations[WorkflowEnabledCopy.noticeBodyForOthersCanTest] || ""
+        ).startsWith(pausedForOthers),
+      ).toBe(true);
+
+      for (const text of CAN_TEST_SENTENCES) {
+        expect({
+          locale,
+          text,
+          spaceAfterFullStop: SPACE_AFTER_FULL_STOP.test(
+            translations[text] || "",
+          ),
+        }).toEqual({ locale, text, spaceAfterFullStop: false });
+      }
     },
   );
 
@@ -306,18 +381,31 @@ describe("drawn in German", () => {
     );
 
     expect(notice).toHaveTextContent("Dieser Arbeitsablauf ist ausgeschaltet");
-    expect(notice).toHaveTextContent(
-      "Sein Auslöser ist pausiert, bis Sie ihn einschalten.",
+    expect(
+      screen.getByTestId("workflow-turned-off-notice-body").textContent,
+    ).toBe(
+      "Sein Auslöser ist pausiert, bis Sie ihn einschalten. Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
     );
-    expect(notice).toHaveTextContent(
-      "Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
-    );
+    // The button's German label, in bold, where German grammar puts it.
+    expect(
+      screen.getByText("Arbeitsablauf ausführen", { selector: "strong" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("workflow-turn-on-button")).toHaveTextContent(
       "Arbeitsablauf einschalten",
     );
     expect(
       screen.getByRole("switch", { name: "Aktiviert" }),
     ).toBeInTheDocument();
+  });
+
+  test("the notice to someone who may run the workflow but not turn it on", () => {
+    render(<WorkflowTurnedOffNotice canTest={true} />);
+
+    expect(
+      screen.getByTestId("workflow-turned-off-notice-body").textContent,
+    ).toBe(
+      "Sein Auslöser ist pausiert, bis jemand, der diesen Arbeitsablauf bearbeiten kann, ihn einschaltet. Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
+    );
   });
 
   test("a test run's note, with the person's name in place", () => {
@@ -356,5 +444,53 @@ describe("drawn in German", () => {
     expect(screen.getByTestId("workflow-test-run-pill")).toHaveTextContent(
       "Testlauf",
     );
+  });
+});
+
+describe("drawn in Japanese", () => {
+  const JAPANESE: Record<string, string> = readLocale("ja");
+
+  beforeAll(async () => {
+    if (i18next.isInitialized) {
+      i18next.addResourceBundle("ja", "translation", JAPANESE, true, true);
+      await i18next.changeLanguage("ja");
+      return;
+    }
+
+    await i18next.use(initReactI18next).init({
+      lng: "ja",
+      fallbackLng: "en",
+      interpolation: { escapeValue: false },
+      resources: { ja: { translation: JAPANESE } },
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the notice's two sentences meet without a space after the full stop", () => {
+    render(
+      <WorkflowTurnedOffNotice
+        onTurnOn={(): void => {
+          // Not pressed here.
+        }}
+      />,
+    );
+
+    const body: string =
+      screen.getByTestId("workflow-turned-off-notice-body").textContent || "";
+
+    expect(body).toBe(
+      "オンにするまで、トリガーは一時停止しています。「ワークフローを実行」で引き続きテストできます。",
+    );
+    expect(SPACE_AFTER_FULL_STOP.test(body)).toBe(false);
+    expect(
+      screen.getByText("ワークフローを実行", { selector: "strong" }),
+    ).toBeInTheDocument();
   });
 });

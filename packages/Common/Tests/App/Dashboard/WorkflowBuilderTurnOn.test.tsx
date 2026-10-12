@@ -450,6 +450,10 @@ describe("the Builder shows whether the workflow is on", () => {
     expect(notice).toHaveTextContent(
       "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
     );
+    // The toolbar's button, named as the toolbar draws it, in bold.
+    expect(
+      within(notice).getByText("Run Workflow", { selector: "strong" }),
+    ).toBeInTheDocument();
     expect(notice).not.toHaveTextContent("can't be run or tested");
     expect(
       within(notice).getByTestId("workflow-turn-on-button"),
@@ -767,19 +771,20 @@ describe("a Workflow Member, who runs workflows but may not change them", () => 
     mockPermissions = [Permission.WorkflowMember, Permission.ReadWorkflow];
   });
 
-  test("is told they can still test it, and who can turn it on", async () => {
+  test("is told they can still test it, and who can turn it on, in one sentence", async () => {
     await renderBuilder();
 
     const notice: HTMLElement = screen.getByTestId(
       "workflow-turned-off-notice",
     );
 
-    expect(notice).toHaveTextContent(
-      "You can still test it with Run Workflow.",
+    expect(
+      within(notice).getByTestId("workflow-turned-off-notice-body"),
+    ).toHaveTextContent(
+      "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with Run Workflow.",
     );
-    expect(notice).toHaveTextContent(
-      "Only people who can edit this workflow can turn it on.",
-    );
+    // Not "until you turn it on": they may not.
+    expect(notice).not.toHaveTextContent("until you turn it on");
     expect(within(notice).queryByTestId("workflow-turn-on-button")).toBeNull();
   });
 
@@ -824,12 +829,12 @@ describe("someone who may neither change nor run the workflow", () => {
       "workflow-turned-off-notice",
     );
 
-    expect(notice).toHaveTextContent(
-      "Only people who can edit this workflow can turn it on.",
+    expect(
+      within(notice).getByTestId("workflow-turned-off-notice-body"),
+    ).toHaveTextContent(
+      "Its trigger is paused until someone who can edit this workflow turns it on.",
     );
-    expect(notice).toHaveTextContent(
-      "Its trigger is paused until you turn it on.",
-    );
+    expect(notice).not.toHaveTextContent("until you turn it on");
     expect(notice).not.toHaveTextContent("You can still test it");
     expect(within(notice).queryByTestId("workflow-turn-on-button")).toBeNull();
     expect(screen.getByTestId("run-workflow-button")).toBeDisabled();

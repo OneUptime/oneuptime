@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "워크플로의 자체 웹훅 URL로 다른 두 시스템을 연결합니다.",
   "This workflow is off": "이 워크플로가 꺼져 있습니다",
   "Turn on workflow": "워크플로 켜기",
-  "Only people who can edit this workflow can turn it on.": "이 워크플로를 편집할 수 있는 사람만 켤 수 있습니다.",
   "On Match": "일치 시",
   "Evaluation": "평가",
   "AI Commands": "AI 명령",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "이 워크플로가 꺼져 있으므로 이것은 테스트 실행입니다. 모든 단계가 실제로 실행되며, 보내거나 쓰거나 삭제하는 작업은 실제로 이루어집니다.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "워크플로는 꺼진 상태로 생성되므로, 켜기 전까지는 트리거가 워크플로를 시작하지 않습니다.",
   "Its trigger is paused until you turn it on.": "켜기 전까지 트리거는 일시 중지됩니다.",
-  "You can still test it with Run Workflow.": "\"워크플로 실행\"으로 계속 테스트할 수 있습니다."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "이 워크플로를 편집할 수 있는 사람이 켜기 전까지 트리거는 일시 중지됩니다.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "이 워크플로를 편집할 수 있는 사람이 켜기 전까지 트리거는 일시 중지됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다.",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "켜기 전까지 트리거는 일시 중지됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다."
 }

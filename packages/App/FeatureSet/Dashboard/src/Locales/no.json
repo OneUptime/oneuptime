@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "Bruk en arbeidsflyts egen webhook-URL til å koble sammen to andre systemer.",
   "This workflow is off": "Denne arbeidsflyten er slått av",
   "Turn on workflow": "Slå på arbeidsflyt",
-  "Only people who can edit this workflow can turn it on.": "Bare personer som kan redigere denne arbeidsflyten, kan slå den på.",
   "On Match": "Ved treff",
   "Evaluation": "Evaluering",
   "AI Commands": "AI-kommandoer",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Denne arbeidsflyten er slått av, så dette er en testkjøring. Hvert steg kjøres på ekte: alt det sender, skriver eller sletter, skjer faktisk.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeidsflyter opprettes avslått, så utløseren deres starter dem ikke før du slår dem på.",
   "Its trigger is paused until you turn it on.": "Utløseren er satt på pause til du slår den på.",
-  "You can still test it with Run Workflow.": "Du kan fortsatt teste den med «Kjør arbeidsflyt»."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "Utløseren er satt på pause til noen som kan redigere denne arbeidsflyten, slår den på.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Utløseren er satt på pause til noen som kan redigere denne arbeidsflyten, slår den på. Du kan fortsatt teste den med «{{button}}».",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Utløseren er satt på pause til du slår den på. Du kan fortsatt teste den med «{{button}}»."
 }

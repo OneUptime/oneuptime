@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "Use a workflow's own webhook URL to join two other systems together.",
   "This workflow is off": "This workflow is off",
   "Turn on workflow": "Turn on workflow",
-  "Only people who can edit this workflow can turn it on.": "Only people who can edit this workflow can turn it on.",
   "On Match": "On Match",
   "Evaluation": "Evaluation",
   "AI Commands": "AI Commands",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
   "Its trigger is paused until you turn it on.": "Its trigger is paused until you turn it on.",
-  "You can still test it with Run Workflow.": "You can still test it with Run Workflow."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "Its trigger is paused until someone who can edit this workflow turns it on.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Its trigger is paused until you turn it on. You can still test it with {{button}}."
 }

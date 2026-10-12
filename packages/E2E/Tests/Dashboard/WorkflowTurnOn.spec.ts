@@ -204,14 +204,19 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
         ready: notice,
       });
 
-      // Off, said up front: the trigger is paused, and Run Workflow still tests it.
+      /*
+       * Off, said up front, in one sentence: the trigger is paused, and Run
+       * Workflow - named in bold, as the toolbar names it - still tests it.
+       */
       await expect(notice).toContainText("This workflow is off");
-      await expect(notice).toContainText(
-        "Its trigger is paused until you turn it on.",
+      await expect(
+        notice.getByTestId("workflow-turned-off-notice-body"),
+      ).toHaveText(
+        "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
       );
-      await expect(notice).toContainText(
-        "You can still test it with Run Workflow.",
-      );
+      await expect(
+        notice.locator("strong", { hasText: "Run Workflow" }),
+      ).toHaveCount(1);
       await expect(enabledSwitch).toHaveAttribute("aria-checked", "false");
 
       // Run Workflow while it is off: the panel says this will be a test run.
@@ -258,7 +263,10 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
       await expect(page.getByTestId("workflow-turn-on-prompt")).toHaveCount(0);
       await expect(page.getByText("Turn on this workflow?")).toHaveCount(0);
 
-      // The run opens, and says it is a test run, started by this person.
+      /*
+       * The run opens, and says it is a test run, started by this person -
+       * on a line under the run's status, which is read first.
+       */
       const runModal: Locator = page
         .getByTestId("modal")
         .filter({ hasText: "This is the run you just started." });
@@ -271,6 +279,15 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
       await expect(testRunNote).toContainText(
         `Started by ${PERSON_NAME} while this workflow was off.`,
       );
+      const statusRow: Locator = runModal.getByTestId(
+        "workflow-run-status-row",
+      );
+      await expect(statusRow).toBeVisible();
+      const statusBox: { y: number } | null = await statusRow.boundingBox();
+      const noteBox: { y: number } | null = await testRunNote.boundingBox();
+      expect(statusBox).not.toBeNull();
+      expect(noteBox).not.toBeNull();
+      expect(noteBox!.y).toBeGreaterThan(statusBox!.y);
 
       // Nothing was turned on.
       await expect(enabledSwitch).toHaveAttribute("aria-checked", "false");
@@ -350,6 +367,20 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
       await expect(
         page.getByTestId("workflow-test-run-pill").first(),
       ).toContainText("Test run");
+
+      // The same size as the status pill beside it, so the two read as a pair.
+      const pillFontSizes: Array<string> = await page
+        .getByTestId("workflow-test-run-pill")
+        .first()
+        .locator("xpath=..")
+        .getByTestId("pill")
+        .evaluateAll((pills: Array<Element>): Array<string> => {
+          return pills.map((pill: Element): string => {
+            return window.getComputedStyle(pill).fontSize;
+          });
+        });
+      expect(pillFontSizes).toHaveLength(2);
+      expect(pillFontSizes[0]).toBe(pillFontSizes[1]);
     } finally {
       const response: APIResponse = await page.request.delete(
         urlFor(`/api/project/${projectId}`),

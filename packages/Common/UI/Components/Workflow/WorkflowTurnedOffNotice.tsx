@@ -1,7 +1,10 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { RUN_WORKFLOW_BUTTON_TITLE } from "./ManualTriggerPanel";
 import { WorkflowEnabledCopy } from "./WorkflowEnabledCopy";
-import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -20,12 +23,38 @@ export interface ComponentProps {
   canTest?: boolean | undefined;
 }
 
+type GetNoticeBodyFunction = (data: {
+  canTurnOn: boolean;
+  canTest: boolean;
+}) => string;
+
+/*
+ * The notice's one sentence for this reader: whether they may turn the
+ * workflow on decides who it says can, and whether they may run it decides
+ * whether it offers Run Workflow.
+ */
+export const getNoticeBody: GetNoticeBodyFunction = (data: {
+  canTurnOn: boolean;
+  canTest: boolean;
+}): string => {
+  if (data.canTurnOn) {
+    return data.canTest
+      ? WorkflowEnabledCopy.noticeBodyCanTest
+      : WorkflowEnabledCopy.noticeBody;
+  }
+
+  return data.canTest
+    ? WorkflowEnabledCopy.noticeBodyForOthersCanTest
+    : WorkflowEnabledCopy.noticeBodyForOthers;
+};
+
 /*
  * Above the Builder's canvas while the workflow is turned off. It says what
  * off means - the workflow's trigger is paused, so nothing starts it on its
  * own - and what it does not: the workflow can still be tested with Run
  * Workflow, as a test run (Types/Workflow/WorkflowEnabled). Then the one
- * thing to do about it, Turn on workflow, for whoever may.
+ * thing to do about it, Turn on workflow, for whoever may; anyone else is
+ * told who can.
  *
  * Amber rather than red: off is a normal state for a workflow that is still
  * being built, not a failure, but nothing it is meant to do on its own
@@ -34,11 +63,14 @@ export interface ComponentProps {
 const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
-  const translate: (text: string) => string = (text: string): string => {
-    return translateString(text) || text;
-  };
+  const canTest: boolean = props.canTest !== false;
+
+  const body: string = getNoticeBody({
+    canTurnOn: Boolean(props.onTurnOn),
+    canTest: canTest,
+  });
 
   return (
     <div
@@ -58,29 +90,31 @@ const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
             className="font-semibold text-amber-900"
             data-testid="workflow-turned-off-notice-title"
           >
-            {translate(WorkflowEnabledCopy.noticeTitle)}
+            {translator.translateText(WorkflowEnabledCopy.noticeTitle)}
           </p>
-          <p className="text-amber-800">
-            {translate(WorkflowEnabledCopy.noticeBody)}
-            {props.canTest === false ? (
-              <></>
+          <p
+            className="text-amber-800"
+            data-testid="workflow-turned-off-notice-body"
+          >
+            {canTest ? (
+              /*
+               * The toolbar's button, named as the toolbar draws it and in
+               * bold, so the eye goes from here to it.
+               */
+              <TranslatedSentence
+                template={body}
+                slots={{
+                  button: (
+                    <strong className="font-semibold text-amber-900">
+                      {translator.translateText(RUN_WORKFLOW_BUTTON_TITLE)}
+                    </strong>
+                  ),
+                }}
+              />
             ) : (
-              <span data-testid="workflow-turned-off-notice-can-test">
-                {" "}
-                {translate(WorkflowEnabledCopy.noticeCanTest)}
-              </span>
+              translator.translateText(body)
             )}
           </p>
-          {props.onTurnOn ? (
-            <></>
-          ) : (
-            <p
-              className="text-amber-800"
-              data-testid="workflow-turned-off-notice-who-can"
-            >
-              {translate(WorkflowEnabledCopy.onlyEditorsCanTurnOn)}
-            </p>
-          )}
         </div>
       </div>
       {props.onTurnOn ? (

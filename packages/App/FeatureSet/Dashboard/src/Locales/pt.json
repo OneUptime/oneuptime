@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "Use a URL de webhook do próprio fluxo de trabalho para ligar dois outros sistemas.",
   "This workflow is off": "Este fluxo de trabalho está desativado",
   "Turn on workflow": "Ativar fluxo de trabalho",
-  "Only people who can edit this workflow can turn it on.": "Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo.",
   "On Match": "Ao corresponder",
   "Evaluation": "Avaliação",
   "AI Commands": "Comandos de IA",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Este fluxo de trabalho está desativado, então esta é uma execução de teste. Cada etapa é executada de verdade: tudo o que ela enviar, gravar ou excluir acontece de fato.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Os fluxos de trabalho são criados desativados, então o gatilho deles não os inicia até que você os ative.",
   "Its trigger is paused until you turn it on.": "O gatilho dele fica pausado até que você o ative.",
-  "You can still test it with Run Workflow.": "Você ainda pode testá-lo com \"Executar fluxo de trabalho\"."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "O gatilho dele fica pausado até que alguém que possa editar este fluxo de trabalho o ative.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "O gatilho dele fica pausado até que alguém que possa editar este fluxo de trabalho o ative. Você ainda pode testá-lo com \"{{button}}\".",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "O gatilho dele fica pausado até que você o ative. Você ainda pode testá-lo com \"{{button}}\"."
 }

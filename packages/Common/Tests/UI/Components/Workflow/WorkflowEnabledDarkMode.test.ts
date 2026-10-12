@@ -146,12 +146,17 @@ describe("the turned-off workflow's notice, switch and test-run marks in the dar
   test("the scan found the notice's and the notes' colours, so the check below is not vacuous", () => {
     expect(COLOR_TOKENS).toEqual(
       expect.arrayContaining([
+        // The notice, and the Run Workflow button's name drawn bold in it.
         "bg-amber-50",
         "border-amber-200",
+        "text-amber-800",
+        "text-amber-900",
+        // The Run Workflow panel's note.
         "bg-blue-50",
         "border-blue-100",
         "text-blue-700",
-        "text-blue-800",
+        // Who started a test run, written out beside its pill in the run.
+        "text-gray-500",
       ]),
     );
   });

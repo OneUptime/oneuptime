@@ -14,19 +14,22 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  * let its trigger loose just to try it once.
  *
  * Each sentence is looked up whole in the Dashboard's locale files, never
- * assembled from translated words. A sentence with a value in it has the
- * value as a {{placeholder}} and goes through translateTemplate, so every
- * language puts the person's name where its own grammar wants it.
- * WorkflowEnabledI18n.test.tsx holds all seventeen locales to having every
- * one of them, placeholders included.
+ * assembled from translated words - the notice's two sentences included,
+ * which are one key per case rather than two keys joined with a space (in
+ * Japanese and Chinese a sentence ends without one). A sentence with a value
+ * in it has the value as a {{placeholder}}, so every language puts the
+ * person's name, or the Run Workflow button's, where its own grammar wants
+ * it. WorkflowEnabledI18n.test.tsx holds all seventeen locales to having
+ * every one of them, placeholders included.
  */
 export const WorkflowEnabledCopy: {
   readonly switchLabel: string;
   readonly noticeTitle: string;
   readonly noticeBody: string;
-  readonly noticeCanTest: string;
+  readonly noticeBodyCanTest: string;
+  readonly noticeBodyForOthers: string;
+  readonly noticeBodyForOthersCanTest: string;
   readonly turnOnWorkflow: string;
-  readonly onlyEditorsCanTurnOn: string;
   readonly runPanelTestRunNote: string;
   readonly testRun: string;
   readonly testRunStartedBy: string;
@@ -35,13 +38,25 @@ export const WorkflowEnabledCopy: {
   // The switch's own name, as the Overview's Workflow Details call it too.
   switchLabel: WORKFLOW_ENABLED_SWITCH_LABEL,
   noticeTitle: translationKey("This workflow is off"),
+  /*
+   * What off means, said to the person reading it. Four cases, by whether
+   * they may turn the workflow on (the notice's Turn on workflow button) and
+   * whether they may run it (Run Workflow works while it is off). Someone who
+   * may not turn it on is told who can, in the same sentence, rather than
+   * "until you turn it on" followed by "only people who can edit it can".
+   * {{button}} is the Run Workflow button's own label, drawn in bold.
+   */
   noticeBody: translationKey("Its trigger is paused until you turn it on."),
-  // For whoever may run the workflow: Run Workflow works while it is off.
-  noticeCanTest: translationKey("You can still test it with Run Workflow."),
-  turnOnWorkflow: translationKey("Turn on workflow"),
-  onlyEditorsCanTurnOn: translationKey(
-    "Only people who can edit this workflow can turn it on.",
+  noticeBodyCanTest: translationKey(
+    "Its trigger is paused until you turn it on. You can still test it with {{button}}.",
   ),
+  noticeBodyForOthers: translationKey(
+    "Its trigger is paused until someone who can edit this workflow turns it on.",
+  ),
+  noticeBodyForOthersCanTest: translationKey(
+    "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.",
+  ),
+  turnOnWorkflow: translationKey("Turn on workflow"),
   /*
    * In the Run Workflow panel, before anything runs: a test run is not a dry
    * run, and off does not make it one.

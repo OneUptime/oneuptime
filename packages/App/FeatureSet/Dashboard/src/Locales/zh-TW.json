@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "用工作流程本身的 Webhook URL 把另外兩個系統串接起來。",
   "This workflow is off": "此工作流程已關閉",
   "Turn on workflow": "開啟工作流程",
-  "Only people who can edit this workflow can turn it on.": "只有可以編輯此工作流程的人才能開啟它。",
   "On Match": "符合時",
   "Evaluation": "評估",
   "AI Commands": "AI 命令",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "此工作流程已關閉，因此這是一次測試執行。每個步驟都會真實執行：它傳送、寫入或刪除的內容都會真實發生。",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "工作流程建立後預設為關閉狀態，在你開啟之前，它的觸發器不會啟動它。",
   "Its trigger is paused until you turn it on.": "在開啟之前，它的觸發器處於暫停狀態。",
-  "You can still test it with Run Workflow.": "你仍然可以使用「執行工作流程」來測試它。"
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "在可以編輯此工作流程的人開啟它之前，它的觸發器處於暫停狀態。",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "在可以編輯此工作流程的人開啟它之前，它的觸發器處於暫停狀態。你仍然可以使用「{{button}}」來測試它。",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "在開啟之前，它的觸發器處於暫停狀態。你仍然可以使用「{{button}}」來測試它。"
 }

@@ -6787,7 +6787,6 @@
   "Use a workflow's own webhook URL to join two other systems together.": "Verbinden Sie mit der eigenen Webhook-URL eines Arbeitsablaufs zwei andere Systeme.",
   "This workflow is off": "Dieser Arbeitsablauf ist ausgeschaltet",
   "Turn on workflow": "Arbeitsablauf einschalten",
-  "Only people who can edit this workflow can turn it on.": "Nur Personen, die diesen Arbeitsablauf bearbeiten können, können ihn einschalten.",
   "On Match": "Bei Treffer",
   "Evaluation": "Auswertung",
   "AI Commands": "KI-Befehle",
@@ -28088,5 +28087,7 @@
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Dieser Arbeitsablauf ist ausgeschaltet, daher ist dies ein Testlauf. Jeder Schritt wird wirklich ausgeführt: Alles, was er sendet, schreibt oder löscht, geschieht tatsächlich.",
   "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeitsabläufe werden ausgeschaltet angelegt, sodass ihr Auslöser sie erst startet, wenn Sie sie einschalten.",
   "Its trigger is paused until you turn it on.": "Sein Auslöser ist pausiert, bis Sie ihn einschalten.",
-  "You can still test it with Run Workflow.": "Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen."
+  "Its trigger is paused until someone who can edit this workflow turns it on.": "Sein Auslöser ist pausiert, bis jemand, der diesen Arbeitsablauf bearbeiten kann, ihn einschaltet.",
+  "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Sein Auslöser ist pausiert, bis jemand, der diesen Arbeitsablauf bearbeiten kann, ihn einschaltet. Sie können ihn trotzdem mit „{{button}}“ testen.",
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Sein Auslöser ist pausiert, bis Sie ihn einschalten. Sie können ihn trotzdem mit „{{button}}“ testen."
 }
