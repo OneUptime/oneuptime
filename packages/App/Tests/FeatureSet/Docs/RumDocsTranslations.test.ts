@@ -35,6 +35,7 @@ import {
 import {
   CARD_LINE,
   anchorProblems,
+  boldSpans,
   cardLines,
   cardTargets,
   comparableFence,
@@ -289,6 +290,20 @@ function englishBoldDrawings(
       },
     ),
   ];
+}
+
+/*
+ * A table row's text outside its bold spans. The numbers a row states are
+ * there; a bold span is a Dashboard label another test holds, and a label
+ * may hold a number of its own, as Japanese's Requests Per Minute Limit
+ * "1 分あたりのリクエスト数の上限" does.
+ */
+function outsideBoldSpans(row: Array<string>): string {
+  const text: string = row.join(" | ");
+
+  return boldSpans(text).reduce((rest: string, span: string): string => {
+    return rest.split(`**${span}**`).join(" ");
+  }, text);
 }
 
 function numbersIn(text: string): Array<string> {
@@ -715,7 +730,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
     });
 
-    it("keeps the code in the first column of every table, row by row, and the numbers of every row", () => {
+    it("keeps the code in the first column of every table, row by row, and the numbers every row states", () => {
       const translated: Array<Array<Array<string>>> = tables(
         readPage(language, entry.page),
       );
@@ -731,12 +746,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
             code: ONLY_CODE.test(row[0] as string)
               ? translatedRow[0]
               : undefined,
-            numbers: numbersIn(translatedRow.join(" | ")),
+            numbers: numbersIn(outsideBoldSpans(translatedRow)),
           }).toEqual({
             table: index,
             row: rowIndex,
             code: ONLY_CODE.test(row[0] as string) ? row[0] : undefined,
-            numbers: numbersIn(row.join(" | ")),
+            numbers: numbersIn(outsideBoldSpans(row)),
           });
         });
       });
@@ -984,6 +999,14 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("below 2500 ms")).toEqual(["2500"]);
     expect(numbersIn("کمتر از ۲۵۰۰ ms")).toEqual(["2500"]);
     expect(numbersIn("6 000 requêtes et 0,25")).toEqual(["0.25", "6000"]);
+    expect(
+      numbersIn(
+        outsideBoldSpans([
+          "**1 分あたりのリクエスト数の上限**",
+          "毎分 6000 リクエスト",
+        ]),
+      ),
+    ).toEqual(["6000"]);
   });
 
   it("find an untranslated line of prose, but not a line of code or names", () => {
