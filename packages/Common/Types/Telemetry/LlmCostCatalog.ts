@@ -26,10 +26,15 @@ import ClaudeModelId from "../../Utils/LLM/ClaudeModelId";
  *
  *  - An id is normalized first: lowercased; a provider path, routing
  *    namespace or cross-region prefix dropped (anthropic/claude-...,
- *    models/gemini-..., us.anthropic.claude-...); and a Claude id read by
- *    ClaudeModelId into the form Anthropic's API writes, so every shape of
- *    a Claude model (dated, Bedrock, Google Cloud's "@", OpenRouter's dot)
- *    finds that model's one entry.
+ *    models/gemini-..., us.anthropic.claude-...); and what is left, when it
+ *    is a Claude id of the current, family-first scheme, read by
+ *    ClaudeModelId into the form Anthropic's API writes. So every shape of a
+ *    current Claude model (dated, Bedrock, Google Cloud's "@", OpenRouter's
+ *    dot) finds that model's one entry. A name of a gateway's own that only
+ *    contains a Claude id (databricks-claude-...) is not read as that model:
+ *    the gateway charges its own way, and a project price written for the
+ *    name stays the one that matches. Nor are OpenRouter's dotted ids of the
+ *    retired Claude 3 models (anthropic/claude-3.5-haiku).
  *  - A built-in entry matches an id that starts with its prefix at a word
  *    boundary, and never where the id goes on to a LATER VERSION of the
  *    model the entry names: claude-opus-4 is Claude Opus 4 (and
@@ -955,10 +960,15 @@ export const LlmModelPricingCatalog: Array<LlmModelPrice> = [
  * entry as the bare model name.
  */
 const RoutingPrefixTokens: Array<string> = [
-  // Bedrock cross-region inference profiles.
+  /*
+   * Bedrock cross-region inference profiles (Anthropic's Bedrock guide lists
+   * global, us, eu, jp and apac; AWS's adds au).
+   */
   "us",
   "eu",
   "apac",
+  "jp",
+  "au",
   "global",
   // Provider namespaces.
   "anthropic",
@@ -975,6 +985,9 @@ const RoutingPrefixTokens: Array<string> = [
   "azure",
   "models",
 ];
+
+// What a Claude model's id starts with, once a cloud's decoration is off.
+const CLAUDE_ID_START: string = "claude-";
 
 /*
  * Where a built-in prefix stops in the middle of a word: "gpt-4" in
@@ -1228,9 +1241,12 @@ export class LlmCostCatalogUtil {
    * Expand a raw model string into normalized lookup candidates, most-specific
    * first: the full lowercase name, then the name with routing/provider
    * prefixes (path segments, dotted namespaces, region tokens) stripped away,
-   * and last, for a Claude model, the id Anthropic's API gives it
-   * (ClaudeModelId.canonicalId) — the one form OpenRouter's dotted versions,
-   * Google Cloud's "@" dates and gateway-prefixed names all share.
+   * and last, for a candidate that is a Claude id, the id Anthropic's API
+   * gives that model (ClaudeModelId.canonicalId) — the one form OpenRouter's
+   * dotted versions and Google Cloud's "@" dates share. Only a candidate
+   * that starts with the Claude id is read so: a gateway's own name that
+   * merely contains one (my-gateway-claude-sonnet-4-5) is left to the
+   * project's prices, which a built-in price must not outbid by length.
    */
   private static normalizedCandidates(model: string): Array<string> {
     if (!model || typeof model !== "string") {
@@ -1282,10 +1298,16 @@ export class LlmCostCatalogUtil {
       }
     }
 
-    const claudeId: string | null = ClaudeModelId.canonicalId(normalized);
+    for (const candidate of [...candidates]) {
+      if (!candidate.startsWith(CLAUDE_ID_START)) {
+        continue;
+      }
 
-    if (claudeId && !candidates.includes(claudeId)) {
-      candidates.push(claudeId);
+      const claudeId: string | null = ClaudeModelId.canonicalId(candidate);
+
+      if (claudeId && !candidates.includes(claudeId)) {
+        candidates.push(claudeId);
+      }
     }
 
     return candidates;

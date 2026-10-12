@@ -1,6 +1,7 @@
 import LlmTokenUsageUtil, {
   LlmAttributeNumberReader,
   LlmTokenUsage,
+  MAX_TOKEN_COUNT,
 } from "../../../Types/Telemetry/LlmTokenUsage";
 import {
   ClaudeCodeUsageAttributeKeys,
@@ -259,6 +260,22 @@ describe("prompt-cache counts", () => {
     });
   });
 
+  test("a total that already held the cache is kept: never more than input plus output", () => {
+    // The SDK left the cache out of input_tokens but summed it into the total.
+    expect(
+      read({
+        "gen_ai.usage.input_tokens": 10,
+        "gen_ai.usage.output_tokens": 50,
+        "gen_ai.usage.total_tokens": 1_060,
+        "gen_ai.usage.cache_read.input_tokens": 1_000,
+      }),
+    ).toMatchObject({
+      inputTokens: 1_010,
+      outputTokens: 50,
+      totalTokens: 1_060,
+    });
+  });
+
   test("OpenInference's prompt details are sub-counts of llm.token_count.prompt", () => {
     expect(
       read({
@@ -322,6 +339,20 @@ describe("Claude Code's traces beta", () => {
     ).toBe(5);
   });
 
+  test("a span with any convention's token key is read by the conventions, never mixed with Claude Code's", () => {
+    // A cache count of the conventions, and a bare input_tokens of some other library.
+    expect(
+      read({
+        "gen_ai.usage.cache_read.input_tokens": 800,
+        input_tokens: 1_000,
+      }),
+    ).toMatchObject({ inputTokens: 800, cacheReadTokens: 800 });
+    // A total of the conventions alone keeps Claude Code's keys out too.
+    expect(
+      read({ "gen_ai.usage.total_tokens": 50, ...CLAUDE_CODE_USAGE }),
+    ).toMatchObject({ inputTokens: 0, outputTokens: 0, totalTokens: 50 });
+  });
+
   test("a request answered entirely from the cache", () => {
     expect(
       read({
@@ -354,6 +385,28 @@ describe("Claude Code's traces beta", () => {
     expect(read({ input_tokens: 0, output_tokens: 0 })).toEqual({
       ...LlmTokenUsageUtil.empty(),
       reportedOutputTokens: 0,
+    });
+  });
+});
+
+describe("counts a token column can hold", () => {
+  test("a count past what a ClickHouse Int32 holds is capped, so the batch insert never fails", () => {
+    expect(MAX_TOKEN_COUNT).toBe(2 ** 31 - 1);
+    expect(read({ "gen_ai.usage.input_tokens": 3e9 }).inputTokens).toBe(
+      MAX_TOKEN_COUNT,
+    );
+    // Adding the cache counts in never takes the input or the total past it.
+    expect(
+      read({
+        input_tokens: 2e9,
+        output_tokens: 2e9,
+        cache_read_tokens: 2e9,
+      }),
+    ).toMatchObject({
+      inputTokens: MAX_TOKEN_COUNT,
+      outputTokens: 2e9,
+      totalTokens: MAX_TOKEN_COUNT,
+      cacheReadTokens: 2e9,
     });
   });
 });

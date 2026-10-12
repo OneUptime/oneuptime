@@ -255,6 +255,8 @@ function everyIdOf(model: OfficialClaudePrice): Array<string> {
       `us.${bedrock}`,
       `eu.${bedrock}`,
       `apac.${bedrock}`,
+      `jp.${bedrock}`,
+      `au.${bedrock}`,
       `global.${bedrock}`,
       `${model.id}@${model.snapshot}`,
       `bedrock/us.${bedrock}`,
@@ -270,6 +272,7 @@ function everyIdOf(model: OfficialClaudePrice): Array<string> {
     ids.push(
       bedrock,
       `us.${bedrock}`,
+      `jp.${bedrock}`,
       `global.${bedrock}`,
       `bedrock/global.${bedrock}`,
       `vertex_ai/${model.id}`,
@@ -554,6 +557,42 @@ describe("a model nobody has priced yet gets no price, never an older model's", 
         outputTokens: 1_000_000,
       }),
     ).toBeNull();
+  });
+});
+
+describe("a name that only contains a Claude id is not read as that model", () => {
+  test("a gateway's own name for a Claude model gets no built-in price", () => {
+    /*
+     * A gateway charges its own way (Databricks in DBUs), so its names are
+     * left to the project's prices rather than read as Anthropic's.
+     */
+    expect(prefixOf("databricks-claude-sonnet-4-5")).toBeNull();
+    expect(prefixOf("my-gateway-claude-opus-4-8")).toBeNull();
+  });
+
+  test("a project price for the gateway's names keeps winning, as it did before", () => {
+    // A 6-character project prefix: no built-in Claude entry outbids it by length.
+    expect(
+      costOf({
+        model: "my-gw-claude-sonnet-4-5",
+        inputTokens: 1_000_000,
+        projectPriceOverrides: [
+          {
+            modelPrefix: "my-gw-",
+            inputPricePerMillionTokensInUSD: 1,
+            outputPricePerMillionTokensInUSD: 2,
+          },
+        ],
+      }),
+    ).toBe(1);
+  });
+
+  test("OpenRouter's dotted ids of the retired Claude 3 models are not read", () => {
+    // The family-first parser leaves the older, version-first scheme alone.
+    expect(prefixOf("anthropic/claude-3.5-haiku")).toBeNull();
+    expect(prefixOf("anthropic/claude-3.7-sonnet")).toBeNull();
+    // Their dashed ids still find their entries.
+    expect(prefixOf("anthropic/claude-3-5-haiku")).toBe("claude-3-5-haiku");
   });
 });
 

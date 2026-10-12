@@ -219,12 +219,17 @@ export default class LlmSpanUtil {
     }
 
     /*
-     * Token columns are ClickHouse Int32 — LlmTokenUsage truncates any
-     * fractional value a malformed SDK might report, otherwise the
+     * Token columns are ClickHouse Int32 — LlmTokenUsage truncates (and
+     * caps) any value a malformed SDK might report, otherwise the
      * JSONEachRow insert would reject the row and fail the whole span batch.
      * It derives the total when only the parts were reported.
      */
-    const usage: LlmTokenUsage = this.readTokenUsage(attributes);
+    const usage: LlmTokenUsage = this.readTokenUsage(
+      attributes,
+      Boolean(
+        fields.llmSystem || fields.llmRequestModel || fields.llmResponseModel,
+      ),
+    );
 
     fields.llmInputTokens = usage.inputTokens;
     fields.llmOutputTokens = usage.outputTokens;
@@ -328,6 +333,7 @@ export default class LlmSpanUtil {
         attributes: attributes,
         kind: kind,
         context: context,
+        reportedOutputTokens: usage.reportedOutputTokens,
       });
 
       /*
@@ -341,6 +347,7 @@ export default class LlmSpanUtil {
               attributes: attributes,
               kind: kind,
               context: { ...context, statusCode: SpanStatus.Unset },
+              reportedOutputTokens: usage.reportedOutputTokens,
             }).includes(LlmAnswerIssue.Failed)
           : fields.llmIssues.includes(LlmAnswerIssue.Failed);
     }
@@ -382,6 +389,11 @@ export default class LlmSpanUtil {
     attributes: SpanAttributes;
     kind: LlmCallKind;
     context?: LlmSpanContext | undefined;
+    /*
+     * The output count as the span reported it, when the caller has read the
+     * span's usage already (extract has); read off the attributes otherwise.
+     */
+    reportedOutputTokens?: number | null | undefined;
   }): Array<LlmAnswerIssue> {
     let answer: LlmAnswerReading;
 
@@ -412,7 +424,10 @@ export default class LlmSpanUtil {
       statusIsError: data.context?.statusCode === SpanStatus.Error,
       errorType: answer.errorType,
       finishReasons: answer.finishReasons,
-      outputTokens: this.readTokenUsage(data.attributes).reportedOutputTokens,
+      outputTokens:
+        data.reportedOutputTokens !== undefined
+          ? data.reportedOutputTokens
+          : this.readTokenUsage(data.attributes).reportedOutputTokens,
       answer: answer.summary,
       evaluations: answer.evaluations,
     });
@@ -499,18 +514,24 @@ export default class LlmSpanUtil {
 
   /*
    * The span's token usage (LlmTokenUsage). Claude Code's bare usage keys are
-   * read only on a span that names its model or provider.
+   * read only on a span that names its model or provider - which the caller
+   * says when it has read them already, as extract has.
    */
-  private static readTokenUsage(attributes: SpanAttributes): LlmTokenUsage {
+  private static readTokenUsage(
+    attributes: SpanAttributes,
+    namesModelOrProvider?: boolean,
+  ): LlmTokenUsage {
     return LlmTokenUsageUtil.read({
       numberOf: (key: string): number | null => {
         return this.getNumberOrNull(attributes, [key]);
       },
-      namesModelOrProvider: Boolean(
-        this.getString(attributes, LlmSystemAttributeKeys) ||
-          this.getString(attributes, LlmRequestModelAttributeKeys) ||
-          this.getString(attributes, LlmResponseModelAttributeKeys),
-      ),
+      namesModelOrProvider:
+        namesModelOrProvider ??
+        Boolean(
+          this.getString(attributes, LlmSystemAttributeKeys) ||
+            this.getString(attributes, LlmRequestModelAttributeKeys) ||
+            this.getString(attributes, LlmResponseModelAttributeKeys),
+        ),
     });
   }
 

@@ -37,7 +37,10 @@ export interface LlmTokenUsage {
   // Every input token, cached ones included.
   inputTokens: number;
   outputTokens: number;
-  // The reported total, or input + output when none was reported.
+  /*
+   * The reported total, or input + output when none was reported - and
+   * never less than input + output once cached tokens were added in.
+   */
   totalTokens: number;
   // Of the input tokens, the ones read from the provider's prompt cache.
   cacheReadTokens: number;
@@ -56,6 +59,9 @@ export interface LlmTokenUsage {
  * one. Null when the span has no such attribute or it is not a number.
  */
 export type LlmAttributeNumberReader = (key: string) => number | null;
+
+// The largest count a token column (ClickHouse Int32) holds.
+export const MAX_TOKEN_COUNT: number = 2_147_483_647;
 
 export default class LlmTokenUsageUtil {
   public static empty(): LlmTokenUsage {
@@ -97,11 +103,27 @@ export default class LlmTokenUsageUtil {
     let output: number | null = first(LlmOutputTokenAttributeKeys);
     let cacheRead: number | null = first(LlmCacheReadTokenAttributeKeys);
     let cacheWrite: number | null = first(LlmCacheWriteTokenAttributeKeys);
+    const reportedTotal: number | null = first(LlmTotalTokenAttributeKeys);
 
     // Whether the input count leaves the cached tokens out.
     let cachedTokensApart: boolean = false;
 
-    if (input === null && output === null && data.namesModelOrProvider) {
+    /*
+     * Claude Code's keys only on a span that names its model and carries no
+     * key of any convention's token lists: never mixed with a convention's
+     * counts, and never over them.
+     */
+    const carriesConventionTokens: boolean = [
+      input,
+      output,
+      cacheRead,
+      cacheWrite,
+      reportedTotal,
+    ].some((value: number | null): boolean => {
+      return value !== null;
+    });
+
+    if (!carriesConventionTokens && data.namesModelOrProvider) {
       const claudeCode: Array<number | null> = [
         ClaudeCodeUsageAttributeKeys.inputTokens,
         ClaudeCodeUsageAttributeKeys.outputTokens,
@@ -118,8 +140,8 @@ export default class LlmTokenUsageUtil {
       ) {
         input = claudeCode[0] ?? null;
         output = claudeCode[1] ?? null;
-        cacheRead = claudeCode[2] ?? cacheRead;
-        cacheWrite = claudeCode[3] ?? cacheWrite;
+        cacheRead = claudeCode[2] ?? null;
+        cacheWrite = claudeCode[3] ?? null;
         cachedTokensApart = true;
       }
     }
@@ -128,26 +150,31 @@ export default class LlmTokenUsageUtil {
     const outputCount: number = this.count(output);
     const cacheReadTokens: number = this.count(cacheRead);
     const cacheWriteTokens: number = this.count(cacheWrite);
-    const cachedTokens: number = cacheReadTokens + cacheWriteTokens;
+    const cachedTokens: number = this.count(cacheReadTokens + cacheWriteTokens);
 
     if (cachedTokens > inputCount) {
       cachedTokensApart = true;
     }
 
-    const addedCachedTokens: number = cachedTokensApart ? cachedTokens : 0;
-    const inputTokens: number = inputCount + addedCachedTokens;
+    const inputTokens: number = this.count(
+      inputCount + (cachedTokensApart ? cachedTokens : 0),
+    );
 
     /*
-     * A reported total of a count that left the cached tokens out left them
-     * out too. One of 0 is no total at all, as it always was.
+     * The reported total, as reported - unless the input count left the
+     * cached tokens out. Then the total may have left them out too, or may
+     * hold them already: it is at least input plus output, either way. One of
+     * 0 is no total at all, as it always was.
      */
-    const reportedTotal: number = this.count(first(LlmTotalTokenAttributeKeys));
+    const totalCount: number = this.count(reportedTotal);
+    const derivedTotal: number = this.count(inputTokens + outputCount);
 
-    let totalTokens: number =
-      reportedTotal > 0 ? reportedTotal + addedCachedTokens : 0;
+    let totalTokens: number = derivedTotal;
 
-    if (totalTokens === 0 && (inputTokens > 0 || outputCount > 0)) {
-      totalTokens = inputTokens + outputCount;
+    if (totalCount > 0) {
+      totalTokens = cachedTokensApart
+        ? Math.max(totalCount, derivedTotal)
+        : totalCount;
     }
 
     return {
@@ -161,15 +188,16 @@ export default class LlmTokenUsageUtil {
   }
 
   /*
-   * A token count as a column holds it: a whole, non-negative number (the
-   * columns are ClickHouse Int32, and a malformed fractional count must not
-   * fail the batch's insert).
+   * A token count as a column holds it: a whole, non-negative number no
+   * larger than a ClickHouse Int32 holds. A malformed count - a fraction, or
+   * a count past 2^31 - 1, alone or once the cache counts are added in - must
+   * not fail the batch's insert.
    */
   private static count(value: number | null): number {
     if (value === null || !isFinite(value) || value <= 0) {
       return 0;
     }
 
-    return Math.trunc(value);
+    return Math.min(Math.trunc(value), MAX_TOKEN_COUNT);
   }
 }
