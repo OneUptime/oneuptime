@@ -37,7 +37,7 @@ Azure SQL Database og Azure SQL Managed Instance forbinder som **Microsoft SQL S
 
 PostgreSQL- og MySQL-kompatible motorer, der taler den samme wire-protokol, virker som regel, men kan have færre statistikvisninger; så rapporteres de berørte metrikker som utilgængelige i stedet for at blive indsamlet. Kun de tre motorer ovenfor er officielt testet.
 
-Hver database, som dine applikationer, klynger og værter bruger — disse tre motorer og mange flere — får også sin egen side med motorens metrikker, logs og de tjenester, der kalder den: se [Databaser](/docs/telemetry/databases). Når den vært og port, en Database Health-monitor forbinder til, er et af en databases endpoints, vises monitorens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alerts-on-a-database)).
+Hver database, som dine applikationer, klynger og værter bruger — disse tre motorer og mange flere — får også sin egen side med motorens metrikker, logs og de tjenester, der kalder den: se [Databaser](/docs/telemetry/databases). Når den vært og port, en Database Health-monitor forbinder til, er et af en databases endpoints, vises monitorens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alarmer-på-en-database)).
 
 ## Sådan virker det
 
