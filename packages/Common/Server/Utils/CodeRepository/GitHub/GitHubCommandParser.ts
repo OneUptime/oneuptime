@@ -2,6 +2,7 @@ import GitHubCommandType, {
   GitHubCommand,
   GitHubCommandSurface,
 } from "../../../../Types/CodeRepository/GitHubCommand";
+import escapeRegExp from "../../../../Utils/RegExpEscape";
 
 /*
  * Named rather than inlined at the call sites: eslint's wrap-regex wants a
@@ -130,11 +131,6 @@ export default class GitHubCommandParser {
     };
   }
 
-  // Escape a GitHub App slug for safe embedding in a RegExp.
-  private static escapeForRegExp(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   /*
    * Matches `@slug` and `@slug[bot]` where a person actually addressed the app.
    *
@@ -156,7 +152,7 @@ export default class GitHubCommandParser {
    *     a mention.
    */
   private static buildMentionRegExp(appSlug: string): RegExp {
-    const slug: string = GitHubCommandParser.escapeForRegExp(appSlug.trim());
+    const slug: string = escapeRegExp(appSlug.trim());
 
     return new RegExp(
       `(^|[\\s(\\[{*_~"'\`])@${slug}(\\[bot\\])?(?![A-Za-z0-9_-])(?!\\.[A-Za-z0-9])`,

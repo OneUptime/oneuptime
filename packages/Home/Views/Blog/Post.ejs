@@ -30,11 +30,10 @@
         <meta name="twitter:site" content="@OneUptimeHQ">
         <meta property="og:image:width" content="1280">
         <meta property="og:image:height" content="720">
-        <script type="application/ld+json">
-{
+        <%- include('../Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    "keywords": "<%= blogPost.tags.join(', ') %>",
+    "keywords": blogPost.tags.join(', '),
     "publisher": {
         "@type": "Organization",
         "name": "OneUptime",
@@ -48,31 +47,28 @@
     },
     "author": {
         "@type": "Person",
-        "name": "<%= blogPost.author.name %>",
-        "url": "<%= blogPost.author.githubUrl %>",
+        "name": blogPost.author.name,
+        "url": blogPost.author.githubUrl,
         "sameAs": []
     },
-    "headline": "<%= blogPost.title %>",
-    "url": "<%= blogPost.blogUrl %>",
-    "datePublished": "<%- blogPost.postDate -%>T00:00:00.000Z",
-    "dateModified": "<%- blogPost.postDate -%>T00:00:00.000Z",
-    "description": "<%- blogPost.description -%>",
-    "mainEntityOfPage": "<%= blogPost.blogUrl %>"
-}
-    </script>
+    "headline": blogPost.title,
+    "url": blogPost.blogUrl,
+    "datePublished": blogPost.postDate + "T00:00:00.000Z",
+    "dateModified": blogPost.postDate + "T00:00:00.000Z",
+    "description": blogPost.description,
+    "mainEntityOfPage": blogPost.blogUrl
+} }) -%>
 
         <!-- Breadcrumb schema -->
-        <script type="application/ld+json">
-{
+        <%- include('../Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://oneuptime.com/" },
         { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://oneuptime.com/blog" },
-        { "@type": "ListItem", "position": 3, "name": "<%= blogPost.title %>" }
+        { "@type": "ListItem", "position": 3, "name": blogPost.title }
     ]
-}
-        </script>
+} }) -%>
 
         <!-- Syntax highlighting with highlight.js - using VS Code dark theme -->
         <link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">

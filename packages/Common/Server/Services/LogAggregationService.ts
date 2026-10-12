@@ -719,18 +719,32 @@ export class LogAggregationService {
     }
   }
 
-  private static getAggregationExpression(request: AnalyticsRequest): string {
+  /*
+   * What a row counts: its rows, or the distinct values of one field. A
+   * top-level column is one of TOP_LEVEL_COLUMNS, named as it is; an
+   * attribute key is bound as a query parameter, as every other attribute
+   * read in this service binds it, so no character of it is ever read as
+   * SQL (validateFacetKey limits the key as well).
+   */
+  private static getAggregationExpression(
+    request: AnalyticsRequest,
+  ): Statement {
     if (request.aggregation === "unique" && request.aggregationField) {
       LogAggregationService.validateFacetKey(request.aggregationField);
 
       if (LogAggregationService.isTopLevelColumn(request.aggregationField)) {
-        return `uniqExact(${request.aggregationField})`;
+        return new Statement().append(
+          `uniqExact(${request.aggregationField})`,
+        );
       }
 
-      return `uniqExact(attributes['${request.aggregationField.replace(/'/g, "\\'")}'])`;
+      return SQL`uniqExact(attributes[${{
+        type: TableColumnType.Text,
+        value: request.aggregationField,
+      }}])`;
     }
 
-    return "count()";
+    return new Statement().append("count()");
   }
 
   private static validateGroupBy(groupBy: Array<string> | undefined): void {
@@ -755,7 +769,7 @@ export class LogAggregationService {
     LogAggregationService.validateGroupBy(request.groupBy);
 
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const statement: Statement = SQL`
@@ -765,7 +779,7 @@ export class LogAggregationService {
           value: intervalSeconds,
         }} SECOND) AS bucket`;
 
-    statement.append(`, ${aggExpr} AS cnt`);
+    statement.append(", ").append(aggExpr).append(" AS cnt");
 
     if (request.groupBy && request.groupBy.length > 0) {
       LogAggregationService.appendGroupBySelect(statement, request.groupBy);
@@ -824,7 +838,7 @@ export class LogAggregationService {
 
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_ANALYTICS_LIMIT;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const isTopLevel: boolean =
@@ -833,9 +847,7 @@ export class LogAggregationService {
     const statement: Statement = new Statement();
 
     if (isTopLevel) {
-      statement.append(
-        `SELECT toString(${groupByKey}) AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
-      );
+      statement.append(`SELECT toString(${groupByKey}) AS val, `);
     } else {
       statement.append(`SELECT attributes[`);
       statement.append(
@@ -844,10 +856,12 @@ export class LogAggregationService {
           value: groupByKey,
         }}`,
       );
-      statement.append(
-        `] AS val, ${aggExpr} AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
-      );
+      statement.append(`] AS val, `);
     }
+
+    statement
+      .append(aggExpr)
+      .append(` AS cnt FROM ${LogAggregationService.TABLE_NAME}`);
 
     statement.append(
       SQL` WHERE projectId = ${{
@@ -905,11 +919,11 @@ export class LogAggregationService {
     const groupByKeys: Array<string> = request.groupBy!;
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_ANALYTICS_LIMIT;
-    const aggExpr: string =
+    const aggExpr: Statement =
       LogAggregationService.getAggregationExpression(request);
 
     const statement: Statement = new Statement();
-    statement.append(`SELECT ${aggExpr} AS cnt`);
+    statement.append("SELECT ").append(aggExpr).append(" AS cnt");
 
     LogAggregationService.appendGroupBySelect(statement, groupByKeys);
 

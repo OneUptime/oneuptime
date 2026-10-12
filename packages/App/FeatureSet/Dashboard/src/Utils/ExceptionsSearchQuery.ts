@@ -2,6 +2,7 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import { toLikePattern } from "Common/Types/BaseDatabase/WildcardPattern";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 import {
   SearchQueryValue,
   SearchToken,
@@ -92,8 +93,6 @@ export const EXCEPTION_ERROR_CLASS_COLUMN: string = "errorClass";
  * silently dropping the filter and showing every exception in the project.
  */
 export const NO_MATCH_ENTITY_ID: string = ObjectID.getZeroObjectID().toString();
-
-const REGEXP_SPECIAL_CHARS_REGEX: RegExp = /[.*+?^${}()|[\]\\]/g;
 
 /*
  * Value syntax that only the parser can read: a chip stores a value
@@ -278,7 +277,7 @@ function likePatternToRegExp(pattern: string): RegExp {
     const character: string = pattern[index]!;
 
     if (character === "\\" && index + 1 < pattern.length) {
-      source += pattern[index + 1]!.replace(REGEXP_SPECIAL_CHARS_REGEX, "\\$&");
+      source += escapeRegExp(pattern[index + 1]!);
       index++;
       continue;
     }
@@ -293,7 +292,7 @@ function likePatternToRegExp(pattern: string): RegExp {
       continue;
     }
 
-    source += character.replace(REGEXP_SPECIAL_CHARS_REGEX, "\\$&");
+    source += escapeRegExp(character);
   }
 
   return new RegExp(`${source}$`, "i");

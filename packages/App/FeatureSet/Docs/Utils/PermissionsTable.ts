@@ -4,6 +4,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "Common/Types/Permission";
+import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
 
 /*
  * Renders the permission reference tables that the docs page embeds.
@@ -43,17 +44,18 @@ const roleTablesCache: Map<string, string> = new Map();
 const granularTablesCache: Map<string, string> = new Map();
 const scopeExemptCache: Map<string, string> = new Map();
 
+// A run of whitespace, line breaks included: one space in a cell.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 /*
  * Markdown table cells are pipe-delimited and single-line. A permission
- * description containing either character would otherwise split the row into
- * extra columns or terminate the table early.
+ * description holding a "|" or a line break would otherwise split the row
+ * into extra columns or end the table early, so its whitespace runs become
+ * one space and it is placed with markdownTableCell, which keeps every "|"
+ * in its cell whatever backslashes come before it.
  */
 export function toTableCell(text: string): string {
-  return text
-    .replace(/\r?\n/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/\|/g, "\\|")
-    .trim();
+  return markdownTableCell(text.replace(WHITESPACE_RUN, " ").trim());
 }
 
 /*

@@ -9,24 +9,19 @@
         content="Compare <%= productConfig.productName %> vs OneUptime. Free open-source alternative with flexible monitoring, status pages & on-call. Pay only for what you use. See pricing, features & migration guide.">
     
     <!-- FAQ Schema for rich snippets -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        <% for(var faqIdx=0; faqIdx < productConfig.faq.length; faqIdx++) { %>
-        {
-          "@type": "Question",
-          "name": "<%= productConfig.faq[faqIdx].question.replace(/"/g, '\\"') %>",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "<%= productConfig.faq[faqIdx].answer.replace(/"/g, '\\"') %>"
-          }
-        }<%= faqIdx < productConfig.faq.length - 1 ? ',' : '' %>
-        <% } %>
-      ]
-    }
-    </script>
+    <%- include('./Partials/json-ld', {
+        schema: {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: productConfig.faq.map(function (faq) {
+                return {
+                    '@type': 'Question',
+                    name: faq.question,
+                    acceptedAnswer: { '@type': 'Answer', text: faq.answer }
+                };
+            })
+        }
+    }) -%>
     <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>

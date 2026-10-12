@@ -11,6 +11,7 @@ import {
   neutralizeUntrustedValue,
 } from "./UntrustedMarkdown";
 import ChatInlineImages from "./ChatInlineImages";
+import { markdownTableCell } from "./MarkdownTableCell";
 import type URL from "../../Types/API/URL";
 import type ObjectID from "../../Types/ObjectID";
 
@@ -833,8 +834,6 @@ const escapeSentenceStyle: EscapeSentenceStyleFunction = (
   return escaped;
 };
 
-const TABLE_CELL_SEPARATOR_PATTERN: RegExp = /\|/g;
-
 /*
  * What starts a block when it starts a line, after the value's own
  * indentation ("   # Heading" is a heading too): a heading, a quote, a list,
@@ -865,8 +864,12 @@ const escapeSentenceValue: EscapeSentenceValueFunction = (
 ): string => {
   let escaped: string = escapeSentenceStyle(escapeMarkdownValue(text));
 
+  /*
+   * The value is Markdown by now, every backslash in it escaped, so each "|"
+   * gets the one backslash that keeps it in its cell (MarkdownTableCell).
+   */
   if (placed.inTableRow) {
-    escaped = escaped.replace(TABLE_CELL_SEPARATOR_PATTERN, "\\|");
+    escaped = markdownTableCell(escaped);
   }
 
   if (placed.startsLine) {

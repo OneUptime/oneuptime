@@ -1,4 +1,7 @@
-import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
+import {
+  buildSearchTokenGlob,
+  buildSearchTokenValue,
+} from "../../Types/Telemetry/TelemetrySearchQuery";
 import { escapeWildcards } from "../../Types/BaseDatabase/WildcardPattern";
 import {
   DictionaryFilterOperator,
@@ -23,7 +26,8 @@ import {
  * deliberately absent on metrics, whose `service:` token matches Service rows
  * by NAME and would turn an id into an empty result. Values are escaped by
  * the grammar's own {@link buildSearchTokenValue} so a literal `*`, `?`, a
- * quote or a leading operator character means itself.
+ * quote or a leading operator character means itself, and globs by its
+ * {@link buildSearchTokenGlob}, which keeps their wildcards and escapes.
  */
 
 export type TelemetrySignal = "logs" | "traces" | "metrics";
@@ -151,29 +155,6 @@ export const buildSearchTokenForFilter: BuildSearchTokenForFilterFunction = (
  * quotes, so an entry carrying either cannot be spelled inside a list at all.
  */
 const LIST_UNSAFE_ENTRY: RegExp = /,|\s+OR\s+/i;
-
-const QUOTE_REGEX: RegExp = /(")/g;
-const LEADING_OPERATOR_REGEX: RegExp = /^([-~!<>])/;
-const WRAPPED_LIST_REGEX: RegExp = /^(\()(.*)(\))$|^(\[)(.*)(\])$/;
-const WHITESPACE_REGEX: RegExp = /\s/;
-
-type RenderGlobFunction = (glob: string) => string;
-
-/*
- * A glob rendered as a token value: quotes, a leading operator character and
- * a wrapping bracket pair are escaped exactly as {@link buildSearchTokenValue}
- * escapes them, but `*` and `?` are LEFT ALONE — they are the point of the
- * glob. Quotes protect spaces, not wildcards, so a glob with a space is
- * quoted and still matches as a pattern.
- */
-const renderGlob: RenderGlobFunction = (glob: string): string => {
-  const escaped: string = glob
-    .replace(QUOTE_REGEX, "\\$1")
-    .replace(LEADING_OPERATOR_REGEX, "\\$1")
-    .replace(WRAPPED_LIST_REGEX, "\\$&");
-
-  return WHITESPACE_REGEX.test(escaped) ? `"${escaped}"` : escaped;
-};
 
 type RenderListFunction = (
   entries: Array<string>,
@@ -305,24 +286,24 @@ export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueF
           : null;
       case DictionaryFilterOperator.StartsWith:
         return literal.length > 0
-          ? positive(renderGlob(`${escapeWildcards(literal)}*`))
+          ? positive(buildSearchTokenGlob(`${escapeWildcards(literal)}*`))
           : null;
       case DictionaryFilterOperator.EndsWith:
         return literal.length > 0
-          ? positive(renderGlob(`*${escapeWildcards(literal)}`))
+          ? positive(buildSearchTokenGlob(`*${escapeWildcards(literal)}`))
           : null;
       case DictionaryFilterOperator.Matches: {
         // The form joins several globs with " OR "; split them back apart.
         const rendered: string | null = renderList(
           splitGlobs(literal),
-          renderGlob,
+          buildSearchTokenGlob,
         );
         return rendered ? positive(rendered) : null;
       }
       case DictionaryFilterOperator.NotMatches: {
         const rendered: string | null = renderList(
           splitGlobs(literal),
-          renderGlob,
+          buildSearchTokenGlob,
         );
         return rendered ? negative(rendered) : null;
       }

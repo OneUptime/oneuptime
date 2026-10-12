@@ -12,6 +12,8 @@
  * passed through DOMPurify before being injected by callers.
  */
 
+import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
+
 const escapeAttr: (s: string) => string = (s: string): string => {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 };
@@ -73,6 +75,8 @@ const RE_WHITESPACE_CHAR: RegExp = /\s/;
 const RE_LIST_START: RegExp = /^\s*\d+\s*$/;
 // A template variable, "{{incident.title}}", on one line and with no braces inside.
 const RE_TEMPLATE_VARIABLE: RegExp = /\{\{[^{}\n]*\}\}/g;
+// The line breaks a table cell's text is joined over.
+const RE_LINE_BREAK_RUN: RegExp = /\n+/g;
 
 // A tab advances to the next multiple of four columns, as in CommonMark.
 const TAB_WIDTH: number = 4;
@@ -231,6 +235,82 @@ interface ParsedTableRow {
   cells: Array<string>;
 }
 
+// How many backslashes come right before `index` in `text`.
+const backslashesBefore: (text: string, index: number) => number = (
+  text: string,
+  index: number,
+): number => {
+  let count: number = 0;
+
+  while (index - count - 1 >= 0 && text[index - count - 1] === "\\") {
+    count++;
+  }
+
+  return count;
+};
+
+/*
+ * The cells of a table row, read as GFM reads them. A "|" after an even
+ * number of backslashes (none included) ends a cell, and the row's first and
+ * last such "|" only frame it. Any other "|" is escaped: it belongs to its
+ * cell, and the backslash that escapes it is taken out, so "\|" reads "|"
+ * and "\\\|" reads "\\|". tableToMarkdown writes cells this way
+ * (markdownTableCell), so a "|" in a cell comes back in its cell however many
+ * times the document is opened and saved. One pass over the row.
+ */
+const splitTableRow: (line: string) => Array<string> = (
+  line: string,
+): Array<string> => {
+  const row: string = line.trim();
+  let start: number = 0;
+  let end: number = row.length;
+
+  if (row[0] === "|") {
+    start = 1;
+  }
+
+  if (
+    end > start &&
+    row[end - 1] === "|" &&
+    backslashesBefore(row, end - 1) % 2 === 0
+  ) {
+    end--;
+  }
+
+  const cells: Array<string> = [];
+  let cell: string = "";
+  let backslashes: number = 0;
+
+  for (let index: number = start; index < end; index++) {
+    const character: string = row[index]!;
+
+    if (character === "\\") {
+      backslashes++;
+      cell += character;
+      continue;
+    }
+
+    if (character === "|") {
+      if (backslashes % 2 === 0) {
+        cells.push(cell.trim());
+        cell = "";
+      } else {
+        cell = `${cell.slice(0, -1)}|`;
+      }
+
+      backslashes = 0;
+      continue;
+    }
+
+    backslashes = 0;
+    cell += character;
+  }
+
+  cells.push(cell.trim());
+
+  return cells;
+};
+
 const tryParseTable: (
   lines: Array<string>,
   start: number,
@@ -253,16 +333,7 @@ const tryParseTable: (
     return null;
   }
 
-  const splitRow: (line: string) => Array<string> = (
-    line: string,
-  ): Array<string> => {
-    const trimmed: string = line.trim().replace(/^\||\|$/g, "");
-    return trimmed.split("|").map((c: string): string => {
-      return c.trim();
-    });
-  };
-
-  const header: ParsedTableRow = { cells: splitRow(headerLine) };
+  const header: ParsedTableRow = { cells: splitTableRow(headerLine) };
   const body: Array<ParsedTableRow> = [];
   let i: number = start + 2;
   while (i < lines.length) {
@@ -270,7 +341,7 @@ const tryParseTable: (
     if (line.trim() === "" || !line.includes("|")) {
       break;
     }
-    body.push({ cells: splitRow(line) });
+    body.push({ cells: splitTableRow(line) });
     i++;
   }
 
@@ -885,11 +956,15 @@ const tableToMarkdown: (table: HTMLTableElement) => string = (
     return "";
   }
 
+  /*
+   * A cell's text on one line, placed with markdownTableCell: every "|" stays
+   * in its cell, whatever backslashes come before it, and splitTableRow reads
+   * it back.
+   */
   const cellText: (cell: Element) => string = (cell: Element): string => {
-    return serializeChildren(cell)
-      .replace(/\|/g, "\\|")
-      .replace(/\n+/g, " ")
-      .trim();
+    return markdownTableCell(
+      serializeChildren(cell).replace(RE_LINE_BREAK_RUN, " ").trim(),
+    );
   };
 
   let header: Array<string> = [];

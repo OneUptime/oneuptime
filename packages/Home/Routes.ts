@@ -57,6 +57,7 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { commitCountFromLinkHeader } from "./Utils/GitHubCommitCount";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -598,18 +599,14 @@ const HomeFeatureSet: FeatureSet = {
       });
 
       if (gitHubCommits === "-") {
-        // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
-        const link: string | undefined = response.headers["link"];
-        const urlString: string | undefined = link
-          ?.split(",")[1]
-          ?.split(";")[0]
-          ?.replace("<", "")
-          .replace(">", "")
-          .trim();
-        const url: URL = URL.fromString(urlString!);
-        const commits: string = Number.parseInt(
-          url.getQueryParam("page") as string,
-        ).toLocaleString();
+        /*
+         * The count is the last page's number (commitCountFromLinkHeader).
+         * An answer without one - rate limited, say - leaves "-" on the page
+         * and is asked again on the next visit.
+         */
+        const commitsCount: number | null = commitCountFromLinkHeader(
+          response.headers["link"],
+        );
 
         if (!gitHubBasicInfo) {
           const basicInfo: HTTPResponse<JSONObject> = await API.get({
@@ -621,7 +618,9 @@ const HomeFeatureSet: FeatureSet = {
           gitHubBasicInfo = basicInfo.data as JSONObject;
         }
 
-        gitHubCommits = commits;
+        if (commitsCount !== null) {
+          gitHubCommits = commitsCount.toLocaleString();
+        }
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

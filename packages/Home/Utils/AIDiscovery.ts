@@ -18,6 +18,7 @@ import ProductCompare, {
   getProductCompareSlugs,
 } from "./ProductCompare";
 import { JSONObject } from "Common/Types/JSON";
+import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
 import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
 
 /*
@@ -58,9 +59,12 @@ function formatPlanValue(value: string | boolean): string {
   return value;
 }
 
-// Escape characters that would break a markdown table cell.
+/*
+ * A value in a markdown table cell: every "|" kept in its cell and every
+ * line break made a space (markdownTableCell).
+ */
 function tableCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return markdownTableCell(value);
 }
 
 /*

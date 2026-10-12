@@ -21,8 +21,7 @@
     <%# The reader's serif loads without blocking the page; the reader waits for it before laying out pages. -%>
     <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&display=swap">
-    <script type="application/ld+json">
-    <%- JSON.stringify({
+    <%- include('./Partials/json-ld', { schema: {
         '@context': 'https://schema.org',
         '@type': 'Book',
         name: book.title,
@@ -39,8 +38,7 @@
             { '@type': 'Book', bookFormat: 'https://schema.org/EBook', encodingFormat: 'application/pdf', url: book.pdfUrl },
             { '@type': 'Book', bookFormat: 'https://schema.org/EBook', encodingFormat: 'application/epub+zip', url: book.epubUrl }
         ]
-    }, null, 4).replace(/</g, '\\u003c') %>
-    </script>
+    } }) -%>
 </head>
 <body class="books-body">
     <%- include('nav') -%>

@@ -128,11 +128,18 @@ const NUMERIC_REGEX: RegExp = /^-?\d+(\.\d+)?$/;
 const WHITESPACE_REGEX: RegExp = /\s/;
 
 /*
- * A quote is escaped wherever it appears: the tokenizer toggles on any of
- * them, so an unescaped one mid-value would swallow the following space and
- * silently merge two tokens.
+ * What a literal value escapes wherever it appears, in one pass: the escape
+ * character itself, the two wildcards, and the quote - the tokenizer toggles
+ * on any quote, so an unescaped one mid-value would swallow the following
+ * space and silently merge two tokens. Escaping the backslash in the same
+ * pass is what keeps every other escape meaning what it says: a value that
+ * ends in "\" would otherwise escape the quote that closes it.
  */
-const QUOTE_REGEX: RegExp = /(")/g;
+const LITERAL_SYNTAX_CHARACTER_REGEX: RegExp = /[\\*?"]/g;
+
+// What a glob's text holds besides its own escapes and wildcards.
+const BACKSLASH: string = "\\";
+const QUOTE: string = '"';
 
 /*
  * `~ ! > <` are operators ONLY as the first character of a value, and a
@@ -724,12 +731,65 @@ type BuildSearchTokenValueFunction = (literal: string) => string;
 export const buildSearchTokenValue: BuildSearchTokenValueFunction = (
   literal: string,
 ): string => {
-  const escaped: string = escapeWildcards(literal)
-    .replace(QUOTE_REGEX, "\\$1")
+  return asSearchTokenValue(
+    literal.replace(LITERAL_SYNTAX_CHARACTER_REGEX, "\\$&"),
+  );
+};
+
+type BuildSearchTokenGlobFunction = (glob: string) => string;
+
+/**
+ * Render a glob - `*` and `?` its wildcards, `\` escaping the character after
+ * it, as typed into an attribute filter form - into a search token that means
+ * that same glob.
+ *
+ * The glob's escapes are the grammar's own, so each `\x` pair is kept as
+ * written, and `*` and `?` are left alone: they are the point of the glob.
+ * What would read differently in a token is escaped: every other quote, and
+ * a `\` that ends the glob - a literal backslash there (WildcardPattern),
+ * which in a quoted token would escape the closing quote and run the token
+ * on into whatever follows it. Then, as for a literal, a leading operator
+ * character and a wrapping bracket pair are escaped, and a glob with a space
+ * is quoted: quotes protect spaces, not wildcards, so it still matches as a
+ * pattern.
+ */
+export const buildSearchTokenGlob: BuildSearchTokenGlobFunction = (
+  glob: string,
+): string => {
+  let escaped: string = "";
+
+  for (let index: number = 0; index < glob.length; index++) {
+    const character: string = glob[index]!;
+
+    if (character === BACKSLASH) {
+      const next: string | undefined = glob[index + 1];
+
+      escaped += next === undefined ? BACKSLASH + BACKSLASH : character + next;
+      index++;
+      continue;
+    }
+
+    escaped += character === QUOTE ? BACKSLASH + QUOTE : character;
+  }
+
+  return asSearchTokenValue(escaped);
+};
+
+type AsSearchTokenValueFunction = (escaped: string) => string;
+
+/*
+ * A value whose characters are already escaped, as a token: its leading
+ * operator character and a bracket pair wrapping it escaped (only there do
+ * they mean anything), and quoted when it holds whitespace.
+ */
+const asSearchTokenValue: AsSearchTokenValueFunction = (
+  escaped: string,
+): string => {
+  const token: string = escaped
     .replace(LEADING_OPERATOR_REGEX, "\\$1")
     .replace(WRAPPED_LIST_REGEX, "\\$&");
 
-  return WHITESPACE_REGEX.test(escaped) ? `"${escaped}"` : escaped;
+  return WHITESPACE_REGEX.test(token) ? `"${token}"` : token;
 };
 
 type CompileAttributeChipValuesFunction = (

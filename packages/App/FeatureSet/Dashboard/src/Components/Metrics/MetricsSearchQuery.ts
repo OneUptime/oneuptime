@@ -13,6 +13,7 @@
  */
 
 import { toLikePattern } from "Common/Types/BaseDatabase/WildcardPattern";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 import {
   SearchQueryValue,
   SearchToken,
@@ -91,15 +92,7 @@ export interface ParsedMetricsSearch {
   attributes: MetricsAttributeFilters;
 }
 
-const REGEXP_SPECIAL_CHARS_REGEX: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 const NUMERIC_REGEX: RegExp = /^-?\d+(\.\d+)?$/;
-
-type EscapeRegExpFunction = (value: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (value: string): string => {
-  return value.replace(REGEXP_SPECIAL_CHARS_REGEX, "\\$&");
-};
 
 type GlobToRegExpFunction = (glob: string) => RegExp;
 
