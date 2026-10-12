@@ -1,6 +1,7 @@
 import {
   SnmpTableColumnRole,
   SnmpTableDefinition,
+  SnmpTableFailureReason,
   SnmpTableKind,
   SnmpTableResult,
   SnmpTableSnapshot,
@@ -977,6 +978,118 @@ describe("SnmpTableListUtil.mergeWithPrevious", () => {
         return snapshot.key;
       }),
     ).toEqual(["wifi_radios", "ipsec_tunnels"]);
+  });
+
+  it("carries a failure's reason with its cause onto the stored rows", () => {
+    const [notWalked] = SnmpTableListUtil.notWalked({
+      tables: [ipsecTable()],
+      failureCause: "not walked",
+      failureReason: SnmpTableFailureReason.ProbeDidNotWalkTables,
+    });
+
+    const [merged] = SnmpTableListUtil.mergeWithPrevious({
+      current: [notWalked!],
+      previous: [previous],
+      definedKeys: ["ipsec_tunnels"],
+    });
+
+    expect(merged!.rows).toEqual(previous.rows);
+    expect(merged!.failureCause).toBe("not walked");
+    expect(merged!.failureReason).toBe(
+      SnmpTableFailureReason.ProbeDidNotWalkTables,
+    );
+  });
+
+  it("never keeps a stored reason past the failure it was given for", () => {
+    const stored: SnmpTableSnapshot = {
+      ...previous,
+      failureCause: "not walked",
+      failureReason: SnmpTableFailureReason.ProbeDidNotWalkTables,
+    };
+
+    const timedOut: SnmpTableSnapshot = materializeOne(ipsecTable(), {
+      key: "ipsec_tunnels",
+      rows: [],
+      failureCause: "timeout",
+    });
+
+    const [afterFailure] = SnmpTableListUtil.mergeWithPrevious({
+      current: [timedOut],
+      previous: [stored],
+      definedKeys: ["ipsec_tunnels"],
+    });
+
+    expect(afterFailure!.failureCause).toBe("timeout");
+    expect(afterFailure!.failureReason).toBeUndefined();
+    expect("failureReason" in afterFailure!).toBe(false);
+
+    const walked: SnmpTableSnapshot = materializeOne(
+      ipsecTable(),
+      ipsecResult(),
+    );
+
+    const [afterWalk] = SnmpTableListUtil.mergeWithPrevious({
+      current: [walked],
+      previous: [stored],
+      definedKeys: ["ipsec_tunnels"],
+    });
+
+    expect(afterWalk).toEqual(walked);
+    expect(afterWalk!.failureReason).toBeUndefined();
+  });
+});
+
+describe("SnmpTableListUtil.notWalked", () => {
+  it("is every defined table, named and shaped by its definition, with no rows and the cause", () => {
+    const snapshots: Array<SnmpTableSnapshot> = SnmpTableListUtil.notWalked({
+      tables: [ipsecTable(), radioTable()],
+      failureCause: "The probe did not walk it.",
+      failureReason: SnmpTableFailureReason.ProbeDidNotWalkTables,
+    });
+
+    expect(
+      snapshots.map((snapshot: SnmpTableSnapshot) => {
+        return [snapshot.key, snapshot.name, snapshot.kind];
+      }),
+    ).toEqual([
+      ["ipsec_tunnels", "IPsec Tunnels", SnmpTableKind.VpnTunnel],
+      ["wifi_radios", radioTable().name, SnmpTableKind.WifiRadio],
+    ]);
+
+    for (const snapshot of snapshots) {
+      expect(snapshot.rows).toEqual([]);
+      expect(snapshot.failureCause).toBe("The probe did not walk it.");
+      expect(snapshot.failureReason).toBe(
+        SnmpTableFailureReason.ProbeDidNotWalkTables,
+      );
+      // Nothing was collected.
+      expect(snapshot.collectedAt).toBeUndefined();
+      expect(snapshot.isTruncated).toBeUndefined();
+    }
+
+    // The columns are the materialized ones, roles and healthy values kept.
+    expect(snapshots[0]!.columns).toEqual(
+      materializeOne(ipsecTable(), ipsecResult()).columns,
+    );
+  });
+
+  it("gives no reason when none is known", () => {
+    const [snapshot] = SnmpTableListUtil.notWalked({
+      tables: [ipsecTable()],
+      failureCause: "Not walked.",
+    });
+
+    expect(snapshot!.failureCause).toBe("Not walked.");
+    expect("failureReason" in snapshot!).toBe(false);
+  });
+
+  it("is nothing for no tables", () => {
+    expect(
+      SnmpTableListUtil.notWalked({
+        tables: [],
+        failureCause: "Not walked.",
+      }),
+    ).toEqual([]);
   });
 });
 

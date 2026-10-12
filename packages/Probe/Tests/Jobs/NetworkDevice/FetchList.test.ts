@@ -206,12 +206,29 @@ describe("fetchAndPollDevices — fetching this probe's due devices", () => {
    * devices to a probe that says it can ping them — an older probe would
    * walk such a device with community "public" and report it Down.
    */
-  test("declares the networkDevicePing capability on the list fetch", async () => {
+  test("declares the networkDevicePing and snmpTables capabilities on the list fetch", async () => {
     await fetchAndPollDevices();
 
     expect(fetchCalls()[0]!.body["probeCapabilities"]).toEqual([
       "networkDevicePing",
+      "snmpTables",
     ]);
+  });
+
+  /*
+   * The ingest reads the capabilities off the report itself: a walk that
+   * carries no tableResults is read by them as "handed no tables" (this
+   * probe) or "cannot walk tables" (a probe from before them).
+   */
+  test("declares snmpTables on every poll report, the walk's and the ping's alike", async () => {
+    await pollDevice(makeDevice());
+    await pollDevice(makePingOnlyDevice());
+
+    expect(ingestCalls()).toHaveLength(2);
+
+    for (const call of ingestCalls()) {
+      expect(call.body["probeCapabilities"]).toContain("snmpTables");
+    }
   });
 
   test("no due devices: no ping, no SNMP walk, no ingest report", async () => {

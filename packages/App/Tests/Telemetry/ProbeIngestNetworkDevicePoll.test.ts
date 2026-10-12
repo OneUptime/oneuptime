@@ -1531,6 +1531,61 @@ describe("POST /probe/network-device/response/ingest", () => {
     expect(walkRequestBody["monitoredAt"]).toBeUndefined();
   });
 
+  /*
+   * Every probe body carries the probe's capabilities (its default request
+   * body). The processor needs them to tell a walk that was handed no SNMP
+   * tables from one by a probe that cannot walk them.
+   */
+  test("forwards the probe's capabilities with its walk", async () => {
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          isOnline: true,
+          pollMode: "snmp",
+          snmpResponse: snmpResponse,
+          probeCapabilities: ["networkDevicePing", "snmpTables"],
+        },
+      }),
+    );
+
+    expect(queuedWalkBody()["probeCapabilities"]).toEqual([
+      "networkDevicePing",
+      "snmpTables",
+    ]);
+  });
+
+  test("forwards no capabilities for a probe that declared none, and only names for one that sent junk", async () => {
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          snmpResponse: snmpResponse,
+        },
+      }),
+    );
+
+    expect(queuedWalkBody()["probeCapabilities"]).toEqual([]);
+
+    jest.clearAllMocks();
+    queueService.addNetworkDeviceWalkJob.mockResolvedValue(undefined as never);
+
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          snmpResponse: snmpResponse,
+          probeCapabilities: [{ snmpTables: true }, "", "snmpTables", 3],
+        },
+      }),
+    );
+
+    expect(queuedWalkBody()["probeCapabilities"]).toEqual(["snmpTables"]);
+  });
+
   test("passes queue failures to the error handler", async () => {
     const boom: Error = new Error("queue down");
     queueService.addNetworkDeviceWalkJob.mockRejectedValue(boom as never);
