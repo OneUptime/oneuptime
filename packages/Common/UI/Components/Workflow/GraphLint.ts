@@ -537,96 +537,6 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       });
     }
 
-    // -- Switch / Case -----------------------------------------------------
-
-    if (data.metadata.id === ComponentID.Switch) {
-      const reading: SwitchCasesReading = parseSwitchCases(
-        argumentValues[SWITCH_ARGUMENT_IDS.cases],
-      );
-
-      if (!reading.isReadable) {
-        addNodeIssue({
-          rule: WorkflowLintRule.SwitchCasesUnreadable,
-          severity: WorkflowLintSeverity.Error,
-          argumentId: SWITCH_ARGUMENT_IDS.cases,
-          message:
-            translateText(
-              "This step's cases could not be read, so every run stops here. Open the step and add its cases again.",
-            ) || "",
-        });
-      }
-
-      const connected: Set<string> =
-        connectedOutputsByNodeId[node.id] || new Set<string>();
-
-      reading.cases.forEach((switchCase: SwitchCase, index: number) => {
-        const comparison: ConditionComparison | null =
-          getSwitchCaseComparison(switchCase);
-
-        if (!comparison) {
-          addNodeIssue({
-            rule: WorkflowLintRule.SwitchCaseUnknownComparison,
-            severity: WorkflowLintSeverity.Error,
-            argumentId: SWITCH_ARGUMENT_IDS.cases,
-            message: translateTemplate(
-              "Case {{number}} has a comparison this step does not know, so every run stops here. Choose one, such as is equal to.",
-              { number: index + 1 },
-            ),
-          });
-          return;
-        }
-
-        /*
-         * A case with nothing to compare with is not set up yet: the step
-         * says "Click to set up", as it does for an empty setting.
-         */
-        if (!isSwitchCaseSetUp(switchCase)) {
-          addNodeIssue({
-            rule: WorkflowLintRule.MissingRequiredArgument,
-            severity: WorkflowLintSeverity.Error,
-            argumentId: SWITCH_ARGUMENT_IDS.cases,
-            message: translateTemplate(
-              "Case {{number}} needs a value to compare with.",
-              { number: index + 1 },
-            ),
-          });
-          return;
-        }
-
-        if (!connected.has(switchCase.id)) {
-          addNodeIssue({
-            rule: WorkflowLintRule.SwitchCaseNotConnected,
-            severity: WorkflowLintSeverity.Warning,
-            argumentId: SWITCH_ARGUMENT_IDS.cases,
-            message: translateTemplate(
-              'Nothing is connected to case {{number}}, "{{case}}", so a run that matches it stops at this step.',
-              {
-                number: index + 1,
-                case: getSwitchCaseLabel(switchCase, index),
-              },
-            ),
-          });
-        }
-      });
-
-      for (const shadowed of findShadowedSwitchCases(
-        reading.cases,
-      ) as Array<ShadowedSwitchCase>) {
-        addNodeIssue({
-          rule: WorkflowLintRule.SwitchCaseNeverTaken,
-          severity: WorkflowLintSeverity.Warning,
-          argumentId: SWITCH_ARGUMENT_IDS.cases,
-          message: translateTemplate(
-            "Case {{number}} asks the same as case {{earlier}}, which is checked first, so case {{number}} is never taken. Change it or remove it.",
-            {
-              number: shadowed.index + 1,
-              earlier: shadowed.sameAsIndex + 1,
-            },
-          ),
-        });
-      }
-    }
-
     // -- arguments ---------------------------------------------------------
 
     const argumentMetadata: Array<Argument> = data.metadata.arguments || [];
@@ -864,6 +774,113 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
           }
         }
       }
+    }
+
+    // -- Switch / Case -----------------------------------------------------
+
+    /*
+     * After the settings' own checks, so a new step's issues read in the
+     * order of its settings - the value to check, then its cases - and each
+     * case's issues come together, case by case.
+     */
+    if (data.metadata.id === ComponentID.Switch) {
+      const reading: SwitchCasesReading = parseSwitchCases(
+        argumentValues[SWITCH_ARGUMENT_IDS.cases],
+      );
+
+      if (!reading.isReadable) {
+        addNodeIssue({
+          rule: WorkflowLintRule.SwitchCasesUnreadable,
+          severity: WorkflowLintSeverity.Error,
+          argumentId: SWITCH_ARGUMENT_IDS.cases,
+          message:
+            translateText(
+              "This step's cases could not be read, so every run stops here. Open the step and add its cases again.",
+            ) || "",
+        });
+      }
+
+      const connected: Set<string> =
+        connectedOutputsByNodeId[node.id] || new Set<string>();
+
+      // The earlier case each repeat asks the same as, by the repeat's place.
+      const repeatedCases: Map<number, number> = new Map<number, number>(
+        findShadowedSwitchCases(reading.cases).map(
+          (shadowed: ShadowedSwitchCase): [number, number] => {
+            return [shadowed.index, shadowed.sameAsIndex];
+          },
+        ),
+      );
+
+      reading.cases.forEach((switchCase: SwitchCase, index: number) => {
+        const comparison: ConditionComparison | null =
+          getSwitchCaseComparison(switchCase);
+
+        if (!comparison) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseUnknownComparison,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} has a comparison this step does not know, so every run stops here. Choose one, such as is equal to.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        /*
+         * A case with nothing to compare with is not set up yet: the step
+         * says "Click to set up", as it does for an empty setting.
+         */
+        if (!isSwitchCaseSetUp(switchCase)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.MissingRequiredArgument,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} needs a value to compare with.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        const sameAsIndex: number | undefined = repeatedCases.get(index);
+
+        if (sameAsIndex !== undefined) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseNeverTaken,
+            severity: WorkflowLintSeverity.Warning,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} asks the same as case {{earlier}}, which is checked first, so case {{number}} is never taken. Change it or remove it.",
+              {
+                number: index + 1,
+                earlier: sameAsIndex + 1,
+              },
+            ),
+          });
+
+          // Never taken, so what it leads to does not matter.
+          return;
+        }
+
+        if (!connected.has(switchCase.id)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseNotConnected,
+            severity: WorkflowLintSeverity.Warning,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              'Nothing is connected to case {{number}}, "{{case}}", so a run that matches it stops at this step.',
+              {
+                number: index + 1,
+                case: getSwitchCaseLabel(switchCase, index),
+              },
+            ),
+          });
+        }
+      });
     }
   }
 

@@ -17,6 +17,11 @@
  * connected says that saving removes the connection, and offers to put the
  * case back.
  *
+ * A case's grip, number, comparison and remove button share one line, centred
+ * on it. On a phone the grip, number and remove button keep the first line
+ * and the comparison and value take the row's whole width under them, rather
+ * than a value squeezed into a third of it.
+ *
  * Each case is an If / Else condition without its value to check, chosen
  * from the same list of comparisons, compared by the same rules and
  * annotated in the same words (SwitchModel, through ConditionModel).
@@ -58,6 +63,7 @@ import {
   changeCaseValue,
   getCaseCompareAs,
   getCaseConditionState,
+  getCaseListNotes,
   getCaseNotes,
   getRemovedConnectedCases,
   hasSwitchErrors,
@@ -104,6 +110,9 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useAfterPress, {
+  AfterPressFunction,
+} from "../../../Utils/UseAfterPress";
 import useTranslator from "../../../Utils/UseTranslator";
 
 export interface SwitchEditorProps {
@@ -142,6 +151,18 @@ export const SWITCH_TEST_IDS: {
 };
 
 export const NOT_CONNECTED_LABEL: string = translationKey("Not connected");
+
+// The control in a case's row the focus goes to.
+enum FocusedControl {
+  Remove = "Remove",
+  Comparison = "Comparison",
+}
+
+interface FocusAfterChange {
+  // The case to focus, or null for Add case.
+  caseId: string | null;
+  control: FocusedControl;
+}
 
 interface Touched {
   valueToCheck?: boolean | undefined;
@@ -248,11 +269,64 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
   // The case just added, whose value takes the focus.
   const [addedCaseId, setAddedCaseId] = useState<string | null>(null);
 
+  /*
+   * Where the keyboard focus goes once the list is drawn again. The control
+   * that was pressed - a case's remove button, Put back - is gone from the
+   * page by then, and the focus would fall out of the dialog with it: a
+   * removed case hands it to the next case's remove button (or the one above,
+   * or Add case when none is left), a case put back to its own comparison.
+   */
+  const [focusAfterChange, setFocusAfterChange] =
+    useState<FocusAfterChange | null>(null);
+  const rootRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+
   const [touched, setTouched] = useState<Touched>({ cases: {} });
+
+  /*
+   * A field's message waits for the press that left it to end: shown at
+   * once, it pushed Add case or a case's remove button down under the
+   * pointer, and that first press did nothing (Utils/UseAfterPress).
+   */
+  const afterPress: AfterPressFunction = useAfterPress();
 
   useEffect(() => {
     props.onValidationChange(hasErrors);
   }, [hasErrors]);
+
+  useEffect(() => {
+    if (!focusAfterChange) {
+      return;
+    }
+
+    setFocusAfterChange(null);
+
+    const root: HTMLDivElement | null = rootRef.current;
+
+    if (!root) {
+      return;
+    }
+
+    const caseRow: Element | null = focusAfterChange.caseId
+      ? root.querySelector(`[data-case-id="${focusAfterChange.caseId}"]`)
+      : null;
+
+    let target: HTMLElement | null = null;
+
+    if (caseRow && focusAfterChange.control === FocusedControl.Remove) {
+      target = caseRow.querySelector<HTMLElement>(
+        '[data-testid^="switch-case-remove-"]',
+      );
+    } else if (caseRow) {
+      target = caseRow.querySelector<HTMLElement>('input[role="combobox"]');
+    } else {
+      target = root.querySelector<HTMLElement>(
+        `[data-testid="${SWITCH_TEST_IDS.addCase}"]`,
+      );
+    }
+
+    target?.focus();
+  }, [focusAfterChange]);
 
   type SetCasesFunction = (next: Array<SwitchCase>) => void;
 
@@ -264,14 +338,43 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
 
   // An error shows under a case once it has been left, as in every form.
   const touchCase: TouchCaseFunction = (id: string): void => {
-    setTouched((current: Touched) => {
-      return current.cases[id]
-        ? current
-        : { ...current, cases: { ...current.cases, [id]: true } };
+    afterPress(() => {
+      setTouched((current: Touched) => {
+        return current.cases[id]
+          ? current
+          : { ...current, cases: { ...current.cases, [id]: true } };
+      });
     });
   };
 
   const isFull: boolean = cases.length >= MAX_SWITCH_CASES;
+
+  type RemoveFunction = (switchCase: SwitchCase) => void;
+
+  const remove: RemoveFunction = (switchCase: SwitchCase): void => {
+    const index: number = cases.findIndex((candidate: SwitchCase): boolean => {
+      return candidate.id === switchCase.id;
+    });
+    const next: Array<SwitchCase> = removeCase(cases, switchCase.id);
+    const nextFocused: SwitchCase | undefined =
+      next[Math.min(Math.max(index, 0), next.length - 1)];
+
+    setFocusAfterChange({
+      caseId: nextFocused ? nextFocused.id : null,
+      control: FocusedControl.Remove,
+    });
+    setCases(next);
+  };
+
+  type PutBackFunction = (removed: RemovedConnectedCase) => void;
+
+  const putBack: PutBackFunction = (removed: RemovedConnectedCase): void => {
+    setFocusAfterChange({
+      caseId: removed.switchCase.id,
+      control: FocusedControl.Comparison,
+    });
+    setCases(putCaseBack(cases, removed.switchCase, removed.index));
+  };
 
   type AddFunction = () => void;
 
@@ -336,6 +439,10 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
 
     setCases(change.cases);
   };
+
+  // A case never taken, or one whose comparison the step does not know.
+  const caseListNotes: Dictionary<Array<ConditionNote>> =
+    getCaseListNotes(cases);
 
   const removedCases: Array<RemovedConnectedCase> = getRemovedConnectedCases({
     originalCases: originalCases,
@@ -460,34 +567,50 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
           }
         : undefined;
 
+    const notes: Array<ConditionNote> = [
+      ...(caseListNotes[switchCase.id] || []),
+      ...getCaseNotes(state.valueToCheck, switchCase),
+    ];
+
     return (
       <li
         ref={provided.innerRef}
         {...provided.draggableProps}
         data-testid={`switch-case-${index}`}
         data-case-id={switchCase.id}
-        className={`rounded-lg border bg-white px-2 py-2 sm:px-3 ${
+        className={`rounded-lg border bg-white p-2 sm:px-3 ${
           snapshot.isDragging
             ? "border-indigo-200 shadow-lg ring-1 ring-indigo-100"
             : "border-gray-200"
         }`}
       >
-        <div className="flex items-start gap-1.5 sm:gap-2">
-          <div className="pt-1">
+        {/*
+          Three columns: the grip and number, the case, the remove button.
+          On a phone the case drops to a line of its own, the whole width;
+          what it leads to sits under the case either way.
+        */}
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-1.5 gap-y-2 sm:gap-x-2">
+          <div
+            className="col-start-1 row-start-1 flex h-10 items-center gap-1.5"
+            data-testid={`switch-case-place-${index}`}
+          >
             <DragHandle
               dragHandleProps={provided.dragHandleProps}
               itemLabel={translator.translateTemplate("Case {{number}}", {
                 number: number,
               })}
             />
+            <span
+              aria-hidden="true"
+              className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-md bg-gray-100 px-1.5 text-xs font-semibold tabular-nums text-gray-600"
+            >
+              {number}
+            </span>
           </div>
-          <span
-            aria-hidden="true"
-            className="mt-1.5 inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-md bg-gray-100 px-1.5 text-xs font-semibold tabular-nums text-gray-600"
+          <div
+            className="col-span-3 row-start-2 grid min-w-0 grid-cols-1 gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)]"
+            data-testid={`switch-case-fields-${index}`}
           >
-            {number}
-          </span>
-          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)]">
             <Dropdown
               options={CONDITION_COMPARISON_OPTIONS}
               value={selectedComparison}
@@ -505,7 +628,8 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                 { number: number },
               )}
               isClearable={false}
-              className="relative w-full"
+              // One line, as the value beside it: cut short, never wrapped.
+              className="relative w-full [&_.ou-select__placeholder]:max-w-full [&_.ou-select__placeholder]:truncate"
               dataTestId={`switch-case-comparison-${index}`}
               error={
                 isTouched && caseErrors.comparison
@@ -548,7 +672,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
               <></>
             )}
           </div>
-          <div className="pt-0.5">
+          <div className="col-start-3 row-start-1 flex h-10 items-center justify-end">
             <Button
               title="Remove"
               ariaLabel={translator.translateTemplate(
@@ -561,31 +685,34 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
               icon={IconProp.Trash}
               dataTestId={`switch-case-remove-${index}`}
               onClick={() => {
-                setCases(removeCase(cases, switchCase.id));
+                remove(switchCase);
               }}
             />
           </div>
-        </div>
-        <div className="mt-1.5 space-y-1 pl-[3.75rem] sm:pl-16">
-          {props.connections ? (
-            <ConnectionLine
-              steps={props.connections[switchCase.id]}
-              dataTestId={`switch-case-connection-${index}`}
-            />
-          ) : (
-            <></>
-          )}
-          {renderNotes(getCaseNotes(state.valueToCheck, switchCase), index)}
-          <span className="sr-only" data-testid={`switch-case-label-${index}`}>
-            {label}
-          </span>
+          <div className="col-span-3 row-start-3 min-w-0 space-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-2">
+            {props.connections ? (
+              <ConnectionLine
+                steps={props.connections[switchCase.id]}
+                dataTestId={`switch-case-connection-${index}`}
+              />
+            ) : (
+              <></>
+            )}
+            {renderNotes(notes, index)}
+            <span
+              className="sr-only"
+              data-testid={`switch-case-label-${index}`}
+            >
+              {label}
+            </span>
+          </div>
         </div>
       </li>
     );
   };
 
   return (
-    <div className="space-y-5" data-testid={SWITCH_TEST_IDS.root}>
+    <div ref={rootRef} className="space-y-5" data-testid={SWITCH_TEST_IDS.root}>
       <div className="space-y-1.5">
         <label
           id={valueLabelId}
@@ -609,10 +736,12 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
               : undefined
           }
           onBlur={() => {
-            setTouched((current: Touched) => {
-              return current.valueToCheck
-                ? current
-                : { ...current, valueToCheck: true };
+            afterPress(() => {
+              setTouched((current: Touched) => {
+                return current.valueToCheck
+                  ? current
+                  : { ...current, valueToCheck: true };
+              });
             });
           }}
         />
@@ -742,13 +871,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                           { case: removed.label },
                         )}
                         onClick={() => {
-                          setCases(
-                            putCaseBack(
-                              cases,
-                              removed.switchCase,
-                              removed.index,
-                            ),
-                          );
+                          putBack(removed);
                         }}
                       />
                     </li>
@@ -767,8 +890,11 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             icon={IconProp.Add}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
-            // Flush with the cases above, not a modal footer's gap in from them.
-            className="md:!ml-0"
+            /*
+             * Flush with the cases above, not a modal footer's gap in from
+             * them; and plainly off once the step holds all it can.
+             */
+            className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
             dataTestId={SWITCH_TEST_IDS.addCase}
             disabled={isFull}
             onClick={add}

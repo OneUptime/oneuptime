@@ -25,8 +25,11 @@ import {
   changeCaseValue,
   getCaseCompareAs,
   getCaseErrors,
+  getCaseListNotes,
   getCaseNotes,
   getRemovedConnectedCases,
+  NEVER_TAKEN_NOTE_ID,
+  UNKNOWN_COMPARISON_NOTE_ID,
   hasSwitchErrors,
   moveCase,
   patchForCases,
@@ -503,6 +506,87 @@ describe("what is worth knowing about a case", () => {
 
   test("nothing for a case that compares as it reads", () => {
     expect(getCaseNotes(SEVERITY, aCase("case-1", "==", "x"))).toEqual([]);
+  });
+});
+
+describe("what is wrong with a case as part of the list", () => {
+  test("a case that asks the same as one above it is never taken, and says which case takes its runs", () => {
+    const notes: Record<string, Array<ConditionNote>> = getCaseListNotes([
+      aCase("case-1", "==", "Critical Incident"),
+      aCase("case-2", "==", "Major Incident"),
+      aCase("case-3", "==", "Critical Incident"),
+    ]);
+
+    expect(notes).toEqual({
+      "case-3": [
+        {
+          id: NEVER_TAKEN_NOTE_ID,
+          tone: ConditionNoteTone.Warning,
+          text: "Case 1 asks the same and is checked first, so this case is never taken.",
+        },
+      ],
+    });
+  });
+
+  test("the same value compared another way is not a repeat: ranges and Compare as are allowed", () => {
+    expect(
+      getCaseListNotes([
+        aCase("case-1", "<", "300", ConditionValueType.Number),
+        aCase("case-2", "<", "500", ConditionValueType.Number),
+        aCase("case-3", "==", "300", ConditionValueType.Text),
+        aCase("case-4", "==", "300", ConditionValueType.Number),
+      ]),
+    ).toEqual({});
+  });
+
+  test("a comparison the step does not know is quoted as it was saved, with what to do", () => {
+    const notes: Record<string, Array<ConditionNote>> = getCaseListNotes([
+      aCase("case-1", "==", "production"),
+      aCase("case-2", "~=", "staging"),
+    ]);
+
+    expect(notes).toEqual({
+      "case-2": [
+        {
+          id: UNKNOWN_COMPARISON_NOTE_ID,
+          tone: ConditionNoteTone.Warning,
+          text: "“~=” is not a comparison this step knows, so every run stops here. Choose one from the list.",
+        },
+      ],
+    });
+  });
+
+  test("a long unknown comparison is cut short, at a whole character", () => {
+    const text: string =
+      getCaseListNotes([aCase("case-1", "x".repeat(200), "a")])["case-1"]?.[0]
+        ?.text || "";
+
+    expect(text.startsWith(`“${"x".repeat(39)}…”`)).toBe(true);
+
+    const emoji: string =
+      getCaseListNotes([aCase("case-1", "🚨".repeat(60), "a")])["case-1"]?.[0]
+        ?.text || "";
+
+    expect(emoji.startsWith(`“${"🚨".repeat(39)}…”`)).toBe(true);
+  });
+
+  test("a comparison not chosen yet is not one: Choose a comparison says what to do", () => {
+    expect(getCaseListNotes([aCase("case-1", "", "a")])).toEqual({});
+    expect(getCaseListNotes([aCase("case-1", "   ", "a")])).toEqual({});
+  });
+
+  test("new, empty cases are not repeats of each other", () => {
+    expect(getCaseListNotes(getStarterSwitchCases())).toEqual({});
+  });
+
+  test("nothing for a list that is set up", () => {
+    expect(
+      getCaseListNotes([
+        aCase("case-1", "==", "production"),
+        aCase("case-2", "contains", "staging"),
+        aCase("case-3", "is empty"),
+      ]),
+    ).toEqual({});
   });
 });
 

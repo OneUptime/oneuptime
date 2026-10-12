@@ -15,6 +15,11 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * out taking its connection with it; a case dragged by its grip changing the
  * order the outputs are checked in; and the settings on a phone and in the
  * dark theme. The rules themselves are unit tested in packages/Common.
+ *
+ * And, from the UI review: a case's controls on one line on a laptop, and
+ * across the whole row on a phone; the keyboard focus staying in the list
+ * when a case is removed or put back; and a step holding every case it can
+ * still fitting the canvas.
  */
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -119,6 +124,61 @@ async function boxOf(locator: Locator): Promise<Box> {
 
 function centerX(box: Box): number {
   return box.x + box.width / 2;
+}
+
+// Where the parts of a case's row are, read in one frame.
+interface CaseRowParts {
+  row: Box;
+  grip: Box;
+  number: Box;
+  comparison: Box;
+  value: Box | null;
+  removeIcon: Box;
+}
+
+async function caseRowParts(
+  dialog: Locator,
+  index: number,
+): Promise<CaseRowParts> {
+  return dialog
+    .getByTestId(`switch-case-${index}`)
+    .evaluate((element: Element, at: number): CaseRowParts => {
+      const boxOfElement: (part: Element | null) => Box = (
+        part: Element | null,
+      ): Box => {
+        if (!part) {
+          throw new Error("A part of the case's row is missing.");
+        }
+
+        const rect: DOMRect = part.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      };
+
+      const value: Element | null = element.querySelector(
+        `[data-testid="switch-case-value-${at}-box"]`,
+      );
+
+      return {
+        row: boxOfElement(element),
+        grip: boxOfElement(
+          element.querySelector('[data-testid="drag-handle"]'),
+        ),
+        number: boxOfElement(
+          element.querySelector(
+            `[data-testid="switch-case-place-${at}"] span[aria-hidden="true"]`,
+          ),
+        ),
+        comparison: boxOfElement(element.querySelector(".ou-select__control")),
+        value: value ? boxOfElement(value) : null,
+        removeIcon: boxOfElement(
+          element.querySelector(`[data-testid="switch-case-remove-${at}"] svg`),
+        ),
+      };
+    }, index);
+}
+
+function middleY(box: Box): number {
+  return box.y + box.height / 2;
 }
 
 /*
@@ -704,5 +764,201 @@ test.describe("Workflow builder: Switch / Case", () => {
       await expect(part).toBeVisible();
       expect(luminanceOf(await backgroundOf(part))).toBeLessThan(0.1);
     }
+  });
+  test("a case's grip, number, comparison and remove button share one line on a laptop, centred on it", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "On a phone the case takes a line of its own.");
+    await openBuilder(page, "switch");
+    const dialog: Locator = await openSettings(page);
+
+    for (const index of [0, 1]) {
+      const parts: CaseRowParts = await caseRowParts(dialog, index);
+      const line: number = middleY(parts.comparison);
+
+      // The grip, the number and the bin sat a few pixels off the line.
+      expect(Math.abs(middleY(parts.grip) - line)).toBeLessThan(1.5);
+      expect(Math.abs(middleY(parts.number) - line)).toBeLessThan(1.5);
+      expect(Math.abs(middleY(parts.removeIcon) - line)).toBeLessThan(1.5);
+      expect(Math.abs(middleY(parts.value as Box) - line)).toBeLessThan(1.5);
+
+      // Left to right: grip, number, comparison, value, remove.
+      expect(parts.grip.x).toBeLessThan(parts.number.x);
+      expect(parts.number.x + parts.number.width).toBeLessThanOrEqual(
+        parts.comparison.x,
+      );
+      expect(parts.comparison.x + parts.comparison.width).toBeLessThanOrEqual(
+        (parts.value as Box).x,
+      );
+      expect(
+        (parts.value as Box).x + (parts.value as Box).width,
+      ).toBeLessThanOrEqual(parts.removeIcon.x);
+      // As wide as If / Else's: the longest comparison reads whole.
+      expect(parts.comparison.width).toBeGreaterThanOrEqual(255);
+    }
+  });
+
+  test("on a phone, the comparison and the value take the case's whole width, under its grip and remove button", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(!isMobile, "On a laptop the case shares its grip's line.");
+    await openBuilder(page, "switch");
+    const dialog: Locator = await openSettings(page);
+    const parts: CaseRowParts = await caseRowParts(dialog, 0);
+
+    // The grip, number and remove button keep the first line...
+    expect(
+      Math.abs(middleY(parts.grip) - middleY(parts.removeIcon)),
+    ).toBeLessThan(1.5);
+    expect(Math.abs(middleY(parts.number) - middleY(parts.grip))).toBeLessThan(
+      1.5,
+    );
+    // ...and the comparison and the value are under them, the row's width.
+    expect(parts.comparison.y).toBeGreaterThanOrEqual(
+      parts.grip.y + parts.grip.height,
+    );
+    expect((parts.value as Box).y).toBeGreaterThanOrEqual(
+      parts.comparison.y + parts.comparison.height,
+    );
+    expect(parts.comparison.width).toBeGreaterThan(parts.row.width * 0.9);
+    expect((parts.value as Box).width).toBeGreaterThan(parts.row.width * 0.9);
+  });
+
+  test("removing a case from the keyboard keeps the focus in the list, and so does putting it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "switch");
+    const dialog: Locator = await openSettings(page);
+
+    await dialog.getByRole("button", { name: "Remove case 1" }).focus();
+    await page.keyboard.press("Enter");
+
+    // staging is case 1 now, and its remove button has the focus.
+    await expect(caseValue(dialog, 1)).toHaveText("staging");
+    await expect(
+      dialog.getByRole("button", { name: "Remove case 1" }),
+    ).toBeFocused();
+
+    const putBack: Locator = dialog.getByRole("button", {
+      name: "Put case “production” back",
+    });
+    await putBack.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(caseValue(dialog, 1)).toHaveText("production");
+    await expect(
+      dialog.getByRole("combobox", { name: "Comparison for case 1" }),
+    ).toBeFocused();
+    // Still in the dialog: Tab moves on to the case's value.
+    await page.keyboard.press("Tab");
+    await expect(caseValue(dialog, 1)).toBeFocused();
+  });
+
+  test("a step holding every case it can still fits a laptop's canvas, every dot under its name", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone shows part of any workflow at once.");
+    await openBuilder(page, "switch-full");
+
+    const card: Locator = stepCard(page, "switch-1");
+    await expect(outputNames(card)).toHaveCount(26);
+
+    const canvas: Box = await boxOf(page.locator(".react-flow"));
+
+    // Fitted to the screen, all of it is in view, not a slice of its middle.
+    await expect
+      .poll(async () => {
+        const box: Box = await boxOf(card);
+        return (
+          box.x >= canvas.x - 0.5 &&
+          box.x + box.width <= canvas.x + canvas.width + 0.5
+        );
+      })
+      .toBe(true);
+
+    const portIds: Array<string> = [
+      ...Array.from({ length: 25 }, (_value: unknown, index: number) => {
+        return `case-${index + 1}`;
+      }),
+      "default",
+    ];
+    expect(await outputDotIds(card)).toEqual(portIds);
+    await expectDotsUnderNames(card, portIds);
+  });
+
+  test("Add case is plainly off once the step holds every case it can, and says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "switch-full");
+    const dialog: Locator = await openSettings(page);
+    const addCase: Locator = dialog.getByRole("button", { name: "Add case" });
+
+    await expect(addCase).toBeDisabled();
+    expect(
+      Number(
+        await addCase.evaluate((element: Element): string => {
+          return getComputedStyle(element).opacity;
+        }),
+      ),
+    ).toBeLessThan(1);
+    await expect(
+      dialog.getByText("A step holds at most 25 cases."),
+    ).toBeVisible();
+  });
+  test("in a new step, the first press on a case's remove button or Add case does what it says, though leaving the empty value to check shows its message", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "graph");
+    await page.getByTestId("add-component").click();
+    const panel: Locator = page.getByTestId("side-over");
+    await panel.locator("#workflow-component-search").fill("case");
+    await panel
+      .getByRole("option", { name: "Switch / Case", exact: true })
+      .click();
+    await expect(panel).toHaveCount(0);
+
+    const dialog: Locator = await openSettings(page);
+    const valueToCheck: Locator = dialog.getByRole("textbox", {
+      name: "Value to check",
+    });
+    // The empty value to check has the focus as the settings open.
+    await expect(valueToCheck).toBeFocused();
+
+    /*
+     * Leaving it shows "Pick or type the value to check." under it, a line
+     * that pushed the cases down between the press and the release: the
+     * click landed on nothing, and the case stayed.
+     */
+    await dialog.getByRole("button", { name: "Remove case 2" }).click();
+    await expect(dialog.getByTestId(/^switch-case-\d+$/)).toHaveCount(1);
+    await expect(
+      dialog.getByText("Pick or type the value to check."),
+    ).toBeVisible();
+
+    // And from a case's empty value, Add case.
+    await caseValue(dialog, 1).click();
+    await dialog.getByRole("button", { name: "Add case" }).click();
+    await expect(dialog.getByTestId(/^switch-case-\d+$/)).toHaveCount(2);
+    await expect(
+      dialog.getByText("Type or pick what to compare with."),
+    ).toBeVisible();
   });
 });

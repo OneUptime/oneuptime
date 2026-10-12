@@ -28115,5 +28115,7 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Les cas de cette étape n'ont pas pu être lus ; chaque exécution s'arrête donc ici. Ouvrez l'étape et ajoutez de nouveau ses cas.",
   "Value for case {{number}}": "Valeur du cas {{number}}",
   "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Le cas {{earlier}} demande la même chose et est vérifié en premier ; ce cas n'est donc jamais pris.",
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "« {{comparison}} » n'est pas une comparaison que cette étape connaît ; chaque exécution s'arrête donc ici. Choisissez-en une dans la liste."
 }

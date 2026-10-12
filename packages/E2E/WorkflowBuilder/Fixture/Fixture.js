@@ -11,6 +11,8 @@
  *                         environment: "production" leads to log-1,
  *                         "staging" to log-2 and Default to log-3; log-4 is
  *                         on the canvas, connected to nothing yet
+ * ?scenario=switch-full   a Switch / Case holding every case a step can
+ *                         (25, named like severities), Default to log-1
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -111,6 +113,36 @@ if (scenario === "empty") {
     edge("canvas-switch-1", "case-1", "canvas-log-1"),
     edge("canvas-switch-1", "case-2", "canvas-log-2"),
     edge("canvas-switch-1", "default", "canvas-log-3"),
+  ];
+} else if (scenario === "switch-full") {
+  const names = [
+    "Critical Incident",
+    "Major Incident",
+    "Minor Incident",
+    "Customer reported",
+  ];
+  const cases = [];
+
+  for (let index = 0; index < 25; index++) {
+    cases.push({
+      id: `case-${index + 1}`,
+      comparison: "==",
+      value: names[index] || `Severity ${index + 1}`,
+      compareAs: "text",
+    });
+  }
+
+  initialNodes = [
+    step("manual", 1, 160, 32),
+    step("switch", 1, 160, 240, {
+      value: "{{local.components.manual-1.returnValues.value.severity}}",
+      cases: cases,
+    }),
+    step("log", 1, 160, 480, { value: "Anything else" }),
+  ];
+  initialEdges = [
+    edge("canvas-manual-1", "success", "canvas-switch-1"),
+    edge("canvas-switch-1", "default", "canvas-log-1"),
   ];
 } else {
   initialNodes = [

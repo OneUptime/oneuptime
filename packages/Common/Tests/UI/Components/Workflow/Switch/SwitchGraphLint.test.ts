@@ -196,7 +196,7 @@ describe("a Switch / Case that is set up and connected", () => {
 });
 
 describe("what still needs setting up", () => {
-  test("a new step: the value to check, and each of its two empty cases", () => {
+  test("a new step: the value to check, then each of its two empty cases, in the order the settings show them", () => {
     const issues: Array<WorkflowLintIssue> = switchIssues(
       lint({ cases: toStoredSwitchCases(getStarterSwitchCases()) }),
     );
@@ -209,6 +209,12 @@ describe("what still needs setting up", () => {
       [
         WorkflowLintRule.MissingRequiredArgument,
         WorkflowLintSeverity.Error,
+        "value",
+        '"Value to check" is required but empty.',
+      ],
+      [
+        WorkflowLintRule.MissingRequiredArgument,
+        WorkflowLintSeverity.Error,
         "cases",
         "Case 1 needs a value to compare with.",
       ],
@@ -217,12 +223,6 @@ describe("what still needs setting up", () => {
         WorkflowLintSeverity.Error,
         "cases",
         "Case 2 needs a value to compare with.",
-      ],
-      [
-        WorkflowLintRule.MissingRequiredArgument,
-        WorkflowLintSeverity.Error,
-        "value",
-        '"Value to check" is required but empty.',
       ],
     ]);
   });
@@ -235,9 +235,9 @@ describe("what still needs setting up", () => {
 
     expect(summaries["n-switch"]).toEqual({
       missingSettingMessages: [
+        '"Value to check" is required but empty.',
         "Case 1 needs a value to compare with.",
         "Case 2 needs a value to compare with.",
-        '"Value to check" is required but empty.',
       ],
       errorMessages: [],
       warningMessages: [],
@@ -337,6 +337,56 @@ describe("cases that are never taken", () => {
         message:
           "Case 3 asks the same as case 1, which is checked first, so case 3 is never taken. Change it or remove it.",
       }),
+    ]);
+  });
+
+  test("is not also said to have nothing connected: it never runs, so where it leads does not matter", () => {
+    const issues: Array<WorkflowLintIssue> = switchIssues(
+      lint(
+        {
+          value: VALUE,
+          cases: [
+            aCase("case-1", "==", "Critical Incident"),
+            aCase("case-2", "==", "Critical Incident"),
+          ],
+        },
+        [edge("n-switch", "case-1", "n-log-a")],
+      ),
+    );
+
+    expect(
+      issues.map((issue: WorkflowLintIssue): WorkflowLintRule => {
+        return issue.rule;
+      }),
+    ).toEqual([WorkflowLintRule.SwitchCaseNeverTaken]);
+  });
+});
+
+describe("the order the issues are listed in", () => {
+  test("case by case, from the top, each case's issues together", () => {
+    const issues: Array<WorkflowLintIssue> = switchIssues(
+      lint(
+        {
+          value: VALUE,
+          cases: [
+            aCase("case-1", "==", "a"),
+            aCase("case-2", "==", "b"),
+            aCase("case-3", "==", "a"),
+            aCase("case-4", "~=", "c"),
+          ],
+        },
+        [edge("n-switch", "case-1", "n-log-a")],
+      ),
+    );
+
+    expect(
+      issues.map((issue: WorkflowLintIssue): string => {
+        return issue.message.slice(0, 32);
+      }),
+    ).toEqual([
+      "Nothing is connected to case 2, ",
+      "Case 3 asks the same as case 1, ",
+      "Case 4 has a comparison this ste",
     ]);
   });
 });

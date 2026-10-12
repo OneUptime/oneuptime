@@ -28115,5 +28115,7 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Det här stegets fall kunde inte läsas, så varje körning stannar här. Öppna steget och lägg till dess fall igen.",
   "Value for case {{number}}": "Värde för fall {{number}}",
   "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Fall {{earlier}} frågar samma sak och kontrolleras först, så det här fallet väljs aldrig.",
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "”{{comparison}}” är inte en jämförelse som det här steget känner till, så varje körning stannar här. Välj en i listan."
 }

@@ -19,6 +19,7 @@ import {
   SwitchCase,
   SwitchCasesReading,
   describeSwitchCaseCondition,
+  getSwitchCaseComparison,
   parseSwitchCases,
 } from "../../../Types/Workflow/Components/SwitchCases";
 import {
@@ -384,6 +385,52 @@ const templateText: TemplateTextFunction = (
 
 type DescribeSwitchCasesFunction = (value: unknown) => string | null;
 
+// How much of an unknown comparison, or its value, a line quotes.
+const RECEIVED_CASE_TEXT_MAX_LENGTH: number = 60;
+
+type ShortenReceivedFunction = (text: string) => string;
+
+// Cut at a whole character, so an emoji is never split in two.
+const shortenReceived: ShortenReceivedFunction = (text: string): string => {
+  const characters: Array<string> = Array.from(text);
+
+  return characters.length > RECEIVED_CASE_TEXT_MAX_LENGTH
+    ? `${characters
+        .slice(0, RECEIVED_CASE_TEXT_MAX_LENGTH - 1)
+        .join("")
+        .trimEnd()}…`
+    : text;
+};
+
+type DescribeReceivedCaseFunction = (switchCase: SwitchCase) => string;
+
+/*
+ * One case as received. A comparison the step does not know is quoted as it
+ * was saved - "~= “staging”" - since that is what stopped the run; a case
+ * that does not say what it compares yet is "not set up".
+ */
+const describeReceivedCase: DescribeReceivedCaseFunction = (
+  switchCase: SwitchCase,
+): string => {
+  const condition: string | null = describeSwitchCaseCondition(switchCase);
+
+  if (condition) {
+    return condition;
+  }
+
+  const comparison: string = switchCase.comparison.trim();
+
+  if (!comparison || getSwitchCaseComparison(switchCase)) {
+    return "not set up";
+  }
+
+  const value: string = switchCase.value.trim();
+
+  return value
+    ? `${shortenReceived(comparison)} “${shortenReceived(value)}”`
+    : shortenReceived(comparison);
+};
+
 /**
  * A Switch / Case's cases as a run received them, one line each in the words
  * of the canvas and of the run's reason - "Case 2: is equal to “staging”" -
@@ -401,9 +448,7 @@ export const describeSwitchCasesForTrace: DescribeSwitchCasesFunction = (
 
   return reading.cases
     .map((switchCase: SwitchCase, index: number): string => {
-      return `Case ${index + 1}: ${
-        describeSwitchCaseCondition(switchCase) || "not set up"
-      }`;
+      return `Case ${index + 1}: ${describeReceivedCase(switchCase)}`;
     })
     .join("\n");
 };

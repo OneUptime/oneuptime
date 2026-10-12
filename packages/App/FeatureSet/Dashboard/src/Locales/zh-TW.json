@@ -28115,5 +28115,7 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "無法讀取此步驟的分支，因此每次執行都會在此停止。請開啟該步驟並重新新增分支。",
   "Value for case {{number}}": "分支 {{number}} 的值",
   "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "分支 {{earlier}} 條件相同且先被檢查，因此此分支永遠不會被選中。",
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "「{{comparison}}」不是此步驟能辨識的比較方式，因此每次執行都會在此停止。請從清單中選擇一種。"
 }

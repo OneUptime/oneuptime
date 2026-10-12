@@ -28115,5 +28115,7 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Не удалось прочитать варианты этого шага, поэтому каждый запуск останавливается здесь. Откройте шаг и добавьте его варианты заново.",
   "Value for case {{number}}": "Значение для варианта {{number}}",
   "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Вариант {{earlier}} проверяет то же самое и проверяется раньше, поэтому этот вариант никогда не выбирается.",
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» — сравнение, которого этот шаг не знает, поэтому каждый запуск останавливается здесь. Выберите сравнение из списка."
 }

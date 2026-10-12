@@ -117,6 +117,10 @@ export const getSwitchDocumentation: UtilityDocumentationFunction = (
       "Under **Cases**, choose a comparison and a value for each way the workflow can go. They are checked from the top, and the first that matches wins.",
       "Each case is an output on the canvas, named after its value. Connect each one, and **Default**, to what should run.",
     ],
+    /*
+     * Real cases, not "the first value": what a value from an earlier step
+     * is sorted by, and that a value matching both takes the first.
+     */
     examples: sample
       ? [
           {
@@ -125,11 +129,10 @@ export const getSwitchDocumentation: UtilityDocumentationFunction = (
               { name: "Value to check", value: sample.reference },
               {
                 name: "Cases",
-                value:
-                  "is equal to the first value, then is equal to the second",
+                value: "contains “error”, then contains “warning”",
               },
             ],
-            description: `The first case runs when ${sample.description} is the first value, the second when it is the second, and **Default** for anything else.`,
+            description: `When ${sample.description} contains error, the first case runs, even if it says warning too. When it contains only warning, the second runs. Anything else goes down **Default**.`,
           },
         ]
       : [
@@ -153,7 +156,7 @@ export const getSwitchDocumentation: UtilityDocumentationFunction = (
     notes: [
       {
         type: ComponentDocumentationNoteType.Tip,
-        text: "Only the first case that matches runs. Put a narrower case above a wider one: below is greater than 100, a case asking is greater than 500 is never reached.",
+        text: "Only the first case that matches runs. Put narrow cases first: is greater than 500 above is greater than 100. The other way round, 600 takes the 100 case, and the 500 case never runs.",
       },
       {
         type: ComponentDocumentationNoteType.Tip,

@@ -28115,5 +28115,7 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "حالت‌های این گام خوانده نشد، پس هر اجرا اینجا متوقف می‌شود. گام را باز کنید و حالت‌هایش را دوباره اضافه کنید.",
   "Value for case {{number}}": "مقدار برای حالت {{number}}",
   "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "حالت {{earlier}} همین را می‌پرسد و زودتر بررسی می‌شود، پس این حالت هرگز انتخاب نمی‌شود.",
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» مقایسه‌ای نیست که این گام آن را بشناسد، پس هر اجرا اینجا متوقف می‌شود. یکی را از فهرست انتخاب کنید."
 }

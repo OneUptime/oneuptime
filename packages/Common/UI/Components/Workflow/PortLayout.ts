@@ -9,14 +9,29 @@
  * more room - a Switch / Case's cases, named after their values - up to a
  * column's widest; a longer name is cut short, and its tooltip has it whole.
  *
+ * A card never grows past MAX_OUTPUT_CARD_WIDTH, though: a Switch / Case with
+ * many long cases would otherwise be wider than the canvas can show even
+ * zoomed all the way out, and fitting the workflow to the screen would show a
+ * slice of its middle. Past that, the columns narrow instead, down to the
+ * narrowest, and the names are cut shorter.
+ *
  * Pure: no DOM, no React Flow.
  */
 
 import { WORKFLOW_NODE_WIDTH } from "./NodePlacement";
+import { MAX_SWITCH_CASES } from "../../../Types/Workflow/Components/Switch";
 
 // The narrowest column an output gets, and the widest one a long name gets.
 export const MIN_OUTPUT_COLUMN_WIDTH: number = 72;
 export const MAX_OUTPUT_COLUMN_WIDTH: number = 160;
+
+/*
+ * The widest a card gets: the most outputs a step can have - a Switch /
+ * Case's every case and Default - in the narrowest columns. React Flow zooms
+ * out to half size at most, so the widest card still fits a laptop's canvas.
+ */
+export const MAX_OUTPUT_CARD_WIDTH: number =
+  (MAX_SWITCH_CASES + 1) * MIN_OUTPUT_COLUMN_WIDTH;
 
 /*
  * A name's width, roughly, at the 11px medium weight the card draws names in:
@@ -52,12 +67,18 @@ export const getOutputLayout: GetOutputLayoutFunction = (
     }),
   );
 
-  const columnWidth: number = Math.min(
+  const neededColumnWidth: number = Math.min(
     MAX_OUTPUT_COLUMN_WIDTH,
     Math.max(
       MIN_OUTPUT_COLUMN_WIDTH,
       Math.ceil(longest * CHARACTER_WIDTH) + COLUMN_PADDING,
     ),
+  );
+
+  // Narrower columns once the card would be wider than any card gets.
+  const columnWidth: number = Math.max(
+    MIN_OUTPUT_COLUMN_WIDTH,
+    Math.min(neededColumnWidth, Math.floor(MAX_OUTPUT_CARD_WIDTH / count)),
   );
 
   const width: number = columnWidth * count;

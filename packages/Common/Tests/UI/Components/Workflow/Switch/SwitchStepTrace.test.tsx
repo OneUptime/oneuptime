@@ -317,9 +317,37 @@ describe("the cases a Switch / Case received", () => {
     expect(
       describeSwitchCasesForTrace([
         { id: "case-1", comparison: "==", value: "", compareAs: "" },
-        { id: "case-2", comparison: "~=", value: "x", compareAs: "" },
+        { id: "case-2", comparison: "contains", value: "  ", compareAs: "" },
       ]),
     ).toBe("Case 1: not set up\nCase 2: not set up");
+  });
+
+  /*
+   * It is set up - with a comparison the step does not know, which is what
+   * stopped the run - so it is quoted as it was saved, not called not set up.
+   */
+  test("a comparison the step does not know reads as it was saved", () => {
+    expect(
+      describeSwitchCasesForTrace([
+        { id: "case-1", comparison: "==", value: "a", compareAs: "" },
+        { id: "case-2", comparison: "~=", value: "x", compareAs: "" },
+        { id: "case-3", comparison: "is roughly", value: "", compareAs: "" },
+      ]),
+    ).toBe("Case 1: is equal to “a”\nCase 2: ~= “x”\nCase 3: is roughly");
+  });
+
+  test("a long unknown comparison and its value are cut short", () => {
+    const text: string =
+      describeSwitchCasesForTrace([
+        {
+          id: "case-1",
+          comparison: "~".repeat(100),
+          value: "v".repeat(100),
+          compareAs: "",
+        },
+      ]) || "";
+
+    expect(text).toBe(`Case 1: ${"~".repeat(59)}… “${"v".repeat(59)}…”`);
   });
 
   test("the list kept as JSON text reads the same", () => {

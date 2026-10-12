@@ -7652,7 +7652,13 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           componentId: "switch-1",
           metadataId: ComponentID.Switch,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
+          /*
+           * Its cases' names make the card wider than the trigger above it
+           * (Workflow/PortLayout), so it starts further left: centred under
+           * the trigger, the connection into it runs straight down, and so
+           * does the one from its middle case to slack-major.
+           */
+          position: { x: 32, y: 300 },
           args: {
             value:
               "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",

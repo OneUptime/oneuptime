@@ -25,9 +25,11 @@ import {
 import { ConditionComparisonId } from "../../../../Types/Workflow/Components/ConditionComparison";
 import { SWITCH_ARGUMENT_IDS } from "../../../../Types/Workflow/Components/Switch";
 import {
+  ShadowedSwitchCase,
   SwitchCase,
   SwitchCasesReading,
   createSwitchCase,
+  findShadowedSwitchCases,
   getNextSwitchCaseId,
   getSwitchCaseLabel,
   nameTemplateValue,
@@ -36,6 +38,7 @@ import {
   shortReferenceName,
   toStoredSwitchCases,
 } from "../../../../Types/Workflow/Components/SwitchCases";
+import { resolveConditionOperator } from "../../../../Types/Workflow/Components/ConditionEvaluation";
 import {
   TemplateExpression,
   TemplateExpressionKind,
@@ -44,6 +47,7 @@ import {
 import {
   ComparisonChange,
   ConditionNote,
+  ConditionNoteTone,
   ConditionState,
   VALUE_TO_CHECK_LABEL,
   isBlankConditionValue,
@@ -55,6 +59,7 @@ import {
 } from "../Condition/ConditionModel";
 import {
   translatePlural,
+  translateTemplate,
   translationKey,
 } from "../../../Utils/TranslateTemplate";
 
@@ -460,6 +465,87 @@ export const getCaseNotes: GetCaseNotesFunction = (
   ).filter((note: ConditionNote): boolean => {
     return !note.id.endsWith(VALUE_TO_CHECK_LABEL);
   });
+};
+
+// The note ids getCaseListNotes gives, for the tests and the notes' order.
+export const UNKNOWN_COMPARISON_NOTE_ID: string = "unknown-comparison";
+export const NEVER_TAKEN_NOTE_ID: string = "never-taken";
+
+// How much of a stored comparison a note quotes.
+const QUOTED_COMPARISON_MAX_LENGTH: number = 40;
+
+type GetCaseListNotesFunction = (
+  cases: Array<SwitchCase>,
+) => Dictionary<Array<ConditionNote>>;
+
+/**
+ * What is wrong with a case as part of the list, by case id: a comparison
+ * the step does not know, which stops every run, and a case that asks the
+ * same as one above it, so it is never taken. The Builder's checks say both
+ * on the canvas; the settings say them under the case, where they are fixed,
+ * from the moment they open - they come from how the cases were saved, not
+ * from a field being typed in, so they do not wait for one to be left.
+ */
+export const getCaseListNotes: GetCaseListNotesFunction = (
+  cases: Array<SwitchCase>,
+): Dictionary<Array<ConditionNote>> => {
+  const notes: Dictionary<Array<ConditionNote>> = {};
+
+  type AddNoteFunction = (id: string, note: ConditionNote) => void;
+
+  const addNote: AddNoteFunction = (id: string, note: ConditionNote): void => {
+    notes[id] = [...(notes[id] || []), note];
+  };
+
+  for (const switchCase of cases) {
+    const comparison: string = switchCase.comparison.trim();
+
+    // A comparison not chosen yet is what "Choose a comparison." is for.
+    if (!comparison || resolveConditionOperator(switchCase.comparison)) {
+      continue;
+    }
+
+    // Cut at a whole character, so an emoji is never split in two.
+    const characters: Array<string> = Array.from(comparison);
+    const quoted: string =
+      characters.length > QUOTED_COMPARISON_MAX_LENGTH
+        ? `${characters
+            .slice(0, QUOTED_COMPARISON_MAX_LENGTH - 1)
+            .join("")
+            .trimEnd()}…`
+        : comparison;
+
+    addNote(switchCase.id, {
+      id: UNKNOWN_COMPARISON_NOTE_ID,
+      tone: ConditionNoteTone.Warning,
+      text: translateTemplate(
+        "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.",
+        { comparison: quoted },
+      ),
+    });
+  }
+
+  const shadowedCases: Array<ShadowedSwitchCase> =
+    findShadowedSwitchCases(cases);
+
+  for (const shadowed of shadowedCases) {
+    const switchCase: SwitchCase | undefined = cases[shadowed.index];
+
+    if (!switchCase) {
+      continue;
+    }
+
+    addNote(switchCase.id, {
+      id: NEVER_TAKEN_NOTE_ID,
+      tone: ConditionNoteTone.Warning,
+      text: translateTemplate(
+        "Case {{earlier}} asks the same and is checked first, so this case is never taken.",
+        { earlier: shadowed.sameAsIndex + 1 },
+      ),
+    });
+  }
+
+  return notes;
 };
 
 type CaseShowsCompareAsFunction = (

@@ -638,10 +638,149 @@ describe("editing the cases", () => {
 
     renderSwitch({ value: SEVERITY, cases: cases });
 
-    expect(screen.getByTestId(SWITCH_TEST_IDS.addCase)).toBeDisabled();
+    const addCase: HTMLElement = screen.getByTestId(SWITCH_TEST_IDS.addCase);
+
+    expect(addCase).toBeDisabled();
+    // A plain button that does nothing reads as broken: it looks off too.
+    expect(addCase).toHaveClass("disabled:opacity-50");
+    expect(addCase).toHaveClass("disabled:cursor-not-allowed");
     expect(
       screen.getByText(`A step holds at most ${MAX_SWITCH_CASES} cases.`),
     ).toBeInTheDocument();
+  });
+});
+
+describe("where the keyboard focus goes", () => {
+  const THREE_CASES: JSONObject = {
+    value: SEVERITY,
+    cases: [
+      aCase("case-1", "==", "Critical Incident"),
+      aCase("case-2", "==", "Major Incident"),
+      aCase("case-3", "==", "Minor Incident"),
+    ],
+  };
+
+  test("removing a case hands it to the remove button of the case that takes its place", async () => {
+    const { user } = renderSwitch(THREE_CASES);
+
+    await user.click(screen.getByRole("button", { name: "Remove case 2" }));
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+    // The case that was third is second now: its remove button has the focus.
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Remove case 2" }),
+      ).toHaveFocus();
+    });
+    expect(row(1)).toHaveAttribute("data-case-id", "case-3");
+  });
+
+  test("removing the last case hands it to the one above", async () => {
+    const { user } = renderSwitch(THREE_CASES);
+
+    await user.click(screen.getByRole("button", { name: "Remove case 3" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Remove case 2" }),
+      ).toHaveFocus();
+    });
+  });
+
+  test("removing the only case hands it to Add case", async () => {
+    const { user } = renderSwitch({
+      value: SEVERITY,
+      cases: [aCase("case-1", "==", "a")],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove case 1" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId(SWITCH_TEST_IDS.addCase)).toHaveFocus();
+    });
+  });
+
+  test("Put back hands it to the comparison of the case put back", async () => {
+    const { user } = renderSwitch(SEVERITY_SWITCH, CONNECTIONS);
+
+    await user.click(screen.getByTestId("switch-case-remove-0"));
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Put case “Critical Incident” back",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(caseComparison(0)).toHaveFocus();
+    });
+    expect(row(0)).toHaveAttribute("data-case-id", "case-1");
+  });
+});
+
+describe("what is wrong with a case, said where it is fixed", () => {
+  test("a case that repeats one above it says it is never taken, as soon as the settings open", () => {
+    renderSwitch({
+      value: SEVERITY,
+      cases: [
+        aCase("case-1", "==", "Critical Incident"),
+        aCase("case-2", "==", "Critical Incident"),
+      ],
+    });
+
+    expect(screen.queryByTestId("switch-case-notes-0")).toBeNull();
+    expect(screen.getByTestId("switch-case-notes-1")).toHaveTextContent(
+      "Case 1 asks the same and is checked first, so this case is never taken.",
+    );
+    expect(
+      within(screen.getByTestId("switch-case-notes-1"))
+        .getByRole("listitem")
+        .getAttribute("data-tone"),
+    ).toBe("Warning");
+  });
+
+  test("changing the repeat makes the note go", async () => {
+    const { user } = renderSwitch({
+      value: SEVERITY,
+      cases: [
+        aCase("case-1", "==", "Critical Incident"),
+        aCase("case-2", "==", "Critical Incident"),
+      ],
+    });
+
+    placeCaret(caseValue(1), 0);
+    await user.keyboard("Not ");
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("switch-case-notes-1")).toBeNull();
+    });
+  });
+
+  test("a comparison the step does not know is quoted, with what to do, before anything is touched", () => {
+    renderSwitch({
+      value: SEVERITY,
+      cases: [aCase("case-1", "==", "production"), aCase("case-2", "~=", "x")],
+    });
+
+    expect(screen.getByTestId("switch-case-notes-1")).toHaveTextContent(
+      "“~=” is not a comparison this step knows, so every run stops here. Choose one from the list.",
+    );
+    // The list itself offers a choice: it shows no comparison chosen.
+    expect(comparisonShown(1)).toBeNull();
+  });
+
+  test("choosing a comparison makes the note go", async () => {
+    renderSwitch({
+      value: SEVERITY,
+      cases: [aCase("case-1", "~=", "x")],
+    });
+
+    await chooseComparison(0, "contains");
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("switch-case-notes-0")).toBeNull();
+    });
   });
 });
 

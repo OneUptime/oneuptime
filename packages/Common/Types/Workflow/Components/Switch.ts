@@ -56,8 +56,12 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.Switch,
     title: "Switch / Case",
     category: "Conditions",
+    /*
+     * Short enough for the two lines the Add Component panel gives a step,
+     * as If / Else's is: the panel cut the longer one off mid-word.
+     */
     description:
-      "Compares one value with each case in turn, then continues down the first case that matches, or Default.",
+      "Takes one of several paths: the first case the value matches, or Default.",
     iconProp: IconProp.Switch,
     componentType: ComponentType.Component,
     arguments: [

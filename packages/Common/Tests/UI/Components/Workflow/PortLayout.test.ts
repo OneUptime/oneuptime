@@ -11,12 +11,14 @@
  */
 
 import {
+  MAX_OUTPUT_CARD_WIDTH,
   MAX_OUTPUT_COLUMN_WIDTH,
   MIN_OUTPUT_COLUMN_WIDTH,
   OutputLayout,
   getOutputLayout,
 } from "../../../../UI/Components/Workflow/PortLayout";
 import { WORKFLOW_NODE_WIDTH } from "../../../../UI/Components/Workflow/NodePlacement";
+import { MAX_SWITCH_CASES } from "../../../../Types/Workflow/Components/Switch";
 import { describe, expect, test } from "@jest/globals";
 
 describe("where a card's output dots go", () => {
@@ -130,6 +132,64 @@ describe("how wide a card is", () => {
     const long: OutputLayout = getOutputLayout(["x".repeat(500), "Default"]);
 
     expect(long.widerCardWidth).toBe(2 * MAX_OUTPUT_COLUMN_WIDTH);
+  });
+
+  test("never wider than the most outputs a step has, in the narrowest columns: it fits the canvas zoomed out", () => {
+    // Every case a Switch / Case can hold, and Default.
+    expect(MAX_OUTPUT_CARD_WIDTH).toBe(
+      (MAX_SWITCH_CASES + 1) * MIN_OUTPUT_COLUMN_WIDTH,
+    );
+    /*
+     * React Flow zooms out to half size at most: the widest card is then
+     * under a thousand pixels, so fitting the workflow to a laptop's canvas
+     * shows all of it rather than a slice of its middle.
+     */
+    expect(MAX_OUTPUT_CARD_WIDTH * 0.5).toBeLessThan(1000);
+
+    for (const name of ["Customer reported", "x".repeat(500), "Info"]) {
+      for (let count: number = 1; count <= MAX_SWITCH_CASES + 1; count++) {
+        const layout: OutputLayout = getOutputLayout(
+          Array.from({ length: count }, (): string => {
+            return name;
+          }),
+        );
+        const width: number = layout.widerCardWidth || WORKFLOW_NODE_WIDTH;
+
+        expect({ name, count, fits: width <= MAX_OUTPUT_CARD_WIDTH }).toEqual({
+          name,
+          count,
+          fits: true,
+        });
+        // A column never narrower than the narrowest.
+        expect(width / count).toBeGreaterThanOrEqual(MIN_OUTPUT_COLUMN_WIDTH);
+      }
+    }
+  });
+
+  test("past that, the columns narrow instead of the card growing", () => {
+    const names: (count: number) => Array<string> = (
+      count: number,
+    ): Array<string> => {
+      return Array.from({ length: count }, (): string => {
+        return "Customer reported";
+      });
+    };
+
+    // Twelve cases and Default: each column as wide as the name needs.
+    const twelve: OutputLayout = getOutputLayout(names(13));
+    expect(twelve.widerCardWidth as number).toBeLessThan(MAX_OUTPUT_CARD_WIDTH);
+
+    // Every case and Default: as wide as a card gets, and no wider.
+    const full: OutputLayout = getOutputLayout(names(MAX_SWITCH_CASES + 1));
+    expect(full.widerCardWidth).toBe(MAX_OUTPUT_CARD_WIDTH);
+    expect((full.widerCardWidth as number) / (MAX_SWITCH_CASES + 1)).toBe(
+      MIN_OUTPUT_COLUMN_WIDTH,
+    );
+
+    // Every dot still in the middle of its own column.
+    full.dotLeftPercents.forEach((left: number, index: number) => {
+      expect(left).toBeCloseTo(((index + 0.5) / (MAX_SWITCH_CASES + 1)) * 100);
+    });
   });
 
   test("counts characters, not the code units an emoji takes", () => {
