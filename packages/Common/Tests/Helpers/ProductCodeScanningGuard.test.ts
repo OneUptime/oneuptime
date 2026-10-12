@@ -1,16 +1,21 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import yaml from "js-yaml";
 import os from "os";
 import path from "path";
 import {
+  CODE_SCANNING_CONFIG_FILE,
   CODE_SCANNING_FIXES,
+  CODE_SCANNING_IGNORED_PATHS,
   CodeScanningFinding,
   PACKAGES_WITH_COMMON,
   SHARED_REGEXP_ESCAPE_FILE,
   findCodeScanningProblems,
+  isIgnoredByCodeScanning,
   isProductCode,
   listProductFiles,
   reachesCommon,
+  readCodeScanningIgnoredPaths,
   templateScripts,
 } from "./CodeScanning";
 import { REPOSITORY_DIRECTORY } from "./TagStripScan";
@@ -42,10 +47,13 @@ import { REPOSITORY_DIRECTORY } from "./TagStripScan";
  *
  * Product code is every code file and template of the repository's code
  * folders that is no test (TagStripScan's reading of which files are), no
- * build, and no vendored build checked in as published (Common/Server/
- * Static/Vendor - Tailwind, highlight.js - and minified files). Whether code
- * scanning reads the vendored builds is its configuration's choice; their
- * code is not edited. The Common Test job removes ee/ before it runs, so
+ * build, no minified file, and in no directory code scanning leaves out: the
+ * paths-ignore of its configuration (.github/codeql/codeql-config.yml),
+ * which names the third-party builds vendored for offline installs
+ * (Common/Server/Static/Vendor - Tailwind, highlight.js). Their code is
+ * upstream's and is not edited; the guard reads that list rather than a copy
+ * of it, so it skips exactly what code scanning skips. The Common Test job
+ * removes ee/ before it runs, so
  * ee/Tests/Server/ProductCodeScanningGuard.test.ts reads ee/'s product code
  * from the Enterprise Edition Test job.
  */
@@ -287,6 +295,7 @@ describe("product code writes nothing code scanning reports", () => {
 
     for (const file of files) {
       expect([file, isProductCode(file)]).toEqual([file, true]);
+      expect([file, isIgnoredByCodeScanning(file)]).toEqual([file, false]);
     }
   });
 
@@ -654,6 +663,11 @@ describe("CodeScanning - which files are product code", () => {
       "ee/Server/E.ts",
       "agents/Agent/F.ts",
       "Scripts/G.js",
+      // Named like the directory code scanning leaves out, but not in it.
+      "packages/Common/Server/Static/Vendor.ts",
+      "packages/Common/Server/Static/VendorExtras/w.js",
+      "packages/Common/Server/Static/Brand/x.js",
+      "packages/Home/Static/Vendor/u.js",
       // Not product code.
       "packages/Common/Tests/Utils/A.test.ts",
       "packages/Common/Tests/Helpers/Helper.ts",
@@ -667,6 +681,7 @@ describe("CodeScanning - which files are product code", () => {
       "packages/Common/build/o.js",
       "packages/App/dist/p.js",
       "packages/Common/Server/Static/Vendor/tailwind/q.js",
+      "packages/Common/Server/Static/Vendor/highlight/languages/y.js",
       "packages/Home/Static/js/r.min.js",
       "packages/Common/Types/s.d.ts",
       "packages/Common/.hidden/t.ts",
@@ -681,14 +696,18 @@ describe("CodeScanning - which files are product code", () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  test("code and templates outside tests, builds and vendored builds", () => {
+  test("code and templates outside tests, builds and the directories code scanning leaves out", () => {
     expect(listProductFiles(root)).toEqual([
       "Scripts/G.js",
       "agents/Agent/F.ts",
       "ee/Server/E.ts",
       "packages/App/FeatureSet/X/public/index.html",
+      "packages/Common/Server/Static/Brand/x.js",
+      "packages/Common/Server/Static/Vendor.ts",
+      "packages/Common/Server/Static/VendorExtras/w.js",
       "packages/Common/UI/B.tsx",
       "packages/Common/Utils/A.ts",
+      "packages/Home/Static/Vendor/u.js",
       "packages/Home/Static/js/c.js",
       "packages/Home/Views/d.ejs",
     ]);
@@ -696,5 +715,206 @@ describe("CodeScanning - which files are product code", () => {
 
   test("only the folders asked for, when they are named", () => {
     expect(listProductFiles(root, ["ee"])).toEqual(["ee/Server/E.ts"]);
+  });
+});
+
+interface WorkflowStep {
+  uses?: string;
+  with?: Record<string, string>;
+}
+
+interface Workflow {
+  jobs: Record<string, { steps?: Array<WorkflowStep> }>;
+}
+
+// Where code scanning's open alerts in vendored code were.
+const VENDORED_TAILWIND: string =
+  "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js";
+// The range of /^grid-([A-z]+-)?gap/, as this reading words it.
+const A_TO_LOWER_Z_RANGE: RegExp = /^Suspicious character range A-z: /;
+
+describe("CodeScanning - the directories code scanning leaves out", () => {
+  test("are the paths-ignore of the configuration the advanced setup analyses with", () => {
+    const config: Record<string, unknown> = yaml.load(
+      fs.readFileSync(
+        path.join(REPOSITORY_DIRECTORY, CODE_SCANNING_CONFIG_FILE),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const workflow: Workflow = yaml.load(
+      fs.readFileSync(
+        path.join(REPOSITORY_DIRECTORY, ".github/workflows/codeql.yml"),
+        "utf8",
+      ),
+    ) as Workflow;
+    const initSteps: Array<WorkflowStep> = Object.values(workflow.jobs)
+      .flatMap((job: { steps?: Array<WorkflowStep> }): Array<WorkflowStep> => {
+        return job.steps || [];
+      })
+      .filter((step: WorkflowStep): boolean => {
+        return (step.uses || "").startsWith("github/codeql-action/init@");
+      });
+
+    expect(CODE_SCANNING_IGNORED_PATHS).toEqual(config["paths-ignore"]);
+    expect(CODE_SCANNING_IGNORED_PATHS).toEqual([
+      "packages/Common/Server/Static/Vendor",
+    ]);
+    expect(
+      initSteps.map((step: WorkflowStep): string | undefined => {
+        return step.with?.["config-file"];
+      }),
+    ).toEqual([`./${CODE_SCANNING_CONFIG_FILE}`]);
+  });
+
+  test("hold what is in one of them, and nothing that only begins the same way", () => {
+    for (const relativePath of [
+      "packages/Common/Server/Static/Vendor",
+      "packages/Common/Server/Static/Vendor/README.md",
+      VENDORED_TAILWIND,
+      "packages/Common/Server/Static/Vendor/highlight/languages/go.min.js",
+    ]) {
+      expect([relativePath, isIgnoredByCodeScanning(relativePath)]).toEqual([
+        relativePath,
+        true,
+      ]);
+    }
+
+    for (const relativePath of [
+      "packages/Common/Server/Static",
+      "packages/Common/Server/Static/Vendor.ts",
+      "packages/Common/Server/Static/VendorExtras/a.js",
+      "packages/Common/Server/Static/Brand/a.js",
+      "packages/Common/Server/Utils/VendorAssets.ts",
+      "packages/Home/Static/Vendor/a.js",
+      "Vendor/a.js",
+      "",
+    ]) {
+      expect([relativePath, isIgnoredByCodeScanning(relativePath)]).toEqual([
+        relativePath,
+        false,
+      ]);
+    }
+  });
+
+  test("the vendored Tailwind build is no product code; the code that serves it is", () => {
+    expect(isProductCode(VENDORED_TAILWIND)).toBe(false);
+    expect(isProductCode("packages/Common/Server/Utils/VendorAssets.ts")).toBe(
+      true,
+    );
+    // A folder named Vendor that code scanning reads is read here too.
+    expect(isProductCode("packages/Home/Static/Vendor/a.js")).toBe(true);
+  });
+
+  test("run over the vendored Tailwind build, the reading finds the alerts code scanning opened there", () => {
+    /*
+     * Why the directory is left out rather than its code edited: what code
+     * scanning reports there is upstream's (#1722, #1750-#1753), fixed by an
+     * upgrade of the build, not by a change of OneUptime's.
+     */
+    const findings: Array<CodeScanningFinding> = findCodeScanningProblems(
+      VENDORED_TAILWIND,
+      fs.readFileSync(
+        path.join(REPOSITORY_DIRECTORY, VENDORED_TAILWIND),
+        "utf8",
+      ),
+    ).filter((finding: CodeScanningFinding): boolean => {
+      return finding.rule.startsWith("js/");
+    });
+
+    expect(
+      findings.map((finding: CodeScanningFinding): [number, string, string] => {
+        return [finding.line, finding.rule, finding.message];
+      }),
+    ).toEqual([
+      [
+        8755,
+        "js/incomplete-sanitization",
+        'This replaces only the first occurrence of "&".',
+      ],
+      [
+        12689,
+        "js/incomplete-sanitization",
+        'This replaces only the first occurrence of "[".',
+      ],
+      [
+        12696,
+        "js/incomplete-sanitization",
+        'This replaces only the first occurrence of "]".',
+      ],
+      [
+        12696,
+        "js/incomplete-sanitization",
+        'This replaces only the first occurrence of "[".',
+      ],
+      [
+        17423,
+        "js/overly-large-range",
+        expect.stringMatching(A_TO_LOWER_Z_RANGE),
+      ],
+    ]);
+  });
+
+  describe("read from a configuration", () => {
+    let root: string = "";
+
+    // A root whose code scanning configuration reads as given.
+    function rootWithConfig(name: string, text: string | null): string {
+      const directory: string = path.join(root, name);
+      const file: string = path.join(directory, CODE_SCANNING_CONFIG_FILE);
+
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+
+      if (text !== null) {
+        fs.writeFileSync(file, text);
+      }
+
+      return directory;
+    }
+
+    beforeAll(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "code-scanning-ignored-"));
+    });
+
+    afterAll(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    test("its paths-ignore, in order, whatever else it holds", () => {
+      expect(
+        readCodeScanningIgnoredPaths(
+          rootWithConfig(
+            "two",
+            [
+              "# A comment.",
+              "name: Example",
+              "paths-ignore:",
+              "  - third_party/fonts",
+              "  - packages/Example/Vendor",
+              "",
+            ].join("\n"),
+          ),
+        ),
+      ).toEqual(["third_party/fonts", "packages/Example/Vendor"]);
+    });
+
+    test("fails on a configuration that lists no directories, or on none at all", () => {
+      for (const [name, text] of [
+        ["empty", ""],
+        ["no-list", "paths:\n  - packages\n"],
+        ["one-string", "paths-ignore: packages/Example/Vendor\n"],
+        ["empty-entry", 'paths-ignore:\n  - ""\n'],
+        ["number-entry", "paths-ignore:\n  - 42\n"],
+      ] as Array<[string, string]>) {
+        expect(() => {
+          return readCodeScanningIgnoredPaths(rootWithConfig(name, text));
+        }).toThrow(
+          `${CODE_SCANNING_CONFIG_FILE} lists no directories under paths-ignore.`,
+        );
+      }
+
+      expect(() => {
+        return readCodeScanningIgnoredPaths(rootWithConfig("missing", null));
+      }).toThrow("ENOENT");
+    });
   });
 });

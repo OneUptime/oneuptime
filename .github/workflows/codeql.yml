@@ -11,6 +11,12 @@ name: CodeQL Advanced
 # reaching master was scanned on its pull request; master itself is scanned
 # nightly here, and on demand.
 #
+# It also leaves out what default setup cannot: the third-party browser
+# assets vendored for offline installs (packages/Common/Server/Static/Vendor),
+# through the paths-ignore of .github/codeql/codeql-config.yml, which says
+# why. The alerts default setup raised in them close as no longer found on
+# this setup's first scan of master; none is dismissed.
+#
 # It runs nothing until the default setup is switched off - GitHub refuses an
 # advanced setup's results while default setup is on, and only after the
 # analysis has spent its runner time. To switch over, in this order:
@@ -67,6 +73,9 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          # Its paths-ignore, and nothing else: the default query suite and
+          # threat model stay as default setup had them.
+          config-file: ./.github/codeql/codeql-config.yml
       # The category default setup used for this language, so its alerts
       # stay attached to the same analysis.
       - name: Perform CodeQL Analysis

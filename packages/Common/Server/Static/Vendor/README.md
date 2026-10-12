@@ -6,6 +6,12 @@ is not guaranteed to have outbound internet access - and when it does not, a
 CDN `<script>` does not degrade, it hangs. See
 https://github.com/OneUptime/oneuptime/issues/2570.
 
+CodeQL's advanced setup skips this directory (the `paths-ignore` of
+`.github/codeql/codeql-config.yml`) because it holds third-party builds: an
+alert in one is fixed by upgrading the file, not by editing it here. So every
+file here is listed under Contents with its source - `Tests/Ops/CodeQlWorkflow.test.js`
+fails otherwise - and OneUptime's own files belong elsewhere.
+
 Every service mounts this directory read-only at `/oneuptime-assets` (see
 `packages/Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
 absolute path, never by a CDN URL -
@@ -15,11 +21,11 @@ or `packages/Home/Views`.
 
 ## Contents
 
-| Path                       | Source                                                      |
-| -------------------------- | ----------------------------------------------------------- |
-| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                              |
-| `highlight/`               | highlight.js 11.11.1, from cdnjs                             |
-| `fonts/InterVariable.woff2` | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
+| Path                         | Source                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                                                                                       |
+| `highlight/`                 | highlight.js 11.11.1, from cdnjs                                                                                    |
+| `fonts/InterVariable.woff2`  | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
 
 The Tailwind file is the **only** copy in the tree. The five frontends used to
 commit one each; `packages/Common/UI/esbuild-config.js` now copies this one into each
