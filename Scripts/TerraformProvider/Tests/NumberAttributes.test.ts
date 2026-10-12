@@ -170,9 +170,7 @@ describe("a data source with a number attribute", () => {
   });
 
   test("still looks it up by the number", () => {
-    expect(go()).toContain(
-      'filters["priority"] = lookupNumber(data.Priority)',
-    );
+    expect(go()).toContain('filters["priority"] = lookupNumber(data.Priority)');
   });
 
   /*

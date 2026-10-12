@@ -465,11 +465,7 @@ describePostgres(
         ["100.00", "100.00", 100],
       ])(
         "written as %p, Postgres keeps %p and the rule reads back %p",
-        async (
-          written: number | string,
-          stored: string,
-          expected: number,
-        ) => {
+        async (written: number | string, stored: string, expected: number) => {
           const page: StatusPage = await seedStatusPage(`Rule ${written}`);
           const made: StatusPageHistoryChartBarColorRule = await makeRule(
             page,

@@ -190,7 +190,10 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
      */
     await this.copyStaticFile("apinumber.go", "internal/provider");
     await this.copyStaticFile("apinumber_test.go", "internal/provider");
-    await this.copyStaticFile("apinumber_roundtrip_test.go", "internal/provider");
+    await this.copyStaticFile(
+      "apinumber_roundtrip_test.go",
+      "internal/provider",
+    );
     await this.copyStaticFile("jsonenvelope.go", "internal/provider");
     await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
     await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");

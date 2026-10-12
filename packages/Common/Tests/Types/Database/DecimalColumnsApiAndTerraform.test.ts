@@ -313,7 +313,9 @@ describe("the Terraform provider", () => {
     const misread: Array<string> = [];
 
     for (const decimal of published) {
-      const generated: Array<[string, string, Record<string, TerraformAttribute>]> = [];
+      const generated: Array<
+        [string, string, Record<string, TerraformAttribute>]
+      > = [];
 
       const resource: TerraformResource | undefined = generatedFor(
         resources,
@@ -354,7 +356,9 @@ describe("the Terraform provider", () => {
 
         if (countOf(source, throughTheHelper) === 0) {
           misread.push(`${fileName}: ${attribute[0]} is not read at all`);
-        } else if (countOf(source, read) !== countOf(source, throughTheHelper)) {
+        } else if (
+          countOf(source, read) !== countOf(source, throughTheHelper)
+        ) {
           misread.push(`${fileName}: ${attribute[0]} is read some other way`);
         }
       }
@@ -434,9 +438,7 @@ describe("oneuptime_status_page_history_chart_bar_color, the resource in the iss
   test("is the resource the provider's round trip test drives", () => {
     const roundTrip: string = readGenerated("apinumber_roundtrip_test.go");
 
-    expect(roundTrip).toContain(
-      `"oneuptime_${reportedResource().name}"`,
-    );
+    expect(roundTrip).toContain(`"oneuptime_${reportedResource().name}"`);
     expect(roundTrip).toContain(
       `"/api${String(new StatusPageHistoryChartBarColorRule().crudApiPath)}"`,
     );
