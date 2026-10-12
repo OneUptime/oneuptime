@@ -190,7 +190,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 آن‌گاه دنبال‌کننده لاگ کنار گردآورنده‌های گره اجرا می‌شود، فقط برای پادهای روی گره‌های Windows. پادهای Linux همان دنبال کردن ارزان‌تر فایل را نگه می‌دارند، و این دو پادها را بر پایه سیستم‌عامل گره میان خود تقسیم می‌کنند، پس هیچ خط لاگی دو بار فرستاده نمی‌شود.
 
 - **نسخه ایمیج دنبال‌کننده.** تقسیمی که فقط Windows را هدف می‌گیرد در ایمیج `kubernetes-log-tailer` ساخته شده است. ایمیج قدیمی‌تر آن را نادیده می‌گیرد و *همه* پادها را دنبال می‌کند، و لاگ‌های هر پاد Linux را دو بار می‌فرستد. `logs.api.image.tag` را به نسخه‌ای قدیمی‌تر از نسخه انتشار چارت سنجاق نکنید، و اگر ممکن است گره‌ای ایمیج قدیمی `release` را در حافظه نهان داشته باشد، `--set logs.api.image.pullPolicy=Always` را به دستور ارتقا اضافه کنید.
-- **پالایش بر پایه شدت.** وقتی `filters.logs.minSeverity` تعیین شده باشد، خطی که شدت قابل تشخیصی ندارد در مسیر گردآورنده گره کنار گذاشته می‌شود اما در مسیر دنبال‌کننده لاگ نگه داشته می‌شود – [پالایش بر پایه شدت گزارش](/docs/telemetry/kubernetes-agent#پالایش-بر-پایه-شدت-گزارش) را ببینید. در نتیجه پادهای Windows ممکن است خط‌های بی‌سطح بیشتری از پادهای Linux بفرستند.
+- **پالایش بر پایه شدت.** وقتی `filters.logs.minSeverity` تعیین شده باشد، خطی که شدت قابل تشخیصی ندارد در مسیر گردآورنده گره کنار گذاشته می‌شود اما در مسیر دنبال‌کننده لاگ نگه داشته می‌شود – [پالایش بر پایه شدت لاگ](/docs/telemetry/kubernetes-agent#پالایش-بر-پایه-شدت-لاگ) را ببینید. در نتیجه پادهای Windows ممکن است خط‌های بی‌سطح بیشتری از پادهای Linux بفرستند.
 
 ## ترِیس‌های برنامه با eBPF
 
@@ -367,7 +367,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `ebpf.enabled` | `true` | ترِیس‌ها و متریک‌های درخواست eBPF. [ترِیس‌های برنامه با eBPF](#ترِیسهای-برنامه-با-ebpf) را ببینید. |
 | `profiling.enabled` | `false` | نمودارهای شعله‌ای CPU. [پروفایل‌گیری پیوسته CPU](#پروفایلگیری-پیوسته-cpu) را ببینید. |
 | `kubeStateMetrics.enabled` | `false` | وضعیت خوشه از kube-state-metrics. |
-| `aiAgent.enabled` | `true` | عامل AI در Kubernetes. برای اینکه چه کارهایی می‌تواند بکند، [عامل AI در Kubernetes](/docs/telemetry/kubernetes-agent) را ببینید. |
+| `aiAgent.enabled` | `true` | عامل AI در Kubernetes. برای اینکه چه کارهایی می‌تواند بکند، [عامل هوش مصنوعی Kubernetes](/docs/telemetry/kubernetes-agent#عامل-هوش-مصنوعی-kubernetes) را ببینید. |
 
 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) در چارت هر گزینه را فهرست و توضیح می‌دهد، و [عامل Kubernetes](/docs/telemetry/kubernetes-agent) پالایش، نمونه‌برداری و پایین نگه داشتن حجم داده را پوشش می‌دهد.
 

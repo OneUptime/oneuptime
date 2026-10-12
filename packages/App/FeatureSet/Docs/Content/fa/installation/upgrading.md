@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-اگر نام release و namespace شما متفاوت است، نام‌های خودتان را به کار ببرید. [ارتقای عامل](/docs/telemetry/kubernetes-agent) در صفحهٔ عامل Kubernetes جزئیات را دارد، و [AI SRE — دسترسی خوشه](/docs/ai/ai-sre) توضیح می‌دهد عامل چه کاری می‌تواند بکند و چطور اجازه دهید آنچه را پیدا می‌کند اصلاح کند.
+اگر نام release و namespace شما متفاوت است، نام‌های خودتان را به کار ببرید. [به‌روزرسانی عامل](/docs/telemetry/kubernetes-agent#بهروزرسانی-عامل) در صفحهٔ عامل Kubernetes جزئیات را دارد، و [AI SRE — دسترسی خوشه](/docs/ai/ai-sre) توضیح می‌دهد عامل چه کاری می‌تواند بکند و چطور اجازه دهید آنچه را پیدا می‌کند اصلاح کند.
 
 ### آنچه هوش مصنوعی می‌تواند بکند روی عامل هوش مصنوعی تنظیم می‌شود
 
