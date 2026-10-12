@@ -42,11 +42,13 @@ const path = require("path");
 const yaml = require("js-yaml");
 
 const { ancestorsOf } = require("./Utils/ReleaseWorkflow");
+const { evaluateExpressions } = require("./Utils/WorkflowExpression");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOWS_DIR = ".github/workflows";
 const TEST_RELEASE = `${WORKFLOWS_DIR}/test-release.yaml`;
 const RELEASE = `${WORKFLOWS_DIR}/release.yml`;
+const TERRAFORM_E2E = `${WORKFLOWS_DIR}/terraform-provider-e2e.yml`;
 const SHARDING_SPEC = "packages/E2E/Sharding/Sharding.spec.ts";
 const E2E_OVERLAY = "packages/E2E/docker-compose.e2e.yml";
 
@@ -909,5 +911,96 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
     test("not for a run of another branch", () => {
       expect(publishRuns({ ref: "refs/heads/master" })).toBe(false);
     });
+  });
+});
+
+/*
+ * terraform-provider-e2e.yml supersedes its in-flight run for the same branch
+ * or pull request. release.yml calls it as the gate of the release it
+ * publishes, and a called workflow reads the caller's github.workflow and
+ * github.ref, so every release run used to share one group: a newer release
+ * run, or a re-run of an older one, cancelled the suite of the release in
+ * flight (14.0.47's, run 38302467596, a minute after 14.0.46's run was
+ * re-run). release.yml now passes its run id as an input the group reads
+ * first. The group is worked out here for the runs that matter, a release
+ * run's with the inputs release.yml passes; CancelClosedPrRuns.test.js holds
+ * a pull request's group to the one its canceller joins.
+ */
+describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
+  const suite = readYaml(TERRAFORM_E2E);
+  const release = readYaml(RELEASE);
+  const callers = Object.values(release.jobs).filter((job) => {
+    return job.uses === `./${TERRAFORM_E2E}`;
+  });
+
+  // The group of the suite a release run calls, given the inputs release.yml
+  // passes it, evaluated for that run.
+  function releaseRunGroup(runId) {
+    const github = {
+      workflow: release.name,
+      ref: "refs/heads/release",
+      run_id: runId,
+      event: {},
+    };
+    const inputs = Object.fromEntries(
+      Object.entries(callers[0].with || {}).map(([name, value]) => {
+        return [name, evaluateExpressions(String(value), { github })];
+      }),
+    );
+    return evaluateExpressions(suite.concurrency.group, { github, inputs });
+  }
+
+  // The group of one of the suite's own runs, on a push or a pull request.
+  function ownRunGroup(ref, runId, pullRequestNumber) {
+    const github = {
+      workflow: suite.name,
+      ref,
+      run_id: runId,
+      event: pullRequestNumber
+        ? { pull_request: { number: pullRequestNumber } }
+        : {},
+    };
+    return evaluateExpressions(suite.concurrency.group, {
+      github,
+      inputs: {},
+    });
+  }
+
+  /*
+   * GitHub refuses to start a run whose call passes an input the called
+   * workflow does not declare - every job of the release, not just this one.
+   */
+  test("is called once by release.yml, with inputs it declares (the checks below are not vacuous)", () => {
+    expect(callers).toHaveLength(1);
+    const declared = Object.keys(
+      (suite.on.workflow_call && suite.on.workflow_call.inputs) || {},
+    );
+    const passed = Object.keys(callers[0].with || {});
+    expect(passed.length).toBeGreaterThan(0);
+    for (const name of passed) {
+      expect(declared).toContain(name);
+    }
+    expect(suite.concurrency["cancel-in-progress"]).toBe(true);
+  });
+
+  test("two release runs never share a group, so neither cancels the other", () => {
+    expect(releaseRunGroup("38267959528")).not.toEqual(
+      releaseRunGroup("38302467596"),
+    );
+  });
+
+  test("two pushes to master share a group, so the newer supersedes the older", () => {
+    expect(ownRunGroup("refs/heads/master", "1")).toEqual(
+      ownRunGroup("refs/heads/master", "2"),
+    );
+  });
+
+  test("pushes to one pull request share a group, and two pull requests do not", () => {
+    expect(ownRunGroup("refs/pull/4727/merge", "1", 4727)).toEqual(
+      ownRunGroup("refs/pull/4727/merge", "2", 4727),
+    );
+    expect(ownRunGroup("refs/pull/4727/merge", "1", 4727)).not.toEqual(
+      ownRunGroup("refs/pull/4728/merge", "1", 4728),
+    );
   });
 });

@@ -1494,6 +1494,10 @@ jobs:
   # is published to the public provider repo / Terraform Registry.
   terraform-provider-e2e:
     uses: ./.github/workflows/terraform-provider-e2e.yml
+    # A concurrency group of this run's own, so no other release run cancels
+    # this release's suite (see the workflow's concurrency).
+    with:
+      release_run_id: ${{ github.run_id }}
     secrets: inherit
 
   publish-terraform-provider:

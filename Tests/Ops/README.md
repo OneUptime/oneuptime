@@ -816,6 +816,17 @@ does (an `if` with no status function is `success() && if`). The release
 publishes after an app build fails, and not when a job it requires did not
 succeed, when the run was cancelled, or off `release`.
 
+release.yml calls terraform-provider-e2e.yml as the release's gate, and a
+called workflow reads the caller's `github.workflow` and `github.ref`, so its
+concurrency group used to be one group for every release run: a newer release
+run, or a re-run of an older one, cancelled the suite of the release in flight.
+release.yml now passes its run id as the `release_run_id` input, which the
+group reads first. The suite checks that the call passes only inputs the
+workflow declares (GitHub refuses to start a run that passes any other), and
+works the group out, with `Utils/WorkflowExpression.js`, for two release runs
+(different groups), two pushes to master and two pushes to one pull request
+(one group each, so the newest still supersedes).
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather
@@ -969,6 +980,11 @@ continuations joined), the flags of its `build_docker_images.sh` and
 `merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
 bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
+
+`Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
+one run, for the suites that work out a concurrency group: context paths and
+`||` only (a missing path reads as null, as on GitHub). It throws on anything
+else rather than misread it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both
