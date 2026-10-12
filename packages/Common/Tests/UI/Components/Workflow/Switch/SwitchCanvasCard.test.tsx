@@ -11,9 +11,8 @@
  * the dots they named.
  */
 
-import type { Mock } from "jest-mock";
-
-const mockUpdateNodeInternals: Mock<(nodeId: string) => void> = jest.fn(
+// The global jest's own mock type: jest.fn here is the global one.
+const mockUpdateNodeInternals: jest.Mock<void, [string]> = jest.fn(
   (_nodeId: string): void => {},
 );
 
