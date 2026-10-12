@@ -58,7 +58,7 @@ describe("formatInvoiceAmount", () => {
   });
 
   test.each([[undefined], [null], [""], ["   "]])(
-    "an invoice without a currency (%p) is in dollars, as its email says",
+    "an invoice without a currency (%p) is in dollars, as its email assumes",
     (currencyCode: string | null | undefined) => {
       expect(
         formatInvoiceAmount({ amount: 1000, currencyCode: currencyCode }),
