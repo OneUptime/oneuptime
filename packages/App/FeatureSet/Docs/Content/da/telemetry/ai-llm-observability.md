@@ -222,9 +222,11 @@ Et tal fra metrikker er markeret med **fra GenAI-metrikker**, fordi det ikke har
 
 En omkostning, som din instrumentering rapporterer (`gen_ai.usage.cost`), bruges, som den er, også når den er 0. Når der ikke rapporteres nogen, anslår OneUptime en, når spannet ankommer, ud fra antallet af tokens og en indbygget prisliste for almindelige modeller fra OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova og Meta Llama. Den leverede model prissættes først, derefter den anmodede model.
 
-Modeller matches på det længste navnepræfiks, så id'er med dato eller leverandørpræfiks som `gpt-4o-2024-08-06` og `us.anthropic.claude-sonnet-4-5-20250929-v1:0` finder deres families pris. En model, som listen ikke kender, også en ny udgivelse, bliver aldrig gættet: dens omkostning forbliver 0, indtil du prissætter den. Overslag bruger listepriser uden rabatter for cache eller batch.
+Hver model prissættes til sin egen pris, uanset hvilken form dens id har: `gpt-4o-2024-08-06` er GPT-4o, og `claude-opus-4-5-20251101`, `us.anthropic.claude-opus-4-5-20251101-v1:0`, `claude-opus-4-5@20251101` og `anthropic/claude-opus-4.5` er alle Claude Opus 4.5. En nyere udgivelse får aldrig en ældre models pris: en model, som listen ikke kender, bliver aldrig gættet, og dens omkostning forbliver 0, indtil du prissætter den.
 
-For selv at prissætte en model (en forhandlet pris, en fine-tune eller en model, du selv hoster) tilføjer du den på fanen **Priser** under **Tilpassede LLM-priser**: et **Modelpræfiks**, en **Inputpris (USD pr. 1M tokens)** og en **Outputpris (USD pr. 1M tokens)**. Det længste matchende præfiks vinder på tværs af dine priser og den indbyggede liste; ved uafgjort vinder din pris. En pris gælder for kald, der ankommer omkring et minut efter, at du har gemt den; allerede gemte kald beholder deres omkostning.
+Tokens, som et span rapporterer som læst fra eller skrevet til udbyderens prompt-cache, prissættes efter udbyderens cachepriser, skrivninger til 5-minutters-prisen, og en model, der tager mere for en lang prompt, som Claude Haiku 5.5 over 100.000 tokens, prissættes efter promptens længde. Overslag er listepriser: rabatter for batch, hurtige tilstande og regionale tillæg medregnes ikke.
+
+For selv at prissætte en model (en forhandlet pris, en fine-tune eller en model, du selv hoster) tilføjer du den på fanen **Priser** under **Tilpassede LLM-priser**: et **Modelpræfiks**, en **Inputpris (USD pr. 1M tokens)** og en **Outputpris (USD pr. 1M tokens)**. Det længste matchende præfiks vinder på tværs af dine priser og den indbyggede liste; ved uafgjort vinder din pris. Din pris opkræves for hver inputtoken, cachet eller ej. En pris gælder for kald, der ankommer omkring et minut efter, at du har gemt den; allerede gemte kald beholder deres omkostning.
 
 ## Daglige omkostningsbudgetter
 
@@ -276,6 +278,8 @@ OneUptime læser OpenTelemetrys GenAI-konventioner og de stavemåder, som OpenLL
 | Inputtokens | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
 | Outputtokens | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
 | Tokens i alt | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| Cache-læste tokens | `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_read_input_tokens`, `llm.token_count.prompt_details.cache_read` |
+| Cache-skrevne tokens | `gen_ai.usage.cache_write.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, `gen_ai.usage.cache_creation_input_tokens`, `llm.token_count.prompt_details.cache_write` |
 | Omkostninger (USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
 | Samtale | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
 | Agent | `gen_ai.agent.name`, `agent.name` |
@@ -284,6 +288,8 @@ OneUptime læser OpenTelemetrys GenAI-konventioner og de stavemåder, som OpenLL
 | Fejl | `error.type` |
 
 Et span tæller som et AI-kald, når det bærer en af disse værdier eller en attribut, der begynder med `gen_ai.`, `llm.` eller `traceloop.`. Tokens i alt er input plus output, når der ikke rapporteres en total. Nøglerne `gen_ai.usage.total_tokens` og `gen_ai.usage.cost` er ikke en del af konventionerne, som ikke definerer nogen af dem; OneUptime læser dem, fordi almindelige instrumenteringer sender dem.
+
+Inputtokens tæller også de cachede, som konventionerne tæller dem: når et spans cachetal er større end dets inputtal, har inputtallet udeladt dem, og OneUptime lægger dem til. Claude Codes traces-beta sender ingen `gen_ai.usage.*`-nøgler: på et span, der navngiver sin model, læser OneUptime dets `input_tokens`, `output_tokens`, `cache_read_tokens` og `cache_creation_tokens` og lægger de to cachetal til `input_tokens`, som udelader dem.
 
 Identitetsnøglerne (hvem der foretog kaldet, og deres team) står under [Tildeling til medarbejdere og teams](/docs/telemetry/ai-coding-assistants#tildeling-til-medarbejdere-og-teams).
 
