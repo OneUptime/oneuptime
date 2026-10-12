@@ -70,10 +70,21 @@ export enum ConnectCallbackError {
   SlackOtherWorkspace = "slack-other-workspace",
   // Slack sign-in: the project is not connected to a Slack workspace yet.
   SlackNotInstalled = "slack-not-installed",
+  /*
+   * Slack sign-in from a Connect button in Slack: the Slack account signed
+   * in is not the one that pressed it. Nothing is connected.
+   */
+  SlackOtherAccount = "slack-other-account",
   // Microsoft Teams: consent or the sign-in was for another Microsoft 365 tenant.
   TeamsOtherTenant = "teams-other-tenant",
   // Microsoft Teams: the tenant has no teams yet.
   TeamsNoTeams = "teams-no-teams",
+  /*
+   * Microsoft Teams sign-in from a Connect button in Microsoft Teams: the
+   * Microsoft account signed in is not the one that pressed it. Nothing is
+   * connected.
+   */
+  TeamsOtherAccount = "teams-other-account",
   // GitHub: no installation came back (an owner may still have to approve it).
   GitHubNoInstallation = "github-no-installation",
   // GitHub: no authorization code came back, so the installation cannot be verified.
@@ -98,6 +109,50 @@ export const CONNECT_CONNECTED_QUERY_PARAM: string = "connected";
 
 // The query parameter a connection's start route reads the start page from.
 export const CONNECT_START_PAGE_QUERY_PARAM: string = "from";
+
+/*
+ * CONNECTING FROM A BUTTON IN SLACK OR MICROSOFT TEAMS.
+ *
+ * Somebody who presses a button in Slack or Microsoft Teams before their own
+ * account is connected to OneUptime is answered right there, with a Connect
+ * button (Server/Utils/Workspace/WorkspaceConnectRequest). It opens their own
+ * settings page for that workspace with `?connect=` and a one-use token, and
+ * the page connects their account at once; the token goes with the sign-in
+ * (`?connect=` on the start route), so the callback can finish what they
+ * pressed. The token is opaque: what it stands for lives on the server only.
+ */
+export const CONNECT_REQUEST_QUERY_PARAM: string = "connect";
+
+// 32 random bytes, base64url encoded without padding: always 43 characters.
+export const CONNECT_REQUEST_TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
+
+/*
+ * What became of the press, on the settings page the sign-in comes back to
+ * once the account is connected (`?pressed=`).
+ */
+export const CONNECT_REQUEST_OUTCOME_QUERY_PARAM: string = "pressed";
+
+export enum ConnectRequestOutcome {
+  /*
+   * OneUptime did what was pressed, or said in the chat why it could not
+   * (done already, or not allowed): the answer is in the chat.
+   */
+  Answered = "answered",
+  // A button that opens a form, a command or a question: press it again.
+  PressAgain = "again",
+  // The press waited too long: press it again.
+  Expired = "expired",
+}
+
+/*
+ * Where the press was, for the page's "Back to Slack" link: the Slack
+ * channel and workspace (`?slackChannel=` and `?slackTeam=`).
+ */
+export const CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM: string = "slackChannel";
+export const CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM: string = "slackTeam";
+
+// Slack channel and workspace ids: C0123ABC, G0123ABC, D0123ABC, T0123ABC.
+export const SLACK_ID_PATTERN: RegExp = /^[A-Z0-9]{2,32}$/;
 
 /*
  * The Dashboard's connect-return page, under the Dashboard's root
@@ -195,5 +250,49 @@ export default class ConnectCallbackUtil {
     return value === ConnectStartPage.UserSettings
       ? ConnectStartPage.UserSettings
       : ConnectStartPage.ProjectSettings;
+  }
+
+  /*
+   * The connect token a `?connect=` carries, or null for anything not shaped
+   * like one. Whether it is GENUINE only the server can say; this keeps
+   * anything else out of a request.
+   */
+  public static readConnectRequestToken(value: unknown): string | null {
+    return typeof value === "string" &&
+      CONNECT_REQUEST_TOKEN_PATTERN.test(value)
+      ? value
+      : null;
+  }
+
+  // The outcome a `?pressed=` names, or null for anything else.
+  public static readConnectRequestOutcome(
+    value: unknown,
+  ): ConnectRequestOutcome | null {
+    return typeof value === "string" &&
+      (Object.values(ConnectRequestOutcome) as Array<string>).includes(value)
+      ? (value as ConnectRequestOutcome)
+      : null;
+  }
+
+  /*
+   * The Slack link that opens `channel` of workspace `team` in Slack -
+   * Slack's own app_redirect - or null when either is not shaped like a
+   * Slack id. Only ids are placed in it, on a fixed host, so no query string
+   * can send the page's link anywhere else.
+   */
+  public static getSlackChannelLink(data: {
+    channel: unknown;
+    team: unknown;
+  }): string | null {
+    if (
+      typeof data.channel !== "string" ||
+      typeof data.team !== "string" ||
+      !SLACK_ID_PATTERN.test(data.channel) ||
+      !SLACK_ID_PATTERN.test(data.team)
+    ) {
+      return null;
+    }
+
+    return `https://slack.com/app_redirect?channel=${data.channel}&team=${data.team}`;
   }
 }

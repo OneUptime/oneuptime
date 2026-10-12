@@ -3293,11 +3293,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): JSONObject {
     // If URL is present, render as link; otherwise use Action.Submit to post back action/value
     if (data.payloadButtonBlock.url) {
-      return {
+      const openUrl: JSONObject = {
         type: "Action.OpenUrl",
         title: data.payloadButtonBlock.title,
         url: data.payloadButtonBlock.url.toString(),
       };
+
+      if (data.payloadButtonBlock.isPrimary) {
+        openUrl["style"] = "positive";
+      }
+
+      return openUrl;
     }
 
     return {

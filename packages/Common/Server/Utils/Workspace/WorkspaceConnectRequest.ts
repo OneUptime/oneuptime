@@ -1,0 +1,493 @@
+import crypto from "crypto";
+import GlobalCache from "../../Infrastructure/GlobalCache";
+import DatabaseConfig from "../../DatabaseConfig";
+import logger from "../Logger";
+import CaptureSpan from "../Telemetry/CaptureSpan";
+import URL from "../../../Types/API/URL";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import ConnectCallbackUtil, {
+  CONNECT_REQUEST_QUERY_PARAM,
+  ConnectProvider,
+  ConnectStartPage,
+} from "../../../Types/Workspace/ConnectCallback";
+import { WorkspaceEventType } from "./WorkspaceMemberActions";
+
+/*
+ * SOMEBODY PRESSED A BUTTON IN SLACK OR MICROSOFT TEAMS BEFORE CONNECTING
+ * THEIR ACCOUNT.
+ *
+ * A button acts as the OneUptime member the chat account is connected to, so
+ * somebody whose account is not connected yet cannot act. They used to be
+ * told so in a direct message from the app - away from the channel they were
+ * looking at, so they missed it, pressed again, and missed that answer too.
+ *
+ * Now they are answered where they pressed, with a Connect button. Behind it
+ * is a connect request, recorded here: who pressed (the chat account), in
+ * which project, what they pressed, and where to answer them. The button
+ * opens their own settings page for that workspace with the request's token
+ * (`?connect=`); the page signs them in to the workspace at once, the token
+ * going with the sign-in; and the callback, once it has connected the
+ * account, finishes what they pressed - acknowledging, say - as the member
+ * the account is now connected to, and answers them where they pressed
+ * (WorkspaceConnectCompletion).
+ *
+ * WHAT THE TOKEN IS, AND IS NOT
+ *
+ * An opaque random token. What it stands for lives only here, on the server,
+ * keyed by the token's SHA-256, so a read of the cache yields no usable
+ * token. It is not a credential: the sign-in still needs the person's own
+ * OneUptime session in the project, and the chat account the workspace says
+ * signed in must be the one that pressed (else nothing is connected - a
+ * connect link opened in a browser signed in to somebody else's Slack would
+ * otherwise connect that person's account to yours). Spent once, by the
+ * callback that finishes it; it lasts as long as Slack lets an answer go
+ * back to where the press was (EXPIRES_IN_SECONDS).
+ */
+
+// What a press does that OneUptime can finish once the account is connected.
+export enum WorkspacePendingActionKind {
+  Acknowledge = "Acknowledge",
+  Resolve = "Resolve",
+  MarkAsOngoing = "MarkAsOngoing",
+  MarkAsComplete = "MarkAsComplete",
+}
+
+export interface WorkspacePendingAction {
+  kind: WorkspacePendingActionKind;
+  eventType: WorkspaceEventType;
+  eventId: ObjectID;
+}
+
+/*
+ * What to press again, for a press OneUptime cannot finish for them later: a
+ * button that opens a form (the form opens only on a fresh press), a command,
+ * or a question to OneUptime AI.
+ */
+export enum WorkspaceConnectRequestAgainKind {
+  Button = "Button",
+  Command = "Command",
+  Question = "Question",
+}
+
+export interface WorkspaceConnectRequestAgain {
+  kind: WorkspaceConnectRequestAgainKind;
+  // The button's title, or the command: "Add Note", "/incident".
+  label?: string | undefined;
+}
+
+// Where Slack answers the press: the channel, its thread, the press's response_url.
+export interface WorkspaceConnectRequestSlackPlace {
+  teamId?: string | undefined;
+  channelId?: string | undefined;
+  threadTs?: string | undefined;
+  responseUrl?: string | undefined;
+}
+
+/*
+ * Where Microsoft Teams answers the press: the conversation it was made in
+ * (a channel's thread is "<channel>;messageid=<post>"), and the person, by
+ * their Teams id, to mention.
+ */
+export interface WorkspaceConnectRequestTeamsPlace {
+  serviceUrl: string;
+  conversationId: string;
+  conversationType?: string | undefined;
+  tenantId?: string | undefined;
+  userTeamsId?: string | undefined;
+  userName?: string | undefined;
+}
+
+export interface WorkspaceConnectRequestData {
+  workspaceType: WorkspaceType;
+  projectId: ObjectID;
+  /*
+   * The chat account that pressed: a Slack user id ("U0123ABC"), or the
+   * Microsoft Entra object id Microsoft Teams names its user by.
+   */
+  workspaceUserId: string;
+  /*
+   * What they were doing, completing "Connect your Slack account to ...":
+   * "acknowledge this incident". OneUptime's own words, never the chat's.
+   */
+  purpose: string;
+  // What OneUptime finishes for them once they are connected, if anything.
+  pendingAction?: WorkspacePendingAction | undefined;
+  // What to press again instead, when OneUptime cannot finish it.
+  again?: WorkspaceConnectRequestAgain | undefined;
+  slack?: WorkspaceConnectRequestSlackPlace | undefined;
+  teams?: WorkspaceConnectRequestTeamsPlace | undefined;
+}
+
+export interface WorkspaceConnectRequestRecord extends WorkspaceConnectRequestData {
+  expiresAt: Date;
+}
+
+const NAMESPACE: string = "workspace-connect-request";
+
+const KNOWN_WORKSPACE_TYPES: Array<WorkspaceType> = [
+  WorkspaceType.Slack,
+  WorkspaceType.MicrosoftTeams,
+];
+
+export default class WorkspaceConnectRequest {
+  /*
+   * Thirty minutes: as long as Slack takes answers to a press's
+   * response_url, and long enough to sign in to OneUptime, and to Slack or
+   * Microsoft, with two-factor on both.
+   */
+  public static readonly EXPIRES_IN_SECONDS: number = 30 * 60;
+
+  // Records a press to finish once the account is connected; its token.
+  @CaptureSpan()
+  public static async create(data: WorkspaceConnectRequestData): Promise<{
+    token: string;
+  }> {
+    const token: string = crypto.randomBytes(32).toString("base64url");
+
+    const record: JSONObject = {
+      workspaceType: data.workspaceType,
+      projectId: data.projectId.toString(),
+      workspaceUserId: data.workspaceUserId,
+      purpose: data.purpose,
+      expiresAt: new Date(
+        Date.now() + WorkspaceConnectRequest.EXPIRES_IN_SECONDS * 1000,
+      ).toISOString(),
+    };
+
+    if (data.pendingAction) {
+      record["pendingAction"] = {
+        kind: data.pendingAction.kind,
+        eventType: data.pendingAction.eventType,
+        eventId: data.pendingAction.eventId.toString(),
+      };
+    }
+
+    if (data.again) {
+      record["again"] = WorkspaceConnectRequest.compact({
+        kind: data.again.kind,
+        label: data.again.label,
+      });
+    }
+
+    if (data.slack) {
+      record["slack"] = WorkspaceConnectRequest.compact({
+        teamId: data.slack.teamId,
+        channelId: data.slack.channelId,
+        threadTs: data.slack.threadTs,
+        responseUrl: data.slack.responseUrl,
+      });
+    }
+
+    if (data.teams) {
+      record["teams"] = WorkspaceConnectRequest.compact({
+        serviceUrl: data.teams.serviceUrl,
+        conversationId: data.teams.conversationId,
+        conversationType: data.teams.conversationType,
+        tenantId: data.teams.tenantId,
+        userTeamsId: data.teams.userTeamsId,
+        userName: data.teams.userName,
+      });
+    }
+
+    await GlobalCache.setString(
+      NAMESPACE,
+      WorkspaceConnectRequest.hash(token),
+      JSON.stringify(record),
+      {
+        expiresInSeconds: WorkspaceConnectRequest.EXPIRES_IN_SECONDS,
+      },
+    );
+
+    return { token };
+  }
+
+  /*
+   * The request behind a token, left in place: for the start of a sign-in,
+   * which may be abandoned and started again from the same button. Null for
+   * a token that is not one, unknown, expired or spent.
+   */
+  @CaptureSpan()
+  public static async peek(
+    token: unknown,
+  ): Promise<WorkspaceConnectRequestRecord | null> {
+    const wellFormedToken: string | null =
+      ConnectCallbackUtil.readConnectRequestToken(token);
+
+    if (!wellFormedToken) {
+      return null;
+    }
+
+    return WorkspaceConnectRequest.parse(
+      await GlobalCache.getString(
+        NAMESPACE,
+        WorkspaceConnectRequest.hash(wellFormedToken),
+      ),
+    );
+  }
+
+  /*
+   * Spends a token: the request behind it, removed in the same atomic step,
+   * so a press is finished once however many times its sign-in comes back.
+   * Null as for peek.
+   */
+  @CaptureSpan()
+  public static async take(
+    token: unknown,
+  ): Promise<WorkspaceConnectRequestRecord | null> {
+    const wellFormedToken: string | null =
+      ConnectCallbackUtil.readConnectRequestToken(token);
+
+    if (!wellFormedToken) {
+      return null;
+    }
+
+    return WorkspaceConnectRequest.parse(
+      await GlobalCache.getAndDeleteString(
+        NAMESPACE,
+        WorkspaceConnectRequest.hash(wellFormedToken),
+      ),
+    );
+  }
+
+  /*
+   * Where the Connect button goes: the person's own settings page for the
+   * workspace, in the project, with the token. The page connects them at
+   * once (Dashboard Components/Slack/SlackIntegration and
+   * Components/MicrosoftTeams/MicrosoftTeamsIntegration).
+   */
+  @CaptureSpan()
+  public static async getConnectUrl(data: {
+    workspaceType: WorkspaceType;
+    projectId: ObjectID;
+    token: string;
+  }): Promise<URL> {
+    return (
+      await WorkspaceConnectRequest.getSettingsUrl({
+        workspaceType: data.workspaceType,
+        projectId: data.projectId,
+      })
+    ).addQueryParam(CONNECT_REQUEST_QUERY_PARAM, data.token);
+  }
+
+  /*
+   * The person's own settings page for the workspace in the project, where
+   * they connect their account: what an answer links to when no press could
+   * be recorded.
+   */
+  @CaptureSpan()
+  public static async getSettingsUrl(data: {
+    workspaceType: WorkspaceType;
+    projectId: ObjectID;
+  }): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${data.projectId.toString()}${ConnectCallbackUtil.getPagePath(
+        data.workspaceType === WorkspaceType.MicrosoftTeams
+          ? ConnectProvider.MicrosoftTeams
+          : ConnectProvider.Slack,
+        ConnectStartPage.UserSettings,
+      )}`,
+    );
+  }
+
+  /*
+   * A stored request, read back: null for anything that is not one written
+   * by create, or one past its expiry.
+   */
+  private static parse(raw: string | null): WorkspaceConnectRequestRecord | null {
+    if (!raw) {
+      return null;
+    }
+
+    let record: JSONObject;
+
+    try {
+      record = JSON.parse(raw) as JSONObject;
+    } catch {
+      logger.debug("A workspace connect request could not be read.");
+      return null;
+    }
+
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      return null;
+    }
+
+    const workspaceType: WorkspaceType = record["workspaceType"] as WorkspaceType;
+    const projectId: unknown = record["projectId"];
+    const workspaceUserId: unknown = record["workspaceUserId"];
+    const purpose: unknown = record["purpose"];
+    const expiresAt: number = Date.parse(String(record["expiresAt"]));
+
+    if (
+      !KNOWN_WORKSPACE_TYPES.includes(workspaceType) ||
+      typeof projectId !== "string" ||
+      !projectId ||
+      typeof workspaceUserId !== "string" ||
+      !workspaceUserId ||
+      typeof purpose !== "string" ||
+      !purpose ||
+      Number.isNaN(expiresAt) ||
+      expiresAt <= Date.now()
+    ) {
+      return null;
+    }
+
+    const parsed: WorkspaceConnectRequestRecord = {
+      workspaceType: workspaceType,
+      projectId: new ObjectID(projectId),
+      workspaceUserId: workspaceUserId,
+      purpose: purpose,
+      expiresAt: new Date(expiresAt),
+    };
+
+    const pendingAction: WorkspacePendingAction | undefined =
+      WorkspaceConnectRequest.parsePendingAction(record["pendingAction"]);
+
+    if (pendingAction) {
+      parsed.pendingAction = pendingAction;
+    }
+
+    const again: WorkspaceConnectRequestAgain | undefined =
+      WorkspaceConnectRequest.parseAgain(record["again"]);
+
+    if (again) {
+      parsed.again = again;
+    }
+
+    const slack: JSONObject | undefined = WorkspaceConnectRequest.asObject(
+      record["slack"],
+    );
+
+    if (slack) {
+      parsed.slack = WorkspaceConnectRequest.compact({
+        teamId: WorkspaceConnectRequest.asString(slack["teamId"]),
+        channelId: WorkspaceConnectRequest.asString(slack["channelId"]),
+        threadTs: WorkspaceConnectRequest.asString(slack["threadTs"]),
+        responseUrl: WorkspaceConnectRequest.asString(slack["responseUrl"]),
+      }) as WorkspaceConnectRequestSlackPlace;
+    }
+
+    const teams: JSONObject | undefined = WorkspaceConnectRequest.asObject(
+      record["teams"],
+    );
+
+    const serviceUrl: string | undefined = WorkspaceConnectRequest.asString(
+      teams?.["serviceUrl"],
+    );
+    const conversationId: string | undefined = WorkspaceConnectRequest.asString(
+      teams?.["conversationId"],
+    );
+
+    if (teams && serviceUrl && conversationId) {
+      parsed.teams = WorkspaceConnectRequest.compact({
+        serviceUrl: serviceUrl,
+        conversationId: conversationId,
+        conversationType: WorkspaceConnectRequest.asString(
+          teams["conversationType"],
+        ),
+        tenantId: WorkspaceConnectRequest.asString(teams["tenantId"]),
+        userTeamsId: WorkspaceConnectRequest.asString(teams["userTeamsId"]),
+        userName: WorkspaceConnectRequest.asString(teams["userName"]),
+      }) as unknown as WorkspaceConnectRequestTeamsPlace;
+    }
+
+    return parsed;
+  }
+
+  private static parsePendingAction(
+    value: unknown,
+  ): WorkspacePendingAction | undefined {
+    const action: JSONObject | undefined =
+      WorkspaceConnectRequest.asObject(value);
+
+    if (!action) {
+      return undefined;
+    }
+
+    const kind: WorkspacePendingActionKind =
+      action["kind"] as WorkspacePendingActionKind;
+    const eventType: WorkspaceEventType =
+      action["eventType"] as WorkspaceEventType;
+    const eventId: string | undefined = WorkspaceConnectRequest.asString(
+      action["eventId"],
+    );
+
+    if (
+      !(Object.values(WorkspacePendingActionKind) as Array<string>).includes(
+        kind,
+      ) ||
+      !(Object.values(WorkspaceEventType) as Array<string>).includes(
+        eventType,
+      ) ||
+      !eventId
+    ) {
+      return undefined;
+    }
+
+    return {
+      kind: kind,
+      eventType: eventType,
+      eventId: new ObjectID(eventId),
+    };
+  }
+
+  private static parseAgain(
+    value: unknown,
+  ): WorkspaceConnectRequestAgain | undefined {
+    const again: JSONObject | undefined =
+      WorkspaceConnectRequest.asObject(value);
+
+    if (!again) {
+      return undefined;
+    }
+
+    const kind: WorkspaceConnectRequestAgainKind =
+      again["kind"] as WorkspaceConnectRequestAgainKind;
+
+    if (
+      !(Object.values(WorkspaceConnectRequestAgainKind) as Array<string>).includes(
+        kind,
+      )
+    ) {
+      return undefined;
+    }
+
+    const label: string | undefined = WorkspaceConnectRequest.asString(
+      again["label"],
+    );
+
+    return label ? { kind: kind, label: label } : { kind: kind };
+  }
+
+  private static asObject(value: unknown): JSONObject | undefined {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as JSONObject)
+      : undefined;
+  }
+
+  private static asString(value: unknown): string | undefined {
+    return typeof value === "string" && value ? value : undefined;
+  }
+
+  // The object without its empty entries.
+  private static compact(values: {
+    [key: string]: string | undefined;
+  }): JSONObject {
+    const compacted: JSONObject = {};
+
+    for (const [key, value] of Object.entries(values)) {
+      if (value) {
+        compacted[key] = value;
+      }
+    }
+
+    return compacted;
+  }
+
+  private static hash(token: string): string {
+    return crypto.createHash("sha256").update(token).digest("hex");
+  }
+}

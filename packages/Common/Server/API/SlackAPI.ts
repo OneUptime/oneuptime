@@ -75,11 +75,26 @@ import ConnectCallback, {
   ConnectCallbackRefusal,
 } from "./ConnectCallback";
 import ConnectCallbackUtil, {
+  CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
+  CONNECT_REQUEST_QUERY_PARAM,
+  CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM,
+  CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM,
   CONNECT_START_PAGE_QUERY_PARAM,
   ConnectCallbackError,
   ConnectProvider,
+  ConnectRequestOutcome,
 } from "../../Types/Workspace/ConnectCallback";
 import OneUptimeDate from "../../Types/Date";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+} from "../Utils/Workspace/WorkspaceConnectRequest";
+import WorkspaceConnectCompletion, {
+  WorkspaceConnectCompletionResult,
+} from "../Utils/Workspace/WorkspaceConnectCompletion";
+import SlackActionAnswer, {
+  SlackAnswerPlace,
+} from "../Utils/Workspace/Slack/Actions/Answer";
+import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -99,8 +114,134 @@ export default class SlackAPI {
   public static readonly CONNECT_PERMISSION_MESSAGE: string =
     "You do not have permission to connect this project to Slack.";
 
+  /*
+   * What the sign-in a Connect button in Slack starts is refused with when
+   * the press behind it is gone - spent by an earlier sign-in, or past its
+   * thirty minutes - or is not this project's.
+   */
+  public static readonly CONNECT_REQUEST_GONE_MESSAGE: string =
+    "This Connect button has expired or was already used. Press the button in Slack again.";
+
   // Generous: the server-side channel fetch caches up to ~100k channels.
   public static readonly MAX_CHANNEL_CACHE_ENTRIES: number = 100000;
+
+  /*
+   * The press a sign-in's `?connect=` stands for, as the state's payload -
+   * nothing when there is no `?connect=`. Refused when the press is gone
+   * or is another project's: the page then says the button expired.
+   */
+  private static async getConnectRequestPayload(data: {
+    value: unknown;
+    projectId: ObjectID;
+  }): Promise<JSONObject | undefined> {
+    if (data.value === undefined) {
+      return undefined;
+    }
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await SlackAPI.peekConnectRequest({
+        token: data.value,
+        projectId: data.projectId,
+      });
+
+    if (!request) {
+      throw new BadDataException(SlackAPI.CONNECT_REQUEST_GONE_MESSAGE);
+    }
+
+    return { connectToken: data.value as string };
+  }
+
+  // A Slack press behind `token` in `projectId`, left in place; null for anything else.
+  private static async peekConnectRequest(data: {
+    token: unknown;
+    projectId: ObjectID;
+  }): Promise<WorkspaceConnectRequestRecord | null> {
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(data.token);
+
+    if (
+      !request ||
+      request.workspaceType !== WorkspaceType.Slack ||
+      request.projectId.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return request;
+  }
+
+  /*
+   * Once the account a Connect button was for is connected: spends the
+   * press, finishes it as the member (WorkspaceConnectCompletion), answers
+   * where it was made (SlackActionAnswer), and says what the settings page
+   * should tell the person - what became of the press, and where in Slack
+   * to go back to.
+   */
+  private static async finishConnectRequest(data: {
+    token: unknown;
+    connectRequest: WorkspaceConnectRequestRecord | null;
+    userId: ObjectID;
+    projectAuthToken: string | undefined;
+  }): Promise<Dictionary<string>> {
+    // Spent once, however many times its sign-in comes back.
+    const request: WorkspaceConnectRequestRecord | null = data.connectRequest
+      ? await WorkspaceConnectRequest.take(data.token)
+      : null;
+
+    if (!request) {
+      return {
+        [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: ConnectRequestOutcome.Expired,
+      };
+    }
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request,
+        userId: data.userId,
+      });
+
+    if (data.projectAuthToken) {
+      const place: SlackAnswerPlace = {
+        projectAuthToken: data.projectAuthToken,
+        slackUserId: request.workspaceUserId,
+      };
+
+      if (request.slack?.channelId) {
+        place.slackChannelId = request.slack.channelId;
+      }
+
+      if (request.slack?.threadTs) {
+        place.slackThreadTs = request.slack.threadTs;
+      }
+
+      if (SlackUtil.isSlackResponseUrl(request.slack?.responseUrl)) {
+        place.responseUrl = request.slack!.responseUrl;
+      }
+
+      await SlackActionAnswer.answer({
+        place: place,
+        answer: result.answer,
+      });
+    }
+
+    const params: Dictionary<string> = {
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: result.outcome,
+    };
+
+    // Where the page's "Back to Slack" goes: the channel the press was in.
+    if (
+      ConnectCallbackUtil.getSlackChannelLink({
+        channel: request.slack?.channelId,
+        team: request.slack?.teamId,
+      })
+    ) {
+      params[CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM] =
+        request.slack!.channelId!;
+      params[CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM] = request.slack!.teamId!;
+    }
+
+    return params;
+  }
 
   // Slack caps channel names at 80 characters.
   private static readonly MAX_CHANNEL_NAME_LENGTH: number = 255;
@@ -429,6 +570,17 @@ export default class SlackAPI {
 
           const userId: ObjectID = databaseProps.userId!;
 
+          /*
+           * Started from a Connect button in Slack (`?connect=`): the press
+           * it stands for goes with the sign-in, so the callback can finish
+           * it - when it is still there, and is this project's.
+           */
+          const payload: JSONObject | undefined =
+            await SlackAPI.getConnectRequestPayload({
+              value: req.query[CONNECT_REQUEST_QUERY_PARAM],
+              projectId: projectId,
+            });
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
@@ -438,6 +590,7 @@ export default class SlackAPI {
             startPage: ConnectCallbackUtil.readStartPage(
               req.query[CONNECT_START_PAGE_QUERY_PARAM],
             ),
+            payload: payload,
           });
 
           const authorizationUrl: string = `https://slack.com/openid/connect/authorize?response_type=code&scope=${encodeURIComponent(
@@ -704,6 +857,7 @@ export default class SlackAPI {
               select: {
                 workspaceProjectId: true,
                 miscData: true,
+                authToken: true,
               },
               props: {
                 isRoot: true,
@@ -739,6 +893,32 @@ export default class SlackAPI {
             );
           }
 
+          /*
+           * Started from a Connect button in Slack: the account that signed
+           * in must be the one that pressed it. Another one - a browser
+           * signed in to a colleague's Slack - is refused and nothing is
+           * connected: connecting it would let that account act as you.
+           */
+          const connectToken: unknown = record.payload?.["connectToken"];
+
+          const connectRequest: WorkspaceConnectRequestRecord | null =
+            connectToken
+              ? await SlackAPI.peekConnectRequest({
+                  token: connectToken,
+                  projectId: record.projectId,
+                })
+              : null;
+
+          if (
+            connectRequest &&
+            connectRequest.workspaceUserId !== slackUserId
+          ) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackOtherAccount,
+              "The Slack account signed in is not the one that pressed the Connect button.",
+            );
+          }
+
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: record.projectId,
             userId: record.userId,
@@ -750,7 +930,18 @@ export default class SlackAPI {
             },
           });
 
-          data.backToPage();
+          if (!connectToken) {
+            return data.backToPage();
+          }
+
+          return data.backToPage(
+            await SlackAPI.finishConnectRequest({
+              token: connectToken,
+              connectRequest: connectRequest,
+              userId: record.userId,
+              projectAuthToken: projectAuth.authToken,
+            }),
+          );
         },
       }),
     );
@@ -817,8 +1008,20 @@ export default class SlackAPI {
         }
 
         if (authResult.isAuthorized === false) {
-          // return empty response if not authorized. Do nothing in this case.
-          return Response.sendTextResponse(req, res, "");
+          /*
+           * Slack is answered at once - within its three seconds, so the
+           * button never shows a timeout - and then the person, where they
+           * pressed: connect your account, or why they may not
+           * (SlackAuthAction.answerRefusal). They used to get a direct
+           * message instead, which nobody watching the channel saw.
+           */
+          Response.sendTextResponse(req, res, "");
+
+          if (authResult.refusal) {
+            await SlackAuthAction.answerRefusal(authResult);
+          }
+
+          return;
         }
 
         for (const action of authResult.actions || []) {
@@ -831,10 +1034,13 @@ export default class SlackAPI {
           }
 
           /*
-           * Join call is a link button: Slack opens the meeting, and the
-           * click it reports needs nothing but an acknowledgement.
+           * Join call and Connect are link buttons: Slack opens the link,
+           * and the click it reports needs nothing but an acknowledgement.
            */
-          if (action.actionType === SlackActionType.JoinVideoCall) {
+          if (
+            action.actionType === SlackActionType.JoinVideoCall ||
+            action.actionType === SlackActionType.ConnectSlackAccount
+          ) {
             return Response.sendTextResponse(req, res, "");
           }
 
@@ -1543,13 +1749,23 @@ export default class SlackAPI {
                 });
               }
 
-              // If the user's Slack account is not connected to OneUptime.
+              /*
+               * A Slack account not connected to OneUptime: asked to connect
+               * it, only where the asker sees it - in the thread they asked
+               * in - with the Connect button, and to ask again once they
+               * have.
+               */
               if (!context.userId) {
-                await SlackUtil.sendMessageToThread({
-                  authToken: context.projectAuthToken,
-                  channelId: slackChannelId,
-                  threadTs: threadTs,
-                  text: SlackAPI.getSlackAccountNotConnectedMessage(),
+                await SlackConnectPrompt.prompt({
+                  projectId: context.projectId,
+                  slackTeamId: slackTeamId,
+                  place: {
+                    projectAuthToken: context.projectAuthToken,
+                    slackUserId: eventUserId || "",
+                    slackChannelId: slackChannelId,
+                    slackThreadTs: threadTs || undefined,
+                  },
+                  description: SlackConnectPrompt.describeQuestion(),
                 });
                 return;
               }
@@ -1713,16 +1929,21 @@ export default class SlackAPI {
           }
 
           if (!context.userId) {
-            // User's Slack account is not connected to OneUptime.
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: SlackAPI.getSlackAccountNotConnectedMessage(),
+            /*
+             * A Slack account not connected to OneUptime: asked to connect
+             * it where the command was run, with the Connect button, and to
+             * ask again once it is.
+             */
+            await SlackConnectPrompt.prompt({
+              projectId: context.projectId,
+              slackTeamId: slackTeamId,
+              place: {
+                projectAuthToken: context.projectAuthToken,
+                slackUserId: slackUserId,
+                slackChannelId: (body["channel_id"] as string) || undefined,
+                responseUrl: responseUrl,
               },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
+              description: SlackConnectPrompt.describeQuestion(),
             });
             return;
           }
@@ -2035,14 +2256,6 @@ export default class SlackAPI {
     }
 
     return history;
-  }
-
-  /*
-   * Message shown to a Slack user whose Slack account is not connected to
-   * OneUptime. Mirrors the copy used in SlackAuthAction.isAuthorized.
-   */
-  private static getSlackAccountNotConnectedMessage(): string {
-    return "Unfortunately your Slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account.";
   }
 
   /*
