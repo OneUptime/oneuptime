@@ -89,6 +89,66 @@ function pages(): Array<[string, string]> {
   return written;
 }
 
+describe("a comparison whose cells hold pipes, backslashes and line endings", () => {
+  it("keeps every row of its tables as wide as the header", () => {
+    jest.isolateModules(() => {
+      jest.doMock("../Utils/ProductCompare", () => {
+        const actual: Record<string, unknown> = jest.requireActual(
+          "../Utils/ProductCompare",
+        ) as Record<string, unknown>;
+        const product: Record<string, unknown> = {
+          ...(actual["default"] as (slug: string) => Record<string, unknown>)(
+            "pagerduty",
+          ),
+          productName: "Tool \\| Pro",
+          items: [
+            {
+              name: "Monitoring",
+              data: [
+                {
+                  title: "Paths like C:\\|D:",
+                  description: "a | b\r\nc",
+                  productColumn: "ends in \\",
+                  oneuptimeColumn: "tick",
+                },
+              ],
+            },
+          ],
+        };
+
+        return {
+          ...actual,
+          __esModule: true,
+          default: (slug: string): Record<string, unknown> | undefined => {
+            return slug === "pagerduty" ? product : undefined;
+          },
+        };
+      });
+
+      const discovery: {
+        generateCompareMarkdown: typeof generateCompareMarkdown;
+      } = jest.requireActual("../Utils/AIDiscovery") as {
+        generateCompareMarkdown: typeof generateCompareMarkdown;
+      };
+      const markdown: string =
+        discovery.generateCompareMarkdown("pagerduty", HOME_URL) || "";
+      const tables: Array<Array<number>> = writtenTables(markdown);
+
+      expect(tables.length).toBeGreaterThan(0);
+
+      for (const counts of tables) {
+        for (const count of counts) {
+          expect(count).toBe(counts[0]);
+        }
+      }
+
+      expect(markdown).toContain("| Feature | Tool \\| Pro | OneUptime |");
+      // A carriage return is a line ending to every Markdown reader.
+      expect(markdown.includes("\r")).toBe(false);
+    });
+  });
+});
+
 describe("the AI discovery pages' tables", () => {
   let placedCells: Array<string> = [];
   let spy: SpyInstance<(markdown: string) => string> | undefined = undefined;

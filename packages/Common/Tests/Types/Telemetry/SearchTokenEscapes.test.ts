@@ -258,6 +258,17 @@ describe("buildSearchTokenValue - a literal value", () => {
     }
   });
 
+  test("a bracket pair wraps a value only when no line ending is inside it, as before", () => {
+    expect(buildSearchTokenValue("(a b)")).toBe('"\\(a b)"');
+    expect(buildSearchTokenValue("(a\nb)")).toBe('"(a\nb)"');
+    expect(buildSearchTokenValue("[a\rb]")).toBe('"[a\rb]"');
+    expect(buildSearchTokenValue(`(a${String.fromCharCode(0x2028)}b)`)).toBe(
+      `"(a${String.fromCharCode(0x2028)}b)"`,
+    );
+    expect(buildSearchTokenValue("()")).toBe("\\()");
+    expect(buildSearchTokenValue("(")).toBe('"("');
+  });
+
   test("a value that leaves a bracket open is quoted, and a balanced one is not", () => {
     expect(buildSearchTokenValue("f(x")).toBe('"f(x"');
     expect(buildSearchTokenValue(":)(")).toBe('":)("');

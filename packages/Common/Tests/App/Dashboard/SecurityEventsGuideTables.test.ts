@@ -57,9 +57,9 @@ function loadGuides(): LoadedGuides {
   const loaded: Array<Guides> = [];
 
   jest.isolateModules(() => {
-    const helper: typeof MarkdownTableCellModule = jest.requireActual<
-      typeof MarkdownTableCellModule
-    >("../../../Utils/Markdown/MarkdownTableCell");
+    const helper: typeof MarkdownTableCellModule = jest.requireActual(
+      "../../../Utils/Markdown/MarkdownTableCell",
+    ) as typeof MarkdownTableCellModule;
     const original: (markdown: string) => string = helper.markdownTableCell;
     const spy: SpyInstance<(markdown: string) => string> = jest
       .spyOn(helper, "markdownTableCell")
@@ -70,15 +70,15 @@ function loadGuides(): LoadedGuides {
 
     try {
       loaded.push({
-        guide: jest.requireActual<GuideModule>(
+        guide: jest.requireActual(
           `${GUIDES_DIRECTORY}/SecurityEventsGuide`,
-        ),
-        detection: jest.requireActual<DetectionModule>(
+        ) as GuideModule,
+        detection: jest.requireActual(
           `${GUIDES_DIRECTORY}/DetectionRulesGuide`,
-        ),
-        threatIntel: jest.requireActual<ThreatIntelModule>(
+        ) as DetectionModule,
+        threatIntel: jest.requireActual(
           `${GUIDES_DIRECTORY}/ThreatIntelGuide`,
-        ),
+        ) as ThreatIntelModule,
       });
     } finally {
       spy.mockRestore();
