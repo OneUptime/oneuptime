@@ -107,8 +107,10 @@ const PROVIDERS_OF_CODE: Partial<
 > = {
   [ConnectCallbackError.SlackOtherWorkspace]: [ConnectProvider.Slack],
   [ConnectCallbackError.SlackNotInstalled]: [ConnectProvider.Slack],
+  [ConnectCallbackError.SlackOtherAccount]: [ConnectProvider.Slack],
   [ConnectCallbackError.TeamsOtherTenant]: [ConnectProvider.MicrosoftTeams],
   [ConnectCallbackError.TeamsNoTeams]: [ConnectProvider.MicrosoftTeams],
+  [ConnectCallbackError.TeamsOtherAccount]: [ConnectProvider.MicrosoftTeams],
   [ConnectCallbackError.GitHubNoInstallation]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNoAuthorization]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNotVerified]: [ConnectProvider.GitHub],
@@ -179,6 +181,10 @@ export const getConnectCallbackMessageKey: (
       return translationKey(
         "This project is not connected to a Slack workspace yet. Please connect Slack to the project first, then connect your account.",
       );
+    case ConnectCallbackError.SlackOtherAccount:
+      return translationKey(
+        "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.",
+      );
     case ConnectCallbackError.TeamsOtherTenant:
       return translationKey(
         "You signed in to a different Microsoft 365 organization from the one this connection is for. Please sign in with an account from that organization and try again.",
@@ -186,6 +192,10 @@ export const getConnectCallbackMessageKey: (
     case ConnectCallbackError.TeamsNoTeams:
       return translationKey(
         "Your Microsoft 365 organization has no teams yet. Please create a team in Microsoft Teams and try again.",
+      );
+    case ConnectCallbackError.TeamsOtherAccount:
+      return translationKey(
+        "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.",
       );
     case ConnectCallbackError.GitHubNoInstallation:
       return translationKey(

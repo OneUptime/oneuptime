@@ -40,10 +40,21 @@ import ConnectCallbackNotice, {
   useConnectCallbackNotice,
 } from "../Workspace/ConnectCallbackNotice";
 import {
+  CONNECT_REQUEST_QUERY_PARAM,
   CONNECT_START_PAGE_QUERY_PARAM,
   ConnectProvider,
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
+import ConnectRequestNotice, {
+  ConnectRequestState,
+  useConnectRequest,
+} from "../Workspace/ConnectRequestNotice";
+import {
+  ConnectRequestNoticeText,
+  getConnectingNotice,
+} from "../../Utils/Workspace/ConnectRequestMessage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -61,10 +72,24 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
 
+  const translator: Translator = useTranslator();
+
   // What a connection that came back unmade says (?error=).
   const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
     provider: ConnectProvider.Slack,
   });
+
+  /*
+   * A Connect button pressed in Slack (?connect=), and what became of the
+   * press once the account was connected (?pressed=).
+   */
+  const connectRequest: ConnectRequestState = useConnectRequest({
+    provider: ConnectProvider.Slack,
+  });
+
+  // On its way to Slack to sign in, for a Connect button pressed there.
+  const [isConnectingFromSlack, setIsConnectingFromSlack] =
+    React.useState<boolean>(false);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -182,14 +207,102 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
+  /*
+   * Starts "sign in with Slack" for the press a Connect button in Slack
+   * stands for (`connect`), and takes the browser there. A press that can no
+   * longer be used - spent, or expired - is answered by the server with a
+   * 400: the page says so, its own Connect button right below.
+   */
+  type StartSignInFromSlackFunction = (token: string) => Promise<void>;
+
+  const startSignInFromSlack: StartSignInFromSlackFunction = async (
+    token: string,
+  ): Promise<void> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: URL.fromURL(APP_API_URL)
+          .addRoute("/slack/sign-in-url")
+          .addQueryParam(
+            CONNECT_START_PAGE_QUERY_PARAM,
+            props.startPage || ConnectStartPage.ProjectSettings,
+          )
+          .addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token),
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      if (response.statusCode === 400) {
+        setIsConnectingFromSlack(false);
+        connectRequest.markLinkGone();
+        return;
+      }
+
+      throw response;
+    }
+
+    const authorizationUrl: string | undefined = (response.data as JSONObject)[
+      "authorizationUrl"
+    ] as string | undefined;
+
+    if (!authorizationUrl) {
+      throw new Error(
+        "OneUptime could not start the Slack connection. Please try again.",
+      );
+    }
+
+    Navigation.navigate(URL.fromString(authorizationUrl));
+  };
+
+  /*
+   * Opened from a Connect button in Slack: the account is connected straight
+   * away - the sign-in starts on its own, carrying the press, so the person
+   * presses nothing more here. Only once the page knows the project is
+   * connected to Slack; otherwise the page shows itself as usual.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectToken) {
+      return;
+    }
+
+    const token: string = connectRequest.connectToken;
+    connectRequest.takeToken();
+
+    if (!isProjectAccountConnected || !SlackAppClientId) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    startSignInFromSlack(token).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+    });
+  }, [isLoading, isProjectAccountConnected]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
+  }
+
+  if (isConnectingFromSlack) {
+    const connecting: ConnectRequestNoticeText = getConnectingNotice({
+      provider: ConnectProvider.Slack,
+      translator: translator,
+    });
+
+    return (
+      <div data-testid="connect-request-connecting">
+        <Card title={connecting.title} description={connecting.message}>
+          <PageLoader isVisible={true} />
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <Fragment>
         <ConnectCallbackNotice state={connectCallback} />
+        <ConnectRequestNotice state={connectRequest} />
         <ErrorMessage message={error} />
       </Fragment>
     );
@@ -454,6 +567,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <ConnectCallbackNotice state={connectCallback} />
+      <ConnectRequestNotice state={connectRequest} />
 
       <div>
         <Card

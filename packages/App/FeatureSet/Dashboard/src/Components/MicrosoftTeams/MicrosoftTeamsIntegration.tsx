@@ -51,10 +51,19 @@ import ConnectCallbackNotice, {
   useConnectCallbackNotice,
 } from "../Workspace/ConnectCallbackNotice";
 import {
+  CONNECT_REQUEST_QUERY_PARAM,
   CONNECT_START_PAGE_QUERY_PARAM,
   ConnectProvider,
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
+import ConnectRequestNotice, {
+  ConnectRequestState,
+  useConnectRequest,
+} from "../Workspace/ConnectRequestNotice";
+import {
+  ConnectRequestNoticeText,
+  getConnectingNotice,
+} from "../../Utils/Workspace/ConnectRequestMessage";
 
 // The full setup guide, folded at the bottom of a self-hosted install's page.
 export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
@@ -89,6 +98,18 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
     provider: ConnectProvider.MicrosoftTeams,
   });
+
+  /*
+   * A Connect button pressed in Microsoft Teams (?connect=), and what became
+   * of the press once the account was connected (?pressed=).
+   */
+  const connectRequest: ConnectRequestState = useConnectRequest({
+    provider: ConnectProvider.MicrosoftTeams,
+  });
+
+  // On its way to Microsoft to sign in, for a Connect button pressed in Teams.
+  const [isConnectingFromTeams, setIsConnectingFromTeams] =
+    React.useState<boolean>(false);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -252,14 +273,104 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
+  /*
+   * Starts "sign in with Microsoft Teams" for the press a Connect button in
+   * Teams stands for (`connect`), and takes the browser there. A press that
+   * can no longer be used - spent, or expired - is answered by the server
+   * with a 400: the page says so, its own Connect button right below.
+   */
+  type StartSignInFromTeamsFunction = (token: string) => Promise<void>;
+
+  const startSignInFromTeams: StartSignInFromTeamsFunction = async (
+    token: string,
+  ): Promise<void> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: URL.fromURL(APP_API_URL)
+          .addRoute("/microsoft-teams/sign-in-url")
+          .addQueryParam(
+            CONNECT_START_PAGE_QUERY_PARAM,
+            props.startPage || ConnectStartPage.ProjectSettings,
+          )
+          .addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token),
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      if (response.statusCode === 400) {
+        setIsConnectingFromTeams(false);
+        connectRequest.markLinkGone();
+        return;
+      }
+
+      throw response;
+    }
+
+    const authorizationUrl: string | undefined = (response.data as JSONObject)[
+      "authorizationUrl"
+    ] as string | undefined;
+
+    if (!authorizationUrl) {
+      throw new Error(
+        translator.translateTemplate(
+          "OneUptime could not start the Microsoft Teams connection. Please try again.",
+        ),
+      );
+    }
+
+    Navigation.navigate(URL.fromString(authorizationUrl));
+  };
+
+  /*
+   * Opened from a Connect button in Microsoft Teams: the account is connected
+   * straight away - the sign-in starts on its own, carrying the press, so
+   * the person presses nothing more here. Only once the page knows the
+   * project is connected to Microsoft Teams; otherwise it shows as usual.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectToken) {
+      return;
+    }
+
+    const token: string = connectRequest.connectToken;
+    connectRequest.takeToken();
+
+    if (!isProjectAccountConnected || !MicrosoftTeamsAppClientId) {
+      return;
+    }
+
+    setIsConnectingFromTeams(true);
+
+    startSignInFromTeams(token).catch((error: Exception) => {
+      setIsConnectingFromTeams(false);
+      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+    });
+  }, [isLoading, isProjectAccountConnected]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
+  }
+
+  if (isConnectingFromTeams) {
+    const connecting: ConnectRequestNoticeText = getConnectingNotice({
+      provider: ConnectProvider.MicrosoftTeams,
+      translator: translator,
+    });
+
+    return (
+      <div data-testid="connect-request-connecting">
+        <Card title={connecting.title} description={connecting.message}>
+          <PageLoader isVisible={true} />
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <Fragment>
         <ConnectCallbackNotice state={connectCallback} />
+        <ConnectRequestNotice state={connectRequest} />
         <ErrorMessage message={error} />
       </Fragment>
     );
@@ -564,6 +675,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <ConnectCallbackNotice state={connectCallback} />
+      <ConnectRequestNotice state={connectRequest} />
 
       <div className="mt-6">
         <Card
