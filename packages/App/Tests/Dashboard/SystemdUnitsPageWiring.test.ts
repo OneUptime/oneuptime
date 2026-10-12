@@ -470,14 +470,12 @@ describe("systemd receiver documentation", () => {
    * which the docs draw above the block.
    */
   function completeExampleConfigs(doc: string): Array<string> {
-    return (doc.match(YAML_FENCE) || []).filter(
-      (block: string): boolean => {
-        return (
-          block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
-          block.includes("service:\n  pipelines:")
-        );
-      },
-    );
+    return (doc.match(YAML_FENCE) || []).filter((block: string): boolean => {
+      return (
+        block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
+        block.includes("service:\n  pipelines:")
+      );
+    });
   }
 
   test("the English page documents the receiver end to end", () => {

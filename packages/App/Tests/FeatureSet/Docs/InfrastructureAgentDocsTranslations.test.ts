@@ -249,8 +249,8 @@ const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
  * its language's decimal mark or digit group: 76,5, ۷۶٫۵, 32 768, 32.768.
  */
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
-const DIGIT_GROUP: RegExp = /(\d)[\s  .,'٬](\d{3})(?!\d)/g;
-const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
+const DIGIT_GROUP: RegExp = /(\d)[\s\u00a0\u202f.,'\u066c](\d{3})(?!\d)/g;
+const DECIMAL_MARK: RegExp = /(\d)[,\u066b](\d)/g;
 
 // A line that starts a list item, a table row, a heading, a component, an image or a quote.
 const NOT_PARAGRAPH_TEXT: RegExp = /^\s*(?:[-*>|#:@]|\d+\.|!\[)/;
@@ -738,8 +738,9 @@ describe("the English pages", () => {
           })
           .slice(-2),
       ).toEqual(["Troubleshooting", "Next steps"]);
-      expect(cardLines(markdown.slice(markdown.lastIndexOf("## Next steps"))))
-        .not.toHaveLength(0);
+      expect(
+        cardLines(markdown.slice(markdown.lastIndexOf("## Next steps"))),
+      ).not.toHaveLength(0);
     },
   );
 

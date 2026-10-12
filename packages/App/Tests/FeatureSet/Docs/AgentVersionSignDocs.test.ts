@@ -321,7 +321,9 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
     (language: string) => {
       const section: string = upgradeSection(language);
       expect(section.split("\n")[0]).toMatch(/^## /);
-      expect(section).toContain(`**${drawnLabelIn(language, "Agent Version")}**`);
+      expect(section).toContain(
+        `**${drawnLabelIn(language, "Agent Version")}**`,
+      );
       expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
       expect(section).toContain("`oneuptime.agent.version`");
       expect(section).toContain("`VERSION`");
