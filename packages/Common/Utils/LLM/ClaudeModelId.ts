@@ -14,9 +14,13 @@
  * went to asks this one parser:
  *
  *  - ClaudeModels (Common/Server/Utils/LLM), for the request surface a model
- *    accepts on the Anthropic wire;
+ *    accepts on the Anthropic wire - every id above, a gateway's own name
+ *    included, since the request it shapes is Anthropic's either way;
  *  - the LLM cost catalog (Common/Types/Telemetry/LlmCostCatalog), for the
- *    price a call is charged at.
+ *    price a call is charged at - only once the id starts with the Claude id
+ *    after the cloud's routing decoration is off. A gateway's own name is not
+ *    priced as Anthropic's model: the gateway charges its own way, and so does
+ *    a cloud the catalog does not know (Bedrock in AWS GovCloud charges more).
  *
  * Plain functions of the text, with no server dependency, so they run in the
  * Dashboard as well as at ingest.

@@ -109,21 +109,16 @@ export default class LlmTokenUsageUtil {
     let cachedTokensApart: boolean = false;
 
     /*
-     * Claude Code's keys only on a span that names its model and carries no
-     * key of any convention's token lists: never mixed with a convention's
-     * counts, and never over them.
+     * Claude Code's keys only on a span that names its model and reports no
+     * input or output count of a convention (a 0 a processor stamped on is
+     * none). Then its counts are Claude Code's alone: a convention's cache
+     * count is never mixed into them.
      */
-    const carriesConventionTokens: boolean = [
-      input,
-      output,
-      cacheRead,
-      cacheWrite,
-      reportedTotal,
-    ].some((value: number | null): boolean => {
-      return value !== null;
-    });
-
-    if (!carriesConventionTokens && data.namesModelOrProvider) {
+    if (
+      data.namesModelOrProvider &&
+      this.count(input) === 0 &&
+      this.count(output) === 0
+    ) {
       const claudeCode: Array<number | null> = [
         ClaudeCodeUsageAttributeKeys.inputTokens,
         ClaudeCodeUsageAttributeKeys.outputTokens,
@@ -148,9 +143,9 @@ export default class LlmTokenUsageUtil {
 
     const inputCount: number = this.count(input);
     const outputCount: number = this.count(output);
-    const cacheReadTokens: number = this.count(cacheRead);
-    const cacheWriteTokens: number = this.count(cacheWrite);
-    const cachedTokens: number = this.count(cacheReadTokens + cacheWriteTokens);
+    const cachedTokens: number = this.count(
+      this.count(cacheRead) + this.count(cacheWrite),
+    );
 
     if (cachedTokens > inputCount) {
       cachedTokensApart = true;
@@ -158,6 +153,19 @@ export default class LlmTokenUsageUtil {
 
     const inputTokens: number = this.count(
       inputCount + (cachedTokensApart ? cachedTokens : 0),
+    );
+
+    /*
+     * The cache counts are part of the input count, so never more than it -
+     * which only a count capped at the column's limit could otherwise break.
+     */
+    const cacheReadTokens: number = Math.min(
+      this.count(cacheRead),
+      inputTokens,
+    );
+    const cacheWriteTokens: number = Math.min(
+      this.count(cacheWrite),
+      inputTokens - cacheReadTokens,
     );
 
     /*

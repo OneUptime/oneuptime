@@ -162,8 +162,9 @@ export const LlmCacheWriteTokenAttributeKeys: Array<string> = [
  * own monitoring docs say to, the GenAI input count is their sum.
  *
  * The names are generic, so they are read only on a span that already names
- * its model or provider and carries none of the keys of the lists above:
- * never on their own, and never over a convention's own count.
+ * its model or provider and reports no input or output count of the lists
+ * above: never on their own, never over a convention's own count, and never
+ * mixed with a convention's cache counts.
  */
 export const ClaudeCodeUsageAttributeKeys: {
   inputTokens: string;

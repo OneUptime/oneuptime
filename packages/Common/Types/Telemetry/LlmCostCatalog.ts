@@ -962,7 +962,9 @@ export const LlmModelPricingCatalog: Array<LlmModelPrice> = [
 const RoutingPrefixTokens: Array<string> = [
   /*
    * Bedrock cross-region inference profiles (Anthropic's Bedrock guide lists
-   * global, us, eu, jp and apac; AWS's adds au).
+   * global, us, eu, jp and apac; AWS's adds au). Not us-gov: Bedrock in AWS
+   * GovCloud charges about a fifth more than these prices (Claude Sonnet 4.5
+   * at $3.60 / $18), so its ids are left to a project's own prices.
    */
   "us",
   "eu",

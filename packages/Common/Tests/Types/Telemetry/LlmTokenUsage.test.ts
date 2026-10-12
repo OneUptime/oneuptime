@@ -339,18 +339,42 @@ describe("Claude Code's traces beta", () => {
     ).toBe(5);
   });
 
-  test("a span with any convention's token key is read by the conventions, never mixed with Claude Code's", () => {
-    // A cache count of the conventions, and a bare input_tokens of some other library.
+  test("Claude Code's counts are its own: a convention's cache count is never mixed into them", () => {
     expect(
       read({
         "gen_ai.usage.cache_read.input_tokens": 800,
         input_tokens: 1_000,
       }),
-    ).toMatchObject({ inputTokens: 800, cacheReadTokens: 800 });
-    // A total of the conventions alone keeps Claude Code's keys out too.
+    ).toMatchObject({
+      inputTokens: 1_000,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+    });
+  });
+
+  test("a convention's total on a Claude Code span does not hide its input and output counts", () => {
     expect(
       read({ "gen_ai.usage.total_tokens": 50, ...CLAUDE_CODE_USAGE }),
-    ).toMatchObject({ inputTokens: 0, outputTokens: 0, totalTokens: 50 });
+    ).toMatchObject({
+      inputTokens: 50_112,
+      outputTokens: 640,
+      // At least input plus output: the total of a count that left the cache out.
+      totalTokens: 50_752,
+    });
+  });
+
+  test("a convention count of 0, as a processor might stamp on, does not keep Claude Code's keys out", () => {
+    expect(
+      read({
+        "gen_ai.usage.input_tokens": 0,
+        "gen_ai.usage.output_tokens": 0,
+        ...CLAUDE_CODE_USAGE,
+      }),
+    ).toMatchObject({
+      inputTokens: 50_112,
+      outputTokens: 640,
+      reportedOutputTokens: 640,
+    });
   });
 
   test("a request answered entirely from the cache", () => {
@@ -408,6 +432,18 @@ describe("counts a token column can hold", () => {
       totalTokens: MAX_TOKEN_COUNT,
       cacheReadTokens: 2e9,
     });
+  });
+
+  test("the cache counts stay part of a capped input count", () => {
+    const usage: LlmTokenUsage = read({
+      "gen_ai.usage.cache_read.input_tokens": 2e9,
+      "gen_ai.usage.cache_write.input_tokens": 2e9,
+    });
+
+    expect(usage.inputTokens).toBe(MAX_TOKEN_COUNT);
+    expect(usage.cacheReadTokens + usage.cacheWriteTokens).toBe(
+      MAX_TOKEN_COUNT,
+    );
   });
 });
 

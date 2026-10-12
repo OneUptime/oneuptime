@@ -564,10 +564,17 @@ describe("a name that only contains a Claude id is not read as that model", () =
   test("a gateway's own name for a Claude model gets no built-in price", () => {
     /*
      * A gateway charges its own way (Databricks in DBUs), so its names are
-     * left to the project's prices rather than read as Anthropic's.
+     * left to the project's prices rather than read as Anthropic's - as
+     * before this catalog knew Claude ids at all.
      */
     expect(prefixOf("databricks-claude-sonnet-4-5")).toBeNull();
     expect(prefixOf("my-gateway-claude-opus-4-8")).toBeNull();
+  });
+
+  test("Bedrock in AWS GovCloud, which charges more, is not priced at these prices", () => {
+    expect(
+      prefixOf("us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0"),
+    ).toBeNull();
   });
 
   test("a project price for the gateway's names keeps winning, as it did before", () => {

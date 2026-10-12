@@ -389,11 +389,8 @@ export default class LlmSpanUtil {
     attributes: SpanAttributes;
     kind: LlmCallKind;
     context?: LlmSpanContext | undefined;
-    /*
-     * The output count as the span reported it, when the caller has read the
-     * span's usage already (extract has); read off the attributes otherwise.
-     */
-    reportedOutputTokens?: number | null | undefined;
+    // The output count as the span reported it: LlmTokenUsage's reading.
+    reportedOutputTokens: number | null;
   }): Array<LlmAnswerIssue> {
     let answer: LlmAnswerReading;
 
@@ -424,10 +421,7 @@ export default class LlmSpanUtil {
       statusIsError: data.context?.statusCode === SpanStatus.Error,
       errorType: answer.errorType,
       finishReasons: answer.finishReasons,
-      outputTokens:
-        data.reportedOutputTokens !== undefined
-          ? data.reportedOutputTokens
-          : this.readTokenUsage(data.attributes).reportedOutputTokens,
+      outputTokens: data.reportedOutputTokens,
       answer: answer.summary,
       evaluations: answer.evaluations,
     });
@@ -514,24 +508,17 @@ export default class LlmSpanUtil {
 
   /*
    * The span's token usage (LlmTokenUsage). Claude Code's bare usage keys are
-   * read only on a span that names its model or provider - which the caller
-   * says when it has read them already, as extract has.
+   * read only on a span that names its model or provider.
    */
   private static readTokenUsage(
     attributes: SpanAttributes,
-    namesModelOrProvider?: boolean,
+    namesModelOrProvider: boolean,
   ): LlmTokenUsage {
     return LlmTokenUsageUtil.read({
       numberOf: (key: string): number | null => {
         return this.getNumberOrNull(attributes, [key]);
       },
-      namesModelOrProvider:
-        namesModelOrProvider ??
-        Boolean(
-          this.getString(attributes, LlmSystemAttributeKeys) ||
-            this.getString(attributes, LlmRequestModelAttributeKeys) ||
-            this.getString(attributes, LlmResponseModelAttributeKeys),
-        ),
+      namesModelOrProvider: namesModelOrProvider,
     });
   }
 
