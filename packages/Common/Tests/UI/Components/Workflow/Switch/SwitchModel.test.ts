@@ -84,9 +84,7 @@ describe("reading the settings", () => {
   test("the value to check and the cases, as stored", () => {
     const state: SwitchState = readSwitchState({
       value: SEVERITY,
-      cases: [
-        { id: "case-1", comparison: "==", value: "Critical Incident" },
-      ],
+      cases: [{ id: "case-1", comparison: "==", value: "Critical Incident" }],
     });
 
     expect(state).toEqual({
@@ -170,7 +168,10 @@ describe("adding, removing, moving and putting back cases", () => {
   });
 
   test("a move to the same place, or out of range, changes nothing", () => {
-    const cases: Array<SwitchCase> = [aCase("case-1", "=="), aCase("case-2", "==")];
+    const cases: Array<SwitchCase> = [
+      aCase("case-1", "=="),
+      aCase("case-2", "=="),
+    ];
 
     expect(moveCase(cases, 1, 1)).toBe(cases);
     expect(moveCase(cases, -1, 0)).toBe(cases);
@@ -362,9 +363,7 @@ describe("choosing a case's comparison does what it does in If / Else", () => {
 
 describe("Compare as, case by case", () => {
   test("decides something for is equal to and the number comparisons, as in If / Else", () => {
-    expect(caseShowsCompareAs(SEVERITY, aCase("case-1", "==", "x"))).toBe(
-      true,
-    );
+    expect(caseShowsCompareAs(SEVERITY, aCase("case-1", "==", "x"))).toBe(true);
     expect(
       caseShowsCompareAs(SEVERITY, aCase("case-1", ">", "5", "number")),
     ).toBe(true);
@@ -515,7 +514,9 @@ describe("cases taken out that had a connection", () => {
   ];
 
   const CONNECTIONS: OutputConnections = {
-    "case-1": [{ componentId: "slack-critical", title: "Send Message to Slack" }],
+    "case-1": [
+      { componentId: "slack-critical", title: "Send Message to Slack" },
+    ],
     "case-2": [
       { componentId: "slack-major", title: "Send Message to Slack" },
       { componentId: "log-1", title: "Log" },

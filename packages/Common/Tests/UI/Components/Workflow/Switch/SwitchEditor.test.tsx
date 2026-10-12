@@ -548,7 +548,9 @@ describe("editing the cases", () => {
         compareAs: "boolean",
       });
     });
-    expect(screen.queryByRole("textbox", { name: "Value for case 2" })).toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: "Value for case 2" }),
+    ).toBeNull();
   });
 
   test("Add case adds an empty is-equal-to case at the end, with a new id, ready to type into", async () => {
@@ -595,9 +597,7 @@ describe("editing the cases", () => {
   test("removing a case takes it out of the list", async () => {
     const { user, onFormChange } = renderSwitch(SEVERITY_SWITCH);
 
-    await user.click(
-      screen.getByRole("button", { name: "Remove case 1" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Remove case 1" }));
 
     await waitFor(() => {
       expect(rows()).toHaveLength(1);
@@ -720,7 +720,9 @@ describe("Compare as, case by case", () => {
       ],
     });
 
-    const compareAs: HTMLElement = screen.getByTestId(SWITCH_TEST_IDS.compareAs);
+    const compareAs: HTMLElement = screen.getByTestId(
+      SWITCH_TEST_IDS.compareAs,
+    );
 
     expect(compareAs).toHaveTextContent("Compare as");
     expect(compareAs).toHaveTextContent("Number");
@@ -756,9 +758,7 @@ describe("Compare as, case by case", () => {
     });
 
     await user.click(
-      within(screen.getByTestId(SWITCH_TEST_IDS.compareAs)).getByRole(
-        "button",
-      ),
+      within(screen.getByTestId(SWITCH_TEST_IDS.compareAs)).getByRole("button"),
     );
 
     // is empty has nothing to compare as.
@@ -829,17 +829,13 @@ describe("what has to be filled in before saving", () => {
       cases: [aCase("case-1", "==")],
     });
 
-    expect(
-      screen.queryByText("Type or pick what to compare with."),
-    ).toBeNull();
+    expect(screen.queryByText("Type or pick what to compare with.")).toBeNull();
 
     // Going to its { } button is not leaving the field.
     placeCaret(caseValue(0), 0);
     await user.tab();
 
-    expect(
-      screen.queryByText("Type or pick what to compare with."),
-    ).toBeNull();
+    expect(screen.queryByText("Type or pick what to compare with.")).toBeNull();
 
     fireEvent.blur(caseValue(0));
 
@@ -912,9 +908,7 @@ describe("in the settings dialog", () => {
   type OutputTitlesFunction = () => Array<string>;
 
   const outputTitles: OutputTitlesFunction = (): Array<string> => {
-    return within(
-      screen.getByTestId("workflow-component-section-outputs"),
-    )
+    return within(screen.getByTestId("workflow-component-section-outputs"))
       .getAllByTestId("workflow-port")
       .map((port: HTMLElement): string => {
         return port.querySelector("p")?.textContent || "";
@@ -972,7 +966,9 @@ describe("in the settings dialog", () => {
 
     expect(onSave).toHaveBeenCalledTimes(1);
 
-    const saved: NodeDataProp = (onSave.mock.calls[0] as Array<unknown>)[0] as NodeDataProp;
+    const saved: NodeDataProp = (
+      onSave.mock.calls[0] as Array<unknown>
+    )[0] as NodeDataProp;
 
     expect(readSwitchCases(saved.arguments["cases"])).toEqual([
       readSwitchCases(SEVERITY_SWITCH["cases"])[0],

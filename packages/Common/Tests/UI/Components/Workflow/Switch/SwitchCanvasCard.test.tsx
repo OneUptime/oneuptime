@@ -183,7 +183,10 @@ afterEach(() => {
 describe("a Switch / Case card's outputs", () => {
   test("one per case, named after it, then Default", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     expect(outputNames()).toEqual([
@@ -195,7 +198,10 @@ describe("a Switch / Case card's outputs", () => {
 
   test("each output's dot is the case's id, so a connection leaves from that case", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     expect(
@@ -207,7 +213,10 @@ describe("a Switch / Case card's outputs", () => {
 
   test("every name sits right above its dot: equal columns, each dot in the middle of its own", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     const lefts: Array<number> = outputDots().map(
@@ -234,16 +243,19 @@ describe("a Switch / Case card's outputs", () => {
 
   test("each case's name has its case's condition on hover", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     const tips: Array<string> = screen
       .getAllByTestId("workflow-node-output")
       .map((name: HTMLElement): string => {
         return (
-          name.closest("[data-testid='tooltip']")?.getAttribute(
-            "data-tooltip-text",
-          ) || ""
+          name
+            .closest("[data-testid='tooltip']")
+            ?.getAttribute("data-tooltip-text") || ""
         );
       });
 
@@ -291,7 +303,9 @@ describe("a Switch / Case card's outputs", () => {
   });
 
   test("a step with no cases at all still has Default to connect", () => {
-    render(<WorkflowNode data={dataOf(ComponentID.Switch, {})} selected={false} />);
+    render(
+      <WorkflowNode data={dataOf(ComponentID.Switch, {})} selected={false} />,
+    );
 
     expect(outputNames()).toEqual(["Default"]);
   });
@@ -300,7 +314,10 @@ describe("a Switch / Case card's outputs", () => {
 describe("what a Switch / Case card says", () => {
   test("what it checks, and against how many cases", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     expect(screen.getByTestId("workflow-node-summary")).toHaveTextContent(
@@ -345,7 +362,10 @@ describe("what a Switch / Case card says", () => {
 describe("how wide a card is", () => {
   test("wide enough for names like Critical Incident", () => {
     const view: RenderResult = render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     const width: string = card(view).style.width;
@@ -368,7 +388,11 @@ describe("how wide a card is", () => {
   });
 
   test("every other step keeps the usual 16rem", () => {
-    for (const id of [ComponentID.IfElse, ComponentID.Log, ComponentID.ApiGet]) {
+    for (const id of [
+      ComponentID.IfElse,
+      ComponentID.Log,
+      ComponentID.ApiGet,
+    ]) {
       const view: RenderResult = render(
         <WorkflowNode data={dataOf(id)} selected={false} />,
       );
@@ -405,7 +429,10 @@ describe("the other steps' outputs, laid out the same way", () => {
 describe("telling React Flow to measure the dots again", () => {
   test("not when the card is first drawn: React Flow measures it then", () => {
     render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     expect(mockUpdateNodeInternals).not.toHaveBeenCalled();
@@ -413,7 +440,10 @@ describe("telling React Flow to measure the dots again", () => {
 
   test("when a case is added, removed or moved, for this card", () => {
     const view: RenderResult = render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     // Added.
@@ -451,7 +481,10 @@ describe("telling React Flow to measure the dots again", () => {
 
     // Removed.
     view.rerender(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     expect(mockUpdateNodeInternals).toHaveBeenCalledTimes(3);
@@ -459,7 +492,10 @@ describe("telling React Flow to measure the dots again", () => {
 
   test("not for a change that leaves every dot where it was", () => {
     const view: RenderResult = render(
-      <WorkflowNode data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)} selected={false} />,
+      <WorkflowNode
+        data={dataOf(ComponentID.Switch, SEVERITY_SWITCH)}
+        selected={false}
+      />,
     );
 
     // A new value of the same length, and selection: the dots stay put.

@@ -1189,11 +1189,9 @@ describe("built-in help says what each step really does", () => {
 
       for (const example of examples) {
         const cases: string =
-          (example.fields || []).find(
-            (field: { name: string }): boolean => {
-              return field.name === "Cases";
-            },
-          )?.value || "";
+          (example.fields || []).find((field: { name: string }): boolean => {
+            return field.name === "Cases";
+          })?.value || "";
 
         // Each case starts with one of the comparisons the list offers.
         for (const part of cases.split(", then ")) {
@@ -1216,7 +1214,9 @@ describe("built-in help says what each step really does", () => {
     // With a step to read from, the example reads the trigger's value.
     expect(
       docsOf(metadata, [INCIDENT_TRIGGER]).examples[0]?.fields?.[0]?.value,
-    ).toBe("{{local.components.incident-on-create-1.returnValues.model.title}}");
+    ).toBe(
+      "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    );
   });
 
   test("Switch / Case's help links to its own section of the components guide", () => {

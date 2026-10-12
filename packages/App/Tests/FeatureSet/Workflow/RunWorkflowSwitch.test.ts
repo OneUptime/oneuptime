@@ -507,7 +507,10 @@ describe("what stops a run", () => {
       graph: savedGraph(
         ROUTED_NODES({
           value: SEVERITY,
-          cases: [aCase("case-1", "==", "Critical Incident"), aCase("case-2", "~=")],
+          cases: [
+            aCase("case-1", "==", "Critical Incident"),
+            aCase("case-2", "~="),
+          ],
         }),
         ROUTED_EDGES,
       ),

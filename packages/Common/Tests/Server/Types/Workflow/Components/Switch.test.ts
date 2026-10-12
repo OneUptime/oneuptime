@@ -330,21 +330,24 @@ describe("every comparison, through the step", () => {
 
     // As If / Else decides the same condition.
     const ifElse: IfElse = new IfElse();
-    const asIfElse: (valueToCheck: JSONValue) => Promise<string | undefined> =
-      async (valueToCheck: JSONValue): Promise<string | undefined> => {
-        return (
-          await ifElse.run(
-            {
-              "input-1": valueToCheck,
-              operator: comparison.operator,
-              "input-2": value,
-              "input-1-type": compareAs,
-              "input-2-type": compareAs,
-            },
-            makeOptions().options,
-          )
-        ).executePort?.id;
-      };
+    const asIfElse: (
+      valueToCheck: JSONValue,
+    ) => Promise<string | undefined> = async (
+      valueToCheck: JSONValue,
+    ): Promise<string | undefined> => {
+      return (
+        await ifElse.run(
+          {
+            "input-1": valueToCheck,
+            operator: comparison.operator,
+            "input-2": value,
+            "input-1-type": compareAs,
+            "input-2-type": compareAs,
+          },
+          makeOptions().options,
+        )
+      ).executePort?.id;
+    };
 
     expect(await asIfElse(meets)).toBe("yes");
     expect(await asIfElse(doesNot)).toBe("no");
@@ -380,10 +383,7 @@ describe("naming the output and saying why, as configured", () => {
       "Case 1 matched: the value is equal to TOKEN.",
     );
 
-    const everything: string = JSON.stringify([
-      result,
-      fixture.log.mock.calls,
-    ]);
+    const everything: string = JSON.stringify([result, fixture.log.mock.calls]);
 
     expect(everything).not.toContain("s3cr3t");
   });

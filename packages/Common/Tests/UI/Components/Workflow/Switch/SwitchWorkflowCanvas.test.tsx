@@ -102,95 +102,100 @@ jest.mock("../../../../../UI/Components/Workflow/ComponentsModal", () => {
  * The settings dialog, reduced to what these tests do with a step: change
  * its cases one way or another and save, or save it unchanged.
  */
-jest.mock("../../../../../UI/Components/Workflow/ComponentSettingsModal", () => {
-  return {
-    __esModule: true,
-    default: (props: SettingsProps): ReactElement => {
-      mockSettingsProps = props;
+jest.mock(
+  "../../../../../UI/Components/Workflow/ComponentSettingsModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: SettingsProps): ReactElement => {
+        mockSettingsProps = props;
 
-      type SaveWithCasesFunction = (
-        change: (cases: Array<JSONObject>) => Array<JSONObject>,
-      ) => void;
+        type SaveWithCasesFunction = (
+          change: (cases: Array<JSONObject>) => Array<JSONObject>,
+        ) => void;
 
-      const saveWithCases: SaveWithCasesFunction = (
-        change: (cases: Array<JSONObject>) => Array<JSONObject>,
-      ): void => {
-        const cases: Array<JSONObject> = (props.component.arguments?.[
-          "cases"
-        ] || []) as Array<JSONObject>;
+        const saveWithCases: SaveWithCasesFunction = (
+          change: (cases: Array<JSONObject>) => Array<JSONObject>,
+        ): void => {
+          const cases: Array<JSONObject> = (props.component.arguments?.[
+            "cases"
+          ] || []) as Array<JSONObject>;
 
-        props.onSave({
-          ...props.component,
-          arguments: {
-            ...props.component.arguments,
-            cases: change(cases.map((one: JSONObject) => {
-              return { ...one };
-            })),
-          },
-        });
-      };
+          props.onSave({
+            ...props.component,
+            arguments: {
+              ...props.component.arguments,
+              cases: change(
+                cases.map((one: JSONObject) => {
+                  return { ...one };
+                }),
+              ),
+            },
+          });
+        };
 
-      return (
-        <div data-testid="step-settings">
-          <button
-            type="button"
-            onClick={() => {
-              saveWithCases((cases: Array<JSONObject>) => {
-                return cases.filter((one: JSONObject): boolean => {
-                  return one["id"] !== "case-2";
+        return (
+          <div data-testid="step-settings">
+            <button
+              type="button"
+              onClick={() => {
+                saveWithCases((cases: Array<JSONObject>) => {
+                  return cases.filter((one: JSONObject): boolean => {
+                    return one["id"] !== "case-2";
+                  });
                 });
-              });
-            }}
-          >
-            Remove case 2 and save
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              saveWithCases((cases: Array<JSONObject>) => {
-                return cases.map((one: JSONObject): JSONObject => {
-                  return one["id"] === "case-1"
-                    ? { ...one, value: "Renamed" }
-                    : one;
+              }}
+            >
+              Remove case 2 and save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                saveWithCases((cases: Array<JSONObject>) => {
+                  return cases.map((one: JSONObject): JSONObject => {
+                    return one["id"] === "case-1"
+                      ? { ...one, value: "Renamed" }
+                      : one;
+                  });
                 });
-              });
-            }}
-          >
-            Rename case 1 and save
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              saveWithCases((cases: Array<JSONObject>) => {
-                return [...cases].reverse();
-              });
-            }}
-          >
-            Reverse the cases and save
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              saveWithCases(() => {
-                return [];
-              });
-            }}
-          >
-            Remove every case and save
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              props.onSave(props.component);
-            }}
-          >
-            Save unchanged
-          </button>
-        </div>
-      );
-    },
-  };
-});
+              }}
+            >
+              Rename case 1 and save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                saveWithCases((cases: Array<JSONObject>) => {
+                  return [...cases].reverse();
+                });
+              }}
+            >
+              Reverse the cases and save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                saveWithCases(() => {
+                  return [];
+                });
+              }}
+            >
+              Remove every case and save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                props.onSave(props.component);
+              }}
+            >
+              Save unchanged
+            </button>
+          </div>
+        );
+      },
+    };
+  },
+);
 
 jest.mock("../../../../../UI/Components/Workflow/RunModal", () => {
   return {
@@ -227,7 +232,13 @@ import {
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
 import React, { ReactElement } from "react";
 import { Edge, Node, ReactFlowProps } from "reactflow";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
