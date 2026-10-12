@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "Der Name der Metrik, die die erste Abfrage des Monitors liest.",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "Ein Tag mit weniger als {{percent}} % Verfügbarkeit passt zu keiner Regel und erhält daher die Standard-Balkenfarbe.",
+  "Bar Color Preview": "Vorschau der Balkenfarben",
+  "Deuteranopia (red-green)": "Deuteranopie (Rot-Grün)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "Jeder Balken des Verfügbarkeitsverlaufs ist ein Tag. Regeln färben einen Tag nach seiner Verfügbarkeit: Sie werden von oben geprüft, und die erste Regel, die die Verfügbarkeit des Tages erreicht, bestimmt seine Farbe.",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "Jeder Tag erhält die Farbe des schwerwiegendsten Monitor-Status, den er hatte, auch wenn es nur eine Minute war. Die empfohlenen Regeln färben einen Tag danach, wie lange er ausgefallen war, in Farben, die Menschen mit Rot-Grün-Sehschwäche unterscheiden können.",
+  "Full color vision": "Volles Farbsehen",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "Wie jede Art von Tag auf Ihrer Statusseite aussieht: so, wie die meisten Menschen ihn sehen, und so, wie Menschen mit Rot-Grün-Sehschwäche ihn sehen.",
+  "No bar color rules": "Keine Regeln für Balkenfarben",
+  "Protanopia (red-green)": "Protanopie (Rot-Grün)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "Die Farbe eines Tages, auf den keine Balkenfarbenregel passt. Ein Tag ohne Überwachungsdaten wird immer grau und gestreift dargestellt.",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "Die Regel für {{percent}} % färbt nie einen Tag: Eine Regel darüber passt bereits auf jeden Tag, auf den sie passen würde. Ziehen Sie sie weiter nach oben.",
+  "Under {{percent}}%": "Unter {{percent}} %",
+  "Use Recommended Rules": "Empfohlene Regeln verwenden",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Ohne Regeln erhält ein Tag die Farbe des schwerwiegendsten Monitor-Status, den er hatte, auch wenn es nur eine Minute war.",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} und {{second}} sehen für Menschen mit Rot-Grün-Sehschwäche gleich aus.",
+  "{{percent}}% or more": "{{percent}} % oder mehr"
 }

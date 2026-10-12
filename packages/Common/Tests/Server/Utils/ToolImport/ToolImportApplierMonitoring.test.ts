@@ -38,6 +38,7 @@ import {
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
+import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "../../../../Utils/StatusPage/HistoryChartBarColors";
 import {
   ApplierWorld,
   RecordedCreate,
@@ -562,6 +563,20 @@ describe("ToolImportApplier: status pages", () => {
     expect(page.allowSubscribersToChooseResources).toBe(true);
     expect(page.enableSearchEngineIndexing).toBe(false);
     expect(world.createsOf("StatusPage")[0]!.props).toBe(PERSON_PROPS);
+  });
+
+  /*
+   * Issue #486. The tools these pages come from grade a day's bar by how
+   * long it was down; without rules a OneUptime page paints the whole day
+   * in its worst status's color.
+   */
+  test("the page starts with the recommended bar colors, as one made in the dashboard does", async () => {
+    const world: ApplierWorld = new ApplierWorld().withMonitoring();
+    await runImport({});
+
+    expect(world.createsOf("StatusPage")[0]!.miscDataProps).toEqual({
+      [ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY]: true,
+    });
   });
 
   test("on a plan that does not let visitors choose what they follow, the page comes over without the choice", async () => {

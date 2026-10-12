@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "Navnet på den metrik, som monitorens første forespørgsel læser.",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "En dag med under {{percent}} % oppetid matcher ingen regel og får derfor standardbjælkefarven.",
+  "Bar Color Preview": "Forhåndsvisning af bjælkefarver",
+  "Deuteranopia (red-green)": "Deuteranopi (rød-grøn)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "Hver bjælke i oppetidshistorikken er en dag. Regler farver en dag efter dens oppetid: de tjekkes fra toppen, og den første, dagens oppetid når, bestemmer dens farve.",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "Hver dag får farven fra den mest alvorlige monitorstatus, den havde, selv hvis det kun var i et minut. De anbefalede regler farver en dag efter, hvor længe den var nede, i farver som personer med rød-grøn farveblindhed kan skelne fra hinanden.",
+  "Full color vision": "Fuldt farvesyn",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "Sådan ser hver slags dag ud på din statusside: som de fleste ser den, og som personer med rød-grøn farveblindhed ser den.",
+  "No bar color rules": "Ingen regler for bjælkefarver",
+  "Protanopia (red-green)": "Protanopi (rød-grøn)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "Farven på en dag, som ingen bjælkefarveregel matcher. En dag uden overvågningsdata vises altid grå og stribet.",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "Reglen for {{percent}} % farver aldrig en dag: en regel over den matcher allerede hver dag, den ville matche. Træk den højere op.",
+  "Under {{percent}}%": "Under {{percent}} %",
+  "Use Recommended Rules": "Brug anbefalede regler",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Uden regler får en dag farven fra den mest alvorlige monitorstatus, den havde, selv hvis det kun var i et minut.",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} og {{second}} ser ens ud for personer med rød-grøn farveblindhed.",
+  "{{percent}}% or more": "{{percent}} % eller mere"
 }

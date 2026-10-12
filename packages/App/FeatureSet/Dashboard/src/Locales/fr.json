@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "Le nom de la métrique que lit la première requête du moniteur.",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "Un jour avec moins de {{percent}} % de disponibilité ne correspond à aucune règle et prend donc la couleur de barre par défaut.",
+  "Bar Color Preview": "Aperçu des couleurs des barres",
+  "Deuteranopia (red-green)": "Deutéranopie (rouge-vert)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "Chaque barre de l'historique de disponibilité représente un jour. Les règles colorent un jour selon sa disponibilité : elles sont vérifiées de haut en bas, et la première que la disponibilité du jour atteint fixe sa couleur.",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "Chaque jour prend la couleur du statut de moniteur le plus grave qu'il a connu, même pendant une minute seulement. Les règles recommandées colorent un jour selon la durée de son interruption, avec des couleurs que les personnes atteintes de daltonisme rouge-vert peuvent distinguer.",
+  "Full color vision": "Vision des couleurs normale",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "L'apparence de chaque type de jour sur votre page de statut : telle que la plupart des gens la voient, et telle que la voient les personnes atteintes de daltonisme rouge-vert.",
+  "No bar color rules": "Aucune règle de couleur des barres",
+  "Protanopia (red-green)": "Protanopie (rouge-vert)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "La couleur d'un jour auquel aucune règle de couleur des barres ne correspond. Un jour sans données de surveillance est toujours affiché en gris et hachuré.",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "La règle de {{percent}} % ne colore jamais aucun jour : une règle au-dessus d'elle correspond déjà à chaque jour qu'elle couvrirait. Faites-la glisser plus haut.",
+  "Under {{percent}}%": "Moins de {{percent}} %",
+  "Use Recommended Rules": "Utiliser les règles recommandées",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Sans règles, un jour prend la couleur du statut de moniteur le plus grave qu'il a connu, même pendant une minute seulement.",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} et {{second}} se ressemblent pour les personnes atteintes de daltonisme rouge-vert.",
+  "{{percent}}% or more": "{{percent}} % ou plus"
 }

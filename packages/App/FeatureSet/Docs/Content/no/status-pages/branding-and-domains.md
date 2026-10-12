@@ -62,12 +62,24 @@ Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, 
 
 ### Flere innstillinger
 
-Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi få noen gang endrer det som står der. Sammenslått nevner overskriften de fire seksjonene (**Standard stolpefarge**, **Regler for stolpefarger**, **Språk** og **Indeksering i søkemotorer**) og viser hver av dem som avviker fra det en ny statusside starter med: en annen standard stolpefarge enn den grønne alle sider starter med, en hvilken som helst regel for stolpefarger, et annet standardspråk enn engelsk, en kortere liste over språk eller indeksering i søkemotorer slått av. Klikk på den for å åpne den: det er ett kort med de fire seksjonene under hverandre, hver med egen tittel og knapp, atskilt med skillelinjer.
+Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi få noen gang endrer det som står der. Sammenslått nevner overskriften de fire seksjonene (**Standard stolpefarge**, **Regler for stolpefarger**, **Språk** og **Indeksering i søkemotorer**) og viser hver av dem som avviker fra det en ny statusside starter med: en annen standard stolpefarge enn den grønne alle sider starter med, andre regler for stolpefarger enn de anbefalte, et annet standardspråk enn engelsk, en kortere liste over språk eller indeksering i søkemotorer slått av. Klikk på den for å åpne den: det er ett kort med seksjonene under hverandre, hver med egen tittel, atskilt med skillelinjer.
 
-**Historikkdiagrammets farger.** Dette er de eneste innebygde fargeinnstillingene på en statusside.
+**Historikkdiagrammets farger.** Dette er de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
 
-- **Standard stolpefarge for historikkdiagrammet**: **Edit Default Bar Color** åpner velgeren **Standard stolpefarge**. Alle nye statussider starter med grønn. Med regler for stolpefarger er det også fargen for en dag ingen regel samsvarer med. En dag siden ikke har data for, tegnes alltid grå.
-- **Rules for Bar Colors of History Chart**: en ordnet tabell med regler du sorterer ved å dra. Hver regel har **Når oppetid % er større enn eller lik** og **Bruk så denne stolpefargen**; tabellens kolonner heter `When Uptime Percent >=` og `Then, Bar Color is`. Fargen på en ny regel er allerede valgt, en som de andre reglene ikke bruker ennå; velg heller den du vil ha. Rekkefølgen betyr noe, så sorter reglene slik du vil at de skal evalueres. Uten regler får hver dags stolpe fargen til dagens laveste monitorstatus.
+- **Standard stolpefarge**: **Edit Default Bar Color** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
+- **Regler for stolpefarger**: en ordnet tabell med regler du sorterer ved å dra. Hver regel har **Når oppetid % er større enn eller lik** og **Bruk så denne stolpefargen**; tabellens kolonner heter `When Uptime Percent >=` og `Then, Bar Color is`. Reglene sjekkes ovenfra, og den første som en dags oppetid når, bestemmer fargen, så hold høyere prosenter over lavere: en regel under en med samme eller lavere prosent farger aldri en dag. Fargen på en ny regel er allerede valgt, en som de andre reglene ikke bruker ennå; velg heller den du vil ha.
+- **Forhåndsvisning av stolpefarger**: hver farge en dag kan få, slik de fleste ser den (**Fullt fargesyn**), og slik personer med rød-grønn fargeblindhet ser den (**Deuteranopi (rød-grønn)**, **Protanopi (rød-grønn)**). Den advarer når to farger ser like ut for dem, og når en regel aldri farger en dag.
+
+En dag siden ikke har data for, tegnes alltid grå med diagonale striper, uansett hva reglene sier. Uten regler får en dag fargen til den mest alvorlige monitorstatusen den hadde, uansett hvor kort: to minutter Offline farger hele dagen i Offline-fargen. Derfor starter en statusside som er opprettet i dashbordet, med de anbefalte reglene, som farger en dag etter hvor lenge den var nede:
+
+| Når oppetid % er minst | Stolpefarge | På en hel dag |
+| ------------------------- | --------- | ------------- |
+| 100 | `#22c55e` grønn | Ingen nedetid |
+| 99 | `#fde047` lysegul | Opptil 14 minutter 24 sekunder nede |
+| 95 | `#c2410c` mørk oransje | Opptil 72 minutter nede |
+| 0 | `#7f1d1d` svært mørk rød | Mer enn 72 minutter nede |
+
+En dags oppetid måles over den delen av dagen som har data, og teller statusene som er valgt i **Teller som nedetid**. De anbefalte fargene skiller seg i lyshet så vel som i fargetone, så personer med rød-grønn fargeblindhet, omtrent én av tolv menn, kan skille dem fra hverandre; den grønne for Operational og den røde for Offline som monitorstatuser starter med, ser nesten like ut for dem. En side som er opprettet før disse reglene, eller via API-et eller Terraform, har ingen regler før du legger til noen: en tom tabell **Regler for stolpefarger** og **Forhåndsvisning av stolpefarger** tilbyr begge **Bruk anbefalte regler**. Via API-et sender du `"miscDataProps": {"addRecommendedBarColorRules": true}` med forespørselen som oppretter statussiden.
 
 Hvor mange dager diagrammet dekker, angis ikke her. Det er **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Avansert → Avanserte innstillinger**, fra 1 til 90 dager. Hvilke monitorstatuser som teller som nede, er **Teller som nedetid**, i samme rad på det kortet.
 
