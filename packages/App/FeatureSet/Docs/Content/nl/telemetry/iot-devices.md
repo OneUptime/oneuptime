@@ -1,57 +1,97 @@
-# OneUptime IoT-apparaten
+# IoT-apparaten
 
-## Overzicht
+OneUptime monitort vloten van IoT-apparaten — sensoren, gateways, controllers en edge-boxen — op basis van een kleine set `iot_*`-metrics die ze sturen. Het groepeert de apparaten in vloten, houdt een inventaris bij van de apparaten van elke vloot en toont hun batterij, signaal, temperatuur, CPU, geheugen en beschikbaarheid in grafieken. Er is geen OneUptime-agent om op een apparaat te installeren: apparaten sturen standaard OpenTelemetry, of publiceren naar het MQTT-endpoint van OneUptime. [IoT-apparaatmonitors](/docs/monitor/iot-device-monitor) waarschuwen op basis van wat ze sturen.
 
-OneUptime monitort vloten van IoT-apparaten — sensoren, gateways, controllers en edge-boxen — door standaard OpenTelemetry (OTLP) metrics te verwerken. Elk apparaat (of een gateway namens het apparaat) pusht een kleine set `iot_*` metrics via OTLP HTTP, voorzien van een label dat aangeeft tot welke **vloot** het behoort en zijn eigen **device-id**. OneUptime groepeert die metrics in een vloot, bouwt een live apparaatinventaris op en houdt per apparaat de accu, connectiviteit, temperatuur, CPU, geheugen en beschikbaarheid bij.
+:::cards
+- [Kiezen hoe je verstuurt](#kiezen-hoe-je-verstuurt): Een OpenTelemetry-SDK, een gatewaycollector of MQTT.
+- [Metrics verzenden via MQTT](#metrics-verzenden-via-mqtt): Topics, inloggegevens per apparaat en Last Will.
+- [Metric-conventies](#metric-conventies): De `iot_*`-namen waarvoor OneUptime grafieken toont en waarop het waarschuwt.
+- [Problemen oplossen](#problemen-oplossen): Ontbrekende vloten, ontbrekende apparaten, onterechte offline-meldingen.
+:::
 
-Er is geen agent die je aan de apparaatzijde hoeft te installeren — alles wat OTLP kan spreken (een OpenTelemetry SDK op het apparaat, of een OpenTelemetry Collector die op een gateway draait en uitwaaiert naar veel apparaten) werkt. Deze pagina is de **ingestie-handleiding**. Voor het configureren van IoT-monitors en -waarschuwingen bovenop de data die je pusht, zie [IoT Device Monitor](/docs/monitor/iot-device-monitor).
+## Hoe het werkt
 
-## Vereisten
+Elke meting hoort bij een vloot en een apparaat. OneUptime maakt de vloot aan bij de eerste meting, voegt elk nieuw apparaat toe aan de inventaris van de vloot en werkt de laatste waarden van het apparaat daarna bij elke meting bij. Metingen die via OpenTelemetry en via MQTT worden verstuurd, voeden dezelfde vloten, inventaris, grafieken en monitors.
 
-- Een apparaat, gateway of collector die OTLP/HTTP naar OneUptime kan sturen
-- Netwerkbereikbaarheid van het apparaat/de gateway naar je OneUptime-instantie
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde
+```mermaid title="Van je apparaten naar een vloot in OneUptime"
+flowchart TB
+    devices["Je apparaten"] -->|"OTLP vanuit<br/>een SDK"| oneuptime["OneUptime"]
+    devices -->|"OTLP"| gateway["De collector van<br/>een gateway"]
+    gateway -->|"OTLP"| oneuptime
+    devices -->|"MQTT"| oneuptime
+    oneuptime --> fleet["De vloot: apparaten,<br/>grafieken en monitors"]
+```
 
 ## Hoe OneUptime IoT modelleert
 
-OneUptime brengt je apparaten onder in twee concepten met behulp van OpenTelemetry-resourceattributen:
+- **Vloot**: een groep apparaten, zoals `building-a-sensors` of `field-gateways`. Hij komt uit het resource-attribuut `iot.fleet.name` en verschijnt in OneUptime als de telemetrieservice `iot/<fleet>`. Stel ook `service.name=iot/<fleet>` in, zodat logs en metrics onder dezelfde service samenkomen.
+- **Apparaat**: één apparaat in een vloot, benoemd door het attribuut `device.id` op elk datapunt. De inventaris van de vloot is gesleuteld op `device.id`.
 
-- **Vloot** — een logische groep apparaten (bijvoorbeeld `building-a-sensors` of `field-gateways`). De vloot wordt afgeleid van het `iot.fleet.name`-resourceattribuut en verschijnt in OneUptime als de telemetry-service `iot/<fleet>`. Stel `service.name=iot/<fleet>` in zodat logs en metrics onder dezelfde service worden uitgelijnd.
-- **Apparaat** — een afzonderlijk apparaat binnen een vloot, geïdentificeerd door het `device.id`-attribuut. OneUptime bouwt en onderhoudt per vloot een apparaatinventaris met `device.id` als sleutel.
+| Attribuut | Ingesteld op | Vereist | Beschrijving |
+| --- | --- | --- | --- |
+| `iot.fleet.name` | Resource | Ja | De vloot waartoe het apparaat behoort. Die wordt de OneUptime-service `iot/<fleet>`. |
+| `device.id` | Elk datapunt | Ja | Een stabiele ID voor het apparaat, uniek binnen zijn vloot. |
+| `iot.device.kind` | Elk datapunt | Nee | De apparaatklasse, zoals `Device`, `Sensor` of `Gateway`. Standaard `Device`. |
+| `iot.device.type` | Elk datapunt | Nee | Een fijner type of model om monitors op te filteren, zoals `temp-sensor`. |
+| `iot.device.firmware` | Elk datapunt | Nee | De firmwareversie die het apparaat meldt. |
 
-Optionele attributen verfijnen hoe elk apparaat wordt geclassificeerd en gescoopt in monitors:
+Via MQTT stelt het topic de vloot en het apparaat voor je in.
 
-| Attribuut            | Vereist | Beschrijving                                                                      |
-| -------------------- | -------- | -------------------------------------------------------------------------------- |
-| `iot.fleet.name`     | Ja      | De vloot waartoe dit apparaat behoort. Wordt de OneUptime-service `iot/<fleet>`    |
-| `device.id`          | Ja      | Stabiele, unieke id voor het apparaat binnen de vloot                                |
-| `iot.device.kind`    | Nee       | De apparaatklasse — bijvoorbeeld `Device`, `Sensor` of `Gateway`. Standaard `Device` |
-| `iot.device.type`    | Nee       | Een fijnmaziger apparaattype/-model dat wordt gebruikt om monitors te filteren (bijvoorbeeld `temp-sensor`) |
-| `iot.device.firmware`| Nee       | Firmwareversie die door het apparaat wordt gerapporteerd                                          |
+## Kiezen hoe je verstuurt
 
-## Metrics verzenden via de OpenTelemetry SDK
+| Manier | Gebruik als | Nodig |
+| --- | --- | --- |
+| [OpenTelemetry-SDK](#metrics-verzenden-via-de-opentelemetry-sdk) | Het apparaat draait een OpenTelemetry-SDK en bereikt OneUptime zelf. | Een ingestiesleutel op het apparaat. |
+| [OpenTelemetry Collector](#metrics-verzenden-via-een-opentelemetry-collector) | Veel apparaten rapporteren via een gateway. | Een gateway die de collector draait. |
+| [MQTT](#metrics-verzenden-via-mqtt) | Het apparaat spreekt al MQTT, of moet zich offline melden zodra het wegvalt. | Elke MQTT-client die via WebSocket verbinding maakt. |
 
-Als je apparaat rechtstreeks een OpenTelemetry SDK draait, wijs deze dan naar OneUptime en stempel de IoT-resourceattributen via de standaard `OTEL_*`-omgevingsvariabelen. Vervang het token, het endpoint, de vlootnaam en de device-id door de waarden voor jouw omgeving.
+## Voordat je begint
+
+- Een ingestiesleutel. Maak er een aan onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en kopieer de waarde. Apparaten sturen hem als header `x-oneuptime-token`, of als MQTT-wachtwoord.
+- Netwerktoegang van het apparaat of de gateway naar je OneUptime-URL.
+- Een vlootnaam voor elke groep apparaten, en een stabiele ID voor elk apparaat.
+
+## Metrics verzenden via de OpenTelemetry-SDK
+
+:::steps
+### De SDK naar OneUptime wijzen
+
+Stel de standaard omgevingsvariabelen van OpenTelemetry in op het apparaat. Vervang de sleutel, de vlootnaam en de apparaat-ID door de jouwe:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sensor-001,service.name=iot/building-a-sensors
 ```
 
-| Omgevingsvariabele          | Vereist | Beschrijving                                                                                          |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Ja      | OneUptime OTLP-endpoint (`https://oneuptime.com/otlp`, of `http(s)://YOUR-ONEUPTIME-HOST/otlp` bij self-hosting) |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | Ja      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Ja      | Door komma's gescheiden resourceattributen. Moet `iot.fleet.name`, `device.id` en `service.name=iot/<fleet>` bevatten |
+Houd `iot.fleet.name` stabiel: een wijziging registreert een nieuwe vloot.
 
-Verstuur je metingen als metrics met de `iot_*`-namen hieronder (zie [Metric-conventies](#metric-conventies)). Binnen ongeveer een minuut verschijnt het apparaat in het gedeelte **IoT** van het OneUptime-dashboard.
+### Metingen vastleggen als IoT-metrics
+
+Geef elke meting uit als metric met een van de [conventionele namen](#metric-conventies), en geef elk datapunt een attribuut `device.id`:
+
+| Metric | Waarde | Datapuntattribuut |
+| --- | --- | --- |
+| `iot_device_up` | `1` | `device.id=sensor-001` |
+| `iot_battery_percent` | `87` | `device.id=sensor-001` |
+| `iot_temperature_celsius` | `21.5` | `device.id=sensor-001` |
+
+De inventaris is gesleuteld op de `device.id` van het datapunt, niet op die van de resource, dus stel hem in op elke meting en ook in `OTEL_RESOURCE_ATTRIBUTES`.
+:::
+
+[Controleer daarna of de vloot verschijnt](#controleren-of-de-vloot-verschijnt).
 
 ## Metrics verzenden via een OpenTelemetry Collector
 
-Wanneer veel apparaten rapporteren via een gateway, draai dan een OpenTelemetry Collector op de gateway en exporteer naar OneUptime. De `resource`-processor stempelt de vlootattributen; ontvang metingen van je apparaten (OTLP, MQTT-bridge, bestandslogs, enz.) en stuur ze door:
+Als veel apparaten via een gateway rapporteren, draai je een OpenTelemetry Collector op de gateway. Die ontvangt OTLP van je apparaten, stempelt de vloot op elke meting en stuurt de metingen door naar OneUptime.
 
-```yaml
+:::steps
+### De configuratie van de gateway opslaan
+
+Sla dit op als `config.yaml` op de gateway:
+
+```yaml title="config.yaml"
 receivers:
   otlp:
     protocols:
@@ -87,41 +127,81 @@ service:
       exporters: [otlphttp]
 ```
 
-- **`resource`** stempelt elk record met de vlootattributen. Stel `iot.fleet.name` (en de bijbehorende `service.name=iot/<fleet>`) per gateway in zodat de apparaten van elke gateway in de juiste vloot terechtkomen.
-- Houd `device.id` (en optioneel `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) op elk datapunt zodat OneUptime het afzonderlijke apparaat binnen de vloot kan herleiden.
-- **`otlphttp`** verstuurt naar OneUptime via HTTPS met het ingestietoken eraan gekoppeld. Zowel de standaard protobuf-codering als `encoding: json` wordt geaccepteerd.
+- `otlp` ontvangt van je apparaten via gRPC (`4317`) en HTTP (`4318`). Ontvang metingen op elke andere manier die de collector ondersteunt (een MQTT-bridge, bestandslogs) en stuur ze door dezelfde pipeline.
+- `resource` stempelt elke meting met de vloot. Stel per gateway `iot.fleet.name` in, en de bijbehorende `service.name=iot/<fleet>`, zodat de apparaten van elke gateway in hun vloot terechtkomen.
+- Houd `device.id`, en eventueel `iot.device.kind`, `iot.device.type` en `iot.device.firmware`, op elk datapunt, zodat OneUptime de apparaten in de vloot uit elkaar kan houden.
+- `otlphttp` stuurt via HTTPS met de ingestiesleutel naar OneUptime. Zowel de standaard protobuf-codering als `encoding: json` wordt geaccepteerd.
+
+### De collector op de gateway draaien
+
+:::tabs
+@tab Docker
+Draai hem vanuit de map met `config.yaml`:
+
+```bash
+docker run -d \
+  --name otel-collector \
+  --restart unless-stopped \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
+  otel/opentelemetry-collector-contrib:0.161.0 \
+  --config /etc/otelcol-contrib/config.yaml
+```
+@tab otelcol-contrib
+Heeft de gateway al `otelcol-contrib`, wijs hem dan naar het bestand:
+
+```bash
+otelcol-contrib --config config.yaml
+```
+:::
+
+Apparaten sturen daarna OTLP naar de gateway, bijvoorbeeld met `OTEL_EXPORTER_OTLP_ENDPOINT=http://<gateway-host>:4318` in de SDK van elk apparaat.
+:::
+
+[Controleer daarna of de vloot verschijnt](#controleren-of-de-vloot-verschijnt).
 
 ## Metrics verzenden via MQTT
 
-OneUptime wordt geleverd met een ingebouwd MQTT-endpoint, zodat apparaten die al MQTT spreken hun metingen rechtstreeks kunnen pushen — er is geen OpenTelemetry SDK, collector of bridge vereist. Alles wat via MQTT wordt gepubliceerd, komt in dezelfde pijplijn terecht als OTLP: vloten worden automatisch aangemaakt, de apparaatinventaris wordt bijgewerkt en elke IoT-monitor en elk waarschuwingssjabloon werkt ongewijzigd.
+OneUptime heeft een eigen MQTT-endpoint, dus apparaten die MQTT spreken, publiceren metingen er rechtstreeks naartoe, zonder SDK, collector of bridge. Wat via MQTT binnenkomt, gaat door dezelfde pipeline als OTLP: vloten worden aangemaakt, de inventaris wordt bijgewerkt, en elke IoT-monitor en elk waarschuwingssjabloon werkt hetzelfde.
 
-**Endpoints**
+### Endpoints
 
-| Transport             | Adres                                  | Opmerkingen                                                                               |
-| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| MQTT over WebSocket   | `wss://<your-host>/mqtt`               | Werkt op elke deployment — loopt via de normale HTTPS-poort door de OneUptime-ingress     |
-| MQTT over TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Self-hosted: standaard alleen intern binnen het cluster-/compose-netwerk; stel deze bloot als je hem nodig hebt |
+| Transport | Adres | Opmerkingen |
+| --- | --- | --- |
+| MQTT via WebSocket | `wss://<your-host>/mqtt` | Werkt in elke deployment, via de normale HTTPS-poort. |
+| MQTT via TCP | `<app-host>:1883` | Alleen zelf-gehost, en intern in het cluster- of Compose-netwerk tot je hem beschikbaar stelt. De poort is `MQTT_INGEST_PORT`. |
 
-**Authenticatie** — twee opties:
+### Authenticatie
 
-- **Projectbreed**: verstuur je **Telemetry Ingestion Token** als het MQTT-wachtwoord (de gebruikersnaam wordt genegeerd; als je client alleen een gebruikersnaamveld biedt, zet het token dan daarin). Geschikt voor gateways die namens veel apparaten publiceren.
-- **Per apparaat** (aanbevolen voor apparaten die rechtstreeks verbinden): registreer het apparaat onder het tabblad **Device Registry** van de vloot in het dashboard. Registratie geeft een credential per apparaat uit — de credential-id is de MQTT-**gebruikersnaam** en het geheim is het **wachtwoord**. Clients die per apparaat zijn geauthenticeerd, kunnen alleen publiceren onder hun eigen `oneuptime/<fleet>/<device>/…`-topics, een enkel gecompromitteerd apparaat kan vanuit het dashboard worden ingetrokken zonder de rest van de vloot aan te raken (intrekking wordt binnen ongeveer een minuut van kracht, zelfs voor verbonden sessies), en geregistreerde apparaten krijgen **offlinedetectie bij stille uitval**: ze blijven als Offline in de inventaris staan in plaats van te verdwijnen wanneer ze stoppen met rapporteren, en het waarschuwingssjabloon Device Offline wordt voor hen geactiveerd, zelfs als ze uitvallen zonder Last Will.
+- **Met de ingestiesleutel**: stuur hem als MQTT-wachtwoord. De gebruikersnaam wordt genegeerd; heeft je client alleen een veld voor de gebruikersnaam, zet de sleutel daar dan in. Dit past bij een gateway die voor veel apparaten publiceert.
+- **Met inloggegevens per apparaat**: aanbevolen voor apparaten die rechtstreeks verbinding maken. Open de pagina **Device Registry** van de vloot en registreer het apparaat, met de **Device ID** die het als `device.id` gebruikt. De **MQTT Username** van het apparaat is zijn gebruikersnaam en zijn **MQTT Password (Secret)** zijn wachtwoord.
 
-Ongeldige credentials worden bij CONNECT geweigerd met retourcode 4 (bad username or password), zodat een verkeerd geconfigureerd apparaat luid en duidelijk faalt.
+De inloggegevens van een apparaat kunnen alleen publiceren onder de eigen topics `oneuptime/<fleet>/<device>/`. Je kunt één apparaat intrekken zonder de rest van de vloot aan te raken: zet de schakelaar **Ingeschakeld** uit, of verwijder het apparaat, en een verbonden apparaat wordt binnen ongeveer een minuut afgesloten. Een geregistreerd apparaat dat stil valt, blijft als offline in de inventaris staan, en het waarschuwingssjabloon Device Offline gaat ervoor af, ook als het zonder Last Will uitvalt.
 
-**Topics** — publiceer onder het vaste `oneuptime/`-voorvoegsel. Vloot- en apparaatsegmenten mogen geen `/`, `+` of `#` bevatten en zijn beperkt tot 100 tekens:
+OneUptime weigert onjuiste inloggegevens bij CONNECT met returncode 4 (onjuiste gebruikersnaam of wachtwoord), dus een verkeerd geconfigureerd apparaat faalt zichtbaar. Browsersleutels worden via MQTT geweigerd.
 
-| Topic                                            | Payload                                                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `oneuptime/<fleet>/<device>/telemetry`           | JSON-object met metingen — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, of een plat object waarvan de numerieke velden de metrics zijn |
-| `oneuptime/<fleet>/<device>/metrics/<metricName>`| Eén enkele waarde — een kaal getal (`23.4`) of `{ "value": 23.4 }`                                    |
-| `oneuptime/<fleet>/<device>/status`              | `"online"` of `"offline"` (ook `1`/`0`, `true`/`false`, `up`/`down`) — wordt toegewezen aan `iot_device_up` |
+### Topics en payloads
 
-Telemetry-payloads mogen ook `"attributes"` bevatten (een string-map die op elk datapunt wordt gestempeld — gebruik deze voor `iot.device.kind`, `iot.device.type`, `iot.device.firmware` of je eigen labels) en `"timestamp"` (ISO-8601, of unix-seconden/-milliseconden). Beide zijn optioneel; als `timestamp` ontbreekt, wordt het ingestietijdstip gebruikt.
+Publiceer onder het vaste voorvoegsel `oneuptime/`. De segmenten voor vloot en apparaat mogen geen `/`, `+` of `#` bevatten, mogen niet met `$` beginnen en zijn hoogstens 100 tekens lang.
 
-**Offlinedetectie met Last Will** — registreer een MQTT Last Will op `oneuptime/<fleet>/<device>/status` met payload `offline`. Als het apparaat uitvalt of van het netwerk verdwijnt, publiceert de broker namens het apparaat `iot_device_up = 0` op het moment dat de sessie eindigt — waarmee het standaard waarschuwingssjabloon **Device Offline** wordt geactiveerd en het apparaat in de inventaris op Down wordt gezet, zonder polling en zonder te wachten op een gemiste scrape. Publiceer `online` op hetzelfde topic na het verbinden zodat het apparaat weer als Up wordt weergegeven.
+| Topic | Payload |
+| --- | --- |
+| `oneuptime/<fleet>/<device>/telemetry` | Een JSON-object met metingen: `{"metrics":{"iot_temperature_celsius":21.5}}`, of een plat object waarvan de numerieke velden de metrics zijn. |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>` | Eén waarde: een kaal getal (`23.4`) of `{"value":23.4}`. |
+| `oneuptime/<fleet>/<device>/status` | `online` of `offline` (ook `1` of `0`, `true` of `false`, `up` of `down`). Dit stelt `iot_device_up` in. |
 
-Voorbeeld met `mosquitto_pub` (ruwe TCP, self-hosted):
+Een telemetriepayload kan ook `"attributes"` bevatten, een map met strings die op elk datapunt wordt gestempeld (gebruik die voor `iot.device.kind`, `iot.device.type`, `iot.device.firmware` of je eigen labels), en `"timestamp"`, in ISO 8601 of in Unix-seconden of -milliseconden. Beide zijn optioneel: zonder `timestamp` wordt het tijdstip gebruikt waarop OneUptime de meting ontvangt.
+
+### Offline-detectie met Last Will
+
+Registreer een MQTT Last Will op `oneuptime/<fleet>/<device>/status` met de payload `offline`. Als het apparaat uitvalt of van het netwerk verdwijnt, publiceert OneUptime er `iot_device_up = 0` voor op het moment dat zijn sessie eindigt, waardoor het meegeleverde waarschuwingssjabloon Device Offline afgaat en het apparaat in de inventaris als down wordt gemarkeerd, zonder polling. Publiceer na het verbinden `online` op hetzelfde topic, zodat het apparaat weer als up wordt weergegeven.
+
+### Voorbeelden
+
+:::tabs
+@tab mosquitto_pub
+Via ruwe TCP, op een zelf-gehoste instantie:
 
 ```bash
 mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
@@ -129,14 +209,14 @@ mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
   -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
   -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
 ```
-
-Voorbeeld met Node.js `mqtt` via WebSocket (werkt tegen oneuptime.com en elke self-hosted instantie):
+@tab Node.js
+Met het pakket `mqtt`, via WebSocket, tegen oneuptime.com of een willekeurige zelf-gehoste instantie:
 
 ```javascript
 const mqtt = require("mqtt");
 
 const client = mqtt.connect("wss://oneuptime.com/mqtt", {
-  username: "oneuptime", // genegeerd — het token hieronder is wat authenticeert
+  username: "oneuptime", // ignored — the token below is what authenticates
   password: "YOUR_TELEMETRY_INGESTION_TOKEN",
   will: {
     topic: "oneuptime/building-a-sensors/sensor-001/status",
@@ -160,8 +240,8 @@ client.on("connect", () => {
   }, 60 * 1000);
 });
 ```
-
-Voorbeeld met Python `paho-mqtt` via WebSocket:
+@tab Python
+Met `paho-mqtt`, via WebSocket:
 
 ```python
 import json
@@ -180,64 +260,42 @@ client.publish(
     json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
 )
 ```
+:::
 
-Opmerkingen:
+### Limieten en aflevering
 
-- Het endpoint is **alleen voor ingestie**: abonnementen worden geweigerd (SUBACK-fout). Gebruik QoS 1 als je wilt dat de broker de ontvangst bevestigt. Ingestie is **at-least-once** — een QoS 1/2-hertransmissie na een verloren bevestiging kan dubbele datapunten opleveren.
-- Publicaties buiten het topiccontract of met misvormde payloads worden geaccepteerd en **verworpen** (MQTT 3.1.1 heeft geen foutantwoord per bericht) — de server logt een waarschuwing met de reden, dus controleer de OneUptime-app-logs als er geen data binnenkomt.
-- Houd op het WebSocket-endpoint de MQTT-keepalive **onder 5 minuten** — de OneUptime-ingress sluit inactieve WebSocket-verbindingen na 300 seconden, wat je Last Will en een valse Device Offline-waarschuwing zou activeren. De standaardwaarden van clientbibliotheken (60 s voor `mqtt` en `paho-mqtt`) zijn prima. Het ruwe TCP-endpoint kent zo'n bovengrens niet.
-- Payloads zijn begrensd op 128 KB en 100 metrics per publicatie; te grote pakketten verbreken de verbinding.
+- Het endpoint neemt alleen metingen aan: abonnementen worden geweigerd (een SUBACK-fout), en retained messages worden niet bewaard.
+- Ingestie is at-least-once. Gebruik QoS 1 om OneUptime elke publicatie te laten bevestigen; een herhaalde verzending met QoS 1 of 2 na een verloren bevestiging kan dubbele datapunten opleveren.
+- Een publicatie van meer dan 128 KB, of met meer dan 100 metrics, wordt weggelaten, en een pakket dat meer aangeeft, sluit de verbinding.
+- Een publicatie buiten deze topics, of met een onjuist gevormde payload, wordt geaccepteerd en weggelaten, omdat MQTT 3.1.1 geen fout per bericht kent. OneUptime logt een waarschuwing met de reden (`MQTT: dropped publish to …`).
+- Houd op het WebSocket-endpoint de MQTT-keepalive onder 5 minuten. De ingress sluit een WebSocket die 300 seconden inactief is, waardoor de Last Will en een onterechte waarschuwing Device Offline afgaan. De standaardwaarden van clientbibliotheken (60 seconden voor `mqtt` en `paho-mqtt`) zijn prima, en het TCP-endpoint heeft zo'n limiet niet.
 
 ## Metric-conventies
 
-OneUptime herkent de volgende `iot_*`-metricnamen. Elk datapunt moet het `device.id`-label dragen zodat de meting aan het juiste apparaat wordt toegeschreven. Je hoeft alleen de metrics te versturen die zinvol zijn voor je apparaat — ontbrekende metrics worden eenvoudigweg niet in grafieken weergegeven.
+OneUptime herkent deze `iot_*`-metricnamen. Stuur alleen de namen die voor je apparaat zinvol zijn: ontbrekende namen worden niet in grafieken getoond. Elk datapunt draagt de `device.id` van het apparaat (via MQTT noemt het topic het apparaat).
 
-| Metricnaam                 | Betekenis                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `iot_device_up`             | Apparaatbeschikbaarheid. `1` = up/bereikbaar, `0` = down. Stuurt de IoT Device monitor aan |
-| `iot_device_info`           | Signaal met alleen identiteit. Draagt `device.id` / kind / type / firmware zodat een apparaat in de inventaris verschijnt nog vóór het metingen rapporteert |
-| `iot_battery_percent`       | Acculaadniveau, `0`–`100` (%)                                            |
-| `iot_signal_strength_dbm`   | Draadloze signaalsterkte in dBm (bijvoorbeeld Wi-Fi / LoRa / cellulaire RSSI)      |
-| `iot_temperature_celsius`   | Apparaat- of sensortemperatuur in °C                                             |
-| `iot_cpu_usage_ratio`       | CPU-gebruik als een verhouding `0`–`1` (OneUptime slaat dit op als een percentage)        |
-| `iot_memory_usage_bytes`    | Momenteel gebruikt geheugen, in bytes                                                |
-| `iot_memory_size_bytes`     | Totaal beschikbaar geheugen op het apparaat, in bytes                                 |
-| `iot_uptime_seconds`        | Seconden sinds het apparaat voor het laatst is opgestart                                           |
+| Metricnaam | Betekenis |
+| --- | --- |
+| `iot_device_up` | Beschikbaarheid: `1` is up en bereikbaar, `0` is down. De IoT Device-monitor leest deze. |
+| `iot_device_info` | Alleen identiteit. Deze draagt `device.id`, de klasse, het type en de firmware, zodat een apparaat in de inventaris verschijnt voordat het metingen meldt. |
+| `iot_battery_percent` | Batterijlading, `0` tot `100` (%). |
+| `iot_signal_strength_dbm` | Draadloze signaalsterkte in dBm, zoals wifi-, LoRa- of mobiele RSSI. |
+| `iot_temperature_celsius` | Apparaat- of sensortemperatuur in °C. |
+| `iot_cpu_usage_ratio` | CPU-gebruik als verhouding van `0` tot `1`. OneUptime slaat het op en toont het als percentage. |
+| `iot_memory_usage_bytes` | Gebruikt geheugen, in bytes. |
+| `iot_memory_size_bytes` | Totaal geheugen op het apparaat, in bytes. |
+| `iot_uptime_seconds` | Seconden sinds het apparaat voor het laatst opstartte. |
 
-## De installatie verifiëren
+## Controleren of de vloot verschijnt
 
-1. Bevestig dat je apparaat of gateway zonder fouten exporteert (controleer de SDK-/collector-logs op exportfouten en HTTP `401`/`403`-antwoorden).
-2. Open in het OneUptime-dashboard het gedeelte **IoT** — je vloot zou binnen ongeveer een minuut moeten verschijnen als `iot/<fleet>`.
-3. Open het tabblad **Devices** van de vloot — elke `device.id` die je hebt verstuurd, zou vermeld moeten staan met de meest recente accu, signaal, temperatuur, CPU, geheugen en up/down-status.
-4. Open **Metrieken** onder de vloot om een van de bovenstaande `iot_*`-reeksen in een grafiek weer te geven.
+1. Controleer of het apparaat, de collector van de gateway of de MQTT-client zonder fouten verstuurt: zoek in de logs naar exportfouten en HTTP-antwoorden `401` of `422`, of naar een verbinding die met returncode 4 is geweigerd.
+2. Open **Producten → Infrastructuur → IoT → All Fleets**. De vloot verschijnt binnen ongeveer een minuut na de eerste metingen als `iot/<fleet>`.
+3. Open de pagina **Devices** van de vloot. Elk apparaat waarvoor je hebt verstuurd, hoort te staan met zijn laatste batterij, signaal, temperatuur, CPU, geheugen en up- of down-status.
+4. Open de pagina **Metrieken** van de vloot om een van de `iot_*`-series in een grafiek te tonen.
 
-## Probleemoplossing
+## Zelf-gehoste OneUptime
 
-### Vloot verschijnt niet
-
-1. Controleer of `iot.fleet.name` is ingesteld als een **resource**-attribuut (niet als een datapuntlabel), en dat `service.name` gelijk is aan `iot/<fleet>`.
-2. Bevestig dat het exporter-endpoint `https://oneuptime.com/otlp` is (of je self-hosted `…/otlp`) en dat de `x-oneuptime-token`-header een geldig token draagt.
-3. Als je MQTT gebruikt, controleer dan dat het topic exact `oneuptime/<fleet>/<device>/…` volgt — het vlootsegment van het topic is wat de vloot aanmaakt.
-
-### Apparaten ontbreken in de inventaris
-
-1. Zorg ervoor dat elk datapunt een `device.id`-label draagt — apparaten worden hierop gesleuteld.
-2. Verstuur `iot_device_info` (alleen identiteit) voor apparaten die nog geen metingen hebben gerapporteerd, zodat ze toch in de inventaris verschijnen.
-3. Controleer of de `device.id`-waarden stabiel zijn over rapportages heen; een veranderende id creëert dubbele apparaatrijen.
-
-### HTTP 401 / 403 van de exporter
-
-Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw token via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en werk de `x-oneuptime-token`-header bij.
-
-### Metrics worden niet in grafieken weergegeven
-
-1. Bevestig dat je exact de `iot_*`-metricnamen uit de tabel [Metric-conventies](#metric-conventies) gebruikt — niet-herkende namen worden opgeslagen als generieke metrics en vullen geen IoT-grafieken.
-2. Onthoud dat `iot_cpu_usage_ratio` een `0`–`1`-verhouding is; verstuur de ruwe verhouding en OneUptime geeft deze weer als een percentage.
-3. Houd er rekening mee dat het tot een minuut kan duren voordat de eerste datapunten verschijnen nadat een apparaat begint met rapporteren.
-
-## Self-hosted OneUptime
-
-Als je OneUptime zelf host, wijs het endpoint dan naar je eigen instantie:
+Wijs het endpoint naar je eigen instantie:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
@@ -253,10 +311,44 @@ exporters:
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-Als je instantie alleen HTTP gebruikt, wijzig dan het schema naar `http://` en gebruik de juiste poort.
+Maak voor MQTT verbinding met `wss://your-oneuptime-host.example.com/mqtt`, of stel de ruwe MQTT-TCP-poort van de app-service beschikbaar (`MQTT_INGEST_PORT`, standaard `1883`) voor apparaten die geen WebSocket kunnen gebruiken. Stel `MQTT_INGEST_ENABLED=false` in op de app-service om beide MQTT-listeners uit te zetten. Spreekt de instantie alleen HTTP, gebruik dan `http://` (en `ws://` voor MQTT) en de poort.
+
+## Problemen oplossen
+
+:::details De vloot verschijnt niet
+1. Controleer of `iot.fleet.name` een resource-attribuut is (geen datapuntlabel) en of `service.name` gelijk is aan `iot/<fleet>`.
+2. Controleer of het endpoint `https://oneuptime.com/otlp` is (of je zelf-gehoste `…/otlp`) en of de header `x-oneuptime-token` een geldige ingestiesleutel bevat.
+3. Controleer via MQTT of het topic precies `oneuptime/<fleet>/<device>/…` volgt: het vlootsegment van het topic maakt de vloot aan.
+:::
+
+:::details Er ontbreken apparaten in de inventaris
+1. Geef elk datapunt een label `device.id`: apparaten zijn daarop gesleuteld. Via MQTT is het het apparaatsegment van het topic.
+2. Stuur voor een apparaat dat nog geen metingen heeft gemeld `iot_device_info` (of via MQTT een `status`-bericht), zodat het in de inventaris verschijnt.
+3. Houd de waarden van `device.id` stabiel: een wisselende ID maakt dubbele apparaten aan.
+:::
+
+:::details HTTP 401 of 422 van de exporter
+`401` betekent dat de ingestiesleutel ontbreekt, onjuist of verlopen is; `422` betekent dat hij is uitgeschakeld, of een browsersleutel is, die geen apparaattelemetrie kan sturen. Maak een nieuwe aan onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en werk de header `x-oneuptime-token` bij.
+:::
+
+:::details De MQTT-verbinding wordt geweigerd met "bad username or password"
+OneUptime weigert onjuiste inloggegevens bij CONNECT met returncode 4. Controleer of het wachtwoord een geldige ingestiesleutel is die niet is uitgeschakeld of verlopen, of, voor een geregistreerd apparaat, het secret van de inloggegevens met de **MQTT Username** ervan als gebruikersnaam. Browsersleutels worden via MQTT geweigerd.
+:::
+
+:::details Apparaten springen op offline terwijl ze draaien
+Op het WebSocket-endpoint sluit de ingress een verbinding die 300 seconden inactief is, waardoor de Last Will en een onterechte waarschuwing Device Offline afgaan. Houd de MQTT-keepalive onder 5 minuten: de standaardwaarden van clientbibliotheken van 60 seconden zijn prima.
+:::
+
+:::details Metingen verschijnen niet in de grafieken van de vloot
+1. Gebruik de exacte `iot_*`-namen uit [Metric-conventies](#metric-conventies): andere namen worden opgeslagen als generieke metrics en vullen de IoT-grafieken niet.
+2. Stuur `iot_cpu_usage_ratio` als verhouding van `0` tot `1`; OneUptime toont het als percentage.
+3. Reken op maximaal een minuut voordat de eerste datapunten verschijnen nadat een apparaat begint te rapporteren.
+:::
 
 ## Volgende stappen
 
-- Configureer een **IoT Device Monitor** om te waarschuwen bij apparaat offline, lage accu, zwak signaal, hoge temperatuur en hoge CPU-condities — zie [IoT Device Monitor](/docs/monitor/iot-device-monitor).
-- Gebruik voor niet-gecontaineriseerde hosts (Linux / macOS / Windows VM's en bare metal) de [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
-- Om de onderliggende OTLP-integratie diepgaand te leren kennen, zie [Integrate OpenTelemetry with OneUptime](/docs/telemetry/open-telemetry).
+:::cards
+- [IoT-apparaat-monitor](/docs/monitor/iot-device-monitor): Waarschuw wanneer een apparaat offline gaat, de batterij bijna leeg is of het oververhit raakt.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Hoe OneUptime OTLP aanneemt van elke SDK of collector.
+- [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector): Monitor een Linux-, macOS- of Windows-gateway zelf.
+:::

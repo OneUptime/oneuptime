@@ -14,6 +14,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayRecordedAssets";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -287,7 +288,7 @@ function lineStartingWith(markdown: string, start: string): string {
 /* A table row's text, found by its first cell. */
 function tableRow(markdown: string, firstCell: string): string {
   const pattern: RegExp = new RegExp(
-    `^\\|\\s*\\u200f?${firstCell.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|`,
+    `^\\|\\s*\\u200f?${escapeRegExp(firstCell)}\\s*\\|`,
   );
   const row: string | undefined = markdown
     .split("\n")

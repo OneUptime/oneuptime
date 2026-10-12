@@ -1,35 +1,60 @@
-# 使用 OneUptime 实现 AI / LLM 可观测性
+# AI / LLM 可观测性
 
-阅读 AI 进行过的每一段对话，按当时的节奏重新播放，并在 AI 回答不佳时收到通知。一切都基于标准 OpenTelemetry，无需专有 SDK：只要应用发出的 span 遵循 OpenTelemetry **GenAI 语义约定**（`gen_ai.*`），OneUptime 就会把它们变成对话、警报、用量和成本。
+阅读 AI 进行过的每一段对话，按当时的节奏重新播放，并在 AI 回答不佳时收到通知。OneUptime 完全基于标准 OpenTelemetry 构建这一切：只要你的应用发送遵循 **GenAI 语义约定** （`gen_ai.*`）的 span，你就能得到对话、警报、用量和成本，无需专有 SDK。
 
-## 你将获得什么
+:::cards
+- [开始设置](#五步完成设置): 五个步骤，从第一个 span 到被标记的回答。
+- [重新播放对话](#阅读和重新播放对话): 按对方看到的样子、按当时的节奏阅读一段聊天。
+- [接收警报](#ai-回答不佳时收到通知): 针对失败、被拒绝、被截断、被标记或过慢的回答的现成警报。
+- [关注支出](#查看谁在花什么钱): 按人员、团队、模型和应用划分的成本，以及每日预算。
+:::
 
-在导航栏的“可观测性”下打开 **AI / LLM**：
+## 工作原理
 
-- **对话** — AI 进行过的每一段对话：人们问了什么、AI 答了什么、用了哪些工具、哪里出了问题。列表上方有五个数字：对话数、AI 回答数、需要关注的数量、成本，以及一次回答通常需要多长时间。打开一段对话即可阅读或重新播放。
-- **调用** — 每一次 LLM、嵌入、代理和工具调用，可按服务、提供商、模型、操作、人员和团队筛选。点击某次调用即可在追踪查看器中打开它。
-- **用量** — 某个时间范围内的调用、token 和成本，以及谁花了多少：按支出排列的员工、团队、模型、提供商和应用。
-- **警报** — 针对 AI 回答不佳的现成警报，以及你的 AI / LLM 监视器。
-- **预算** — 每日成本上限，以指标形式发布，可在其上设置警报。
-- **定价** — 你自己的按模型定价，用于内置目录不认识的模型。
-- **设置** — 下面的五个步骤，以及你项目的端点。
+应用的 GenAI 插桩把对模型的每次调用导出为一个 OpenTelemetry span。span 到达时，OneUptime 读取它的 `gen_ai.*` 属性，检查回答是否有问题，为调用计价，并把它归入所属的对话。
 
-在追踪查看器中，每次 AI 调用的 span 还有一个 **AI / LLM** 面板，显示模型、token 数、成本、请求参数，以及提示词和补全内容。
+```mermaid title="从应用的 AI 调用到 OneUptime"
+flowchart TB
+    app["应用的 GenAI<br/>插桩"] -->|"通过 OTLP 发送 span"| ingest["OneUptime 摄取"]
+    ingest --> check["检查回答，<br/>为调用计价"]
+    ingest --> group["找到调用<br/>所属的对话"]
+    check --> tabs["对话、调用、用量、<br/>警报、预算"]
+    group --> tabs
+```
 
-## 第 1 步 — 发送你的 AI 调用
+在 **可观测性** 下打开 **产品 → AI / LLM** 。这个产品有七个标签页：
 
-创建一个遥测摄取密钥：打开 **项目设置 → 遥测与 APM → 摄取密钥**，然后点击 **创建摄取密钥**。你的应用会把该密钥作为 OTLP 请求头传递。（截图见 [OpenTelemetry 指南](/docs/telemetry/open-telemetry)。）
+| 标签页 | 显示内容 |
+| --- | --- |
+| **对话** | AI 进行过的每一段对话，需要关注的排在最前。列表上方显示：对话数、AI 回答数、需要关注的数量、成本和典型回答时间。 |
+| **调用** | 每一次模型、嵌入、代理和工具调用。可按服务、提供商、模型、操作、人员、团队或对话筛选；点击某次调用即可在跟踪查看器中打开。 |
+| **用量** | 某个时间范围内的调用、token 和成本，按员工、团队、模型、提供商或应用排名。 |
+| **警报** | 针对 AI 回答不佳的现成警报，以及你的 AI / LLM 监视器。 |
+| **预算** | 每日成本上限，以可设置警报的指标形式发布。 |
+| **定价** | 为内置价目表中没有的模型设置你自己的价格。 |
+| **设置** | 下面的五个步骤，以及你项目的端点。 |
 
-然后用任意 OpenTelemetry GenAI 库为应用添加埋点：
+在跟踪查看器中，每次 AI 调用的 span 还有一个 **LLM** 标签页：提供商、模型、token、成本、请求参数，以及提示词和回答。
 
-- **OpenLLMetry**（Traceloop）— OpenAI、Anthropic、Cohere、Bedrock、LangChain、LlamaIndex、CrewAI 等。
-- **OpenInference**（Arize）— OpenAI、LangChain、LlamaIndex、DSPy 等。
-- **Vercel AI SDK**，或适用于 OpenAI、Anthropic 和 Gemini 的 **OpenTelemetry 埋点库**。
+## 开始之前
 
-你的 LLM 流量经过 **LiteLLM** 或 **Portkey** 之类的网关吗？从网关导出追踪即可，无需为每个应用埋点 — 参见 [观测 AI 网关](/docs/telemetry/ai-gateways)。在找工程师们使用的编程助手 — Claude Code、Cursor、Codex、Gemini CLI、Copilot？它们会导出自己的 OpenTelemetry，不需要你做任何事：参见 [AI 编程助手可观测性](/docs/telemetry/ai-coding-assistants)。
+- 一个你可以在其中创建遥测摄取密钥的 OneUptime 项目。
+- 一个调用模型的应用，以及适用于其语言的 GenAI 插桩： **OpenLLMetry** （Traceloop）、 **OpenInference** （Arize）、 **Vercel AI SDK** ，或适用于 OpenAI、Anthropic 和 Gemini 的 OpenTelemetry 插桩。
 
-### Python (OpenLLMetry)
+> [!TIP]
+> 经过 LiteLLM 或 Portkey 等网关的模型流量，可以从网关导出，而不必从每个应用导出：请参阅 [AI 网关](/docs/telemetry/ai-gateways)。关于工程师使用的编程助手，请参阅 [AI 编程助手](/docs/telemetry/ai-coding-assistants)。
 
+## 五步完成设置
+
+只需第一步就能看到调用。之后的每一步都会让你看到更多。
+
+:::steps
+### 发送你的 AI 调用
+
+在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个摄取密钥（ [OpenTelemetry 快速入门](/docs/telemetry/open-telemetry#创建摄取密钥) 会逐步介绍）。然后把你的插桩指向 OneUptime：
+
+:::tabs
+@tab Python
 ```bash
 pip install traceloop-sdk opentelemetry-exporter-otlp
 ```
@@ -39,54 +64,49 @@ from traceloop.sdk import Traceloop
 
 Traceloop.init(
     app_name="my-ai-agent",
-    api_endpoint="https://oneuptime.com/otlp",   # or your self-hosted host + /otlp
+    api_endpoint="https://oneuptime.com/otlp",
     headers={"x-oneuptime-token": "YOUR_INGESTION_TOKEN"},
 )
-
-# Your normal OpenAI / Anthropic / LangChain calls are now traced automatically.
+# Your OpenAI, Anthropic and LangChain calls are now traced.
 ```
-
-### Node.js / TypeScript (OpenLLMetry)
-
+@tab Node.js
 ```bash
 npm install @traceloop/node-server-sdk
 ```
 
-```ts
+```typescript
 import * as traceloop from "@traceloop/node-server-sdk";
 
 traceloop.initialize({
   appName: "my-ai-agent",
-  baseUrl: "https://oneuptime.com/otlp", // or your self-hosted host + /otlp
+  baseUrl: "https://oneuptime.com/otlp",
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
-
-### 纯 OpenTelemetry 环境变量
-
-如果你使用原生 OpenTelemetry SDK 埋点，把 OTLP 导出器指向 OneUptime：
-
+@tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
+:::
 
-自托管 OneUptime？把 `https://oneuptime.com/otlp` 替换为 `https://YOUR-ONEUPTIME-HOST/otlp`。
+自托管 OneUptime？请用 `https://YOUR-ONEUPTIME-HOST/otlp` 代替 `https://oneuptime.com/otlp`。调用一次模型，这次调用就会出现在 **调用** 中。
 
-## 第 2 步 — 记录说了什么
+### 记录说了什么
 
-当你的埋点记录了内容时，对话会显示人们问了什么、AI 答了什么。OpenLLMetry 默认记录提示词和补全内容，除非你关闭它（`TRACELOOP_TRACE_CONTENT=false`）。OpenTelemetry 埋点库只在你要求时才记录：
+只有当你的插桩记录了内容时，对话中才会显示人们问了什么、AI 答了什么。除非你设置 `TRACELOOP_TRACE_CONTENT=false`，OpenLLMetry 会记录提示词和回答。OpenTelemetry 插桩只有在你要求时才会记录：
 
 ```bash
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
-没有这些内容时，对话仍会显示耗时、成本和问题，并说明内容未被记录。提示词可能包含敏感数据：要在存储前将其遮盖，请参见 [隐私与脱敏](#隐私与脱敏)。
+较新的 OpenTelemetry 插桩接受 `span_only`、`event_only` 或 `span_and_event`，而不是 `true`。即使没有记录内容，对话仍会显示其耗时、成本和问题。提示词可能包含敏感数据： [隐私与脱敏](#隐私与脱敏) 说明了如何在存储前将其屏蔽。
 
-## 第 3 步 — 把调用归入对话
+### 把调用归入对话
 
-聊天应用每一轮都会调用一次模型。在每次 AI 调用上把 `gen_ai.conversation.id`（或 `session.id`）设为你的聊天 ID，无论用了多少次调用和多少条追踪，每个聊天都会显示为一段对话。使用 OpenLLMetry 时，每个请求设置一次关联属性即可：
+聊天应用每一轮调用一次模型。在每次 AI 调用上把 `gen_ai.conversation.id`（或 `session.id`）设为你的聊天 ID，每个聊天就会显示为一段对话，无论它用了多少次调用和多少个跟踪。使用 OpenLLMetry 时，每个请求设置一次即可：
 
 ```python
 from traceloop.sdk import Traceloop
@@ -97,25 +117,25 @@ Traceloop.set_association_properties({
 })
 ```
 
-没有对话 ID 的调用也会显示，一次一个请求（一条追踪）。
+使用 Vercel AI SDK 时，把聊天 ID 作为 `experimental_telemetry: { metadata: { sessionId } }` 传入。没有对话 ID 的调用仍会显示，每次一个请求（一个跟踪）。
 
-## 第 4 步 — 说明是谁问的
+### 说明是谁问的
 
-设置 `user.id` 或 `user.email`（上面的关联属性会设置邮箱），就能看到每段对话的对象是谁、按人员搜索列表，并在“用量”标签页按员工对支出排序。[员工和团队归属](#员工和团队归属) 列出了 OneUptime 读取的每一个键。
+在每次 AI 调用上设置 `user.id` 或 `user.email`（上面的关联属性会设置邮箱）。这样每段对话都会显示对方是谁，你可以按人员搜索列表， **用量** 标签页也会按员工对支出排名。 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属) 列出了 OneUptime 读取的所有身份键。
 
-## 第 5 步 — 标记不佳的回答
+### 标记不佳的回答
 
-OneUptime 会在每个回答到达时检查它，并标出其中的问题：
+OneUptime 会在每个回答到达时检查它，并标记出了什么问题：
 
-| 问题     | 含义                                              | 判断依据                                                                                                                                       |
-| -------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 失败     | 调用以错误结束，因此没有收到回答                  | span 状态为 Error、`error.type`，或结束原因为 `error`                                                                                          |
-| 拒绝     | AI 拒绝了，或被安全过滤器拦截                     | 拒绝或安全类的结束原因（`content_filter`、`refusal`、`SAFETY` 等）、回答中的拒绝，或以常见英文拒绝语开头的回答                                 |
-| 截断     | 回答在 token 上限处停止                           | 结束原因为 `length`、`max_tokens` 或 `MAX_TOKENS`                                                                                              |
-| 空       | AI 的回答既没有文本也没有工具调用                 | 记录下来的内容为空，或输出 token 为 0                                                                                                          |
-| 已标记   | 你的应用发送的评估认为该回答不佳                  | 一个 `gen_ai.evaluation.result` 事件                                                                                                           |
+| 问题 | 含义 | 判断依据 |
+| --- | --- | --- |
+| 失败 | 调用以错误结束，因此没有回答 | span 状态 Error、`error.type`，或结束原因 `error` |
+| 被拒绝 | AI 拒绝回答，或安全过滤器拦截了回答 | 因拒绝或安全原因结束（`content_filter`、`refusal`、`SAFETY` 等）、回答中的拒绝，或以英文固定拒绝语开头的回答 |
+| 被截断 | 回答在 token 上限处停止 | 结束原因 `length`、`max_tokens` 或 `MAX_TOKENS` |
+| 空 | 既没有文本也没有工具调用 | 记录的内容为空，或输出 token 为 0 |
+| 被标记 | 你的应用发送的评估认为回答不佳 | `gen_ai.evaluation.result` 事件 |
 
-前四种无需你做任何事。要标记其余情况（被你的护栏、eval 或自有 LLM 评审拒绝的回答），请在该回答的 span 上添加一个 `gen_ai.evaluation.result` 事件，并把 `gen_ai.evaluation.score.label` 设为 `fail`：
+前四种无需你做任何事。若要标记被你的护栏、评估或“踩”按钮否决的回答，请在 span 仍处于打开状态时，向回答的 span 添加一个 `gen_ai.evaluation.result` 事件，并把 `gen_ai.evaluation.score.label` 设为 `fail`：
 
 ```python
 from opentelemetry import trace
@@ -130,157 +150,180 @@ trace.get_current_span().add_event(
 )
 ```
 
-`incorrect`、`wrong`、`unhelpful`、`toxic`、`unsafe` 和 `hallucination` 等标签也算作不通过。该事件必须在所评判回答的 span 上，并且要在该 span 仍处于打开状态时添加。
+`incorrect`、`wrong`、`unhelpful`、`toxic`、`unsafe` 和 `hallucination` 等标签也算作失败。OneUptime 从不把你的对话发给另一个 AI 去评判：每项检查只读取调用本身携带的信息。
+:::
 
-OneUptime 从不把你的对话发送给另一个 AI 来评判：每项检查只读取调用本身携带的内容。
+## 阅读和重新播放对话
 
-## 阅读和重新播放一段对话
+对话会像聊天应用显示历史记录那样整段打开：对方说的话在右边，AI 的回答在左边，附带模型、时间、token 和成本，工具调用夹在中间，出问题的地方会在发生处标出。回答下方的 **详情** 会显示它停止的原因、它的评估，以及指向跟踪中该调用的链接。
 
-对话会完整打开，就像聊天应用显示历史记录那样：对方说的话在右侧，AI 的回答在左侧并附有模型、时间、token 和成本，工具调用夹在中间，出错的地方在发生处标出。回答下方的 **详情** 会显示其结束原因和评估，并附有指向“追踪”中该次调用的链接。
+底部的进度条会按对方经历的样子重新播放对话：
 
-底部的播放条会按对方经历的方式重新播放这段对话：
+| 控件 | 作用 |
+| --- | --- |
+| **重新播放** | 从第一条消息开始，按当时的节奏播放对话。回答在路上时，“AI 正在回答…”会计时。点击任意消息的时间即可从那里开始播放。 |
+| **跳过等待** | 默认开启：缩短任何超过 3 秒的静默。 |
+| `1x` | 更改速度：1x、2x、4x 或 8x。 |
+| **K** 、 **J** 或 **←** 、 **L** 或 **→** | 播放或暂停、后退一条消息、前进一条消息。 |
 
-- **重新播放** 从第一条消息开始，按当时的节奏播放；当回答还在路上时，“AI 正在回答…”会持续计时。点击任意消息的时间即可从那里开始播放。
-- **跳过等待** 默认开启，会缩短超过 3 秒的停顿。速度按钮可按 1×、2×、4× 或 8× 播放。
-- **K** 播放或暂停，**J** 或 **←** 后退一条消息，**L** 或 **→** 前进一条。
-- 地址会记住播放停在哪条消息（`?step=`），因此链接会在那一刻打开。
+页面地址会保存播放停止时的消息（`?step=`），因此你分享的链接会在那个时刻打开。
 
 ## AI 回答不佳时收到通知
 
-**警报** 标签页提供了大多数 AI 应用需要的警报。选择其中一个会打开已填好的“创建监视器”，保存前你可以修改任何内容：
+**警报** 标签页列出了大多数 AI 应用需要的警报。选择其中一个会打开已填好内容的 **创建监视器** ，保存前你可以修改任何内容：
 
-| 警报           | 何时通知你                                                                         |
-| -------------- | ---------------------------------------------------------------------------------- |
-| 回答出现问题   | 15 分钟内超过 5% 的回答失败、被拒绝、被截断、为空或被标记                          |
-| AI 调用失败    | 5 分钟内超过 10% 的模型调用以错误结束                                              |
-| AI 拒绝回答    | 30 分钟内超过 5% 的回答是拒绝                                                      |
-| 回答被截断     | 30 分钟内有 3 个或更多回答停在 token 上限                                          |
-| 回答被标记     | 有评估把某个回答标记为不佳                                                         |
-| 回答变慢       | 15 分钟内超过 10% 的回答耗时超过 30 秒                                             |
-| AI 停止回答    | AI 在 30 分钟内没有给出任何回答                                                    |
+| 警报 | 何时通知你 | 严重性 |
+| --- | --- | --- |
+| 回答出错 | 15 分钟内超过 5% 的回答失败、被拒绝、被截断、为空或被标记 | Warning |
+| AI 调用失败 | 5 分钟内超过 10% 的模型调用以错误结束 | Critical |
+| AI 拒绝回答 | 30 分钟内超过 5% 的回答是拒绝 | Warning |
+| 回答被截断 | 30 分钟内有 3 个或更多回答在 token 上限处停止 | Warning |
+| 回答被标记 | 某项评估把回答标记为不佳 | Warning |
+| 回答缓慢 | 15 分钟内超过 10% 的回答耗时超过 30 秒 | Warning |
+| AI 停止回答 | AI 在 30 分钟内没有给出任何回答 | Critical |
 
-基于比例的警报还会等到至少有 3 个不佳回答，这样两个回答中有一个不佳时不会把人叫醒。
+基于回答比例的警报还会等到至少有 3 个不佳回答才触发，因此两个回答中有一个不佳不会呼叫任何人。Critical 警报会采用你项目中最严重的警报严重性，Warning 警报则采用下一级：在新项目中分别是 High 和 Low。
 
-每个警报都是一个 **AI / LLM** 监视器。它的设置决定什么算作不佳回答（上面的问题、比你设定的上限更慢的回答，或两者兼有）、监视哪些应用和哪个模型，以及每次检查回看多久。设置下方的预览会显示监视器此刻会统计到什么。它的条件比较三个数字：**不佳回答的比例**（%）、**不佳回答的数量** 和 **回答的数量**。现成的警报会触发一个能自动解除的警报，并在回答不佳期间把监视器显示为“性能下降”；如果要呼叫某人，请改为开启它的事件。
+每个警报都是一个 **AI / LLM** 监视器。它的设置决定什么算作不佳回答（ **出现以下情况时将回答计为不佳** 、 **或耗时超过（秒）** ）、每次检查回看多远（ **时间窗口** ，默认 15 分钟）、监视哪些 **应用** ，以及在 **更多字段** 下监视哪个 **模型** 。 **预览** 会显示监视器此刻会统计到什么。它的条件比较三个数字： **不佳的 AI 回答 (%)** 、 **不佳的 AI 回答** 和 **AI 回答** 。
 
-支出由 [每日成本预算](#每日成本预算) 监视。
+现成警报会触发一个能自行解决的警报，并在回答不佳期间把监视器显示为 **Degraded** 。它的事件已填好但处于关闭状态：如需呼叫某人，请将其开启。
 
-## OneUptime 识别的属性
+## 查看谁在花什么钱
 
-OneUptime 优先读取 OpenTelemetry GenAI 约定，并回退到 OpenLLMetry 和 OpenInference 的变体，让常用库开箱即用。
+**用量** 标签页显示某个时间范围（除非你另选，否则为最近 7 天）内的调用、token 和成本，以及按五种细分之一列出的前 25 名表格： **员工** 、 **团队** 、 **模型** 、 **提供商** 和 **应用 / 服务** 。没有指明任何人的调用计入 **未归属** ，从不丢弃。
 
-| 内容                     | 主属性                       | 也接受                                                                                                                                                                                                                                                                    |
-| ------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 提供商 / 系统            | `gen_ai.provider.name`       | `gen_ai.system`（约定中已弃用，但仍被广泛发送）、`llm.system`、`llm.provider`                                                                                                                                                                                            |
-| 操作                     | `gen_ai.operation.name`      | `llm.request.type`、`openinference.span.kind`                                                                                                                                                                                                                             |
-| 请求的模型               | `gen_ai.request.model`       | `llm.model_name`、`llm.request.model`                                                                                                                                                                                                                                     |
-| 响应的模型               | `gen_ai.response.model`      | `llm.response.model`                                                                                                                                                                                                                                                      |
-| 输入 token               | `gen_ai.usage.input_tokens`  | `gen_ai.usage.prompt_tokens`、`llm.token_count.prompt`、`llm.usage.prompt_tokens`                                                                                                                                                                                         |
-| 输出 token               | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`、`llm.token_count.completion`、`llm.usage.completion_tokens`                                                                                                                                                                             |
-| token 总数               | `gen_ai.usage.total_tokens`  | `llm.token_count.total`、`llm.usage.total_tokens`；都未上报时由输入 + 输出推算                                                                                                                                                                                           |
-| 成本（USD）              | `gen_ai.usage.cost`          | `gen_ai.usage.cost_usd`、`gen_ai.usage.total_cost`、`llm.usage.total_cost`、`gen_ai.cost.total_cost`（LiteLLM）、`litellm.cost.total`                                                                                                                                     |
-| 代理名称                 | `gen_ai.agent.name`          | `agent.name`                                                                                                                                                                                                                                                              |
-| 工具名称                 | `gen_ai.tool.name`           | `tool.name`                                                                                                                                                                                                                                                               |
-| 对话 / 会话 ID           | `gen_ai.conversation.id`     | `session.id`、`langfuse.session.id`、`traceloop.association.properties.session_id`                                                                                                                                                                                        |
-| 员工（发起调用的人）     | `user.id`                    | `enduser.id`、`litellm.metadata.user_api_key_user_id` 和 `metadata.user_api_key_user_id`（LiteLLM OTel v2 和 v1 的写法，两者都会读取）、`traceloop.association.properties.user_id`、`langfuse.user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id` |
-| 员工邮箱                 | `user.email`                 | `traceloop.association.properties.user_email`、`enduser.email`                                                                                                                                                                                                            |
-| 团队 / 成本中心          | `team.id`                    | `team`、`cost_center`、`department`、`litellm.metadata.user_api_key_team_id` 和 `litellm.team.id`（LiteLLM OTel v2）、`metadata.user_api_key_team_id`（LiteLLM OTel v1）、`cursor.team.id`                                                                                |
+人员和团队来自调用上的身份属性：请参阅 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属)。
 
-`traceloop.association.properties.*` 下的子键 **由调用方提供**：Traceloop 定义前缀，你的代码提供其下的内容。`gen_ai.usage.total_tokens` 和 `gen_ai.usage.cost` 是 **事实标准** 的键，而不是 GenAI 语义约定 — 约定既没有定义 token 总数属性，也没有定义成本属性 — OneUptime 读取它们，是因为常见的埋点库会发送它们。`gen_ai.system` 是约定自身为 `gen_ai.provider.name` 设立的已弃用前身；两者都会读取。
+### span 优先，指标补充
 
-**三行身份属性也会带 `resource.` 前缀进行匹配。** OTLP 摄取会把每个 _资源_ 属性以 `resource.` 前缀展开到 span 的属性映射中，因此 `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` 到达时是 `resource.team.id`。OneUptime 先查找整个不带前缀的列表，再查找整个 `resource.` 列表，所以 span 属性（描述一次调用）优先于资源属性（描述整个进程）。其他行只按不带前缀的键匹配：它们是每次调用各自的值。
+GenAI span 携带一次调用的模型、token 和成本，因此只要有 span，它们就能回答一切。有些工具发布 token 和成本指标而不发送 GenAI span，大多数编程助手就是如此。OneUptime 只会为 span 没有报告的数字读取这些指标，并且从不把两者相加：许多插桩会为同一次调用同时发送两者，相加会让每一美元被计算两次。
 
-**提示词和补全内容** 从以下位置读取：`gen_ai.client.inference.operation.details` 事件；span 属性 `gen_ai.input.messages`、`gen_ai.output.messages` 和 `gen_ai.system_instructions`；旧版埋点库仍在发送的 **已弃用** 按角色事件（`gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.tool.message`、`gen_ai.assistant.message`、`gen_ai.choice`）；带索引的属性（`gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，以及 OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`）；以及 JSON 消息数组（`gen_ai.prompt`、`gen_ai.completion`、`input.value`、`output.value`）。
-
-### 成本如何计算
-
-如果你的埋点上报了成本（`gen_ai.usage.cost`），OneUptime 会原样使用：上报的值始终优先。没有上报成本时，OneUptime 会根据 span 的 token 数和内置的标价目录计算 **摄取时的估算成本**，该目录涵盖 OpenAI、Anthropic、Google Gemini、Mistral、DeepSeek、xAI、Cohere、Amazon Nova 和 Meta Llama 的常见模型。模型按名称前缀匹配，因此像 `gpt-4o-2024-08-06` 这样带日期的快照和像 `us.anthropic.claude-3-5-sonnet-20241022-v2:0` 这样带厂商修饰的 ID 都能正确识别。未知或自定义模型从不猜测 — 在你于 **定价** 标签页为其设置价格之前，它们的成本保持为 `0`。估算使用标价，不考虑缓存或批处理折扣。
-
-自托管 OneUptime？目录位于 `packages/Common/Types/Telemetry/LlmCostCatalog.ts`。
-
-## 员工和团队归属
-
-“上个月是哪位工程师在 Opus 上花了 4000 美元？”是一个关于人的问题，除非 span 上有内容指明某个人，否则没有任何 LLM span 能回答它。OneUptime 在摄取时把发起操作的人复制到可查询的列中，所以你可以按列分组和筛选，而不用编写属性查找。
-
-上表中的三行身份属性就是整个机制；按列出的顺序，第一个存在的键胜出。`user.id` 排在最前，因为它是 OpenTelemetry 中表示人类操作者的规范键，也是你自行设置身份时应统一采用的键。**有一个例外：Claude Code** 发送的 `user.id` 是保存在 `~/.claude.json` 中的随机匿名标识符，而不是某个人。在它的指标数据点上这无关紧要，因为那里的列表以邮箱优先；但如果你启用了 Claude Code 的追踪测试版，span 上匿名的 `user.id` 会排在 `user.email` 之前：请在该批设备的采集器处理器中删除或重新映射 `user.id`。`enduser.id` 仍是语义约定中的有效属性，作为同等别名被接受。`cursor.user.id` 排在最后，因为它是一个不透明的、限定于团队的整数，需要借助 Cursor 的管理 API 才能对应到具体的人。
-
-身份只会在已被识别为 LLM 调用的 span 上读取：`user.id`、`user.email` 和 `team.id` 是通用键，浏览器和普通后端的 span 也会携带。**指标数据点** 携带一个更短、以邮箱优先的列表 — `user.email`、`user.id`、`user.account_uuid`、`user.account_id`、`cursor.user.id`，团队则来自 `team.id`、`team`、`cost_center`、`department` 和 `cursor.team.id`，每个也都会带 `resource.` 前缀匹配 — 因为只发送指标而不发送 span 的编程代理 CLI 会原生发送 `user.email`。目前没有任何功能从 **日志记录** 中读取身份。
-
-### 设置团队和成本中心
-
-没有任何埋点库会发送 `team.id`、`team`、`cost_center` 或 `department`：它们由你的组织设置，通常通过进程上的 `OTEL_RESOURCE_ATTRIBUTES` 设置：
-
-```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-123,department=engineering"
+```mermaid title="用量标签页上的数字从何而来"
+flowchart TB
+    spans{"GenAI span<br/>报告了吗？"}
+    spans -->|"是"| fromSpans["来自 span<br/>的数据"]
+    spans -->|"否"| metrics{"GenAI 指标<br/>报告了吗？"}
+    metrics -->|"是"| fromMetrics["显示指标数据，<br/>并标注<br/>来自 GenAI 指标"]
+    metrics -->|"否"| nothing["没有可<br/>显示的内容"]
 ```
 
-它们以 `resource.team.id`、`resource.team`、`resource.cost_center` 和 `resource.department` 的形式到达 OneUptime；无论你的导出器把这些键留在 OTLP 资源块中，还是复制到每个 span 上（Claude Code 属于后者），这两个层级在 span 和指标数据点上都能被识别。直接设置在 span 上、不带前缀的 `team.id` 仍然优先。
+| 位置 | 回退到指标的内容 | 何时 |
+| --- | --- | --- |
+| 输入和输出 token | 两个总数 | span 的 token 总数都为 0 |
+| 成本（USD） | 成本，Codex 以微美元计的成本会换算为 USD | span 的成本总数为 0 |
+| LLM 调用 | 无：仅限 span | — |
+| **员工** 、 **团队** 、 **模型** 表 | 仅成本；调用和 token 单元格显示 `—` | 该表没有找到 span 行 |
+| **提供商** 、 **应用 / 服务** 表 | 无：仅限 span | — |
+| 对话 | 无：对话由 span 构建 | — |
 
-网关的写法无需你做任何配置即可到达。LiteLLM 在两种 OpenTelemetry 模式下给属性起的名字不同 — 默认的 v1 `otel` 回调使用裸的 `metadata.` 前缀（`metadata.user_api_key_user_id`、`metadata.user_api_key_user_email`、`metadata.user_api_key_team_id`），可选启用的 v2 模式（`LITELLM_OTEL_V2=true`）使用 `litellm.` 命名空间 — **OneUptime 两者都会读取**。
+取自指标的数字会标注 **来自 GenAI 指标** ，因为它在 **调用** 中没有对应的行。所以，一旦你的 GenAI span 报告了某个数字，只发送指标的工具所占的那部分就不会显示。若要单独查看这类工具的支出，请把它发送到一个没有 GenAI span 到达的专用项目。
 
-### 有意排除客户相关的键
+## 一次调用的成本
 
-一个 LLM span 可能携带 **两个** 不同的人：发起调用的员工，以及这次调用所服务的下游 **客户**。以下键携带的是客户，OneUptime 有意 **一个都不** 读入身份列：
+插桩报告的成本（`gen_ai.usage.cost`）会原样使用，即使它为 0。没有报告时，OneUptime 会在 span 到达时，根据 token 数量和内置价目表估算成本，价目表涵盖 OpenAI、Anthropic、Google Gemini、Mistral、DeepSeek、xAI、Cohere、Amazon Nova 和 Meta Llama 的常用模型。先按实际响应的模型定价，再按请求的模型定价。
 
-- `gen_ai.user` 和 `llm.user` — 埋点库对 OpenAI 请求参数 `user` 的回显，OpenAI 将其描述为“a stable identifier for your end-users”（现已弃用，改用 `safety_identifier` 和 `prompt_cache_key`）。
-- `litellm.metadata.user_api_key_end_user_id`、`metadata.user_api_key_end_user_id` 和 `litellm.end_user.id` — LiteLLM 三种写法下的显式终端用户 ID，与密钥所有者 ID 不同；密钥所有者 ID **就是** 员工，**会被** 读取。
+模型按最长的名称前缀匹配，因此 `gpt-4o-2024-08-06` 和 `us.anthropic.claude-sonnet-4-5-20250929-v1:0` 这类带日期或厂商修饰的 ID 也能找到其系列的价格。价目表不认识的模型，即使是新发布的，也绝不会被猜测：在你为它定价之前，其成本保持为 0。估算使用标价，不含缓存或批处理折扣。
 
-原因在于成本分摊的正确性：如果把客户 ID 读入员工列，一个服务 40000 名客户的客服机器人就会凭空造出 40000 名“员工”，而真正拥有这笔支出的工程师看起来却一分钱没花。这些属性保留在原始属性映射中，你可以直接查询它们。
-
-### 身份列会被清理
-
-员工邮箱列保存的是真实的个人数据。你在 **属性** 范围下的遥测 **清理规则** 对该列的作用与对其来源属性的作用完全相同，因此脱敏邮箱的规则同样适用于该列。请在 **追踪 → 设置** 下配置清理规则和丢弃过滤器。
-
-## span 和指标是回退，而不是相加
-
-**GenAI span 是权威来源。只有当 span 流什么都没有上报时才会参考指标流，两者从不相加。** 一个 span 在一行中携带模型、token 和成本，因此只要有 span，它就能回答任何问题。没有 span 的地方 — 编程代理 CLI 只发布 token 和成本的 _指标_，不发送 GenAI span — 由指标流顶上。之所以不相加，是因为很多埋点库会为同一次调用同时发送两种信号（OpenLLMetry 就是常见的例子），相加会把每一美元算两次。
-
-需要提前考虑的后果：**一旦你的 GenAI span 上报了非零值，仅有指标的来源对该值的贡献就不会显示。** 回退是按数值、按细分进行的，而不是按发送方：
-
-| 位置                                   | 回退到指标的内容                                     | 条件                                  |
-| -------------------------------------- | ---------------------------------------------------- | ------------------------------------- |
-| 用量 → 输入 token / 输出 token         | 输入和输出 token 的合计                              | span 的两项 token 合计都为 0          |
-| 用量 → 成本（USD）                     | 成本，以 USD 和微 USD 计，换算后相加                 | span 的成本合计为 0                   |
-| 用量 → LLM 调用                        | 无 — 仅 span                                         | —                                     |
-| 用量 → 员工、团队、模型                | 仅成本。调用和 token 列显示为 `—`                    | 该细分没有返回任何 span 行            |
-| 用量 → 提供商、应用 / 服务             | 无 — 仅 span                                         | —                                     |
-| 对话                                   | 无 — 对话由 span 构建                                | —                                     |
-
-“提供商”和“应用 / 服务”没有指标回退，因为编程代理的计数器不携带 GenAI 提供商属性，也不关联任何 OneUptime 遥测服务。凡是来自指标的数值，页面都会标注 **来自 GenAI 指标**，因为来自指标的数值在“调用”列表中没有对应的行。
-
-**如果你需要单独查看某个仅有指标的工具的支出，请给它一个单独的项目**，这样它的 span 流才会真正为空，回退才会生效。预算也是如此：按服务分别设置预算，而不是把发送 span 的服务和仅发送指标的服务混在一起。
-
-## 仪表盘和指标警报
-
-GenAI 指标以普通 OpenTelemetry 指标的形式到达，因此你可以构建绘制 `gen_ai.client.token.usage`、`gen_ai.client.operation.duration` 等指标的 **仪表盘**，并在其上创建 **指标监视器** — 例如当 `gen_ai.client.operation.duration` 的 p95 按模型分组后超过阈值时。参见 [指标监控](/docs/monitor/metrics-monitor)。
+若要自行为模型定价（协商费率、微调模型或你自托管的模型），请在 **定价** 标签页的 **自定义 LLM 定价** 中添加： **模型前缀** 、 **输入价格（每 100 万 token 美元）** 和 **输出价格（每 100 万 token 美元）** 。在你的价格和内置价目表之间，匹配最长前缀的胜出；长度相同时，你的价格胜出。价格适用于保存后大约一分钟起到达的调用；已存储的调用保留原有成本。
 
 ## 每日成本预算
 
-**预算** 标签页设置以 USD 计的每日上限，按 UTC 自然日评估。后台工作进程每 15 分钟汇总一次当天 LLM span 的成本（上报的或计算的），记录到预算上，并发布两个 gauge 指标：
+预算按 UTC 日以 USD 跟踪一天的支出。OneUptime 每 15 分钟汇总当天的 AI 支出（来自 span，或在没有 span 报告支出时来自 GenAI 成本指标），显示在预算上，并发布两个指标：
 
-| 指标                                | 含义                                   |
-| ----------------------------------- | -------------------------------------- |
-| `oneuptime.llm.budget.spend.usd`    | 当天到目前为止的支出，单位 USD         |
-| `oneuptime.llm.budget.percent.used` | 支出占每日上限的百分比                 |
+| 指标 | 含义 |
+| --- | --- |
+| `oneuptime.llm.budget.spend.usd` | 当天到目前为止的支出，单位为 USD |
+| `oneuptime.llm.budget.percent.used` | 支出占每日上限的百分比 |
 
-两者都带有 `oneuptime.llm.budget.id` 和 `oneuptime.llm.budget.name` 属性，若设置了预算的服务、提供商和模型范围，也会一并携带。请按稳定的 **`oneuptime.llm.budget.id`** 筛选监视器；重命名预算时名称会改变。
+两者都携带 `oneuptime.llm.budget.id` 和 `oneuptime.llm.budget.name`，以及预算的范围（如果有）。
 
-**警报通过针对这些指标的 [指标监控](/docs/monitor/metrics-monitor) 实现。** 对于经典的 80% / 100% 模式，在 `oneuptime.llm.budget.percent.used` 上创建一个监视器，按 `oneuptime.llm.budget.id` 筛选，并添加两个条件：`>= 80` 创建警告级警报，`>= 100` 创建严重级警报。**把监视器的滚动时间设为 30 分钟**：预算每 15 分钟才发布一个点，所以默认的 1 分钟窗口在两次汇总之间只会看到空序列。
+:::steps
+### 创建预算
 
-预算可以限定到某个遥测服务、某个 LLM 提供商或某个确切的模型，也可以覆盖整个项目，并且可以同时存在多个。预算监视器还可以调用一个工作流来停止失控的代理 — 参见 [为失控的 AI 代理设置熔断](/docs/telemetry/ai-agent-circuit-breaker)。
+在 **预算** 标签页上，点击 **创建LLM Cost Budget** 。为它设置名称和 **每日预算（美元）** ，范围留空表示整个项目，或者选择 **服务（可选）** 、 **LLM 提供商（可选）** 或 **LLM 模型（可选）** 。多个预算可以监视不同的范围。
+
+### 为它设置警报
+
+在 `oneuptime.llm.budget.percent.used` 上创建一个 [指标监控](/docs/monitor/metrics-monitor)，并按 `oneuptime.llm.budget.id` 筛选（重命名预算时名称会变）。添加一个触发警告的条件 `>= 80`，以及一个触发严重警报的条件 `>= 100`。
+
+### 扩大窗口
+
+把监视器的滚动窗口设为 30 分钟。预算每 15 分钟发布一个点，因此默认的 1 分钟窗口在两个点之间找不到任何东西。
+:::
+
+预算警报还可以运行一个工作流来阻止失控的代理：请参阅 [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker)。
+
+## 仪表盘和指标警报
+
+`gen_ai.client.token.usage` 和 `gen_ai.client.operation.duration` 等 GenAI 指标会作为普通的 OpenTelemetry 指标到达。你可以在 [仪表盘](/docs/dashboards/index) 上绘制它们，或用 [指标监控](/docs/monitor/metrics-monitor) 为它们设置警报，例如当按模型分组的 `gen_ai.client.operation.duration` 的 p95 超过阈值时。
 
 ## 隐私与脱敏
 
-提示词和补全内容可能包含敏感数据。OneUptime 会像对待其他任何追踪一样，把你的遥测 **清理规则** 和 **丢弃过滤器** 应用到 LLM span 上，因此你可以在存储前遮盖属性或丢弃 span；请在 **追踪 → 设置** 下配置它们。员工邮箱列也受同样的规则约束 — 参见 [身份列会被清理](#身份列会被清理)。
+AI 调用以跟踪 span 的形式存储，因此跟踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **跟踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
 
-读取对话需要与读取追踪相同的权限：能读取项目追踪的人就能读取它的对话，其他人则不能。
+读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。
 
-## 相关内容
+## OneUptime 读取的属性
 
-- [AI 编程助手可观测性](/docs/telemetry/ai-coding-assistants) — Claude Code、Cursor、Codex、Gemini CLI、Copilot、Cline 等工具的支持矩阵，以及按员工统计的支出如何跨这些工具运作。
-- [监控 Claude Code](/docs/telemetry/claude-code)
-- [监控 Cursor](/docs/telemetry/cursor)
-- [监控 OpenAI Codex CLI](/docs/telemetry/openai-codex)
-- [监控 Gemini CLI 和 GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot)
-- [观测 AI 网关（LiteLLM 和 Portkey）](/docs/telemetry/ai-gateways)
-- [为失控的 AI 代理设置熔断](/docs/telemetry/ai-agent-circuit-breaker)
+OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference、Vercel AI SDK 和 LiteLLM 使用的写法，因此常用的库可以直接使用。对每个值，span 上出现的第一个键胜出：
+
+| 值 | 键（按尝试顺序） |
+| --- | --- |
+| 提供商 | `gen_ai.system`、`gen_ai.provider.name`、`llm.system`、`llm.provider` |
+| 操作 | `gen_ai.operation.name`、`llm.request.type`、`openinference.span.kind` |
+| 请求的模型 | `gen_ai.request.model`、`llm.model_name`、`llm.request.model` |
+| 响应的模型 | `gen_ai.response.model`、`llm.response.model` |
+| 输入 token | `gen_ai.usage.input_tokens`、`gen_ai.usage.prompt_tokens`、`llm.token_count.prompt`、`llm.usage.prompt_tokens` |
+| 输出 token | `gen_ai.usage.output_tokens`、`gen_ai.usage.completion_tokens`、`llm.token_count.completion`、`llm.usage.completion_tokens` |
+| 总 token | `gen_ai.usage.total_tokens`、`llm.token_count.total`、`llm.usage.total_tokens` |
+| 成本（USD） | `gen_ai.usage.cost`、`gen_ai.usage.cost_usd`、`gen_ai.usage.total_cost`、`llm.usage.total_cost`、`gen_ai.cost.total_cost`、`litellm.cost.total` |
+| 对话 | `gen_ai.conversation.id`、`session.id`、`langfuse.session.id`、`traceloop.association.properties.session_id`、`ai.telemetry.metadata.sessionId` |
+| 代理 | `gen_ai.agent.name`、`agent.name` |
+| 工具 | `gen_ai.tool.name`、`tool.name`、`ai.toolCall.name` |
+| 结束原因 | `gen_ai.response.finish_reasons`、`gen_ai.response.finish_reason`、`llm.response.finish_reason`、`ai.response.finishReason` |
+| 错误 | `error.type` |
+
+当 span 带有其中任意一个值，或任何以 `gen_ai.`、`llm.` 或 `traceloop.` 开头的属性时，它就算作一次 AI 调用。没有报告总数时，总 token 为输入加输出。`gen_ai.usage.total_tokens` 和 `gen_ai.usage.cost` 这两个键不属于约定，约定对两者都没有定义；OneUptime 读取它们是因为常见的插桩会发送它们。
+
+身份键（谁发起了调用，以及其团队）列在 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属) 中。
+
+### 提示词和回答从哪里读取
+
+对话视图按以下顺序读取一次调用的消息：
+
+- `gen_ai.client.inference.operation.details` 事件；
+- `gen_ai.input.messages`、`gen_ai.output.messages` 和 `gen_ai.system_instructions` 属性；
+- 旧的按角色划分的事件：`gen_ai.system.message`、`gen_ai.user.message`、`gen_ai.assistant.message`、`gen_ai.tool.message` 和 `gen_ai.choice`；
+- 带索引的属性：OpenLLMetry 的 `gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`；
+- `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value` 和 `output.value` 中的消息数组。
+
+## 故障排除
+
+:::details 调用已到达，但没有任何对话显示文本
+你的插桩没有记录内容。请按 [记录说了什么](#记录说了什么) 中的说明开启；在那之前的调用仍然没有文本。
+:::
+
+:::details 一个聊天的每次调用都显示为单独的对话
+这些调用没有对话 ID。请按 [把调用归入对话](#把调用归入对话) 中的说明，在聊天的每次调用上设置 `gen_ai.conversation.id` 或 `session.id`。
+:::
+
+:::details 调用显示了 token，但成本为 $0
+模型不在内置价目表中，或者 span 没有指明模型。请在 **定价** 标签页上添加该模型的价格；此后到达的调用会被定价。
+:::
+
+:::details 用量标签页显示“来自 GenAI 指标”，调用和 token 显示 `—`
+这些数字来自只发送指标、不发送 GenAI span 的工具，例如编程助手。指标携带成本，但没有逐次调用的细节，因此这些单元格保持为空。请参阅 [span 优先，指标补充](#span-优先指标补充)。
+:::
+
+:::details 预算监视器在两种状态之间来回切换
+监视器的滚动窗口短于 15 分钟，因此有时找不到任何点。请把它设为 30 分钟。
+:::
+
+## 后续步骤
+
+:::cards
+- [AI 编程助手](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 按工程师划分的支出。
+- [AI 网关](/docs/telemetry/ai-gateways): 通过一个 LiteLLM 或 Portkey 网关跟踪每个应用的模型调用。
+- [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 预算警报触发时阻止失控的代理。
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 每种信号的端点、摄取密钥和限制。
+:::

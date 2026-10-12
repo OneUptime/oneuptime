@@ -28,6 +28,7 @@ import {
   cardTargets,
   comparableFence,
   diagramLabelLines,
+  escapeRegExp,
   inlineCode,
   labelLineWidth,
   listItemCount,
@@ -713,24 +714,20 @@ function widestDiagramLine(language: string, page: string): number {
   );
 }
 
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // A path as this language writes it: its labels drawn, its other words free.
 function pathPattern(language: string, segments: Array<string>): RegExp {
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
         if (isActionLabel(segment)) {
-          return escapeRegex(drawnActionLabel(language, segment));
+          return escapeRegExp(drawnActionLabel(language, segment));
         }
 
         return segment === "your page" && YOUR_PAGE[language]
-          ? escapeRegex(YOUR_PAGE[language] as string)
+          ? escapeRegExp(YOUR_PAGE[language] as string)
           : "[^*→\\n]+?";
       })
-      .join(escapeRegex(PATH_SEPARATOR))}\\*\\*`,
+      .join(escapeRegExp(PATH_SEPARATOR))}\\*\\*`,
   );
 }
 

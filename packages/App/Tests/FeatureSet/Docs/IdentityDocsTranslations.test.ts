@@ -21,6 +21,7 @@ import {
   cardTargets,
   comparableFence,
   diagramSkeleton,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -555,7 +556,6 @@ const NUMBERS: Record<string, Array<string>> = {
   [SCIM]: ["14", "30", "40", "200", "1000", "400", "401", "402"],
 };
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const DIALOG_COLON: RegExp = /\s*[:：]\s*$/;
 const NUMBER: RegExp = /\d+/g;
 const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
@@ -846,10 +846,6 @@ function expectedInlineCode(language: string, page: string): Array<string> {
       return key ? docsUi(language, key) : code;
     })
     .sort();
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 describe("the lists this test keeps", () => {
@@ -1352,7 +1348,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const settings: string = adminLabel(language, "Settings");
       const authentication: string = adminLabel(language, "Authentication");
       const path: RegExp = new RegExp(
-        `\\*\\*Admin\\*\\* > \\*\\*${escapeRegex(settings)}\\*\\* > \\*\\*${escapeRegex(authentication)}\\*\\*`,
+        `\\*\\*Admin\\*\\* > \\*\\*${escapeRegExp(settings)}\\*\\* > \\*\\*${escapeRegExp(authentication)}\\*\\*`,
       );
 
       expect({ page, path: true }).toEqual({

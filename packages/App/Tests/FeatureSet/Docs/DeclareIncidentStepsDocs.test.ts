@@ -1,4 +1,5 @@
 import IncidentStatusPageScopeCopy from "../../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -200,9 +201,7 @@ function formFields(): Array<FormField> {
 
 function stepIdOf(title: string): string {
   const match: RegExpMatchArray | null = CREATE_SOURCE.match(
-    new RegExp(
-      `title: "${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}", id: "([^"]+)"`,
-    ),
+    new RegExp(`title: "${escapeRegExp(title)}", id: "([^"]+)"`),
   );
 
   expect(match).not.toBeNull();

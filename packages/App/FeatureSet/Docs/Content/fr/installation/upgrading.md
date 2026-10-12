@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-Utilisez votre propre nom de release et votre propre espace de noms s'ils diffèrent. La section [Mettre l'agent à niveau](/docs/telemetry/kubernetes-agent) de la page de l'agent Kubernetes donne les détails, et [AI SRE – Accès au cluster](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) explique ce que l'agent peut faire et comment le laisser corriger ce qu'il trouve.
+Utilisez votre propre nom de release et votre propre espace de noms s'ils diffèrent. La section [Mettre l'agent à niveau](/docs/telemetry/kubernetes-agent#mettre-à-jour-lagent) de la page de l'agent Kubernetes donne les détails, et [AI SRE – Accès au cluster](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) explique ce que l'agent peut faire et comment le laisser corriger ce qu'il trouve.
 
 ### Ce que l'IA peut faire est défini sur l'agent IA
 
