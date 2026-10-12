@@ -1047,6 +1047,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           incomingEmailSecretKey={props.incomingEmailSecretKey}
           canSeeIncomingEmailSecretKey={props.canSeeIncomingEmailSecretKey}
           onResetIncomingEmailSecretKey={props.onResetIncomingEmailSecretKey}
+          /*
+           * Off, and not archived: the trigger is paused, so its dialog says
+           * its URL or address starts nothing until the workflow is on.
+           */
+          isWorkflowOff={Boolean(props.runsAreTestRuns)}
           component={selectedNodeData}
           title={
             selectedNodeData && selectedNodeData.metadata.title

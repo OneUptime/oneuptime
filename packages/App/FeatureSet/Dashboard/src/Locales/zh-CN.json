@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "在开启之前，它的触发器处于暂停状态。",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "在可以编辑此工作流的人开启它之前，它的触发器处于暂停状态。",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "在可以编辑此工作流的人开启它之前，它的触发器处于暂停状态。你仍然可以使用“{{button}}”来测试它。",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "在开启之前，它的触发器处于暂停状态。你仍然可以使用“{{button}}”来测试它。"
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "在开启之前，它的触发器处于暂停状态。你仍然可以使用“{{button}}”来测试它。",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "此工作流关闭期间，发送到此地址的电子邮件会被忽略。你仍然可以使用“{{button}}”来测试它。",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "此工作流关闭期间，发送到此 URL 的请求会被拒绝。你仍然可以使用“{{button}}”来测试它。"
 }

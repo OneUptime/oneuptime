@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "켜기 전까지 트리거는 일시 중지됩니다.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "이 워크플로를 편집할 수 있는 사람이 켜기 전까지 트리거는 일시 중지됩니다.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "이 워크플로를 편집할 수 있는 사람이 켜기 전까지 트리거는 일시 중지됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다.",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "켜기 전까지 트리거는 일시 중지됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "켜기 전까지 트리거는 일시 중지됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다.",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "이 워크플로가 꺼져 있는 동안에는 이 주소로 보낸 이메일이 무시됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다.",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "이 워크플로가 꺼져 있는 동안에는 이 URL로 보낸 요청이 거부됩니다. \"{{button}}\"으로 계속 테스트할 수 있습니다."
 }

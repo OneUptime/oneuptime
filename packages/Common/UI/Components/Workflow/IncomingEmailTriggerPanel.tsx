@@ -4,8 +4,10 @@ import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import BreakableCode from "./BreakableCode";
 import ComponentSettingsSection from "./ComponentSettingsSection";
+import WorkflowOffTriggerNote from "./WorkflowOffTriggerNote";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   INCOMING_EMAIL_TRIGGER_LOCAL_PART_PREFIX,
@@ -50,6 +52,7 @@ export const IncomingEmailTriggerPanelCopy: {
   readonly hidden: string;
   readonly notConfigured: string;
   readonly setupGuide: string;
+  readonly workflowOff: string;
 } = {
   title: "Email address",
   description: "Send an email to this address to start the workflow.",
@@ -82,6 +85,13 @@ export const IncomingEmailTriggerPanelCopy: {
   notConfigured:
     "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.",
   setupGuide: "How to set up inbound email",
+  /*
+   * While the workflow is off, above the address: email sent to it is
+   * ignored. {{button}} is the Run Workflow button's label.
+   */
+  workflowOff: translationKey(
+    "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.",
+  ),
 };
 
 export interface ComponentProps {
@@ -114,6 +124,11 @@ export interface ComponentProps {
   resetDisabledReason?: string | undefined;
   // The page that explains how to set up inbound email on a server.
   setupGuideUrl: string;
+  /*
+   * The workflow is turned off, so email to the address is ignored until it
+   * is turned on. Said above the address, before anyone sends to it.
+   */
+  isWorkflowOff?: boolean | undefined;
 }
 
 /*
@@ -343,6 +358,16 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
 
   return section(
     <>
+      {props.isWorkflowOff ? (
+        <div className="mb-3">
+          <WorkflowOffTriggerNote
+            template={IncomingEmailTriggerPanelCopy.workflowOff}
+            dataTestId="incoming-email-trigger-workflow-off"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div
           className="min-w-0 flex-1 overflow-x-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-xs leading-5 text-gray-900 sm:text-sm"

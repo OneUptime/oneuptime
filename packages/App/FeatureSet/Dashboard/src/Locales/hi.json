@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है।",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "जब तक इस वर्कफ़्लो को संपादित कर सकने वाला कोई व्यक्ति इसे चालू नहीं करता, इसका ट्रिगर रुका रहता है।",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "जब तक इस वर्कफ़्लो को संपादित कर सकने वाला कोई व्यक्ति इसे चालू नहीं करता, इसका ट्रिगर रुका रहता है। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।"
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "जब तक यह वर्कफ़्लो बंद है, इस पते पर भेजे गए ईमेल अनदेखे कर दिए जाते हैं। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "जब तक यह वर्कफ़्लो बंद है, इस URL पर भेजे गए अनुरोध अस्वीकार कर दिए जाते हैं। फिर भी आप \"{{button}}\" से इसे टेस्ट कर सकते हैं।"
 }

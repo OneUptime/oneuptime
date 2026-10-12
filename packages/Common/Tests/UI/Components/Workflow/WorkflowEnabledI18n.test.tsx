@@ -315,6 +315,7 @@ describe("the turned-off workflow's and the test run's words in every dashboard 
       "WorkflowTestRun.tsx",
       "WorkflowTurnedOffNotice.tsx",
       "WorkflowEnabledSwitch.tsx",
+      "WorkflowOffTriggerNote.tsx",
     ]) {
       const source: string = fs
         .readFileSync(path.join(UI_DIR, file), "utf8")

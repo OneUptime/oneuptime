@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "オンにするまで、トリガーは一時停止しています。",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "このワークフローを編集できるユーザーがオンにするまで、トリガーは一時停止しています。",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "このワークフローを編集できるユーザーがオンにするまで、トリガーは一時停止しています。「{{button}}」で引き続きテストできます。",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "オンにするまで、トリガーは一時停止しています。「{{button}}」で引き続きテストできます。"
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "オンにするまで、トリガーは一時停止しています。「{{button}}」で引き続きテストできます。",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "このワークフローがオフの間は、このアドレスへのメールは無視されます。「{{button}}」で引き続きテストできます。",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "このワークフローがオフの間は、この URL へのリクエストは拒否されます。「{{button}}」で引き続きテストできます。"
 }

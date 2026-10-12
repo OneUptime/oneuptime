@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "Dess utlösare är pausad tills du slår på det.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "Dess utlösare är pausad tills någon som kan redigera det här arbetsflödet slår på det.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Dess utlösare är pausad tills någon som kan redigera det här arbetsflödet slår på det. Du kan ändå testa det med \"{{button}}\".",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Dess utlösare är pausad tills du slår på det. Du kan ändå testa det med \"{{button}}\"."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Dess utlösare är pausad tills du slår på det. Du kan ändå testa det med \"{{button}}\".",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "Så länge det här arbetsflödet är avstängt ignoreras e-post till den här adressen. Du kan ändå testa det med \"{{button}}\".",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "Så länge det här arbetsflödet är avstängt avvisas begäranden till den här URL:en. Du kan ändå testa det med \"{{button}}\"."
 }

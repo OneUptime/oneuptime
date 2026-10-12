@@ -4,6 +4,7 @@ import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import BreakableCode from "./BreakableCode";
 import ComponentSettingsSection from "./ComponentSettingsSection";
+import WorkflowOffTriggerNote from "./WorkflowOffTriggerNote";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -13,6 +14,7 @@ import {
   WEBHOOK_TRIGGER_SECRET_MASK,
   getWebhookTriggerCurlExample,
 } from "../../../Types/Workflow/WebhookTrigger";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -48,6 +50,7 @@ export const WebhookTriggerPanelCopy: {
   readonly missing: string;
   readonly createUrl: string;
   readonly hidden: string;
+  readonly workflowOff: string;
 } = {
   title: "Webhook URL",
   description: "Send a request to this URL to start the workflow.",
@@ -80,6 +83,13 @@ export const WebhookTriggerPanelCopy: {
   createUrl: "Create URL",
   hidden:
     "The webhook URL contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.",
+  /*
+   * While the workflow is off, above the URL: a request to it - Try it's
+   * included - is refused. {{button}} is the Run Workflow button's label.
+   */
+  workflowOff: translationKey(
+    "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.",
+  ),
 };
 
 /*
@@ -120,6 +130,11 @@ export interface ComponentProps {
    * disabled, with this as its tooltip.
    */
   resetDisabledReason?: string | undefined;
+  /*
+   * The workflow is turned off, so the URL refuses requests until it is
+   * turned on. Said above the URL, before anyone copies it or tries it.
+   */
+  isWorkflowOff?: boolean | undefined;
 }
 
 /*
@@ -328,6 +343,16 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
 
   return section(
     <>
+      {props.isWorkflowOff ? (
+        <div className="mb-3">
+          <WorkflowOffTriggerNote
+            template={WebhookTriggerPanelCopy.workflowOff}
+            dataTestId="webhook-trigger-workflow-off"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div
           className="min-w-0 flex-1 overflow-x-auto rounded-md border border-gray-200 bg-white px-3 py-2 text-xs leading-5 text-gray-900 sm:text-sm"

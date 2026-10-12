@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "De trigger is gepauzeerd tot je de workflow inschakelt.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "De trigger is gepauzeerd tot iemand die deze workflow kan bewerken, hem inschakelt.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "De trigger is gepauzeerd tot iemand die deze workflow kan bewerken, hem inschakelt. Je kunt hem nog steeds testen met \"{{button}}\".",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "De trigger is gepauzeerd tot je de workflow inschakelt. Je kunt hem nog steeds testen met \"{{button}}\"."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "De trigger is gepauzeerd tot je de workflow inschakelt. Je kunt hem nog steeds testen met \"{{button}}\".",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "Zolang deze workflow uit staat, worden e-mails naar dit adres genegeerd. Je kunt hem nog steeds testen met \"{{button}}\".",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "Zolang deze workflow uit staat, worden verzoeken naar deze URL geweigerd. Je kunt hem nog steeds testen met \"{{button}}\"."
 }

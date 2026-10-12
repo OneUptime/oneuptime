@@ -47,6 +47,13 @@ export interface ComponentPrimaryPanelContext {
   incomingEmailSecretKey?: string | undefined;
   canSeeIncomingEmailSecretKey?: boolean | undefined;
   onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
+  /*
+   * The workflow is turned off, so its trigger is paused: the Webhook's URL
+   * refuses requests and the Incoming Email address ignores email until it
+   * is turned on, and Run Workflow tests it meanwhile. Both panels say so
+   * above what they are opened for.
+   */
+  isWorkflowOff?: boolean | undefined;
 }
 
 export type GetComponentPrimaryPanelFunction = (
@@ -116,6 +123,7 @@ export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
               ? resetGate.disabledReason
               : undefined
           }
+          isWorkflowOff={context.isWorkflowOff}
         />
       );
     }
@@ -160,6 +168,7 @@ export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
               : undefined
           }
           setupGuideUrl={`${DOCS_URL.toString()}${WorkflowDocsPaths.inboundEmailSetup}`}
+          isWorkflowOff={context.isWorkflowOff}
         />
       );
     }

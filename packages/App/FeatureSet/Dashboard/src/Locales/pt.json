@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "O gatilho dele fica pausado até que você o ative.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "O gatilho dele fica pausado até que alguém que possa editar este fluxo de trabalho o ative.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "O gatilho dele fica pausado até que alguém que possa editar este fluxo de trabalho o ative. Você ainda pode testá-lo com \"{{button}}\".",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "O gatilho dele fica pausado até que você o ative. Você ainda pode testá-lo com \"{{button}}\"."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "O gatilho dele fica pausado até que você o ative. Você ainda pode testá-lo com \"{{button}}\".",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "Enquanto este fluxo de trabalho estiver desativado, os e-mails enviados para este endereço são ignorados. Você ainda pode testá-lo com \"{{button}}\".",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "Enquanto este fluxo de trabalho estiver desativado, as requisições para esta URL são recusadas. Você ainda pode testá-lo com \"{{button}}\"."
 }

@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "Its trigger is paused until you turn it on.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "Its trigger is paused until someone who can edit this workflow turns it on.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Its trigger is paused until you turn it on. You can still test it with {{button}}."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Its trigger is paused until you turn it on. You can still test it with {{button}}.",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}."
 }

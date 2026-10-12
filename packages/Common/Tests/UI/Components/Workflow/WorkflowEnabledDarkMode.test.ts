@@ -20,6 +20,8 @@ const FILES: Array<string> = [
   "Components/Workflow/WorkflowTurnedOffNotice.tsx",
   "Components/Workflow/WorkflowEnabledSwitch.tsx",
   "Components/Workflow/WorkflowTestRun.tsx",
+  // The Webhook and Incoming Email triggers' note while the workflow is off.
+  "Components/Workflow/WorkflowOffTriggerNote.tsx",
 ];
 
 // Block comments only: prose in Theme.css must not count as a rule.

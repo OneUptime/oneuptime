@@ -28089,5 +28089,7 @@
   "Its trigger is paused until you turn it on.": "Его триггер приостановлен, пока вы его не включите.",
   "Its trigger is paused until someone who can edit this workflow turns it on.": "Его триггер приостановлен, пока его не включит тот, кто может редактировать этот рабочий процесс.",
   "Its trigger is paused until someone who can edit this workflow turns it on. You can still test it with {{button}}.": "Его триггер приостановлен, пока его не включит тот, кто может редактировать этот рабочий процесс. Протестировать его можно и сейчас — кнопкой «{{button}}».",
-  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Его триггер приостановлен, пока вы его не включите. Протестировать его можно и сейчас — кнопкой «{{button}}»."
+  "Its trigger is paused until you turn it on. You can still test it with {{button}}.": "Его триггер приостановлен, пока вы его не включите. Протестировать его можно и сейчас — кнопкой «{{button}}».",
+  "While this workflow is off, email to this address is ignored. You can still test it with {{button}}.": "Пока этот рабочий процесс выключен, письма на этот адрес игнорируются. Протестировать его можно и сейчас — кнопкой «{{button}}».",
+  "While this workflow is off, requests to this URL are refused. You can still test it with {{button}}.": "Пока этот рабочий процесс выключен, запросы на этот URL отклоняются. Протестировать его можно и сейчас — кнопкой «{{button}}»."
 }
