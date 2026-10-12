@@ -357,7 +357,11 @@ describe("the run, opened", () => {
 
   test("a run with no details says nothing of the kind", () => {
     render(
-      <WorkflowLogModal logs="" stepTrace={{ steps: [] }} onClose={jest.fn()} />,
+      <WorkflowLogModal
+        logs=""
+        stepTrace={{ steps: [] }}
+        onClose={jest.fn()}
+      />,
     );
 
     expect(screen.queryByTestId("workflow-run-test-run-note")).toBeNull();

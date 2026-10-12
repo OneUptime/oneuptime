@@ -124,8 +124,10 @@ describe("WorkflowLog.startedByUserId and startedByUser", () => {
         column,
         update: [],
       });
-      expect({ column, computed: log.getTableColumnMetadata(column).computed })
-        .toEqual({ column, computed: true });
+      expect({
+        column,
+        computed: log.getTableColumnMetadata(column).computed,
+      }).toEqual({ column, computed: true });
       expect({ column, read: access?.read }).toEqual({
         column,
         read: READERS_OF_A_RUN,

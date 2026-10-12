@@ -71,7 +71,10 @@ describe("the notice for a workflow that is off", () => {
 
   test("offers it to someone who may", () => {
     render(
-      <WorkflowTurnedOffNotice canTest={true} onTurnOn={getJestMockFunction()} />,
+      <WorkflowTurnedOffNotice
+        canTest={true}
+        onTurnOn={getJestMockFunction()}
+      />,
     );
 
     expect(

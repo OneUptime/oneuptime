@@ -774,7 +774,9 @@ describe("a Workflow Member, who runs workflows but may not change them", () => 
       "workflow-turned-off-notice",
     );
 
-    expect(notice).toHaveTextContent("You can still test it with Run Workflow.");
+    expect(notice).toHaveTextContent(
+      "You can still test it with Run Workflow.",
+    );
     expect(notice).toHaveTextContent(
       "Only people who can edit this workflow can turn it on.",
     );

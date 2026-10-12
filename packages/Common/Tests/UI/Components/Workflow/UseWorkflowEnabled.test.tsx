@@ -281,8 +281,7 @@ describe("the switch", () => {
     });
 
     // Kept from the first render, as an open dialog or a pending click would.
-    const setIsEnabled: (value: boolean) => Promise<void> =
-      hook().setIsEnabled;
+    const setIsEnabled: (value: boolean) => Promise<void> = hook().setIsEnabled;
 
     rerender(<Harness saveIsEnabled={laterSave} onError={onError} />);
 

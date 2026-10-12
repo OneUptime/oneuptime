@@ -74,9 +74,11 @@ const KEY: string = "8c9e6679-7425-40de-944b-e07fc1f90ae7";
 // The only keys a run asked for without a person may carry.
 const NO_PERSON_KEYS: Array<string> = ["returnValues", "workflowId"];
 
-type KeysFunction = (run: object) => Array<string>;
+type AskedForRun = ExecuteWorkflowType | ExecuteChildWorkflow;
 
-const keysOf: KeysFunction = (run: object): Array<string> => {
+type KeysFunction = (run: AskedForRun) => Array<string>;
+
+const keysOf: KeysFunction = (run: AskedForRun): Array<string> => {
   return Object.keys(run).sort();
 };
 
@@ -243,11 +245,12 @@ describe("an incoming email", () => {
   const deliver: DeliverFunction = async (
     isEnabled: boolean,
   ): Promise<{ status: IncomingEmailTriggerDeliveryStatus }> => {
-    jest
-      .spyOn(WorkflowService, "findOneBy")
-      .mockResolvedValue(
-        workflowRow({ isEnabled, triggerId: ComponentID.IncomingEmail }) as never,
-      );
+    jest.spyOn(WorkflowService, "findOneBy").mockResolvedValue(
+      workflowRow({
+        isEnabled,
+        triggerId: ComponentID.IncomingEmail,
+      }) as never,
+    );
 
     const status: IncomingEmailTriggerDeliveryStatus =
       await new IncomingEmailWorkflowTrigger().deliverEmail({

@@ -159,15 +159,13 @@ const prepare: PrepareFunction = (options: PrepareOptions): Spies => {
     }
   }
 
-  const findUser: RecordedSpy = (
-    person === "throws"
-      ? jest
-          .spyOn(UserService as never, "findOneById")
-          .mockRejectedValue(new Error("database down") as never)
-      : jest
-          .spyOn(UserService as never, "findOneById")
-          .mockResolvedValue(user as never)
-  ) as unknown as RecordedSpy;
+  const findUser: RecordedSpy = (person === "throws"
+    ? jest
+        .spyOn(UserService as never, "findOneById")
+        .mockRejectedValue(new Error("database down") as never)
+    : jest
+        .spyOn(UserService as never, "findOneById")
+        .mockResolvedValue(user as never)) as unknown as RecordedSpy;
 
   return {
     findWorkflow,
@@ -355,10 +353,12 @@ describe("a person's run of a workflow that is off: a test run", () => {
     expect(jobData(spies)["testRunStartedBy"]).toBe("ada@example.com");
   });
 
-  test.each([
+  const UNREADABLE_PEOPLE: Array<[string, null | "throws"]> = [
     ["is gone", null],
     ["cannot be read", "throws"],
-  ] as const)(
+  ];
+
+  test.each(UNREADABLE_PEOPLE)(
     "a person who %s still gets their run: started by hand",
     async (_why: string, person: null | "throws") => {
       const spies: Spies = prepare({ isEnabled: false, person: person });
@@ -447,7 +447,9 @@ describe("a person's run of a workflow that is off: a test run", () => {
     expect(logLines(log)[0]).toBe(
       "Test run, started by Ada Lovelace while this workflow is turned off.",
     );
-    expect(logLines(log)[1]).toMatch(/^Workflow cannot run because it already ran/);
+    expect(logLines(log)[1]).toMatch(
+      /^Workflow cannot run because it already ran/,
+    );
     expect(spies.addJob.mock.calls).toHaveLength(0);
   });
 

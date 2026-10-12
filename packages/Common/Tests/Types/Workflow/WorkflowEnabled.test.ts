@@ -162,18 +162,29 @@ describe("a person's name as a run's log quotes it", () => {
   });
 
   test("breaks no line, whichever line break the name holds", () => {
-    for (const lineBreak of ["\n", "\r", "\r\n", "\u2028", "\u2029", "\v", "\f"]) {
+    for (const lineBreak of [
+      "\n",
+      "\r",
+      "\r\n",
+      "\u2028",
+      "\u2029",
+      "\v",
+      "\f",
+    ]) {
       expect(getWorkflowTestRunStarter(`Ada${lineBreak}Lovelace`)).toBe(
         "Ada Lovelace",
       );
     }
   });
 
-  test.each([undefined, null, ""])("is empty for no name (%p)", (name: unknown) => {
-    expect(getWorkflowTestRunStarter(name as string | null | undefined)).toBe(
-      "",
-    );
-  });
+  test.each([undefined, null, ""])(
+    "is empty for no name (%p)",
+    (name: unknown) => {
+      expect(getWorkflowTestRunStarter(name as string | null | undefined)).toBe(
+        "",
+      );
+    },
+  );
 
   test("a name of the longest length is kept whole", () => {
     const name: string = "a".repeat(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH);

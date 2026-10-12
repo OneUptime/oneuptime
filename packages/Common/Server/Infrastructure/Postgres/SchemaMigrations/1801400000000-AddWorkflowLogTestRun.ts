@@ -35,6 +35,8 @@ export class AddWorkflowLogTestRun1801400000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "WorkflowLog" DROP COLUMN "startedByUserId"`,
     );
-    await queryRunner.query(`ALTER TABLE "WorkflowLog" DROP COLUMN "isTestRun"`);
+    await queryRunner.query(
+      `ALTER TABLE "WorkflowLog" DROP COLUMN "isTestRun"`,
+    );
   }
 }

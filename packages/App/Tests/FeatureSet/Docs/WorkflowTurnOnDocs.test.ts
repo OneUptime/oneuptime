@@ -103,11 +103,7 @@ const RETIRED_DIALOG_LABELS: Record<string, Array<string>> = {
     "Inschakelen en stap uitvoeren",
   ],
   da: ["Slå denne arbejdsgang til?", "Slå til og kør", "Slå til og kør trin"],
-  no: [
-    "Slå på denne arbeidsflyten?",
-    "Slå på og kjør",
-    "Slå på og kjør trinn",
-  ],
+  no: ["Slå på denne arbeidsflyten?", "Slå på og kjør", "Slå på og kjør trinn"],
   sv: [
     "Slå på det här arbetsflödet?",
     "Slå på och kör",
@@ -287,9 +283,11 @@ describe("the suite reads the docs it claims to", () => {
     },
   );
 
-  test.each(LANGUAGES.filter((language: string) => {
-    return !ENGLISH_UI_LABELS.has(language);
-  }))(
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return !ENGLISH_UI_LABELS.has(language);
+    }),
+  )(
     "%s's Dashboard has a word of its own for a test run",
     (language: string) => {
       expect(dashboardWords(language).testRun).not.toBe("Test run");

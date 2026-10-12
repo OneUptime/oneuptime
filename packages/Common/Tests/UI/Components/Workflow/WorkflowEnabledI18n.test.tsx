@@ -301,7 +301,9 @@ describe("drawn in German", () => {
       </div>,
     );
 
-    const notice: HTMLElement = screen.getByTestId("workflow-turned-off-notice");
+    const notice: HTMLElement = screen.getByTestId(
+      "workflow-turned-off-notice",
+    );
 
     expect(notice).toHaveTextContent("Dieser Arbeitsablauf ist ausgeschaltet");
     expect(notice).toHaveTextContent(

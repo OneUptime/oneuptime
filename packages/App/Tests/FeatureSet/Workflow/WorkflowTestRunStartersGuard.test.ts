@@ -133,10 +133,7 @@ function personOf(
 }
 
 // Every run asked for in one source text.
-function findRunRequests(
-  source: string,
-  fileName: string,
-): Array<RunRequest> {
+function findRunRequests(source: string, fileName: string): Array<RunRequest> {
   const file: ts.SourceFile = ts.createSourceFile(
     fileName,
     source,
@@ -264,7 +261,9 @@ describe("who may hand the queue a person", () => {
         "CommonAPI.assertAuthenticatedProjectMember(databaseProps)",
       );
       const accessCheck: number = source.search(RUN_ACCESS_CHECK);
-      const queued: number = source.indexOf(`${PERSON_PROPERTY}: ${starter.value}`);
+      const queued: number = source.indexOf(
+        `${PERSON_PROPERTY}: ${starter.value}`,
+      );
 
       expect(memberCheck).toBeGreaterThan(-1);
       expect(accessCheck).toBeGreaterThan(memberCheck);

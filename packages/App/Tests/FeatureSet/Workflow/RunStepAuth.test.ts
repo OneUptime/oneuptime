@@ -409,9 +409,7 @@ describe("POST /workflow/run-step/:workflowId", () => {
       const enqueued: JSONObject = addWorkflowToQueueSpy.mock
         .calls[0]?.[0] as JSONObject;
 
-      expect(String(enqueued["startedByUserId"])).toBe(
-        callerUserId.toString(),
-      );
+      expect(String(enqueued["startedByUserId"])).toBe(callerUserId.toString());
       expect(Object.keys(enqueued).sort()).toEqual([
         "returnValues",
         "runOnlyComponentId",

@@ -100,21 +100,22 @@ export const WorkflowTestRunNote: FunctionComponent<TestRunProps> = (
   );
 };
 
-export const WorkflowRunPanelTestRunNote: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
+export const WorkflowRunPanelTestRunNote: FunctionComponent =
+  (): ReactElement => {
+    const translator: Translator = useTranslator();
 
-  return (
-    <div
-      role="note"
-      className="flex items-start gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2"
-      data-testid="workflow-run-panel-test-run-note"
-    >
-      <div aria-hidden="true" className="mt-0.5 shrink-0 text-blue-500">
-        <Icon icon={IconProp.Beaker} className="h-4 w-4" />
+    return (
+      <div
+        role="note"
+        className="flex items-start gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2"
+        data-testid="workflow-run-panel-test-run-note"
+      >
+        <div aria-hidden="true" className="mt-0.5 shrink-0 text-blue-500">
+          <Icon icon={IconProp.Beaker} className="h-4 w-4" />
+        </div>
+        <p className="min-w-0 text-sm text-blue-700">
+          {translator.translateText(WorkflowEnabledCopy.runPanelTestRunNote)}
+        </p>
       </div>
-      <p className="min-w-0 text-sm text-blue-700">
-        {translator.translateText(WorkflowEnabledCopy.runPanelTestRunNote)}
-      </p>
-    </div>
-  );
-};
+    );
+  };
