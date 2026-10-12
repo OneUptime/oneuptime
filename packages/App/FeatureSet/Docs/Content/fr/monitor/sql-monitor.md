@@ -49,7 +49,7 @@ Le jeu de résultats complet n'est jamais envoyé à OneUptime : les données de
 
 Les moteurs compatibles MySQL et PostgreSQL qui parlent le même protocole réseau et le même dialecte SQL fonctionnent généralement aussi, mais seuls les trois moteurs ci-dessus sont officiellement testés.
 
-Quand l'hôte et le port auxquels le moniteur se connecte sont l'un des points de terminaison d'une base de données de la page [Bases de données](/docs/telemetry/databases), ses alertes et incidents apparaissent aussi sur la page de cette base de données (voir [Alertes sur une base de données](/docs/telemetry/databases#alerts-on-a-database)). Un hôte donné comme référence à un secret de moniteur n'est pas rapproché.
+Quand l'hôte et le port auxquels le moniteur se connecte sont l'un des points de terminaison d'une base de données de la page [Bases de données](/docs/telemetry/databases), ses alertes et incidents apparaissent aussi sur la page de cette base de données (voir [Alertes sur une base de données](/docs/telemetry/databases#alertes-sur-une-base-de-données)). Un hôte donné comme référence à un secret de moniteur n'est pas rapproché.
 
 ## Modèle de sécurité
 

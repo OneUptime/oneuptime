@@ -37,7 +37,7 @@ Azure SQL Database und Azure SQL Managed Instance verbinden sich als **Microsoft
 
 PostgreSQL- und MySQL-kompatible Engines, die dasselbe Wire-Protokoll sprechen, funktionieren meistens, stellen aber unter Umständen weniger Statistik-Views bereit; die betroffenen Metriken werden dann als nicht verfügbar gemeldet statt erfasst. Offiziell getestet sind nur die drei Engines oben.
 
-Jede Datenbank, die Ihre Anwendungen, Cluster und Hosts nutzen — diese drei Engines und viele weitere —, erhält außerdem eine eigene Seite mit ihren Engine-Metriken, Logs und den Diensten, die sie aufrufen: siehe [Datenbanken](/docs/telemetry/databases). Wenn Host und Port, mit denen sich ein Datenbank-Integritäts-Monitor verbindet, einer der Endpunkte einer Datenbank sind, erscheinen die Alarme und Vorfälle des Monitors auch auf der Seite dieser Datenbank (siehe [Alarme bei einer Datenbank](/docs/telemetry/databases#alerts-on-a-database)).
+Jede Datenbank, die Ihre Anwendungen, Cluster und Hosts nutzen — diese drei Engines und viele weitere —, erhält außerdem eine eigene Seite mit ihren Engine-Metriken, Logs und den Diensten, die sie aufrufen: siehe [Datenbanken](/docs/telemetry/databases). Wenn Host und Port, mit denen sich ein Datenbank-Integritäts-Monitor verbindet, einer der Endpunkte einer Datenbank sind, erscheinen die Alarme und Vorfälle des Monitors auch auf der Seite dieser Datenbank (siehe [Alarme bei einer Datenbank](/docs/telemetry/databases#warnungen-zu-einer-datenbank)).
 
 ## So funktioniert es
 

@@ -49,7 +49,7 @@ Die vollständige Ergebnismenge wird nie an OneUptime gesendet, Kundendaten werd
 
 MySQL- und PostgreSQL-kompatible Engines, die dasselbe Wire-Protokoll und denselben SQL-Dialekt sprechen, funktionieren in der Regel ebenfalls, offiziell getestet sind aber nur die drei Engines oben.
 
-Wenn Host und Port, mit denen sich der Monitor verbindet, einer der Endpunkte einer Datenbank auf der Seite [Datenbanken](/docs/telemetry/databases) sind, erscheinen seine Warnungen und Vorfälle auch auf der Seite dieser Datenbank (siehe [Warnungen zu einer Datenbank](/docs/telemetry/databases#alerts-on-a-database)). Ein Host, der als Verweis auf ein Monitor-Geheimnis angegeben ist, wird nicht zugeordnet.
+Wenn Host und Port, mit denen sich der Monitor verbindet, einer der Endpunkte einer Datenbank auf der Seite [Datenbanken](/docs/telemetry/databases) sind, erscheinen seine Warnungen und Vorfälle auch auf der Seite dieser Datenbank (siehe [Warnungen zu einer Datenbank](/docs/telemetry/databases#warnungen-zu-einer-datenbank)). Ein Host, der als Verweis auf ein Monitor-Geheimnis angegeben ist, wird nicht zugeordnet.
 
 ## Sicherheitsmodell
 

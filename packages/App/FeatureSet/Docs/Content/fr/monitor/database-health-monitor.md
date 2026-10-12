@@ -37,7 +37,7 @@ Azure SQL Database et Azure SQL Managed Instance se connectent comme **Microsoft
 
 Les moteurs compatibles PostgreSQL et MySQL qui parlent le même protocole réseau fonctionnent généralement, mais ils peuvent exposer moins de vues de statistiques ; les métriques concernées sont alors signalées comme indisponibles au lieu d'être collectées. Seuls les trois moteurs ci-dessus sont officiellement testés.
 
-Chaque base de données qu'utilisent vos applications, clusters et hôtes — ces trois moteurs et bien d'autres — a aussi sa propre page avec ses métriques de moteur, ses logs et les services qui l'appellent : voir [Bases de données](/docs/telemetry/databases). Quand l'hôte et le port auxquels se connecte un moniteur de santé de base de données sont l'un des points de terminaison d'une base, les alertes et incidents du moniteur apparaissent aussi sur la page de cette base (voir [Alertes sur une base de données](/docs/telemetry/databases#alerts-on-a-database)).
+Chaque base de données qu'utilisent vos applications, clusters et hôtes — ces trois moteurs et bien d'autres — a aussi sa propre page avec ses métriques de moteur, ses logs et les services qui l'appellent : voir [Bases de données](/docs/telemetry/databases). Quand l'hôte et le port auxquels se connecte un moniteur de santé de base de données sont l'un des points de terminaison d'une base, les alertes et incidents du moniteur apparaissent aussi sur la page de cette base (voir [Alertes sur une base de données](/docs/telemetry/databases#alertes-sur-une-base-de-données)).
 
 ## Fonctionnement
 
