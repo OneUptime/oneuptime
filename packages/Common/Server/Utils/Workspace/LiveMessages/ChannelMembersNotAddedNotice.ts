@@ -249,21 +249,29 @@ export default class ChannelMembersNotAddedNotice {
       logger.debug(err);
     }
 
-    const people: MarkdownText = FeedMarkdown.join(
-      names.map((name: string): MarkdownText => {
-        return mdText`**${name}**`;
-      }),
-      ", ",
-    );
-
     const notConnected: string =
       names.length === 1
         ? "has not connected a Slack account"
         : "have not connected their Slack accounts";
 
-    return mdText`👥 **Not everyone could be added to this channel.** ${people} ${notConnected} to OneUptime, so OneUptime could not add them.
+    return mdText`👥 **Not everyone could be added to this channel.** ${this.listNames(names)} ${notConnected} to OneUptime yet.
 
 To fix it, they connect Slack in ${settingsLink}, then join this channel or ask someone here to add them.`.toString();
+  }
+
+  // "**A**", "**A** and **B**", "**A**, **B** and **C**". Names are text.
+  private static listNames(names: Array<string>): MarkdownText {
+    const bold: Array<MarkdownText> = names.map(
+      (name: string): MarkdownText => {
+        return mdText`**${name}**`;
+      },
+    );
+
+    if (bold.length === 1) {
+      return bold[0]!;
+    }
+
+    return mdText`${FeedMarkdown.join(bold.slice(0, -1), ", ")} and ${bold[bold.length - 1]!}`;
   }
 
   // The people's names, in the order given: name, else email.

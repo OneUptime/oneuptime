@@ -222,7 +222,7 @@ ${FeedMarkdown.bulletList(
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
-            mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)} and went through every escalation rule${this.getRepeatsDoneClause(run)}. Someone needs to take it.`.toString(),
+            mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, went through every escalation rule${this.getRepeatsDoneClause(run)} and has stopped paging. Someone needs to take it.`.toString(),
         });
         break;
       case OnCallPolicyRunOutcome.NobodyReached:
@@ -400,12 +400,13 @@ ${FeedMarkdown.bulletList(
     return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
   }
 
+  // " (repeated once)", " (repeated twice)", " (repeated 3 times)", or nothing.
   private static getRepeatsDoneClause(run: OnCallPolicyRun): string {
     if (run.repeatNumber <= 0) {
       return "";
     }
 
-    return ` ${run.repeatNumber === 1 ? "and repeated once" : `and repeated ${run.repeatNumber} times`}`;
+    return ` (repeated ${this.getTimes(run.repeatNumber)})`;
   }
 
   // "once", "twice", "3 times".

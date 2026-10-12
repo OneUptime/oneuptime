@@ -377,7 +377,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
     expect(alarms).toEqual([
       {
         key: ON_CALL_RUN_ALARM_OUTCOME,
-        markdown: `⚠️ Nobody has acknowledged **[Incident INC-8](${RECORD_URL})**. **[PolicyX](${POLICY_URL})** paged Nitin and NB User 3 and went through every escalation rule and repeated 2 times. Someone needs to take it.`,
+        markdown: `⚠️ Nobody has acknowledged **[Incident INC-8](${RECORD_URL})**. **[PolicyX](${POLICY_URL})** paged Nitin and NB User 3, went through every escalation rule (repeated twice) and has stopped paging. Someone needs to take it.`,
       },
     ]);
 
@@ -390,7 +390,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
         }),
       )[0]!.markdown,
     ).toContain(
-      "paged Nitin and went through every escalation rule and repeated once.",
+      "paged Nitin, went through every escalation rule (repeated once) and has stopped paging.",
     );
 
     expect(
@@ -406,7 +406,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
         }),
       )[0]!.markdown,
     ).toContain(
-      "paged Nitin, NB User 3 and Zed and went through every escalation rule. Someone",
+      "paged Nitin, NB User 3 and Zed, went through every escalation rule and has stopped paging. Someone",
     );
   });
 

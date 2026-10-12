@@ -174,7 +174,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(payload.workspaceType).toBe(WorkspaceType.Slack);
     expect(payload.channelIds).toEqual([CHANNEL.id]);
     expect(postedText(0)).toBe(
-      `👥 **Not everyone could be added to this channel.** **NB User 3** has not connected a Slack account to OneUptime, so OneUptime could not add them.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
+      `👥 **Not everyone could be added to this channel.** **NB User 3** has not connected a Slack account to OneUptime yet.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
     );
 
     const kept: Array<unknown> = store.forKey(
@@ -210,7 +210,7 @@ describe("ChannelMembersNotAddedNotice", () => {
       isChat: false,
     });
     expect(updatedText(0)).toBe(
-      `👥 **Not everyone could be added to this channel.** **NB User 3**, **Jane Doe** have not connected their Slack accounts to OneUptime, so OneUptime could not add them.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
+      `👥 **Not everyone could be added to this channel.** **NB User 3** and **Jane Doe** have not connected their Slack accounts to OneUptime yet.\n\nTo fix it, they connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}), then join this channel or ask someone here to add them.`,
     );
     expect(store.rows[0]!.messageData).toEqual({
       userIds: [NB_USER_3.toString(), JANE.toString()],
@@ -222,7 +222,7 @@ describe("ChannelMembersNotAddedNotice", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postedText(0)).toContain(
-      "**NB User 3**, **Jane Doe**, **noname@example.com** have not connected their Slack accounts",
+      "**NB User 3**, **Jane Doe** and **noname@example.com** have not connected their Slack accounts",
     );
   });
 
@@ -322,7 +322,7 @@ describe("ChannelMembersNotAddedNotice.noteAll", () => {
     expect(
       postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual(["C0OTHER"]);
-    expect(postedText(1)).toContain("**NB User 3**, **Jane Doe** have not");
+    expect(postedText(1)).toContain("**NB User 3** and **Jane Doe** have not");
   });
 
   test.each([
