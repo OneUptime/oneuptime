@@ -2,18 +2,32 @@
 
 Everything in OneUptime lives inside a **project**. Who can do what inside that project comes down to three things: the **users** in it, the **teams** those users belong to, and the **permissions** granted to those teams.
 
-The one rule that explains most of the behaviour: **users never hold permissions directly.** A user's access is the union of the permissions of every team they belong to in that project. If you want to change what somebody can do, you change their team membership or you change that team's permissions.
+> [!IMPORTANT]
+> **Users never hold permissions directly.** A user's access is the union of the permissions of every team they belong to in that project. If you want to change what somebody can do, you change their team membership or you change that team's permissions.
 
 **Owners** are a separate idea. An owner is whoever is responsible for a specific resource — a monitor, an incident, a dashboard. Owners get notified about their resources, and permissions can optionally be narrowed to "only the things I own".
 
-## The model at a glance
+## How access works
 
-```text
-Project
-  └── Team                     ← permissions are attached here
-       ├── Allow permissions   ← each with a scope: All / Owned / Labels
-       ├── Block permissions   ← always win over allow
-       └── Team members        ← users who accepted the invitation
+```mermaid title="How a person and an API key get access"
+flowchart TB
+    User["A user<br/>(one account)"]
+    Key["An API key"]
+    subgraph Project["A project"]
+        direction TB
+        Team["Team"]
+        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned or Labels"]
+        Block["Block permissions,<br/>which always win"]
+        KeyRules["The key's own allow<br/>and block permissions"]
+        Resources["Monitors, incidents,<br/>status pages and more"]
+    end
+    User -->|"member of"| Team
+    Team --> Allow
+    Team --> Block
+    Key --> KeyRules
+    Allow -->|"reach"| Resources
+    KeyRules -->|"reach"| Resources
+    Block -.->|"take away"| Resources
 ```
 
 | Concept | What it is |
@@ -33,14 +47,19 @@ A user account is global to the OneUptime instance — the same login works acro
 
 A user is "in" a project when they are a member of **at least one team** in it. There is no separate "add user to project" step: inviting somebody to a project invites them to a team.
 
+:::steps
+1. Open **Users** from the **Products** menu, under **Settings**, and click **Invite User**. The list shows everyone in the project and their invitation status.
+2. Type their **Email**. Someone who has no OneUptime account yet is also asked for a **Name**.
+3. Pick their **Team**, which decides what they can do, and click **Invite**.
+4. They accept from the bell at the top right, on **Project Invitations**, and are in the project from then on.
+:::
+
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
 - **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. They are taken off the project's on-call schedules, escalation rules and overrides, off the roles of its open incidents and episodes, and off the owners of its resources; resolved incidents keep the record of who owned and ran them.
 - Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead. If an override routes someone's pages to a person who has left, the person it covers is paged instead. Leaving also disconnects the MCP clients they connected to the project, and their personal on-call calendar link shows an empty calendar from then on. On OneUptime Cloud, someone who comes back through the project's single sign-on confirms it from their mailbox again.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
-
-Where to find it: **Settings → Users** lists everyone in the project and their invitation status.
 
 ## Teams
 
@@ -60,7 +79,7 @@ Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts 
 
 Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Settings**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.
 
-Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs.
+Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs. On OneUptime Cloud, creating a team and changing its permissions needs the Scale plan.
 
 **Creating a team** asks for a name and its **Access**, what the team's members can do:
 
@@ -71,9 +90,15 @@ Create as many additional teams as you like — "Frontend On-Call", "Support", "
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. The description is under **More fields**. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions. If the role cannot be added, the team is still created and a notice above the list links to it.
+:::steps
+1. Open **Teams** from the **Products** menu, under **Settings**, and click **Create Team**.
+2. Type the team's **Name** and pick its **Access**. The description is under **More fields**.
+3. Create the team. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions.
+:::
 
-Where to find it: **Settings → Teams**. Open a team to reach **Members** and **Permissions**; **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many the team has.
+The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. If the role cannot be added, the team is still created and a notice above the list links to it.
+
+Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many the team has.
 
 ## Permissions
 
@@ -116,7 +141,8 @@ Each team has two lists:
 
 Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **More settings** at the bottom of the page.
 
-**Block always wins.** A block entry with no labels removes that capability outright for the team. A block entry with labels removes it only for resources carrying those labels — useful for "this team can edit monitors, except the ones labelled Production".
+> [!WARNING]
+> **Block always wins.** A block entry with no labels removes that capability outright for the team. A block entry with labels removes it only for resources carrying those labels — useful for "this team can edit monitors, except the ones labelled Production".
 
 A permission cannot carry restriction labels in both lists at once; OneUptime rejects the second one with an explanation.
 
@@ -141,7 +167,7 @@ Only the state is written for you. A note posted with a change is posted as you 
 
 ## Scope: how far an allow permission reaches
 
-Every allow permission is granted with a scope, chosen when you add it:
+Every allow permission is granted with a scope, chosen under **Scope** when you add it:
 
 | Scope | Meaning |
 | --- | --- |
@@ -180,7 +206,7 @@ A label restriction is satisfied if the resource carries **at least one** of the
 
 A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when one of those records carries one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. A record that is about none of them, such as an AI insight about no service, belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.
 
-Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
+Where to find it: **Project Settings > Basic > Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like. On OneUptime Cloud, creating and changing labels needs the Growth plan.
 
 ## Telemetry
 
@@ -213,17 +239,40 @@ API keys are granted permissions directly, on the key itself — they do not bel
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
+:::steps
+1. Open **Project Settings > Advanced > API Keys** and click **Create API Key**. On OneUptime Cloud, API keys need the Growth plan.
+2. Type the key's **Name** and pick its **Access**. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so.
+3. Create the key. It opens on its page, where you copy it.
+:::
+
+The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked.
 
 On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
 
-Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.
-
-Where to find it: **Settings → API Keys**. See also the [API Reference](/docs/api-reference/api-reference).
+> [!TIP]
+> Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.
 
 ## How OneUptime decides whether a request is allowed
 
 For a signed-in user, in order:
+
+```mermaid title="How a request is decided"
+flowchart TB
+    Request["A request"]
+    Teams["Your teams in this project<br/>(accepted invitations only)"]
+    Block{"A block with no labels<br/>on this operation?"}
+    Allow{"A permission that<br/>allows it?"}
+    Scope["Narrow to its scope:<br/>All, Owned or Labels"]
+    LabelBlocks["Leave out the records<br/>a block with labels takes away"]
+    Read["Keep changes and deletes<br/>to what you may read"]
+    Refused["Refused"]
+    Allowed["Allowed, on the<br/>records left"]
+    Request --> Teams --> Block
+    Block -->|"yes"| Refused
+    Block -->|"no"| Allow
+    Allow -->|"no"| Refused
+    Allow -->|"yes"| Scope --> LabelBlocks --> Read --> Allowed
+```
 
 1. Find the teams the user belongs to in this project, counting only accepted invitations. A request reaches the records of this project only: a record of another project, named by its id or in a filter, is answered as if it did not exist.
 2. Collect every permission row on those teams — allow and block, each with its labels and scope.
@@ -261,8 +310,21 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **Someone who should not change billing or see invoices.** Give them `ProjectMember`, not `ProjectAdmin`: a project admin cannot change the plan, payment methods or balances, but reads and downloads invoices. To let someone read the billing pages without changing anything, give them `BillingViewer`.
 
-## Next
+When access is not what you expect:
 
-- [Permission Reference](/docs/permissions/reference) — every role and every granular permission, generated from the OneUptime source.
-- [SSO](/docs/identity/sso) and [SCIM](/docs/identity/scim) — authentication and automatic user provisioning.
-- [API Reference](/docs/api-reference/api-reference) — using permissions from the API.
+:::details Someone cannot see or change something they should
+Check that they accepted the invitation: a pending team member has no permissions. Then open each of their teams: a block with no labels on any team takes the capability away, and a scope of **Owned** or labels reaches only owned or labelled resources. A locked button names the permission it needs, or the block that refuses it.
+:::
+
+:::details Someone can do more than you expect
+Their access is the union of every team they are in, so look for an allow on each team, including **Admin** and **Owners**. To take one capability away whatever their teams allow, add a block permission on one of their teams.
+:::
+
+## Next steps
+
+:::cards
+- [Permission Reference](/docs/permissions/reference): Every role and every granular permission, generated from the OneUptime source.
+- [SSO](/docs/identity/sso): Let people sign in with your identity provider.
+- [SCIM](/docs/identity/scim): Create users and team memberships from your identity provider.
+- [API Reference](/docs/api-reference/api-reference): Call the API with an API key and its permissions.
+:::

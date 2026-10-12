@@ -170,7 +170,7 @@ sequenceDiagram
 
 取消勾选复选框，即可在不确认的情况下声明。只要告警将保持未确认——复选框未勾选或被锁定——表单就会这样说明：“Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.”如果你确认了告警，却没有为事件选择值班策略，**值班和角色** 步骤的摘要会指出：“The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.”
 
-**你需要有确认这些告警的权限。** 在声明时确认它们需要 **Create Alert State Timeline** 和 **Edit Alert**（在告警自己的页面上确认只需要前者：参见 [更改状态](/docs/permissions/index#更改状态)）：Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 两者都有，而能够从告警声明事件的 Incident Admin 和 Incident Member 两者都没有。你在告警上的标签和所有者范围也必须包含每个将被确认的告警——只检查尚未确认的告警。已经确认或解决的告警不需要权限，也绝不会阻止声明。没有这些权限时，复选框会被锁定，提示会指出缺少的那个权限，而你仍然可以声明事件。服务器在创建任何东西之前，会对它将要确认的每个告警再检查一次：如果你不能确认其中某个，就不会创建事件，表单会说明原因——取消勾选复选框后再提交一次。
+**你需要有确认这些告警的权限。** 在声明时确认它们，所需的与在每个告警自己的页面上确认它时相同：**Create Alert State Timeline**，而不需要 **Edit Alert**（参见 [更改状态](/docs/permissions/index#更改状态)）。Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 拥有该权限，而能够从告警声明事件的 Incident Admin 和 Incident Member 没有。标签、所有者和私有告警会像在告警自己的页面上一样限制该权限：每个将被确认的告警都必须是你能读取、且你的权限所及的告警——只检查尚未确认的告警。已经确认或解决的告警不需要权限，也绝不会阻止声明。没有该权限时，复选框会被锁定，提示会指出该权限，而你仍然可以声明事件。服务器在创建任何东西之前，会对它将要确认的每个告警再检查一次：如果你不能确认其中某个，就不会创建事件，表单会说明原因——取消勾选复选框后再提交一次。
 
 **项目需要一个已确认的告警状态。** 每个项目一开始都有一个。如果你的项目没有，就不会提供这个复选框。
 
@@ -205,7 +205,7 @@ curl -X POST https://oneuptime.com/api/incident \
 - 它是 `true` 或 `false` 以外的任何值；
 - 发送它时没有 `alertIdsToLink`；
 - 项目没有已确认的告警状态；
-- API 密钥无法确认每一个尚未确认的告警——这需要 **Create Alert State Timeline** 和 **Edit Alert**，以及包含每一个这些告警的标签范围。
+- API 密钥无法确认每一个尚未确认的告警——这需要 **Create Alert State Timeline**，以及能覆盖每一个这些告警的标签和所有者范围，与逐个确认这些告警时相同。
 
 API 密钥不是用户，所以用它确认的告警不会记在任何人名下，正如它的关联没有 **关联者** 一样。
 
@@ -278,7 +278,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 - **关联属于它的事件。** 你能否看到一个关联，取决于你对其事件的访问权限：事件上的标签限制和所有者范围同样适用于关联。
 - **关联只需要告警的读取权限，而不需要编辑权限。** 当项目的关联告警开关开启时（新项目中默认如此），这就足以让一个关联确认或解决告警——参见 [谁会推动关联的告警](#谁会推动关联的告警)。
 
-从告警声明事件还需要创建事件的权限，而在声明时确认其告警，需要对其中每个尚未确认的告警都有 **Create Alert State Timeline** 和 **Edit Alert**——参见 [声明时确认告警](#声明时确认告警)。在仪表板中，你缺少权限的操作会被锁定，其提示会指出缺少的权限。这也包括对另一侧的读取权限：如果你不能读取告警，**关联警报** 会被锁定；如果你不能读取事件，**关联事件** 和 **关联到事件** 会被锁定。角色、细粒度权限、标签和所有者范围如何组合，参见 [用户、团队与权限](/docs/permissions/index)。
+从告警声明事件还需要创建事件的权限，而在声明时确认其告警，需要对其中每个尚未确认的告警都有 **Create Alert State Timeline**，与在每个告警自己的页面上确认它时相同——参见 [声明时确认告警](#声明时确认告警)。在仪表板中，你缺少权限的操作会被锁定，其提示会指出缺少的权限。这也包括对另一侧的读取权限：如果你不能读取告警，**关联警报** 会被锁定；如果你不能读取事件，**关联事件** 和 **关联到事件** 会被锁定。角色、细粒度权限、标签和所有者范围如何组合，参见 [用户、团队与权限](/docs/permissions/index)。
 
 ## 信息流、Slack 和 Microsoft Teams
 

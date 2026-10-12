@@ -414,6 +414,18 @@ test("OTLP ingest takes the same batch on /otlp, /telemetry and gRPC", () => {
   );
 });
 
+test("a heartbeat a probe forwards takes the same body as one sent to /heartbeat", () => {
+  // A probe's incoming request ingress forwards the heartbeats it takes to
+  // /incoming-request-ingest/incoming-request/<key>
+  // (Probe/API/IncomingRequestIngress.ts). Left on nginx's 1M default, a
+  // heartbeat the probe accepted would be refused here on its way in.
+  assert.equal(
+    clientMaxBodySizeOf("/incoming-request-ingest"),
+    clientMaxBodySizeOf("/heartbeat"),
+  );
+  assert.equal(clientMaxBodySizeOf("/heartbeat"), 50 * 1024 * 1024);
+});
+
 test("ordinary locations are left on the inherited global access_log", () => {
   // The switch is scoped to ingest. If it leaks onto /api or /dashboard, an
   // operator turning ingest logging off would blind the whole ingress.

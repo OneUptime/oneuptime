@@ -6,22 +6,46 @@ OneUptime refuses to send certain outbound requests to hosts that resolve into a
 
 That default is correct for the hosted product, where anyone can sign up and a webhook target is untrusted input. On a self-hosted instance it gets in the way of an ordinary thing: posting an alert to a self-hosted Mattermost, Jira or ticketing system that only exists on your own network.
 
-This page explains how to allow it, deliberately and narrowly. There are two independent halves, configured on different machines:
+This page explains how to allow it, deliberately and narrowly. Three switches decide it, each for its own kind of connection, and they are configured on different machines:
 
-| What you want to reach internally                  | Where the setting lives          |
-| -------------------------------------------------- | -------------------------------- |
-| Workflows, project webhooks, on-call user webhooks | The **API server**'s environment |
-| API, Website, External Status Page and Custom JavaScript Code **monitors** | The **probe**'s own environment  |
+| What you want to reach internally | Where the setting lives | Default on a self-hosted install |
+| --- | --- | --- |
+| Workflows, project webhooks, on-call user webhooks | The **API server**'s environment | Private addresses refused |
+| Data sources, LLM providers, SMTP servers, OIDC discovery and other connections | The **API server**'s environment | Private addresses allowed |
+| API, Website, External Status Page and Custom JavaScript Code **monitors** | The **probe**'s own environment | Private addresses refused |
+
+```mermaid title="Three switches, each for its own kind of connection"
+flowchart TB
+    subgraph Server["The OneUptime server"]
+        direction TB
+        Webhooks["Workflows and webhooks"]
+        Outbound["Data sources, LLM providers,<br/>SMTP and other connections"]
+    end
+    subgraph Probe["Each probe"]
+        Monitors["API, Website, External Status<br/>Page and Custom JavaScript<br/>Code monitors"]
+    end
+    Private["Your private network"]
+    Webhooks -->|"off by default"| Private
+    Outbound -->|"on by default"| Private
+    Monitors -->|"off by default"| Private
+```
 
 Network-native monitor types such as Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Database Health, Synthetic and Network Path use their own transports. The setting on this page governs the HTTP transports that return arbitrary response content to a project: API, Website, External Status Page and Custom JavaScript Code monitors.
+
+:::cards
+- [Webhooks and workflows](#webhooks-and-workflows): Allow a webhook to post into your network.
+- [Other outbound connections](#other-outbound-connections): Data sources, LLM providers and mail servers.
+- [Probes and monitors](#probes-and-monitors): Let a probe check private sites.
+- [Verifying it works](#verifying-it-works): Read which switch a refusal names.
+:::
 
 ## What is blocked, and what can be unblocked
 
 Blocked targets fall into two tiers.
 
-| Tier          | Ranges                                                                                                                                                                                         | Can it be allowed?                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Private**   | RFC-1918 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), CGNAT (`100.64.0.0/10`), IPv6 unique-local (`fc00::/7`) and site-local (`fec0::/10`)                                               | Yes                                                                                 |
+| Tier | Ranges | Can it be allowed? |
+| --- | --- | --- |
+| **Private** | RFC-1918 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), CGNAT (`100.64.0.0/10`), IPv6 unique-local (`fc00::/7`) and site-local (`fec0::/10`) | Yes |
 | **Forbidden** | Loopback (`127.0.0.0/8`, `::1`), the unspecified address, link-local (`169.254.0.0/16`, `fe80::/10`), multicast, reserved, broadcast, and the names `localhost` and `metadata.google.internal` | Only by naming the exact host or CIDR in the webhook allowlist. Never for monitors. |
 
 The cloud metadata endpoint `169.254.169.254` sits in the forbidden tier for a reason. On a cloud VM it hands out the instance's IAM credentials to anything that can make an HTTP request from the machine, so no blanket setting will ever open it.
@@ -45,19 +69,28 @@ Outbound connections that are not webhooks — external data sources, LLM provid
 
 Set one or both of these on the API server and restart. They are off by default, so an instance that sets neither behaves exactly as it did before.
 
-`ALLOW_PRIVATE_NETWORK_WEBHOOKS` permits the whole private tier:
+| Variable | Helm value | What it allows |
+| --- | --- | --- |
+| `ALLOW_PRIVATE_NETWORK_WEBHOOKS` | `webhooks.allowPrivateNetwork` | The whole private tier, when set to `true`. |
+| `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | `webhooks.privateNetworkAllowlist` | The hosts and CIDRs it names, whatever their tier. |
 
-```
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
 ALLOW_PRIVATE_NETWORK_WEBHOOKS=true
-```
-
-`PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` names specific hosts and CIDRs, which are then allowed regardless of tier:
-
-```
 PRIVATE_NETWORK_WEBHOOK_ALLOWLIST=mattermost.internal,*.svc.cluster.local,10.20.0.0/16
 ```
+@tab Kubernetes
+```yaml title="values.yaml"
+webhooks:
+  allowPrivateNetwork: true
+  privateNetworkAllowlist: "mattermost.internal,10.20.0.0/16"
+```
+:::
 
-Entries may be separated by commas, spaces or newlines, and each one may be:
+On Docker Compose, `config.env` has an `ALLOW_PRIVATE_NETWORK_WEBHOOKS=false` line: change it rather than adding a second one, then run `npm run start`. On Kubernetes, upgrade the release.
+
+Allowlist entries may be separated by commas, spaces or newlines, and each one may be:
 
 - a hostname — `mattermost.internal`
 - a wildcard — `*.svc.cluster.local` (matches subdomains, not the bare suffix)
@@ -68,22 +101,8 @@ A scheme, port, path or userinfo on an entry is stripped, so pasting the webhook
 
 A hostname named in the allowlist is trusted **without a DNS check** — that is the point of naming it, since it is expected to resolve somewhere the blocklist would refuse. An address entry is matched against the literal in the URL and against every address DNS returns for it.
 
-**Never put `169.254.169.254`, or any range containing it, in the allowlist.** On a cloud VM that gives every project member your instance's IAM credentials.
-
-On Docker Compose, add the lines to your `config.env` and restart:
-
-```
-ALLOW_PRIVATE_NETWORK_WEBHOOKS=true
-PRIVATE_NETWORK_WEBHOOK_ALLOWLIST=mattermost.internal
-```
-
-On Kubernetes:
-
-```yaml
-webhooks:
-  allowPrivateNetwork: true
-  privateNetworkAllowlist: "mattermost.internal,10.20.0.0/16"
-```
+> [!CAUTION]
+> **Never put `169.254.169.254`, or any range containing it, in the allowlist.** On a cloud VM that gives every project member your instance's IAM credentials.
 
 ## Other outbound connections
 
@@ -95,28 +114,29 @@ A second guard covers outbound connections whose target a project member chooses
 - OIDC discovery for single sign-on
 - status page and dashboard custom domain verification
 - Runbook HTTP steps
-- the Grafana OnCall API URL an import reads from (**Project Settings** > **Import from another tool**)
+- the Grafana OnCall API URL an import reads from (**Project Settings** > **Basic** > **Import from another tool**)
 
 This guard works the other way round from the webhook settings. On a self-hosted install it **allows** the private tier by default, because the database, mail server or model server these connect to usually lives on your own network. The forbidden tier — loopback, link-local and the cloud metadata endpoint — is refused either way, and there is no allowlist for it.
 
 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` tightens it. Set it to `true` to refuse the private tier for these connections as well, for example when the projects on your instance belong to people who should not reach your internal network:
 
-```
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
 DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true
 ```
-
-Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change which targets the webhook settings above or the probe setting below allow; each gate is configured on its own. It does change how refusals read, for webhooks and workflow requests too: with it on, a refused host name is reported without saying what it resolved to (see [Verifying it works](#verifying-it-works)).
-
-This setting does not apply to a Global LLM Provider, which an administrator configures rather than a project (with the `GLOBAL_LLM_PROVIDER_*` variables, the Helm chart's `vllm.globalProvider`, or in the Admin Dashboard under **Settings** > **Global LLM Providers**): such a provider can still reach private addresses, though loopback and link-local stay refused for it too.
-
-On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` line (add it if your `config.env` predates it). Change that line to `true` rather than adding a second one, then run `npm run start` so the containers are recreated with the new value; `docker compose restart` does not re-read `config.env`.
-
-On Kubernetes, set it in your values file and upgrade the release. The chart passes it to the app and worker pods:
-
-```yaml
+@tab Kubernetes
+```yaml title="values.yaml"
 outboundConnections:
   blockPrivateNetwork: true
 ```
+:::
+
+This setting does not apply to a Global LLM Provider, which an administrator configures rather than a project (with the `GLOBAL_LLM_PROVIDER_*` variables, the Helm chart's `vllm.globalProvider`, or in the Admin Dashboard under **Settings** > **Global LLM Providers**): such a provider can still reach private addresses, though loopback and link-local stay refused for it too.
+
+Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change which targets the webhook settings above or the probe setting below allow; each gate is configured on its own. It does change how refusals read, for webhooks and workflow requests too: with it on, a refused host name is reported without saying what it resolved to (see [Verifying it works](#verifying-it-works)).
+
+On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` line (add it if your `config.env` predates it). Change that line to `true` rather than adding a second one, then run `npm run start` so the containers are recreated with the new value; `docker compose restart` does not re-read `config.env`. On Kubernetes, set it in your values file and upgrade the release; the chart passes it to the app and worker pods.
 
 With it on, a refused host name is reported without saying what it resolved to, for example _"LLM provider host ollama.internal could not be reached."_ A name that does not resolve at all gets the same message, so project members cannot use these fields to find out which internal names exist. An address typed as an IP is still named along with the reason, for example _"LLM provider host 10.0.4.12 is not allowed: private network address."_ With `LOG_LEVEL=DEBUG`, the app logs the address each refused name resolved to.
 
@@ -126,19 +146,22 @@ Four monitor types are affected: **API**, **Website**, **External Status Page** 
 
 The switch is read by the **probe process from its own environment**, not from the API server's, and every probe reads it: the ones bundled with Docker Compose, the ones the Helm chart deploys, and any [custom probe](/docs/probe/custom-probe) you run yourself. Whoever deploys a probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
 
-```
+:::tabs
+@tab Docker Compose
+`config.env` already has a `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false` line: change that line to `true` rather than adding a second one, because when a variable appears twice the later line wins. Then run `npm run start`, which recreates the containers with the new value; `docker compose restart` does not re-read `config.env`. Every bundled probe reads that one line, so it applies to `probe-1` and, where your stack runs a second probe, `probe-2`.
+
+```bash title="config.env"
 PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true
 ```
+@tab Kubernetes
+Set it per probe in your values file and upgrade the release. Each entry under `probes:` is a separate probe, so set it on every one that should reach private addresses:
 
-On Docker Compose, `config.env` already has a `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false` line: change that line to `true` rather than adding a second one, because when a variable appears twice the later line wins. Then run `npm run start`, which recreates the containers with the new value; `docker compose restart` does not re-read `config.env`. Every bundled probe reads that one line, so it applies to `probe-1` and, where your stack runs a second probe, `probe-2`.
-
-On Kubernetes, set it per probe in your values file and upgrade the release. Each entry under `probes:` is a separate probe, so set it on every one that should reach private addresses:
-
-```yaml
+```yaml title="values.yaml"
 probes:
   one:
     allowPrivateNetworkMonitors: true
 ```
+:::
 
 On a custom probe, set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in that probe's own environment and restart it. The value must be exactly `true`; anything else, such as `TRUE` or `1`, leaves the switch off and the probe says so in a startup warning, whatever `LOG_LEVEL` is set to.
 
@@ -150,7 +173,8 @@ Every probe logs its effective private-network policy when it starts: whether pr
 
 Turning it on does **not** open loopback, link-local or the cloud metadata endpoint. Those stay refused on every probe, which matters most for probes that run in a network the monitor's author does not own.
 
-Leave it off on probes you operate on behalf of other people.
+> [!WARNING]
+> Leave it off on probes you operate on behalf of other people.
 
 ## Verifying it works
 
@@ -175,3 +199,12 @@ Opening this up is a real change to what your OneUptime instance can be made to 
 - **The response body comes back.** A workflow API component returns the status, headers and body into the workflow log, so an allowed host is readable, not just writable.
 - **Redirects are never followed** on webhook requests, so an allowed public host cannot bounce the server to an internal one on a second hop.
 - **Scope by probe rather than instance-wide where you can.** A probe deployed inside one network is a narrower grant than opening the API server's egress.
+
+## Next steps
+
+:::cards
+- [Custom Probes](/docs/probe/custom-probe): Run a probe inside the network it should check.
+- [Workflow configuration](/docs/workflows/configuration): What workflow steps can reach and do.
+- [LLM Providers](/docs/ai/llm-provider): Connect OneUptime AI to a model on your network.
+- [Architecture](/docs/self-hosted/architecture): Which part of a self-hosted install makes each connection.
+:::

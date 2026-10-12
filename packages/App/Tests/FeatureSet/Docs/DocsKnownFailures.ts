@@ -219,20 +219,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "permissions/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "probe/custom-probe": {
-    title: EVERY_LANGUAGE,
-    uniqueHeadings: except(EVERY_LANGUAGE, "de"),
-    codeLanguage: EN,
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "probe/incoming-request-ingress": {
-    codeLanguage: EN,
-    sameShape: ["de", "hi"],
-  },
   "rum/applications": {
     pageLinks: ["fa"],
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -265,35 +251,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "self-hosted/enterprise": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION,
-  },
-  "self-hosted/private-network-access": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "self-hosted/push-notifications": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "self-hosted/sendgrid-inbound-email": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "status-pages/one-status-page-per-audience": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "status-pages/subscribers": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/ai-agent-circuit-breaker": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/ai-coding-assistants": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/ai-gateways": {
@@ -303,35 +261,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/claude-code": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/cloud-aws-ecs": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-azure-container-apps": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-environments": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-gcp-cloud-run": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-other-platforms": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-resources": {
-    uniqueHeadings: EN,
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-troubleshooting": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cursor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/databases": {
     translated: EVERY_TRANSLATION,
   },
@@ -340,9 +269,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "telemetry/gemini-cli-and-copilot": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/queues": {

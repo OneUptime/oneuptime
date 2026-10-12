@@ -122,8 +122,6 @@ const SLACK_LINK: RegExp = /<([A-Za-z][A-Za-z0-9+.-]*:[^<>|\s]*)\|([^<>]*)>/g;
 const DASHBOARD_IMAGE: RegExp = /<img/;
 const DASHBOARD_DIAGRAM: RegExp = /language-mermaid/i;
 const DASHBOARD_ANCHOR: RegExp = /<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g;
-// A script element and what it holds.
-const SCRIPT_ELEMENT: RegExp = /<script>[\s\S]*<\/script>/;
 const AS_A_BROWSER_READS_IT: {
   lessThanAsText: boolean;
   rawTextElements: boolean;
@@ -872,6 +870,55 @@ describe("the create-from-case scripts", () => {
 
 /* ------------------------------- The walk itself ------------------------------- */
 
+// What ends a tag's name, as a browser reads one: ASCII whitespace, "/", ">".
+const TAG_NAME_ENDS: string = "\t\n\f\r />";
+
+// Whether markup starts with a script start tag, in any letter case.
+function startsWithScriptTag(markup: string): boolean {
+  return (
+    markup.length > 7 &&
+    markup.slice(0, 7).toLowerCase() === "<script" &&
+    TAG_NAME_ENDS.includes(markup.charAt(7))
+  );
+}
+
+// How many tags and comments the walk finds in a text, read with no option.
+function tagCountOf(html: string): number {
+  let count: number = 0;
+
+  replaceHtmlMarkup(html, (markup: string): string => {
+    count++;
+    return markup;
+  });
+
+  return count;
+}
+
+/*
+ * Whether a browser reading a text meets a script element. Read as a browser
+ * reads it, the walk hands a script element over whole, from its start tag to
+ * its end tag, so markup that starts with a script tag and holds more than one
+ * tag is one. A "<script>" in a comment or a quoted value, or with no end tag
+ * after it, is no element and does not count.
+ */
+function holdsScriptElement(html: string): boolean {
+  let found: boolean = false;
+
+  replaceHtmlMarkup(
+    html,
+    (markup: string): string => {
+      if (startsWithScriptTag(markup) && tagCountOf(markup) > 1) {
+        found = true;
+      }
+
+      return markup;
+    },
+    AS_A_BROWSER_READS_IT,
+  );
+
+  return found;
+}
+
 describe.each(KINDS)(
   "%s: the case script's own walk",
   (_name: string, kind: CaseKind) => {
@@ -944,7 +991,7 @@ describe.each(KINDS)(
       expect(new Set(cases).size).toBeGreaterThan(10000);
       expect(
         cases.filter((html: string): boolean => {
-          return SCRIPT_ELEMENT.test(html);
+          return holdsScriptElement(html);
         }).length,
       ).toBeGreaterThan(100);
     });

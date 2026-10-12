@@ -179,12 +179,18 @@ describe("Cloud Resources docs", (): void => {
           return line.startsWith("## ");
         });
 
+      /*
+       * The setup sections are "Connect <provider>" so their anchors never
+       * collide with the identity tables' "### Azure", "### AWS" and
+       * "### Google Cloud" (the dashboard's guide links #aws for the
+       * dimensions that identify a resource).
+       */
       expect(headings).toEqual([
-        "## Overview",
-        "## Before you start",
-        "## Azure",
-        "## AWS",
-        "## Google Cloud",
+        "## How it works",
+        "## Before you begin",
+        "## Connect Azure",
+        "## Connect AWS",
+        "## Connect Google Cloud",
         "## Keep the pipeline free of resource detection",
         "## How a resource is identified",
         "## Status, archiving and limits",
@@ -192,6 +198,7 @@ describe("Cloud Resources docs", (): void => {
         "## Inventory and rules",
         "## Troubleshooting",
         "## Limitations",
+        "## Next steps",
       ]);
     });
   });

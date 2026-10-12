@@ -1,35 +1,60 @@
-# AI- / LLM-observerbarhet med OneUptime
+# AI- / LLM-observerbarhet
 
-Läs varje konversation som din AI har haft, spela upp den igen som den hände och få veta när den svarar dåligt. Allt bygger på standard-OpenTelemetry, utan proprietärt SDK: om din app skickar spans enligt OpenTelemetrys **GenAI-semantiska konventioner** (`gen_ai.*`) gör OneUptime om dem till konversationer, varningar, användning och kostnad.
+Läs varje konversation som din AI har haft, spela upp den igen som den hände och få veta när den svarar dåligt. OneUptime bygger allt detta på standard-OpenTelemetry: om din app skickar spans med **GenAI-semantiska konventioner** (`gen_ai.*`) får du konversationer, varningar, användning och kostnad, utan något proprietärt SDK.
 
-## Det här får du
+:::cards
+- [Sätt upp det](#sätt-upp-det-i-fem-steg): Fem steg, från det första spannet till flaggade svar.
+- [Spela upp en konversation](#läs-och-spela-upp-en-konversation): Läs en chatt som personen såg den, i den takt den hände.
+- [Få varningar](#få-veta-när-ain-svarar-dåligt): Färdiga varningar för svar som misslyckas, nekas, kapas, flaggas eller är långsamma.
+- [Håll koll på kostnaderna](#se-vem-som-spenderar-vad): Kostnad per person, team, modell och app, med dagliga budgetar.
+:::
 
-Öppna **AI / LLM** i navigeringsfältet, under Observerbarhet:
+## Så fungerar det
 
-- **Konversationer** — varje konversation som din AI har haft: vad folk frågade, vad AI:n svarade, vilka verktyg den använde och vad som gick fel. Ovanför listan står fem siffror: konversationer, AI-svar, hur många som behöver uppmärksamhet, kostnad och hur lång tid ett svar brukar ta. Öppna en konversation för att läsa den eller spela upp den igen.
-- **Anrop** — varje LLM-, embedding-, agent- och verktygsanrop, filtrerbart på tjänst, leverantör, modell, operation, person och team. Klicka på ett anrop för att öppna det i trace-visningen.
-- **Användning** — anropen, tokens och kostnaden under en tidsperiod, och vem som spenderar vad: anställda, team, modeller, leverantörer och appar rangordnade efter kostnad.
-- **Varningar** — färdiga varningar för när AI:n svarar dåligt, och dina AI- / LLM-monitorer.
-- **Budgetar** — dagliga kostnadsgränser, publicerade som mätvärden att varna på.
-- **Priser** — dina egna priser per modell, för modeller som den inbyggda katalogen inte känner till.
-- **Inställning** — de fem stegen nedan, med ditt projekts endpoint.
+Din apps GenAI-instrumentering exporterar varje anrop till modellen som ett OpenTelemetry-span. När spannet kommer in läser OneUptime dess `gen_ai.*`-attribut, kontrollerar svaret efter problem, prissätter anropet och lägger det under den konversation det hör till.
 
-I trace-visningen har spannet för varje AI-anrop också en **AI / LLM**-panel med modell, antal tokens, kostnad, förfrågningsparametrar samt prompt och completion.
+```mermaid title="Från din apps AI-anrop till OneUptime"
+flowchart TB
+    app["GenAI-instrumentering<br/>i din app"] -->|"Spans via OTLP"| ingest["OneUptime-intag"]
+    ingest --> check["Kontrollerar svaret,<br/>prissätter anropet"]
+    ingest --> group["Hittar anropets<br/>konversation"]
+    check --> tabs["Konversationer, Anrop,<br/>Användning, Varningar,<br/>Budgetar"]
+    group --> tabs
+```
 
-## Steg 1 — Skicka dina AI-anrop
+Öppna **Produkter → AI / LLM** under **Observerbarhet**. Produkten har sju flikar:
 
-Skapa en intagningsnyckel för telemetri: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**. Din app skickar nyckeln som en OTLP-header. (Se [OpenTelemetry-guiden](/docs/telemetry/open-telemetry) för skärmbilder.)
+| Flik | Vad den visar |
+| --- | --- |
+| **Konversationer** | Varje konversation som din AI har haft, med de som behöver uppmärksamhet först. Ovanför listan: konversationer, AI-svar, hur många som behöver uppmärksamhet, kostnad och den typiska svarstiden. |
+| **Anrop** | Varje modell-, embedding-, agent- och verktygsanrop. Filtrera på tjänst, leverantör, modell, operation, person, team eller konversation; klicka på ett anrop för att öppna det i trace-visaren. |
+| **Användning** | Anrop, tokens och kostnad för en tidsperiod, rangordnade efter anställd, team, modell, leverantör eller app. |
+| **Varningar** | Färdiga varningar för när AI:n svarar dåligt, och dina AI / LLM-monitorer. |
+| **Budgetar** | Dagliga kostnadsgränser, publicerade som mätvärden som du kan varna på. |
+| **Priser** | Dina egna priser för modeller som den inbyggda prislistan inte känner till. |
+| **Inställning** | De fem stegen nedan, med ditt projekts endpoint. |
 
-Instrumentera sedan appen med valfritt OpenTelemetry-GenAI-bibliotek:
+I trace-visaren har spannet för varje AI-anrop också en **LLM**-flik: leverantör, modell, tokens, kostnad, begärandeparametrar samt prompten och svaret.
 
-- **OpenLLMetry** (Traceloop) — OpenAI, Anthropic, Cohere, Bedrock, LangChain, LlamaIndex, CrewAI med flera.
-- **OpenInference** (Arize) — OpenAI, LangChain, LlamaIndex, DSPy med flera.
-- **Vercel AI SDK**, eller **OpenTelemetry-instrumenteringarna** för OpenAI, Anthropic och Gemini.
+## Innan du börjar
 
-Skickar du din LLM-trafik genom en gateway som **LiteLLM** eller **Portkey**? Exportera traces från gatewayen i stället för att instrumentera varje app — se [Observera AI-gatewayer](/docs/telemetry/ai-gateways). Letar du efter kodassistenterna som dina utvecklare använder — Claude Code, Cursor, Codex, Gemini CLI, Copilot? De exporterar sin egen OpenTelemetry och behöver inget från dig: se [Observerbarhet för AI-kodassistenter](/docs/telemetry/ai-coding-assistants).
+- Ett OneUptime-projekt där du kan skapa en intagningsnyckel för telemetri.
+- En app som anropar en modell, och en GenAI-instrumentering för dess språk: **OpenLLMetry** (Traceloop), **OpenInference** (Arize), **Vercel AI SDK** eller OpenTelemetry-instrumenteringarna för OpenAI, Anthropic och Gemini.
 
-### Python (OpenLLMetry)
+> [!TIP]
+> Modelltrafik som går genom en gateway som LiteLLM eller Portkey kan exporteras från gatewayen i stället för från varje app: se [AI-gatewayer](/docs/telemetry/ai-gateways). För kodassistenterna som dina utvecklare använder, se [AI-kodassistenter](/docs/telemetry/ai-coding-assistants).
 
+## Sätt upp det i fem steg
+
+Det första steget är allt du behöver för att se anrop. Varje steg efter det visar mer.
+
+:::steps
+### Skicka dina AI-anrop
+
+Skapa en intagningsnyckel under **Projektinställningar → Telemetri och APM → Intagningsnycklar** ([OpenTelemetry-snabbstarten](/docs/telemetry/open-telemetry#skapa-en-intagningsnyckel) går igenom det). Peka sedan din instrumentering mot OneUptime:
+
+:::tabs
+@tab Python
 ```bash
 pip install traceloop-sdk opentelemetry-exporter-otlp
 ```
@@ -39,54 +64,49 @@ from traceloop.sdk import Traceloop
 
 Traceloop.init(
     app_name="my-ai-agent",
-    api_endpoint="https://oneuptime.com/otlp",   # or your self-hosted host + /otlp
+    api_endpoint="https://oneuptime.com/otlp",
     headers={"x-oneuptime-token": "YOUR_INGESTION_TOKEN"},
 )
-
-# Your normal OpenAI / Anthropic / LangChain calls are now traced automatically.
+# Your OpenAI, Anthropic and LangChain calls are now traced.
 ```
-
-### Node.js / TypeScript (OpenLLMetry)
-
+@tab Node.js
 ```bash
 npm install @traceloop/node-server-sdk
 ```
 
-```ts
+```typescript
 import * as traceloop from "@traceloop/node-server-sdk";
 
 traceloop.initialize({
   appName: "my-ai-agent",
-  baseUrl: "https://oneuptime.com/otlp", // or your self-hosted host + /otlp
+  baseUrl: "https://oneuptime.com/otlp",
   headers: { "x-oneuptime-token": "YOUR_INGESTION_TOKEN" },
 });
 ```
-
-### Vanliga OpenTelemetry-miljövariabler
-
-Om du instrumenterar med ett inbyggt OpenTelemetry-SDK pekar du OTLP-exportören mot OneUptime:
-
+@tab OpenTelemetry SDK
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_SERVICE_NAME="my-ai-agent"
 ```
+:::
 
-Driver du OneUptime själv? Ersätt `https://oneuptime.com/otlp` med `https://YOUR-ONEUPTIME-HOST/otlp`.
+Driftar du OneUptime själv? Använd `https://YOUR-ONEUPTIME-HOST/otlp` i stället för `https://oneuptime.com/otlp`. Anropa din modell en gång, så dyker anropet upp under **Anrop**.
 
-## Steg 2 — Spela in det som sades
+### Registrera vad som sades
 
-En konversation visar vad folk frågade och vad AI:n svarade när din instrumentering spelar in det. OpenLLMetry spelar in prompts och completions om du inte stänger av det (`TRACELOOP_TRACE_CONTENT=false`). OpenTelemetry-instrumenteringarna spelar bara in dem när du ber om det:
+En konversation visar bara vad folk frågade och vad AI:n svarade när din instrumentering registrerar det. OpenLLMetry registrerar prompter och svar om du inte sätter `TRACELOOP_TRACE_CONTENT=false`. OpenTelemetry-instrumenteringarna registrerar dem bara när du ber om det:
 
 ```bash
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
-Utan dem visar en konversation ändå sina tider, sin kostnad och sina problem, och anger att innehållet inte spelades in. Prompts kan innehålla känsliga data: se [Integritet och maskering](#integritet-och-maskering) för att dölja dem innan de lagras.
+Nyare OpenTelemetry-instrumenteringar tar `span_only`, `event_only` eller `span_and_event` i stället för `true`. Utan registrerat innehåll visar en konversation ändå sina tider, sin kostnad och sina problem. Prompter kan innehålla känsliga data: [Integritet och maskering](#integritet-och-maskering) visar hur du maskerar dem innan de lagras.
 
-## Steg 3 — Gruppera anrop i konversationer
+### Gruppera anrop i konversationer
 
-En chattapp gör ett modellanrop per tur. Sätt `gen_ai.conversation.id` — eller `session.id` — till chattens id på varje AI-anrop, så visas varje chatt som en enda konversation, hur många anrop och traces den än krävde. Med OpenLLMetry sätter du det en gång per förfrågan som en association property:
+En chattapp gör ett modellanrop per tur. Sätt `gen_ai.conversation.id` (eller `session.id`) till din chatts id på varje AI-anrop, så visas varje chatt som en konversation, oavsett hur många anrop och traces den tog. Med OpenLLMetry sätter du det en gång per begäran:
 
 ```python
 from traceloop.sdk import Traceloop
@@ -97,25 +117,25 @@ Traceloop.set_association_properties({
 })
 ```
 
-Anrop utan konversations-id visas ändå, en förfrågan (ett trace) i taget.
+Med Vercel AI SDK skickar du chattens id som `experimental_telemetry: { metadata: { sessionId } }`. Anrop utan konversations-id visas ändå, en begäran (en trace) åt gången.
 
-## Steg 4 — Ange vem som frågade
+### Ange vem som frågade
 
-Sätt `user.id` eller `user.email` — association propertyn ovan sätter e-postadressen — för att se vem varje konversation var med, söka i listan efter person och rangordna kostnaden per anställd på fliken Användning. [Tillskrivning till anställda och team](#tillskrivning-till-anställda-och-team) listar alla nycklar som OneUptime läser.
+Sätt `user.id` eller `user.email` på varje AI-anrop (associationsegenskapen ovan sätter e-postadressen). Då visar varje konversation vem den var med, du kan söka i listan efter person, och fliken **Användning** rangordnar kostnaderna efter anställd. [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team) listar alla identitetsnycklar som OneUptime läser.
 
-## Steg 5 — Flagga dåliga svar
+### Flagga dåliga svar
 
 OneUptime kontrollerar varje svar när det kommer in och markerar vad som gick fel med det:
 
-| Problem       | Vad det betyder                                                   | Hittas utifrån                                                                                                                                                                       |
-| ------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Misslyckades  | Anropet slutade med ett fel, så inget svar kom fram               | Span-status Error, `error.type` eller en finish reason `error`                                                                                                                       |
-| Nekad         | AI:n avböjde, eller ett säkerhetsfilter blockerade den            | En finish reason för nekande eller säkerhet (`content_filter`, `refusal`, `SAFETY` och liknande), ett nekande i svaret, eller ett svar som börjar med ett typiskt engelskt nekande |
-| Avkortad      | Svaret stannade vid tokengränsen                                  | En finish reason `length`, `max_tokens` eller `MAX_TOKENS`                                                                                                                           |
-| Tom           | AI:n svarade utan text och utan verktygsanrop                     | Inspelat innehåll som inte innehåller något, eller 0 utdatatokens                                                                                                                    |
-| Flaggad       | En utvärdering som din app skickade sa att svaret var dåligt      | En `gen_ai.evaluation.result`-händelse                                                                                                                                               |
+| Problem | Vad det betyder | Hittas via |
+| --- | --- | --- |
+| Misslyckat | Anropet slutade med ett fel, så inget svar kom | Span-status Error, `error.type` eller en avslutningsorsak `error` |
+| Nekat | AI:n vägrade, eller ett säkerhetsfilter blockerade svaret | En avslutningsorsak för vägran eller säkerhet (`content_filter`, `refusal`, `SAFETY` och liknande), en vägran i svaret eller ett svar som börjar med en standardvägran på engelska |
+| Kapat | Svaret stannade vid tokengränsen | En avslutningsorsak `length`, `max_tokens` eller `MAX_TOKENS` |
+| Tomt | Ingen text och inget verktygsanrop | Registrerat innehåll som inte innehåller något, eller 0 utdatatokens |
+| Flaggat | En utvärdering som din app skickade sa att svaret var dåligt | En `gen_ai.evaluation.result`-händelse |
 
-De fyra första kräver inget av dig. För att flagga resten — ett svar som ditt guardrail, din eval eller din egen LLM-domare avvisar — lägger du till en `gen_ai.evaluation.result`-händelse på svarets span, med `gen_ai.evaluation.score.label` satt till `fail`:
+De fyra första kräver inget av dig. För att flagga ett svar som din guardrail, din utvärdering eller en tumme ned-knapp avvisar lägger du till en `gen_ai.evaluation.result`-händelse på svarets span, medan spannet är öppet, med `gen_ai.evaluation.score.label` satt till `fail`:
 
 ```python
 from opentelemetry import trace
@@ -130,157 +150,180 @@ trace.get_current_span().add_event(
 )
 ```
 
-Etiketter som `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` och `hallucination` räknas också som underkända. Händelsen måste ligga på spannet för svaret den bedömer, medan det spannet är öppet.
+Etiketter som `incorrect`, `wrong`, `unhelpful`, `toxic`, `unsafe` och `hallucination` räknas också som misslyckade. OneUptime skickar aldrig dina konversationer till en annan AI för att bedöma dem: varje kontroll läser bara det som anropet självt bär.
+:::
 
-OneUptime skickar aldrig dina konversationer till en annan AI för bedömning: varje kontroll läser bara det som anropet självt bär.
+## Läs och spela upp en konversation
 
-## Läs och spela upp en konversation igen
+En konversation öppnas i sin helhet, som en chattapp visar sin historik: det personen sa till höger, AI:ns svar till vänster med modell, tid, tokens och kostnad, verktygsanrop däremellan, och vad som gick fel, markerat där det hände. **Detaljer** under ett svar visar varför det stannade, dess utvärderingar och en länk till anropet i Spår.
 
-En konversation öppnas i sin helhet, så som en chattapp visar sin historik: det personen sa till höger, AI:ns svar till vänster med modell, tid, tokens och kostnad, verktygsanrop mellan dem, och det som gick fel markerat där det hände. **Detaljer** under ett svar visar dess finish reason och utvärderingar, med en länk till anropet i Spår.
+Fältet längst ned spelar upp konversationen som personen upplevde den:
 
-Fältet längst ned spelar upp konversationen så som personen upplevde den:
+| Kontroll | Vad den gör |
+| --- | --- |
+| **Spela upp igen** | Spelar upp konversationen från det första meddelandet, i den takt den hände. "AI:n svarar…" räknar upp medan ett svar är på väg. Klicka på tiden för ett meddelande för att spela upp därifrån. |
+| **Hoppa över väntan** | På som standard: kortar av all tystnad som är längre än 3 sekunder. |
+| `1x` | Ändrar hastigheten: 1x, 2x, 4x eller 8x. |
+| **K**, **J** eller **←**, **L** eller **→** | Spela upp eller pausa, gå ett meddelande bakåt, gå ett meddelande framåt. |
 
-- **Spela upp igen** spelar den från det första meddelandet i den takt den hände, med ”AI:n svarar…” som räknar upp medan ett svar är på väg. Klicka på tiden för valfritt meddelande för att spela upp därifrån.
-- **Hoppa över väntan**, som är på som standard, kortar tystnader längre än 3 sekunder. Hastighetsknappen spelar upp i 1×, 2×, 4× eller 8×.
-- **K** spelar upp eller pausar, **J** eller **←** går tillbaka ett meddelande, och **L** eller **→** går framåt ett.
-- Adressen sparar meddelandet där en uppspelning stannade (`?step=`), så att en länk öppnas på just det ögonblicket.
+Sidans adress sparar meddelandet där en uppspelning stannade (`?step=`), så en länk som du delar öppnas vid det ögonblicket.
 
 ## Få veta när AI:n svarar dåligt
 
-Fliken **Varningar** erbjuder de varningar som de flesta AI-appar vill ha. När du väljer en öppnas Skapa monitor redan ifyllt, och du kan ändra vad som helst innan du sparar:
+Fliken **Varningar** listar de varningar som de flesta AI-appar vill ha. När du väljer en öppnas **Skapa monitor** ifylld, och du kan ändra allt innan du sparar:
 
-| Varning                  | När den säger till                                                                                 |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| Svar blir fel            | Mer än 5 % av svaren under 15 minuter misslyckas, nekas, avkortas, är tomma eller flaggas          |
-| AI-anrop misslyckas      | Mer än 10 % av anropen till modellen under 5 minuter slutar med ett fel                            |
-| AI:n vägrar svara        | Mer än 5 % av svaren under 30 minuter är nekanden                                                  |
-| Svar avkortas            | 3 eller fler svar under 30 minuter stannar vid tokengränsen                                        |
-| Svar flaggas             | En utvärdering markerar ett svar som dåligt                                                        |
-| Svar är långsamma        | Mer än 10 % av svaren under 15 minuter tar längre tid än 30 sekunder                               |
-| AI:n slutar svara        | AI:n ger inga svar på 30 minuter                                                                   |
+| Varning | När den meddelar dig | Allvarlighetsgrad |
+| --- | --- | --- |
+| Svar går fel | Mer än 5 % av svaren på 15 minuter misslyckas, nekas, kapas, är tomma eller flaggas | Warning |
+| AI-anrop misslyckas | Mer än 10 % av anropen till modellen på 5 minuter slutar med ett fel | Critical |
+| AI:n vägrar svara | Mer än 5 % av svaren på 30 minuter är vägranden | Warning |
+| Svar kapas | 3 eller fler svar på 30 minuter stannar vid tokengränsen | Warning |
+| Svar flaggas | En utvärdering markerar ett svar som dåligt | Warning |
+| Svar är långsamma | Mer än 10 % av svaren på 15 minuter tar längre än 30 sekunder | Warning |
+| AI:n slutar svara | AI:n ger inga svar på 30 minuter | Critical |
 
-Varningarna på en andel väntar också på minst 3 dåliga svar, så att ett dåligt svar av två inte väcker någon.
+Varningarna på en andel av svaren väntar också på minst 3 dåliga svar, så ett dåligt svar av två larmar ingen. En Critical-varning får ditt projekts högsta varningsgrad och en Warning-varning nästa: High och Low i ett nytt projekt.
 
-Varje varning är en **AI / LLM**-monitor. Dess inställningar anger vad som räknas som ett dåligt svar — problemen ovan, ett svar som är långsammare än en gräns du sätter, eller båda —, vilka appar och vilken modell den bevakar, och hur långt bakåt varje kontroll tittar. Under dem visar en förhandsvisning vad monitorn skulle räkna just nu. Dess kriterier jämför tre tal: **andelen dåliga svar** (i %), **antalet dåliga svar** och **antalet svar**. En färdig varning utlöser en varning som löser sig själv och visar monitorn som Försämrad så länge svaren är dåliga; slå i stället på dess incident för att larma någon.
+Varje varning är en **AI / LLM**-monitor. Dess inställningar anger vad som räknas som ett dåligt svar (**Räkna ett svar som dåligt när det**, **Eller tar längre än (sekunder)**), hur långt bakåt varje kontroll tittar (**Tidsfönster**, 15 minuter som standard), vilka **Appar** den övervakar och, under **Fler fält**, vilken **Modell**. En **Förhandsgranskning** visar vad monitorn skulle räkna just nu. Dess kriterier jämför tre tal: **Dåliga AI-svar (i %)**, **Dåliga AI-svar** och **AI-svar**.
 
-Kostnaden bevakas av de [dagliga kostnadsbudgetarna](#dagliga-kostnadsbudgetar).
+En färdig varning skapar en varning som löser sig själv, och visar monitorn som **Degraded** medan svaren är dåliga. Dess incident är ifylld men avstängd: slå på den för att larma någon.
 
-## Attribut som OneUptime känner igen
+## Se vem som spenderar vad
 
-OneUptime läser OpenTelemetrys GenAI-konventioner först och faller tillbaka på varianterna från OpenLLMetry och OpenInference, så att populära bibliotek fungerar direkt.
+Fliken **Användning** visar anrop, tokens och kostnad för en tidsperiod (de senaste 7 dagarna om du inte väljer en annan) och en tabell över de 25 största i en av fem uppdelningar: **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst**. Anrop som inte nämner någon räknas under **Ej tilldelat** och slängs aldrig.
 
-| Vad                                  | Primärt attribut             | Accepteras också                                                                                                                                                                                                                                                          |
-| ------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Leverantör / system                  | `gen_ai.provider.name`       | `gen_ai.system` (föråldrat i konventionerna, men skickas fortfarande ofta), `llm.system`, `llm.provider`                                                                                                                                                                 |
-| Operation                            | `gen_ai.operation.name`      | `llm.request.type`, `openinference.span.kind`                                                                                                                                                                                                                             |
-| Begärd modell                        | `gen_ai.request.model`       | `llm.model_name`, `llm.request.model`                                                                                                                                                                                                                                     |
-| Svarsmodell                          | `gen_ai.response.model`      | `llm.response.model`                                                                                                                                                                                                                                                      |
-| Indatatokens                         | `gen_ai.usage.input_tokens`  | `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens`                                                                                                                                                                                         |
-| Utdatatokens                         | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens`                                                                                                                                                                             |
-| Tokens totalt                        | `gen_ai.usage.total_tokens`  | `llm.token_count.total`, `llm.usage.total_tokens`; härleds från indata + utdata när inget av dem rapporteras                                                                                                                                                              |
-| Kostnad (USD)                        | `gen_ai.usage.cost`          | `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost` (LiteLLM), `litellm.cost.total`                                                                                                                                      |
-| Agentnamn                            | `gen_ai.agent.name`          | `agent.name`                                                                                                                                                                                                                                                              |
-| Verktygsnamn                         | `gen_ai.tool.name`           | `tool.name`                                                                                                                                                                                                                                                               |
-| Konversations- / sessions-id         | `gen_ai.conversation.id`     | `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`                                                                                                                                                                                        |
-| Anställd (som gjorde anropet)        | `user.id`                    | `enduser.id`, `litellm.metadata.user_api_key_user_id` och `metadata.user_api_key_user_id` (stavningarna i LiteLLM OTel v2 och v1 — båda läses), `traceloop.association.properties.user_id`, `langfuse.user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
-| Den anställdes e-post                | `user.email`                 | `traceloop.association.properties.user_email`, `enduser.email`                                                                                                                                                                                                            |
-| Team / kostnadsställe                | `team.id`                    | `team`, `cost_center`, `department`, `litellm.metadata.user_api_key_team_id` och `litellm.team.id` (LiteLLM OTel v2), `metadata.user_api_key_team_id` (LiteLLM OTel v1), `cursor.team.id`                                                                                 |
+Personer och team kommer från identitetsattribut på anropet: se [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
 
-Undernycklarna under `traceloop.association.properties.*` **tillhandahålls av anroparen**: Traceloop definierar prefixet och din kod tillhandahåller det som står under det. `gen_ai.usage.total_tokens` och `gen_ai.usage.cost` är **de facto**-nycklar, inte GenAI-semantiska konventioner — konventionerna definierar varken ett attribut för totala tokens eller ett för kostnad —, och OneUptime läser dem eftersom de vanliga instrumenteringarna skickar dem. `gen_ai.system` är konventionernas egen föråldrade föregångare till `gen_ai.provider.name`; båda läses.
+### Spans först, mätvärden fyller i
 
-**De tre identitetsraderna matchas också med ett `resource.`-prefix.** OTLP-intag plattar ut varje _resurs_-attribut i spannets attributkarta under ett `resource.`-prefix, så `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` kommer in som `resource.team.id`. OneUptime söker först igenom hela listan utan prefix och sedan hela `resource.`-listan, så att ett span-attribut (som beskriver ett anrop) vinner över ett resursattribut (som beskriver hela processen). De övriga raderna matchas bara på nyckeln utan prefix: de är värden per anrop.
+GenAI-spans bär modellen, tokens och kostnaden för ett anrop, så där de finns svarar de på allt. Vissa verktyg publicerar token- och kostnadsmätvärden och inga GenAI-spans, som de flesta kodassistenter. OneUptime läser bara de mätvärdena för ett tal som spans inte rapporterade något för, och lägger aldrig ihop de två: många instrumenteringar skickar båda för samma anrop, och att lägga ihop dem skulle räkna varje dollar två gånger.
 
-**Innehåll från prompts och completions** läses från händelsen `gen_ai.client.inference.operation.details`; från span-attributen `gen_ai.input.messages`, `gen_ai.output.messages` och `gen_ai.system_instructions`; från de **föråldrade** händelserna per roll som äldre instrumenteringar fortfarande skickar (`gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.tool.message`, `gen_ai.assistant.message`, `gen_ai.choice`); från de indexerade attributen (`gen_ai.prompt.N.content` och `gen_ai.completion.N.content`, och i OpenInference `llm.input_messages.N.message.content` och `llm.output_messages.N.message.content`); och från JSON-meddelandearrayerna (`gen_ai.prompt`, `gen_ai.completion`, `input.value`, `output.value`).
-
-### Hur kostnaden beräknas
-
-Om din instrumentering rapporterar en kostnad (`gen_ai.usage.cost`) använder OneUptime den som den är: det rapporterade värdet vinner alltid. När ingen kostnad rapporteras beräknar OneUptime en **uppskattad kostnad vid intag** utifrån spannets antal tokens och en inbyggd listpriskatalog över vanliga modeller från OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova och Meta Llama. Modeller matchas på namnprefix, så daterade ögonblicksbilder som `gpt-4o-2024-08-06` och id:n med leverantörstillägg som `us.anthropic.claude-3-5-sonnet-20241022-v2:0` slås upp korrekt. Okända eller egna modeller gissas aldrig — deras kostnad förblir `0` tills du ger dem ett pris på fliken **Priser**. Uppskattningarna använder listpriser och tar inte hänsyn till cache- eller batchrabatter.
-
-Driver du OneUptime själv? Katalogen finns i `packages/Common/Types/Telemetry/LlmCostCatalog.ts`.
-
-## Tillskrivning till anställda och team
-
-”Vem av våra utvecklare spenderade 4 000 $ på Opus förra månaden?” är en fråga om en person, och inget LLM-span besvarar den om inte något på spannet nämner någon. OneUptime kopierar den mänskliga aktören till sökbara kolumner vid intag, så att du grupperar och filtrerar på en kolumn i stället för att skriva attributuppslag.
-
-De tre identitetsraderna i tabellen ovan är hela mekanismen; den första nyckeln som finns vinner, i den angivna ordningen. `user.id` står först eftersom det är OpenTelemetrys kanoniska nyckel för en mänsklig aktör och den du bör standardisera på om du sätter identiteten själv. **Ett undantag: Claude Code** skickar `user.id` som en slumpmässig anonym identifierare som sparas i `~/.claude.json`, inte som en person. Det är ofarligt på dess mätvärdesdatapunkter, vars lista börjar med e-postadressen, men om du slår på Claude Codes traces-beta rankas det anonyma `user.id` före `user.email` på spannen: ta bort eller mappa om `user.id` i en collector-processor för den flottan. `enduser.id` är fortfarande ett aktivt attribut i de semantiska konventionerna och accepteras som ett likvärdigt alias. `cursor.user.id` kommer sist eftersom det är ett ogenomskinligt, teambegränsat heltal som kräver Cursors administrations-API för att kopplas till en person.
-
-Identitet läses bara på spans som redan har känts igen som LLM-anrop: `user.id`, `user.email` och `team.id` är generiska nycklar som även webbläsar- och vanliga backend-spans bär. **Mätvärdesdatapunkter** bär en kortare lista som börjar med e-postadressen — `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id`, med team från `team.id`, `team`, `cost_center`, `department` och `cursor.team.id`, var och en också matchad med `resource.`-prefixet —, eftersom de kodagent-CLI:er som skickar mätvärden utan spans skickar `user.email` direkt. Inget läser identitet från **loggposter** i dag.
-
-### Ange team och kostnadsställe
-
-Ingen instrumentering skickar `team.id`, `team`, `cost_center` eller `department`: din organisation sätter dem, vanligtvis via `OTEL_RESOURCE_ATTRIBUTES` på processen:
-
-```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-123,department=engineering"
+```mermaid title="Var ett tal på fliken Användning kommer ifrån"
+flowchart TB
+    spans{"Rapporterar<br/>GenAI-spans det?"}
+    spans -->|"Ja"| fromSpans["Visas<br/>från spans"]
+    spans -->|"Nej"| metrics{"Rapporterar<br/>GenAI-mätvärden det?"}
+    metrics -->|"Ja"| fromMetrics["Visas från mätvärden,<br/>märkt med<br/>från GenAI-mätvärden"]
+    metrics -->|"Nej"| nothing["Inget<br/>att visa"]
 ```
 
-De når OneUptime som `resource.team.id`, `resource.team`, `resource.cost_center` och `resource.department`, och båda nivåerna känns igen på spans och på mätvärdesdatapunkter, oavsett om din exportör lämnar nycklarna i OTLP-resursblocket eller kopierar dem till varje span (Claude Code gör det senare). Ett `team.id` utan prefix som sätts direkt på ett span vinner fortfarande.
+| Var | Vad som faller tillbaka på mätvärden | När |
+| --- | --- | --- |
+| Indata- och utdatatokens | Båda totalerna | Spans tokentotaler är båda 0 |
+| Kostnad (USD) | Kostnaden, med Codex kostnad i mikro-USD omräknad till USD | Spans kostnadstotal är 0 |
+| LLM-anrop | Inget: bara spans | — |
+| Tabellerna **Anställd**, **Team**, **Modell** | Bara kostnad; cellerna för anrop och tokens visar `—` | Den tabellen hittade inga rader från spans |
+| Tabellerna **Leverantör**, **Applikation / Tjänst** | Inget: bara spans | — |
+| Konversationer | Inget: konversationer byggs från spans | — |
 
-Gatewayernas stavningar kommer in utan någon konfiguration från din sida. LiteLLM namnger sina attribut olika i sina två OpenTelemetry-lägen — standard-v1-callbacken `otel` använder ett rent `metadata.`-prefix (`metadata.user_api_key_user_id`, `metadata.user_api_key_user_email`, `metadata.user_api_key_team_id`), det valfria v2-läget (`LITELLM_OTEL_V2=true`) namnrymden `litellm.` —, och **OneUptime läser båda**.
+Ett tal från mätvärden är märkt med **från GenAI-mätvärden**, eftersom det saknar matchande rader under **Anrop**. Så fort dina GenAI-spans rapporterar ett tal visas alltså inte andelen från ett verktyg som bara skickar mätvärden. För att se ett sådant verktygs kostnader för sig skickar du det till ett eget projekt, där inga GenAI-spans kommer in.
 
-### Kundnycklarna är uteslutna med avsikt
+## Vad ett anrop kostar
 
-Ett LLM-span kan bära **två** olika personer: den anställda som gjorde anropet och **kunden** längre ned i kedjan som det gjordes för. De här nycklarna bär kunden, och OneUptime läser medvetet **ingen** av dem till en identitetskolumn:
+En kostnad som din instrumentering rapporterar (`gen_ai.usage.cost`) används som den är, även när den är 0. När ingen rapporteras uppskattar OneUptime en när spannet kommer in, utifrån antalet tokens och en inbyggd prislista för vanliga modeller från OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova och Meta Llama. Den levererade modellen prissätts först, sedan den begärda modellen.
 
-- `gen_ai.user` och `llm.user` — så som instrumenteringar återger OpenAIs förfrågningsparameter `user`, som OpenAI dokumenterar som ”a stable identifier for your end-users” (nu föråldrad till förmån för `safety_identifier` och `prompt_cache_key`).
-- `litellm.metadata.user_api_key_end_user_id`, `metadata.user_api_key_end_user_id` och `litellm.end_user.id` — LiteLLMs uttryckliga slutanvändar-id i alla tre stavningar, skilt från nyckelägarens id, som **är** den anställda och **läses**.
+Modeller matchas på det längsta namnprefixet, så id:n med datum eller leverantörsprefix som `gpt-4o-2024-08-06` och `us.anthropic.claude-sonnet-4-5-20250929-v1:0` hittar sin familjs pris. En modell som listan inte känner till, även en ny version, gissas aldrig: dess kostnad förblir 0 tills du prissätter den. Uppskattningarna använder listpriser, utan rabatter för cache eller batch.
 
-Skälet är korrekt internfakturering: läser man ett kund-id in i kolumnen för anställda skapar en supportbot som betjänar 40 000 kunder 40 000 fantom-”anställda”, medan utvecklaren som äger kostnaden verkar inte ha spenderat något. De här attributen ligger kvar i den råa attributkartan, där du kan fråga efter dem direkt.
-
-### Identitetskolumner rensas
-
-Kolumnen med den anställdas e-post innehåller riktiga personuppgifter. Dina telemetri-**Scrub-regler** inom omfånget **Attribut** täcker den precis som de täcker attributet den lästes från, så en regel som maskerar e-postadresser gäller också för kolumnen. Konfigurera scrub-regler och drop-filter under **Spår → Inställningar**.
-
-## Spans och mätvärden är en reserv, inte en summa
-
-**GenAI-spans är auktoritativa. Mätvärdesflödet används bara när span-flödet inte har rapporterat något, och de två läggs aldrig ihop.** Ett span bär modell, tokens och kostnad på en rad, så där det finns spans besvarar de varje fråga. Där det inte finns några — kodagent-CLI:erna publicerar _mätvärden_ för tokens och kostnad och inga GenAI-spans — träder mätvärdesflödet in. De summeras inte eftersom många instrumenteringar skickar båda signalerna för samma anrop (OpenLLMetry är det vanliga fallet), och att lägga ihop dem skulle räkna varje dollar två gånger.
-
-Konsekvensen att planera för: **så snart dina GenAI-spans rapporterar en siffra som inte är noll syns inte bidraget från en källa med bara mätvärden i den siffran.** Reserven gäller per siffra och per uppdelning, inte per avsändare:
-
-| Var                                            | Vad som faller tillbaka på mätvärden                             | När                                           |
-| ---------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------- |
-| Användning → Indatatokens / Utdatatokens       | Summor av indata- och utdatatokens                               | Båda token-summorna från spans är 0           |
-| Användning → Kostnad (USD)                     | Kostnad, i USD och mikro-USD, skalad och sammanlagd              | Kostnadssumman från spans är 0                |
-| Användning → LLM-anrop                         | Inget — bara spans                                               | —                                             |
-| Användning → Anställd, Team, Modell            | Bara kostnad. Kolumnerna för anrop och tokens visar `—`          | Den uppdelningen returnerade inga span-rader  |
-| Användning → Leverantör, Applikation / Tjänst  | Inget — bara spans                                               | —                                             |
-| Konversationer                                 | Inget — konversationer byggs från spans                          | —                                             |
-
-Leverantör och Applikation / Tjänst har ingen mätvärdesreserv eftersom kodagenternas räknare inte bär något GenAI-leverantörsattribut och inte är kopplade till någon telemetritjänst i OneUptime. Överallt där en siffra kom från mätvärden märker sidan den **från GenAI-mätvärden**, eftersom en siffra från mätvärden inte har några motsvarande rader i listan Anrop.
-
-**Om kostnaden för ett verktyg med bara mätvärden ska synas för sig, ge det ett eget projekt**, så att dess span-flöde verkligen är tomt och reserven slår till. Detsamma gäller budgetar: avgränsa en budget per tjänst i stället för att blanda tjänster som skickar spans med tjänster som bara skickar mätvärden.
-
-## Dashboards och mätvärdesvarningar
-
-GenAI-mätvärden kommer in som vanliga OpenTelemetry-mätvärden, så du kan bygga **dashboards** som visar `gen_ai.client.token.usage`, `gen_ai.client.operation.duration` och resten i diagram, och skapa **mätvärdesmonitorer** för dem — till exempel när p95 för `gen_ai.client.operation.duration` passerar ett tröskelvärde, grupperat per modell. Se [Metrikövervakning](/docs/monitor/metrics-monitor).
+För att prissätta en modell själv (ett förhandlat pris, en finjusterad modell eller en modell som du driftar själv) lägger du till den på fliken **Priser**, under **Anpassade LLM-priser**: ett **Modellprefix**, ett **Indatapris (USD per 1M tokens)** och ett **Utdatapris (USD per 1M tokens)**. Det längsta matchande prefixet vinner över dina priser och den inbyggda listan; vid lika vinner ditt pris. Ett pris gäller för anrop som kommer in ungefär en minut efter att du har sparat det; anrop som redan lagrats behåller sin kostnad.
 
 ## Dagliga kostnadsbudgetar
 
-Fliken **Budgetar** sätter dagliga gränser i USD, utvärderade över UTC-dygnet. Var 15:e minut summerar en bakgrundsarbetare dagens LLM-span-kostnad (rapporterad eller beräknad), registrerar den på budgeten och publicerar två gauge-mätvärden:
+En budget följer en dags kostnader, i USD, över UTC-dygnet. Var 15:e minut summerar OneUptime dagens AI-kostnader (från spans, eller från GenAI-kostnadsmätvärden när inget span rapporterade något), visar dem på budgeten och publicerar två mätvärden:
 
-| Mätvärde                            | Betydelse                                       |
-| ----------------------------------- | ----------------------------------------------- |
-| `oneuptime.llm.budget.spend.usd`    | Dagens kostnad hittills, i USD                  |
-| `oneuptime.llm.budget.percent.used` | Kostnaden i procent av den dagliga gränsen      |
+| Mätvärde | Vad det är |
+| --- | --- |
+| `oneuptime.llm.budget.spend.usd` | Dagens kostnader hittills, i USD |
+| `oneuptime.llm.budget.percent.used` | Kostnaderna som procent av den dagliga gränsen |
 
-Båda bär attributen `oneuptime.llm.budget.id` och `oneuptime.llm.budget.name`, plus budgetens avgränsning till tjänst, leverantör och modell när den är satt. Filtrera monitorer på **`oneuptime.llm.budget.id`**, som är stabilt; namnet ändras när du byter namn på budgeten.
+Båda bär `oneuptime.llm.budget.id` och `oneuptime.llm.budget.name`, och budgetens omfång när den har ett.
 
-**Varningar görs med en [Metrikövervakning](/docs/monitor/metrics-monitor) på de mätvärdena.** För det klassiska mönstret 80 % / 100 % skapar du en monitor på `oneuptime.llm.budget.percent.used`, filtrerar den på `oneuptime.llm.budget.id` och lägger till två kriterier: `>= 80` som skapar en vanlig varning och `>= 100` som skapar en kritisk. **Sätt monitorns rullande tid till 30 minuter**: en budget publicerar en punkt var 15:e minut, så standardfönstret på 1 minut skulle hitta en tom serie mellan två genomgångar.
+:::steps
+### Skapa budgeten
 
-Budgetar kan avgränsas till en telemetritjänst, en LLM-leverantör eller en exakt modell, eller gälla hela projektet, och flera kan finnas samtidigt. En budgetmonitor kan också anropa ett Workflow som stoppar en skenande agent — se [Circuit breakers för skenande AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
+På fliken **Budgetar** klickar du på **Skapa LLM Cost Budget**. Ge den ett namn och en **Daglig budget (USD)**, och lämna omfånget tomt för hela projektet, eller välj en **Tjänst (valfritt)**, en **LLM-leverantör (valfritt)** eller en **LLM-modell (valfritt)**. Flera budgetar kan bevaka olika omfång.
+
+### Varna på den
+
+Skapa en [metrikövervakning](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrerad på `oneuptime.llm.budget.id` (namnet ändras när du byter namn på budgeten). Lägg till ett kriterium `>= 80` som ger en varning och ett `>= 100` som ger en kritisk varning.
+
+### Bredda fönstret
+
+Sätt monitorns rullande fönster till 30 minuter. En budget publicerar en punkt var 15:e minut, så standardfönstret på 1 minut skulle inte hitta något mellan två punkter.
+:::
+
+En budgetvarning kan också köra ett arbetsflöde som stoppar en skenande agent: se [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
+
+## Dashboards och varningar på mätvärden
+
+GenAI-mätvärden som `gen_ai.client.token.usage` och `gen_ai.client.operation.duration` kommer in som vanliga OpenTelemetry-mätvärden. Visa dem i en [dashboard](/docs/dashboards/index), eller varna på dem med en [metrikövervakning](/docs/monitor/metrics-monitor), till exempel när p95 för `gen_ai.client.operation.duration` passerar ett tröskelvärde, grupperat per modell.
 
 ## Integritet och maskering
 
-Prompts och completions kan innehålla känsliga data. OneUptime tillämpar dina telemetri-**Scrub-regler** och **Drop-filter** på LLM-spans som på vilket annat trace som helst, så att du kan maskera attribut eller kasta spans innan de lagras; konfigurera dem under **Spår → Inställningar**. Kolumnen med den anställdas e-post omfattas av samma regler — se [Identitetskolumner rensas](#identitetskolumner-rensas).
+AI-anrop lagras som trace-spans, så tracens **Scrub-regler** och **Drop-filter** gäller för dem: maskera ett attribut, eller släpp ett span, innan det lagras. Du hittar båda under **Spår → Inställningar**. Den anställdes e-postkolumn maskeras tillsammans med attributet som den lästes från, så en regel som maskerar e-postadresser täcker den också.
 
 Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan.
 
-## Relaterat
+## Attribut som OneUptime läser
 
-- [Observerbarhet för AI-kodassistenter](/docs/telemetry/ai-coding-assistants) — stödmatrisen för Claude Code, Cursor, Codex, Gemini CLI, Copilot, Cline och de andra, och hur kostnad per anställd fungerar mellan dem.
-- [Övervaka Claude Code](/docs/telemetry/claude-code)
-- [Övervaka Cursor](/docs/telemetry/cursor)
-- [Övervaka OpenAI Codex CLI](/docs/telemetry/openai-codex)
-- [Övervaka Gemini CLI och GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot)
-- [Observera AI-gatewayer (LiteLLM och Portkey)](/docs/telemetry/ai-gateways)
-- [Circuit breakers för skenande AI-agenter](/docs/telemetry/ai-agent-circuit-breaker)
+OneUptime läser OpenTelemetrys GenAI-konventioner och de stavningar som OpenLLMetry, OpenInference, Vercel AI SDK och LiteLLM använder, så de vanliga biblioteken fungerar som de är. För varje värde vinner den första nyckeln som ett span bär:
+
+| Värde | Nycklar, i den ordning de prövas |
+| --- | --- |
+| Leverantör | `gen_ai.system`, `gen_ai.provider.name`, `llm.system`, `llm.provider` |
+| Operation | `gen_ai.operation.name`, `llm.request.type`, `openinference.span.kind` |
+| Begärd modell | `gen_ai.request.model`, `llm.model_name`, `llm.request.model` |
+| Levererad modell | `gen_ai.response.model`, `llm.response.model` |
+| Indatatokens | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`, `llm.usage.prompt_tokens` |
+| Utdatatokens | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.token_count.completion`, `llm.usage.completion_tokens` |
+| Totalt antal tokens | `gen_ai.usage.total_tokens`, `llm.token_count.total`, `llm.usage.total_tokens` |
+| Kostnad (USD) | `gen_ai.usage.cost`, `gen_ai.usage.cost_usd`, `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost`, `litellm.cost.total` |
+| Konversation | `gen_ai.conversation.id`, `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`, `ai.telemetry.metadata.sessionId` |
+| Agent | `gen_ai.agent.name`, `agent.name` |
+| Verktyg | `gen_ai.tool.name`, `tool.name`, `ai.toolCall.name` |
+| Avslutningsorsak | `gen_ai.response.finish_reasons`, `gen_ai.response.finish_reason`, `llm.response.finish_reason`, `ai.response.finishReason` |
+| Fel | `error.type` |
+
+Ett span räknas som ett AI-anrop när det bär något av dessa värden, eller ett attribut som börjar med `gen_ai.`, `llm.` eller `traceloop.`. Totalt antal tokens är indata plus utdata när ingen total rapporteras. Nycklarna `gen_ai.usage.total_tokens` och `gen_ai.usage.cost` ingår inte i konventionerna, som inte definierar någon av dem; OneUptime läser dem eftersom vanliga instrumenteringar skickar dem.
+
+Identitetsnycklarna (vem som gjorde anropet, och deras team) listas under [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
+
+### Var prompter och svar läses ifrån
+
+Konversationsvyn läser ett anrops meddelanden från, i denna ordning:
+
+- händelsen `gen_ai.client.inference.operation.details`;
+- attributen `gen_ai.input.messages`, `gen_ai.output.messages` och `gen_ai.system_instructions`;
+- de äldre händelserna per roll: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` och `gen_ai.choice`;
+- de indexerade attributen: OpenLLMetrys `gen_ai.prompt.N.content` och `gen_ai.completion.N.content`, OpenInferences `llm.input_messages.N.message.content` och `llm.output_messages.N.message.content`;
+- meddelandearrayerna i `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` och `output.value`.
+
+## Felsökning
+
+:::details Anrop kommer in, men inga konversationer visar text
+Din instrumentering registrerar inte innehåll. Slå på det som [Registrera vad som sades](#registrera-vad-som-sades) visar; anrop som gjordes innan dess förblir utan text.
+:::
+
+:::details Varje anrop i en chatt visas som en egen konversation
+Anropen bär inget konversations-id. Sätt `gen_ai.conversation.id` eller `session.id` på varje anrop i chatten, som [Gruppera anrop i konversationer](#gruppera-anrop-i-konversationer) visar.
+:::
+
+:::details Anrop visar tokens men kostar $0
+Modellen finns inte i den inbyggda prislistan, eller så nämner spannet ingen modell. Lägg till modellens priser på fliken **Priser**; anrop som kommer in efter det prissätts.
+:::
+
+:::details Fliken Användning säger från GenAI-mätvärden och visar `—` för anrop och tokens
+Talen kommer från ett verktyg som skickar mätvärden och inga GenAI-spans, som en kodassistent. Ett mätvärde bär kostnad men inga detaljer per anrop, så de cellerna förblir tomma. Se [Spans först, mätvärden fyller i](#spans-först-mätvärden-fyller-i).
+:::
+
+:::details En budgetmonitor växlar mellan två tillstånd
+Monitorns rullande fönster är kortare än 15 minuter, så ibland hittar den ingen punkt. Sätt det till 30 minuter.
+:::
+
+## Nästa steg
+
+:::cards
+- [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Kostnad per utvecklare för Claude Code, Cursor, Codex, Gemini CLI och Copilot.
+- [AI-gatewayer](/docs/telemetry/ai-gateways): Traca alla appars modellanrop från en enda LiteLLM- eller Portkey-gateway.
+- [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stoppa en skenande agent när en budgetvarning utlöses.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Endpoints, intagningsnycklar och gränser för varje signal.
+:::

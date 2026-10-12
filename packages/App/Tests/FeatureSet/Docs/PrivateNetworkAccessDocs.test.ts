@@ -51,18 +51,30 @@ const ADMIN_DASHBOARD_LOCALES_DIR: string = path.join(
   "App/FeatureSet/AdminDashboard/src/Locales",
 );
 
-// The guide quotes the dashboards in English in these languages.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
-
 // How each language's guide names the ranges that stay refused.
 const STILL_REFUSED: Record<string, string> = {
   en: "loopback and link-local",
+  de: "Loopback und Link-Local",
+  fr: "loopback et link-local",
+  es: "loopback y link-local",
+  it: "loopback e link-local",
+  pt: "loopback e link-local",
+  nl: "loopback en link-local",
+  da: "loopback og link-local",
+  no: "loopback og link-local",
+  sv: "loopback och link-local",
+  ru: "loopback и link-local",
+  ja: "ループバックとリンクローカル",
+  ko: "루프백과 링크 로컬",
+  "zh-CN": "环回和链路本地",
+  "zh-TW": "回送和連結本機",
+  hi: "लूपबैक और लिंक-लोकल",
   fa: "بازگشتی و محلی-پیوند",
 };
 
 // The switch, as the guide sets it in config.env and in the Helm values.
 const SWITCH_IN_CONFIG_ENV: string =
-  "```\nDATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true\n```";
+  '```bash title="config.env"\nDATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true\n```';
 const SWITCH_IN_HELM_VALUES: string =
   "outboundConnections:\n  blockPrivateNetwork: true\n";
 
@@ -111,12 +123,9 @@ function readSource(relativePath: string): string {
 
 // What the Admin Dashboard draws for a label, by its key, in that language.
 function adminDashboardLabel(language: string, key: string): string {
-  const locale: string = ENGLISH_LABEL_LANGUAGES.includes(language)
-    ? "en"
-    : language;
   let label: unknown = JSON.parse(
     fs.readFileSync(
-      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${locale}.json`),
+      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${language}.json`),
       "utf8",
     ),
   );
@@ -200,12 +209,22 @@ describe("the guide says, right after the switch, that a Global LLM Provider is 
       });
     }
 
-    // Between the switch's config.env line and its Helm values.
+    /*
+     * Right after the switch: its config.env line and its Helm values, in
+     * the tabs that set it, and then this paragraph.
+     */
     const at: number = markdown.indexOf(paragraph);
+    const tabsEnd: number = markdown.indexOf(
+      "\n:::\n",
+      markdown.indexOf(SWITCH_IN_HELM_VALUES),
+    );
 
     expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeGreaterThan(-1);
-    expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeLessThan(at);
-    expect(markdown.indexOf(SWITCH_IN_HELM_VALUES)).toBeGreaterThan(at);
+    expect(markdown.indexOf(SWITCH_IN_CONFIG_ENV)).toBeLessThan(
+      markdown.indexOf(SWITCH_IN_HELM_VALUES),
+    );
+    expect(tabsEnd).toBeGreaterThan(-1);
+    expect(markdown.slice(tabsEnd, at).trim()).toBe(":::");
   });
 });
 
