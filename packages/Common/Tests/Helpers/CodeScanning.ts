@@ -7,7 +7,11 @@ import {
   ClassRange,
   characterClassesOf,
 } from "./RegExpCharacterClasses";
-import { REPOSITORY_DIRECTORY, isTestCode } from "./TagStripScan";
+import {
+  REPOSITORY_DIRECTORY,
+  SKIPPED_FOLDER_NAMES,
+  isTestCode,
+} from "./TagStripScan";
 
 /*
  * CODE READ THE WAY CODE SCANNING READS IT, FOR TWO OF ITS QUERIES.
@@ -1697,12 +1701,6 @@ const CODE_OR_TEMPLATE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
 const DECLARATION_FILE: RegExp = /\.d\.ts$/;
 // Code scanning skips these itself, as it does node_modules.
 const MINIFIED_FILE: RegExp = /\.min\.js$/;
-// Folders of dependencies and builds, which the repository never holds.
-const SKIPPED_FOLDERS: ReadonlySet<string> = new Set<string>([
-  "node_modules",
-  "build",
-  "dist",
-]);
 
 /*
  * The configuration of code scanning's advanced setup, by its path from the
@@ -1767,11 +1765,12 @@ export const isIgnoredByCodeScanning: IsIgnoredByCodeScanningFunction = (
 /*
  * Whether code scanning reads a file, by its path from the repository's
  * root: code or a template, not a declaration, not a minified file, outside
- * builds, dependencies and hidden folders, and not in a directory code
- * scanning leaves out - the third-party builds vendored for offline installs
- * (Common/Server/Static/Vendor: Tailwind, highlight.js), which
- * CODE_SCANNING_IGNORED_PATHS reads from code scanning's configuration.
- * Their code is upstream's; it is not edited here.
+ * dependencies, builds, test reports and hidden folders (TagStripScan's
+ * SKIPPED_FOLDER_NAMES, which the repository never holds), and not in a
+ * directory code scanning leaves out - the third-party builds vendored for
+ * offline installs (Common/Server/Static/Vendor: Tailwind, highlight.js),
+ * which CODE_SCANNING_IGNORED_PATHS reads from code scanning's
+ * configuration. Their code is upstream's; it is not edited here.
  */
 function isReadByCodeScanning(relativePath: string): boolean {
   const parts: Array<string> = relativePath.split("/");
@@ -1783,18 +1782,21 @@ function isReadByCodeScanning(relativePath: string): boolean {
     !MINIFIED_FILE.test(fileName) &&
     !isIgnoredByCodeScanning(relativePath) &&
     !parts.slice(0, -1).some((folder: string): boolean => {
-      return folder.startsWith(".") || SKIPPED_FOLDERS.has(folder);
+      return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
     })
   );
 }
 
 /*
  * Whether a file is test code, by TagStripScan's isTestCode: a template is
- * test code where a script would be, in the same folders.
+ * test code where a script of its name would be - page.html in a Tests
+ * folder as page.ts, Widget.spec.html anywhere as Widget.spec.ts.
  */
 function isTestCodeOrTemplate(relativePath: string): boolean {
   return isTestCode(
-    TEMPLATE_FILE.test(relativePath) ? `${relativePath}.ts` : relativePath,
+    TEMPLATE_FILE.test(relativePath)
+      ? `${relativePath.slice(0, relativePath.lastIndexOf("."))}.ts`
+      : relativePath,
   );
 }
 
@@ -1844,7 +1846,7 @@ function walkFiles(
 
   const walk: (directory: string) => void = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name.startsWith(".") || SKIPPED_FOLDERS.has(entry.name)) {
+      if (entry.name.startsWith(".") || SKIPPED_FOLDER_NAMES.has(entry.name)) {
         continue;
       }
 

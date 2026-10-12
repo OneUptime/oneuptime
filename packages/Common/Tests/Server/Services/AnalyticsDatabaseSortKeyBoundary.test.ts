@@ -5,6 +5,7 @@ import {
 } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
+import { orderByColumns } from "../TestingUtils/AnalyticsOrderBy";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
@@ -167,33 +168,6 @@ function hasBoundary(statement: Statement): boolean {
 function boundaryClause(statement: Statement): string {
   const query: string = statement.query;
   return query.slice(query.indexOf(" AND "), query.lastIndexOf("ORDER BY "));
-}
-
-function outerOrderBy(statement: Statement): string {
-  return statement.query
-    .slice(statement.query.lastIndexOf("ORDER BY "))
-    .replace("ORDER BY ", "")
-    .split(" LIMIT")[0]!;
-}
-
-// A rendered ORDER BY term: a bound column name, then its direction.
-const ORDER_BY_TERM: RegExp = /^\{(p\d+):Identifier\} (?:ASC|DESC)$/;
-
-/*
- * Resolves rendered `{pN:Identifier} DESC` terms back to the bound column
- * names. A term of any other shape is returned as it is, so an assertion on
- * the names shows it.
- */
-function orderByColumns(statement: Statement): Array<string> {
-  return outerOrderBy(statement)
-    .split(", ")
-    .map((term: string): string => {
-      const parameter: string | undefined = ORDER_BY_TERM.exec(term)?.[1];
-
-      return parameter === undefined
-        ? term
-        : (statement.query_params[parameter] as string);
-    });
 }
 
 function paramValues(statement: Statement): Array<unknown> {

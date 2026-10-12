@@ -9,7 +9,6 @@ import {
   CODE_SCANNING_GUARD_OPTIONS,
   CODE_SCANNING_IGNORED_PATHS,
   CodeScanningFinding,
-  CodeScanningOptions,
   PACKAGES_WITH_COMMON,
   SHARED_REGEXP_ESCAPE_FILE,
   findCodeScanningProblems,
@@ -246,13 +245,9 @@ const FIXED_ALERTS: Array<FixedAlert> = [
   },
 ];
 
-// What every guard reads with: the test guards read with the same.
-const OPTIONS: Readonly<Required<CodeScanningOptions>> =
-  CODE_SCANNING_GUARD_OPTIONS;
-
-// What a file holds that the guard reports.
+// What a file holds that the guard reports, read as every guard reads.
 function problemsIn(file: string, text: string): Array<CodeScanningFinding> {
-  return findCodeScanningProblems(file, text, OPTIONS);
+  return findCodeScanningProblems(file, text, CODE_SCANNING_GUARD_OPTIONS);
 }
 
 function rulesAndMessages(

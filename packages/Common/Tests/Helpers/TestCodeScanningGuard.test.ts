@@ -1,14 +1,15 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import childProcess from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import {
-  CODE_ROOTS,
   CODE_SCANNING_FIXES,
   CODE_SCANNING_GUARD_OPTIONS,
   CodeScanningFinding,
   SHARED_REGEXP_ESCAPE_FILE,
   findCodeScanningProblems,
+  isIgnoredByCodeScanning,
   isProductCode,
   isTestCodeFile,
   listFilesReadByCodeScanning,
@@ -460,6 +461,25 @@ const EE_IS_CHECKED_OUT: boolean = fs.existsSync(
   path.join(REPOSITORY_DIRECTORY, "ee"),
 );
 
+// What code scanning reads as code: scripts and the templates they sit in.
+const CODE_OR_TEMPLATE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
+const DECLARATION_FILE: RegExp = /\.d\.ts$/;
+const MINIFIED_FILE: RegExp = /\.min\.js$/;
+
+// The files git tracks, by their paths from the repository's root.
+const trackedFiles: () => Array<string> = (): Array<string> => {
+  return childProcess
+    .execFileSync("git", ["ls-files", "-z"], {
+      cwd: REPOSITORY_DIRECTORY,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    })
+    .split("\0")
+    .filter((file: string): boolean => {
+      return file !== "";
+    });
+};
+
 describe("every test file writes nothing code scanning reports", () => {
   const files: Array<string> = listTestCodeFiles();
 
@@ -515,13 +535,16 @@ describe("every test file writes nothing code scanning reports", () => {
       ]);
     }
 
-    // Nothing of a dependency, a build or a hidden folder.
+    // Nothing of a dependency, a build, a test report or a hidden folder.
     expect(
       files.filter((file: string): boolean => {
         return (
           file.includes("node_modules/") ||
           file.includes("/build/") ||
           file.includes("/dist/") ||
+          file.includes("/coverage/") ||
+          file.includes("/playwright-report/") ||
+          file.includes("/test-results/") ||
           file.startsWith(".") ||
           file.includes("/.")
         );
@@ -538,27 +561,48 @@ describe("every test file writes nothing code scanning reports", () => {
     ).toEqual(listTestFiles(REPOSITORY_DIRECTORY).filter(isTestCodeFile));
   });
 
-  test("every file code scanning reads in the code folders is product code or test code, never both", () => {
+  test("every tracked file of code is read by the product code guard or this one, never both", () => {
     /*
-     * So the product code guard and this one read all of it between them: a
-     * file neither reads would be a file code scanning reports on unseen.
+     * Code scanning reads what git tracks. A file of code neither guard
+     * reads is one it reports on unseen: product code in a top-level folder
+     * CODE_ROOTS does not name, test code this walk passes over, or a file
+     * in a folder the walks skip as never the repository's (a build, a test
+     * report). The checkout's root and its hidden folders hold configuration
+     * (eslint.config.js, .github), and ee/ is checked out only in the
+     * Enterprise Edition jobs.
      */
-    const folders: Array<string> = [...CODE_ROOTS, "Tests"];
     const productFiles: Array<string> = listProductFiles();
-    const testFiles: Array<string> = listTestCodeFiles(
-      REPOSITORY_DIRECTORY,
-      folders,
+    const testFileSet: Set<string> = new Set<string>(files);
+    const readByAGuard: Set<string> = new Set<string>([
+      ...productFiles,
+      ...files,
+    ]);
+    const trackedCode: Array<string> = trackedFiles().filter(
+      (file: string): boolean => {
+        return (
+          file.includes("/") &&
+          !file.startsWith(".") &&
+          CODE_OR_TEMPLATE_FILE.test(file) &&
+          !DECLARATION_FILE.test(file) &&
+          !MINIFIED_FILE.test(file) &&
+          !isIgnoredByCodeScanning(file) &&
+          fs.existsSync(path.join(REPOSITORY_DIRECTORY, file))
+        );
+      },
     );
-    const testFileSet: Set<string> = new Set<string>(testFiles);
 
+    // Guards the check: git answered, and with the files the guards read.
+    expect(trackedCode.length).toBeGreaterThan(15000);
     expect(
       productFiles.filter((file: string): boolean => {
         return testFileSet.has(file);
       }),
     ).toEqual([]);
-    expect([...productFiles, ...testFiles].sort()).toEqual(
-      listFilesReadByCodeScanning(REPOSITORY_DIRECTORY, folders),
-    );
+    expect(
+      trackedCode.filter((file: string): boolean => {
+        return !readByAGuard.has(file);
+      }),
+    ).toEqual([]);
   });
 
   test(
@@ -741,6 +785,8 @@ describe("isTestCodeFile and listTestCodeFiles, on a tree written here", () => {
     "ee/Tests/Server/E.test.ts",
     "packages/App/FeatureSet/Y/__tests__/i.ts",
     "packages/App/FeatureSet/Y/j.spec.ts",
+    // A template named as a test is one, wherever it is.
+    "packages/App/FeatureSet/Y/Widget.spec.html",
     "packages/App/FeatureSet/Y/tests/h.ts",
     "packages/Common/Tests/Helpers/Helper.ts",
     "packages/Common/Tests/Utils/A.test.ts",
@@ -762,6 +808,10 @@ describe("isTestCodeFile and listTestCodeFiles, on a tree written here", () => {
     "packages/Common/node_modules/n/Tests/index.test.js",
     "packages/Common/build/Tests/o.test.js",
     "packages/App/dist/Tests/p.test.js",
+    // Reports a local run leaves behind, which git ignores.
+    "packages/Common/coverage/lcov-report/Tests/Helpers/index.html",
+    "packages/E2E/playwright-report/index.html",
+    "packages/E2E/test-results/Some-spec/fixture.js",
     "packages/Common/.hidden/Tests/t.test.ts",
     "packages/Common/Server/Static/Vendor/tailwind/Tests/q.test.js",
   ];
