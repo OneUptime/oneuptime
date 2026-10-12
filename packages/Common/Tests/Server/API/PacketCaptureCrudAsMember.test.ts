@@ -718,11 +718,29 @@ describe("edit: PUT /packet-capture/:id", () => {
 });
 
 describe("the whole walk, as the members the docs name", () => {
-  test("a member given Start Packet Capture starts it, one given Download downloads it, one given Delete deletes it", async () => {
+  test("a member given Start Packet Capture starts it, one given Download downloads it, one given Delete deletes it - each in the audit log", async () => {
+    const recordCreate: MockedFn = jest
+      .spyOn(AuditLogService, "recordCreate")
+      .mockResolvedValue(undefined as never) as unknown as MockedFn;
+    const recordDelete: MockedFn = jest
+      .spyOn(AuditLogService, "recordDelete")
+      .mockResolvedValue(undefined as never) as unknown as MockedFn;
+
     // 1. Start, from the probe's page.
     props = caller([Permission.ProjectMember, Permission.CreatePacketCapture]);
+    const starter: DatabaseCommonInteractionProps = props;
 
     expect((await start()).error).toBeUndefined();
+
+    // Starting one is in the audit log: a create, by whoever started it.
+    expect(recordCreate).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        recordCreate.mock.calls[0]![0] as {
+          props: DatabaseCommonInteractionProps;
+        }
+      ).props.userId?.toString(),
+    ).toBe(starter.userId!.toString());
 
     const started: StoredRow = storedCaptures()[0]!;
     const captureId: string = String(started["_id"]);
@@ -780,5 +798,13 @@ describe("the whole walk, as the members the docs name", () => {
     expect(removal.error).toBeUndefined();
     expect(captures.get(captureId)).toBeUndefined();
     expect(hardDeleteFiles).toHaveBeenCalledTimes(1);
+
+    // And deleting it is in the audit log too.
+    expect(recordDelete).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        recordDelete.mock.calls[0]![0] as { itemId: ObjectID }
+      ).itemId.toString(),
+    ).toBe(captureId);
   });
 });
