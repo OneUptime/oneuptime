@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Issue #4105 wiring pins for the logs, traces, exceptions and security
@@ -358,9 +359,8 @@ describe("the crosshair is set on the recharts root, only where a drag zooms", (
        */
       expect(source).toMatch(
         new RegExp(
-          `const chartRootCursorProps: \\{ style\\?: React\\.CSSProperties \\} = ${condition.replace(
-            /\./g,
-            "\\.",
+          `const chartRootCursorProps: \\{ style\\?: React\\.CSSProperties \\} = ${escapeRegExp(
+            condition,
           )} \\? \\{ style: \\{ cursor: "crosshair" \\} \\} : \\{\\};`,
         ),
       );

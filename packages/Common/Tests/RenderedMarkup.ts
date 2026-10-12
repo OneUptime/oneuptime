@@ -13,6 +13,7 @@ import {
   splitVariants,
 } from "./ResponsiveVisibility";
 import { markupAsSpaces } from "./Helpers/HtmlText";
+import { escapeRegExp } from "../Utils/RegExpEscape";
 
 /*
  * Server-rendered pages under a foreign `.hidden { display: none !important }`,
@@ -362,10 +363,6 @@ export interface ElementScriptWrites {
 // A quoted JavaScript string: its content is group 2.
 const STRING_LITERAL: RegExp = /(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // Whether any string literal in the code has `hidden` as a whole class token.
 function namesBareHidden(code: string): boolean {
   return Array.from(code.matchAll(STRING_LITERAL)).some(
@@ -379,7 +376,7 @@ export function scriptWritesToElement(
   html: string,
   elementId: string,
 ): ElementScriptWrites {
-  const id: string = escapeForPattern(elementId);
+  const id: string = escapeRegExp(elementId);
   // `document.getElementById('toc-panel')` or `document.querySelector('#toc-panel')`.
   const lookup: string = `document\\s*\\.\\s*(?:getElementById\\(\\s*["'\`]${id}["'\`]\\s*\\)|querySelector\\(\\s*["'\`]#${id}["'\`]\\s*\\))`;
 
@@ -398,7 +395,7 @@ export function scriptWritesToElement(
 
   const handles: Array<string> = [
     ...variables.map((variable: string): string => {
-      return `(?<![\\w$.])${escapeForPattern(variable)}`;
+      return `(?<![\\w$.])${escapeRegExp(variable)}`;
     }),
     lookup,
   ];

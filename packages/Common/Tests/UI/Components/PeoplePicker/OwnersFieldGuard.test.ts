@@ -13,6 +13,7 @@ import {
   SourceFileSystem,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * "We have this owner's team and owner's user literally everywhere in the
@@ -654,7 +655,7 @@ describe("the project's source", () => {
 
     for (const label of RETIRED_LABELS) {
       const quoted: RegExp = new RegExp(
-        `(["'\`>])${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(["'\`<])`,
+        `(["'\`>])${escapeRegExp(label)}(["'\`<])`,
       );
 
       for (const source of sources) {

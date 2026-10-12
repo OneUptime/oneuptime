@@ -4,6 +4,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The Security Event Connections poll job is SCHEDULED AT ALL, and it is
@@ -134,10 +135,6 @@ function moduleSpecifierFor(fromDir: string, filePath: string): string {
   return relative.startsWith(".") ? relative : "./" + relative;
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function readSource(filePath: string): string {
   return fs.readFileSync(filePath, { encoding: "utf-8" });
 }
@@ -148,7 +145,7 @@ function sideEffectImportOf(specifier: string): RegExp {
    * style, so prettier cannot break the test and a comment cannot fake it.
    */
   return new RegExp(
-    `^\\s*import\\s+["']${escapeForRegExp(specifier)}["']\\s*;?\\s*$`,
+    `^\\s*import\\s+["']${escapeRegExp(specifier)}["']\\s*;?\\s*$`,
     "m",
   );
 }
@@ -252,7 +249,7 @@ describe("PollSecurityEventConnections - the job is wired into the worker at all
 
     expect(appIndexSource).toMatch(
       new RegExp(
-        `^\\s*import\\s+\\w+\\s+from\\s+["']${escapeForRegExp(
+        `^\\s*import\\s+\\w+\\s+from\\s+["']${escapeRegExp(
           workersIndexSpecifier,
         )}["']\\s*;?\\s*$`,
         "m",

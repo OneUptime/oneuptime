@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Resource pages scope the shared telemetry viewers (logs, traces, metrics,
@@ -513,7 +514,7 @@ describe("every scoped resource page gives the viewer a name, not just an id", (
             value: expect.not.stringMatching(
               new RegExp(
                 `^(${RAW_IDENTIFIER_EXPRESSIONS.map((raw: string) => {
-                  return raw.replace(/[.*+?^${}()|[\]\\!]/g, "\\$&");
+                  return escapeRegExp(raw);
                 }).join("|")})$`,
               ),
             ),

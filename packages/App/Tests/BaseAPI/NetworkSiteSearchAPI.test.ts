@@ -25,6 +25,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * POST /network-site/search, end to end through the route handler.
@@ -378,10 +379,7 @@ function ilikePatterns(operator: unknown): Array<string> {
   const raw: RawOperator = operator as RawOperator;
   expect(raw.type).toBe("raw");
   const sql: string = renderedSql(operator);
-  const escapedAlias: string = NAME_ALIAS.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&",
-  );
+  const escapedAlias: string = escapeRegExp(NAME_ALIAS);
   const term: string = `CAST\\(${escapedAlias} AS TEXT\\) ILIKE :([A-Za-z]+)`;
   // The whole clause is parenthesized, so it cannot leak into an OR.
   expect(sql).toMatch(new RegExp(`^\\(${term}( AND ${term})*\\)$`));

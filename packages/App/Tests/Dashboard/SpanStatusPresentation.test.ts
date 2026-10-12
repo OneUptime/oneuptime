@@ -10,6 +10,7 @@ import {
   getSpanStatusDisplayLabelMap,
   getSpanStatusPresentation,
 } from "../../FeatureSet/Dashboard/src/Utils/SpanStatusPresentation";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * How the Dashboard names and paints a span status. Unset (0) is
@@ -139,7 +140,6 @@ const SENTENCES: RegExp = new RegExp(`^${SENTENCE}(?: ${SENTENCE})*$`);
 const TEMPLATE_CLASS_FRAGMENT: RegExp =
   /(?:bg|text|ring|border)-[a-z0-9-]*\$\{/;
 
-const REGEX_SPECIAL_CHARACTERS: RegExp = /[.*+?^${}()|[\]\\]/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 
 type ClassField =
@@ -252,10 +252,6 @@ const DARK_THEME_RULES: Array<CssRule> = THEME_CSS.split("}")
   .filter((rule: CssRule): boolean => {
     return rule.selector.includes("html.dark");
   });
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEX_SPECIAL_CHARACTERS, "\\$&");
-}
 
 function darkThemeRulesFor(className: string): Array<CssRule> {
   /*

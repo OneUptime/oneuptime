@@ -58,9 +58,6 @@ export function toLatinDigits(text: string): string {
   });
 }
 
-// Every character a pattern reads as syntax outside a character class.
-const PATTERN_SYNTAX: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 /*
  * Text as a pattern that matches that text and nothing else, for a regular
  * expression built from text, as in new RegExp(`^${escapeRegExp(label)}:`).
@@ -69,10 +66,11 @@ const PATTERN_SYNTAX: RegExp = /[.*+?^${}()|[\]\\]/g;
  * backslash or a bracket in the text free to change the pattern, which code
  * scanning reports as incomplete sanitization (js/incomplete-sanitization,
  * #2215). The text goes outside a character class: a "-" is left as it is.
+ * It is the one escape of the whole repository, Common/Utils/RegExpEscape
+ * (the code scanning guards fail on a copy); the docs suites import it from
+ * here.
  */
-export function escapeRegExp(text: string): string {
-  return text.replace(PATTERN_SYNTAX, "\\$&");
-}
+export { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 // A card's line: its link, then an ASCII ": " and the description.
 export const CARD_LINE: RegExp = /^- \[[^\]]+\]\([^)\s]+\): \S/;

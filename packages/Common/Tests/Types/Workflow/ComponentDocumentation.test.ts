@@ -91,6 +91,7 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 // `<key>` and the like: a placeholder for whatever the caller sends.
 const PLACEHOLDER: RegExp = /^<[a-z-]+>$/;
@@ -411,12 +412,6 @@ const unknownNames: UnknownNamesFunction = (
         !Object.keys(UI_LABELS).includes(name)
       );
     });
-};
-
-type EscapeRegExpFunction = (text: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (text: string): string => {
-  return text.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&");
 };
 
 type ReadPackageFileFunction = (file: string) => string;

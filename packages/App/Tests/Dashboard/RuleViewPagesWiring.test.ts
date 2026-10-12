@@ -2,6 +2,7 @@ import { RuleRunType } from "Common/Types/Rules/RuleRun";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Every runnable rule - label, owner, privacy and status page monitor rules -
@@ -56,10 +57,6 @@ function stripComments(source: string): string {
 // All whitespace removed, so Prettier can reflow without breaking assertions.
 function dense(source: string): string {
   return stripComments(source).replace(/\s+/g, "");
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 interface SourceFile {

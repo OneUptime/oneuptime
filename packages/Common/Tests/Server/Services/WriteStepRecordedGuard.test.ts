@@ -6,6 +6,7 @@ import {
 } from "../TestingUtils/ClassSource";
 import { describe, expect, test } from "@jest/globals";
 import path from "path";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * EVERY REPOSITORY WRITE OF A CREATE, UPDATE OR DELETE IS RECORDED AS THE
@@ -71,10 +72,6 @@ const WRITING_METHODS: Array<WritingMethod> = [
   },
 ];
 
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function repositoryWritesIn(text: string): Array<string> {
   return Array.from(text.matchAll(REPOSITORY_WRITE)).map(
     (match: RegExpMatchArray): string => {
@@ -89,7 +86,7 @@ describe.each(WRITING_METHODS)(
     const text: string = methodText(DATABASE_SERVICE, entry.method);
     const recorded: Array<string> = callArguments(
       text,
-      new RegExp(`${escaped(entry.progress)}\\.write`),
+      new RegExp(`${escapeRegExp(entry.progress)}\\.write`),
     );
 
     test("the method is there, and writes through the repository", () => {
@@ -146,7 +143,7 @@ describe.each(WRITING_METHODS)(
       expect(hookCalls).toHaveLength(1);
       expect(hookCalls[0]!).toMatch(
         new RegExp(
-          `,\\s*${escaped(entry.progress)}\\.getFailedStatement\\(\\)\\s*,?\\s*$`,
+          `,\\s*${escapeRegExp(entry.progress)}\\.getFailedStatement\\(\\)\\s*,?\\s*$`,
         ),
       );
     });

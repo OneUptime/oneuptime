@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * OnCallShiftReminderListener wires the change pass (catch-up + reassigned
@@ -59,12 +60,8 @@ const LISTENER_PATH: string = path.join(
 const LISTENER_SPECIFIER: string =
   "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 const SIDE_EFFECT_IMPORT: RegExp = new RegExp(
-  `^\\s*import\\s+["']${escapeForRegExp(LISTENER_SPECIFIER)}["']\\s*;?\\s*$`,
+  `^\\s*import\\s+["']${escapeRegExp(LISTENER_SPECIFIER)}["']\\s*;?\\s*$`,
   "m",
 );
 

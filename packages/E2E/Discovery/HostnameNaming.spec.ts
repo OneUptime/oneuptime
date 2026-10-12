@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import path from "path";
 
 /*
@@ -60,10 +61,9 @@ async function openReview(page: Page): Promise<void> {
 // The line under a row's name: the address, then what else names it.
 function addressLine(page: Page, address: string): Locator {
   // Every character a regular expression treats specially, not just the dots.
-  const escaped: string = address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return page
     .locator("div.truncate")
-    .filter({ hasText: new RegExp(`^${escaped}`) })
+    .filter({ hasText: new RegExp(`^${escapeRegExp(address)}`) })
     .first();
 }
 
