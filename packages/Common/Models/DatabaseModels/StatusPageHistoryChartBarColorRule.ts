@@ -274,7 +274,8 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
     type: TableColumnType.Number,
     modelType: MonitorStatus,
     title: "Uptime Percent Greater than or equal to",
-    description: "Uptime percent greater than or equal to this value",
+    description:
+      "Uptime percent, from 0 to 100, that a day must reach for this rule to color its bar (99.65 for example)",
   })
   @Column({
     nullable: false,
