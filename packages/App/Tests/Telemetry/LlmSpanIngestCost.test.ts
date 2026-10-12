@@ -156,7 +156,7 @@ function request(data: {
 }
 
 function setup(data?: {
-  modelPrices?: Array<LlmModelPrice>;
+  modelPrices?: Array<LlmModelPrice> | undefined;
 }): Array<JSONObject> {
   const capturedRows: Array<JSONObject> = [];
 
