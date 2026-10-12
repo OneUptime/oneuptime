@@ -178,6 +178,23 @@ Sotto **Altri campi**:
 
 Tieni l'URL del webhook in una [variabile globale segreta](/docs/workflows/variables#variabili-globali): chiunque lo abbia può pubblicare nel canale. È comunque nascosto nei registri delle esecuzioni. Il messaggio parte da OneUptime e i reindirizzamenti non vengono seguiti. Un webhook su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 
+## SMSEagle
+
+Invia un SMS o fai una chiamata con sintesi vocale tramite un dispositivo SMSEagle, un gateway SMS hardware nella tua rete. **Send SMS via SMSEagle** invia un SMS, e **Make a Call via SMSEagle** chiama il numero e legge il testo ad alta voce.
+
+| Impostazione              | Cosa fa                                                                                                                                                          |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | L'indirizzo del dispositivo, come `https://192.168.0.100`. Il percorso dell'API v2 lo aggiunge il blocco.                                                        |
+| **SMSEagle Access Token** | Una chiave API v2 dal pannello web di SMSEagle, in Settings, API, API v2. Serve il permesso "Send SMS" per gli SMS e "Make a TTS Advanced Call" per le chiamate. |
+| **Numero di telefono**    | Il numero a cui inviare l'SMS o da chiamare, in formato internazionale, come `+15551234567`.                                                                     |
+| **Message Text**          | Il testo dell'SMS. Solo in **Send SMS via SMSEagle**.                                                                                                            |
+| **Voice ID**              | L'ID di una voce di sintesi vocale del dispositivo. Solo in **Make a Call via SMSEagle**.                                                                        |
+| **Text to Read Out**      | Il testo che il dispositivo legge durante la chiamata. Solo in **Make a Call via SMSEagle**.                                                                     |
+
+**Success** scatta quando il dispositivo ha messo in coda l'SMS o la chiamata, e restituisce il **Message ID** che gli ha assegnato. **Error** scatta quando il dispositivo non è raggiungibile o lo rifiuta, e riporta il motivo, come `voice_id: Resource with specified ID not found.` di SMSEagle. Un'impostazione mancante, o un **Voice ID** che non è un numero, ferma invece l'esecuzione.
+
+Tieni il token di accesso in una [variabile globale segreta](/docs/workflows/variables#variabili-globali). È comunque nascosto nei registri delle esecuzioni. La richiesta parte da OneUptime e i reindirizzamenti non vengono seguiti. Un dispositivo su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
+
 ## Email
 
 Invia un'email tramite un server SMTP che indichi sul blocco. Il blocco si chiama **Send Email**.

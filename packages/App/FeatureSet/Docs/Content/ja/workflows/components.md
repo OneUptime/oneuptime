@@ -178,6 +178,23 @@ Libera.Chat、OFTC、自前のサーバーなど、任意の IRC ネットワー
 
 Webhook の URL は [シークレットのグローバル変数](/docs/workflows/variables#グローバル変数) に保存してください。URL を知っていれば誰でもそのチャンネルに投稿できるからです。いずれにしても実行のログでは隠されます。メッセージは OneUptime から送信され、リダイレクトはたどりません。ループバック（`localhost`、`127.0.0.1`）、リンクローカル、クラウドメタデータのアドレスにある Webhook は拒否されます。プライベートネットワークのアドレスにあるものも、セルフホスト環境の管理者が `ALLOW_PRIVATE_NETWORK_WEBHOOKS` または `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` で許可しない限り拒否されます。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 
+## SMSEagle
+
+自社ネットワーク上のハードウェア SMS ゲートウェイである SMSEagle デバイスを通して、SMS を送信するか、テキスト読み上げの電話をかけます。**Send SMS via SMSEagle** は SMS を送り、**Make a Call via SMSEagle** はその番号に電話をかけてテキストを読み上げます。
+
+| 設定                        | 役割                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | デバイスのアドレス。例: `https://192.168.0.100`。API v2 のパスはブロックが自分で付け加えます。                                                       |
+| **SMSEagle Access Token** | SMSEagle の Web パネルの Settings、API、API v2 で作成した API v2 キー。SMS には "Send SMS" 権限、電話には "Make a TTS Advanced Call" 権限が必要です。 |
+| **電話番号**                  | SMS を送る、または電話をかける番号。国際形式で指定します。例: `+15551234567`。                                                                     |
+| **Message Text**          | SMS の本文。**Send SMS via SMSEagle** のみ。                                                                                 |
+| **Voice ID**              | デバイス上のテキスト読み上げ音声の ID。**Make a Call via SMSEagle** のみ。                                                                 |
+| **Text to Read Out**      | 通話中にデバイスが読み上げるテキスト。**Make a Call via SMSEagle** のみ。                                                                   |
+
+**Success** は、デバイスが SMS または電話をキューに入れたときに発火し、デバイスが付けた **Message ID** を返します。**Error** は、デバイスに到達できないとき、またはデバイスがそれを拒否したときに発火し、理由を渡します。例: SMSEagle の `voice_id: Resource with specified ID not found.`。一方、設定の欠落や、数値ではない **Voice ID** は、実行を停止させます。
+
+アクセストークンは [シークレットのグローバル変数](/docs/workflows/variables#グローバル変数) に保存してください。いずれにしても実行のログでは隠されます。リクエストは OneUptime から送信され、リダイレクトはたどりません。ループバック（`localhost`、`127.0.0.1`）、リンクローカル、クラウドメタデータのアドレスにあるデバイスは拒否されます。プライベートネットワークのアドレスにあるものも、セルフホスト環境の管理者が `ALLOW_PRIVATE_NETWORK_WEBHOOKS` または `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` で許可しない限り拒否されます。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
+
 ## Email
 
 ブロックで指定した SMTP サーバーを通してメールを送ります。ブロック名は **Send Email** です。

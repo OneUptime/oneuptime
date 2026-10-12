@@ -178,6 +178,23 @@ Under **Flere felt**:
 
 Oppbevar webhook-URL-en i en [hemmelig global variabel](/docs/workflows/variables#globale-variabler): alle som har den, kan poste i kanalen. Den er skjult i kjøringenes logger uansett. Meldingen sendes fra OneUptime, og en omdirigering følges ikke. En webhook på en loopback- (`localhost`, `127.0.0.1`), link-local- eller skymetadata-adresse avvises, og det samme gjelder en webhook på en privat nettverksadresse, med mindre en administrator av en selvhostet installasjon tillater det med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 
+## SMSEagle
+
+Send en SMS eller ring en tekst-til-tale-samtale gjennom en SMSEagle-enhet, en maskinvare-SMS-gateway på ditt eget nettverk. **Send SMS via SMSEagle** sender en SMS, og **Make a Call via SMSEagle** ringer nummeret og leser opp teksten.
+
+| Innstilling               | Hva den gjør                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **SMSEagle URL**          | Adressen til enheten, for eksempel `https://192.168.0.100`. Blokken legger selv til banen for API v2.                                                        |
+| **SMSEagle Access Token** | En API v2-nøkkel fra SMSEagles webpanel, under Settings, API, API v2. Den trenger tillatelsen "Send SMS" for SMS og "Make a TTS Advanced Call" for samtaler. |
+| **Telefonnummer**         | Nummeret som skal få SMS-en eller samtalen, i internasjonalt format, for eksempel `+15551234567`.                                                            |
+| **Message Text**          | Teksten i SMS-en. Bare i **Send SMS via SMSEagle**.                                                                                                          |
+| **Voice ID**              | ID-en til en tekst-til-tale-stemme på enheten. Bare i **Make a Call via SMSEagle**.                                                                          |
+| **Text to Read Out**      | Teksten enheten leser opp under samtalen. Bare i **Make a Call via SMSEagle**.                                                                               |
+
+**Success** utløses når enheten har satt SMS-en eller samtalen i kø, og returnerer **Message ID**-en enheten ga den. **Error** utløses når enheten ikke kan nås eller avviser den, og gir videre årsaken, for eksempel SMSEagles `voice_id: Resource with specified ID not found.` En manglende innstilling, eller en **Voice ID** som ikke er et tall, stopper derimot kjøringen.
+
+Oppbevar tilgangstokenet i en [hemmelig global variabel](/docs/workflows/variables#globale-variabler). Det er skjult i kjøringenes logger uansett. Forespørselen sendes fra OneUptime, og en omdirigering følges ikke. En enhet på en loopback- (`localhost`, `127.0.0.1`), link-local- eller skymetadata-adresse avvises, og det samme gjelder en enhet på en privat nettverksadresse, med mindre en administrator av en selvhostet installasjon tillater det med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
+
 ## Email
 
 Send en e-post gjennom en SMTP-server som du angir på blokken. Blokken heter **Send Email**.

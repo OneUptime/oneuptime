@@ -652,6 +652,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "telegram",
   "irc",
   "mattermost",
+  "smsEagle",
   "email",
   "customCode",
   "json",

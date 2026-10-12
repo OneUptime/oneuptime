@@ -180,7 +180,20 @@ Keep the webhook URL in a [secret global variable](/docs/workflows/variables#glo
 
 ## SMSEagle
 
-Send an SMS or make a text-to-speech call through an SMSEagle device using its URL and an API v2 key.
+Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware SMS gateway on your own network. **Send SMS via SMSEagle** sends an SMS, and **Make a Call via SMSEagle** calls the number and reads the text out.
+
+| Setting                   | What it does                                                                                                                                                   |
+| ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
+| **SMSEagle Access Token** | An API v2 key from the SMSEagle web panel, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls. |
+| **Phone Number**          | The number to text or call, in international format, such as `+1987654321`.                                                                                    |
+| **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
+| **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
+| **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |
+
+**Success** fires when the device queued the SMS or call, and returns the **Message ID** it gave it. **Error** fires when the device can't be reached or refuses it, and passes along the reason, such as SMSEagle's `voice_id: Resource with specified ID not found.` A missing setting, or a **Voice ID** that is not a number, stops the run instead.
+
+Keep the access token in a [secret global variable](/docs/workflows/variables#global-variables). It's hidden in run logs either way. The request goes out from OneUptime, and a redirect is not followed. A device on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
 
 ## Email
 

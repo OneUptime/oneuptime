@@ -178,6 +178,23 @@ Onder **Meer velden**:
 
 Bewaar de webhook-URL in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen): iedereen die hem heeft, kan in het kanaal posten. Hij is hoe dan ook verborgen in de logboeken van uitvoeringen. Het bericht gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een webhook op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een webhook op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
+## SMSEagle
+
+Stuur een sms of voer een tekst-naar-spraakgesprek via een SMSEagle-apparaat, een hardware-sms-gateway op je eigen netwerk. **Send SMS via SMSEagle** stuurt een sms, en **Make a Call via SMSEagle** belt het nummer en leest de tekst voor.
+
+| Instelling                | Wat het doet                                                                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Het adres van het apparaat, zoals `https://192.168.0.100`. Het pad van de API v2 voegt het blok zelf toe.                                                                        |
+| **SMSEagle Access Token** | Een API v2-sleutel uit het webpaneel van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken. |
+| **Telefoonnummer**        | Het nummer dat de sms of het gesprek krijgt, in internationaal formaat, zoals `+15551234567`.                                                                                    |
+| **Message Text**          | De tekst van de sms. Alleen in **Send SMS via SMSEagle**.                                                                                                                        |
+| **Voice ID**              | Het ID van een tekst-naar-spraakstem op het apparaat. Alleen in **Make a Call via SMSEagle**.                                                                                    |
+| **Text to Read Out**      | De tekst die het apparaat tijdens het gesprek voorleest. Alleen in **Make a Call via SMSEagle**.                                                                                 |
+
+**Success** gaat af als het apparaat de sms of het gesprek in de wachtrij heeft gezet, en geeft het **Message ID** terug dat het apparaat eraan gaf. **Error** gaat af als het apparaat niet bereikbaar is of hem weigert, en geeft de reden door, zoals `voice_id: Resource with specified ID not found.` van SMSEagle. Een ontbrekende instelling, of een **Voice ID** dat geen getal is, stopt de uitvoering daarentegen.
+
+Bewaar het toegangstoken in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen). Het is hoe dan ook verborgen in de logboeken van uitvoeringen. Het verzoek gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een apparaat op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een apparaat op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
+
 ## Email
 
 Stuur een e-mail via een SMTP-server die je in het blok invult. Het blok heet **Send Email**.

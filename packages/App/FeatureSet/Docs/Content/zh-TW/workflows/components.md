@@ -178,6 +178,23 @@ Mattermost 接受訊息時觸發 **Success**。無法連線到伺服器或 Matte
 
 把 Webhook URL 保存在 [機密全域變數](/docs/workflows/variables#全域變數) 中：任何拿到它的人都能在該頻道張貼訊息。無論如何它在執行日誌中都會被隱藏。訊息由 OneUptime 發出，不會追蹤重新導向。位於回送位址（`localhost`、`127.0.0.1`）、link-local 位址或雲端中繼資料位址的 Webhook 會被拒絕；位於私人網路位址的也會被拒絕，除非自行託管的管理員透過 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允許它。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。
 
+## SMSEagle
+
+透過 SMSEagle 裝置（一種位於你自己網路中的硬體簡訊閘道）傳送簡訊或撥打文字轉語音電話。**Send SMS via SMSEagle** 傳送簡訊，**Make a Call via SMSEagle** 撥打該號碼並朗讀文字。
+
+| 設定                        | 作用                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | 裝置的位址，例如 `https://192.168.0.100`。API v2 的路徑由元件自行加上。                                                        |
+| **SMSEagle Access Token** | 在 SMSEagle 網頁面板的 Settings、API、API v2 中建立的 API v2 金鑰。簡訊需要 "Send SMS" 權限，電話需要 "Make a TTS Advanced Call" 權限。 |
+| **電話號碼**                  | 接收簡訊或電話的號碼，採用國際格式，例如 `+15551234567`。                                                                       |
+| **Message Text**          | 簡訊的內文。僅在 **Send SMS via SMSEagle** 中。                                                                      |
+| **Voice ID**              | 裝置上某個文字轉語音聲音的 ID。僅在 **Make a Call via SMSEagle** 中。                                                        |
+| **Text to Read Out**      | 裝置在通話中朗讀的文字。僅在 **Make a Call via SMSEagle** 中。                                                             |
+
+裝置將簡訊或電話放入佇列時觸發 **Success**，並傳回裝置為其指派的 **Message ID**。無法連線到裝置或裝置拒絕時觸發 **Error**，並傳下原因，例如 SMSEagle 的 `voice_id: Resource with specified ID not found.`。而缺少某個設定，或 **Voice ID** 不是數字，會停止執行。
+
+把存取權杖保存在 [機密全域變數](/docs/workflows/variables#全域變數) 中。無論如何它在執行日誌中都會被隱藏。請求由 OneUptime 發出，不會追蹤重新導向。位於回送位址（`localhost`、`127.0.0.1`）、link-local 位址或雲端中繼資料位址的裝置會被拒絕；位於私人網路位址的也會被拒絕，除非自行託管的管理員透過 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允許它。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。
+
 ## Email
 
 透過你在區塊上指定的 SMTP 伺服器寄送電子郵件。這個區塊叫做 **Send Email**。
