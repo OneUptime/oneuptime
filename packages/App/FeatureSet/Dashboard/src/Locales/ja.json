@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "モニターの最初のクエリが読み取るメトリクスの名前。",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "稼働率が{{percent}}%未満の日はどのルールにも一致しないため、デフォルトのバーの色になります。",
+  "Bar Color Preview": "バーの色のプレビュー",
+  "Deuteranopia (red-green)": "2型色覚（赤緑）",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "稼働率履歴の各バーは1日を表します。ルールはその日の稼働率で日を色分けします。ルールは上から順に確認され、その日の稼働率が最初に達したルールが色を決めます。",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "各日は、その日にあった最も深刻なモニターステータスの色になります（1分間だけでも）。推奨ルールは、ダウンしていた時間の長さで日を色分けし、赤緑色覚異常の人にも見分けられる色を使います。",
+  "Full color vision": "一般色覚",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "ステータスページで各種類の日がどう見えるか：多くの人の見え方と、赤緑色覚異常の人の見え方。",
+  "No bar color rules": "バーの色のルールはありません",
+  "Protanopia (red-green)": "1型色覚（赤緑）",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "どのバーの色のルールにも一致しない日の色です。監視データがない日は、常にグレーのストライプで表示されます。",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "{{percent}}%のルールが日を色分けすることはありません。その上のルールが、このルールに一致するすべての日にすでに一致しています。上にドラッグしてください。",
+  "Under {{percent}}%": "{{percent}}%未満",
+  "Use Recommended Rules": "推奨ルールを使用",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "ルールがない場合、各日はその日にあった最も深刻なモニターステータスの色になります（1分間だけでも）。",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}}と{{second}}は、赤緑色覚異常の人には同じように見えます。",
+  "{{percent}}% or more": "{{percent}}%以上"
 }

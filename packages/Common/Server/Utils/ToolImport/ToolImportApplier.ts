@@ -115,6 +115,7 @@ import TeamService from "../../Services/TeamService";
 import ToolImportRecordService from "../../Services/ToolImportRecordService";
 import Errors from "../Errors";
 import ToolImportProjectStateReader from "./ToolImportProjectStateReader";
+import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "../../../Utils/StatusPage/HistoryChartBarColors";
 
 /*
  * THE IMPORT: WHAT THE PERSON TICKED, CREATED THROUGH ONEUPTIME'S OWN
@@ -739,9 +740,17 @@ class ApplyRun {
       page.enableSearchEngineIndexing = !source.isHiddenFromSearchEngines;
     }
 
+    /*
+     * Its uptime bars graded by how long each day was down, as a page made
+     * in the dashboard starts - and as the pages these tools draw do - not
+     * a whole day in the Offline color for a minute of it.
+     */
     const created: StatusPage = await StatusPageService.create({
       data: page,
       props: this.input.props,
+      miscDataProps: {
+        [ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY]: true,
+      },
     });
 
     const statusPageId: string = created.id!.toString();

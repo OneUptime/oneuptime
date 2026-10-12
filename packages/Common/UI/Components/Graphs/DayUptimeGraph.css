@@ -1,0 +1,19 @@
+/* ---------- A day with no data ----------
+   Pale diagonal stripes over the no-data grey (NO_DATA_BAR_COLOR, drawn as
+   the bar's background colour). The grey alone is as light as the green a
+   good day is drawn in, and to a reader with red-green colour blindness that
+   green is a grey too (Utils/ColorVision): a day nobody measured looked like
+   a good one to them. Stripes are not a colour, and every eye tells them from
+   a solid bar.
+
+   A class rather than an inline style so the bar and the swatch that names it
+   in a legend (the dashboard's bar color preview) can never drift apart. */
+.uptime-bar-no-data {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0,
+    rgba(255, 255, 255, 0.55) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}

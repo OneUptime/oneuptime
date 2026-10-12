@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "उस मेट्रिक का नाम जिसे मॉनिटर की पहली क्वेरी पढ़ती है।",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "{{percent}}% से कम अपटाइम वाला दिन किसी नियम से मेल नहीं खाता, इसलिए उसे डिफ़ॉल्ट बार रंग मिलता है।",
+  "Bar Color Preview": "बार रंग पूर्वावलोकन",
+  "Deuteranopia (red-green)": "ड्यूटेरानोपिया (लाल-हरा)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "अपटाइम इतिहास का हर बार एक दिन है। नियम किसी दिन को उसके अपटाइम के आधार पर रंगते हैं: उन्हें ऊपर से जाँचा जाता है, और दिन का अपटाइम जिस पहले नियम तक पहुँचता है, वही उसका रंग तय करता है।",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "हर दिन को उस दिन की सबसे गंभीर मॉनिटर स्थिति का रंग मिलता है, भले ही वह सिर्फ़ एक मिनट के लिए रही हो। अनुशंसित नियम किसी दिन को इस आधार पर रंगते हैं कि वह कितनी देर डाउन रहा, ऐसे रंगों में जिन्हें लाल-हरा रंग-अंधता वाले लोग अलग पहचान सकते हैं।",
+  "Full color vision": "पूर्ण रंग दृष्टि",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "आपके स्टेटस पेज पर हर तरह का दिन कैसा दिखता है: जैसा ज़्यादातर लोग उसे देखते हैं, और जैसा लाल-हरा रंग-अंधता वाले लोग उसे देखते हैं।",
+  "No bar color rules": "कोई बार रंग नियम नहीं",
+  "Protanopia (red-green)": "प्रोटानोपिया (लाल-हरा)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "उस दिन का रंग जिससे कोई बार रंग नियम मेल नहीं खाता। बिना मॉनिटरिंग डेटा वाला दिन हमेशा धूसर और धारीदार दिखाया जाता है।",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "{{percent}}% वाला नियम कभी किसी दिन को नहीं रंगता: उसके ऊपर का नियम पहले से हर उस दिन से मेल खाता है जिससे यह खाता। इसे ऊपर खींचें।",
+  "Under {{percent}}%": "{{percent}}% से कम",
+  "Use Recommended Rules": "अनुशंसित नियमों का उपयोग करें",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "नियमों के बिना, किसी दिन को उस दिन की सबसे गंभीर मॉनिटर स्थिति का रंग मिलता है, भले ही वह सिर्फ़ एक मिनट के लिए रही हो।",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "लाल-हरा रंग-अंधता वाले लोगों को {{first}} और {{second}} एक जैसे दिखते हैं।",
+  "{{percent}}% or more": "{{percent}}% या अधिक"
 }
