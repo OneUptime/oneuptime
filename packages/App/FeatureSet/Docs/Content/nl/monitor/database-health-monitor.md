@@ -37,7 +37,7 @@ Azure SQL Database en Azure SQL Managed Instance maken verbinding als **Microsof
 
 PostgreSQL- en MySQL-compatibele engines die hetzelfde wire-protocol spreken werken meestal, maar kunnen minder statistiekviews bieden; de betreffende metrics worden dan als niet beschikbaar gerapporteerd in plaats van verzameld. Alleen de drie engines hierboven zijn officieel getest.
 
-Elke database die je applicaties, clusters en hosts gebruiken — deze drie engines en nog veel meer — krijgt ook een eigen pagina met de engine-metrics, logs en de services die hem aanroepen: zie [Databases](/docs/telemetry/databases). Als de host en poort waarmee een Database Health-monitor verbinding maakt een van de endpoints van een database zijn, verschijnen de alarmen en incidenten van de monitor ook op de pagina van die database (zie [Alarmen bij een database](/docs/telemetry/databases#alerts-on-a-database)).
+Elke database die je applicaties, clusters en hosts gebruiken — deze drie engines en nog veel meer — krijgt ook een eigen pagina met de engine-metrics, logs en de services die hem aanroepen: zie [Databases](/docs/telemetry/databases). Als de host en poort waarmee een Database Health-monitor verbinding maakt een van de endpoints van een database zijn, verschijnen de alarmen en incidenten van de monitor ook op de pagina van die database (zie [Alarmen bij een database](/docs/telemetry/databases#waarschuwingen-voor-een-database)).
 
 ## Hoe het werkt
 

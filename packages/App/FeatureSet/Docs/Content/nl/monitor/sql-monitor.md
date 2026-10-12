@@ -49,7 +49,7 @@ De volledige resultaatset wordt nooit naar OneUptime gestuurd, dus klantgegevens
 
 MySQL- en PostgreSQL-compatibele engines die hetzelfde wire-protocol en hetzelfde SQL-dialect spreken, werken meestal ook, maar alleen de drie engines hierboven worden officieel getest.
 
-Zijn de host en poort waarmee de monitor verbinding maakt een van de endpoints van een database op de pagina [Databases](/docs/telemetry/databases), dan verschijnen de waarschuwingen en incidenten ervan ook op de pagina van die database (zie [Waarschuwingen voor een database](/docs/telemetry/databases#alerts-on-a-database)). Een host die als verwijzing naar een monitorgeheim is opgegeven, wordt niet gekoppeld.
+Zijn de host en poort waarmee de monitor verbinding maakt een van de endpoints van een database op de pagina [Databases](/docs/telemetry/databases), dan verschijnen de waarschuwingen en incidenten ervan ook op de pagina van die database (zie [Waarschuwingen voor een database](/docs/telemetry/databases#waarschuwingen-voor-een-database)). Een host die als verwijzing naar een monitorgeheim is opgegeven, wordt niet gekoppeld.
 
 ## Beveiligingsmodel
 

@@ -49,7 +49,7 @@ O conjunto completo de resultados nunca é enviado ao OneUptime, então os dados
 
 Mecanismos compatíveis com MySQL e PostgreSQL que falam o mesmo protocolo de rede e o mesmo dialeto SQL costumam funcionar também, mas só os três mecanismos acima são testados oficialmente.
 
-Quando o host e a porta aos quais o monitor se conecta são um dos endpoints de um banco de dados da página [Bancos de dados](/docs/telemetry/databases), os alertas e incidentes dele também aparecem na página desse banco de dados (veja [Alertas de um banco de dados](/docs/telemetry/databases#alerts-on-a-database)). Um host informado como referência a um segredo do monitor não é associado.
+Quando o host e a porta aos quais o monitor se conecta são um dos endpoints de um banco de dados da página [Bancos de dados](/docs/telemetry/databases), os alertas e incidentes dele também aparecem na página desse banco de dados (veja [Alertas de um banco de dados](/docs/telemetry/databases#alertas-sobre-um-banco-de-dados)). Um host informado como referência a um segredo do monitor não é associado.
 
 ## Modelo de segurança
 

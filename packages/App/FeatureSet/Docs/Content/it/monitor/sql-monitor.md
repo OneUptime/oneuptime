@@ -49,7 +49,7 @@ L'insieme completo dei risultati non viene mai inviato a OneUptime, quindi i dat
 
 I motori compatibili con MySQL e PostgreSQL che usano lo stesso protocollo di rete e lo stesso dialetto SQL in genere funzionano anch'essi, ma solo i tre motori sopra sono testati ufficialmente.
 
-Quando l'host e la porta a cui si connette il monitor sono uno degli endpoint di un database della pagina [Database](/docs/telemetry/databases), i suoi avvisi e incidenti compaiono anche nella pagina di quel database (consultate [Avvisi su un database](/docs/telemetry/databases#alerts-on-a-database)). Un host indicato come riferimento a un segreto del monitor non viene abbinato.
+Quando l'host e la porta a cui si connette il monitor sono uno degli endpoint di un database della pagina [Database](/docs/telemetry/databases), i suoi avvisi e incidenti compaiono anche nella pagina di quel database (consultate [Avvisi su un database](/docs/telemetry/databases#avvisi-su-un-database)). Un host indicato come riferimento a un segreto del monitor non viene abbinato.
 
 ## Modello di sicurezza
 
