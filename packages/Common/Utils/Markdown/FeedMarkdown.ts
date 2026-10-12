@@ -55,9 +55,11 @@ import type ObjectID from "../../Types/ObjectID";
  *     mentions and line breaks as above. "#", "-", "+" and ">" only start
  *     blocks, which a link's text never does, so "INC-7" is left as typed.
  *   - As a link's address: characters that would end the address are
- *     percent-encoded, and only a web, mailto or relative address is kept.
+ *     percent-encoded ("|" too, which ends a table cell), and only a web,
+ *     mailto or relative address is kept.
  *   - Inside a code span: the span is written again around the value with
- *     markdownCodeSpan, so a backtick in the value cannot close it.
+ *     markdownCodeSpan, so a backtick in the value cannot close it, and in a
+ *     table row it is placed in its cell (markdownTableCell).
  *   - Inside a fenced code block: the fence is made longer than any fence in
  *     the value, and chat mentions and Slack links are broken.
  *
@@ -210,6 +212,8 @@ interface RewrittenRun {
   // [start, end) in the skeleton.
   start: number;
   end: number;
+  // CodeSpan: the span sits in a table row, where "|" ends a cell.
+  inTableRow?: boolean;
   // FencedCode: the fence lines and what is between them.
   fence?: {
     character: string;
@@ -702,6 +706,7 @@ const readTemplate: ReadTemplateFunction = (
           kind: "CodeSpan",
           start: span.start,
           end: span.end,
+          inTableRow: inTableRow,
         });
       }
     }
@@ -923,7 +928,10 @@ const escapeLinkTextValue: EscapeLinkTextValueFunction = (
     .replace(CHARACTER_REFERENCE_AMPERSAND_PATTERN, "\\&");
 };
 
-// What would end or break a link's address, percent-encoded.
+/*
+ * What would end or break a link's address, percent-encoded - "|" too,
+ * which ends a table cell even inside a link.
+ */
 const LINK_ADDRESS_ENCODINGS: Record<string, string> = {
   " ": "%20",
   "(": "%28",
@@ -934,9 +942,10 @@ const LINK_ADDRESS_ENCODINGS: Record<string, string> = {
   "`": "%60",
   '"': "%22",
   "'": "%27",
+  "|": "%7C",
 };
 
-const LINK_ADDRESS_UNSAFE_PATTERN: RegExp = /[\s()<>\\`"'\p{Cc}]/gu;
+const LINK_ADDRESS_UNSAFE_PATTERN: RegExp = /[\s()<>\\`"'|\p{Cc}]/gu;
 
 // A scheme: letters, then letters, digits, "+", "." or "-", then ":".
 const LINK_ADDRESS_SCHEME_PATTERN: RegExp = /^([A-Za-z][A-Za-z0-9+.-]*):/;
@@ -1109,9 +1118,16 @@ const renderRun: RenderRunFunction = (data: {
       data.run.end,
     );
 
-    return markdownCodeSpan(
+    const span: string = markdownCodeSpan(
       contentOf(data.run.start + fence, data.run.end - fence),
     );
+
+    /*
+     * In a table row a "|" ends the cell even inside a code span, so the
+     * span is placed in its cell too: each "|" in it gets the backslash
+     * that keeps it there, and a table reader shows it without it.
+     */
+    return data.run.inTableRow ? markdownTableCell(span) : span;
   }
 
   const fence: NonNullable<RewrittenRun["fence"]> = data.run.fence!;
